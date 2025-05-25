@@ -34,8 +34,6 @@ export class AIControllerSystem {
 
       this.movementSystem.setIntent(intent.movement);
       this.weaponSystem.setIntent(intent.weapons);
-
-      // === CRITICAL MISSING STEP ===
       this.movementSystem.update(dt);
       
       // Add defensive check before updating weapon system

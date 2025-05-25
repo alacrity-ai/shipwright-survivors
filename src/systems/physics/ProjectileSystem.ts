@@ -13,6 +13,7 @@ import { Grid } from '@/systems/physics/Grid';  // Import the Grid
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
+import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
 
 import { PickupSpawner } from '@/systems/pickups/PickupSpawner'; // Import PickupSpawner
 import { PickupSystem } from '@/systems/pickups/PickupSystem'; // Assuming the PickupSystem is available
@@ -152,29 +153,52 @@ export class ProjectileSystem {
     }
 
     if (block.hp <= 0) {
-      // Find the grid coordinates of this block within the ship
       const blockCoord = this.findBlockCoordinatesInShip(block, ship);
-      if (blockCoord) {        
-        // Create a larger explosion for block destruction
-        this.explosionSystem.createBlockExplosion(
-          ship.getTransform().position,
-          ship.getTransform().rotation,
-          blockCoord,
-          70, // Larger explosion for destruction
-          0.7 // Longer duration
-        );
-        
-        ship.removeBlock(blockCoord);
-        
-        // Check if the destroyed block was a cockpit
-        if (block.type.id === 'cockpit') {
-          this.destroyShip(ship);
-        }
-
-         // Delegate pickup spawning to PickupSpawner
-        this.pickupSpawner.spawnPickupOnBlockDestruction(block);  // One-liner to spawn a pickup
-      } else {
+      if (!blockCoord) {
         console.error('Could not find block coordinates in ship');
+        return;
+      }
+
+      // Create a larger explosion for block destruction
+      this.explosionSystem.createBlockExplosion(
+        ship.getTransform().position,
+        ship.getTransform().rotation,
+        blockCoord,
+        70,
+        0.7
+      );
+
+      ship.removeBlock(blockCoord);
+      this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+
+      // === Cockpit logic ===
+      if (block.type.id === 'cockpit') {
+        this.destroyShip(ship);
+        return;
+      }
+
+      // === Identify disconnected blocks ===
+      const cockpitCoord = ship.getCockpitCoord?.();
+      if (!cockpitCoord) {
+        console.warn('Ship has no cockpit coordinate');
+        return;
+      }
+
+      const connectedSet = getConnectedBlockCoords(ship, cockpitCoord);
+      const serialize = (c: GridCoord) => `${c.x},${c.y}`;
+
+      for (const [coord, orphanBlock] of ship.getAllBlocks()) {
+        if (!connectedSet.has(serialize(coord))) {
+          this.explosionSystem.createBlockExplosion(
+            ship.getTransform().position,
+            ship.getTransform().rotation,
+            coord,
+            60 + Math.random() * 20,
+            0.5 + Math.random() * 0.3
+          );
+          this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
+          ship.removeBlock(coord);
+        }
       }
     }
   }
@@ -205,10 +229,16 @@ export class ProjectileSystem {
           transform.position,
           transform.rotation,
           coord,
-          50 + Math.random() * 40, // Larger random size
-          0.5 + Math.random() * 0.5 // Longer random duration
+          50 + Math.random() * 40,
+          0.5 + Math.random() * 0.5
         );
-      }, index * 50); // Stagger explosions for chain reaction effect
+
+        // NEW: ensure every block gets a pickup chance
+        this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+
+        // Optional: remove block from ship after explosion
+        ship.removeBlock(coord); // <- if not already handled by ShipRegistry
+      }, index * 50);
     });
     
     // 1. Remove any AI controllers for this ship

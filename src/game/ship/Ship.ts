@@ -112,6 +112,13 @@ export class Ship {
     return this.blocks.get(toKey({ x: 0, y: 0 }));
   }
 
+  getCockpitCoord(): GridCoord | undefined {
+    if (this.getCockpit()) {
+      return { x: 0, y: 0 };
+    }
+    return undefined;
+  }
+
   getTotalMass(): number {
     if (this.totalMass == null) {
       this.totalMass = 0;

@@ -95,41 +95,39 @@ export function orbitTarget(
 
   const directionToTarget = normalize(toTarget);
 
-  // Tangent vector (perpendicular to radial direction)
+  // Tangent vector (ideal orbit path)
   const orbitDirection = { x: -directionToTarget.y, y: directionToTarget.x };
 
-  // Velocity projection onto orbital tangent
-  const velocityAlongOrbit = dot(currentVel, orbitDirection);
-  const isOrbiting = Math.abs(velocityAlongOrbit) > 5;
-
-  // Determine where the ship *should* be facing (a point along tangent)
-  const orbitTargetPoint = {
-    x: targetPos.x + orbitDirection.x * desiredRadius,
-    y: targetPos.y + orbitDirection.y * desiredRadius
-  };
-
-  // Determine if thrust vector is aligned with orbit direction
-  const thrustDelta = getThrustAlignmentDelta(ship, orbitTargetPoint);
+  // === Phase 1: Determine rotation ===
+  const netThrustDir = getNetThrustDirection(ship); // Approximate facing
+  const desiredFacing = Math.atan2(orbitDirection.y, orbitDirection.x);
+  const currentFacing = Math.atan2(netThrustDir.y, netThrustDir.x);
+  const angleDelta = angleDiff(currentFacing, desiredFacing);
 
   const tolerance = 0.05;
+  const rotateLeft = angleDelta < -tolerance;
+  const rotateRight = angleDelta > tolerance;
 
-  const rotateLeft = thrustDelta > tolerance && dot(getNetThrustDirection(ship), { x: -orbitDirection.y, y: orbitDirection.x }) < 0;
-  const rotateRight = thrustDelta > tolerance && !rotateLeft;
-
+  // === Phase 2: Decide thrust/brake ===
   let thrustForward = false;
   let brake = false;
 
+  // New: Only brake if velocity is *against* the orbital path significantly
+  const velocityAlignment = dot(normalize(currentVel), orbitDirection);
+
   if (Math.abs(radiusError) > 20) {
-    // Apply correction
     if (radiusError > 0) {
-      // Too far → speed up
+      // Too far: increase orbital speed
       thrustForward = true;
-    } else if (radiusError < 0 && isOrbiting) {
-      // Too close → slow down
+    } else if (radiusError < 0 && velocityAlignment > 0.7) {
+      // Too close: slow down, but only if still moving along orbit
       brake = true;
     }
   } else {
-    thrustForward = true; // maintain orbit
+    // Slightly too slow or misaligned? Push a little.
+    if (velocityAlignment < 0.5) {
+      thrustForward = true;
+    }
   }
 
   return {

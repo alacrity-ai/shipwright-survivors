@@ -47,19 +47,20 @@ export class ShipBuilderController {
     const blockCost = getBlockCost(blockId);
     if (blockCost === undefined) return;
 
+    if (wasRightClicked()) {
+      const block = this.ship.getBlock(coord);
+      if (block && block.type.id !== 'cockpit') {
+        this.ship.removeBlock(coord);
+        const refundCost = Math.round(blockCost / 2);
+        PlayerResources.getInstance().addCurrency(refundCost);
+      }
+    }
     // Check if the player has enough currency to place the block
     if (PlayerResources.getInstance().hasEnoughCurrency(blockCost)) {
       if (wasMouseClicked()) {
         if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
           this.ship.placeBlockById(coord, blockId, this.rotation);
           PlayerResources.getInstance().spendCurrency(blockCost); // Deduct the cost from player's currency
-        }
-      }
-
-      if (wasRightClicked()) {
-        const block = this.ship.getBlock(coord);
-        if (block && block.type.id !== 'cockpit') {
-          this.ship.removeBlock(coord);
         }
       }
     } else {
