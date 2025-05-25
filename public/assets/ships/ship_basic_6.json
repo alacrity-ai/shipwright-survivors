@@ -1,0 +1,947 @@
+{
+  "transform": {
+    "position": {
+      "x": 602.4791302805776,
+      "y": -844.3917643169077
+    },
+    "rotation": 31.088542194312836
+  },
+  "blocks": [
+    {
+      "id": "cockpit",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 0,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": -1,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 1,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": -1,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 0,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 1,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -2
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": -2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": -2
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": -3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": -4
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": -3
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": -4
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -3
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -4
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -6
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": -5
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": -6
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": -5
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": -6
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": -7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": -7
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -7
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -3,
+        "y": 3
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -4,
+        "y": 3
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 3,
+        "y": 3
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 4,
+        "y": 3
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": 2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -5,
+        "y": 3
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -6,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -7,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 5,
+        "y": 3
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 6,
+        "y": 4
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 7,
+        "y": 5
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 6,
+        "y": 5
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -6,
+        "y": 5
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -5,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 5,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -2,
+        "y": 8
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 2,
+        "y": 8
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -2,
+        "y": 9
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -2,
+        "y": 10
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 2,
+        "y": 9
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 2,
+        "y": 10
+      },
+      "rotation": 270
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": -1,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 0,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 1,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": 11
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": 11
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -7,
+        "y": 6
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -6,
+        "y": 6
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -6,
+        "y": 7
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -5,
+        "y": 7
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -5,
+        "y": 8
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -4,
+        "y": 8
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -4,
+        "y": 9
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -3,
+        "y": 9
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -3,
+        "y": 10
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": 10
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": 9
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 4,
+        "y": 9
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 4,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 5,
+        "y": 8
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 5,
+        "y": 7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 6,
+        "y": 7
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 6,
+        "y": 6
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 7,
+        "y": 6
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -4,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -3,
+        "y": 2
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -3,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": 1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": 2
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 4,
+        "y": 2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": -6
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": -6
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": -5
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -3,
+        "y": -5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": -5
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": -5
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": -4
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -3,
+        "y": -4
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -2,
+        "y": -3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": -3
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": -4
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 2,
+        "y": -4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": -2,
+        "y": 6
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": -2,
+        "y": 7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 2,
+        "y": 7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 2,
+        "y": 6
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": -2,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 2,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": -2,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": -2,
+        "y": 3
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 2,
+        "y": 3
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret2",
+      "coord": {
+        "x": 2,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": -3,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": -4,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": 3,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": 4,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": -1,
+        "y": 11
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": 0,
+        "y": 11
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": 1,
+        "y": 11
+      },
+      "rotation": 0
+    }
+  ]
+}
