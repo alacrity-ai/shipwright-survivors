@@ -1,11 +1,12 @@
 {
-  "name": "reactgame",
+  "name": "shipwright-survivors",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "deploy": "vite build && gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },

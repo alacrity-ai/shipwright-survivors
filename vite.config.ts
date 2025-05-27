@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     tsconfigPaths(), // <-- Use the imported plugin
   ],
-  base: isProduction ? '/shipwars/' : './',
+  base: isProduction ? '/shipwright-survivors/' : './',
   publicDir: 'public',
   resolve: {
     alias: {
