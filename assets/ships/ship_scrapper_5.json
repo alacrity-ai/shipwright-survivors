@@ -1,0 +1,411 @@
+{
+  "transform": {
+    "position": {
+      "x": 1013.9089176381636,
+      "y": -1419.8006984359058
+    },
+    "rotation": 7.717704039466197
+  },
+  "blocks": [
+    {
+      "id": "cockpit",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": -1,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": 1,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": 0,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -2,
+        "y": 2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 2,
+        "y": 2
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 2,
+        "y": 3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 2,
+        "y": 4
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -2,
+        "y": 3
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -2,
+        "y": 4
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": -2,
+        "y": 5
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": 2,
+        "y": 5
+      },
+      "rotation": 180
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": -1,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": 0,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": 1,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -1,
+        "y": -2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -1,
+        "y": -3
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 1,
+        "y": -2
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 1,
+        "y": -3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": -1,
+        "y": -4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": 1,
+        "y": -4
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 0,
+        "y": -4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": -2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": -3
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -3,
+        "y": 2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -3,
+        "y": 3
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 3,
+        "y": 3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 3,
+        "y": 2
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": -4,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": 4,
+        "y": 2
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": -3,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": 3,
+        "y": 1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": -2,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": 2,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -2,
+        "y": 1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 2,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -4,
+        "y": 3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 4,
+        "y": 3
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": -4,
+        "y": 4
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin0",
+      "coord": {
+        "x": 4,
+        "y": 4
+      },
+      "rotation": 180
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": -3,
+        "y": 4
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine0",
+      "coord": {
+        "x": 3,
+        "y": 4
+      },
+      "rotation": 0
+    }
+  ]
+}
