@@ -3,9 +3,9 @@
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { Vec2 } from '@/systems/ai/helpers/VectorUtils';
 import type { Ship } from '@/game/ship/Ship';
-import { angleDiff, subtract, normalize, vectorMagnitude, dot, predictPosition } from '../helpers/VectorUtils';
-import { getNetThrustDirection } from '../helpers/ThrustUtils';
-import { getThrustAlignmentDelta, isThrustFacingTarget } from '../helpers/ShipUtils';
+import { angleDiff, subtract, normalize, vectorMagnitude, dot, predictPosition } from '@/systems/ai/helpers/VectorUtils';
+import { getNetThrustDirection } from '@/systems/ai/helpers/ThrustUtils';
+import { isThrustFacingTarget } from '@/systems/ai/helpers/ShipUtils';
 
 /**
  * Rotates the ship to align its thrust direction toward the target.

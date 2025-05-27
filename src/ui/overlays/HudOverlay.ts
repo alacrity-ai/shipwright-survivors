@@ -27,7 +27,7 @@ export class HudOverlay {
 
   render(): void {
     const ctx = this.canvasManager.getContext('ui');
-    const { position, velocity } = this.ship.getTransform();
+    const { velocity } = this.ship.getTransform();
 
     const blocks = this.ship.getAllBlocks();
     const mass = blocks.reduce((sum, [_, b]) => sum + b.type.mass, 0);

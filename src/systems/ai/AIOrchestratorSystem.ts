@@ -1,9 +1,7 @@
 // src/systems/ai/AIOrchestratorSystem.ts
 
 import type { AIControllerSystem } from './AIControllerSystem';
-import type { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import type { IUpdatable } from '@/core/interfaces/types';
-import type { Ship } from '@/game/ship/Ship';
 
 /**
  * Central coordinator for AI update scheduling.
@@ -13,7 +11,7 @@ export class AIOrchestratorSystem implements IUpdatable {
   private readonly controllers: Set<AIControllerSystem> = new Set();
   private static instance: AIOrchestratorSystem | null = null;
 
-  constructor(private readonly shipCulling: ShipCullingSystem) {
+  constructor() {
     AIOrchestratorSystem.instance = this;
   }
 
@@ -27,27 +25,19 @@ export class AIOrchestratorSystem implements IUpdatable {
 
   update(dt: number): void {
     // Get the current set of active ships from the culling system
-    const activeShips: Set<Ship> = new Set(this.shipCulling.getActiveAIShips());
     const controllersToRemove: AIControllerSystem[] = [];
 
     for (const controller of this.controllers) {
       try {
         const ship = controller.getShip();
-        
-        // Only remove controllers for ships that are definitely invalid
-        // A ship is invalid if:
-        // 1. It's undefined
-        // 2. It doesn't have the getAllBlocks method (indicating it's been destroyed)
+
         if (!ship || typeof ship.getAllBlocks !== 'function') {
           controllersToRemove.push(controller);
           continue;
         }
         
-        // IMPORTANT: Don't check activeShips.has(ship) during initialization
-        // Ships might not be in the active list yet when they're first created
-        
-        // If we get here, the ship is valid, so update the controller
         controller.update(dt);
+
       } catch (error) {
         console.error("Error in AI controller:", error);
         controllersToRemove.push(controller);

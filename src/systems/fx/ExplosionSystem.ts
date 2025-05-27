@@ -27,7 +27,7 @@ export class ExplosionSystem {
   private ctx: CanvasRenderingContext2D;
 
   constructor(
-    private readonly canvasManager: CanvasManager,
+    canvasManager: CanvasManager,
     private readonly camera: Camera
   ) {
     this.ctx = canvasManager.getContext('fx');
@@ -35,7 +35,7 @@ export class ExplosionSystem {
 
   // Create an explosion at the given world position
   createExplosion(position: { x: number; y: number }, size: number = 60, life: number = 0.6): void {
-    const sparks = this.generateSparks(position, size * 0.8, 10 + Math.floor(size / 10));
+    const sparks = this.generateSparks(position, 10 + Math.floor(size / 10));
     
     this.explosions.push({
       position: { ...position },
@@ -77,14 +77,13 @@ export class ExplosionSystem {
   }
 
   // Generate sparks for an explosion
-  private generateSparks(position: { x: number; y: number }, maxDistance: number, count: number): Spark[] {
+  private generateSparks(position: { x: number; y: number }, count: number): Spark[] {
     const sparks: Spark[] = [];
     const sparkColors = ['#ffff00', '#ff9900', '#ff6600', '#ff3300', '#ffffff'];
     
     for (let i = 0; i < count; i++) {
       // Random angle and distance
       const angle = Math.random() * Math.PI * 2;
-      const distance = maxDistance * (0.3 + Math.random() * 0.7);
       
       // Calculate velocity
       const speed = 50 + Math.random() * 150;

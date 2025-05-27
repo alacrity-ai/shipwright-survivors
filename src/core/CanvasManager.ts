@@ -18,7 +18,7 @@ export class CanvasManager {
   private readonly width = VIEWPORT_WIDTH;
   private readonly height = VIEWPORT_HEIGHT;
 
-  constructor(private container: HTMLElement) {
+  constructor() {
     this.initializeCanvases();
     this.setFixedSize();
   }

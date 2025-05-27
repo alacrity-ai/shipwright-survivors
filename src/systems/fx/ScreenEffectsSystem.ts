@@ -13,7 +13,7 @@ export class ScreenEffectsSystem {
   private width: number;
   private height: number;
 
-  constructor(private readonly canvasManager: CanvasManager) {
+  constructor(canvasManager: CanvasManager) {
     try {
       // Use the overlay canvas for screen effects
       this.ctx = canvasManager.getContext('overlay');

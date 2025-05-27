@@ -12,7 +12,7 @@ function App() {
     const container = document.getElementById('canvas-root');
     if (!container) throw new Error('Missing canvas root');
 
-    runtime = new EngineRuntime(container);
+    runtime = new EngineRuntime();
     runtime.start();
   }, []);
 

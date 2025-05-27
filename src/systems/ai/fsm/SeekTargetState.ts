@@ -18,7 +18,7 @@ export class SeekTargetState extends BaseAIState {
     this.target = target;
   }
 
-  update(dt: number): ShipIntent {
+  update(): ShipIntent {
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
 

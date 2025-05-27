@@ -32,7 +32,7 @@ import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import { getStarterShip } from '@/game/ship/utils/PrefabHelpers';
 import { populateWorldWithShips } from '@/game/ship/utils/populateWorld';
-import { Grid } from '@/systems/physics/Grid';  // Global Grid import
+import { Grid } from '@/systems/physics/Grid';
 
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
@@ -80,8 +80,8 @@ export class EngineRuntime {
 
   private escapeCooldown = 0;
 
-  constructor(container: HTMLElement) {
-    this.canvasManager = new CanvasManager(container);
+  constructor() {
+    this.canvasManager = new CanvasManager();
     this.gameLoop = new GameLoop();
     this.camera = new Camera(1280, 720);
 
@@ -105,7 +105,6 @@ export class EngineRuntime {
     this.projectileSystem = new ProjectileSystem(
       this.canvasManager, 
       this.camera, 
-      this.shipCulling, 
       this.grid,
       this.explosionSystem,
       this.screenEffects,
@@ -120,18 +119,18 @@ export class EngineRuntime {
     this.uiRenderer = new UIRenderer(this.canvasManager, this.menuManager);
 
     this.movement = new MovementSystem(this.ship, emitter);
-    this.weaponSystem = new WeaponSystem(this.projectileSystem, this.camera);
-    this.playerController = new PlayerControllerSystem(this.ship, this.camera);
+    this.weaponSystem = new WeaponSystem(this.projectileSystem);
+    this.playerController = new PlayerControllerSystem(this.camera);
     this.shipBuilderController = new ShipBuilderController(this.ship, this.shipBuilderMenu, this.camera);
 
     // AI orchestration system
-    this.aiOrchestrator = new AIOrchestratorSystem(this.shipCulling);
+    this.aiOrchestrator = new AIOrchestratorSystem();
 
     this.hud = new HudOverlay(this.canvasManager, this.ship);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
 
     // Spawn enemy ship for testing
-    populateWorldWithShips(this.shipRegistry, this.aiOrchestrator, this.ship, this.projectileSystem, this.camera, this.thrusterFx, this.grid);
+    populateWorldWithShips(this.shipRegistry, this.aiOrchestrator, this.ship, this.projectileSystem, this.thrusterFx, this.grid);
 
     this.updatables = [
       this.movement,

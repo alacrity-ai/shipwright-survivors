@@ -7,7 +7,6 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import { getProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
-import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { Grid } from '@/systems/physics/Grid';  // Import the Grid
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
@@ -25,13 +24,12 @@ export class ProjectileSystem {
   private pickupSpawner: PickupSpawner;
 
   constructor(
-    private readonly canvasManager: CanvasManager,
+    canvasManager: CanvasManager,
     private readonly camera: Camera,
-    private readonly shipCulling: ShipCullingSystem,
-    grid: Grid, // Inject Grid instance into ProjectileSystem
+    grid: Grid,
     private readonly explosionSystem: ExplosionSystem,
     private readonly screenEffects: ScreenEffectsSystem,
-    private readonly pickupSystem: PickupSystem // Inject PickupSystem
+    private readonly pickupSystem: PickupSystem
   ) {
     this.ctx = canvasManager.getContext('fx');
     this.grid = grid;  // Initialize the grid

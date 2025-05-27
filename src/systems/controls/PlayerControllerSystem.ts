@@ -7,7 +7,6 @@ import {
   getMousePosition,
 } from '@/core/Input';
 
-import type { Ship } from '@/game/ship/Ship';
 import type { Camera } from '@/core/Camera';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
@@ -15,7 +14,6 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 
 export class PlayerControllerSystem {
   constructor(
-    private readonly ship: Ship,
     private readonly camera: Camera
   ) {}
 

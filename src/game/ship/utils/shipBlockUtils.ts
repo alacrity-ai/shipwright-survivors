@@ -6,7 +6,6 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 export function getConnectedBlockCoords(ship: Ship, startCoord: GridCoord): Set<string> {
   const visited = new Set<string>();
   const queue: GridCoord[] = [startCoord];
-  const blocks = ship.getAllBlocks();
 
   const serialize = (c: GridCoord) => `${c.x},${c.y}`;
   const getNeighbors = (c: GridCoord): GridCoord[] => [

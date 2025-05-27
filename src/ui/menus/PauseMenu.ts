@@ -22,7 +22,7 @@ export class PauseMenu implements Menu {
     };
   }
 
-  update(dt: number) {
+  update() {
     const mouse = getMousePosition?.();
     if (!mouse) return;
 

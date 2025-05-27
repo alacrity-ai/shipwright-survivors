@@ -14,7 +14,7 @@ export class ThrusterParticleSystem {
   private ctx: CanvasRenderingContext2D;
 
   constructor(
-    private readonly canvasManager: CanvasManager,
+    canvasManager: CanvasManager,
     private readonly camera: Camera
   ) {
     this.ctx = canvasManager.getContext('fx');

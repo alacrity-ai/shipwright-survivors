@@ -1,7 +1,6 @@
 // src/systems/combat/WeaponSystem.ts
 
 import type { Ship } from '@/game/ship/Ship';
-import type { Camera } from '@/core/Camera';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
@@ -19,7 +18,6 @@ export class WeaponSystem {
 
   constructor(
     private readonly projectileSystem: ProjectileSystem,
-    private readonly camera: Camera
   ) {}
 
   public setIntent(intent: WeaponIntent): void {
@@ -58,7 +56,7 @@ export class WeaponSystem {
         try {
           if (!blockEntry || !Array.isArray(blockEntry) || blockEntry.length < 2) continue;
           
-          const [coord, block] = blockEntry;
+          const [_coord, block] = blockEntry;
           if (!block || !block.type) continue;
           
           if (block.type.id.startsWith('turret') && 
@@ -91,7 +89,7 @@ export class WeaponSystem {
           cooldownState.turretIndex = 0;
         }
         
-        const [coord, block] = turretBlocks[cooldownState.turretIndex];
+        const [coord, _block] = turretBlocks[cooldownState.turretIndex];
 
         // Advance round-robin turret firing index
         cooldownState.turretIndex = (cooldownState.turretIndex + 1) % turretBlocks.length;

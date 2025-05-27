@@ -89,9 +89,9 @@ function drawProceduralBlock(typeId: string): void {
       barrelGradient0.addColorStop(0.3, '#f44');
       barrelGradient0.addColorStop(0.7, '#c22');
       barrelGradient0.addColorStop(1, '#822');
-      drawBarrel(overlayCtx, centerX0, centerY0, 6, BLOCK_SIZE * 0.6, barrelGradient0);
+      drawBarrel(overlayCtx, centerX0, 6, BLOCK_SIZE * 0.6, barrelGradient0);
 
-      drawEnergyMuzzle(overlayCtx, centerX0, centerY0);
+      drawEnergyMuzzle(overlayCtx, centerX0);
       break;
 
     // Turret 1
@@ -111,9 +111,9 @@ function drawProceduralBlock(typeId: string): void {
       barrelGradient1.addColorStop(0.5, '#4CAF50');
       barrelGradient1.addColorStop(0.8, '#66BB6A');
       barrelGradient1.addColorStop(1, '#2E7D32');
-      drawBarrel(overlayCtx, centerX1, centerY1, 7, BLOCK_SIZE * 0.65, barrelGradient1);
+      drawBarrel(overlayCtx, centerX1, 7, BLOCK_SIZE * 0.65, barrelGradient1);
 
-      drawEnergyMuzzle(overlayCtx, centerX1, centerY1);
+      drawEnergyMuzzle(overlayCtx, centerX1);
       break;
 
     // Turret 2
@@ -134,9 +134,9 @@ function drawProceduralBlock(typeId: string): void {
       barrelGradient2.addColorStop(0.6, '#2196F3');
       barrelGradient2.addColorStop(0.85, '#64B5F6');
       barrelGradient2.addColorStop(1, '#1565C0');
-      drawBarrel(overlayCtx, centerX2, centerY2, 8, BLOCK_SIZE * 0.7, barrelGradient2);
+      drawBarrel(overlayCtx, centerX2, 8, BLOCK_SIZE * 0.7, barrelGradient2);
 
-      drawEnergyMuzzle(overlayCtx, centerX2, centerY2);
+      drawEnergyMuzzle(overlayCtx, centerX2);
       break;
 
     // Turret 3
@@ -159,9 +159,9 @@ function drawProceduralBlock(typeId: string): void {
       barrelGradient3.addColorStop(0.75, '#CE93D8');
       barrelGradient3.addColorStop(0.9, '#E1BEE7');
       barrelGradient3.addColorStop(1, '#7B1FA2');
-      drawBarrel(overlayCtx, centerX3, centerY3, 10, BLOCK_SIZE * 0.75, barrelGradient3);
+      drawBarrel(overlayCtx, centerX3, 10, BLOCK_SIZE * 0.75, barrelGradient3);
 
-      drawEnergyMuzzle(overlayCtx, centerX3, centerY3);
+      drawEnergyMuzzle(overlayCtx, centerX3);
       break;
 
     // Engine 0 (Grey)
@@ -338,13 +338,13 @@ function drawDirectionalLines(ctx: CanvasRenderingContext2D, centerX: number, ce
 }
 
 // Draws a barrel with gradient
-function drawBarrel(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, barrelWidth: number, barrelLength: number, gradient: CanvasGradient) {
+function drawBarrel(ctx: CanvasRenderingContext2D, centerX: number, barrelWidth: number, barrelLength: number, gradient: CanvasGradient) {
   ctx.fillStyle = gradient;
   ctx.fillRect(centerX - barrelWidth / 2, 0, barrelWidth, barrelLength);
 }
 
 // Draws an energy muzzle (highlight)
-function drawEnergyMuzzle(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+function drawEnergyMuzzle(ctx: CanvasRenderingContext2D, centerX: number) {
   ctx.fillStyle = '#ff6666';
   ctx.fillRect(centerX - 2, 0, 4, 4);
 }

@@ -23,7 +23,7 @@ export class BackgroundRenderer {
   private ctx: CanvasRenderingContext2D;
   private camera: Camera;
 
-  constructor(private canvasManager: CanvasManager, camera: Camera) {
+  constructor(canvasManager: CanvasManager, camera: Camera) {
     const { width, height } = canvasManager.getDimensions();
     this.width = width;
     this.height = height;

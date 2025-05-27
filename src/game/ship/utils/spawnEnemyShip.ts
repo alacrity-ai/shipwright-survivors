@@ -8,7 +8,6 @@ import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import type { Camera } from '@/core/Camera';
 import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
 import type { Grid } from '@/systems/physics/Grid';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
@@ -21,7 +20,6 @@ export function spawnEnemyShip(
   shipRegistry: ShipRegistry,
   aiOrchestrator: AIOrchestratorSystem,
   projectileSystem: ProjectileSystem,
-  camera: Camera,
   thrusterFx: ThrusterParticleSystem,
   target: Ship,
   grid: Grid
@@ -42,7 +40,7 @@ export function spawnEnemyShip(
 
   const emitter = new ThrusterEmitter(thrusterFx);
   const movement = new MovementSystem(ship, emitter);
-  const weapons = new WeaponSystem(projectileSystem, camera);
+  const weapons = new WeaponSystem(projectileSystem);
   const controller = new AIControllerSystem(ship, movement, weapons);
 
   // Set initial state to seek player

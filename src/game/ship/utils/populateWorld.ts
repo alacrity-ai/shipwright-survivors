@@ -10,7 +10,6 @@ import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import type { Camera } from '@/core/Camera';
 import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { Grid } from '@/systems/physics/Grid';
@@ -23,7 +22,6 @@ export async function populateWorldWithShips(
   aiOrchestrator: AIOrchestratorSystem,
   targetShip: Ship,
   projectileSystem: ProjectileSystem,
-  camera: Camera,
   thrusterFx: ThrusterParticleSystem,
   grid: Grid
 ): Promise<void> {
@@ -56,7 +54,7 @@ export async function populateWorldWithShips(
       // Initialize AI systems for this ship
       const emitter = new ThrusterEmitter(thrusterFx);
       const movement = new MovementSystem(ship, emitter);
-      const weapons = new WeaponSystem(projectileSystem, camera);
+      const weapons = new WeaponSystem(projectileSystem);
 
       const controller = new AIControllerSystem(ship, movement, weapons);
 

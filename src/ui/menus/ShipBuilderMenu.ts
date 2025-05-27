@@ -17,7 +17,7 @@ const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
 
 export class ShipBuilderMenu implements Menu {
   private static instanceCounter = 0;
-  private instanceId: number;
+  instanceId: number;
 
   private activeTab: BlockCategory = 'hull'; // Default active tab
   private selectedBlockId: string | null = null;
@@ -160,7 +160,7 @@ export class ShipBuilderMenu implements Menu {
     }
   }
 
-  update(dt: number): void {
+  update(): void {
     // No-op for now
   }
 
