@@ -5,10 +5,9 @@ import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 
-export default defineConfig(({ mode }) => {
-  const isProduction = mode === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 
-  return {
+export default defineConfig({
     base: isProduction ? '/shipwright-survivors/' : './',
     plugins: [
       react(),
@@ -21,5 +20,4 @@ export default defineConfig(({ mode }) => {
         '/static': path.resolve(__dirname, 'public/static'),
       }
     },
-  };
 });
