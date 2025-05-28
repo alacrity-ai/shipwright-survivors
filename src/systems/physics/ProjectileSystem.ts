@@ -158,12 +158,13 @@ export class ProjectileSystem {
       }
 
       // Create a larger explosion for block destruction
+      const cockpitScalar = block.type.id === 'cockpit' ? 2 : 1;
       this.explosionSystem.createBlockExplosion(
         ship.getTransform().position,
         ship.getTransform().rotation,
         blockCoord,
-        70,
-        0.7
+        70 * cockpitScalar,
+        0.7 * cockpitScalar
       );
 
       ship.removeBlock(blockCoord);
@@ -216,9 +217,6 @@ export class ProjectileSystem {
     // Create multiple explosions across the ship
     const transform = ship.getTransform();
     const blocks = ship.getAllBlocks();
-    
-    // Create a major screen flash for ship destruction
-    this.screenEffects.createExplosionFlash(0.4);
     
     // Create explosions for each block with random timing
     blocks.forEach(([coord, block], index) => {

@@ -28,13 +28,19 @@ export async function populateWorldWithShips(
 
   // Distribution of ship tiers: More common lower-tier ships, rarer higher-tier ships
   const shipTierDistribution = [
-    { tier: 'ship_scrapper_0.json', count: 60 }, // Most common
-    { tier: 'ship_scrapper_1.json', count: 15 },
-    { tier: 'ship_scrapper_2.json', count: 10 },
-    { tier: 'ship_scrapper_3.json', count: 7 },
-    { tier: 'ship_scrapper_4.json', count: 5 },
-    { tier: 'ship_scrapper_5.json', count: 2 },
-    { tier: 'ship_scrapper_6.json', count: 1 }, // Rarest
+    { tier: 'ship_scrapper_0.json', count: 100 }, // Most common
+    { tier: 'ship_0_00.json', count: 40 },
+    { tier: 'ship_0_01.json', count: 20 },
+    { tier: 'ship_0_02.json', count: 10 },
+    { tier: 'ship_0_03.json', count: 5 },
+    { tier: 'ship_0_04.json', count: 5 },
+    { tier: 'ship_0_station.json', count: 3 },
+    { tier: 'ship_scrapper_1.json', count: 30 },
+    { tier: 'ship_scrapper_2.json', count: 15 },
+    { tier: 'ship_scrapper_3.json', count: 10 },
+    { tier: 'ship_scrapper_4.json', count: 6 },
+    { tier: 'ship_scrapper_5.json', count: 3 },
+    { tier: 'ship_scrapper_6.json', count: 2 }, // Rarest
   ];
 
   // Randomly select ships from each tier based on the distribution

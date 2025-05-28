@@ -1,0 +1,234 @@
+// src/systems/wavespawner/WaveSpawner.ts
+
+import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
+import type { IUpdatable } from '@/core/interfaces/types';
+import type { Grid } from '@/systems/physics/Grid';
+import type { Ship } from '@/game/ship/Ship';
+import type { ShipRegistry } from '@/game/ship/ShipRegistry';
+import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
+import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
+import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
+import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitions';
+import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
+import { MovementSystem } from '@/systems/physics/MovementSystem';
+import { WeaponSystem } from '@/systems/combat/WeaponSystem';
+import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
+import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
+
+type WaveType = 'wave' | 'boss' | string;
+type WaveMod = 'shielded' | 'extra-aggressive' | string;
+
+interface ActiveWaveContext {
+  id: number;
+  type: WaveType;
+  mods: WaveMod[];
+  isComplete: boolean;
+}
+
+export class WaveSpawner implements IUpdatable {
+  private static instance: WaveSpawner;
+
+  private currentWaveIndex = 0;
+  private elapsedTime = 0;
+  private timeSinceStart = 0;
+
+  private readonly initialDelay = 10;
+  private readonly waveInterval = 120;
+  private readonly interWaveDelay = 10;
+
+  private interWaveCountdown = -1;
+  private waitingToSpawnNextWave = false;
+
+  private activeWave: ActiveWaveContext | null = null;
+
+  private activeShips: Set<Ship> = new Set();
+  private activeControllers: Map<Ship, AIControllerSystem> = new Map();
+
+  private constructor(
+    private readonly shipRegistry: ShipRegistry,
+    private readonly aiOrchestrator: AIOrchestratorSystem,
+    private readonly playerShip: Ship,
+    private readonly projectileSystem: ProjectileSystem,
+    private readonly thrusterFx: ThrusterParticleSystem,
+    private readonly grid: Grid
+  ) {}
+
+  public static getInstance(
+    shipRegistry: ShipRegistry,
+    aiOrchestrator: AIOrchestratorSystem,
+    playerShip: Ship,
+    projectileSystem: ProjectileSystem,
+    thrusterFx: ThrusterParticleSystem,
+    grid: Grid
+  ): WaveSpawner {
+    if (!WaveSpawner.instance) {
+      WaveSpawner.instance = new WaveSpawner(
+        shipRegistry,
+        aiOrchestrator,
+        playerShip,
+        projectileSystem,
+        thrusterFx,
+        grid
+      );
+    }
+    return WaveSpawner.instance;
+  }
+
+  public update(dt: number): void {
+    // === Initial wave logic ===
+    if (this.currentWaveIndex === 0) {
+      this.timeSinceStart += dt;
+      if (this.timeSinceStart < this.initialDelay) return;
+
+      // Spawn first wave once delay completes
+      const wave = waveDefinitions[this.currentWaveIndex];
+      this.spawnWave(wave);
+      this.currentWaveIndex++;
+      this.elapsedTime = 0;
+      return;
+    }
+
+    // === Waiting to spawn next wave after boss ===
+    if (this.waitingToSpawnNextWave) {
+      this.interWaveCountdown -= dt;
+      if (this.interWaveCountdown <= 0) {
+        this.waitingToSpawnNextWave = false;
+        this.elapsedTime = 0;
+      } else {
+        return;
+      }
+    }
+
+    // === Boss wave in progress, wait ===
+    if (this.activeWave?.type === 'boss' && !this.activeWave.isComplete) return;
+
+    // === Proceed with normal wave logic ===
+    this.elapsedTime += dt;
+
+    if (this.currentWaveIndex < waveDefinitions.length && this.elapsedTime >= this.waveInterval) {
+      const wave = waveDefinitions[this.currentWaveIndex];
+      this.spawnWave(wave);
+      this.currentWaveIndex++;
+      this.elapsedTime = 0;
+    }
+  }
+
+  private async spawnWave(wave: WaveDefinition): Promise<void> {
+    console.log(`Spawning Wave ${wave.id} [${wave.type}] with mods: ${wave.mods.join(', ')}`);
+
+    this.activeWave = {
+      id: wave.id,
+      type: wave.type,
+      mods: wave.mods,
+      isComplete: false,
+    };
+
+    // === Clean up previous wave if this is a boss ===
+    if (wave.type === 'boss') {
+      for (const ship of this.activeShips) {
+        this.shipRegistry.remove(ship);
+        const controller = this.activeControllers.get(ship);
+        if (controller) {
+          this.aiOrchestrator.removeController(controller);
+          this.activeControllers.delete(ship);
+        }
+        ship.destroy();
+      }
+      this.activeShips.clear();
+    }
+
+    const spawnedShips: Ship[] = [];
+
+    for (const entry of wave.ships) {
+      for (let i = 0; i < entry.count; i++) {
+        const ship = await loadShipFromJson(`${entry.shipId}.json`, this.grid);
+
+        const transform = ship.getTransform();
+        if (wave.type === 'boss') {
+          // Spawn bosses near origin for high drama
+          transform.position.x = (Math.random() - 0.5) * 200;
+          transform.position.y = (Math.random() - 0.5) * 200;
+        } else {
+          // Normal enemy spawn spread across full world
+          transform.position.x = Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
+          transform.position.y = Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
+        }
+
+        this.shipRegistry.add(ship);
+
+        const emitter = new ThrusterEmitter(this.thrusterFx);
+        const movement = new MovementSystem(ship, emitter);
+        const weapons = new WeaponSystem(this.projectileSystem);
+        const controller = new AIControllerSystem(ship, movement, weapons);
+        controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
+
+        this.aiOrchestrator.addController(controller);
+        this.applyModifiers(ship, wave.mods);
+
+        if (wave.type !== 'boss') {
+          this.activeShips.add(ship);
+          this.activeControllers.set(ship, controller);
+        }
+
+        spawnedShips.push(ship);
+      }
+    }
+
+    if (wave.type === 'boss') {
+      this.monitorBossWaveCompletion(spawnedShips);
+    }
+  }
+
+  private applyModifiers(ship: Ship, mods: WaveMod[]): void {
+    for (const mod of mods) {
+      switch (mod) {
+        case 'shielded':
+          // ship.setShielded?.(true);
+          break;
+        case 'extra-aggressive':
+          // ship.setAIMode?.('berserk');
+          break;
+        default:
+          console.warn(`Unknown wave modifier: ${mod}`);
+      }
+    }
+  }
+
+  private monitorBossWaveCompletion(ships: Ship[]): void {
+    const remaining = new Set<Ship>(ships);
+    for (const ship of ships) {
+      ship.onDestroyed(() => {
+        remaining.delete(ship);
+        if (remaining.size === 0 && this.activeWave?.type === 'boss') {
+          this.activeWave.isComplete = true;
+          console.log(`Boss wave ${this.activeWave.id} defeated.`);
+          this.waitingToSpawnNextWave = true;
+          this.interWaveCountdown = this.interWaveDelay;
+        }
+      });
+    }
+  }
+
+  public getCurrentWaveNumber(): number {
+    return this.currentWaveIndex;
+  }
+
+  public getTimeUntilNextWave(): number {
+    if (this.waitingToSpawnNextWave) {
+      return Math.ceil(this.interWaveCountdown);
+    }
+
+    if (this.currentWaveIndex === 0 && this.timeSinceStart < this.initialDelay) {
+      return Math.ceil(this.initialDelay - this.timeSinceStart);
+    }
+
+    if (this.activeWave?.type === 'boss' && !this.activeWave.isComplete) return -1;
+
+    return Math.max(0, this.waveInterval - this.elapsedTime);
+  }
+
+  public isBossWaveActive(): boolean {
+    return this.activeWave?.type === 'boss' && !this.activeWave.isComplete;
+  }
+}

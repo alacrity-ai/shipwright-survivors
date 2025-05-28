@@ -8,6 +8,7 @@ import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import { Grid } from '@/systems/physics/Grid'; // Global Grid import
 
 type CoordKey = string;
+type ShipDestroyedCallback = (ship: Ship) => void;
 
 function toKey(coord: GridCoord): CoordKey {
   return `${coord.x},${coord.y}`;
@@ -22,6 +23,9 @@ export class Ship {
   id: string;  // Unique identifier for the ship
   private blocks: Map<CoordKey, BlockInstance> = new Map();
   private transform: ShipTransform;
+
+  private destroyedListeners: ShipDestroyedCallback[] = [];
+  private destroyed = false;
 
   // === Memoized mass cache
   private totalMass: number | null = null;
@@ -196,13 +200,30 @@ export class Ship {
     return this.grid;
   }
 
-  destroy(): void {
-    // Remove all blocks from the grid
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
     for (const block of this.blocks.values()) {
       this.grid.removeBlockFromCell(block);
     }
-  
-    // Clear the blocks map
+
     this.blocks.clear();
+
+    // Notify all listeners that this ship was destroyed
+    for (const callback of this.destroyedListeners) {
+      callback(this);
+    }
+
+    // Clear listeners to break reference chains
+    this.destroyedListeners.length = 0;
+  }
+
+  public onDestroyed(callback: ShipDestroyedCallback): void {
+    this.destroyedListeners.push(callback);
+  }
+
+  public isDestroyed(): boolean {
+    return this.destroyed;
   }
 }

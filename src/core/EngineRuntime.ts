@@ -11,6 +11,7 @@ import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
+import { WavesOverlay } from '@/ui/overlays/WavesOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
 import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
@@ -27,11 +28,11 @@ import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import { getStarterShip } from '@/game/ship/utils/PrefabHelpers';
-import { populateWorldWithShips } from '@/game/ship/utils/populateWorld';
 import { Grid } from '@/systems/physics/Grid';
 
 import type { Ship } from '@/game/ship/Ship';
@@ -54,7 +55,7 @@ export class EngineRuntime {
   private camera: Camera;
 
   // Use Singleton instance for ShipRegistry
-  private shipRegistry = ShipRegistry.getInstance();  // Access Singleton instance
+  private shipRegistry = ShipRegistry.getInstance();
   private shipCulling: ShipCullingSystem;
   private aiOrchestrator: AIOrchestratorSystem;
 
@@ -67,6 +68,8 @@ export class EngineRuntime {
   private background: BackgroundRenderer;
   private multiShipRenderer: MultiShipRenderer;
   private uiRenderer: UIRenderer;
+  private waveSpawner: WaveSpawner;
+  private wavesOverlay: WavesOverlay;
 
   private movement: MovementSystem;
   private weaponSystem: WeaponSystem;
@@ -129,8 +132,16 @@ export class EngineRuntime {
     this.hud = new HudOverlay(this.canvasManager, this.ship);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
 
-    // Spawn enemy ship for testing
-    populateWorldWithShips(this.shipRegistry, this.aiOrchestrator, this.ship, this.projectileSystem, this.thrusterFx, this.grid);
+    // Create the enemy wave spawner
+    this.waveSpawner = WaveSpawner.getInstance(
+      this.shipRegistry,
+      this.aiOrchestrator,
+      this.ship,
+      this.projectileSystem,
+      this.thrusterFx,
+      this.grid
+    );
+    this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
 
     this.updatables = [
       this.movement,
@@ -140,6 +151,7 @@ export class EngineRuntime {
       this.explosionSystem,
       this.screenEffects,
       this.pickupSystem,
+      this.waveSpawner,
       {
         update: (dt: number) => {
           // Add defensive check to ensure ship still exists
@@ -174,6 +186,7 @@ export class EngineRuntime {
       this.explosionSystem,
       this.screenEffects,
       this.pickupSystem,
+      this.wavesOverlay,
     ];
 
     this.registerLoopHandlers();

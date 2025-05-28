@@ -1,0 +1,35 @@
+{
+  "transform": {
+    "position": {
+      "x": -6702.255486710789,
+      "y": -3669.096513335326
+    },
+    "rotation": 4.873022651864371
+  },
+  "blocks": [
+    {
+      "id": "cockpit",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine3",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    }
+  ]
+}

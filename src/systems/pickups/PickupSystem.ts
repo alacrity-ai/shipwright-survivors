@@ -59,10 +59,12 @@ export class PickupSystem {
         const screenPosition = this.camera.worldToScreen(pickup.position.x, pickup.position.y);
 
         // Update rotation to create the spinning effect
-        pickup.rotation += 0.05; // Increment rotation by small amount for continuous spin
+        pickup.rotation += 0.7; // Increment rotation by small amount for continuous spin
 
-        // Apply camera zoom for scaling the sprite relative to the camera's zoom level
-        const scale = this.camera.zoom;
+        // Apply camera zoom for scaling the sprite relative to the camera's zoom level and currency amount
+        const scale = this.camera.zoom * (0.5 + Math.sqrt(pickup.currencyAmount) / 15);
+
+
 
         // Render the pickup (spinning effect)
         this.ctx.save();

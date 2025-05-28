@@ -31,22 +31,38 @@ export class PickupSpawner {
   }
 
   /**
-   * Determines the amount of currency to spawn based on the block type.
+   * Determines the amount of currency to spawn based on the block type and tier.
    * @param block The block that was destroyed.
    * @returns The amount of currency to spawn.
    */
   private getCurrencyAmountForBlock(block: BlockInstance): number {
-    switch (block.type.id) {
-      case 'cockpit':
-        return 200; // High value for cockpit
-      case 'engine0':
-      case 'engine1':
-        return 50; // Moderate value for engines
-      case 'turret0':
-      case 'turret1':
-        return 75; // High value for turrets
-      default:
-        return 25; // Default low value for other blocks
+    const id = block.type.id;
+
+    if (id === 'cockpit') {
+      return 200 + Math.floor(Math.random() * 26); // Cockpit always base 200 + [0–25]
     }
+
+    // Extract tier from ID (expects format like 'engine3', 'turret1', etc.)
+    const tierMatch = id.match(/(\d{1,2})$/);
+    const tier = tierMatch ? parseInt(tierMatch[1], 10) : -1;
+
+    const tierToBaseValue: Record<number, number> = {
+      0: 25,
+      1: 50,
+      2: 75,
+      3: 100,
+      4: 150,
+      5: 200,
+      6: 250,
+      7: 300,
+      8: 400,
+      9: 500,
+      10: 600,
+    };
+
+    const baseValue = tierToBaseValue[tier] ?? 25;
+    const randomBonus = Math.floor(Math.random() * 26); // [0–25]
+
+    return baseValue + randomBonus;
   }
 }
