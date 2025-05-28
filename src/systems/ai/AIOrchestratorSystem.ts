@@ -50,23 +50,23 @@ export class AIOrchestratorSystem implements IUpdatable {
     }
   }
 
-  public static removeControllersForShip(shipId: string): void {
-    if (!this.instance) return;
-    
+  public removeControllersForShip(shipId: string): void {
     const controllersToRemove: AIControllerSystem[] = [];
-    
-    // Find all controllers for this ship
-    for (const controller of this.instance.controllers) {
+
+    for (const controller of this.controllers) {
       const ship = controller.getShip();
       if (ship && ship.id === shipId) {
         controllersToRemove.push(controller);
       }
     }
-    
-    // Remove the controllers
+
     for (const controller of controllersToRemove) {
-      this.instance.removeController(controller);
+      this.removeController(controller);
       console.log(`Removed AI controller for ship ${shipId}`);
     }
+  }
+
+  getControllerCount(): number {
+    return this.controllers.size;
   }
 }

@@ -6,6 +6,7 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import { Grid } from '@/systems/physics/Grid'; // Global Grid import
+import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 
 type CoordKey = string;
 type ShipDestroyedCallback = (ship: Ship) => void;
@@ -23,9 +24,13 @@ export class Ship {
   id: string;  // Unique identifier for the ship
   private blocks: Map<CoordKey, BlockInstance> = new Map();
   private transform: ShipTransform;
+  private energyComponent: EnergyComponent | null = null;
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
+  
+  // === Step 3: Two-phase destruction tracking ===
   private destroyed = false;
+  private deathTimestamp: number | null = null;
 
   // === Memoized mass cache
   private totalMass: number | null = null;
@@ -71,7 +76,7 @@ export class Ship {
     const block: BlockInstance = {
       type,
       hp: type.armor,
-      ownerShipId: this.id,  // Associate the block with this ship’s ID
+      ownerShipId: this.id,  // Associate the block with this ship's ID
       position: worldPos,  // Set the calculated world position
       ...(rotation !== undefined ? { rotation } : {})  // Set the rotation if provided
     };
@@ -81,17 +86,23 @@ export class Ship {
 
   placeBlock(coord: GridCoord, block: BlockInstance): void {
     this.blocks.set(toKey(coord), block);
-    this.grid.addBlockToCell(block);  // Add block to global grid
+    this.grid.addBlockToCell(block);
     this.invalidateMass();
+
+    // Recalculate energy contribution from all blocks
+    this.recomputeEnergyStats();
   }
 
   removeBlock(coord: GridCoord): void {
     const block = this.blocks.get(toKey(coord));
     if (block) {
-      this.grid.removeBlockFromCell(block); // Remove block from grid
+      this.grid.removeBlockFromCell(block);
     }
     this.blocks.delete(toKey(coord));
     this.invalidateMass();
+
+    // Recalculate energy contribution from all blocks
+    this.recomputeEnergyStats();
   }
 
   getBlock(coord: GridCoord): BlockInstance | undefined {
@@ -196,21 +207,53 @@ export class Ship {
     });
   }
 
+  /**
+   * Given a block instance, return its corresponding grid coordinate within the ship.
+   * Returns null if the block is not found or no longer exists.
+   */
+  public findBlockCoord(block: BlockInstance): GridCoord | null {
+    for (const [key, stored] of this.blocks.entries()) {
+      if (stored === block) {
+        return fromKey(key);
+      }
+    }
+    return null;
+  }
+
   getGrid(): Grid {
     return this.grid;
   }
 
+  // === Step 3: Two-Phase Destruction Implementation ===
+
+  /**
+   * Marks the ship as logically destroyed (Phase 1).
+   * This immediately:
+   * - Triggers onDestroyed() listeners for game systems (AI, wave spawner, registries)
+   * - Removes all blocks from collision grid
+   * - Clears internal block references
+   * - Sets destroyed flag to prevent double-destruction
+   * 
+   * All post-destruction visual effects (explosions, pickups, debris) should occur
+   * AFTER this method is called. Visual systems should use isVisuallyExpired() to
+   * determine when to stop rendering corpse effects.
+   */
   public destroy(): void {
     if (this.destroyed) return;
+    
     this.destroyed = true;
+    this.deathTimestamp = performance.now();
 
+    // Remove all blocks from collision grid
     for (const block of this.blocks.values()) {
       this.grid.removeBlockFromCell(block);
     }
 
+    // Clear internal block references
     this.blocks.clear();
 
-    // Notify all listeners that this ship was destroyed
+    // Notify all listeners that this ship was logically destroyed
+    // This triggers wave progression, AI cleanup, registry removal, etc.
     for (const callback of this.destroyedListeners) {
       callback(this);
     }
@@ -219,11 +262,129 @@ export class Ship {
     this.destroyedListeners.length = 0;
   }
 
+  /**
+   * Alternative method to destroy the ship and mark it as already visually expired.
+   * Use this for instant cleanup where no visual effects are desired.
+   */
+  public destroyInstantly(): void {
+    if (this.destroyed) return;
+    
+    this.destroyed = true;
+    this.deathTimestamp = performance.now() - 10000; // Mark as expired long ago
+
+    // Same cleanup as destroy()
+    for (const block of this.blocks.values()) {
+      this.grid.removeBlockFromCell(block);
+    }
+    this.blocks.clear();
+
+    for (const callback of this.destroyedListeners) {
+      callback(this);
+    }
+    this.destroyedListeners.length = 0;
+  }
+
+  /**
+   * Returns true if the ship has been logically destroyed.
+   * Use this for game systems that need to know if the ship should:
+   * - Be excluded from AI targeting
+   * - Not count toward wave completion
+   * - Be removed from registries
+   * - Stop receiving input/physics updates
+   */
+  public isDestroyed(): boolean {
+    return this.destroyed;
+  }
+
+  /**
+   * Returns true if enough time has passed since destruction that visual effects
+   * should stop rendering. Use this for:
+   * - Cleanup of explosion particle systems
+   * - Removal of debris animations
+   * - Stopping pickup spawn delays
+   * - Clearing visual corpse references
+   * 
+   * @param visualEffectDurationMs How long visual effects should persist (default: 2000ms)
+   */
+  public isVisuallyExpired(visualEffectDurationMs: number = 2000): boolean {
+    if (!this.destroyed || this.deathTimestamp === null) {
+      return false;
+    }
+    return (performance.now() - this.deathTimestamp) > visualEffectDurationMs;
+  }
+
+  /**
+   * Returns the timestamp when the ship was destroyed, or null if still alive.
+   * Useful for calculating time-based visual effects or debugging.
+   */
+  public getDeathTimestamp(): number | null {
+    return this.deathTimestamp;
+  }
+
+  /**
+   * Returns milliseconds since destruction, or 0 if still alive.
+   * Useful for fade-out calculations or time-based visual effects.
+   */
+  public getTimeSinceDeath(): number {
+    if (!this.destroyed || this.deathTimestamp === null) {
+      return 0;
+    }
+    return performance.now() - this.deathTimestamp;
+  }
+
   public onDestroyed(callback: ShipDestroyedCallback): void {
+    if (this.destroyed) {
+      // If already destroyed, fire callback immediately
+      callback(this);
+      return;
+    }
     this.destroyedListeners.push(callback);
   }
 
-  public isDestroyed(): boolean {
-    return this.destroyed;
+  public enableEnergyComponent(): void {
+    if (this.energyComponent) return;
+
+    const laserCount = this.getAllBlocks().filter(([_, b]) => b.type.id.startsWith('laser')).length;
+    if (laserCount === 0) return;
+
+    const max = laserCount * 100;
+    const recharge = laserCount * 5; // or balance this more carefully
+
+    this.energyComponent = new EnergyComponent(max, recharge);
+  }
+
+  public getEnergyComponent(): EnergyComponent | null {
+    return this.energyComponent;
+  }
+
+  public updateEnergy(dt: number): void {
+    this.energyComponent?.update(dt);
+  }
+
+  private recomputeEnergyStats(): void {
+    if (!this.energyComponent) {
+      this.enableEnergyComponent();
+    }
+
+    const energyComponent = this.getEnergyComponent();
+    if (!energyComponent) return;
+
+    let totalMax = 0;
+    let totalRegen = 10;
+
+    for (const [, block] of this.blocks.entries()) {
+      // Baseline from laser weapons
+      if (block.type.id.startsWith('laser')) {
+        totalMax += 100;
+      }
+
+      // Additional regen from reactors or power-producing blocks
+      if (block.type.behavior?.energyOutput) {
+        totalRegen += block.type.behavior.energyOutput;
+      }
+    }
+
+    energyComponent.setMax(totalMax);
+    energyComponent.setRechargeRate(totalRegen);
   }
 }

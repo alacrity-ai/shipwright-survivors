@@ -2,7 +2,7 @@
 
 import { Camera } from './Camera';
 import { CanvasManager } from './CanvasManager';
-import { updateInputFrame, consumeZoomDelta, isEscapePressed, isTabPressed } from './Input';
+import { updateInputFrame, consumeZoomDelta, isEscapePressed, isTabPressed, is0Pressed } from './Input';
 
 import { GameLoop } from './GameLoop';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
@@ -12,6 +12,7 @@ import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
 import { WavesOverlay } from '@/ui/overlays/WavesOverlay';
+import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
 import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
@@ -19,6 +20,7 @@ import { MultiShipRenderer } from '@/rendering/MultiShipRenderer';
 import { UIRenderer } from '@/rendering/UIRenderer';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
+import { LaserSystem } from '@/systems/physics/LaserSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
@@ -26,9 +28,15 @@ import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
+import { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
+import { ShipDestructionService } from '@/game/ship/ShipDestructionService';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
+import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
+import { CombatService } from '@/systems/combat/CombatService';
+import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
@@ -42,6 +50,7 @@ import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { PlayerStats } from '@/game/player/PlayerStats';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -63,6 +72,7 @@ export class EngineRuntime {
   private ship: Ship;  // Declare ship as a property
 
   private projectileSystem: ProjectileSystem;
+  private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
   private thrusterFx: ThrusterParticleSystem;
   private background: BackgroundRenderer;
@@ -70,9 +80,11 @@ export class EngineRuntime {
   private uiRenderer: UIRenderer;
   private waveSpawner: WaveSpawner;
   private wavesOverlay: WavesOverlay;
+  private debugOverlay: DebugOverlay;
 
   private movement: MovementSystem;
   private weaponSystem: WeaponSystem;
+  private energyRechargeSystem: EnergyRechargeSystem;
   private playerController: PlayerControllerSystem;
   private shipBuilderController: ShipBuilderController;
   private explosionSystem: ExplosionSystem;
@@ -91,6 +103,8 @@ export class EngineRuntime {
     // Initialize player resources with starting currency
     const playerResources = PlayerResources.getInstance();
     playerResources.initialize(0); // Start with 0 currency
+    const playerStats = PlayerStats.getInstance();
+    playerStats.initialize(100); // Start with 100 energy
 
     this.grid = new Grid();  // Initialize global grid
     this.ship = getStarterShip(this.grid);  // Now the grid is initialized before passing to getStarterShip
@@ -103,17 +117,44 @@ export class EngineRuntime {
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     
-    // Pass both systems to ProjectileSystem
+    // === Step 1: Initialize orchestrator first ===
+    this.aiOrchestrator = new AIOrchestratorSystem();
+
+    // === Step 2: Construct PickupSystem and PickupSpawner (unchanged) ===
     this.pickupSystem = new PickupSystem(this.canvasManager, this.camera, this.ship);
-    this.projectileSystem = new ProjectileSystem(
-      this.canvasManager, 
-      this.camera, 
-      this.grid,
+    const pickupSpawner = new PickupSpawner(this.pickupSystem);
+
+    const destructionService = new ShipDestructionService(
       this.explosionSystem,
-      this.screenEffects,
-      this.pickupSystem
+      pickupSpawner,
+      this.shipRegistry,
+      this.aiOrchestrator
     );
-    
+
+    const combatService = new CombatService(
+      this.explosionSystem,
+      pickupSpawner,
+      destructionService
+    );
+
+    // === Step 4: Instantiate ProjectileSystem with CombatService ===
+    // Deprecate this awful class and put it into the turret backend 
+    this.projectileSystem = new ProjectileSystem(
+      this.canvasManager,
+      this.camera,
+      this.grid,
+      combatService,
+      this.shipRegistry
+    );
+
+    this.laserSystem = new LaserSystem(
+      this.canvasManager,
+      this.camera,
+      this.grid,
+      combatService,
+      this.shipRegistry
+    );
+
     this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
     const emitter = new ThrusterEmitter(this.thrusterFx);
 
@@ -122,12 +163,14 @@ export class EngineRuntime {
     this.uiRenderer = new UIRenderer(this.canvasManager, this.menuManager);
 
     this.movement = new MovementSystem(this.ship, emitter);
-    this.weaponSystem = new WeaponSystem(this.projectileSystem);
+    this.weaponSystem = new WeaponSystem(
+      new TurretBackend(this.projectileSystem),
+      new LaserBackend(this.laserSystem)
+    );
+
+    this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
     this.playerController = new PlayerControllerSystem(this.camera);
     this.shipBuilderController = new ShipBuilderController(this.ship, this.shipBuilderMenu, this.camera);
-
-    // AI orchestration system
-    this.aiOrchestrator = new AIOrchestratorSystem();
 
     this.hud = new HudOverlay(this.canvasManager, this.ship);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
@@ -138,20 +181,26 @@ export class EngineRuntime {
       this.aiOrchestrator,
       this.ship,
       this.projectileSystem,
+      this.laserSystem,
       this.thrusterFx,
       this.grid
     );
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
 
+    // Debug overlay
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
+
     this.updatables = [
       this.movement,
       this.projectileSystem,
+      this.laserSystem,
       this.thrusterFx,
       this.aiOrchestrator,
       this.explosionSystem,
       this.screenEffects,
       this.pickupSystem,
       this.waveSpawner,
+      this.energyRechargeSystem,
       {
         update: (dt: number) => {
           // Add defensive check to ensure ship still exists
@@ -178,6 +227,7 @@ export class EngineRuntime {
     this.renderables = [
       this.background,
       this.projectileSystem,
+      this.laserSystem,
       this.thrusterFx,
       this.multiShipRenderer,
       this.uiRenderer,
@@ -187,6 +237,7 @@ export class EngineRuntime {
       this.screenEffects,
       this.pickupSystem,
       this.wavesOverlay,
+      this.debugOverlay
     ];
 
     this.registerLoopHandlers();
@@ -211,6 +262,10 @@ export class EngineRuntime {
         this.menuManager.close();
       }
       this.escapeCooldown = 0.3;
+    }
+
+    if (is0Pressed()) {
+      PlayerResources.getInstance().addCurrency(10000);
     }
 
     const transform = this.ship.getTransform();

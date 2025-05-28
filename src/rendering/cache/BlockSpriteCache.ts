@@ -73,6 +73,71 @@ function drawProceduralBlock(typeId: string): void {
       baseCtx.fillRect(0, 0, BLOCK_SIZE, BLOCK_SIZE);
       break;
 
+    case 'facetplate0':
+      const facet0Gradient = baseCtx.createLinearGradient(0, BLOCK_SIZE / 2, 0, BLOCK_SIZE);
+      facet0Gradient.addColorStop(0, '#C0C0C0');
+      facet0Gradient.addColorStop(0.3, '#A0A0A0');
+      facet0Gradient.addColorStop(0.7, '#808080');
+      facet0Gradient.addColorStop(1, '#606060');
+      baseCtx.fillStyle = facet0Gradient;
+
+      baseCtx.beginPath();
+      baseCtx.moveTo(BLOCK_SIZE / 2, BLOCK_SIZE / 2); // Top of the triangle (middle of block)
+      baseCtx.lineTo(0, BLOCK_SIZE);                 // Bottom-left
+      baseCtx.lineTo(BLOCK_SIZE, BLOCK_SIZE);        // Bottom-right
+      baseCtx.closePath();
+      baseCtx.fill();
+      break;
+
+    case 'facetplate1':
+      const facet1Gradient = baseCtx.createLinearGradient(0, BLOCK_SIZE / 2, 0, BLOCK_SIZE);
+      facet1Gradient.addColorStop(0, '#66FF66');
+      facet1Gradient.addColorStop(0.2, '#4CAF50');
+      facet1Gradient.addColorStop(0.6, '#388E3C');
+      facet1Gradient.addColorStop(1, '#1B5E20');
+      baseCtx.fillStyle = facet1Gradient;
+
+      baseCtx.beginPath();
+      baseCtx.moveTo(BLOCK_SIZE / 2, BLOCK_SIZE / 2); // Top of the triangle (middle of block)
+      baseCtx.lineTo(0, BLOCK_SIZE);                 // Bottom-left
+      baseCtx.lineTo(BLOCK_SIZE, BLOCK_SIZE);        // Bottom-right
+      baseCtx.closePath();
+      baseCtx.fill();
+      break;
+
+    case 'facetplate2':
+      const facet2Gradient = baseCtx.createLinearGradient(0, BLOCK_SIZE / 2, 0, BLOCK_SIZE);
+      facet2Gradient.addColorStop(0, '#64B5F6');
+      facet2Gradient.addColorStop(0.2, '#2196F3');
+      facet2Gradient.addColorStop(0.6, '#1976D2');
+      facet2Gradient.addColorStop(1, '#0D47A1');
+      baseCtx.fillStyle = facet2Gradient;
+
+      baseCtx.beginPath();
+      baseCtx.moveTo(BLOCK_SIZE / 2, BLOCK_SIZE / 2); // Top of the triangle (middle of block)
+      baseCtx.lineTo(0, BLOCK_SIZE);                 // Bottom-left
+      baseCtx.lineTo(BLOCK_SIZE, BLOCK_SIZE);        // Bottom-right
+      baseCtx.closePath();
+      baseCtx.fill();
+      break;
+
+    case 'facetplate3':
+      const facet3Gradient = baseCtx.createLinearGradient(0, BLOCK_SIZE / 2, 0, BLOCK_SIZE);
+      facet3Gradient.addColorStop(0, '#E1BEE7');
+      facet3Gradient.addColorStop(0.15, '#BA68C8');
+      facet3Gradient.addColorStop(0.4, '#9C27B0');
+      facet3Gradient.addColorStop(0.7, '#7B1FA2');
+      facet3Gradient.addColorStop(1, '#4A148C');
+      baseCtx.fillStyle = facet3Gradient;
+
+      baseCtx.beginPath();
+      baseCtx.moveTo(BLOCK_SIZE / 2, BLOCK_SIZE / 2); // Top of the triangle (middle of block)
+      baseCtx.lineTo(0, BLOCK_SIZE);                 // Bottom-left
+      baseCtx.lineTo(BLOCK_SIZE, BLOCK_SIZE);        // Bottom-right
+      baseCtx.closePath();
+      baseCtx.fill();
+      break;
+
     // Turret 0
     case 'turret0':
       const turretBaseGradient0 = createRadialGradient(baseCtx, BLOCK_SIZE / 2, BLOCK_SIZE / 2, BLOCK_SIZE / 2, ['#777', '#555', '#333']);
@@ -163,6 +228,122 @@ function drawProceduralBlock(typeId: string): void {
 
       drawEnergyMuzzle(overlayCtx, centerX3);
       break;
+
+    case 'laser0':
+      // Main body gradient (gunmetal to near-black)
+      const laserBodyGradient = baseCtx.createLinearGradient(0, 0, 0, BLOCK_SIZE);
+      laserBodyGradient.addColorStop(0, '#3A3A3A');   // Gunmetal top
+      laserBodyGradient.addColorStop(0.3, '#2A2A2A'); // Dark steel
+      laserBodyGradient.addColorStop(0.7, '#1A1A1A'); // Almost black
+      laserBodyGradient.addColorStop(1, '#101010');   // Deep base
+      baseCtx.fillStyle = laserBodyGradient;
+      baseCtx.fillRect(0, 0, BLOCK_SIZE, BLOCK_SIZE);
+
+      // Weapon housing (steel blue chassis)
+      baseCtx.fillStyle = '#64B5F6'; // Light steel-blue
+      baseCtx.fillRect(2, 6, BLOCK_SIZE - 4, BLOCK_SIZE - 8);
+      
+      // Inner housing shadow (deep cobalt)
+      baseCtx.fillStyle = '#1565C0';
+      baseCtx.fillRect(3, 7, BLOCK_SIZE - 6, BLOCK_SIZE - 10);
+
+      // Primary barrel (electric cyan core)
+      const barrelGradient = baseCtx.createLinearGradient(0, 0, BLOCK_SIZE, 0);
+      barrelGradient.addColorStop(0, '#81D4FA');     // Pale cyan
+      barrelGradient.addColorStop(0.5, '#0288D1');   // Blue core
+      barrelGradient.addColorStop(1, '#81D4FA');
+      baseCtx.fillStyle = barrelGradient;
+      baseCtx.fillRect(BLOCK_SIZE / 2 - 3, 2, 6, BLOCK_SIZE - 4);
+
+      // Secondary barrel detail (ice blue)
+      baseCtx.fillStyle = '#B3E5FC';
+      baseCtx.fillRect(BLOCK_SIZE / 2 - 1, 1, 2, BLOCK_SIZE - 2);
+
+      // Charging chamber (glow node near base)
+      const glowGradient = baseCtx.createRadialGradient(
+        BLOCK_SIZE / 2, BLOCK_SIZE - 6, 0,
+        BLOCK_SIZE / 2, BLOCK_SIZE - 6, 4
+      );
+      glowGradient.addColorStop(0, '#4FC3F7');         // Bright blue
+      glowGradient.addColorStop(0.7, '#0288D1');       // Deeper blue
+      glowGradient.addColorStop(1, 'rgba(2, 136, 209, 0)'); // Fade to transparent
+      baseCtx.fillStyle = glowGradient;
+      baseCtx.beginPath();
+      baseCtx.arc(BLOCK_SIZE / 2, BLOCK_SIZE - 6, 4, 0, Math.PI * 2);
+      baseCtx.fill();
+
+      // Muzzle glow (blue plasma burst)
+      const muzzleGlow = baseCtx.createRadialGradient(
+        BLOCK_SIZE / 2, 2, 0,
+        BLOCK_SIZE / 2, 2, 5
+      );
+      muzzleGlow.addColorStop(0, '#FFFFFF');         // White core
+      muzzleGlow.addColorStop(0.3, '#4FC3F7');       // Electric cyan
+      muzzleGlow.addColorStop(0.6, '#0288D1');       // Dense glow
+      muzzleGlow.addColorStop(1, 'rgba(2, 136, 209, 0)');
+      baseCtx.fillStyle = muzzleGlow;
+      baseCtx.beginPath();
+      baseCtx.arc(BLOCK_SIZE / 2, 2, 5, 0, Math.PI * 2);
+      baseCtx.fill();
+
+      // Bright muzzle core
+      baseCtx.fillStyle = '#FFFFFF';
+      baseCtx.beginPath();
+      baseCtx.arc(BLOCK_SIZE / 2, 2, 1.5, 0, Math.PI * 2);
+      baseCtx.fill();
+
+      break;
+
+    case 'reactor0': {
+      // === Base reactor chassis: dark alloy casing ===
+      const chassisGradient = baseCtx.createLinearGradient(0, 0, 0, BLOCK_SIZE);
+      chassisGradient.addColorStop(0, '#2C2C2C');  // Top: dark steel
+      chassisGradient.addColorStop(0.5, '#1E1E1E'); // Mid: graphite black
+      chassisGradient.addColorStop(1, '#0F0F0F');  // Bottom: deep shadow
+      baseCtx.fillStyle = chassisGradient;
+      baseCtx.fillRect(0, 0, BLOCK_SIZE, BLOCK_SIZE);
+
+      // === Reactor core ring: glowing fusion rim ===
+      const coreRingGradient = baseCtx.createRadialGradient(
+        BLOCK_SIZE / 2, BLOCK_SIZE / 2, 4,
+        BLOCK_SIZE / 2, BLOCK_SIZE / 2, BLOCK_SIZE / 2
+      );
+      coreRingGradient.addColorStop(0.0, '#4FC3F7');   // Bright cyan ring
+      coreRingGradient.addColorStop(0.4, '#0288D1');   // Mid plasma blue
+      coreRingGradient.addColorStop(1.0, '#00000000'); // Fade to transparent
+      baseCtx.fillStyle = coreRingGradient;
+      baseCtx.beginPath();
+      baseCtx.arc(BLOCK_SIZE / 2, BLOCK_SIZE / 2, BLOCK_SIZE / 2, 0, Math.PI * 2);
+      baseCtx.fill();
+
+      // === Reactor core: central glow node ===
+      const coreGlow = baseCtx.createRadialGradient(
+        BLOCK_SIZE / 2, BLOCK_SIZE / 2, 0,
+        BLOCK_SIZE / 2, BLOCK_SIZE / 2, 6
+      );
+      coreGlow.addColorStop(0, '#81D4FA');        // Cyan-white fusion spark
+      coreGlow.addColorStop(0.4, '#4FC3F7');      // Cyan
+      coreGlow.addColorStop(1, 'rgba(129, 212, 250, 0)'); // Transparent edge
+      baseCtx.fillStyle = coreGlow;
+      baseCtx.beginPath();
+      baseCtx.arc(BLOCK_SIZE / 2, BLOCK_SIZE / 2, 6, 0, Math.PI * 2);
+      baseCtx.fill();
+
+      // === Reactor casing bolts / tech lines ===
+      baseCtx.strokeStyle = '#64B5F6';
+      baseCtx.lineWidth = 1;
+      baseCtx.beginPath();
+      baseCtx.moveTo(4, 4);
+      baseCtx.lineTo(BLOCK_SIZE - 4, 4);
+      baseCtx.moveTo(4, BLOCK_SIZE - 4);
+      baseCtx.lineTo(BLOCK_SIZE - 4, BLOCK_SIZE - 4);
+      baseCtx.moveTo(4, 4);
+      baseCtx.lineTo(4, BLOCK_SIZE - 4);
+      baseCtx.moveTo(BLOCK_SIZE - 4, 4);
+      baseCtx.lineTo(BLOCK_SIZE - 4, BLOCK_SIZE - 4);
+      baseCtx.stroke();
+      break;
+    }
 
     // Engine 0 (Grey)
     case 'engine0':

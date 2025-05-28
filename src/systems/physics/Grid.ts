@@ -70,6 +70,63 @@ export class Grid {
     return relevantCells;
   }
 
+  /**
+   * Traverses grid cells along a ray from start to end using 2D DDA.
+   * Returns a flat list of all BlockInstances intersected by the ray path.
+   */
+  getBlocksAlongRay(start: { x: number; y: number }, end: { x: number; y: number }): BlockInstance[] {
+    const blocksHit: Set<BlockInstance> = new Set();
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+
+    const stepX = dx > 0 ? 1 : -1;
+    const stepY = dy > 0 ? 1 : -1;
+
+    const tDeltaX = Math.abs(this.cellSize / dx);
+    const tDeltaY = Math.abs(this.cellSize / dy);
+
+    let x = Math.floor(start.x / this.cellSize);
+    let y = Math.floor(start.y / this.cellSize);
+
+    const endX = Math.floor(end.x / this.cellSize);
+    const endY = Math.floor(end.y / this.cellSize);
+
+    let tMaxX: number;
+    let tMaxY: number;
+
+    const xOffset = dx > 0
+      ? (x + 1) * this.cellSize - start.x
+      : start.x - x * this.cellSize;
+    tMaxX = Math.abs(xOffset / dx);
+
+    const yOffset = dy > 0
+      ? (y + 1) * this.cellSize - start.y
+      : start.y - y * this.cellSize;
+    tMaxY = Math.abs(yOffset / dy);
+
+    const maxSteps = 500; // Guard against infinite traversal
+
+    for (let steps = 0; steps < maxSteps; steps++) {
+      const cellBlocks = this.getBlocksInCellByCoords(x, y);
+      for (const block of cellBlocks) {
+        blocksHit.add(block);
+      }
+
+      if (x === endX && y === endY) break;
+
+      if (tMaxX < tMaxY) {
+        tMaxX += tDeltaX;
+        x += stepX;
+      } else {
+        tMaxY += tDeltaY;
+        y += stepY;
+      }
+    }
+
+    return Array.from(blocksHit);
+  }
+
   // Get blocks in a cell using cell coordinates, not world coordinates
   getBlocksInCellByCoords(cellX: number, cellY: number): BlockInstance[] {
     const cellKey = `${cellX},${cellY}`;

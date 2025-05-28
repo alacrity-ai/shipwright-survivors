@@ -51,6 +51,42 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'hull3',
     category: 'hull',
   },
+  facetplate0: {
+    id: 'facetplate0',
+    name: 'Facetplate Mk I',
+    armor: 75,
+    mass: 30,
+    cost: 30,
+    sprite: 'facetplate0',
+    category: 'hull',
+  },
+  facetplate1: {
+    id: 'facetplate1',
+    name: 'Facetplate Mk II',
+    armor: 100,
+    mass: 40,
+    cost: 60,
+    sprite: 'facetplate1',
+    category: 'hull',
+  },
+  facetplate2: {
+    id: 'facetplate2',
+    name: 'Facetplate Mk III',
+    armor: 125,
+    mass: 50,
+    cost: 100,
+    sprite: 'facetplate2',
+    category: 'hull',
+  },
+  facetplate3: {
+    id: 'facetplate3',
+    name: 'Facetplate Mk IV',
+    armor: 150,
+    mass: 60,
+    cost: 150,
+    sprite: 'facetplate3',
+    category: 'hull',
+  },
   turret0: {
     id: 'turret0',
     name: 'Turret Mk I',
@@ -130,6 +166,38 @@ const blockTypes: Record<string, BlockType> = {
       } 
     },
     category: 'weapon',
+  },
+  laser0: {
+    id: 'laser0',
+    name: 'Laser Emitter Mk I',
+    armor: 80,
+    cost: 1000,
+    mass: 100,
+    sprite: 'laser0',
+    category: 'weapon',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireType: 'laser',
+        fireRate: 0,
+        fireDamage: 1,
+        projectileSpeed: 0, // beam or hitscan
+        lifetime: 0, // short pulse
+        accuracy: 1.0, // perfectly straight
+      },
+    },
+  },
+  reactor0: {
+    id: 'reactor0',
+    name: 'Reactor Mk I',
+    armor: 50,
+    cost: 400,
+    mass: 60,
+    behavior: {
+      energyOutput: 10,
+    },
+    sprite: 'reactor0',
+    category: 'utility',
   },
   engine0: {
     id: 'engine0',

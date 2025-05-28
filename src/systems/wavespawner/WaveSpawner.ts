@@ -7,6 +7,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
+import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
 import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
 import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitions';
@@ -15,6 +16,9 @@ import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
+
+import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
+import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
 
 type WaveType = 'wave' | 'boss' | string;
 type WaveMod = 'shielded' | 'extra-aggressive' | string;
@@ -50,6 +54,7 @@ export class WaveSpawner implements IUpdatable {
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly playerShip: Ship,
     private readonly projectileSystem: ProjectileSystem,
+    private readonly laserSystem: LaserSystem,
     private readonly thrusterFx: ThrusterParticleSystem,
     private readonly grid: Grid
   ) {}
@@ -59,6 +64,7 @@ export class WaveSpawner implements IUpdatable {
     aiOrchestrator: AIOrchestratorSystem,
     playerShip: Ship,
     projectileSystem: ProjectileSystem,
+    laserSystem: LaserSystem,
     thrusterFx: ThrusterParticleSystem,
     grid: Grid
   ): WaveSpawner {
@@ -68,6 +74,7 @@ export class WaveSpawner implements IUpdatable {
         aiOrchestrator,
         playerShip,
         projectileSystem,
+        laserSystem,
         thrusterFx,
         grid
       );
@@ -159,7 +166,9 @@ export class WaveSpawner implements IUpdatable {
 
         const emitter = new ThrusterEmitter(this.thrusterFx);
         const movement = new MovementSystem(ship, emitter);
-        const weapons = new WeaponSystem(this.projectileSystem);
+        const weapons = new WeaponSystem(
+          new TurretBackend(this.projectileSystem), 
+          new LaserBackend(this.laserSystem));
         const controller = new AIControllerSystem(ship, movement, weapons);
         controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
 
@@ -230,5 +239,22 @@ export class WaveSpawner implements IUpdatable {
 
   public isBossWaveActive(): boolean {
     return this.activeWave?.type === 'boss' && !this.activeWave.isComplete;
+  }
+
+  public notifyShipDestruction(ship: Ship): void {
+    // Remove from active tracking immediately
+    const wasTracked = this.activeShips.has(ship);
+    this.activeShips.delete(ship);
+    
+    const controller = this.activeControllers.get(ship);
+    if (controller) {
+      // Note: AI controller should already be removed by AIOrchestratorSystem
+      // but we clean up our local reference
+      this.activeControllers.delete(ship);
+    }
+    
+    if (wasTracked) {
+      console.log(`WaveSpawner: Ship ${ship.id} removed from active tracking`);
+    }
   }
 }

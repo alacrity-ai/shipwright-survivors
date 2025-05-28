@@ -16,6 +16,10 @@ export class ShipRegistry {
     return ShipRegistry.instance;
   }
 
+  getById(id: string): Ship | undefined {
+    return Array.from(this.ships).find(ship => ship.id === id);
+  }
+
   add(ship: Ship): void {
     this.ships.add(ship);
   }

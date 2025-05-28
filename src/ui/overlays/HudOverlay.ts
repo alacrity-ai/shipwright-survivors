@@ -13,13 +13,10 @@ export class HudOverlay {
     private readonly canvasManager: CanvasManager,
     private readonly ship: Ship
   ) {
-    // Get the PlayerResources singleton
     this.playerResources = PlayerResources.getInstance();
-    
-    // Initialize with current currency value
+
     this.currency = this.playerResources.getCurrency();
-    
-    // Subscribe to currency changes
+
     this.playerResources.onCurrencyChange((newValue) => {
       this.currency = newValue;
     });
@@ -35,11 +32,16 @@ export class HudOverlay {
     const maxHp = blocks.reduce((sum, [_, b]) => sum + b.type.armor, 0);
     const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
 
+    const energyComponent = this.ship.getEnergyComponent();
+    const energy = energyComponent?.getCurrent() ?? 0;
+    const maxEnergy = energyComponent?.getMax() ?? 0;
+
     const x = 12;
-    let y = 640;
+    let y = 630;
     const lineHeight = 18;
 
     drawLabel(ctx, x, y, `HP: ${currentHp} / ${maxHp}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Energy: ${energy} / ${maxEnergy}`); y += lineHeight;
     drawLabel(ctx, x, y, `Mass: ${mass.toFixed(1)} kg`); y += lineHeight;
     drawLabel(ctx, x, y, `Speed: ${speed.toFixed(1)} px/s`); y += lineHeight;
     drawLabel(ctx, x, y, `Currency: ${this.currency}`);

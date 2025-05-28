@@ -83,6 +83,10 @@ export function isTabPressed(): boolean {
   return isKeyPressed('Tab');
 }
 
+export function is0Pressed(): boolean {
+  return isKeyPressed('Digit0');
+}
+
 // src/core/Input.ts
 export function isLPressed(): boolean {
   return isKeyPressed('KeyL');
