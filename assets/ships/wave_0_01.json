@@ -1,10 +1,10 @@
 {
   "transform": {
     "position": {
-      "x": -6702.255486710789,
-      "y": -3669.096513335326
+      "x": -1993.0778842221782,
+      "y": -2199.171208324172
     },
-    "rotation": 4.873022651864371
+    "rotation": 0.04112723620562233
   },
   "blocks": [
     {
@@ -16,7 +16,7 @@
       "rotation": 0
     },
     {
-      "id": "turret0",
+      "id": "facetplate0",
       "coord": {
         "x": 0,
         "y": -1
@@ -27,22 +27,6 @@
       "id": "engine0",
       "coord": {
         "x": 0,
-        "y": 1
-      },
-      "rotation": 0
-    },
-    {
-      "id": "engine0",
-      "coord": {
-        "x": 1,
-        "y": 1
-      },
-      "rotation": 0
-    },
-    {
-      "id": "engine0",
-      "coord": {
-        "x": -1,
         "y": 1
       },
       "rotation": 0
