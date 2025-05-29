@@ -29,7 +29,7 @@ export function drawWindow(
   if (title) {
     ctx.fillStyle = '#ccc';
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(title, x + 28, y + 16);
+    ctx.fillText(title, x + 42, y + 16);
   }
 
   let tabWasClicked = false;

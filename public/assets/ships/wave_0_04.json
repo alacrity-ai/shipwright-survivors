@@ -1,0 +1,43 @@
+{
+  "transform": {
+    "position": {
+      "x": -1993.0778842221782,
+      "y": -2199.171208324172
+    },
+    "rotation": 0.04112723620562233
+  },
+  "blocks": [
+    {
+      "id": "cockpit0",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 270
+    },
+    {
+      "id": "hull0",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    }
+  ]
+}

@@ -1,38 +1,37 @@
-import { getMousePosition, wasMouseClicked, wasRightClicked, wasSpacePressed } from '@/core/Input';
+import { getMousePosition, wasMouseClicked, wasRightClicked, wasKeyJustPressed } from '@/core/Input';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { getBlockCost } from '@/game/blocks/BlockRegistry';
+import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
+import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { Camera } from '@/core/Camera';
 import type { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
+import type { GridCoord } from '@/game/interfaces/types/GridCoord';
+import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
+import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { isLPressed } from '@/core/Input';
 import { savePlayerShip } from '@/systems/serialization/savePlayerShip'; // Import the savePlayerShip function
 import { PlayerResources } from '@/game/player/PlayerResources'; // Import the PlayerResources singleton
-import { getHoveredGridCoord, isCoordConnectedToShip } from './utils/ShipBuildingUtils';
+import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
+import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 
 export class ShipBuilderController {
   private rotation: number = 0;
   private lastBlockId: string | null = null;
   private hasSaved = false;  // Flag to prevent multiple saves
+  private hoveredShipCoord: GridCoord | null = null;
 
   constructor(
     private readonly ship: Ship,
     private readonly menu: ShipBuilderMenu,
-    private readonly camera: Camera
+    private readonly camera: Camera,
+    private readonly repairEffectSystem: RepairEffectSystem
   ) {}
 
   update(transform: ShipTransform) {
-    const blockId = this.menu.getSelectedBlockId();
-    if (!blockId) return;
-
-    // Optional: reset rotation when block type changes
-    if (blockId !== this.lastBlockId) {
-      this.rotation = 0;
-      this.lastBlockId = blockId;
-    }
-
-    if (wasSpacePressed()) {
+    if (wasKeyJustPressed('Space')) {
       this.rotation = (this.rotation + 90) % 360;
     }
 
@@ -40,6 +39,30 @@ export class ShipBuilderController {
     if (this.isCursorOverMenu(mouse)) return;
 
     const coord = getHoveredGridCoord(mouse, this.camera, transform.position, transform.rotation);
+
+    // REPAIR MODE: Update hovered ship block for repair mode
+    // -- handle repair mode BEFORE early return --
+    if (this.menu.getActiveTool() === ShipBuilderTool.REPAIR) {
+      const hoveredBlock = this.ship.getBlock(coord);
+      this.menu.setHoveredShipBlock(hoveredBlock);
+
+      if (hoveredBlock && wasMouseClicked()) {
+        this.repairBlockAt(coord);
+      }
+
+      // No placement logic should run in REPAIR mode
+      return;
+    }
+
+    // PLACEMENT MODE: Block Placement / Deletion logic
+    const blockId = this.menu.getSelectedBlockId();
+    if (!blockId) return;
+
+    // Reset rotation when block type changes
+    if (blockId !== this.lastBlockId) {
+      this.rotation = 0;
+      this.lastBlockId = blockId;
+    }
 
     const blockType = getBlockSprite(blockId);
     if (!blockType) return;
@@ -49,12 +72,20 @@ export class ShipBuilderController {
 
     if (wasRightClicked()) {
       const block = this.ship.getBlock(coord);
-      if (block && block.type.id !== 'cockpit') {
+      if (!block) return;
+
+      if (!block.type.id.startsWith('cockpit')) {
+        const deletionSafe = this.ship.isDeletionSafe(coord);
+        if (!deletionSafe) {
+          return;
+        }
+
         this.ship.removeBlock(coord);
         const refundCost = Math.round(blockCost / 2);
         PlayerResources.getInstance().addCurrency(refundCost);
       }
     }
+
     // Check if the player has enough currency to place the block
     if (PlayerResources.getInstance().hasEnoughCurrency(blockCost)) {
       if (wasMouseClicked()) {
@@ -63,17 +94,16 @@ export class ShipBuilderController {
           PlayerResources.getInstance().spendCurrency(blockCost); // Deduct the cost from player's currency
         }
       }
-    } else {
-      console.log("Not enough currency to place this block.");
-    }
+    } 
 
+    // DEBUG SAVING (will be removed when out of development testing).
+    // THIS IS NOT the same functionality as ingame ship saving:
     // Check if the "L" key is pressed and save the ship, but only once
     if (isLPressed() && !this.hasSaved) {
       const filename = 'saved_player_ship.json';
       savePlayerShip(this.ship, this.ship.getGrid(), filename); // Save the current player ship to a file
       this.hasSaved = true;  // Set the flag to prevent further saves
     }
-
     // Reset the save flag when "L" key is released
     if (!isLPressed() && this.hasSaved) {
       this.hasSaved = false;  // Allow saving again if the key is released
@@ -81,16 +111,12 @@ export class ShipBuilderController {
   }
 
   render(ctx: CanvasRenderingContext2D, transform: ShipTransform): void {
-    const blockId = this.menu.getSelectedBlockId();
-    if (!blockId) return;
-
     const mouse = getMousePosition();
     if (this.isCursorOverMenu(mouse)) return;
 
     const coord = getHoveredGridCoord(mouse, this.camera, transform.position, transform.rotation);
-    const sprite = getBlockSprite(blockId);
 
-    // === Convert grid coord → world space
+    // Convert grid coord → world space
     const localX = coord.x * BLOCK_SIZE;
     const localY = coord.y * BLOCK_SIZE;
 
@@ -103,29 +129,102 @@ export class ShipBuilderController {
     const worldX = transform.position.x + rotatedX;
     const worldY = transform.position.y + rotatedY;
 
-    // === Convert world → screen
     const screen = this.camera.worldToScreen(worldX, worldY);
 
-    // === Apply zoom just like ShipRenderer does
     ctx.save();
     ctx.translate(screen.x, screen.y);
     ctx.scale(this.camera.zoom, this.camera.zoom);
-    ctx.rotate((transform.rotation + this.rotation * Math.PI / 180));
-    ctx.globalAlpha = 0.6;
-    ctx.drawImage(
-      sprite.base,
-      -BLOCK_SIZE / 2,
-      -BLOCK_SIZE / 2,
-      BLOCK_SIZE,
-      BLOCK_SIZE
-    );
-    ctx.globalAlpha = 1.0;
+    ctx.rotate(transform.rotation);
+
+    const tool = this.menu.getActiveTool();
+
+    if (tool === ShipBuilderTool.REPAIR) {
+      const hoveredBlock = this.ship.getBlock(coord);
+      if (hoveredBlock) {
+        drawBlockHighlight(ctx, 'rgba(0,255,0,0.3)');
+      }
+    } else if (tool === ShipBuilderTool.PLACE) {
+      const blockId = this.menu.getSelectedBlockId();
+      if (!blockId) {
+        ctx.restore();
+        return;
+      }
+
+      const existingBlock = this.ship.getBlock(coord);
+
+      if (existingBlock) {
+        const isSafe = this.ship.isDeletionSafe(coord);
+        drawBlockDeletionHighlight(ctx, isSafe);
+      } else {
+        const sprite = getBlockSprite(blockId);
+        ctx.save();
+        ctx.rotate(this.rotation * Math.PI / 180);
+        ctx.globalAlpha = 0.6;
+        ctx.drawImage(
+          sprite.base,
+          -BLOCK_SIZE / 2,
+          -BLOCK_SIZE / 2,
+          BLOCK_SIZE,
+          BLOCK_SIZE
+        );
+        ctx.restore();
+      }
+    }
+
     ctx.restore();
   }
 
   private isCursorOverMenu(mouse: { x: number; y: number }): boolean {
-    const menuX = 20;
-    const menuWidth = BLOCK_SIZE * 4 + 16 * 2;
-    return mouse.x < menuX + menuWidth;
+    return this.menu.isPointInBounds(mouse.x, mouse.y);
+  }
+
+  repairBlockAt(coord: { x: number; y: number }): void {
+    const block = this.ship.getBlock(coord);
+    if (!block) return;
+
+    const missingHp = block.type.armor - block.hp;
+    if (missingHp <= 0) return;
+
+    const repairCost = getRepairCost(block);
+    const playerResources = PlayerResources.getInstance();
+
+    if (playerResources.hasEnoughCurrency(repairCost)) {
+      playerResources.spendCurrency(repairCost);
+      block.hp = block.type.armor;
+      this.repairEffectSystem.createRepairEffect(block.position!);
+    }
+  }
+
+  repairAllBlocks(): void {
+    const playerResources = PlayerResources.getInstance();
+
+    // Get all damaged blocks
+    const damagedBlocks = this.ship.getAllBlocks()
+      .filter(([, block]) => block.hp < block.type.armor)
+      .map(([coord, block]) => ({ coord, block }))
+      .sort((a, b) => {
+        const missingA = a.block.type.armor - a.block.hp;
+        const missingB = b.block.type.armor - b.block.hp;
+        if (missingA !== missingB) {
+          return missingB - missingA; // Repair most damaged first
+        }
+        const costA = getRepairCost(a.block);
+        const costB = getRepairCost(b.block);
+        return costA - costB; // Then cheaper to repair first
+      });
+
+    for (const { coord, block } of damagedBlocks) {
+      const repairCost = getRepairCost(block);
+      if (playerResources.hasEnoughCurrency(repairCost)) {
+        this.repairBlockAt(coord);
+      } else {
+        console.log("Stopped repair: insufficient funds.");
+        break;
+      }
+    }
+  }
+
+  getHoveredShipBlock(): BlockInstance | undefined {
+    return this.hoveredShipCoord ? this.ship.getBlock(this.hoveredShipCoord) : undefined;
   }
 }

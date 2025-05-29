@@ -1,7 +1,7 @@
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
-import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { getMousePosition } from '@/core/Input';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 
@@ -32,12 +32,14 @@ export class MultiShipRenderer {
       this.ctx.scale(this.camera.zoom, this.camera.zoom);
       this.ctx.rotate(rotation);
 
-      // === Base layer: hulls, cockpits, engines
+      // === Base layer: hulls, cockpits, engines with damage variants
       for (const [coord, block] of ship.getAllBlocks()) {
-        const sprite = getBlockSprite(block.type.id);
+        const maxHp = block.type.armor ?? 1;
+        const damageLevel = getDamageLevel(block.hp, maxHp);
+        const sprite = getBlockSprite(block.type.id, damageLevel);
+        
         const px = coord.x * BLOCK_SIZE;
         const py = coord.y * BLOCK_SIZE;
-
         const blockRotation = (block.rotation ?? 0) * (Math.PI / 180);
 
         this.ctx.save();
@@ -53,9 +55,12 @@ export class MultiShipRenderer {
         this.ctx.restore();
       }
 
-      // === Overlay pass: e.g. turret barrels
+      // === Overlay pass: e.g. turret barrels with damage variants
       for (const [coord, block] of ship.getAllBlocks()) {
-        const sprite = getBlockSprite(block.type.id);
+        const maxHp = block.type.armor ?? 1;
+        const damageLevel = getDamageLevel(block.hp, maxHp);
+        const sprite = getBlockSprite(block.type.id, damageLevel);
+        
         if (!sprite.overlay) continue;
 
         const localX = coord.x * BLOCK_SIZE;

@@ -1,8 +1,11 @@
 // src/systems/physics/MovementSystem.ts
 
 import type { Ship } from '@/game/ship/Ship';
+import { classifyThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
+import type { ThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
 import type { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
+import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 export interface ShipTransform {
   position: { x: number; y: number };
@@ -11,20 +14,30 @@ export interface ShipTransform {
   angularVelocity: number;
 }
 
-const BASE_MASS = 100;
-const INERTIAL_DAMPENING_FACTOR = 0.98; // 0.98 per second (~2% velocity loss/sec)
+const BASE_MASS = 200;
+const INERTIAL_DAMPENING_FACTOR = 0.50; // 0.98 per second (~2% velocity loss/sec)
 const STEERING_ASSIST_STRENGTH = 0.5;   // higher = more aggressive directional realignment
+const ROTATIONAL_ASSIST_STRENGTH = 1.5; // Higher = more snap
+const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
+const ANGULAR_MASS_SCALE_EXPONENT = 0.5; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
+const BRAKING_FORCE_MULTIPLIER = 0.1; // Lower = weaker braking, higher = more aggressive
+
+// Engine speed cap and scaling
+const SPEED_PER_THRUST_UNIT = 1; // Tunable: how much each unit of thrustPower contributes to max speed
+const DIMINISHING_START = 8;
+const DIMINISHING_RATE = 0.15;
 
 export class MovementSystem {
   private readonly fallbackThrustPower = 10;
   private readonly baseThrust = 5;
-  private readonly thrustToSpeed = 1.5;
 
   private currentIntent: MovementIntent = {
     thrustForward: false,
     brake: false,
     rotateLeft: false,
     rotateRight: false,
+    strafeLeft: false,
+    strafeRight: false,
   };
 
   constructor(
@@ -47,70 +60,164 @@ export class MovementSystem {
 
   private getBlockThrustDirection(blockRotationDeg: number): { x: number; y: number } {
     const blockFacingRad = blockRotationDeg * (Math.PI / 180);
-    const facingX = Math.sin(blockFacingRad);
-    const facingY = Math.cos(blockFacingRad);
-    return { x: facingX, y: -facingY };
+    
+    const thrustX = Math.sin(blockFacingRad);
+    const thrustY = -Math.cos(blockFacingRad);
+    
+    return { x: thrustX, y: thrustY };
   }
 
-public update(dt: number): void {
-  const transform = this.ship.getTransform();
-  const { position, velocity } = transform;
+  public update(dt: number): void {
+    const transform = this.ship.getTransform();
+    const { position, velocity } = transform;
 
-  const {
-    rotateLeft,
-    rotateRight,
-    thrustForward,
-    brake,
-  } = this.currentIntent;
+    const {
+      rotateLeft,
+      rotateRight,
+      thrustForward,
+      brake,
+      strafeLeft,
+      strafeRight,
+    } = this.currentIntent;
 
-  // === Evaluate mass and acceleration scaling ===
-  const mass = this.ship.getTotalMass();
-  const scaleExponent = 0.65;
-  const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), scaleExponent));
+    // === Evaluate mass and scaling ===
+    const mass = this.ship.getTotalMass();
+    const angularScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), ANGULAR_MASS_SCALE_EXPONENT));
 
-  let totalThrustPower = this.fallbackThrustPower;
-  let totalTurnPower = 1;
-  const thrusters = [];
+    const thrustGroups: Record<ThrustDirection, { coord: GridCoord; power: number; rotation: number }[]> = {
+      forward: [],
+      strafeLeft: [],
+      strafeRight: [],
+    };
 
-  for (const [coord, block] of this.ship.getAllBlocks()) {
-    if (block.type.behavior?.canThrust) {
-      const power = block.type.behavior.thrustPower ?? this.baseThrust;
-      totalThrustPower += power;
-      thrusters.push({ coord, power, rotation: block.rotation ?? 0 });
+    let rawTurnPower = 1;
+
+    for (const [coord, block] of this.ship.getAllBlocks()) {
+      const behavior = block.type.behavior;
+
+      if (behavior?.canThrust) {
+        const power = behavior.thrustPower ?? this.baseThrust;
+        const dir = classifyThrustDirection(block.rotation ?? 0);
+        if (dir) {
+          thrustGroups[dir].push({ coord, power, rotation: block.rotation ?? 0 });
+        }
+      }
+
+      if (block.type.id.startsWith('fin')) {
+        rawTurnPower += behavior?.turnPower ?? 0;
+      }
     }
 
-    if (block.type.id.startsWith('fin')) {
-      totalTurnPower += block.type.behavior?.turnPower ?? 0;
+    // === Diminishing returns on fin-based turn power ===
+    const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
+
+    // === Angular motion with assist ===
+    const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3, 20);
+    let targetAngularVelocity = 0;
+    if (rotateLeft) {
+      targetAngularVelocity = -maxAngularSpeed;
+    } else if (rotateRight) {
+      targetAngularVelocity = maxAngularSpeed;
     }
+
+    const angularDelta = targetAngularVelocity - transform.angularVelocity;
+    transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * dt;
+
+    transform.angularVelocity = Math.max(
+      -maxAngularSpeed,
+      Math.min(transform.angularVelocity, maxAngularSpeed)
+    );
+
+    if (thrustForward) {
+      this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position);
+    }
+    if (strafeLeft) {
+      this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position);
+    }
+    if (strafeRight) {
+      this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position);
+    }
+
+    // === Apply inertial dampening if no thrust applied ===
+    if (!thrustForward && !strafeLeft && !strafeRight) {
+      const dampen = Math.pow(INERTIAL_DAMPENING_FACTOR, dt);
+      velocity.x *= dampen;
+      velocity.y *= dampen;
+    }
+
+    // === Braking ===
+    if (brake) {
+      const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+      if (speed > 0) {
+        const vxNorm = velocity.x / speed;
+        const vyNorm = velocity.y / speed;
+        const allThrusters = [...thrustGroups.forward, ...thrustGroups.strafeLeft, ...thrustGroups.strafeRight];
+        const totalThrustPower = allThrusters.reduce((sum, t) => sum + t.power, 0) + this.fallbackThrustPower;
+        const brakingForce = totalThrustPower * dt * BRAKING_FORCE_MULTIPLIER;
+
+        const newVx = velocity.x - vxNorm * brakingForce;
+        const newVy = velocity.y - vyNorm * brakingForce;
+        const dot = newVx * velocity.x + newVy * velocity.y;
+
+        if (dot < 0) {
+          velocity.x = 0;
+          velocity.y = 0;
+        } else {
+          velocity.x = newVx;
+          velocity.y = newVy;
+        }
+      }
+    }
+
+    // === Integrate motion ===
+    transform.rotation += transform.angularVelocity * dt;
+    position.x += velocity.x * dt;
+    position.y += velocity.y * dt;
+
+    this.ship.updateBlockPositions();
   }
 
-  // === Angular motion ===
-  const angularAccel = totalTurnPower * 0.2 * accelScale;
-  const maxAngularSpeed = Math.min(totalTurnPower * 0.3, 20);
-  const angularFriction = 0.99;
-
-  if (rotateLeft) {
-    transform.angularVelocity -= angularAccel * dt;
-  } else if (rotateRight) {
-    transform.angularVelocity += angularAccel * dt;
-  } else {
-    transform.angularVelocity *= angularFriction;
-  }
-
-  transform.angularVelocity = Math.max(
-    -maxAngularSpeed,
-    Math.min(transform.angularVelocity, maxAngularSpeed)
-  );
-
-  // === Thrust and directional biasing ===
-  if (thrustForward) {
+  private applyDirectionalThrust(
+    dt: number,
+    thrustDirection: ThrustDirection,
+    thrusters: { coord: GridCoord; power: number; rotation: number }[],
+    transform: ShipTransform,
+    position: { x: number; y: number }
+  ): void {
     let totalThrustX = 0;
     let totalThrustY = 0;
 
-    const forward = this.rotateVector(0, -1, transform.rotation);
-    totalThrustX += forward.x * this.fallbackThrustPower;
-    totalThrustY += forward.y * this.fallbackThrustPower;
+    // === Apply fallback to ALL directions equally ===
+    const fallbackPower = this.fallbackThrustPower;
+    const engineCount = thrusters.length + 1;
+    const baseUnit = SPEED_PER_THRUST_UNIT;
 
+    const totalEngineThrust = thrusters.reduce((sum, t) => sum + t.power, 0);
+    const totalThrustPower = totalEngineThrust + fallbackPower;
+
+    const maxSpeed = (() => {
+      if (engineCount <= DIMINISHING_START) return totalThrustPower * baseUnit;
+
+      const basePower = (totalThrustPower / engineCount) * DIMINISHING_START;
+      const excessEngines = engineCount - DIMINISHING_START;
+      const excessPowerPerEngine = totalThrustPower / engineCount;
+      const effectivenessMultiplier = 1 / (1 + DIMINISHING_RATE * excessEngines);
+      const diminishedExcessPower = excessPowerPerEngine * excessEngines * effectivenessMultiplier;
+      return (basePower + diminishedExcessPower) * baseUnit;
+    })();
+
+    // === Apply fallback thrust in correct direction ===
+    const fallbackDirection = (() => {
+      switch (thrustDirection) {
+        case 'forward': return this.rotateVector(0, -1, transform.rotation);
+        case 'strafeLeft': return this.rotateVector(-1, 0, transform.rotation);
+        case 'strafeRight': return this.rotateVector(1, 0, transform.rotation);
+      }
+    })();
+    totalThrustX += fallbackDirection.x * fallbackPower;
+    totalThrustY += fallbackDirection.y * fallbackPower;
+
+    // === Apply thruster force
     for (const { coord, power, rotation: blockRotation } of thrusters) {
       const localThrust = this.getBlockThrustDirection(blockRotation);
       const worldThrust = this.rotateVector(localThrust.x, localThrust.y, transform.rotation);
@@ -126,70 +233,43 @@ public update(dt: number): void {
       });
     }
 
+    // === Apply impulse
+    const mass = this.ship.getTotalMass();
+    const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), 0.65));
     const impulseX = totalThrustX * dt * accelScale;
     const impulseY = totalThrustY * dt * accelScale;
 
-    velocity.x += impulseX;
-    velocity.y += impulseY;
+    transform.velocity.x += impulseX;
+    transform.velocity.y += impulseY;
 
-    // === Directional biasing (steering assist) ===
-    const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+    // === Directional assist
+    const speed = Math.sqrt(transform.velocity.x ** 2 + transform.velocity.y ** 2);
     if (speed > 0) {
-      const desiredDir = this.rotateVector(0, -1, transform.rotation);
-      const vxNorm = velocity.x / speed;
-      const vyNorm = velocity.y / speed;
+      const vxNorm = transform.velocity.x / speed;
+      const vyNorm = transform.velocity.y / speed;
 
-      const steerX = desiredDir.x - vxNorm;
-      const steerY = desiredDir.y - vyNorm;
+      const steerX = fallbackDirection.x - vxNorm;
+      const steerY = fallbackDirection.y - vyNorm;
 
-      velocity.x += steerX * STEERING_ASSIST_STRENGTH * speed * dt;
-      velocity.y += steerY * STEERING_ASSIST_STRENGTH * speed * dt;
+      transform.velocity.x += steerX * STEERING_ASSIST_STRENGTH * speed * dt;
+      transform.velocity.y += steerY * STEERING_ASSIST_STRENGTH * speed * dt;
     }
 
-    // === Cap max speed ===
-    const newSpeed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-    const maxSpeed = totalThrustPower * this.thrustToSpeed;
-    if (newSpeed > maxSpeed) {
-      const scale = maxSpeed / newSpeed;
-      velocity.x *= scale;
-      velocity.y *= scale;
-    }
-  } else {
-    // === Inertial dampening ===
-    const dampen = Math.pow(INERTIAL_DAMPENING_FACTOR, dt);
-    velocity.x *= dampen;
-    velocity.y *= dampen;
-  }
+    // === Soft speed cap (per-directional component limiting)
+    const velocityInThrustDir =
+      transform.velocity.x * fallbackDirection.x +
+      transform.velocity.y * fallbackDirection.y;
 
-  // === Braking ===
-  if (brake) {
-    const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-    if (speed > 0) {
-      const vxNorm = velocity.x / speed;
-      const vyNorm = velocity.y / speed;
-      const brakingForce = totalThrustPower * dt * 1.2;
+    if (velocityInThrustDir > maxSpeed) {
+      const excessRatio = velocityInThrustDir / maxSpeed;
+      const softCapMultiplier = 1 / (1 + 0.5 * (excessRatio - 1));
 
-      const newVx = velocity.x - vxNorm * brakingForce;
-      const newVy = velocity.y - vyNorm * brakingForce;
-      const dot = newVx * velocity.x + newVy * velocity.y;
+      const excessVelocity =
+        velocityInThrustDir - (velocityInThrustDir * softCapMultiplier);
 
-      if (dot < 0) {
-        velocity.x = 0;
-        velocity.y = 0;
-      } else {
-        velocity.x = newVx;
-        velocity.y = newVy;
-      }
+      // Subtract excess along the thrust direction vector
+      transform.velocity.x -= fallbackDirection.x * excessVelocity;
+      transform.velocity.y -= fallbackDirection.y * excessVelocity;
     }
   }
-
-  // === Integrate motion ===
-  transform.rotation += transform.angularVelocity * dt;
-  position.x += velocity.x * dt;
-  position.y += velocity.y * dt;
-
-  this.ship.updateBlockPositions();
 }
-
-}
-

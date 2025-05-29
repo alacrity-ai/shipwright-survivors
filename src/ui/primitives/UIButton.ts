@@ -1,3 +1,5 @@
+// src/ui/primitives/UIButton.ts
+
 export interface UIButton {
   x: number;
   y: number;

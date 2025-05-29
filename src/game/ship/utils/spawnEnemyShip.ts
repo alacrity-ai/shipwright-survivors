@@ -27,7 +27,7 @@ export function spawnEnemyShip(
   const ship = new Ship(grid);
 
   // === Minimal AI ship structure ===
-  ship.placeBlockById({ x: 0, y: 0 }, 'cockpit');
+  ship.placeBlockById({ x: 0, y: 0 }, 'cockpit0');
   ship.placeBlockById({ x: 0, y: 1 }, 'engine0');
   ship.placeBlockById({ x: -1, y: 0 }, 'turret0');
   ship.placeBlockById({ x: 1, y: 0 }, 'turret0');

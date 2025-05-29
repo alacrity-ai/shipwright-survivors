@@ -3,7 +3,7 @@
 export class Camera {
   public x = 0;
   public y = 0;
-  public zoom = 0.4; // 1.0 = 100%
+  public zoom = 0.3; // 1.0 = 100%
 
   constructor(
     private readonly viewportWidth: number,
@@ -34,12 +34,16 @@ export class Camera {
   }
 
   adjustZoom(delta: number) {
-    const scrollSensitivity = 0.05; // change per 100 units of wheel delta
-    const clamped = Math.max(-200, Math.min(200, delta));
-    const zoomChange = -clamped * scrollSensitivity * 0.01;
+    const baseFactor = 1.05; // ~5% zoom step per wheel notch
+    const scrollSteps = Math.max(-1, Math.min(1, delta)); // Clamp to prevent wild jumps
 
-    this.zoom += zoomChange;
-    this.zoom = Math.min(1.2, Math.max(0.14, this.zoom));
+    if (scrollSteps > 0) {
+      this.zoom *= Math.pow(baseFactor, scrollSteps);
+    } else if (scrollSteps < 0) {
+      this.zoom /= Math.pow(baseFactor, -scrollSteps);
+    }
+
+    this.zoom = Math.min(1, Math.max(0.2, this.zoom)); // Clamp to sane bounds
   }
 
   getZoom(): number {

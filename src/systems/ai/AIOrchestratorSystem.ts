@@ -62,7 +62,6 @@ export class AIOrchestratorSystem implements IUpdatable {
 
     for (const controller of controllersToRemove) {
       this.removeController(controller);
-      console.log(`Removed AI controller for ship ${shipId}`);
     }
   }
 

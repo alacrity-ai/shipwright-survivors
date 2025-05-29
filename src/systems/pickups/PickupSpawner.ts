@@ -38,8 +38,8 @@ export class PickupSpawner {
   private getCurrencyAmountForBlock(block: BlockInstance): number {
     const id = block.type.id;
 
-    if (id === 'cockpit') {
-      return 200 + Math.floor(Math.random() * 26); // Cockpit always base 200 + [0–25]
+    if (id.startsWith('cockpit')) {
+      return 10 + Math.floor(Math.random() * 26); // Cockpit always base 200 + [0–25]
     }
 
     // Extract tier from ID (expects format like 'engine3', 'turret1', etc.)
@@ -47,21 +47,21 @@ export class PickupSpawner {
     const tier = tierMatch ? parseInt(tierMatch[1], 10) : -1;
 
     const tierToBaseValue: Record<number, number> = {
-      0: 25,
-      1: 50,
-      2: 75,
-      3: 100,
-      4: 150,
-      5: 200,
-      6: 250,
-      7: 300,
-      8: 400,
-      9: 500,
-      10: 600,
+      0: 5,
+      1: 10,
+      2: 25,
+      3: 35,
+      4: 50,
+      5: 75,
+      6: 100,
+      7: 125,
+      8: 175,
+      9: 225,
+      10: 300,
     };
 
-    const baseValue = tierToBaseValue[tier] ?? 25;
-    const randomBonus = Math.floor(Math.random() * 26); // [0–25]
+    const baseValue = tierToBaseValue[tier] ?? 5;
+    const randomBonus = Math.floor(Math.random() * 6); // [0–5]
 
     return baseValue + randomBonus;
   }

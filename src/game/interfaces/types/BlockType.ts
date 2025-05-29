@@ -12,6 +12,7 @@ export interface BlockType {
   mass: number;
   cost: number;
   category: BlockCategory;
+  subcategory?: string; // Added here
   behavior?: BlockBehavior;
   size?: number;
 }

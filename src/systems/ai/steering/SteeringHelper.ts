@@ -31,7 +31,9 @@ export function faceTarget(
     thrustForward: false,
     brake: false,
     rotateLeft,
-    rotateRight
+    rotateRight,
+    strafeLeft: false,
+    strafeRight: false,
   };
 }
 
@@ -74,7 +76,9 @@ export function approachTarget(
     thrustForward,
     brake,
     rotateLeft,
-    rotateRight
+    rotateRight,
+    strafeLeft: false,
+    strafeRight: false,
   };
 }
 
@@ -134,7 +138,9 @@ export function orbitTarget(
     thrustForward,
     brake,
     rotateLeft,
-    rotateRight
+    rotateRight,
+    strafeLeft: false,
+    strafeRight: false,
   };
 }
 

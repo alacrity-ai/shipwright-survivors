@@ -12,6 +12,9 @@ export class LaserBackend implements WeaponBackend {
   update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
     if (!intent?.fireSecondary) return;
 
+    const shipEnergy = ship.getEnergyComponent();
+    if (!shipEnergy || shipEnergy.getCurrent() < 25) return;
+
     const laserBlocks = ship.getAllBlocks().filter(([_, b]) =>
       b.type.id.startsWith('laser') &&
       b.type.behavior?.canFire &&
@@ -20,7 +23,6 @@ export class LaserBackend implements WeaponBackend {
 
     if (laserBlocks.length === 0) return;
 
-    // Instead of firing from each block here, we delegate once per ship/frame
     this.laserSystem.queueUpdate(ship, transform, intent);
   }
 }

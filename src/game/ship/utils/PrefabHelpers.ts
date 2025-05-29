@@ -5,19 +5,18 @@ export function getStarterShip(grid: Grid) {
       const ship = new Ship(grid);
   
       // Initialize ship with blocks
-      ship.placeBlockById({ x: 0, y: -3 }, 'hull3');
-      ship.placeBlockById({ x: 0, y: 0 }, 'cockpit');
-      ship.placeBlockById({ x: 0, y: -1 }, 'hull3');
-      ship.placeBlockById({ x: 0, y: -2 }, 'turret3');
-      ship.placeBlockById({ x: -1, y: -1 }, 'fin3');
-      ship.placeBlockById({ x: 1, y: -1 }, 'fin3', 90);
-      ship.placeBlockById({ x: 1, y: 0 }, 'hull3');
-      ship.placeBlockById({ x: -1, y: 0 }, 'hull3');
-      ship.placeBlockById({ x: 2, y: 0 }, 'turret3', 90);
-      ship.placeBlockById({ x: -2, y: 0 }, 'turret3');
-      ship.placeBlockById({ x: 0, y: 1 }, 'engine3');
-      ship.placeBlockById({ x: -1, y: 1 }, 'engine3');
-      ship.placeBlockById({ x: 1, y: 1 }, 'engine3');
-  
+      ship.placeBlockById({ x: 0, y: -3 }, 'hull1');
+      ship.placeBlockById({ x: 0, y: 0 }, 'cockpit1');
+      ship.placeBlockById({ x: 0, y: -1 }, 'hull1');
+      ship.placeBlockById({ x: 0, y: -2 }, 'turret1');
+      ship.placeBlockById({ x: -1, y: -1 }, 'fin1');
+      ship.placeBlockById({ x: 1, y: -1 }, 'fin1', 90);
+      ship.placeBlockById({ x: 1, y: 0 }, 'hull1');
+      ship.placeBlockById({ x: -1, y: 0 }, 'hull1');
+      ship.placeBlockById({ x: 2, y: 0 }, 'turret1', 90);
+      ship.placeBlockById({ x: -2, y: 0 }, 'turret1');
+      ship.placeBlockById({ x: 0, y: 1 }, 'engine1');
+      ship.placeBlockById({ x: -1, y: 1 }, 'engine1');
+      ship.placeBlockById({ x: 1, y: 1 }, 'engine1');
       return ship;
 }

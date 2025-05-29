@@ -5,4 +5,6 @@ export interface MovementIntent {
   brake: boolean;
   rotateLeft: boolean;
   rotateRight: boolean;
+  strafeLeft: boolean; // New
+  strafeRight: boolean; // New
 }

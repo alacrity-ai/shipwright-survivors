@@ -9,6 +9,8 @@ export function createDefaultIntent(): ShipIntent {
       brake: false,
       rotateLeft: false,
       rotateRight: false,
+      strafeLeft: false,
+      strafeRight: false,
     },
     weapons: {
       firePrimary: false,

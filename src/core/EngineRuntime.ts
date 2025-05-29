@@ -2,8 +2,7 @@
 
 import { Camera } from './Camera';
 import { CanvasManager } from './CanvasManager';
-import { updateInputFrame, consumeZoomDelta, isEscapePressed, isTabPressed, is0Pressed } from './Input';
-
+import { updateInputFrame, consumeZoomDelta, wasKeyJustPressed } from './Input';
 import { GameLoop } from './GameLoop';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -47,10 +46,12 @@ import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
+import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
 import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerStats } from '@/game/player/PlayerStats';
+import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -88,12 +89,11 @@ export class EngineRuntime {
   private playerController: PlayerControllerSystem;
   private shipBuilderController: ShipBuilderController;
   private explosionSystem: ExplosionSystem;
+  private repairEffectSystem: RepairEffectSystem;
   private screenEffects: ScreenEffectsSystem;
 
   private updatables: IUpdatable[] = [];
   private renderables: IRenderable[] = [];
-
-  private escapeCooldown = 0;
 
   constructor() {
     this.canvasManager = new CanvasManager();
@@ -105,6 +105,8 @@ export class EngineRuntime {
     playerResources.initialize(0); // Start with 0 currency
     const playerStats = PlayerStats.getInstance();
     playerStats.initialize(100); // Start with 100 energy
+    const playerTechManager = PlayerTechnologyManager.getInstance();
+    playerTechManager.unlockMany(['hull1', 'engine1', 'turret1', 'fin1', 'facetplate1']);
 
     this.grid = new Grid();  // Initialize global grid
     this.ship = getStarterShip(this.grid);  // Now the grid is initialized before passing to getStarterShip
@@ -170,7 +172,11 @@ export class EngineRuntime {
 
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
     this.playerController = new PlayerControllerSystem(this.camera);
-    this.shipBuilderController = new ShipBuilderController(this.ship, this.shipBuilderMenu, this.camera);
+    this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
+    this.shipBuilderController = new ShipBuilderController(this.ship, this.shipBuilderMenu, this.camera, this.repairEffectSystem);
+    this.shipBuilderMenu.setRepairAllHandler(() => {
+      this.shipBuilderController.repairAllBlocks();
+    });
 
     this.hud = new HudOverlay(this.canvasManager, this.ship);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
@@ -249,28 +255,33 @@ export class EngineRuntime {
   }
 
   private update = (dt: number) => {
-    this.escapeCooldown = Math.max(0, this.escapeCooldown - dt);
-
-    if (isTabPressed() && !this.menuManager.isMenuOpen()) {
-      this.menuManager.open(this.shipBuilderMenu);
+    // Toggle the ship builder menu with Tab
+    if (wasKeyJustPressed('Tab')) {
+      if (this.menuManager.isMenuOpen()) {
+        this.menuManager.close();
+      } else {
+        this.menuManager.open(this.shipBuilderMenu);
+      }
     }
 
-    if (isEscapePressed() && this.escapeCooldown === 0) {
+    if (wasKeyJustPressed('Escape')) {
       if (!this.menuManager.isBlocking()) {
         this.menuManager.open(this.pauseMenu);
       } else {
         this.menuManager.close();
       }
-      this.escapeCooldown = 0.3;
     }
 
-    if (is0Pressed()) {
-      PlayerResources.getInstance().addCurrency(10000);
+    if (wasKeyJustPressed('Digit0')) {
+      PlayerResources.getInstance().addCurrency(1000);
     }
 
     const transform = this.ship.getTransform();
     this.camera.adjustZoom(consumeZoomDelta());
     this.camera.follow(transform.position);
+
+    // Always update the RepairEffectSystem
+    this.repairEffectSystem.update(dt);
 
     if (!this.menuManager.isBlocking()) {
       this.updatables.forEach(system => system.update(dt));
@@ -290,6 +301,9 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('fx');
 
     this.renderables.forEach(system => system.render());
+
+    // Always render the repair effect system
+    this.repairEffectSystem.render();
 
     if (this.menuManager.isMenuOpen() && this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);

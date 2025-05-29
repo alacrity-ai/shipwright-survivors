@@ -122,8 +122,6 @@ export class WaveSpawner implements IUpdatable {
   }
 
   private async spawnWave(wave: WaveDefinition): Promise<void> {
-    console.log(`Spawning Wave ${wave.id} [${wave.type}] with mods: ${wave.mods.join(', ')}`);
-
     this.activeWave = {
       id: wave.id,
       type: wave.type,
@@ -251,10 +249,6 @@ export class WaveSpawner implements IUpdatable {
       // Note: AI controller should already be removed by AIOrchestratorSystem
       // but we clean up our local reference
       this.activeControllers.delete(ship);
-    }
-    
-    if (wasTracked) {
-      console.log(`WaveSpawner: Ship ${ship.id} removed from active tracking`);
     }
   }
 }

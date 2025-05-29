@@ -45,7 +45,6 @@ export class PickupSystem {
       rotation: 0, // Initialize rotation
       sparks: [],   // Initialize sparks array
     };
-    console.log('Spawned pickup at', position, 'with amount', amount);
     this.pickups.push(newPickup);  // Add the pickup to the list
   }
 

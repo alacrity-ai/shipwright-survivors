@@ -105,6 +105,51 @@ export class Ship {
     this.recomputeEnergyStats();
   }
 
+  /** Returns true if removing the given block would not disconnect other blocks */
+  public isDeletionSafe(coord: GridCoord): boolean {
+    const removeKey = toKey(coord);
+    if (!this.blocks.has(removeKey)) return true;
+
+    // Clone the current block map (shallow copy)
+    const remaining = new Map(this.blocks);
+    remaining.delete(removeKey);
+
+    // Find cockpit or fallback to first block
+    const rootKey = [...remaining.entries()]
+      .find(([, b]) => b.type.id.startsWith('cockpit'))?.[0]
+      ?? [...remaining.keys()][0];
+
+    if (!rootKey) return true; // Nothing left, safe to remove
+
+    // Flood-fill to count reachable blocks
+    const visited = new Set<CoordKey>();
+    const queue: CoordKey[] = [rootKey];
+
+    while (queue.length > 0) {
+      const key = queue.pop()!;
+      if (visited.has(key)) continue;
+      visited.add(key);
+
+      const { x, y } = fromKey(key);
+      const neighbors: GridCoord[] = [
+        { x: x + 1, y },
+        { x: x - 1, y },
+        { x, y: y + 1 },
+        { x, y: y - 1 }
+      ];
+
+      for (const n of neighbors) {
+        const nk = toKey(n);
+        if (remaining.has(nk) && !visited.has(nk)) {
+          queue.push(nk);
+        }
+      }
+    }
+
+    // Safe if all remaining blocks are still connected
+    return visited.size === remaining.size;
+  }
+
   getBlock(coord: GridCoord): BlockInstance | undefined {
     return this.blocks.get(toKey(coord));
   }

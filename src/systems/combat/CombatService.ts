@@ -28,7 +28,7 @@ export class CombatService {
 
     if (block.hp > 0) return;
 
-    const isCockpit = block.type.id === 'cockpit';
+    const isCockpit = block.type.id.startsWith('cockpit');
 
     this.explosionSystem.createBlockExplosion(
       ship.getTransform().position,

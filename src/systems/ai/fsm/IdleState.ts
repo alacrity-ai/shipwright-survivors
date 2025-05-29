@@ -10,7 +10,9 @@ export class IdleState extends BaseAIState {
         thrustForward: false,
         brake: false,
         rotateLeft: false,
-        rotateRight: false
+        rotateRight: false,
+        strafeLeft: false,
+        strafeRight: false,
       },
       weapons: {
         firePrimary: false,
