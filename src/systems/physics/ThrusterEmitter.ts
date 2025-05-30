@@ -1,22 +1,33 @@
 // src/systems/physics/ThrusterEmitter.ts
 
-import { SparkManager } from '@/systems/fx/SparkManager';
+import { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
+import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
 interface ThrusterDefinition {
   coord: GridCoord;
+  block: BlockInstance; // now required
   blockRotation: number;
   shipRotation: number;
   shipPosition: { x: number; y: number };
 }
 
-const FLAME_COLORS = ['#fff', '#f90', '#ff0'];
+// Engine exhaust color palettes by engine block ID
+const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
+  engine0: ['#fff', '#f90', '#ff0'],           // classic flame
+  engine1: ['#fff', '#f90', '#ff0'],           // same as 0
+  engine2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
+  engine3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
+  engine4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust
+};
+
+const DEFAULT_FLAME_COLORS = ['#fff', '#f90', '#ff0'];
 
 export class ThrusterEmitter {
-  constructor(private readonly sparkManager: SparkManager) {}
+  constructor(private readonly sparkManager: ParticleManager) {}
 
   emit(def: ThrusterDefinition): void {
-    const { coord, blockRotation, shipRotation, shipPosition } = def;
+    const { coord, blockRotation, shipRotation, shipPosition, block } = def;
 
     const BLOCK_SIZE = 32;
     const localBlockX = coord.x * BLOCK_SIZE;
@@ -48,7 +59,9 @@ export class ThrusterEmitter {
     const localExhaustDir = { x: Math.sin(blockRotRad), y: Math.cos(blockRotRad) };
     const worldExhaustDir = rotate(localExhaustDir.x, localExhaustDir.y, shipRotation);
 
-    // Emit two directional sparks per thruster per frame
+    const blockId = block?.type.id ?? '';
+    const flameColors = ENGINE_COLOR_PALETTES[blockId] ?? DEFAULT_FLAME_COLORS;
+
     for (let i = 0; i < 2; i++) {
       const randomJitterX = (Math.random() - 0.5) * 10;
       const randomJitterY = (Math.random() - 0.5) * 10;
@@ -57,7 +70,7 @@ export class ThrusterEmitter {
         { x: nozzleWorldX, y: nozzleWorldY },
         1,
         {
-          colors: FLAME_COLORS,
+          colors: flameColors,
           velocity: {
             x: worldExhaustDir.x * 40 + randomJitterX,
             y: worldExhaustDir.y * 40 + randomJitterY,

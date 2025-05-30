@@ -22,7 +22,7 @@ function App() {
         <canvas id="background-canvas" />
         <canvas id="entity-canvas" />
         <canvas id="fx-canvas" />
-        <canvas id="sparks-canvas" />
+        <canvas id="particles-canvas" />
         <canvas id="ui-canvas" />
         <canvas id="overlay-canvas" />
       </div>

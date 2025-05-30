@@ -117,6 +117,9 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Space Stations
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
+TODOS:
+  - [ ] Make crosshair easier to see, lightup when firing or targetting an enemy
+
 ## 📝 Commands
 
 | Command | Action |

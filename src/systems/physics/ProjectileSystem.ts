@@ -2,27 +2,26 @@
 
 import type { Projectile } from '@/game/interfaces/types/Projectile';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-
+import type { Particle } from '@/systems/fx/interfaces/Particle';
 import { findShipByBlock, findBlockCoordinatesInShip } from '@/game/ship/utils/shipBlockUtils';
+import type { CanvasManager } from '@/core/CanvasManager';
+import type { Grid } from '@/systems/physics/Grid';
+import type { CombatService } from '@/systems/combat/CombatService';
+import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
-import { getProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
-import { CanvasManager } from '@/core/CanvasManager';
-import { Camera } from '@/core/Camera';
-import { Grid } from '@/systems/physics/Grid';
-import { CombatService } from '@/systems/combat/CombatService'; // NEW
+interface VisualizedProjectile extends Projectile {
+  particle: Particle;
+}
 
 export class ProjectileSystem {
-  private projectiles: Projectile[] = [];
-  private ctx: CanvasRenderingContext2D;
+  private projectiles: VisualizedProjectile[] = [];
 
   constructor(
-    canvasManager: CanvasManager,
-    private readonly camera: Camera,
+    _canvasManager: CanvasManager, // retained for compatibility
     private readonly grid: Grid,
     private readonly combatService: CombatService,
-  ) {
-    this.ctx = canvasManager.getContext('fx');
-  }
+    private readonly particleManager: ParticleManager
+  ) {}
 
   spawnProjectile(
     origin: { x: number; y: number },
@@ -32,7 +31,8 @@ export class ProjectileSystem {
     speed = 300,
     lifetime = 2,
     accuracy = 1,
-    ownerShipId: string
+    ownerShipId: string,
+    particleColors?: string[]
   ) {
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
@@ -48,6 +48,15 @@ export class ProjectileSystem {
     const vx = Math.cos(angle) * speed;
     const vy = Math.sin(angle) * speed;
 
+    // Emit exactly one visual particle to represent the projectile being fired
+    const particle = this.particleManager.emitParticle(origin, {
+      colors: particleColors ?? ['#ffff88', '#ffaa00', '#ffcc33'],
+      baseSpeed: 0,
+      sizeRange: [3.2, 3.2],
+      lifeRange: [lifetime, lifetime + 0.1], // tightly synced
+      velocity: { x: vx, y: vy },
+    });
+
     this.projectiles.push({
       position: { x: origin.x, y: origin.y },
       velocity: { x: vx, y: vy },
@@ -55,6 +64,7 @@ export class ProjectileSystem {
       damage,
       life: lifetime,
       ownerShipId,
+      particle,
     });
   }
 
@@ -69,7 +79,7 @@ export class ProjectileSystem {
     this.checkCollisions();
   }
 
-  checkCollisions() {
+  private checkCollisions() {
     for (const p of this.projectiles) {
       const relevantCells = this.grid.getRelevantCells(p.position);
 
@@ -94,7 +104,7 @@ export class ProjectileSystem {
     }
   }
 
-  checkCollision(projectile: Projectile, block: BlockInstance): boolean {
+  private checkCollision(projectile: Projectile, block: BlockInstance): boolean {
     if (!block.position) return false;
 
     const projectileRadius = 15;
@@ -106,30 +116,8 @@ export class ProjectileSystem {
     return distance < (projectileRadius + blockSize / 2);
   }
 
-  removeProjectile(projectile: Projectile) {
+  private removeProjectile(projectile: VisualizedProjectile) {
     this.projectiles = this.projectiles.filter(p => p !== projectile);
-  }
-
-  render() {
-    const ctx = this.ctx;
-    ctx.save();
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.scale(this.camera.zoom, this.camera.zoom);
-
-    for (const p of this.projectiles) {
-      const screen = this.camera.worldToScreen(p.position.x, p.position.y);
-      const sprite = getProjectileSprite(p.type);
-      const size = sprite.width;
-
-      ctx.drawImage(
-        sprite,
-        screen.x / this.camera.zoom - size / 2,
-        screen.y / this.camera.zoom - size / 2,
-        size,
-        size
-      );
-    }
-
-    ctx.restore();
+    this.particleManager.removeParticle(projectile.particle);
   }
 }

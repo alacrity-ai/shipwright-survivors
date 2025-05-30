@@ -2,9 +2,9 @@
 
 import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { PlayerResources } from '@/game/player/PlayerResources';
-import { SparkManager } from '@/systems/fx/SparkManager';
+import { ParticleManager } from '@/systems/fx/ParticleManager';
 
-import type { SparkOptions } from '@/systems/fx/SparkManager';
+import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
@@ -15,7 +15,7 @@ const ATTRACTION_SPEED = 10;
 const PICKUP_ATTRACTION_EXPONENT = 2.0;
 const CULL_PADDING = 128;
 
-const SPARK_OPTIONS: SparkOptions = {
+const SPARK_OPTIONS: ParticleOptions = {
   colors: ['#00f', '#009', '#00a9f4', '#1e90ff'],
   baseSpeed: 50,
   sizeRange: [1, 4],
@@ -27,13 +27,13 @@ export class PickupSystem {
   private pickups: PickupInstance[] = [];
   private playerResources: PlayerResources;
   private playerShip: Ship;
-  private sparkManager: SparkManager;
+  private sparkManager: ParticleManager;
 
   constructor(
     canvasManager: CanvasManager,
     private readonly camera: Camera,
     playerShip: Ship,
-    sparkManager: SparkManager
+    sparkManager: ParticleManager
   ) {
     this.ctx = canvasManager.getContext('entities');
     this.playerResources = PlayerResources.getInstance();

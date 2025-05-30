@@ -11,80 +11,58 @@ interface CooldownState {
   turretIndex: number;
 }
 
+// Define turret color palettes by index
+const TURRET_COLOR_PALETTES: Record<string, string[]> = {
+  turret0: ['#ffff88', '#ffaa00', '#ffcc33'],
+  turret1: ['#ff8888', '#ff3333', '#ffaaaa'], // alt red-orange
+  turret2: ['#88ff88', '#33dd33', '#aaffaa'], // green
+  turret3: ['#88ccff', '#3399ff', '#66ddff'], // blue
+  turret4: ['#cc88ff', '#9933ff', '#ddaaff'], // purple
+};
+
 export class TurretBackend implements WeaponBackend {
   private cooldowns: WeakMap<Ship, CooldownState> = new WeakMap();
 
   constructor(private readonly projectileSystem: ProjectileSystem) {}
 
   public update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
-    if (!intent?.firePrimary) {
-      this.resetCooldown(ship);
-      return;
-    }
+    const plan = ship.getTurretPlan();
+    if (plan.length === 0) return;
 
-    const allBlocks = ship.getAllBlocks();
-    const turretBlocks = allBlocks.filter(([_, b]) =>
-      b.type.id.startsWith('turret') &&
-      b.type.behavior?.canFire &&
-      b.type.behavior.fire
-    );
+    const target = intent?.aimAt;
+    const fireRequested = intent?.firePrimary ?? false;
 
-    if (turretBlocks.length === 0) return;
+    for (const turret of plan) {
+      turret.timeSinceLastShot += dt;
 
-    const fire = turretBlocks[0][1].type.behavior!.fire!;
-    const fireRate = fire.fireRate || 1;
-    const interval = 1 / fireRate / turretBlocks.length;
+      if (!fireRequested) continue;
+      if (turret.timeSinceLastShot < turret.fireCooldown) continue;
 
-    const cooldownState = this.getCooldownState(ship);
+      turret.timeSinceLastShot = 0;
 
-    if (cooldownState.turretCooldown <= 0) {
-      if (cooldownState.turretIndex >= turretBlocks.length) {
-        cooldownState.turretIndex = 0;
-      }
-
-      const [coord, _block] = turretBlocks[cooldownState.turretIndex];
-      cooldownState.turretIndex = (cooldownState.turretIndex + 1) % turretBlocks.length;
-      cooldownState.turretCooldown = interval;
-
+      const { coord, block } = turret;
       const localX = coord.x * 32;
       const localY = coord.y * 32;
       const cos = Math.cos(transform.rotation);
       const sin = Math.sin(transform.rotation);
-      const rotatedX = localX * cos - localY * sin;
-      const rotatedY = localX * sin + localY * cos;
-      const turretWorldX = transform.position.x + rotatedX;
-      const turretWorldY = transform.position.y + rotatedY;
+      const worldX = transform.position.x + localX * cos - localY * sin;
+      const worldY = transform.position.y + localX * sin + localY * cos;
 
-      const target = intent.aimAt;
-      if (!target) return;
+      const fire = block.type.behavior!.fire!;
+      const turretId = block.type.id;
+      const particleColors = TURRET_COLOR_PALETTES[turretId] ?? TURRET_COLOR_PALETTES['turret0'];
 
       this.projectileSystem.spawnProjectile(
-        { x: turretWorldX, y: turretWorldY },
-        target,
+        { x: worldX, y: worldY },
+        target!,
         fire.fireType,
         fire.fireDamage,
         fire.projectileSpeed ?? 300,
         fire.lifetime ?? 2,
         fire.accuracy ?? 1,
-        ship.id
+        ship.id,
+        particleColors
       );
-    } else {
-      cooldownState.turretCooldown -= dt;
     }
-  }
-
-  private getCooldownState(ship: Ship): CooldownState {
-    let state = this.cooldowns.get(ship);
-    if (!state) {
-      state = { turretCooldown: 0, turretIndex: 0 };
-      this.cooldowns.set(ship, state);
-    }
-    return state;
-  }
-
-  private resetCooldown(ship: Ship): void {
-    const state = this.getCooldownState(ship);
-    state.turretCooldown = 0;
-    state.turretIndex = 0;
   }
 }

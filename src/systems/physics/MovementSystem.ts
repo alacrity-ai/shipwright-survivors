@@ -219,6 +219,9 @@ export class MovementSystem {
 
     // === Apply thruster force
     for (const { coord, power, rotation: blockRotation } of thrusters) {
+      const block = this.ship.getBlock(coord);
+      if (!block) continue;
+
       const localThrust = this.getBlockThrustDirection(blockRotation);
       const worldThrust = this.rotateVector(localThrust.x, localThrust.y, transform.rotation);
 
@@ -227,9 +230,10 @@ export class MovementSystem {
 
       this.emitter.emit({
         coord,
+        block,
         blockRotation,
         shipRotation: transform.rotation,
-        shipPosition: position
+        shipPosition: position,
       });
     }
 

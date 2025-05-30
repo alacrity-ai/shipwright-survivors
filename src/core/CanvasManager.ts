@@ -2,13 +2,13 @@
 
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '@/config/view';
 
-export type CanvasLayer = 'background' | 'entities' | 'fx' | 'sparks' | 'ui' | 'overlay';
+export type CanvasLayer = 'background' | 'entities' | 'fx' | 'particles' | 'ui' | 'overlay';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
   entities: 'entity-canvas',
   fx: 'fx-canvas',
-  sparks: 'sparks-canvas',
+  particles: 'particles-canvas',
   ui: 'ui-canvas',
   overlay: 'overlay-canvas',
 };
@@ -55,7 +55,7 @@ export class CanvasManager {
       case 'background': return 0;
       case 'entities': return 1;
       case 'fx': return 2;
-      case 'sparks': return 3;
+      case 'particles': return 3;
       case 'ui': return 4;
       case 'overlay': return 5;
     }

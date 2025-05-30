@@ -9,7 +9,7 @@ import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 // import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
-import type { SparkManager } from '@/systems/fx/SparkManager';
+import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
 import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitions';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
@@ -59,7 +59,7 @@ export class WaveSpawner implements IUpdatable {
     private readonly playerShip: Ship,
     private readonly projectileSystem: ProjectileSystem,
     private readonly laserSystem: LaserSystem,
-    private readonly sparkManager: SparkManager,
+    private readonly particleManager: ParticleManager,
     private readonly grid: Grid
   ) {}
 
@@ -69,7 +69,7 @@ export class WaveSpawner implements IUpdatable {
     playerShip: Ship,
     projectileSystem: ProjectileSystem,
     laserSystem: LaserSystem,
-    sparkManager: SparkManager,
+    particleManager: ParticleManager,
     grid: Grid
   ): WaveSpawner {
     if (!WaveSpawner.instance) {
@@ -79,7 +79,7 @@ export class WaveSpawner implements IUpdatable {
         playerShip,
         projectileSystem,
         laserSystem,
-        sparkManager,
+        particleManager,
         grid
       );
     }
@@ -166,7 +166,7 @@ export class WaveSpawner implements IUpdatable {
 
         this.shipRegistry.add(ship);
 
-        const emitter = new ThrusterEmitter(this.sparkManager);
+        const emitter = new ThrusterEmitter(this.particleManager);
         const movement = new MovementSystem(ship, emitter);
         const weapons = new WeaponSystem(
           new TurretBackend(this.projectileSystem), 

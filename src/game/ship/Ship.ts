@@ -12,12 +12,21 @@ import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
+interface TurretFiringPlanEntry {
+  coord: GridCoord;
+  block: BlockInstance;
+  fireRate: number;
+  fireCooldown: number;
+  timeSinceLastShot: number;
+}
+
 export class Ship {
   id: string;  // Unique identifier for the ship
   private blocks: Map<CoordKey, BlockInstance> = new Map();
   private blockToCoordMap: Map<BlockInstance, GridCoord> = new Map(); // Reverse lookup
   private transform: ShipTransform;
   private energyComponent: EnergyComponent | null = null;
+  private turretPlan: TurretFiringPlanEntry[] = [];
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
   
@@ -48,6 +57,28 @@ export class Ship {
       rotation: initialTransform?.rotation ?? 0,
       angularVelocity: initialTransform?.angularVelocity ?? 0
     };
+  }
+
+  public getTurretPlan(): TurretFiringPlanEntry[] {
+    return this.turretPlan;
+  }
+
+  private rebuildTurretPlan(): void {
+    this.turretPlan = [];
+
+    for (const [coord, block] of this.getAllBlocks()) {
+      if (!block.type.id.startsWith('turret')) continue;
+      const fire = block.type.behavior?.fire;
+      if (!fire) continue;
+
+      this.turretPlan.push({
+        coord,
+        block,
+        fireRate: fire.fireRate || 1,
+        fireCooldown: 1 / (fire.fireRate || 1),
+        timeSinceLastShot: 0,
+      });
+    }
   }
 
   getTransform(): ShipTransform {
@@ -82,9 +113,10 @@ export class Ship {
     this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
     this.invalidateMass();
-
+    
     // Recalculate energy contribution from all blocks
     this.recomputeEnergyStats();
+    this.rebuildTurretPlan();
   }
 
   removeBlock(coord: GridCoord): void {
@@ -98,6 +130,7 @@ export class Ship {
 
     // Recalculate energy contribution from all blocks
     this.recomputeEnergyStats();
+    this.rebuildTurretPlan();
   }
 
   /** Returns true if removing the given block would not disconnect other blocks */
