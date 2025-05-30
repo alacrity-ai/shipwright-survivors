@@ -9,4 +9,5 @@ export interface BlockInstance {
   cooldown?: number;     // used for turret/engine action delay
   rotation?: number;     // degrees: 0, 90, 180, 270
   position?: { x: number; y: number };  // relative position of the block within the ship
+  isShielded?: boolean;  // is this block currently under the effects of a shield?
 }

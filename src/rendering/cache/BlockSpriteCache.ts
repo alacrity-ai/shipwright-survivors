@@ -1,58 +1,3 @@
-// // src/rendering/BlockSpriteCache.ts
-// import { BLOCK_SIZE, getAllBlockTypes } from '@/game/blocks/BlockRegistry';
-// import { renderLaserWeapon } from './blockRenderers/laserBlockRenderer';
-// import { renderHullBlock } from './blockRenderers/hullBlockRenderer';
-// import { renderFacetPlate } from './blockRenderers/facePlateBlockRenderer';
-// import { renderTurret } from './blockRenderers/turretBlockRenderer';
-// import { renderReactorCore } from './blockRenderers/reactorBlockRenderer';
-// import { renderEngine } from './blockRenderers/engineBlockRenderer';
-// import { renderFin } from './blockRenderers/finBlockRenderer';
-
-// export interface BlockSprite {
-//   base: HTMLCanvasElement;
-//   overlay?: HTMLCanvasElement; // optional rotating layer (e.g. turret barrel)
-// }
-
-// const spriteCache: Map<string, BlockSprite> = new Map();
-
-// function createBlankCanvas(): HTMLCanvasElement {
-//   const canvas = document.createElement('canvas');
-//   canvas.width = BLOCK_SIZE;
-//   canvas.height = BLOCK_SIZE;
-//   return canvas;
-// }
-
-// function drawProceduralBlock(typeId: string): void {
-//   const baseCanvas = createBlankCanvas();
-//   const baseCtx = baseCanvas.getContext('2d')!;
-
-//   const overlayCanvas = createBlankCanvas();
-//   const overlayCtx = overlayCanvas.getContext('2d')!;
-
-//   switch (typeId) {
-
-
-//   const sprite: BlockSprite = {
-//     base: baseCanvas,
-//     overlay: typeId.startsWith('turret') ? overlayCanvas : undefined,
-//   };
-
-//   spriteCache.set(typeId, sprite);
-// }
-
-// export function initializeBlockSpriteCache(): void {
-//   for (const block of getAllBlockTypes()) {
-//     drawProceduralBlock(block.id);
-//   }
-// }
-
-// export function getBlockSprite(id: string): BlockSprite {
-//   const sprite = spriteCache.get(id);
-//   if (!sprite) throw new Error(`Block sprite not cached: ${id}`);
-//   return sprite;
-// }
-
-
 // src/rendering/BlockSpriteCache.ts
 
 import { BLOCK_SIZE, getAllBlockTypes } from '@/game/blocks/BlockRegistry';
@@ -63,6 +8,8 @@ import { renderTurret } from './blockRenderers/turretBlockRenderer';
 import { renderReactorCore } from './blockRenderers/reactorBlockRenderer';
 import { renderEngine } from './blockRenderers/engineBlockRenderer';
 import { renderFin } from './blockRenderers/finBlockRenderer';
+import { renderBatteryModule } from './blockRenderers/batteryBlockRenderer';
+import { renderShieldGenerator } from './blockRenderers/shieldBlockRenderer';
 
 // --- Damage Level Enum ---
 
@@ -369,14 +316,38 @@ function drawProceduralBlock(typeId: string): void {
 
     case 'laser1':
       renderLaserWeapon(baseCtx, BLOCK_SIZE, {
-        body: ['#4B2E39', '#2E1A24', '#1A0D13', '#0B0609'],
-        housing: '#CE93D8',           // Lavender
-        innerHousing: '#8E24AA',      // Deep purple
-        barrel: ['#F48FB1', '#C2185B', '#F48FB1'],
-        barrelDetail: '#F8BBD0',
-        glow: ['#EC407A', '#AD1457', 'rgba(173, 20, 87, 0)'],
-        muzzleGlow: ['#FFF0F5', '#F06292', '#C2185B', 'rgba(194, 24, 91, 0)'],
-        muzzleCore: '#FFFFFF'
+        body: ['#555D66', '#3C444D', '#2B3036', '#1E2227'], // Grey-steel
+        housing: '#90A4AE',          // Blue-grey
+        innerHousing: '#546E7A',     // Darker slate blue
+        barrel: ['#B0BEC5', '#78909C', '#B0BEC5'],
+        barrelDetail: '#CFD8DC',
+        glow: ['#4FC3F7', '#0288D1', 'rgba(2, 136, 209, 0)'], // soft electric blue
+        muzzleGlow: ['#E1F5FE', '#81D4FA', '#0288D1', 'rgba(2, 136, 209, 0)'],
+        muzzleCore: '#E0F7FA'
+      });
+      break;
+    case 'laser2':
+      renderLaserWeapon(baseCtx, BLOCK_SIZE, {
+        body: ['#355E3B', '#254D32', '#1B3C29', '#122D21'], // Jungle/olive tones
+        housing: '#AED581',           // Light green
+        innerHousing: '#7CB342',      // Lime green
+        barrel: ['#C5E1A5', '#8BC34A', '#C5E1A5'],
+        barrelDetail: '#DCEDC8',
+        glow: ['#76FF03', '#64DD17', 'rgba(100, 221, 23, 0)'],
+        muzzleGlow: ['#CCFF90', '#AEEA00', '#64DD17', 'rgba(174, 234, 0, 0)'],
+        muzzleCore: '#F0F4C3'
+      });
+      break;
+    case 'laser3':
+      renderLaserWeapon(baseCtx, BLOCK_SIZE, {
+        body: ['#2E003E', '#1D002A', '#14001F', '#0A0014'], // Near-black purples
+        housing: '#9575CD',           // Soft lavender
+        innerHousing: '#673AB7',      // Deep purple
+        barrel: ['#B39DDB', '#7E57C2', '#B39DDB'],
+        barrelDetail: '#D1C4E9',
+        glow: ['#D500F9', '#AA00FF', 'rgba(170, 0, 255, 0)'],
+        muzzleGlow: ['#E1BEE7', '#BA68C8', '#8E24AA', 'rgba(142, 36, 170, 0)'],
+        muzzleCore: '#F3E5F5'
       });
       break;
 
@@ -403,7 +374,119 @@ function drawProceduralBlock(typeId: string): void {
         boltColor: '#64B5F6',
       });
       break;
+    case 'reactor2':
+      renderReactorCore(baseCtx, BLOCK_SIZE, {
+        chassisStops: [
+          [0, '#1C0D2B'],     // Dark violet top
+          [0.5, '#2A1850'],   // Rich purple core
+          [1, '#100820'],     // Deep base
+        ],
+        coreRingStops: [
+          [0.0, '#BA68C8'],   // Light magenta rim
+          [0.4, '#8E24AA'],   // Core arc
+          [1.0, '#00000000'], // Fade out
+        ],
+        coreRingInnerRadius: 5,
+        coreGlowStops: [
+          [0, '#CE93D8'],     // Soft lilac core
+          [0.5, '#AB47BC'],
+          [1, 'rgba(171, 71, 188, 0)'],
+        ],
+        coreGlowRadius: 7,
+        boltColor: '#D1C4E9',
+      });
+      break;
 
+    case 'battery0':
+    case 'battery1':
+      renderBatteryModule(baseCtx, BLOCK_SIZE, {
+        chassisStops: [
+          [0, '#263238'],
+          [0.5, '#37474F'],
+          [1, '#102027'],
+        ],
+        cellGlowStops: [
+          [0, '#B2EBF2'],
+          [0.5, '#4DD0E1'],
+          [1, 'rgba(77, 208, 225, 0)'],
+        ],
+        coreRadius: 7,
+        terminalColor: '#B0BEC5',
+        terminalSize: 3,
+      });
+      break;
+    case 'battery2':
+      renderBatteryModule(baseCtx, BLOCK_SIZE, {
+        chassisStops: [
+          [0, '#311B92'],
+          [0.5, '#512DA8'],
+          [1, '#1A237E'],
+        ],
+        cellGlowStops: [
+          [0, '#D1C4E9'],
+          [0.5, '#9575CD'],
+          [1, 'rgba(149, 117, 205, 0)'],
+        ],
+        coreRadius: 8,
+        terminalColor: '#EDE7F6',
+        terminalSize: 3,
+      });
+      break;
+
+    case 'shield0':
+    case 'shield1':
+      renderShieldGenerator(baseCtx, BLOCK_SIZE, {
+        chassisStops: [
+          [0, '#1A1A2E'],
+          [0.5, '#16213E'],
+          [1, '#0F3460'],
+        ],
+        emitterGlowStops: [
+          [0, '#BBDEFB'],
+          [0.5, '#42A5F5'],
+          [1, 'rgba(66, 165, 245, 0)'],
+        ],
+        emitterRadius: 10,
+        ringColor: '#90CAF9',
+        terminalColor: '#E3F2FD',
+      });
+      break;
+
+    case 'shield2':
+      renderShieldGenerator(baseCtx, BLOCK_SIZE, {
+        chassisStops: [
+          [0, '#003322'],           // Deep jungle green
+          [0.5, '#005533'],         // Rich viridian
+          [1, '#00261A'],           // Subsurface shadow
+        ],
+        emitterGlowStops: [
+          [0, '#66FFCC'],           // Mint core
+          [0.5, '#00CC88'],         // Vivid teal
+          [1, 'rgba(0, 204, 136, 0)'],
+        ],
+        emitterRadius: 11,
+        ringColor: '#00E6A8',       // Neon green-cyan blend
+        terminalColor: '#CCFFEE',
+      });
+      break;
+
+    case 'shield3':
+      renderShieldGenerator(baseCtx, BLOCK_SIZE, {
+        chassisStops: [
+          [0, '#4A0033'],           // Velvet crimson
+          [0.5, '#800080'],         // Royal purple
+          [1, '#2E003E'],           // Deep ultraviolet
+        ],
+        emitterGlowStops: [
+          [0, '#FFB3E6'],           // Pale pink plasma
+          [0.5, '#E040FB'],         // Bright magenta
+          [1, 'rgba(224, 64, 251, 0)'],
+        ],
+        emitterRadius: 12,
+        ringColor: '#FF80AB',       // Radiant rose edge
+        terminalColor: '#FFD6F9',
+      });
+      break;
 
     case 'engine0':
     case 'engine1':

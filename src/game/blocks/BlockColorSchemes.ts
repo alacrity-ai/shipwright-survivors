@@ -15,3 +15,10 @@ export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
   turret3: ['#88ccff', '#3399ff', '#66ddff'], // blue
   turret4: ['#cc88ff', '#9933ff', '#ddaaff'], // purple
 };
+
+export const LASER_BEAM_COLORS: Record<string, string[]> = {
+  laser0: ['#00CCFF', '#00FFFF', '#00faff'],        // legacy white core, pink body, crimson glow
+  laser1: ['#00CCFF', '#00FFFF', '#00faff'],        // same as laser0 for compatibility
+  laser2: ['#E6FFED', '#76FF03', '#33691E'],        // pale green core, electric green body, forest glow
+  laser3: ['#F3E5F5', '#D500F9', '#4A148C'],        // lavender core, neon violet body, deep purple glow
+};

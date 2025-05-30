@@ -7,6 +7,7 @@ import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import { Grid } from '@/systems/physics/Grid'; // Global Grid import
 import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
+import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
@@ -26,6 +27,7 @@ export class Ship {
   private blockToCoordMap: Map<BlockInstance, GridCoord> = new Map(); // Reverse lookup
   private transform: ShipTransform;
   private energyComponent: EnergyComponent | null = null;
+  private shieldComponent: ShieldComponent | null = null;
   private turretPlan: TurretFiringPlanEntry[] = [];
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
@@ -406,18 +408,6 @@ export class Ship {
     this.destroyedListeners.push(callback);
   }
 
-  public enableEnergyComponent(): void {
-    if (this.energyComponent) return;
-
-    const laserCount = this.getAllBlocks().filter(([_, b]) => b.type.id.startsWith('laser')).length;
-    if (laserCount === 0) return;
-
-    const max = laserCount * 100;
-    const recharge = laserCount * 5; // or balance this more carefully
-
-    this.energyComponent = new EnergyComponent(max, recharge);
-  }
-
   public getEnergyComponent(): EnergyComponent | null {
     return this.energyComponent;
   }
@@ -434,22 +424,40 @@ export class Ship {
     const energyComponent = this.getEnergyComponent();
     if (!energyComponent) return;
 
+    const { max, regen } = this.computeEnergyStats();
+    energyComponent.setMax(max);
+    energyComponent.setRechargeRate(regen);
+  }
+
+  public enableEnergyComponent(): void {
+    if (this.energyComponent) return;
+
+    const { max, regen } = this.computeEnergyStats();
+    if (max === 0) return;
+
+    this.energyComponent = new EnergyComponent(max, regen);
+  }
+
+  private computeEnergyStats(): { max: number; regen: number } {
     let totalMax = 0;
-    let totalRegen = 10;
+    let totalRegen = 0;
 
     for (const [, block] of this.blocks.entries()) {
-      // Baseline from laser weapons
-      if (block.type.id.startsWith('laser')) {
-        totalMax += 100;
+      const behavior = block.type.behavior;
+
+      // Any energy-contributing block declares it explicitly
+      if (behavior?.energyMaxIncrease) {
+        totalMax += behavior.energyMaxIncrease;
       }
 
-      // Additional regen from reactors or power-producing blocks
-      if (block.type.behavior?.energyOutput) {
-        totalRegen += block.type.behavior.energyOutput;
+      if (behavior?.energyChargeRate) {
+        totalRegen += behavior.energyChargeRate;
       }
     }
 
-    energyComponent.setMax(totalMax);
-    energyComponent.setRechargeRate(totalRegen);
+    return {
+      max: totalMax,
+      regen: totalRegen > 0 ? totalRegen : 10,
+    };
   }
 }

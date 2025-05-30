@@ -40,7 +40,7 @@ export class HudOverlay {
     let y = 630;
     const lineHeight = 18;
 
-    drawLabel(ctx, x, y, `HP: ${currentHp} / ${maxHp}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Armor: ${currentHp} / ${maxHp}`); y += lineHeight;
     drawLabel(ctx, x, y, `Energy: ${Math.round(energy)} / ${maxEnergy}`); y += lineHeight;
     drawLabel(ctx, x, y, `Mass: ${mass.toFixed(1)} kg`); y += lineHeight;
     drawLabel(ctx, x, y, `Speed: ${speed.toFixed(1)} px/s`); y += lineHeight;

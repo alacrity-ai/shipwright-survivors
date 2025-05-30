@@ -7,6 +7,7 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
+import { LASER_BEAM_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { findShipByBlock, findBlockCoordinatesInShip, getWorldPositionFromShipCoord, rotate } from '@/game/ship/utils/shipBlockUtils';
 
 interface LaserBeam {
@@ -16,6 +17,7 @@ interface LaserBeam {
   intensity: number;
   coreWidth: number;
   glowPulse: number;
+  blockTypeId: string;
 }
 
 export class LaserSystem implements IUpdatable, IRenderable {
@@ -65,8 +67,12 @@ export class LaserSystem implements IUpdatable, IRenderable {
       }
       if (!energyComponent) continue;
 
-      const energyCostPerLaser = 0.25;
-      const totalEnergyCost = energyCostPerLaser * laserBlocks.length;
+      let totalEnergyCost = 0;
+      for (const [, block] of laserBlocks) {
+        const blockCost = block.type.behavior?.fire?.energyCost ?? 0.25;
+        totalEnergyCost += blockCost;
+      }
+
       if (!energyComponent.spend(totalEnergyCost)) continue;
 
       for (const [coord, block] of laserBlocks) {
@@ -109,7 +115,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
               targetShip,
               hit.block,
               hitCoord,
-              fire.fireDamage,
+              fire.fireDamage!,
               'laser'
             );
           }
@@ -143,6 +149,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
           intensity: Math.random() * 0.5 + 0.75,
           coreWidth: 3 + Math.random(),
           glowPulse: Math.random() * Math.PI * 2,
+          blockTypeId: block.type.id,
         });
       }
     }
@@ -158,27 +165,30 @@ export class LaserSystem implements IUpdatable, IRenderable {
       const start = this.camera.worldToScreen(beam.origin.x, beam.origin.y);
       const end = this.camera.worldToScreen(beam.target.x, beam.target.y);
 
-      // Core beam
+      const colors = LASER_BEAM_COLORS[beam.blockTypeId] ?? ['#FFFFFF', '#00CCFF', '#00FFFF'];
+      const [coreColor, glowColor1, glowColor2] = colors;
+
+      // Core beam (tight center line)
       ctx.globalAlpha = beam.intensity;
-      ctx.strokeStyle = '#00CCFF';
+      ctx.strokeStyle = coreColor;
       ctx.lineWidth = beam.coreWidth + Math.sin(beam.age * 20) * 0.5;
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
 
-      // Glow layer 1
+      // Glow layer 1 (pulsing outer line)
       ctx.globalAlpha = 0.2 + 0.2 * beam.glowPulse;
-      ctx.strokeStyle = '#00FFFF';
+      ctx.strokeStyle = glowColor1;
       ctx.lineWidth = 7 + Math.sin(beam.age * 4);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
 
-      // Glow layer 2
+      // Glow layer 2 (wide halo)
       ctx.globalAlpha = 0.1;
-      ctx.strokeStyle = '#00faff';
+      ctx.strokeStyle = glowColor2;
       ctx.lineWidth = 11 + 2 * Math.sin(beam.age * 2);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);

@@ -4,12 +4,14 @@ import {
   isKeyPressed,
   isShiftPressed,
   getMousePosition,
+  wasKeyJustPressed
 } from '@/core/Input';
 
 import type { Camera } from '@/core/Camera';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
+import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 
 export class PlayerControllerSystem {
   constructor(private readonly camera: Camera) {}
@@ -43,9 +45,17 @@ export class PlayerControllerSystem {
       aimAt: mouseWorld,
     };
 
+    // === Utility Controls === <--- NEW
+    const toggleShields = wasKeyJustPressed('Space');
+
+    const utilityIntent: UtilityIntent = {
+      toggleShields,
+    };
+
     return {
       movement: movementIntent,
       weapons: weaponIntent,
+      utility: utilityIntent,
     };
   }
 }

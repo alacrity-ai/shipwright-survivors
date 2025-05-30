@@ -7,7 +7,10 @@ export interface BlockBehavior {
   fire?: FireBehavior;
   canThrust?: boolean;
   thrustPower?: number;
-  energyOutput?: number; // Added
+  energyChargeRate?: number; // Added
   turnPower?: number;
   isCockpit?: boolean;
+  energyMaxIncrease?: number; // Added\
+  shieldEfficiency?: number;
+  shieldRadius?: number;
 }

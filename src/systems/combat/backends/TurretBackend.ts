@@ -41,8 +41,8 @@ export class TurretBackend implements WeaponBackend {
       this.projectileSystem.spawnProjectile(
         { x: worldX, y: worldY },
         target!,
-        fire.fireType,
-        fire.fireDamage,
+        fire.fireType!,
+        fire.fireDamage!,
         fire.projectileSpeed ?? 300,
         fire.lifetime ?? 2,
         fire.accuracy ?? 1,

@@ -2,7 +2,7 @@
 
 export type Vec2 = { x: number; y: number };
 
-// VectorUtils.ts
+// src/systems/ai/helpers/VectorUtils.ts
 export function getDistance(a: Vec2, b: Vec2): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
