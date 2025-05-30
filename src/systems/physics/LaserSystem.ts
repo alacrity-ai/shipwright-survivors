@@ -6,18 +6,22 @@ import type { Ship } from '@/game/ship/Ship';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
-import { findShipByBlock, findBlockCoordinatesInShip, getWorldPositionFromShipCoord } from '@/game/ship/utils/shipBlockUtils';
+import type { ParticleManager } from '@/systems/fx/ParticleManager';
+import { findShipByBlock, findBlockCoordinatesInShip, getWorldPositionFromShipCoord, rotate } from '@/game/ship/utils/shipBlockUtils';
 
 interface LaserBeam {
   origin: { x: number; y: number };
   target: { x: number; y: number };
+  age: number;
+  intensity: number;
+  coreWidth: number;
+  glowPulse: number;
 }
 
 export class LaserSystem implements IUpdatable, IRenderable {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly beamLength = 2000;
   private activeBeams: LaserBeam[] = [];
-
   private intentMap: Map<Ship, { intent: WeaponIntent; transform: ShipTransform }> = new Map();
 
   constructor(
@@ -25,6 +29,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
     private readonly camera: Camera,
     private readonly grid: Grid,
     private readonly combatService: CombatService,
+    private readonly particleManager: ParticleManager
   ) {
     this.ctx = canvasManager.getContext('fx');
   }
@@ -34,10 +39,16 @@ export class LaserSystem implements IUpdatable, IRenderable {
   }
 
   public update(dt: number): void {
+    // Animate existing beams
+    for (const beam of this.activeBeams) {
+      beam.age += dt;
+      beam.intensity = 0.75 + 0.25 * Math.sin(beam.age * 10);
+      beam.glowPulse = 0.5 + 0.5 * Math.sin(beam.age * 4);
+    }
+
     this.activeBeams = [];
 
     for (const [ship, { intent, transform }] of this.intentMap.entries()) {
-      const energy = ship.getEnergyComponent();
       if (!intent?.fireSecondary) continue;
 
       const laserBlocks = ship.getAllBlocks().filter(([_, b]) =>
@@ -45,65 +56,93 @@ export class LaserSystem implements IUpdatable, IRenderable {
         b.type.behavior?.canFire &&
         b.type.behavior.fire?.fireType === 'laser'
       );
-
       if (laserBlocks.length === 0) continue;
 
-      if (!energy && laserBlocks.length > 0) {
+      let energyComponent = ship.getEnergyComponent();
+      if (!energyComponent) {
         ship.enableEnergyComponent();
+        energyComponent = ship.getEnergyComponent();
       }
-
-      const energyComponent = ship.getEnergyComponent();
       if (!energyComponent) continue;
 
       const energyCostPerLaser = 0.25;
       const totalEnergyCost = energyCostPerLaser * laserBlocks.length;
-
       if (!energyComponent.spend(totalEnergyCost)) continue;
 
       for (const [coord, block] of laserBlocks) {
         const fire = block.type.behavior!.fire!;
         const origin = getWorldPositionFromShipCoord(transform, coord);
-
         if (!intent.aimAt) continue;
 
-        const dx = intent.aimAt.x - origin.x;
-        const dy = intent.aimAt.y - origin.y;
-        const mag = Math.sqrt(dx * dx + dy * dy);
-        if (mag === 0) continue;
+        // With this corrected calculation (following thruster pattern):
+        const blockRotation = typeof block.rotation === 'number' ? block.rotation : 0;
+        const blockRotRad = blockRotation * (Math.PI / 180);
 
-        const blockRotation = ('rotation' in block && typeof block.rotation === 'number')
-          ? block.rotation
-          : 0;
+        // Local direction the block is facing (assuming 0° = facing up in local space)
+        // Adjust this base direction if your blocks have a different 0° orientation
+        const localDirection = { x: 0, y: -1 }; // or { x: 1, y: 0 } if 0° = facing right
 
-        const angle = transform.rotation + blockRotation - Math.PI / 2;
-        const targetX = origin.x + Math.cos(angle) * this.beamLength;
-        const targetY = origin.y + Math.sin(angle) * this.beamLength;
+        // Rotate local direction by block rotation
+        const blockRotatedDir = rotate(localDirection.x, localDirection.y, blockRotRad);
 
-        const hit = this.grid.getFirstBlockAlongRay(
-          { x: origin.x, y: origin.y },
-          { x: targetX, y: targetY },
-          ship.id // optionally exclude self in API
-        );
+        // Rotate by ship rotation to get world direction
+        const worldDirection = rotate(blockRotatedDir.x, blockRotatedDir.y, transform.rotation);
 
-        if (hit && hit.ownerShipId !== ship.id) {
-          const targetShip = findShipByBlock(hit);
-          if (targetShip) {
-            const coord = findBlockCoordinatesInShip(hit, targetShip);
-            if (coord) {
-              this.combatService.applyDamageToBlock(
-                targetShip,
-                hit,
-                coord,
-                fire.fireDamage,
-                'laser'
-              );
-            }
+        const dirX = worldDirection.x;
+        const dirY = worldDirection.y;
+        const targetX = origin.x + dirX * this.beamLength;
+        const targetY = origin.y + dirY * this.beamLength;
+
+        let beamTargetX = targetX;
+        let beamTargetY = targetY;
+
+        const hit = this.grid.getFirstBlockAlongRay(origin, { x: targetX, y: targetY }, ship.id);
+
+        if (hit) {
+          beamTargetX = hit.point.x;
+          beamTargetY = hit.point.y;
+
+          const targetShip = findShipByBlock(hit.block);
+          const hitCoord = targetShip ? findBlockCoordinatesInShip(hit.block, targetShip) : null;
+          if (targetShip && hitCoord) {
+            this.combatService.applyDamageToBlock(
+              targetShip,
+              hit.block,
+              hitCoord,
+              fire.fireDamage,
+              'laser'
+            );
           }
+        }
+
+        // Compute beam extension
+        const overshoot = 128;
+        const dx = beamTargetX - origin.x;
+        const dy = beamTargetY - origin.y;
+        const magSq = dx * dx + dy * dy;
+
+        let visualTargetX = beamTargetX;
+        let visualTargetY = beamTargetY;
+        let invMag = 0;
+        let orthoX = 0;
+        let orthoY = 0;
+
+        if (magSq > 1e-4) {
+          invMag = 1 / Math.sqrt(magSq);
+          visualTargetX += dx * invMag * overshoot;
+          visualTargetY += dy * invMag * overshoot;
+
+          orthoX = -dy * invMag;
+          orthoY = dx * invMag;
         }
 
         this.activeBeams.push({
           origin: { x: origin.x, y: origin.y },
-          target: { x: targetX, y: targetY },
+          target: { x: visualTargetX, y: visualTargetY },
+          age: 0,
+          intensity: Math.random() * 0.5 + 0.75,
+          coreWidth: 3 + Math.random(),
+          glowPulse: Math.random() * Math.PI * 2,
         });
       }
     }
@@ -120,18 +159,27 @@ export class LaserSystem implements IUpdatable, IRenderable {
       const end = this.camera.worldToScreen(beam.target.x, beam.target.y);
 
       // Core beam
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = beam.intensity;
       ctx.strokeStyle = '#00CCFF';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = beam.coreWidth + Math.sin(beam.age * 20) * 0.5;
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
 
-      // Glow
-      ctx.globalAlpha = 0.4;
+      // Glow layer 1
+      ctx.globalAlpha = 0.2 + 0.2 * beam.glowPulse;
       ctx.strokeStyle = '#00FFFF';
-      ctx.lineWidth = 7;
+      ctx.lineWidth = 7 + Math.sin(beam.age * 4);
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+
+      // Glow layer 2
+      ctx.globalAlpha = 0.1;
+      ctx.strokeStyle = '#00faff';
+      ctx.lineWidth = 11 + 2 * Math.sin(beam.age * 2);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);

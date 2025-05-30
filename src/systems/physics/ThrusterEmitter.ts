@@ -3,6 +3,8 @@
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
+import { ENGINE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
+import { rotate } from '@/game/ship/utils/shipBlockUtils';
 
 interface ThrusterDefinition {
   coord: GridCoord;
@@ -11,15 +13,6 @@ interface ThrusterDefinition {
   shipRotation: number;
   shipPosition: { x: number; y: number };
 }
-
-// Engine exhaust color palettes by engine block ID
-const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
-  engine0: ['#fff', '#f90', '#ff0'],           // classic flame
-  engine1: ['#fff', '#f90', '#ff0'],           // same as 0
-  engine2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
-  engine3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
-  engine4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust
-};
 
 const DEFAULT_FLAME_COLORS = ['#fff', '#f90', '#ff0'];
 
@@ -44,11 +37,6 @@ export class ThrusterEmitter {
 
     const nozzleOffsetLocal = { x: 0, y: 16 };
     const blockRotRad = blockRotation * (Math.PI / 180);
-
-    const rotate = (x: number, y: number, a: number) => ({
-      x: x * Math.cos(a) - y * Math.sin(a),
-      y: x * Math.sin(a) + y * Math.cos(a),
-    });
 
     const nozzleRotatedByBlock = rotate(nozzleOffsetLocal.x, nozzleOffsetLocal.y, blockRotRad);
     const nozzleWorldOffset = rotate(nozzleRotatedByBlock.x, nozzleRotatedByBlock.y, shipRotation);

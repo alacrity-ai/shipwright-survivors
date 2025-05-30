@@ -7,13 +7,28 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 
 export class LaserBackend implements WeaponBackend {
+  private fireEligibility = new WeakMap<Ship, boolean>();
+
   constructor(private readonly laserSystem: LaserSystem) {}
 
   update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
-    if (!intent?.fireSecondary) return;
+    if (!intent?.fireSecondary) {
+      this.fireEligibility.set(ship, false);
+      return;
+    }
 
     const shipEnergy = ship.getEnergyComponent();
-    if (!shipEnergy || shipEnergy.getCurrent() < 25) return;
+    if (!shipEnergy) return;
+
+    const alreadyEligible = this.fireEligibility.get(ship) ?? false;
+
+    if (!alreadyEligible) {
+      if (shipEnergy.getCurrent() >= 15) {
+        this.fireEligibility.set(ship, true);
+      } else {
+        return; // not enough energy to begin firing
+      }
+    }
 
     const laserBlocks = ship.getAllBlocks().filter(([_, b]) =>
       b.type.id.startsWith('laser') &&

@@ -2,6 +2,12 @@
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
+
+export interface RaycastHit {
+  block: BlockInstance;
+  point: { x: number; y: number };
+}
+
 export class Grid {
   private cells: Map<string, BlockInstance[]> = new Map();  // Map of cell coordinates to blocks
   private cellSize: number;  // Size of each grid cell
@@ -162,18 +168,47 @@ export class Grid {
 
     return Array.from(blocksHit);
   }
-
+  
   public getFirstBlockAlongRay(
     origin: { x: number; y: number },
     target: { x: number; y: number },
     excludeShipId?: string
-  ): BlockInstance | null {
+  ): RaycastHit | null {
+    const dirX = target.x - origin.x;
+    const dirY = target.y - origin.y;
+    const mag = Math.sqrt(dirX * dirX + dirY * dirY);
+
+    if (mag === 0) return null;
+
+    const rayDir = { x: dirX / mag, y: dirY / mag };
     const blocks = this.getBlocksAlongRay(origin, target);
+
+    let closestHit: RaycastHit | null = null;
+    let closestT = Infinity;
+
     for (const block of blocks) {
       if (excludeShipId && block.ownerShipId === excludeShipId) continue;
-      return block;
+
+      const blockPos = block.position!;
+      const halfSize = this.cellSize / 2; // Assume block size == cell size
+
+      const boxMin = { x: blockPos.x - halfSize, y: blockPos.y - halfSize };
+      const boxMax = { x: blockPos.x + halfSize, y: blockPos.y + halfSize };
+
+      const result = rayIntersectsAABB(origin, rayDir, boxMin, boxMax);
+      if (result.hit && result.tmin < closestT && result.tmin >= 0 && result.tmin <= mag) {
+        closestT = result.tmin;
+        closestHit = {
+          block,
+          point: {
+            x: origin.x + rayDir.x * result.tmin,
+            y: origin.y + rayDir.y * result.tmin
+          }
+        };
+      }
     }
-    return null;
+
+    return closestHit;
   }
 
   // Get blocks in a cell using cell coordinates, not world coordinates
@@ -186,4 +221,24 @@ export class Grid {
   clear(): void {
     this.cells.clear();
   }
+}
+
+function rayIntersectsAABB(
+  rayStart: { x: number; y: number },
+  rayDir: { x: number; y: number },
+  boxMin: { x: number; y: number },
+  boxMax: { x: number; y: number }
+): { hit: boolean; tmin: number } {
+  const invDirX = 1 / rayDir.x;
+  const invDirY = 1 / rayDir.y;
+
+  let t1 = (boxMin.x - rayStart.x) * invDirX;
+  let t2 = (boxMax.x - rayStart.x) * invDirX;
+  let t3 = (boxMin.y - rayStart.y) * invDirY;
+  let t4 = (boxMax.y - rayStart.y) * invDirY;
+
+  const tmin = Math.max(Math.min(t1, t2), Math.min(t3, t4));
+  const tmax = Math.min(Math.max(t1, t2), Math.max(t3, t4));
+
+  return { hit: tmax >= Math.max(0, tmin), tmin };
 }

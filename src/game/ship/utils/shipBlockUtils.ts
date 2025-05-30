@@ -70,3 +70,12 @@ export function fromKey(key: CoordKey): GridCoord {
   const [x, y] = key.split(',').map(Number);
   return { x, y };
 }
+
+export function rotate(x: number, y: number, angle: number): { x: number; y: number } {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    x: x * cos - y * sin,
+    y: x * sin + y * cos,
+  };
+}

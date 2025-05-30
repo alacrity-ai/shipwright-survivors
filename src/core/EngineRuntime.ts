@@ -154,6 +154,7 @@ export class EngineRuntime {
       this.camera,
       this.grid,
       combatService,
+      this.particleManager
     );
 
     // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
@@ -231,7 +232,6 @@ export class EngineRuntime {
 
     this.renderables = [
       this.background,
-      // this.projectileSystem,
       this.laserSystem,
       this.pickupSystem,
       this.particleManager,
