@@ -7,22 +7,15 @@ import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import { Grid } from '@/systems/physics/Grid'; // Global Grid import
 import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
+import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
+import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
-type CoordKey = string;
 type ShipDestroyedCallback = (ship: Ship) => void;
-
-function toKey(coord: GridCoord): CoordKey {
-  return `${coord.x},${coord.y}`;
-}
-
-function fromKey(key: CoordKey): GridCoord {
-  const [x, y] = key.split(',').map(Number);
-  return { x, y };
-}
 
 export class Ship {
   id: string;  // Unique identifier for the ship
   private blocks: Map<CoordKey, BlockInstance> = new Map();
+  private blockToCoordMap: Map<BlockInstance, GridCoord> = new Map(); // Reverse lookup
   private transform: ShipTransform;
   private energyComponent: EnergyComponent | null = null;
 
@@ -87,6 +80,7 @@ export class Ship {
   placeBlock(coord: GridCoord, block: BlockInstance): void {
     this.blocks.set(toKey(coord), block);
     this.grid.addBlockToCell(block);
+    this.blockToCoordMap.set(block, coord);
     this.invalidateMass();
 
     // Recalculate energy contribution from all blocks
@@ -97,6 +91,7 @@ export class Ship {
     const block = this.blocks.get(toKey(coord));
     if (block) {
       this.grid.removeBlockFromCell(block);
+      this.blockToCoordMap.delete(block);
     }
     this.blocks.delete(toKey(coord));
     this.invalidateMass();
@@ -164,6 +159,10 @@ export class Ship {
     });
   }
 
+  public getBlockMap(): Map<string, BlockInstance> {
+    return this.blocks;
+  }
+
   hasBlockAt(coord: GridCoord): boolean {
     return this.blocks.has(toKey(coord));
   }
@@ -177,6 +176,10 @@ export class Ship {
       return { x: 0, y: 0 };
     }
     return undefined;
+  }
+
+  public getBlockCoord(block: BlockInstance): GridCoord | null {
+    return this.blockToCoordMap.get(block) ?? null;
   }
 
   getTotalMass(): number {
@@ -269,20 +272,6 @@ export class Ship {
     return this.grid;
   }
 
-  // === Step 3: Two-Phase Destruction Implementation ===
-
-  /**
-   * Marks the ship as logically destroyed (Phase 1).
-   * This immediately:
-   * - Triggers onDestroyed() listeners for game systems (AI, wave spawner, registries)
-   * - Removes all blocks from collision grid
-   * - Clears internal block references
-   * - Sets destroyed flag to prevent double-destruction
-   * 
-   * All post-destruction visual effects (explosions, pickups, debris) should occur
-   * AFTER this method is called. Visual systems should use isVisuallyExpired() to
-   * determine when to stop rendering corpse effects.
-   */
   public destroy(): void {
     if (this.destroyed) return;
     
@@ -296,6 +285,7 @@ export class Ship {
 
     // Clear internal block references
     this.blocks.clear();
+    this.blockToCoordMap.clear();
 
     // Notify all listeners that this ship was logically destroyed
     // This triggers wave progression, AI cleanup, registry removal, etc.
@@ -307,10 +297,6 @@ export class Ship {
     this.destroyedListeners.length = 0;
   }
 
-  /**
-   * Alternative method to destroy the ship and mark it as already visually expired.
-   * Use this for instant cleanup where no visual effects are desired.
-   */
   public destroyInstantly(): void {
     if (this.destroyed) return;
     
@@ -322,6 +308,7 @@ export class Ship {
       this.grid.removeBlockFromCell(block);
     }
     this.blocks.clear();
+    this.blockToCoordMap.clear();
 
     for (const callback of this.destroyedListeners) {
       callback(this);

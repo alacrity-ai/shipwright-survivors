@@ -57,5 +57,20 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: 'boss_0_00', count: 1 }
     ]
-  }
+  },
+  {
+    id: 5,
+    type: 'wave',
+    mods: [],
+    ships: [
+      { shipId: 'wave_5_00', count: 8 },
+      { shipId: 'wave_5_01', count: 6 },
+      { shipId: 'wave_5_02', count: 6 },
+      { shipId: 'wave_5_03', count: 4 },
+      { shipId: 'wave_5_04', count: 3 },
+      { shipId: 'wave_5_05', count: 2 },
+      { shipId: 'wave_5_06', count: 2 },
+      { shipId: 'wave_5_07', count: 2 }
+    ]
+  },
 ];

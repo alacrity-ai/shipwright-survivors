@@ -59,8 +59,11 @@ src/
 ## 🎮 How to Play
 
 - **WASD**: Thrust and movement
+- **Shift + WASD**: Strafe
+- **Q/E**: Strafe left/right
 - **Mouse**: Aim weapons
 - **Left Click**: Fire primary weapons
+- **Right Click**: Fire secondary weapons
 - **Tab**: Open ship builder
 - **Space**: Rotate block (in ship builder)
 - **Left Click**: Place block (in ship builder)
@@ -87,10 +90,32 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 ## 🔮 Planned Features
 
 - [ ] Multiple weapon types
-- [ ] Ship specializations
+  - [x] Turret
+  - [x] Laser
+  - [ ] Mines (Potential Different types)
+  - [ ] Arc Conduit Emitter (Chain lightning)
+  - [ ] Rail Lance (Long cooldown, pierces many blocks)
+  - [ ] Suppressor Gas (Supresses engines and firepower)
+  - [ ] Reflector Array (Reflects projectiles like bullets and lasers)
+  - [ ] Parasite Pods (DOT damage)
+- [ ] More Block types
+  - [ ] Capacitor (Increases max energy)
+  - [ ] Radar Array (Wider zoom out, wider radar range)
+  - [ ] Deflecting Plating (Maybe facetplate does this % chance to deflect a projectile)
+  - [ ] Auto-repair Node (Heals adjacent blocks slowly over time, consumes energy?)
+  - [ ] Tractor Node (Longer range pickup rate)
+  - [ ] Drone Hanger Bay (Introduces minion playstyle)
 - [ ] Progression system
-- [ ] Boss encounters
-- [ ] Environmental hazards
+  - [x] Technology Tree (Block Type Unlocks)
+  - [ ] Passive Tree (Passive bonuses, e.g. Fins 10% more effective)
+- [x] Boss encounters
+- [ ] Environmental Events
+  - [ ] Asteroids
+  - [ ] Nebulae
+  - [ ] Wormholes
+  - [ ] Planets
+  - [ ] Space Stations
+  - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 ## 📝 Commands
 

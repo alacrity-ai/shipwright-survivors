@@ -1,5 +1,3 @@
-// src/systems/combat/LaserSystem.ts
-
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { CombatService } from '@/systems/combat/CombatService';
@@ -8,7 +6,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { findShipByBlock, findBlockCoordinatesInShip, getWorldPositionFromShipCoord } from '@/game/ship/utils/shipBlockUtils';
 
 interface LaserBeam {
   origin: { x: number; y: number };
@@ -27,7 +25,6 @@ export class LaserSystem implements IUpdatable, IRenderable {
     private readonly camera: Camera,
     private readonly grid: Grid,
     private readonly combatService: CombatService,
-    private readonly shipRegistry: ShipRegistry
   ) {
     this.ctx = canvasManager.getContext('fx');
   }
@@ -51,84 +48,64 @@ export class LaserSystem implements IUpdatable, IRenderable {
 
       if (laserBlocks.length === 0) continue;
 
-      // Lazily initialize energy component if necessary
       if (!energy && laserBlocks.length > 0) {
-        ship.enableEnergyComponent(); // initializes based on laser blocks
+        ship.enableEnergyComponent();
       }
 
       const energyComponent = ship.getEnergyComponent();
       if (!energyComponent) continue;
 
       const energyCostPerLaser = 0.25;
-const totalEnergyCost = energyCostPerLaser * laserBlocks.length;
+      const totalEnergyCost = energyCostPerLaser * laserBlocks.length;
+
       if (!energyComponent.spend(totalEnergyCost)) continue;
 
       for (const [coord, block] of laserBlocks) {
         const fire = block.type.behavior!.fire!;
-        const localX = coord.x * 32;
-        const localY = coord.y * 32;
+        const origin = getWorldPositionFromShipCoord(transform, coord);
 
-        // === Transform block-local offset into world-space ===
-        const cos = Math.cos(transform.rotation);
-        const sin = Math.sin(transform.rotation);
-        const rotatedX = localX * cos - localY * sin;
-        const rotatedY = localX * sin + localY * cos;
-
-        const originX = transform.position.x + rotatedX;
-        const originY = transform.position.y + rotatedY;
-
-        // === If no aim target provided, skip ===
         if (!intent.aimAt) continue;
 
-        const dx = intent.aimAt.x - originX;
-        const dy = intent.aimAt.y - originY;
+        const dx = intent.aimAt.x - origin.x;
+        const dy = intent.aimAt.y - origin.y;
         const mag = Math.sqrt(dx * dx + dy * dy);
         if (mag === 0) continue;
 
-        const dirX = dx / mag;
-        const dirY = dy / mag;
-
-        // Combine ship's rotation with block's relative rotation (if any)
-        const blockRotation = ('rotation' in block && typeof block.rotation === 'number') 
-          ? block.rotation 
+        const blockRotation = ('rotation' in block && typeof block.rotation === 'number')
+          ? block.rotation
           : 0;
 
         const angle = transform.rotation + blockRotation - Math.PI / 2;
+        const targetX = origin.x + Math.cos(angle) * this.beamLength;
+        const targetY = origin.y + Math.sin(angle) * this.beamLength;
 
-        const targetX = originX + Math.cos(angle) * this.beamLength;
-        const targetY = originY + Math.sin(angle) * this.beamLength;
-
-        const hitBlocks = this.grid.getBlocksAlongRay(
-          { x: originX, y: originY },
-          { x: targetX, y: targetY }
+        const hit = this.grid.getFirstBlockAlongRay(
+          { x: origin.x, y: origin.y },
+          { x: targetX, y: targetY },
+          ship.id // optionally exclude self in API
         );
 
-        for (const hit of hitBlocks) {
-          if (hit.ownerShipId === ship.id) continue;
-
-          const targetShip = this.shipRegistry.getById(hit.ownerShipId);
-          if (!targetShip) continue;
-
-          const coord = targetShip.findBlockCoord(hit);
-          if (!coord) continue;
-
-          this.combatService.applyDamageToBlock(
-            targetShip,
-            hit,
-            coord,
-            fire.fireDamage,
-            'laser'
-          );
-
-          break; // Only damage first hit block per beam
+        if (hit && hit.ownerShipId !== ship.id) {
+          const targetShip = findShipByBlock(hit);
+          if (targetShip) {
+            const coord = findBlockCoordinatesInShip(hit, targetShip);
+            if (coord) {
+              this.combatService.applyDamageToBlock(
+                targetShip,
+                hit,
+                coord,
+                fire.fireDamage,
+                'laser'
+              );
+            }
+          }
         }
 
         this.activeBeams.push({
-          origin: { x: originX, y: originY },
+          origin: { x: origin.x, y: origin.y },
           target: { x: targetX, y: targetY },
         });
       }
-
     }
 
     this.intentMap.clear();
@@ -137,9 +114,6 @@ const totalEnergyCost = energyCostPerLaser * laserBlocks.length;
   public render(): void {
     const ctx = this.ctx;
     ctx.save();
-
-    // ❌ REMOVE this — already handled inside `worldToScreen`
-    // ctx.scale(this.camera.zoom, this.camera.zoom);
 
     for (const beam of this.activeBeams) {
       const start = this.camera.worldToScreen(beam.origin.x, beam.origin.y);

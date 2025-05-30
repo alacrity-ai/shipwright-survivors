@@ -2,13 +2,12 @@
 
 import type { Projectile } from '@/game/interfaces/types/Projectile';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import type { Ship } from '@/game/ship/Ship';
-import type { GridCoord } from '@/game/interfaces/types/GridCoord';
+
+import { findShipByBlock, findBlockCoordinatesInShip } from '@/game/ship/utils/shipBlockUtils';
 
 import { getProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { Grid } from '@/systems/physics/Grid';
 import { CombatService } from '@/systems/combat/CombatService'; // NEW
 
@@ -21,7 +20,6 @@ export class ProjectileSystem {
     private readonly camera: Camera,
     private readonly grid: Grid,
     private readonly combatService: CombatService,
-    private readonly shipRegistry: ShipRegistry
   ) {
     this.ctx = canvasManager.getContext('fx');
   }
@@ -81,9 +79,9 @@ export class ProjectileSystem {
         for (const block of blocks) {
           if (block.ownerShipId === p.ownerShipId) continue;
           if (this.checkCollision(p, block)) {
-            const ship = this.findShipByBlock(block);
+            const ship = findShipByBlock(block);
             if (ship) {
-              const coord = this.findBlockCoordinatesInShip(block, ship);
+              const coord = findBlockCoordinatesInShip(block, ship);
               if (coord) {
                 this.combatService.applyDamageToBlock(ship, block, coord, p.damage, 'projectile');
               }
@@ -94,17 +92,6 @@ export class ProjectileSystem {
         }
       }
     }
-  }
-
-  private findShipByBlock(block: BlockInstance): Ship | null {
-    return Array.from(this.shipRegistry.getAll()).find(s => s.id === block.ownerShipId) || null;
-  }
-
-  private findBlockCoordinatesInShip(targetBlock: BlockInstance, ship: Ship): GridCoord | null {
-    for (const [coord, block] of ship.getAllBlocks()) {
-      if (block === targetBlock) return coord;
-    }
-    return null;
   }
 
   checkCollision(projectile: Projectile, block: BlockInstance): boolean {

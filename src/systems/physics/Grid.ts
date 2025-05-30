@@ -70,11 +70,16 @@ export class Grid {
     return relevantCells;
   }
 
-  /**
-   * Traverses grid cells along a ray from start to end using 2D DDA.
-   * Returns a flat list of all BlockInstances intersected by the ray path.
-   */
-  getBlocksAlongRay(start: { x: number; y: number }, end: { x: number; y: number }): BlockInstance[] {
+ /**
+ * Traverses grid cells along a ray from start to end using 2D DDA.
+ * Optionally expands sampling orthogonally based on `beamThickness` (in world units).
+ * Returns a flat list of all BlockInstances intersected by the ray path.
+ */
+  getBlocksAlongRay(
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+    beamThickness: number = 0
+  ): BlockInstance[] {
     const blocksHit: Set<BlockInstance> = new Set();
 
     const dx = end.x - start.x;
@@ -105,12 +110,43 @@ export class Grid {
       : start.y - y * this.cellSize;
     tMaxY = Math.abs(yOffset / dy);
 
-    const maxSteps = 500; // Guard against infinite traversal
+    const maxSteps = 500;
+
+    // Precompute orthogonal offset range
+    let sideOffsets: [number, number][] = [[0, 0]];
+
+    if (beamThickness > 0) {
+      const radius = beamThickness / 2;
+
+      // Normalize direction
+      const mag = Math.sqrt(dx * dx + dy * dy);
+      const dirX = dx / mag;
+      const dirY = dy / mag;
+
+      // Perpendicular vector
+      const normalX = -dirY;
+      const normalY = dirX;
+
+      // Sample grid offsets within beam radius
+      const maxOffset = Math.ceil(radius / this.cellSize);
+      sideOffsets = [];
+
+      for (let i = -maxOffset; i <= maxOffset; i++) {
+        const offsetX = Math.round(normalX * i);
+        const offsetY = Math.round(normalY * i);
+        sideOffsets.push([offsetX, offsetY]);
+      }
+    }
 
     for (let steps = 0; steps < maxSteps; steps++) {
-      const cellBlocks = this.getBlocksInCellByCoords(x, y);
-      for (const block of cellBlocks) {
-        blocksHit.add(block);
+      for (const [ox, oy] of sideOffsets) {
+        const cx = x + ox;
+        const cy = y + oy;
+
+        const cellBlocks = this.getBlocksInCellByCoords(cx, cy);
+        for (const block of cellBlocks) {
+          blocksHit.add(block);
+        }
       }
 
       if (x === endX && y === endY) break;
@@ -125,6 +161,19 @@ export class Grid {
     }
 
     return Array.from(blocksHit);
+  }
+
+  public getFirstBlockAlongRay(
+    origin: { x: number; y: number },
+    target: { x: number; y: number },
+    excludeShipId?: string
+  ): BlockInstance | null {
+    const blocks = this.getBlocksAlongRay(origin, target);
+    for (const block of blocks) {
+      if (excludeShipId && block.ownerShipId === excludeShipId) continue;
+      return block;
+    }
+    return null;
   }
 
   // Get blocks in a cell using cell coordinates, not world coordinates

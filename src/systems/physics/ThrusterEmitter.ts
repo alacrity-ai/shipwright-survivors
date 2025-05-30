@@ -1,7 +1,6 @@
 // src/systems/physics/ThrusterEmitter.ts
 
-import { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
-import { randomFlameColor } from '@/systems/physics/ThrusterParticleSystem';
+import { SparkManager } from '@/systems/fx/SparkManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 interface ThrusterDefinition {
@@ -11,10 +10,12 @@ interface ThrusterDefinition {
   shipPosition: { x: number; y: number };
 }
 
-export class ThrusterEmitter {
-  constructor(private readonly fx: ThrusterParticleSystem) {}
+const FLAME_COLORS = ['#fff', '#f90', '#ff0'];
 
-  emit(def: ThrusterDefinition) {
+export class ThrusterEmitter {
+  constructor(private readonly sparkManager: SparkManager) {}
+
+  emit(def: ThrusterDefinition): void {
     const { coord, blockRotation, shipRotation, shipPosition } = def;
 
     const BLOCK_SIZE = 32;
@@ -47,15 +48,25 @@ export class ThrusterEmitter {
     const localExhaustDir = { x: Math.sin(blockRotRad), y: Math.cos(blockRotRad) };
     const worldExhaustDir = rotate(localExhaustDir.x, localExhaustDir.y, shipRotation);
 
-    this.fx.spawn({
-      position: { x: nozzleWorldX, y: nozzleWorldY },
-      velocity: {
-        x: worldExhaustDir.x * 40 + (Math.random() - 0.5) * 10,
-        y: worldExhaustDir.y * 40 + (Math.random() - 0.5) * 10,
-      },
-      color: randomFlameColor(),
-      size: Math.random() * 2 + 1,
-      life: 0.2 + Math.random() * 0.15,
-    });
+    // Emit two directional sparks per thruster per frame
+    for (let i = 0; i < 2; i++) {
+      const randomJitterX = (Math.random() - 0.5) * 10;
+      const randomJitterY = (Math.random() - 0.5) * 10;
+
+      this.sparkManager.emitBurst(
+        { x: nozzleWorldX, y: nozzleWorldY },
+        1,
+        {
+          colors: FLAME_COLORS,
+          velocity: {
+            x: worldExhaustDir.x * 40 + randomJitterX,
+            y: worldExhaustDir.y * 40 + randomJitterY,
+          },
+          baseSpeed: 1,
+          sizeRange: [1, 3],
+          lifeRange: [0.2, 0.35],
+        }
+      );
+    }
   }
 }

@@ -6,6 +6,6 @@ export interface IUpdatable {
 }
 
 export interface IRenderable {
-  render(): void;
+  render(deltaTime: number): void;
   runWhilePaused?: boolean;
 }

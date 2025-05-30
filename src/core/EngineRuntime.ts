@@ -21,7 +21,8 @@ import { UIRenderer } from '@/rendering/UIRenderer';
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
-import { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
+// import { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
+import { SparkManager } from '@/systems/fx/SparkManager';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
@@ -75,7 +76,8 @@ export class EngineRuntime {
   private projectileSystem: ProjectileSystem;
   private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
-  private thrusterFx: ThrusterParticleSystem;
+  // private thrusterFx: ThrusterParticleSystem;
+  private sparkManager: SparkManager;
   private background: BackgroundRenderer;
   private multiShipRenderer: MultiShipRenderer;
   private uiRenderer: UIRenderer;
@@ -99,6 +101,7 @@ export class EngineRuntime {
     this.canvasManager = new CanvasManager();
     this.gameLoop = new GameLoop();
     this.camera = new Camera(1280, 720);
+    this.sparkManager = new SparkManager(this.canvasManager.getContext('sparks'), this.camera);
 
     // Initialize player resources with starting currency
     const playerResources = PlayerResources.getInstance();
@@ -123,7 +126,7 @@ export class EngineRuntime {
     this.aiOrchestrator = new AIOrchestratorSystem();
 
     // === Step 2: Construct PickupSystem and PickupSpawner (unchanged) ===
-    this.pickupSystem = new PickupSystem(this.canvasManager, this.camera, this.ship);
+    this.pickupSystem = new PickupSystem(this.canvasManager, this.camera, this.ship, this.sparkManager);
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
     const destructionService = new ShipDestructionService(
@@ -146,7 +149,6 @@ export class EngineRuntime {
       this.camera,
       this.grid,
       combatService,
-      this.shipRegistry
     );
 
     this.laserSystem = new LaserSystem(
@@ -154,16 +156,15 @@ export class EngineRuntime {
       this.camera,
       this.grid,
       combatService,
-      this.shipRegistry
     );
 
-    this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
-    const emitter = new ThrusterEmitter(this.thrusterFx);
-
+    // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
     this.background = new BackgroundRenderer(this.canvasManager, this.camera);
     this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling);
     this.uiRenderer = new UIRenderer(this.canvasManager, this.menuManager);
 
+    // Add components to player ship (Should all be abstracted into one factory)
+    const emitter = new ThrusterEmitter(this.sparkManager);
     this.movement = new MovementSystem(this.ship, emitter);
     this.weaponSystem = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
@@ -188,7 +189,7 @@ export class EngineRuntime {
       this.ship,
       this.projectileSystem,
       this.laserSystem,
-      this.thrusterFx,
+      this.sparkManager,
       this.grid
     );
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
@@ -200,7 +201,7 @@ export class EngineRuntime {
       this.movement,
       this.projectileSystem,
       this.laserSystem,
-      this.thrusterFx,
+      this.sparkManager,
       this.aiOrchestrator,
       this.explosionSystem,
       this.screenEffects,
@@ -234,14 +235,14 @@ export class EngineRuntime {
       this.background,
       this.projectileSystem,
       this.laserSystem,
-      this.thrusterFx,
+      this.pickupSystem,
+      this.sparkManager,
       this.multiShipRenderer,
       this.uiRenderer,
       this.hud,
       this.miniMap,
       this.explosionSystem,
       this.screenEffects,
-      this.pickupSystem,
       this.wavesOverlay,
       this.debugOverlay
     ];
@@ -276,6 +277,10 @@ export class EngineRuntime {
       PlayerResources.getInstance().addCurrency(1000);
     }
 
+    if (wasKeyJustPressed('KeyU')) {
+      PlayerTechnologyManager.getInstance().unlockAll();
+    }
+
     const transform = this.ship.getTransform();
     this.camera.adjustZoom(consumeZoomDelta());
     this.camera.follow(transform.position);
@@ -294,13 +299,14 @@ export class EngineRuntime {
     updateInputFrame();
   };
 
-  private render = () => {
+  private render = (dt: number) => {
     const transform = this.ship.getTransform();
 
     this.canvasManager.clearLayer('entities');
     this.canvasManager.clearLayer('fx');
+    this.canvasManager.clearLayer('sparks');
 
-    this.renderables.forEach(system => system.render());
+    this.renderables.forEach(system => system.render(dt));
 
     // Always render the repair effect system
     this.repairEffectSystem.render();

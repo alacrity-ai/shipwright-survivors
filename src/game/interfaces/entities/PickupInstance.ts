@@ -2,7 +2,16 @@
 
 import type { PickupType } from '@/game/interfaces/types/PickupType';
 
-// Define the spark interface
+export interface PickupInstance {
+  type: PickupType;
+  position: { x: number; y: number };
+  isPickedUp: boolean;
+  currencyAmount: number;
+  ttl?: number;
+  rotation: number;
+}
+
+// Optional: Keep this here if other systems will use it directly
 export interface Spark {
   x: number;
   y: number;
@@ -11,15 +20,5 @@ export interface Spark {
   size: number;
   life: number;
   color: string;
-}
-
-export interface PickupInstance {
-  type: PickupType;        // Reference to the PickupType
-  position: { x: number; y: number }; // The position of the pickup in the game world
-  isPickedUp: boolean;     // Whether the pickup has been collected by the player
-  currencyAmount: number;  // The amount of currency this pickup provides (specific to currency pickups)
-  ttl?: number;            // Optional "time-to-live" for future expansion
-
-  rotation: number;        // Track the rotation of the pickup for spinning effect
-  sparks: Spark[];         // Array of sparks emitted from the pickup
+  speed: number;
 }

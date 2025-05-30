@@ -30,10 +30,10 @@ export class BackgroundRenderer {
     this.ctx = canvasManager.getContext('background');
     this.camera = camera;
 
-    this.layers.push(this.createLayer(30, '#444444', 0.02));
-    this.layers.push(this.createLayer(60, '#666666', 0.05));
-    this.layers.push(this.createLayer(80, '#aaaaaa', 0.1));
-    this.layers.push(this.createLayer(110, '#ffffff', 0.2));
+    this.layers.push(this.createLayer(30, '#444444', 0.04));
+    this.layers.push(this.createLayer(60, '#666666', 0.08));
+    this.layers.push(this.createLayer(80, '#aaaaaa', 0.15));
+    this.layers.push(this.createLayer(110, '#ffffff', 0.25));
   }
 
   private createLayer(count: number, color: string, speedMultiplier: number): StarLayer {

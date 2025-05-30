@@ -8,7 +8,8 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
-import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
+// import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
+import type { SparkManager } from '@/systems/fx/SparkManager';
 import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
 import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitions';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
@@ -30,10 +31,13 @@ interface ActiveWaveContext {
   isComplete: boolean;
 }
 
+const STARTING_WAVE_INDEX = 0;
+
 export class WaveSpawner implements IUpdatable {
   private static instance: WaveSpawner;
 
-  private currentWaveIndex = 0;
+  private currentWaveIndex = STARTING_WAVE_INDEX;
+  private hasStarted = false;
   private elapsedTime = 0;
   private timeSinceStart = 0;
 
@@ -55,7 +59,7 @@ export class WaveSpawner implements IUpdatable {
     private readonly playerShip: Ship,
     private readonly projectileSystem: ProjectileSystem,
     private readonly laserSystem: LaserSystem,
-    private readonly thrusterFx: ThrusterParticleSystem,
+    private readonly sparkManager: SparkManager,
     private readonly grid: Grid
   ) {}
 
@@ -65,7 +69,7 @@ export class WaveSpawner implements IUpdatable {
     playerShip: Ship,
     projectileSystem: ProjectileSystem,
     laserSystem: LaserSystem,
-    thrusterFx: ThrusterParticleSystem,
+    sparkManager: SparkManager,
     grid: Grid
   ): WaveSpawner {
     if (!WaveSpawner.instance) {
@@ -75,7 +79,7 @@ export class WaveSpawner implements IUpdatable {
         playerShip,
         projectileSystem,
         laserSystem,
-        thrusterFx,
+        sparkManager,
         grid
       );
     }
@@ -84,15 +88,15 @@ export class WaveSpawner implements IUpdatable {
 
   public update(dt: number): void {
     // === Initial wave logic ===
-    if (this.currentWaveIndex === 0) {
+    if (!this.hasStarted) {
       this.timeSinceStart += dt;
       if (this.timeSinceStart < this.initialDelay) return;
 
-      // Spawn first wave once delay completes
       const wave = waveDefinitions[this.currentWaveIndex];
       this.spawnWave(wave);
       this.currentWaveIndex++;
       this.elapsedTime = 0;
+      this.hasStarted = true;
       return;
     }
 
@@ -162,7 +166,7 @@ export class WaveSpawner implements IUpdatable {
 
         this.shipRegistry.add(ship);
 
-        const emitter = new ThrusterEmitter(this.thrusterFx);
+        const emitter = new ThrusterEmitter(this.sparkManager);
         const movement = new MovementSystem(ship, emitter);
         const weapons = new WeaponSystem(
           new TurretBackend(this.projectileSystem), 

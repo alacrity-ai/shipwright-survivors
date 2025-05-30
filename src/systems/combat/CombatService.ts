@@ -5,6 +5,7 @@ import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
 import { ShipDestructionService } from '@/game/ship/ShipDestructionService';
+import { fromKey } from '@/game/ship/utils/shipBlockUtils';
 
 export class CombatService {
   constructor(
@@ -49,21 +50,24 @@ export class CombatService {
     const cockpitCoord = ship.getCockpitCoord?.();
     if (!cockpitCoord) return;
 
+    // === Optimized: connected set is now Set<CoordKey>
     const connectedSet = getConnectedBlockCoords(ship, cockpitCoord);
-    const serialize = (c: GridCoord) => `${c.x},${c.y}`;
+    const blockMap = ship.getBlockMap(); // Direct access to internal Map<CoordKey, BlockInstance>
 
-    for (const [blockCoord, orphanBlock] of ship.getAllBlocks()) {
-      if (!connectedSet.has(serialize(blockCoord))) {
-        this.explosionSystem.createBlockExplosion(
-          ship.getTransform().position,
-          ship.getTransform().rotation,
-          blockCoord,
-          60 + Math.random() * 20,
-          0.5 + Math.random() * 0.3
-        );
-        this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
-        ship.removeBlock(blockCoord);
-      }
+    for (const [coordKey, orphanBlock] of blockMap.entries()) {
+      if (connectedSet.has(coordKey)) continue;
+
+      const blockCoord = fromKey(coordKey); // Only needed for explosion placement
+
+      this.explosionSystem.createBlockExplosion(
+        ship.getTransform().position,
+        ship.getTransform().rotation,
+        blockCoord,
+        60 + Math.random() * 20,
+        0.5 + Math.random() * 0.3
+      );
+      this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
+      ship.removeBlock(blockCoord); // Safe: internally updates maps
     }
   }
 }

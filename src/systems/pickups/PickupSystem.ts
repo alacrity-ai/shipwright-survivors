@@ -1,205 +1,143 @@
 // src/systems/pickups/PickupSystem.ts
 
-import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache'; // Import the currency sprite cache
-import { PlayerResources } from '@/game/player/PlayerResources'; // Import the PlayerResources singleton
+import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
+import { PlayerResources } from '@/game/player/PlayerResources';
+import { SparkManager } from '@/systems/fx/SparkManager';
 
+import type { SparkOptions } from '@/systems/fx/SparkManager';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
 
-const PICKUP_RADIUS = 16;  // Radius for pickup interaction (e.g., how close the player needs to be to collect)
-const SPARK_COUNT = 10;     // Number of sparks to emit per pickup
-const ATTRACTION_SPEED = 100; // Speed at which the pickups are attracted to the ship
+const PICKUP_RADIUS = 16;
+const ATTRACTION_SPEED = 10;
+const PICKUP_ATTRACTION_EXPONENT = 2.0;
+const CULL_PADDING = 128;
 
+const SPARK_OPTIONS: SparkOptions = {
+  colors: ['#00f', '#009', '#00a9f4', '#1e90ff'],
+  baseSpeed: 50,
+  sizeRange: [1, 4],
+  lifeRange: [1, 2],
+};
 
 export class PickupSystem {
   private ctx: CanvasRenderingContext2D;
   private pickups: PickupInstance[] = [];
   private playerResources: PlayerResources;
   private playerShip: Ship;
+  private sparkManager: SparkManager;
 
   constructor(
     canvasManager: CanvasManager,
     private readonly camera: Camera,
-    playerShip: Ship // Pass the player ship to the pickup system
+    playerShip: Ship,
+    sparkManager: SparkManager
   ) {
     this.ctx = canvasManager.getContext('entities');
-    this.playerResources = PlayerResources.getInstance();  // Get the singleton instance of PlayerResources
-    this.playerShip = playerShip; // Store the player ship
+    this.playerResources = PlayerResources.getInstance();
+    this.playerShip = playerShip;
+    this.sparkManager = sparkManager
   }
 
-  // This method will spawn a new currency pickup at a specified position
-  spawnCurrencyPickup(position: { x: number, y: number }, amount: number): void {
+  spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
     const newPickup: PickupInstance = {
-      type: { 
-        id: 'currency', // Using the 'currency' key to reference the sprite in the cache
+      type: {
+        id: 'currency',
         name: 'Gold Coin',
         currencyAmount: amount,
         category: 'currency',
-        sprite: 'currency'
+        sprite: 'currency',
       },
       position,
       isPickedUp: false,
       currencyAmount: amount,
-      rotation: 0, // Initialize rotation
-      sparks: [],   // Initialize sparks array
+      rotation: 0,
     };
-    this.pickups.push(newPickup);  // Add the pickup to the list
+    this.pickups.push(newPickup);
   }
 
-  // This method will render all active pickups
-  render(): void {
-    this.pickups.forEach((pickup) => {
-      // Get the sprite for the currency pickup
+  render(dt: number): void { // Added dt
+    const viewport = this.camera.getViewportBounds();
+    const minX = viewport.x - CULL_PADDING;
+    const minY = viewport.y - CULL_PADDING;
+    const maxX = viewport.x + viewport.width + CULL_PADDING;
+    const maxY = viewport.y + viewport.height + CULL_PADDING;
+
+    for (const pickup of this.pickups) {
+      const { x, y } = pickup.position;
+      if (x < minX || x > maxX || y < minY || y > maxY) continue;
+
       const sprite = getPickupSprite(pickup.type.id);
-
-      if (sprite) {
-        const screenPosition = this.camera.worldToScreen(pickup.position.x, pickup.position.y);
-
-        // Update rotation to create the spinning effect
-        pickup.rotation += 0.7; // Increment rotation by small amount for continuous spin
-
-        // Apply camera zoom for scaling the sprite relative to the camera's zoom level and currency amount
-        const scale = this.camera.zoom * (0.5 + Math.sqrt(pickup.currencyAmount) / 15);
-
-
-
-        // Render the pickup (spinning effect)
-        this.ctx.save();
-        this.ctx.translate(screenPosition.x, screenPosition.y);
-        this.ctx.rotate(pickup.rotation); // Apply rotation for spinning effect
-        this.ctx.scale(scale, scale); // Scale according to the camera's zoom
-
-        // Adjust positioning to center the sprite and render it
-        this.ctx.drawImage(
-          sprite.base,
-          -PICKUP_RADIUS, // Adjust positioning to center the sprite
-          -PICKUP_RADIUS,
-          PICKUP_RADIUS * 2,
-          PICKUP_RADIUS * 2
-        );
-        this.ctx.restore();
-
-        // Render sparks
-        this.renderSparks(pickup, screenPosition);
-      } else {
-        console.error("No sprite found for pickup type:", pickup.type.id);  // Debugging log for missing sprites
+      if (!sprite) {
+        console.error('No sprite found for pickup type:', pickup.type.id);
+        continue;
       }
-    });
-  }
 
-  // This method renders the sparks for the spinning pickup
-  private renderSparks(pickup: PickupInstance, screenPosition: { x: number, y: number }): void {
-    // Emit sparks periodically for each pickup
-    if (pickup.sparks.length < SPARK_COUNT) {
-      this.emitSparks(pickup, screenPosition);
-    }
+      const screenPosition = this.camera.worldToScreen(x, y);
+      pickup.rotation += 0.7;
 
-    // Apply camera zoom for scaling the sparks relative to the camera's zoom level
-    const scale = this.camera.zoom;
+      const scaleFactor = Math.log2(pickup.currencyAmount + 1) / 5;
+      const scale = this.camera.zoom * (0.5 + scaleFactor);
 
-    // Draw all sparks
-    pickup.sparks.forEach(spark => {
-      // Update spark position based on velocity
-      spark.x += spark.vx;
-      spark.y += spark.vy;
-
-      // Reduce spark life over time
-      spark.life -= 0.02; // Decrease life to fade sparks
-
-      // Only render sparks that are still alive
-      if (spark.life > 0) {
-        this.ctx.save();
-        this.ctx.translate(spark.x, spark.y);
-        this.ctx.scale(scale, scale); // Scale sparks based on the camera zoom
-
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, spark.size, 0, Math.PI * 2);
-        this.ctx.fillStyle = spark.color;
-        this.ctx.fill();
-        this.ctx.restore();
-      }
-    });
-
-    // Remove sparks that have expired
-    pickup.sparks = pickup.sparks.filter(spark => spark.life > 0);
-  }
-
-  // This method creates new sparks emitted from the pickup
-  private emitSparks(pickup: PickupInstance, screenPosition: { x: number, y: number }): void {
-    const colors = ['#00f', '#009', '#00a9f4', '#1e90ff'];
-    for (let i = 0; i < SPARK_COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2; // Random angle for sparks
-      const speed = Math.random() * 0.5; // Speed of spark emission
-      const size = Math.random() * 4; // Size of sparks
-      const life = Math.random() * 1 + 0.5; // Life duration of sparks
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-      const color = colors[Math.floor(Math.random() * colors.length)];
-
-      // Emit sparks from the pickup's world position (not screen position)
-      pickup.sparks.push({
-        x: screenPosition.x, // Initial spark position (world space)
-        y: screenPosition.y,
-        vx,
-        vy,
-        size,
-        life,
-        color
-      });
-    }
-  }
-
-
-  // This method checks if the player is in range to pick up any pickups
-  update(): void {
-    this.pickups.forEach((pickup) => {
-      if (pickup.isPickedUp) return; // If the pickup is already collected, skip
-
-      // Calculate distance to the player's ship
-      const shipPosition = this.playerShip.getTransform().position;
-      const distance = Math.sqrt(
-        Math.pow(shipPosition.x - pickup.position.x, 2) + Math.pow(shipPosition.y - pickup.position.y, 2)
+      this.ctx.save();
+      this.ctx.translate(screenPosition.x, screenPosition.y);
+      this.ctx.rotate(pickup.rotation);
+      this.ctx.scale(scale, scale);
+      this.ctx.drawImage(
+        sprite.base,
+        -PICKUP_RADIUS,
+        -PICKUP_RADIUS,
+        PICKUP_RADIUS * 2,
+        PICKUP_RADIUS * 2
       );
+      this.ctx.restore();
 
-      // Define attraction range - pickups only get attracted within this distance
-      const ATTRACTION_RANGE = 600; // Adjust this value as needed
-      
-      if (distance > ATTRACTION_RANGE) return; // Skip if too far away
+      // Emit spark effect only if within camera viewport (world space)
+      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+        this.sparkManager.emitContinuous(pickup.position, dt, 10, SPARK_OPTIONS);
+      }
+    }
+  }
 
-      // Calculate speed of pickup attraction with exponential ramp-up as distance decreases
-      // Using exponential decay function: speed increases exponentially as distance decreases
-      const normalizedDistance = distance / ATTRACTION_RANGE; // 0 to 1 (1 = far, 0 = close)
-      const attractionMultiplier = Math.pow(1 - normalizedDistance, 6); // Quadratic ramp-up
-      const attractionSpeed = ATTRACTION_SPEED * attractionMultiplier;
+  update(): void {
+    const shipPosition = this.playerShip.getTransform().position;
+    const attractionRangeSq = 600 * 600;
+    const pickupRadiusSq = PICKUP_RADIUS * PICKUP_RADIUS;
 
-      // Calculate direction from pickup to ship
+    for (const pickup of this.pickups) {
+      if (pickup.isPickedUp) continue;
+
       const dx = shipPosition.x - pickup.position.x;
       const dy = shipPosition.y - pickup.position.y;
-      const angle = Math.atan2(dy, dx);
+      const distSq = dx * dx + dy * dy;
 
-      // Update the pickup position to move towards the ship
-      pickup.position.x += Math.cos(angle) * attractionSpeed;
-      pickup.position.y += Math.sin(angle) * attractionSpeed;
+      if (distSq > attractionRangeSq) continue;
 
-      // Check if the pickup is close enough to the ship to be collected
-      if (distance < PICKUP_RADIUS) {
+      const normalizedDistanceSq = distSq / attractionRangeSq;
+      const attractionMultiplier = Math.pow(1 - normalizedDistanceSq, PICKUP_ATTRACTION_EXPONENT);
+      const attractionSpeed = ATTRACTION_SPEED * attractionMultiplier;
+
+      const distance = Math.sqrt(distSq);
+      const nx = dx / distance;
+      const ny = dy / distance;
+
+      pickup.position.x += nx * attractionSpeed;
+      pickup.position.y += ny * attractionSpeed;
+
+      if (distSq < pickupRadiusSq) {
         this.collectPickup(pickup);
       }
-    });
+    }
   }
 
-  // This method handles the collection of a pickup
   private collectPickup(pickup: PickupInstance): void {
     pickup.isPickedUp = true;
-
-    // Increase the player's currency using the PlayerResources singleton
     this.playerResources.addCurrency(pickup.currencyAmount);
 
-    // Optionally remove the pickup from the system
     const index = this.pickups.indexOf(pickup);
-    if (index > -1) {
+    if (index !== -1) {
       this.pickups.splice(index, 1);
     }
   }

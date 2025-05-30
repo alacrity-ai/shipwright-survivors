@@ -1,7 +1,7 @@
 // src/core/GameLoop.ts
 
 type UpdateCallback = (deltaTime: number) => void;
-type RenderCallback = () => void;
+type RenderCallback = (deltaTime: number) => void;
 
 export class GameLoop {
   private lastFrameTime: number = performance.now();
@@ -27,7 +27,7 @@ export class GameLoop {
     this.lastFrameTime = timestamp;
 
     this.updateCallbacks.forEach(cb => cb(deltaTime));
-    this.renderCallbacks.forEach(cb => cb());
+    this.renderCallbacks.forEach(cb => cb(deltaTime));
 
     requestAnimationFrame(this.tick);
   };

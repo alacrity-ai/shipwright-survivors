@@ -1,5 +1,7 @@
 // src/game/player/PlayerTechnologyManager.ts
 
+import { getAllBlockTypes } from "@/game/blocks/BlockRegistry";
+
 export class PlayerTechnologyManager {
   private static instance: PlayerTechnologyManager;
   private unlockedBlockIds: Set<string> = new Set();
@@ -19,6 +21,11 @@ export class PlayerTechnologyManager {
 
   unlockMany(blockIds: string[]): void {
     blockIds.forEach(id => this.unlockedBlockIds.add(id));
+  }
+
+  unlockAll(): void {
+    const allIds = getAllBlockTypes().map(block => block.id);
+    allIds.forEach(id => this.unlockedBlockIds.add(id));
   }
 
   isUnlocked(blockId: string): boolean {
