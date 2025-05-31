@@ -34,6 +34,7 @@ const WINDOW_HEIGHT = TILE_SIZE * GRID_ROWS + 60;
 const BLOCKINFO_WINDOW_WIDTH = TILE_SIZE * (GRID_COLS - 2) + PADDING * 3;
 const UTILITY_WINDOW_WIDTH = TILE_SIZE + PADDING;
 
+const IGNORED_KEYS = new Set(['canThrust', 'canFire']);
 const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
 
 export class ShipBuilderMenu implements Menu {
@@ -209,10 +210,12 @@ export class ShipBuilderMenu implements Menu {
 
     textY = drawLabelLine(ctx, textX, textY, 'Name', block.name, '#6cf', wrapWidth);
     textY = drawLabelLine(ctx, textX, textY, 'Armor', formatValue(block.armor), '#09f', wrapWidth);
+    textY = drawLabelLine(ctx, textX, textY, 'Mass', formatValue(block.mass), '#999', wrapWidth);
     textY = drawLabelLine(ctx, textX, textY, 'Cost', formatValue(block.cost), '#6f6', wrapWidth);
 
     if (block.behavior) {
       Object.entries(block.behavior).forEach(([key, val]) => {
+        if (IGNORED_KEYS.has(key)) return;
         if (val && typeof val === 'object' && !Array.isArray(val)) {
           textY = drawLabelLine(ctx, textX, textY, capitalize(key), '', '#fc6', wrapWidth);
           Object.entries(val).forEach(([subKey, subVal]) => {

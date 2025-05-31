@@ -22,3 +22,17 @@ export const LASER_BEAM_COLORS: Record<string, string[]> = {
   laser2: ['#E6FFED', '#76FF03', '#33691E'],        // pale green core, electric green body, forest glow
   laser3: ['#F3E5F5', '#D500F9', '#4A148C'],        // lavender core, neon violet body, deep purple glow
 };
+
+export const SHIELD_COLOR_PALETTES: Record<string, string[]> = {
+  shield0: ['#88ddff', '#44bbff', '#00aaff'], // cyan
+  shield1: ['#88ddff', '#44bbff', '#00aaff'], // same
+  shield2: ['#aaffaa', '#66dd66', '#22bb22'], // green
+  shield3: ['#ffbbff', '#dd66dd', '#cc33cc'], // magenta
+};
+
+export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
+  shield0: 'rgba(100, 255, 255, 0.4)',  // cyan default
+  shield1: 'rgba(100, 255, 255, 0.4)',  // cyan again
+  shield2: 'rgba(91, 255, 91, 0.4)',  // soft green
+  shield3: 'rgba(255, 86, 255, 0.4)',  // soft magenta
+};

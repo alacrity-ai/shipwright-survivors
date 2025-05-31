@@ -20,6 +20,7 @@ const SPARK_OPTIONS: ParticleOptions = {
   baseSpeed: 50,
   sizeRange: [1, 4],
   lifeRange: [1, 2],
+  fadeOut: true,
 };
 
 export class PickupSystem {

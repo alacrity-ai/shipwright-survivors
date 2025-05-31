@@ -27,7 +27,8 @@ export class Ship {
   private blockToCoordMap: Map<BlockInstance, GridCoord> = new Map(); // Reverse lookup
   private transform: ShipTransform;
   private energyComponent: EnergyComponent | null = null;
-  private shieldComponent: ShieldComponent | null = null;
+  private shieldComponent: ShieldComponent;
+  private shieldBlocks: Set<BlockInstance> = new Set();
   private turretPlan: TurretFiringPlanEntry[] = [];
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
@@ -40,17 +41,21 @@ export class Ship {
   private totalMass: number | null = null;
 
   constructor(
-    private grid: Grid,  // Pass the global Grid to each ship
+    private grid: Grid,
     initialBlocks?: [GridCoord, BlockInstance][],
     initialTransform?: Partial<ShipTransform>
   ) {
     this.id = this.generateUniqueShipId();
 
+    this.shieldComponent = new ShieldComponent(this);
+
     if (initialBlocks) {
       for (const [coord, block] of initialBlocks) {
         this.blocks.set(toKey(coord), block);
-        this.grid.addBlockToCell(block); // Add block to global grid
+        this.grid.addBlockToCell(block);
       }
+
+      this.shieldComponent.recalculateCoverage();
     }
 
     this.transform = {
@@ -111,28 +116,38 @@ export class Ship {
   }
 
   placeBlock(coord: GridCoord, block: BlockInstance): void {
-    this.blocks.set(toKey(coord), block);
+    const key = toKey(coord);
+    this.blocks.set(key, block);
     this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
+
+    // Track if it's a shield block
+    if (block.type.behavior?.shieldRadius) {
+      this.shieldBlocks.add(block);
+    }
+
     this.invalidateMass();
-    
-    // Recalculate energy contribution from all blocks
     this.recomputeEnergyStats();
     this.rebuildTurretPlan();
+    this.shieldComponent.recalculateCoverage();
   }
 
   removeBlock(coord: GridCoord): void {
-    const block = this.blocks.get(toKey(coord));
+    const key = toKey(coord);
+    const block = this.blocks.get(key);
     if (block) {
       this.grid.removeBlockFromCell(block);
       this.blockToCoordMap.delete(block);
-    }
-    this.blocks.delete(toKey(coord));
-    this.invalidateMass();
 
-    // Recalculate energy contribution from all blocks
+      // Remove from shield index
+      this.shieldBlocks.delete(block);
+    }
+
+    this.blocks.delete(key);
+    this.invalidateMass();
     this.recomputeEnergyStats();
     this.rebuildTurretPlan();
+    this.shieldComponent.recalculateCoverage();
   }
 
   /** Returns true if removing the given block would not disconnect other blocks */
@@ -198,6 +213,10 @@ export class Ship {
     return this.blocks;
   }
 
+  public getShieldBlocks(): Iterable<BlockInstance> {
+    return this.shieldBlocks;
+  }
+
   hasBlockAt(coord: GridCoord): boolean {
     return this.blocks.has(toKey(coord));
   }
@@ -215,6 +234,30 @@ export class Ship {
 
   public getBlockCoord(block: BlockInstance): GridCoord | null {
     return this.blockToCoordMap.get(block) ?? null;
+  }
+
+  getBlocksWithinGridDistance(centerCoord: GridCoord, distance: number): BlockInstance[] {
+    const blocksInRange: BlockInstance[] = [];
+    
+    for (const [_, block] of this.getAllBlocks()) {
+      const blockCoord = this.getBlockCoord(block);
+      if (!blockCoord) continue;
+      
+      const dx = Math.abs(blockCoord.x - centerCoord.x);
+      const dy = Math.abs(blockCoord.y - centerCoord.y);
+      
+      // Use Manhattan distance (dx + dy) or Chebyshev distance (Math.max(dx, dy))
+      // Manhattan: diamond shape coverage
+      // Chebyshev: square shape coverage
+      const gridDistance = Math.max(dx, dy); // Chebyshev (square coverage)
+      // const gridDistance = dx + dy; // Manhattan (diamond coverage)
+      
+      if (gridDistance <= distance) {
+        blocksInRange.push(block);
+      }
+    }
+    
+    return blocksInRange;
   }
 
   getTotalMass(): number {
@@ -410,6 +453,10 @@ export class Ship {
 
   public getEnergyComponent(): EnergyComponent | null {
     return this.energyComponent;
+  }
+
+  public getShieldComponent(): ShieldComponent {
+    return this.shieldComponent;
   }
 
   public updateEnergy(dt: number): void {

@@ -1,5 +1,6 @@
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
+import { SHIELD_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 interface Explosion {
@@ -34,8 +35,14 @@ export class ExplosionSystem {
   }
 
   // Create an explosion at the given world position
-  createExplosion(position: { x: number; y: number }, size: number = 60, life: number = 0.6): void {
-    const sparks = this.generateSparks(position, 10 + Math.floor(size / 10));
+  createExplosion(
+    position: { x: number; y: number },
+    size: number = 60,
+    life: number = 0.6,
+    color?: string,
+    sparkPalette?: string[]
+  ): void {
+    const sparks = this.generateSparks(position, 10 + Math.floor(size / 10), sparkPalette);
     
     this.explosions.push({
       position: { ...position },
@@ -43,7 +50,7 @@ export class ExplosionSystem {
       maxSize: size,
       life,
       maxLife: life,
-      color: this.getRandomExplosionColor(),
+      color: color ?? this.getRandomExplosionColor(),
       sparks
     });
   }
@@ -77,9 +84,13 @@ export class ExplosionSystem {
   }
 
   // Generate sparks for an explosion
-  private generateSparks(position: { x: number; y: number }, count: number): Spark[] {
+  private generateSparks(
+    position: { x: number; y: number },
+    count: number,
+    customColors?: string[]
+  ): Spark[] {
     const sparks: Spark[] = [];
-    const sparkColors = ['#ffff00', '#ff9900', '#ff6600', '#ff3300', '#ffffff'];
+    const sparkColors = customColors ?? ['#ffff00', '#ff9900', '#ff6600', '#ff3300', '#ffffff'];
     
     for (let i = 0; i < count; i++) {
       // Random angle and distance
@@ -106,6 +117,14 @@ export class ExplosionSystem {
     }
     
     return sparks;
+  }
+
+  createShieldDeflection(position: { x: number; y: number }, sourceId: string): void {
+    const palette = SHIELD_COLOR_PALETTES[sourceId];
+    const explosionColor = palette?.[0] ?? 'rgba(100, 255, 255, 0.6)';
+    const sparkPalette = palette ?? ['#ffff00', '#ff9900', '#ff6600'];
+
+    this.createExplosion(position, 40, 0.4, explosionColor, sparkPalette);
   }
 
   update(dt: number): void {

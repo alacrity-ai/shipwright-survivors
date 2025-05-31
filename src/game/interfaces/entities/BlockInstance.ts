@@ -10,4 +10,7 @@ export interface BlockInstance {
   rotation?: number;     // degrees: 0, 90, 180, 270
   position?: { x: number; y: number };  // relative position of the block within the ship
   isShielded?: boolean;  // is this block currently under the effects of a shield?
+  shieldEfficiency?: number; // efficiency of the shield protecting this block
+  shieldHighlightColor?: string;
+  shieldSourceId?: string; // Added this
 }

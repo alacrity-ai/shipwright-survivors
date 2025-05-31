@@ -13,4 +13,5 @@ export interface BlockBehavior {
   energyMaxIncrease?: number; // Added\
   shieldEfficiency?: number;
   shieldRadius?: number;
+  shieldEnergyDrain?: number;
 }

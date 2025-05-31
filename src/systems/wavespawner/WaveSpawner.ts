@@ -15,6 +15,8 @@ import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitio
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
+import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
+import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
 
@@ -171,6 +173,7 @@ export class WaveSpawner implements IUpdatable {
         const weapons = new WeaponSystem(
           new TurretBackend(this.projectileSystem), 
           new LaserBackend(this.laserSystem));
+        const utility = new UtilitySystem(new ShieldToggleBackend());
         const controller = new AIControllerSystem(ship, movement, weapons);
         controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
 

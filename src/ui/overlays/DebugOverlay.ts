@@ -25,13 +25,29 @@ export class DebugOverlay {
     const shipCount = this.shipRegistry.count();
     const aiControllerCount = this.aiOrchestrator.getControllerCount();
 
-    const x = 1080; // Right side of 1280px canvas
+    // === Aggregate shielded block count and shieldEfficiency
+    let totalShieldedBlocks = 0;
+    let totalShieldEfficiency = 0;
+
+    for (const ship of this.shipRegistry.getAll()) {
+      for (const [, block] of ship.getAllBlocks()) {
+        if (block.isShielded) {
+          totalShieldedBlocks++;
+          totalShieldEfficiency += block.shieldEfficiency ?? 0;
+        }
+      }
+    }
+
+    // === Label layout
+    const x = 1080;
     let y = 12;
     const lineHeight = 18;
 
     drawLabel(ctx, x, y, `DEBUG`); y += lineHeight;
     drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
     drawLabel(ctx, x, y, `Ships: ${shipCount}`); y += lineHeight;
-    drawLabel(ctx, x, y, `AI Controllers: ${aiControllerCount}`);
+    drawLabel(ctx, x, y, `AI Controllers: ${aiControllerCount}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Shielded Blocks: ${totalShieldedBlocks}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Total Shield Efficiency: ${totalShieldEfficiency.toFixed(2)}`);
   }
 }

@@ -66,6 +66,7 @@ export class ThrusterEmitter {
           baseSpeed: 1,
           sizeRange: [1, 3],
           lifeRange: [0.2, 0.35],
+          fadeOut: true,
         }
       );
     }

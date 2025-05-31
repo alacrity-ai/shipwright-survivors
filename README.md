@@ -99,7 +99,8 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Reflector Array (Reflects projectiles like bullets and lasers)
   - [ ] Parasite Pods (DOT damage)
 - [ ] More Block types
-  - [ ] Capacitor (Increases max energy)
+  - [x] Shields
+  - [x] Battery (Increases max energy)
   - [ ] Radar Array (Wider zoom out, wider radar range)
   - [ ] Deflecting Plating (Maybe facetplate does this % chance to deflect a projectile)
   - [ ] Auto-repair Node (Heals adjacent blocks slowly over time, consumes energy?)
@@ -119,6 +120,11 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 TODOS:
   - [ ] Make crosshair easier to see, lightup when firing or targetting an enemy
+BUGS:
+  - [ ] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
+       This is potentially inefficient, but more imporantly, it resets your firing cooldown.
+      So if you're having blocks destroyed while in combat, you might never be able to fire.
+      Turret system needs to be re-evaluated.
 
 ## 📝 Commands
 

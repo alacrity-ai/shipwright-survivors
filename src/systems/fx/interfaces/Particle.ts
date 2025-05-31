@@ -9,4 +9,6 @@ export interface Particle {
   life: number;
   color: string;
   speed: number;
+  initialLife?: number; // optional, for alpha fading
+  fadeOut?: boolean;    // optional, toggle per particle
 }

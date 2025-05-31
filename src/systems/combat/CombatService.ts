@@ -1,3 +1,5 @@
+// src/game/ship/CombatService.ts
+
 import type { Ship } from '@/game/ship/Ship';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
@@ -21,6 +23,29 @@ export class CombatService {
     damage: number,
     cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'scripted' = 'scripted'
   ): void {
+    
+    // === Attempt shield absorption ===
+    if (block.isShielded) {
+      const energy = ship.getEnergyComponent();
+      const efficiency = block.shieldEfficiency ?? 0;
+
+      if (efficiency > 0) {
+        const clampedEfficiency = Math.max(0.001, efficiency);
+        const energyCost = damage / clampedEfficiency;
+
+        if (energy && energy.spend(energyCost)) {
+          if (block.position) {
+            this.explosionSystem.createShieldDeflection(
+              block.position,
+              block.shieldSourceId ?? 'shield0'
+            );
+          }
+          return; // Fully absorbed
+        }
+      }
+    }
+
+    // === Direct HP damage fallback ===
     block.hp -= damage;
 
     if (block.position) {
@@ -50,14 +75,14 @@ export class CombatService {
     const cockpitCoord = ship.getCockpitCoord?.();
     if (!cockpitCoord) return;
 
-    // === Optimized: connected set is now Set<CoordKey>
+    // === Prune disconnected fragments ===
     const connectedSet = getConnectedBlockCoords(ship, cockpitCoord);
-    const blockMap = ship.getBlockMap(); // Direct access to internal Map<CoordKey, BlockInstance>
+    const blockMap = ship.getBlockMap();
 
     for (const [coordKey, orphanBlock] of blockMap.entries()) {
       if (connectedSet.has(coordKey)) continue;
 
-      const blockCoord = fromKey(coordKey); // Only needed for explosion placement
+      const blockCoord = fromKey(coordKey);
 
       this.explosionSystem.createBlockExplosion(
         ship.getTransform().position,
@@ -66,8 +91,9 @@ export class CombatService {
         60 + Math.random() * 20,
         0.5 + Math.random() * 0.3
       );
+
       this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
-      ship.removeBlock(blockCoord); // Safe: internally updates maps
+      ship.removeBlock(blockCoord);
     }
   }
 }

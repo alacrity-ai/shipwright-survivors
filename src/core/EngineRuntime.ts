@@ -27,6 +27,7 @@ import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
+import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
 import { ShipDestructionService } from '@/game/ship/ShipDestructionService';
@@ -34,6 +35,7 @@ import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
+import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
 import { CombatService } from '@/systems/combat/CombatService';
 import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
 
@@ -46,6 +48,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
+import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
 import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
 import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
@@ -85,6 +88,7 @@ export class EngineRuntime {
 
   private movement: MovementSystem;
   private weaponSystem: WeaponSystem;
+  private utilitySystem: UtilitySystem;
   private energyRechargeSystem: EnergyRechargeSystem;
   private playerController: PlayerControllerSystem;
   private shipBuilderController: ShipBuilderController;
@@ -100,7 +104,8 @@ export class EngineRuntime {
     this.gameLoop = new GameLoop();
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
-
+    ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
+    
     // Initialize player resources with starting currency
     const playerResources = PlayerResources.getInstance();
     playerResources.initialize(0); // Start with 0 currency
@@ -169,6 +174,9 @@ export class EngineRuntime {
       new TurretBackend(this.projectileSystem),
       new LaserBackend(this.laserSystem)
     );
+    this.utilitySystem = new UtilitySystem(
+      new ShieldToggleBackend()
+    );
 
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
     this.playerController = new PlayerControllerSystem(this.camera);
@@ -203,6 +211,7 @@ export class EngineRuntime {
       this.particleManager,
       this.aiOrchestrator,
       this.explosionSystem,
+      ShieldEffectsSystem.getInstance(),
       this.screenEffects,
       this.pickupSystem,
       this.waveSpawner,
@@ -217,12 +226,14 @@ export class EngineRuntime {
           const intent: ShipIntent = this.playerController.getIntent();
           this.movement.setIntent(intent.movement);
           this.weaponSystem.setIntent(intent.weapons);
+          this.utilitySystem.setIntent(intent.utility);
           
           // Only update weapon system if ship is still valid
           try {
             this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
+            this.utilitySystem.update(dt, this.ship, this.ship.getTransform());
           } catch (error) {
-            console.error("Error updating weapon system:", error);
+            console.error("Error updating system:", error);
           }
         }
       },
@@ -240,6 +251,7 @@ export class EngineRuntime {
       this.hud,
       this.miniMap,
       this.explosionSystem,
+      ShieldEffectsSystem.getInstance(),
       this.screenEffects,
       this.wavesOverlay,
       this.debugOverlay

@@ -70,9 +70,9 @@ const blockTypes: Record<string, BlockType> = {
   hull4: {
     id: 'hull4',
     name: 'Hull Mk IV',
-    armor: 180,
+    armor: 150,
     mass: 90,
-    cost: 150,
+    cost: 140,
     sprite: 'hull4',
     category: 'hull',
     subcategory: 'hull'
@@ -120,9 +120,9 @@ const blockTypes: Record<string, BlockType> = {
   facetplate4: {
     id: 'facetplate4',
     name: 'Facetplate Mk IV',
-    armor: 150,
+    armor: 175,
     mass: 60,
-    cost: 150,
+    cost: 120,
     sprite: 'facetplate4',
     category: 'hull',
     subcategory: 'facetplate'
@@ -396,9 +396,10 @@ const blockTypes: Record<string, BlockType> = {
     cost: 200,
     mass: 40,
     behavior: {
-      shieldEfficiency: 0.2,
-      shieldRadius: 300,
+      shieldEfficiency: 0.5,
+      shieldRadius: 2,
       energyMaxIncrease: 30,
+      shieldEnergyDrain: 1,
     },
     sprite: 'shield0',
     category: 'system',
@@ -411,9 +412,10 @@ const blockTypes: Record<string, BlockType> = {
     cost: 160,
     mass: 50,
     behavior: {
-      shieldEfficiency: 0.2,
-      shieldRadius: 300,
+      shieldEfficiency: 0.65,
+      shieldRadius: 2,
       energyMaxIncrease: 30,
+      shieldEnergyDrain: 3,
     },
     sprite: 'shield1',
     category: 'utility',
@@ -426,9 +428,10 @@ const blockTypes: Record<string, BlockType> = {
     cost: 300,
     mass: 60,
     behavior: {
-      shieldEfficiency: 0.3,
-      shieldRadius: 450,
+      shieldEfficiency: 0.80,
+      shieldRadius: 3,
       energyMaxIncrease: 40,
+      shieldEnergyDrain: 5,
     },
     sprite: 'shield2',
     category: 'utility',
@@ -441,9 +444,10 @@ const blockTypes: Record<string, BlockType> = {
     cost: 600,
     mass: 70,
     behavior: {
-      shieldEfficiency: 0.4,
-      shieldRadius: 600,
-      energyMaxIncrease: 50
+      shieldEfficiency: 1,
+      shieldRadius: 4,
+      energyMaxIncrease: 50,
+      shieldEnergyDrain: 7,
     },
     sprite: 'shield3',
     category: 'utility',
@@ -561,7 +565,7 @@ const blockTypes: Record<string, BlockType> = {
   fin3: {
     id: 'fin3',
     name: 'Fin Mk IV',
-    armor: 100,
+    armor: 90,
     mass: 10,
     cost: 180,
     behavior: {
@@ -574,7 +578,7 @@ const blockTypes: Record<string, BlockType> = {
   fin4: {
     id: 'fin4',
     name: 'Fin Mk IV',
-    armor: 150,
+    armor: 120,
     mass: 10,
     cost: 250,
     behavior: {
