@@ -61,7 +61,9 @@ export class ExplosionSystem {
     shipRotation: number,
     blockCoord: GridCoord,
     size: number = 70, // Increased size
-    life: number = 0.7  // Increased life
+    life: number = 0.7,  // Increased life
+    color?: string,
+    sparkPalette?: string[]
   ): void {
     const BLOCK_SIZE = 32;
     
@@ -80,7 +82,7 @@ export class ExplosionSystem {
     const worldY = shipPosition.y + rotatedY;
     
     // Create the explosion
-    this.createExplosion({ x: worldX, y: worldY }, size, life);
+    this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette);
   }
 
   // Generate sparks for an explosion

@@ -232,6 +232,126 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'turret'
   },
+  explosiveLance0: {
+    id: 'explosiveLance0',
+    name: 'Explosive Lance Mk 0',
+    armor: 60,
+    cost: 120,
+    mass: 80,
+    sprite: 'explosiveLance0',
+    category: 'system',
+    subcategory: 'system',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.5,
+        fireType: 'explosiveLance',
+        fireDamage: 10,
+        explosionDamage: 20,
+        explosionRadiusBlocks: 3,
+        detonationDelayMs: 1500,
+        projectileSpeed: 1600,
+        lifetime: 1.4,
+        accuracy: 0.95
+      } 
+    },
+  },
+  explosiveLance1: {
+    id: 'explosiveLance1',
+    name: 'Explosive Lance Mk I',
+    armor: 60,
+    cost: 120,
+    mass: 80,
+    sprite: 'explosiveLance1',
+    category: 'weapon',
+    subcategory: 'explosiveLance',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.5,
+        fireType: 'explosiveLance',
+        fireDamage: 10,
+        explosionDamage: 30,
+        explosionRadiusBlocks: 3,
+        detonationDelayMs: 1500,
+        projectileSpeed: 1600,
+        lifetime: 1.4,
+        accuracy: 0.95
+      } 
+    },
+  },
+  explosiveLance2: {
+    id: 'explosiveLance2',
+    name: 'Explosive Lance Mk II',
+    armor: 80,
+    cost: 200,
+    mass: 90,
+    sprite: 'explosiveLance2',
+    category: 'weapon',
+    subcategory: 'explosiveLance',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.7,
+        fireType: 'explosiveLance',
+        fireDamage: 20,
+        explosionDamage: 40,
+        explosionRadiusBlocks: 4,
+        detonationDelayMs: 1500,
+        projectileSpeed: 1600,
+        lifetime: 1.5,
+        accuracy: 0.97
+      } 
+    },
+  },
+  explosiveLance3: {
+    id: 'explosiveLance3',
+    name: 'Explosive Lance Mk III',
+    armor: 90,
+    cost: 300,
+    mass: 110,
+    sprite: 'explosiveLance3',
+    category: 'weapon',
+    subcategory: 'explosiveLance',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 1,
+        fireType: 'explosiveLance',
+        fireDamage: 30,
+        explosionDamage: 50,
+        explosionRadiusBlocks: 5,
+        detonationDelayMs: 1500,
+        projectileSpeed: 1600,
+        lifetime: 1.6,
+        accuracy: 0.98
+      } 
+    },
+  },
+  explosiveLance4: {
+    id: 'explosiveLance4',
+    name: 'Explosive Lance Mk IV',
+    armor: 100,
+    cost: 400,
+    mass: 120,
+    sprite: 'explosiveLance4',
+    category: 'weapon',
+    subcategory: 'explosiveLance',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 1.2,
+        fireType: 'explosiveLance',
+        fireDamage: 40,
+        explosionDamage: 60,
+        explosionRadiusBlocks: 6,
+        detonationDelayMs: 1500,
+        projectileSpeed: 1600,
+        lifetime: 1.7,
+        accuracy: 0.99
+      } 
+    },
+  },
   laser0: {
     id: 'laser0',
     name: 'Laser Emitter Mk 0',
@@ -587,6 +707,45 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fin4',
     category: 'hull',
     subcategory: 'fin',
+  },
+  harvester0: {
+    id: 'harvester0',
+    name: 'Resource Harvester Mk 0',
+    armor: 50,
+    mass: 30,
+    cost: 120,
+    behavior: {
+      harvestRate: 5,
+    },
+    sprite: 'harvester0',
+    category: 'system',
+    subcategory: 'system',
+  },
+  harvester1: {
+    id: 'harvester1',
+    name: 'Resource Harvester Mk I',
+    armor: 50,
+    mass: 30,
+    cost: 120,
+    behavior: {
+      harvestRate: 3,
+    },
+    sprite: 'harvester1',
+    category: 'utility',
+    subcategory: 'exploration',
+  },
+  harvester2: {
+    id: 'harvester2',
+    name: 'Resource Harvester Mk II',
+    armor: 80,
+    mass: 40,
+    cost: 200,
+    behavior: {
+      harvestRate: 5,
+    },
+    sprite: 'harvester2',
+    category: 'utility',
+    subcategory: 'exploration',
   },
 };
 

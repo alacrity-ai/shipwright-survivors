@@ -12,5 +12,5 @@ export interface BlockInstance {
   isShielded?: boolean;  // is this block currently under the effects of a shield?
   shieldEfficiency?: number; // efficiency of the shield protecting this block
   shieldHighlightColor?: string;
-  shieldSourceId?: string; // Added this
+  shieldSourceId?: string;
 }

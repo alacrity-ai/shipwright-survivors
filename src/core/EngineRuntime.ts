@@ -35,6 +35,7 @@ import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
+import { ExplosiveLanceBackend } from '@/systems/combat/backends/ExplosiveLanceBackend';
 import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
 import { CombatService } from '@/systems/combat/CombatService';
 import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
@@ -105,7 +106,7 @@ export class EngineRuntime {
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
-    
+
     // Initialize player resources with starting currency
     const playerResources = PlayerResources.getInstance();
     playerResources.initialize(0); // Start with 0 currency
@@ -172,7 +173,8 @@ export class EngineRuntime {
     this.movement = new MovementSystem(this.ship, emitter);
     this.weaponSystem = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
-      new LaserBackend(this.laserSystem)
+      new LaserBackend(this.laserSystem),
+      new ExplosiveLanceBackend(combatService, this.particleManager, this.grid, this.explosionSystem)
     );
     this.utilitySystem = new UtilitySystem(
       new ShieldToggleBackend()
@@ -197,7 +199,9 @@ export class EngineRuntime {
       this.projectileSystem,
       this.laserSystem,
       this.particleManager,
-      this.grid
+      this.grid,
+      combatService,
+      this.explosionSystem
     );
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
 

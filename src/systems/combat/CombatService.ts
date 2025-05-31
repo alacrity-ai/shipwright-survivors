@@ -21,9 +21,8 @@ export class CombatService {
     block: BlockInstance,
     coord: GridCoord,
     damage: number,
-    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'scripted' = 'scripted'
-  ): void {
-    
+    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'scripted' = 'scripted'
+  ): boolean {
     // === Attempt shield absorption ===
     if (block.isShielded) {
       const energy = ship.getEnergyComponent();
@@ -40,7 +39,7 @@ export class CombatService {
               block.shieldSourceId ?? 'shield0'
             );
           }
-          return; // Fully absorbed
+          return false; // Fully absorbed, not destroyed
         }
       }
     }
@@ -52,7 +51,7 @@ export class CombatService {
       this.explosionSystem.createExplosion(block.position, 20, 0.3);
     }
 
-    if (block.hp > 0) return;
+    if (block.hp > 0) return false; // Still alive
 
     const isCockpit = block.type.id.startsWith('cockpit');
 
@@ -69,11 +68,11 @@ export class CombatService {
 
     if (isCockpit) {
       this.destructionService.destroyShip(ship, cause);
-      return;
+      return true; // Cockpit destroyed
     }
 
     const cockpitCoord = ship.getCockpitCoord?.();
-    if (!cockpitCoord) return;
+    if (!cockpitCoord) return true; // Block destroyed, can't prune
 
     // === Prune disconnected fragments ===
     const connectedSet = getConnectedBlockCoords(ship, cockpitCoord);
@@ -95,5 +94,7 @@ export class CombatService {
       this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
       ship.removeBlock(blockCoord);
     }
+
+    return true; // Block was destroyed
   }
 }

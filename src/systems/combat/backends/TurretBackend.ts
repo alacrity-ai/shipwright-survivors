@@ -12,7 +12,10 @@ export class TurretBackend implements WeaponBackend {
   constructor(private readonly projectileSystem: ProjectileSystem) {}
 
   public update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
-    const plan = ship.getTurretPlan();
+    const plan = ship.getFiringPlan().filter(p =>
+      p.block.type.id.startsWith('turret')
+    );
+
     if (plan.length === 0) return;
 
     const target = intent?.aimAt;
@@ -20,14 +23,10 @@ export class TurretBackend implements WeaponBackend {
 
     for (let i = plan.length - 1; i >= 0; i--) {
       const turret = plan[i];
-
-      // Defensive: skip if turret block has been detached from the ship
       if (!ship.getBlockCoord(turret.block)) continue;
 
       turret.timeSinceLastShot += dt;
-
-      if (!fireRequested) continue;
-      if (turret.timeSinceLastShot < turret.fireCooldown) continue;
+      if (!fireRequested || turret.timeSinceLastShot < turret.fireCooldown) continue;
 
       turret.timeSinceLastShot = 0;
 

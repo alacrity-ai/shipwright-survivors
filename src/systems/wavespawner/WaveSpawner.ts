@@ -8,20 +8,22 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
-// import type { ThrusterParticleSystem } from '@/systems/physics/ThrusterParticleSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
 import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitions';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
+import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
+import { ExplosiveLanceBackend } from '@/systems/combat/backends/ExplosiveLanceBackend';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
 
 import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
+import { CombatService } from '@/systems/combat/CombatService';
 
 type WaveType = 'wave' | 'boss' | string;
 type WaveMod = 'shielded' | 'extra-aggressive' | string;
@@ -62,7 +64,9 @@ export class WaveSpawner implements IUpdatable {
     private readonly projectileSystem: ProjectileSystem,
     private readonly laserSystem: LaserSystem,
     private readonly particleManager: ParticleManager,
-    private readonly grid: Grid
+    private readonly grid: Grid,
+    private readonly combatService: CombatService,
+    private readonly explosionSystem: ExplosionSystem
   ) {}
 
   public static getInstance(
@@ -72,7 +76,9 @@ export class WaveSpawner implements IUpdatable {
     projectileSystem: ProjectileSystem,
     laserSystem: LaserSystem,
     particleManager: ParticleManager,
-    grid: Grid
+    grid: Grid,
+    combatService: CombatService,
+    explosionSystem: ExplosionSystem
   ): WaveSpawner {
     if (!WaveSpawner.instance) {
       WaveSpawner.instance = new WaveSpawner(
@@ -82,7 +88,9 @@ export class WaveSpawner implements IUpdatable {
         projectileSystem,
         laserSystem,
         particleManager,
-        grid
+        grid,
+        combatService,
+        explosionSystem
       );
     }
     return WaveSpawner.instance;
@@ -172,7 +180,9 @@ export class WaveSpawner implements IUpdatable {
         const movement = new MovementSystem(ship, emitter);
         const weapons = new WeaponSystem(
           new TurretBackend(this.projectileSystem), 
-          new LaserBackend(this.laserSystem));
+          new LaserBackend(this.laserSystem),
+          new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem)
+        );
         const utility = new UtilitySystem(new ShieldToggleBackend());
         const controller = new AIControllerSystem(ship, movement, weapons);
         controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);

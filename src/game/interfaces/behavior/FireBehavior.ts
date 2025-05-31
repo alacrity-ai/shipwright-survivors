@@ -8,4 +8,7 @@ export interface FireBehavior {
   lifetime?: number; // in seconds
   accuracy?: number; // 0-1, 1 = perfect, 0 = random
   energyCost?: number; // energy per shot
+  detonationDelayMs?: number; // New
+  explosionDamage?: number; // New 
+  explosionRadiusBlocks?: number; // New
 }

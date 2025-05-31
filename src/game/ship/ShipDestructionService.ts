@@ -6,7 +6,7 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
 
-export type DestructionCause = 'projectile' | 'collision' | 'bomb' | 'laser' | 'self' | 'scripted';
+export type DestructionCause = 'projectile' | 'collision' | 'bomb' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'self' | 'scripted';
 
 export class ShipDestructionService {
   constructor(

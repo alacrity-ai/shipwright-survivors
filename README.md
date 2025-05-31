@@ -93,6 +93,8 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [x] Turret
   - [x] Laser
   - [ ] Mines (Potential Different types)
+  - [ ] Explosive Lance (Fire a fast lance that hits an enemy block, sticks in, then detonates)
+  - [ ] Orbiting Blade (Blades orbit the player ship, dealing damage on contact to enemies)
   - [ ] Arc Conduit Emitter (Chain lightning)
   - [ ] Rail Lance (Long cooldown, pierces many blocks)
   - [ ] Suppressor Gas (Supresses engines and firepower)
@@ -104,7 +106,7 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Radar Array (Wider zoom out, wider radar range)
   - [ ] Deflecting Plating (Maybe facetplate does this % chance to deflect a projectile)
   - [ ] Auto-repair Node (Heals adjacent blocks slowly over time, consumes energy?)
-  - [ ] Tractor Node (Longer range pickup rate)
+  - [x] Tractor Node (Longer range pickup rate)
   - [ ] Drone Hanger Bay (Introduces minion playstyle)
 - [ ] Progression system
   - [x] Technology Tree (Block Type Unlocks)

@@ -10,6 +10,8 @@ import { renderEngine } from './blockRenderers/engineBlockRenderer';
 import { renderFin } from './blockRenderers/finBlockRenderer';
 import { renderBatteryModule } from './blockRenderers/batteryBlockRenderer';
 import { renderShieldGenerator } from './blockRenderers/shieldBlockRenderer';
+import { renderHarvester } from './blockRenderers/harvestBlockRenderer';
+import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRenderer';
 
 // --- Damage Level Enum ---
 
@@ -576,11 +578,88 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#4A148C'],
       ]);
       break;
+
+    case 'harvester0':
+    case 'harvester1':
+      renderHarvester(baseCtx, BLOCK_SIZE, {
+        intakeColor: '#00ACC1',
+        vortexColor: '#4DD0E1',
+        ringColor: 'rgba(0, 200, 255, 0.35)',
+        casingStops: [
+          [0, '#263238'],
+          [0.5, '#37474F'],
+          [1, '#212121']
+        ]
+      });
+      break;
+    case 'harvester2':
+      renderHarvester(baseCtx, BLOCK_SIZE, {
+        intakeColor: '#00BFA5',
+        vortexColor: '#1DE9B6',
+        ringColor: 'rgba(106, 0, 255, 0.4)',
+        casingStops: [
+          [0, '#004D40'],
+          [0.5, '#00695C'],
+          [1, '#00251A']
+        ]
+      });
+      break;
+
+    // Explosive Lance variants
+    case 'explosiveLance0':
+    case 'explosiveLance1':
+      renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
+        baseGradientColors: ['#2e2e2e', '#3c3c3c', '#121212'],
+        barrelGradientStops: [
+          [0, '#cccccc'],
+          [0.5, '#888888'],
+          [1, '#444444']
+        ]
+      });
+      break;
+
+    case 'explosiveLance2':
+      renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
+        baseGradientColors: ['#1b3d2f', '#2c704f', '#09251a'],
+        barrelGradientStops: [
+          [0, '#a8e6cf'],
+          [0.5, '#56c596'],
+          [1, '#228b22']
+        ]
+      });
+      break;
+
+    case 'explosiveLance3':
+      renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
+        baseGradientColors: ['#0d47a1', '#1976d2', '#0a1a3f'],
+        barrelGradientStops: [
+          [0, '#82b1ff'],
+          [0.5, '#448aff'],
+          [1, '#2962ff']
+        ]
+      });
+      break;
+
+    case 'explosiveLance4':
+      renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
+        baseGradientColors: ['#4a148c', '#7b1fa2', '#12002e'],
+        barrelGradientStops: [
+          [0, '#e1bee7'],
+          [0.5, '#ba68c8'],
+          [1, '#8e24aa']
+        ]
+      });
+      break;
   }
 
   const baseSprite: BlockSprite = {
     base: baseCanvas,
-    overlay: typeId.startsWith('turret') ? overlayCanvas : undefined,
+    overlay: (
+      typeId.startsWith('turret') ||
+      typeId.startsWith('explosiveLance')
+    )
+      ? overlayCanvas
+      : undefined,
   };
 
   const damagedVariants = generateDamageVariants(baseSprite);

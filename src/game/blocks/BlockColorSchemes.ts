@@ -36,3 +36,11 @@ export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
   shield2: 'rgba(91, 255, 91, 0.4)',  // soft green
   shield3: 'rgba(255, 86, 255, 0.4)',  // soft magenta
 };
+
+export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
+  explosiveLance0: ['#ffcc00', '#ff6600', '#cc2200'], // fiery orange
+  explosiveLance1: ['#ffcc00', '#ff6600', '#cc2200'], // fiery orange
+  explosiveLance2: ['#aaffaa', '#66dd66', '#228822'], // verdant green
+  explosiveLance3: ['#ccccff', '#9999ff', '#4444aa'], // lavender/blue
+  explosiveLance4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
+};

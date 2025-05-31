@@ -13,7 +13,7 @@ import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
-interface TurretFiringPlanEntry {
+interface WeaponFiringPlanEntry {
   coord: GridCoord;
   block: BlockInstance;
   fireRate: number;
@@ -29,8 +29,9 @@ export class Ship {
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
-  private turretPlan: TurretFiringPlanEntry[] = [];
-  private turretPlanIndex: Map<BlockInstance, number> = new Map();
+  private firingPlan: WeaponFiringPlanEntry[] = [];
+  private firingPlanIndex: Map<BlockInstance, number> = new Map();
+  private harvesterBlocks: Map<BlockInstance, number> = new Map();
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
   
@@ -67,20 +68,18 @@ export class Ship {
     };
   }
 
-  public getTurretPlan(): TurretFiringPlanEntry[] {
-    return this.turretPlan;
+  public getFiringPlan(): WeaponFiringPlanEntry[] {
+    return this.firingPlan;
   }
 
   /**
-   * Adds a turret to the firing plan if the block qualifies.
+   * Adds a weapon to the firing plan if the block qualifies.
    */
-  private addTurretToPlanIfApplicable(coord: GridCoord, block: BlockInstance): void {
-    if (!block.type.id.startsWith('turret')) return;
-
+  private addWeaponToPlanIfApplicable(coord: GridCoord, block: BlockInstance): void {
     const fire = block.type.behavior?.fire;
-    if (!fire) return;
+    if (!fire || !block.type?.behavior?.canFire) return;
 
-    const entry: TurretFiringPlanEntry = {
+    const entry: WeaponFiringPlanEntry = {
       coord,
       block,
       fireRate: fire.fireRate || 1,
@@ -88,20 +87,20 @@ export class Ship {
       timeSinceLastShot: 0,
     };
 
-    const index = this.turretPlan.length;
-    this.turretPlan.push(entry);
-    this.turretPlanIndex.set(block, index);
+    const index = this.firingPlan.length;
+    this.firingPlan.push(entry);
+    this.firingPlanIndex.set(block, index);
   }
 
   /**
    * Prunes stale turret entries and rebuilds the turret plan index map.
    * Useful as a periodic consistency safeguard.
    */
-  public validateTurretPlan(): void {
-    const valid: TurretFiringPlanEntry[] = [];
+  public validateFiringPlan(): void {
+    const valid: WeaponFiringPlanEntry[] = [];
     const newIndex = new Map<BlockInstance, number>();
 
-    for (const entry of this.turretPlan) {
+    for (const entry of this.firingPlan) {
       const isStillPresent =
         this.blocks.has(toKey(entry.coord)) &&
         this.blocks.get(toKey(entry.coord)) === entry.block;
@@ -113,28 +112,28 @@ export class Ship {
       }
     }
 
-    this.turretPlan = valid;
-    this.turretPlanIndex = newIndex;
+    this.firingPlan = valid;
+    this.firingPlanIndex = newIndex;
   }
 
   /**
    * Removes a turret from the firing plan using swap-and-pop for O(1) deletion.
    */
-  private removeTurretFromPlanIfApplicable(block: BlockInstance): void {
-    const index = this.turretPlanIndex.get(block);
+  private removeWeaponFromPlanIfApplicable(block: BlockInstance): void {
+    const index = this.firingPlanIndex.get(block);
     if (index === undefined) return; // Not in plan
 
-    const lastIndex = this.turretPlan.length - 1;
-    const lastEntry = this.turretPlan[lastIndex];
+    const lastIndex = this.firingPlan.length - 1;
+    const lastEntry = this.firingPlan[lastIndex];
 
     // Move last into deleted slot if needed
     if (index !== lastIndex) {
-      this.turretPlan[index] = lastEntry;
-      this.turretPlanIndex.set(lastEntry.block, index);
+      this.firingPlan[index] = lastEntry;
+      this.firingPlanIndex.set(lastEntry.block, index);
     }
 
-    this.turretPlan.pop();
-    this.turretPlanIndex.delete(block);
+    this.firingPlan.pop();
+    this.firingPlanIndex.delete(block);
   }
 
   getTransform(): ShipTransform {
@@ -175,9 +174,14 @@ export class Ship {
       this.shieldBlocks.add(block);
     }
 
+    const harvestRate = block.type.behavior?.harvestRate;
+    if (harvestRate) {
+      this.harvesterBlocks.set(block, harvestRate);
+    }
+
     this.invalidateMass();
     this.recomputeEnergyStats();
-    this.addTurretToPlanIfApplicable(coord, block);
+    this.addWeaponToPlanIfApplicable(coord, block);
     this.shieldComponent.recalculateCoverage();
   }
 
@@ -188,10 +192,12 @@ export class Ship {
       this.grid.removeBlockFromCell(block);
       this.blockToCoordMap.delete(block);
 
+      // Remove from harvester index
+      this.harvesterBlocks.delete(block);
       // Remove from shield index
       this.shieldBlocks.delete(block);
       // Remove from turret index
-      this.removeTurretFromPlanIfApplicable(block);
+      this.removeWeaponFromPlanIfApplicable(block);
     }
 
     this.blocks.delete(key);
@@ -316,6 +322,14 @@ export class Ship {
     return this.totalMass;
   }
 
+  public getTotalHarvestRate(): number {
+    let total = 0;
+    for (const rate of this.harvesterBlocks.values()) {
+      total += rate;
+    }
+    return total;
+  }
+
   private invalidateMass(): void {
     this.totalMass = null;
   }
@@ -378,7 +392,7 @@ export class Ship {
       this.placeBlockById(coord, id, rotation);
     });
 
-    this.validateTurretPlan();
+    this.validateFiringPlan();
   }
 
   /**
