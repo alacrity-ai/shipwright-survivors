@@ -44,7 +44,10 @@ export class AttackState extends BaseAIState {
         firePrimary: true,
         fireSecondary: false,
         aimAt
-      }
+      },
+      utility: {
+        toggleShields: false,
+      },
     };
   }
 

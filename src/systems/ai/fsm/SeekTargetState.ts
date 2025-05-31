@@ -34,7 +34,10 @@ export class SeekTargetState extends BaseAIState {
         firePrimary: false,
         fireSecondary: false,
         aimAt: targetTransform.position
-      }
+      },
+      utility: {
+        toggleShields: false,
+      },
     };
   }
 

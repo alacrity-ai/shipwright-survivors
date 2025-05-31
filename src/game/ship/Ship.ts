@@ -5,7 +5,7 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
-import { Grid } from '@/systems/physics/Grid'; // Global Grid import
+import { Grid } from '@/systems/physics/Grid';
 import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
@@ -30,6 +30,7 @@ export class Ship {
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
   private turretPlan: TurretFiringPlanEntry[] = [];
+  private turretPlanIndex: Map<BlockInstance, number> = new Map();
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
   
@@ -70,22 +71,70 @@ export class Ship {
     return this.turretPlan;
   }
 
-  private rebuildTurretPlan(): void {
-    this.turretPlan = [];
+  /**
+   * Adds a turret to the firing plan if the block qualifies.
+   */
+  private addTurretToPlanIfApplicable(coord: GridCoord, block: BlockInstance): void {
+    if (!block.type.id.startsWith('turret')) return;
 
-    for (const [coord, block] of this.getAllBlocks()) {
-      if (!block.type.id.startsWith('turret')) continue;
-      const fire = block.type.behavior?.fire;
-      if (!fire) continue;
+    const fire = block.type.behavior?.fire;
+    if (!fire) return;
 
-      this.turretPlan.push({
-        coord,
-        block,
-        fireRate: fire.fireRate || 1,
-        fireCooldown: 1 / (fire.fireRate || 1),
-        timeSinceLastShot: 0,
-      });
+    const entry: TurretFiringPlanEntry = {
+      coord,
+      block,
+      fireRate: fire.fireRate || 1,
+      fireCooldown: 1 / (fire.fireRate || 1),
+      timeSinceLastShot: 0,
+    };
+
+    const index = this.turretPlan.length;
+    this.turretPlan.push(entry);
+    this.turretPlanIndex.set(block, index);
+  }
+
+  /**
+   * Prunes stale turret entries and rebuilds the turret plan index map.
+   * Useful as a periodic consistency safeguard.
+   */
+  public validateTurretPlan(): void {
+    const valid: TurretFiringPlanEntry[] = [];
+    const newIndex = new Map<BlockInstance, number>();
+
+    for (const entry of this.turretPlan) {
+      const isStillPresent =
+        this.blocks.has(toKey(entry.coord)) &&
+        this.blocks.get(toKey(entry.coord)) === entry.block;
+
+      if (isStillPresent) {
+        const newIndexValue = valid.length;
+        valid.push(entry);
+        newIndex.set(entry.block, newIndexValue);
+      }
     }
+
+    this.turretPlan = valid;
+    this.turretPlanIndex = newIndex;
+  }
+
+  /**
+   * Removes a turret from the firing plan using swap-and-pop for O(1) deletion.
+   */
+  private removeTurretFromPlanIfApplicable(block: BlockInstance): void {
+    const index = this.turretPlanIndex.get(block);
+    if (index === undefined) return; // Not in plan
+
+    const lastIndex = this.turretPlan.length - 1;
+    const lastEntry = this.turretPlan[lastIndex];
+
+    // Move last into deleted slot if needed
+    if (index !== lastIndex) {
+      this.turretPlan[index] = lastEntry;
+      this.turretPlanIndex.set(lastEntry.block, index);
+    }
+
+    this.turretPlan.pop();
+    this.turretPlanIndex.delete(block);
   }
 
   getTransform(): ShipTransform {
@@ -128,7 +177,7 @@ export class Ship {
 
     this.invalidateMass();
     this.recomputeEnergyStats();
-    this.rebuildTurretPlan();
+    this.addTurretToPlanIfApplicable(coord, block);
     this.shieldComponent.recalculateCoverage();
   }
 
@@ -141,12 +190,13 @@ export class Ship {
 
       // Remove from shield index
       this.shieldBlocks.delete(block);
+      // Remove from turret index
+      this.removeTurretFromPlanIfApplicable(block);
     }
 
     this.blocks.delete(key);
     this.invalidateMass();
     this.recomputeEnergyStats();
-    this.rebuildTurretPlan();
     this.shieldComponent.recalculateCoverage();
   }
 
@@ -246,11 +296,7 @@ export class Ship {
       const dx = Math.abs(blockCoord.x - centerCoord.x);
       const dy = Math.abs(blockCoord.y - centerCoord.y);
       
-      // Use Manhattan distance (dx + dy) or Chebyshev distance (Math.max(dx, dy))
-      // Manhattan: diamond shape coverage
-      // Chebyshev: square shape coverage
       const gridDistance = Math.max(dx, dy); // Chebyshev (square coverage)
-      // const gridDistance = dx + dy; // Manhattan (diamond coverage)
       
       if (gridDistance <= distance) {
         blocksInRange.push(block);
@@ -331,6 +377,8 @@ export class Ship {
       const { coord, id, rotation } = blockData;
       this.placeBlockById(coord, id, rotation);
     });
+
+    this.validateTurretPlan();
   }
 
   /**
@@ -396,11 +444,6 @@ export class Ship {
 
   /**
    * Returns true if the ship has been logically destroyed.
-   * Use this for game systems that need to know if the ship should:
-   * - Be excluded from AI targeting
-   * - Not count toward wave completion
-   * - Be removed from registries
-   * - Stop receiving input/physics updates
    */
   public isDestroyed(): boolean {
     return this.destroyed;
@@ -408,11 +451,6 @@ export class Ship {
 
   /**
    * Returns true if enough time has passed since destruction that visual effects
-   * should stop rendering. Use this for:
-   * - Cleanup of explosion particle systems
-   * - Removal of debris animations
-   * - Stopping pickup spawn delays
-   * - Clearing visual corpse references
    * 
    * @param visualEffectDurationMs How long visual effects should persist (default: 2000ms)
    */
@@ -508,3 +546,4 @@ export class Ship {
     };
   }
 }
+

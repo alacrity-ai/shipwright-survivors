@@ -18,7 +18,10 @@ export class IdleState extends BaseAIState {
         firePrimary: false,
         fireSecondary: false,
         aimAt: { x: 0, y: 0 }
-      }
+      },
+      utility: {
+        toggleShields: false,
+      },
     };
   }
 

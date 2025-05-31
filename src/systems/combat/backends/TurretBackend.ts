@@ -18,7 +18,12 @@ export class TurretBackend implements WeaponBackend {
     const target = intent?.aimAt;
     const fireRequested = intent?.firePrimary ?? false;
 
-    for (const turret of plan) {
+    for (let i = plan.length - 1; i >= 0; i--) {
+      const turret = plan[i];
+
+      // Defensive: skip if turret block has been detached from the ship
+      if (!ship.getBlockCoord(turret.block)) continue;
+
       turret.timeSinceLastShot += dt;
 
       if (!fireRequested) continue;

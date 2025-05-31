@@ -17,5 +17,8 @@ export function createDefaultIntent(): ShipIntent {
       fireSecondary: false,
       aimAt: null,
     },
+    utility: {
+      toggleShields: false,
+    },
   };
 }
