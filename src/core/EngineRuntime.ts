@@ -2,7 +2,7 @@
 
 import { Camera } from './Camera';
 import { CanvasManager } from './CanvasManager';
-import { updateInputFrame, consumeZoomDelta, wasKeyJustPressed } from './Input';
+import { updateInputFrame, consumeZoomDelta, wasKeyJustPressed, wasRightBracketPressed } from './Input';
 import { GameLoop } from './GameLoop';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -123,7 +123,7 @@ export class EngineRuntime {
     this.shipCulling = new ShipCullingSystem(this.shipRegistry, this.camera);
 
     // Initialize ExplosionSystem and ScreenEffectsSystem
-    this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera);
+    this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     
     // === Step 1: Initialize orchestrator first ===
@@ -287,12 +287,18 @@ export class EngineRuntime {
       }
     }
 
+    // Debug keys 
+
     if (wasKeyJustPressed('Digit0')) {
       PlayerResources.getInstance().addCurrency(1000);
     }
 
     if (wasKeyJustPressed('KeyU')) {
       PlayerTechnologyManager.getInstance().unlockAll();
+    }
+
+    if (wasRightBracketPressed()) {
+      this.waveSpawner.skipToNextWave();
     }
 
     const transform = this.ship.getTransform();

@@ -115,7 +115,14 @@ export class WaveSpawner implements IUpdatable {
       this.interWaveCountdown -= dt;
       if (this.interWaveCountdown <= 0) {
         this.waitingToSpawnNextWave = false;
-        this.elapsedTime = 0;
+
+        if (this.currentWaveIndex < waveDefinitions.length) {
+          const nextWave = waveDefinitions[this.currentWaveIndex];
+          this.spawnWave(nextWave);
+          this.currentWaveIndex++;
+          this.elapsedTime = 0;
+        }
+        return;
       } else {
         return;
       }
@@ -135,6 +142,19 @@ export class WaveSpawner implements IUpdatable {
     }
   }
 
+  private clearCurrentWave(): void {
+    for (const ship of this.activeShips) {
+      this.shipRegistry.remove(ship);
+      const controller = this.activeControllers.get(ship);
+      if (controller) {
+        this.aiOrchestrator.removeController(controller);
+        this.activeControllers.delete(ship);
+      }
+      ship.destroy();
+    }
+    this.activeShips.clear();
+  }
+
   private async spawnWave(wave: WaveDefinition): Promise<void> {
     this.activeWave = {
       id: wave.id,
@@ -145,16 +165,7 @@ export class WaveSpawner implements IUpdatable {
 
     // === Clean up previous wave if this is a boss ===
     if (wave.type === 'boss') {
-      for (const ship of this.activeShips) {
-        this.shipRegistry.remove(ship);
-        const controller = this.activeControllers.get(ship);
-        if (controller) {
-          this.aiOrchestrator.removeController(controller);
-          this.activeControllers.delete(ship);
-        }
-        ship.destroy();
-      }
-      this.activeShips.clear();
+      this.clearCurrentWave();
     }
 
     const spawnedShips: Ship[] = [];
@@ -184,16 +195,14 @@ export class WaveSpawner implements IUpdatable {
           new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem)
         );
         const utility = new UtilitySystem(new ShieldToggleBackend());
-        const controller = new AIControllerSystem(ship, movement, weapons);
+        const controller = new AIControllerSystem(ship, movement, weapons, utility);
         controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
 
         this.aiOrchestrator.addController(controller);
         this.applyModifiers(ship, wave.mods);
 
-        if (wave.type !== 'boss') {
-          this.activeShips.add(ship);
-          this.activeControllers.set(ship, controller);
-        }
+        this.activeShips.add(ship);
+        this.activeControllers.set(ship, controller);
 
         spawnedShips.push(ship);
       }
@@ -202,6 +211,18 @@ export class WaveSpawner implements IUpdatable {
     if (wave.type === 'boss') {
       this.monitorBossWaveCompletion(spawnedShips);
     }
+  }
+
+  public skipToNextWave(): void {
+    if (this.currentWaveIndex >= waveDefinitions.length) return;
+
+    this.clearCurrentWave();
+
+    const wave = waveDefinitions[this.currentWaveIndex];
+    this.spawnWave(wave);
+    this.currentWaveIndex++;
+    this.elapsedTime = 0;
+    this.waitingToSpawnNextWave = false;
   }
 
   private applyModifiers(ship: Ship, mods: WaveMod[]): void {
@@ -223,7 +244,9 @@ export class WaveSpawner implements IUpdatable {
     const remaining = new Set<Ship>(ships);
     for (const ship of ships) {
       ship.onDestroyed(() => {
+        if (!remaining.has(ship)) return; // Already cleaned up
         remaining.delete(ship);
+
         if (remaining.size === 0 && this.activeWave?.type === 'boss') {
           this.activeWave.isComplete = true;
           console.log(`Boss wave ${this.activeWave.id} defeated.`);

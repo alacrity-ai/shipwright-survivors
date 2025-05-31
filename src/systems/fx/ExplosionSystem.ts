@@ -1,6 +1,7 @@
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { SHIELD_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
+import { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 interface Explosion {
@@ -10,17 +11,6 @@ interface Explosion {
   life: number;
   maxLife: number;
   color: string;
-  sparks: Spark[];
-}
-
-interface Spark {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  life: number;
-  color: string;
 }
 
 export class ExplosionSystem {
@@ -29,7 +19,8 @@ export class ExplosionSystem {
 
   constructor(
     canvasManager: CanvasManager,
-    private readonly camera: Camera
+    private readonly camera: Camera,
+    private readonly particleManager: ParticleManager
   ) {
     this.ctx = canvasManager.getContext('fx');
   }
@@ -42,7 +33,13 @@ export class ExplosionSystem {
     color?: string,
     sparkPalette?: string[]
   ): void {
-    const sparks = this.generateSparks(position, 10 + Math.floor(size / 10), sparkPalette);
+    this.particleManager.emitBurst(position, 10 + Math.floor(size / 10), {
+      colors: sparkPalette,
+      baseSpeed: 200,
+      sizeRange: [1, 3],
+      lifeRange: [0.4, 1],
+      fadeOut: true
+    });
     
     this.explosions.push({
       position: { ...position },
@@ -51,7 +48,6 @@ export class ExplosionSystem {
       life,
       maxLife: life,
       color: color ?? this.getRandomExplosionColor(),
-      sparks
     });
   }
 
@@ -85,42 +81,6 @@ export class ExplosionSystem {
     this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette);
   }
 
-  // Generate sparks for an explosion
-  private generateSparks(
-    position: { x: number; y: number },
-    count: number,
-    customColors?: string[]
-  ): Spark[] {
-    const sparks: Spark[] = [];
-    const sparkColors = customColors ?? ['#ffff00', '#ff9900', '#ff6600', '#ff3300', '#ffffff'];
-    
-    for (let i = 0; i < count; i++) {
-      // Random angle and distance
-      const angle = Math.random() * Math.PI * 2;
-      
-      // Calculate velocity
-      const speed = 50 + Math.random() * 150;
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-      
-      // Random life and size
-      const life = 0.3 + Math.random() * 0.7;
-      const size = 1 + Math.random() * 3;
-      
-      sparks.push({
-        x: position.x,
-        y: position.y,
-        vx,
-        vy,
-        size,
-        life,
-        color: sparkColors[Math.floor(Math.random() * sparkColors.length)]
-      });
-    }
-    
-    return sparks;
-  }
-
   createShieldDeflection(position: { x: number; y: number }, sourceId: string): void {
     const palette = SHIELD_COLOR_PALETTES[sourceId];
     const explosionColor = palette?.[0] ?? 'rgba(100, 255, 255, 0.6)';
@@ -143,19 +103,6 @@ export class ExplosionSystem {
         // Shrink phase (50-100% of life)
         explosion.size = explosion.maxSize * (1 - (progress - 0.5) * 2);
       }
-      
-      // Update sparks
-      for (const spark of explosion.sparks) {
-        spark.x += spark.vx * dt;
-        spark.y += spark.vy * dt;
-        spark.life -= dt;
-        
-        // Add gravity effect to sparks
-        spark.vy += 50 * dt;
-      }
-      
-      // Remove dead sparks
-      explosion.sparks = explosion.sparks.filter(s => s.life > 0);
     }
     
     // Remove dead explosions
@@ -190,35 +137,6 @@ export class ExplosionSystem {
       ctx.beginPath();
       ctx.arc(x, y, explosion.size, 0, Math.PI * 2);
       ctx.fill();
-      
-      // Render sparks
-      for (const spark of explosion.sparks) {
-        const sparkScreen = this.camera.worldToScreen(spark.x, spark.y);
-        const sparkX = sparkScreen.x / this.camera.zoom;
-        const sparkY = sparkScreen.y / this.camera.zoom;
-        
-        const sparkAlpha = spark.life * 0.8;
-        ctx.globalAlpha = sparkAlpha;
-        ctx.fillStyle = spark.color;
-        
-        // Draw spark as a small circle
-        ctx.beginPath();
-        ctx.arc(sparkX, sparkY, spark.size, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Add a glow effect
-        const sparkGlow = ctx.createRadialGradient(
-          sparkX, sparkY, 0,
-          sparkX, sparkY, spark.size * 2
-        );
-        sparkGlow.addColorStop(0, `rgba(255, 255, 200, ${sparkAlpha * 0.7})`);
-        sparkGlow.addColorStop(1, 'rgba(255, 255, 200, 0)');
-        
-        ctx.fillStyle = sparkGlow;
-        ctx.beginPath();
-        ctx.arc(sparkX, sparkY, spark.size * 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
     }
     
     ctx.restore();

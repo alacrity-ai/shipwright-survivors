@@ -3,6 +3,7 @@
 import type { Ship } from '@/game/ship/Ship';
 import type { MovementSystem } from '@/systems/physics/MovementSystem';
 import type { WeaponSystem } from '@/systems/combat/WeaponSystem';
+import type { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { IdleState } from './fsm/IdleState';
@@ -12,12 +13,19 @@ export class AIControllerSystem {
   private readonly ship: Ship;
   private readonly movementSystem: MovementSystem;
   private readonly weaponSystem: WeaponSystem;
+  private readonly utilitySystem: UtilitySystem;
   private currentState: BaseAIState;
 
-  constructor(ship: Ship, movementSystem: MovementSystem, weaponSystem: WeaponSystem) {
+  constructor(
+    ship: Ship, 
+    movementSystem: MovementSystem, 
+    weaponSystem: WeaponSystem, 
+    utilitySystem: UtilitySystem) 
+    {
     this.ship = ship;
     this.movementSystem = movementSystem;
     this.weaponSystem = weaponSystem;
+    this.utilitySystem = utilitySystem;
 
     // Initial state
     this.currentState = new IdleState(this, ship);
@@ -35,15 +43,9 @@ export class AIControllerSystem {
       this.movementSystem.setIntent(intent.movement);
       this.weaponSystem.setIntent(intent.weapons);
       this.movementSystem.update(dt);
-      
-      // Add defensive check before updating weapon system
-      if (this.ship.getAllBlocks && typeof this.ship.getAllBlocks === 'function') {
-        try {
-          this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
-        } catch (error) {
-          console.error("Error updating weapon system in AIControllerSystem:", error);
-        }
-      }
+      this.utilitySystem.setIntent(intent.utility);
+      this.utilitySystem.update(dt, this.ship, this.ship.getTransform());
+      this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
 
       const nextState = this.currentState.transitionIfNeeded();
       if (nextState) {

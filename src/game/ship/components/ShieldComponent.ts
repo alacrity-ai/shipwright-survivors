@@ -17,6 +17,7 @@ export class ShieldComponent {
 
   /** Recomputes shield coverage from all registered emitters */
   recalculateCoverage(): void {
+    const t0 = performance.now();
     // Step 1: Clear old flags and cached efficiencies
     for (const block of this.protectedBlocks) {
       block.isShielded = false;
@@ -73,6 +74,7 @@ export class ShieldComponent {
         fx.registerShield(emitter, worldRadius);
       }
     }
+    console.log('[Ship] Shield coverage took', performance.now() - t0, 'ms');
   }
 
   activate(): void {

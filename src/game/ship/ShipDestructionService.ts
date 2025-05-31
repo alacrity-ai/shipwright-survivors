@@ -5,8 +5,17 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
+import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
 
-export type DestructionCause = 'projectile' | 'collision' | 'bomb' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'self' | 'scripted';
+export type DestructionCause =
+  | 'projectile'
+  | 'collision'
+  | 'bomb'
+  | 'laser'
+  | 'explosiveLance'
+  | 'explosiveLanceAoE'
+  | 'self'
+  | 'scripted';
 
 export class ShipDestructionService {
   constructor(
@@ -34,7 +43,9 @@ export class ShipDestructionService {
           transform.rotation,
           coord,
           50 + Math.random() * 40,
-          0.5 + Math.random() * 0.5
+          0.5 + Math.random() * 0.5,
+          undefined,
+          DEFAULT_EXPLOSION_SPARK_PALETTE
         );
         this.pickupSpawner.spawnPickupOnBlockDestruction(block);
       }, index * 50);
@@ -54,7 +65,9 @@ export class ShipDestructionService {
               transform.rotation,
               coord,
               60 + Math.random() * 20,
-              0.5 + Math.random() * 0.3
+              0.5 + Math.random() * 0.3,
+              undefined,
+              DEFAULT_EXPLOSION_SPARK_PALETTE
             );
             this.pickupSpawner.spawnPickupOnBlockDestruction(block);
           }, 250 + Math.random() * 300);

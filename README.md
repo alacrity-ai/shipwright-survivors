@@ -93,7 +93,7 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [x] Turret
   - [x] Laser
   - [ ] Mines (Potential Different types)
-  - [ ] Explosive Lance (Fire a fast lance that hits an enemy block, sticks in, then detonates)
+  - [x] Explosive Lance (Fire a fast lance that hits an enemy block, sticks in, then detonates)
   - [ ] Orbiting Blade (Blades orbit the player ship, dealing damage on contact to enemies)
   - [ ] Arc Conduit Emitter (Chain lightning)
   - [ ] Rail Lance (Long cooldown, pierces many blocks)
@@ -109,8 +109,13 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [x] Tractor Node (Longer range pickup rate)
   - [ ] Drone Hanger Bay (Introduces minion playstyle)
 - [ ] Progression system
-  - [x] Technology Tree (Block Type Unlocks)
+  - [x] Technology Tree System (Block Type Unlocks)
+    - [ ] Way of unlocking blocks through gameplay
   - [ ] Passive Tree (Passive bonuses, e.g. Fins 10% more effective)
+    - [ ] Way of unlocking passive tree through gameplay
+- [ ] Overworld / Level select
+- [ ] Title screen (Save files, New game etc)
+- [ ] Basic story/dialogue/characters
 - [x] Boss encounters
 - [ ] Environmental Events
   - [ ] Asteroids
@@ -122,11 +127,16 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 TODOS:
   - [ ] Make crosshair easier to see, lightup when firing or targetting an enemy
+  - [ ] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
+  - [ ] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
+  - [ ] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
-  - [ ] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
+  - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
        This is potentially inefficient, but more imporantly, it resets your firing cooldown.
       So if you're having blocks destroyed while in combat, you might never be able to fire.
       Turret system needs to be re-evaluated.
+  - [x] Significant performance degradation when destroying many blocks simultaneously. We need to batch this.
+  - [x] Significant performance degradation when damaging a group of blocks with Explosive lance
 
 ## 📝 Commands
 
@@ -135,4 +145,3 @@ BUGS:
 | `npm run dev` | Start development server |
 | `npm run build` | Build production version |
 | `npm run preview` | Preview production build locally |
-

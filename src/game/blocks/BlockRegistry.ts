@@ -251,7 +251,7 @@ const blockTypes: Record<string, BlockType> = {
         explosionRadiusBlocks: 3,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 1.4,
+        lifetime: 0.8,
         accuracy: 0.95
       } 
     },
@@ -275,7 +275,7 @@ const blockTypes: Record<string, BlockType> = {
         explosionRadiusBlocks: 3,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 1.4,
+        lifetime: 0.8,
         accuracy: 0.95
       } 
     },
@@ -299,7 +299,7 @@ const blockTypes: Record<string, BlockType> = {
         explosionRadiusBlocks: 4,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 1.5,
+        lifetime: 0.85,
         accuracy: 0.97
       } 
     },
@@ -323,7 +323,7 @@ const blockTypes: Record<string, BlockType> = {
         explosionRadiusBlocks: 5,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 1.6,
+        lifetime: 0.9,
         accuracy: 0.98
       } 
     },
@@ -347,7 +347,7 @@ const blockTypes: Record<string, BlockType> = {
         explosionRadiusBlocks: 6,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 1.7,
+        lifetime: 1,
         accuracy: 0.99
       } 
     },
@@ -388,7 +388,7 @@ const blockTypes: Record<string, BlockType> = {
       energyMaxIncrease: 60,
       fire: {
         fireType: 'laser',
-        fireDamage: 1,
+        fireDamage: 2,
         energyCost: 0.15,
       },
     },
@@ -407,8 +407,8 @@ const blockTypes: Record<string, BlockType> = {
       energyMaxIncrease: 80,
       fire: {
         fireType: 'laser',
-        fireDamage: 2,
-        energyCost: 0.25,
+        fireDamage: 3.5,
+        energyCost: 0.2,
       },
     },
   },
@@ -426,8 +426,8 @@ const blockTypes: Record<string, BlockType> = {
       energyMaxIncrease: 100,
       fire: {
         fireType: 'laser',
-        fireDamage: 3,
-        energyCost: 0.35,
+        fireDamage: 5,
+        energyCost: 0.3,
       },
     },
   },

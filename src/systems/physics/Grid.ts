@@ -54,6 +54,39 @@ export class Grid {
     }
   }
 
+  removeBlocksFromCells(blocks: BlockInstance[]): void {
+    // Group blocks by cellKey
+    const grouped = new Map<string, BlockInstance[]>();
+
+    for (const block of blocks) {
+      const pos = block.position;
+      if (!pos) continue;
+
+      const key = this.getCellCoordinates(pos.x, pos.y);
+      let list = grouped.get(key);
+      if (!list) {
+        list = [];
+        grouped.set(key, list);
+      }
+      list.push(block);
+    }
+
+    // Remove blocks per cell
+    for (const [cellKey, blocksToRemove] of grouped) {
+      const cell = this.cells.get(cellKey);
+      if (!cell) continue;
+
+      // Create a Set for quick lookup
+      const toRemove = new Set(blocksToRemove);
+
+      // Filter out all blocks that should be removed
+      this.cells.set(
+        cellKey,
+        cell.filter(block => !toRemove.has(block))
+      );
+    }
+  }
+
   // Returns the blocks within a given cell, identified by world coordinates
   getBlocksInCell(x: number, y: number): BlockInstance[] {
     const cellKey = this.getCellCoordinates(x, y);

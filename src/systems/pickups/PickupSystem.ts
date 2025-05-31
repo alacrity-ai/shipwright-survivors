@@ -11,7 +11,7 @@ import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
 
 const PICKUP_RADIUS = 16;
-const PICKUP_RANGE_PER_HARVEST_UNIT = 38;
+const PICKUP_RANGE_PER_HARVEST_UNIT = 48;
 const ATTRACTION_SPEED = 10;
 const PICKUP_ATTRACTION_EXPONENT = 2.0;
 const CULL_PADDING = 128;

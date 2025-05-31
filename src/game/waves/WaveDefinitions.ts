@@ -70,7 +70,6 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'wave_5_04', count: 3 },
       { shipId: 'wave_5_05', count: 2 },
       { shipId: 'wave_5_06', count: 2 },
-      { shipId: 'wave_5_07', count: 2 }
     ]
   },
 ];

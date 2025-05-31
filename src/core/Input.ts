@@ -163,3 +163,11 @@ export function wasScrollWheelDown(): boolean {
 export function isShiftPressed(): boolean {
   return isKeyPressed('ShiftLeft') || isKeyPressed('ShiftRight');
 }
+
+export function wasLeftBracketPressed(): boolean {
+  return wasKeyJustPressed('BracketLeft');
+}
+
+export function wasRightBracketPressed(): boolean {
+  return wasKeyJustPressed('BracketRight');
+}

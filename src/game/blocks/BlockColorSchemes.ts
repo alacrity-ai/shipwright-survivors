@@ -1,5 +1,7 @@
 // src/game/blocks/BlockColorSchemes.ts
 
+export const DEFAULT_EXPLOSION_SPARK_PALETTE: string[] = ['#ffdd00', '#ffaa00', '#ff6600', '#ff2200', '#ffffff'];
+
 export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
   engine0: ['#fff', '#f90', '#ff0'],           // classic flame
   engine1: ['#fff', '#f90', '#ff0'],           // same as 0

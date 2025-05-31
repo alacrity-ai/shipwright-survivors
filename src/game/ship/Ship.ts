@@ -136,6 +136,29 @@ export class Ship {
     this.firingPlanIndex.delete(block);
   }
 
+  /**
+   * Efficiently removes multiple weapon blocks from the firing plan in a single pass.
+   * Maintains correctness of firingPlan array and firingPlanIndex map.
+   */
+  private removeWeaponsFromPlan(blocks: BlockInstance[]): void {
+    if (blocks.length === 0) return;
+
+    const toRemove = new Set<BlockInstance>(blocks);
+    const newPlan: WeaponFiringPlanEntry[] = [];
+    const newIndex = new Map<BlockInstance, number>();
+
+    for (const entry of this.firingPlan) {
+      if (!toRemove.has(entry.block)) {
+        const newIdx = newPlan.length;
+        newPlan.push(entry);
+        newIndex.set(entry.block, newIdx);
+      }
+    }
+
+    this.firingPlan = newPlan;
+    this.firingPlanIndex = newIndex;
+  }
+
   getTransform(): ShipTransform {
     return this.transform;
   }
@@ -201,6 +224,54 @@ export class Ship {
     }
 
     this.blocks.delete(key);
+    this.invalidateMass();
+    this.recomputeEnergyStats();
+    this.shieldComponent.recalculateCoverage();
+  }
+
+  public removeBlocks(coords: GridCoord[], preResolvedBlocks?: BlockInstance[]): void {
+    if (coords.length === 0) return;
+
+    // Step 1: Collect all blocks to remove and remove from spatial maps
+    const blocksToRemove: BlockInstance[] = preResolvedBlocks ?? [];
+
+    if (!preResolvedBlocks) {
+      for (const coord of coords) {
+        const key = toKey(coord);
+        const block = this.blocks.get(key);
+        if (!block) continue;
+
+        blocksToRemove.push(block);
+        this.blocks.delete(key);
+        this.blockToCoordMap.delete(block);
+      }
+    } else {
+      for (const block of preResolvedBlocks) {
+        const coord = this.blockToCoordMap.get(block);
+        if (coord) {
+          const key = toKey(coord);
+          this.blocks.delete(key);
+        }
+        this.blockToCoordMap.delete(block);
+      }
+    }
+
+    if (blocksToRemove.length === 0) {
+      return;
+    }
+
+    // Step 2: Remove from grid in batch
+    this.grid.removeBlocksFromCells(blocksToRemove);
+
+    // Step 3: Bulk-remove from subsystems
+    for (const block of blocksToRemove) {
+      this.harvesterBlocks.delete(block);
+      this.shieldBlocks.delete(block);
+    }
+
+    this.removeWeaponsFromPlan(blocksToRemove);
+
+    // Step 4: Recompute affected state only once
     this.invalidateMass();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
