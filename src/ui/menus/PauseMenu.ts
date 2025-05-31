@@ -6,12 +6,12 @@ import { drawButton } from '@/ui/primitives/UIButton';
 import type { UIButton } from '@/ui/primitives/UIButton';
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { MenuManager } from '@/ui/MenuManager';
-import { getMousePosition } from '@/core/Input';
+import type { InputManager } from '@/core/InputManager';
 
 export class PauseMenu implements Menu {
   private resumeButton: UIButton;
 
-  constructor(private readonly menuManager: MenuManager) {
+  constructor(private readonly menuManager: MenuManager, private readonly inputManager: InputManager) {
     this.resumeButton = {
       x: 160,
       y: 190,
@@ -23,7 +23,7 @@ export class PauseMenu implements Menu {
   }
 
   update() {
-    const mouse = getMousePosition?.();
+    const mouse = this.inputManager.getMousePosition();
     if (!mouse) return;
 
     const { x, y } = mouse;

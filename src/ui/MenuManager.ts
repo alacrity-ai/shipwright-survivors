@@ -32,4 +32,8 @@ export class MenuManager {
   getCurrentMenu(): Menu | null {
     return this.currentMenu;
   }
+
+  public clear(): void {
+    this.currentMenu = null;
+  }  
 }

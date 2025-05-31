@@ -4,7 +4,6 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { getAssetPath } from '@/shared/assetHelpers';
 
-const BACKGROUND_IMAGE_PATH = getAssetPath('/assets/backgrounds/background_0_00.png');
 const BACKGROUND_IMAGE_ALPHA = 0.3; // 🔧 Set desired opacity (0.0–1.0)
 const BACKGROUND_PARALLAX_SPEED = 0.1; // 🔧 How fast background moves with camera (0.0 = static, 1.0 = moves with world)
 const BACKGROUND_TILE_SIZE = 2420; // 🔧 Size of each background tile in world units
@@ -30,17 +29,17 @@ export class BackgroundRenderer {
   private ctx: CanvasRenderingContext2D;
   private camera: Camera;
 
-  private backgroundImage: HTMLImageElement | null = null;
+  private backgroundImage: HTMLImageElement | undefined;
   private backgroundLoaded: boolean = false;
 
-  constructor(canvasManager: CanvasManager, camera: Camera) {
+  constructor(canvasManager: CanvasManager, camera: Camera, backgroundImageId: string | undefined) {
     const { width, height } = canvasManager.getDimensions();
     this.width = width;
     this.height = height;
     this.ctx = canvasManager.getContext('background');
     this.camera = camera;
 
-    this.loadBackgroundImage();
+    this.loadBackgroundImage(backgroundImageId);
 
     this.layers.push(this.createLayer(30, '#444444', 0.03));
     this.layers.push(this.createLayer(60, '#666666', 0.06));
@@ -48,9 +47,15 @@ export class BackgroundRenderer {
     this.layers.push(this.createLayer(110, '#ffffff', 0.20));
   }
 
-  private loadBackgroundImage() {
+  private loadBackgroundImage(filename?: string) {
+    if (!filename) {
+      this.backgroundLoaded = false;
+      this.backgroundImage = undefined;
+      return;
+    }
+
     const img = new Image();
-    img.src = BACKGROUND_IMAGE_PATH;
+    img.src = getAssetPath(`/assets/backgrounds/${filename}`);
     img.onload = () => {
       this.backgroundImage = img;
       this.backgroundLoaded = true;
@@ -82,59 +87,51 @@ export class BackgroundRenderer {
     // Stars are static in this parallax system
   }
 
-  render() {
+  render(): void {
     this.ctx.clearRect(0, 0, this.width, this.height);
     const offset = this.camera.getOffset();
 
-    // === Render tiled background image with parallax ===
+    // === Optional: Render tiled background image with parallax ===
     if (this.backgroundLoaded && this.backgroundImage) {
       const img = this.backgroundImage;
-      
       this.ctx.globalAlpha = BACKGROUND_IMAGE_ALPHA;
 
-      // Calculate parallax offset for background
       const parallaxOffsetX = offset.x * BACKGROUND_PARALLAX_SPEED;
       const parallaxOffsetY = offset.y * BACKGROUND_PARALLAX_SPEED;
 
-      // Calculate tile size in screen coordinates
-      const tileScreenSize = BACKGROUND_TILE_SIZE
-
-      // Calculate how many tiles we need to cover the screen (with extra for smooth scrolling)
+      const tileScreenSize = BACKGROUND_TILE_SIZE;
       const tilesNeededX = Math.ceil(this.width / tileScreenSize) + 2;
       const tilesNeededY = Math.ceil(this.height / tileScreenSize) + 2;
 
-      // Calculate starting tile position to ensure seamless scrolling
       const startTileX = Math.floor(parallaxOffsetX / BACKGROUND_TILE_SIZE) - 1;
       const startTileY = Math.floor(parallaxOffsetY / BACKGROUND_TILE_SIZE) - 1;
 
-      // Calculate the screen offset for the starting tile
-      const startScreenX = (startTileX * BACKGROUND_TILE_SIZE - parallaxOffsetX + BACKGROUND_IMAGE_HORIZONTAL_OFFSET);
-      const startScreenY = (startTileY * BACKGROUND_TILE_SIZE - parallaxOffsetY);
+      const startScreenX = startTileX * BACKGROUND_TILE_SIZE - parallaxOffsetX + BACKGROUND_IMAGE_HORIZONTAL_OFFSET;
+      const startScreenY = startTileY * BACKGROUND_TILE_SIZE - parallaxOffsetY;
 
-      // Draw tiles
       for (let tileY = 0; tileY < tilesNeededY; tileY++) {
         for (let tileX = 0; tileX < tilesNeededX; tileX++) {
-          const screenX = startScreenX + (tileX * tileScreenSize);
-          const screenY = startScreenY + (tileY * tileScreenSize);
+          const screenX = startScreenX + tileX * tileScreenSize;
+          const screenY = startScreenY + tileY * tileScreenSize;
 
-          // Only draw tiles that are visible on screen (optimization)
-          if (screenX + tileScreenSize >= 0 && screenX <= this.width &&
-              screenY + tileScreenSize >= 0 && screenY <= this.height) {
-            
+          if (
+            screenX + tileScreenSize >= 0 && screenX <= this.width &&
+            screenY + tileScreenSize >= 0 && screenY <= this.height
+          ) {
             this.ctx.drawImage(
               img,
-              0, 0, img.width, img.height,           // source: entire image
-              screenX, screenY,                       // destination position
-              tileScreenSize, tileScreenSize          // destination size
+              0, 0, img.width, img.height,
+              screenX, screenY,
+              tileScreenSize, tileScreenSize
             );
           }
         }
       }
 
-      this.ctx.globalAlpha = 1.0; // reset before star layers
+      this.ctx.globalAlpha = 1.0;
     }
 
-    // === Render star layers (with parallax) ===
+    // === Render star parallax layers ===
     for (const layer of this.layers) {
       this.ctx.fillStyle = layer.color;
       this.ctx.globalAlpha = layer.alpha;

@@ -1,4 +1,3 @@
-import { getMousePosition, wasMouseClicked, wasRightClicked, wasKeyJustPressed } from '@/core/Input';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { getBlockCost } from '@/game/blocks/BlockRegistry';
 import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
@@ -11,9 +10,9 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
-import { isLPressed } from '@/core/Input';
-import { savePlayerShip } from '@/systems/serialization/savePlayerShip'; // Import the savePlayerShip function
-import { PlayerResources } from '@/game/player/PlayerResources'; // Import the PlayerResources singleton
+import type { InputManager } from '@/core/InputManager';
+import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
+import { PlayerResources } from '@/game/player/PlayerResources';
 import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
 import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 
@@ -27,15 +26,16 @@ export class ShipBuilderController {
     private readonly ship: Ship,
     private readonly menu: ShipBuilderMenu,
     private readonly camera: Camera,
-    private readonly repairEffectSystem: RepairEffectSystem
+    private readonly repairEffectSystem: RepairEffectSystem,
+    private readonly inputManager: InputManager
   ) {}
 
   update(transform: ShipTransform) {
-    if (wasKeyJustPressed('Space')) {
+    if (this.inputManager.wasKeyJustPressed('Space')) {
       this.rotation = (this.rotation + 90) % 360;
     }
 
-    const mouse = getMousePosition();
+    const mouse = this.inputManager.getMousePosition();
     if (this.isCursorOverMenu(mouse)) return;
 
     const coord = getHoveredGridCoord(mouse, this.camera, transform.position, transform.rotation);
@@ -46,7 +46,7 @@ export class ShipBuilderController {
       const hoveredBlock = this.ship.getBlock(coord);
       this.menu.setHoveredShipBlock(hoveredBlock);
 
-      if (hoveredBlock && wasMouseClicked()) {
+      if (hoveredBlock && this.inputManager.wasMouseClicked()) {
         this.repairBlockAt(coord);
       }
 
@@ -70,7 +70,7 @@ export class ShipBuilderController {
     const blockCost = getBlockCost(blockId);
     if (blockCost === undefined) return;
 
-    if (wasRightClicked()) {
+    if (this.inputManager.wasRightClicked()) {
       const block = this.ship.getBlock(coord);
       if (!block) return;
 
@@ -88,7 +88,7 @@ export class ShipBuilderController {
 
     // Check if the player has enough currency to place the block
     if (PlayerResources.getInstance().hasEnoughCurrency(blockCost)) {
-      if (wasMouseClicked()) {
+      if (this.inputManager.wasMouseClicked()) {
         if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
           this.ship.placeBlockById(coord, blockId, this.rotation);
           PlayerResources.getInstance().spendCurrency(blockCost); // Deduct the cost from player's currency
@@ -99,19 +99,19 @@ export class ShipBuilderController {
     // DEBUG SAVING (will be removed when out of development testing).
     // THIS IS NOT the same functionality as ingame ship saving:
     // Check if the "L" key is pressed and save the ship, but only once
-    if (isLPressed() && !this.hasSaved) {
+    if (this.inputManager.isLPressed() && !this.hasSaved) {
       const filename = 'saved_player_ship.json';
       savePlayerShip(this.ship, this.ship.getGrid(), filename); // Save the current player ship to a file
       this.hasSaved = true;  // Set the flag to prevent further saves
     }
     // Reset the save flag when "L" key is released
-    if (!isLPressed() && this.hasSaved) {
+    if (!this.inputManager.isLPressed() && this.hasSaved) {
       this.hasSaved = false;  // Allow saving again if the key is released
     }
   }
 
   render(ctx: CanvasRenderingContext2D, transform: ShipTransform): void {
-    const mouse = getMousePosition();
+    const mouse = this.inputManager.getMousePosition();
     if (this.isCursorOverMenu(mouse)) return;
 
     const coord = getHoveredGridCoord(mouse, this.camera, transform.position, transform.rotation);

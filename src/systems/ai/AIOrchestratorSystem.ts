@@ -68,4 +68,8 @@ export class AIOrchestratorSystem implements IUpdatable {
   getControllerCount(): number {
     return this.controllers.size;
   }
+
+  public clear(): void {
+    this.controllers.clear();
+  }
 }

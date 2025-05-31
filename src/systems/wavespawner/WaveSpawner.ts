@@ -10,7 +10,7 @@ import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
-import { waveDefinitions, type WaveDefinition } from '@/game/waves/WaveDefinitions';
+import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
@@ -20,6 +20,7 @@ import { ExplosiveLanceBackend } from '@/systems/combat/backends/ExplosiveLanceB
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
@@ -38,8 +39,6 @@ interface ActiveWaveContext {
 const STARTING_WAVE_INDEX = 0;
 
 export class WaveSpawner implements IUpdatable {
-  private static instance: WaveSpawner;
-
   private currentWaveIndex = STARTING_WAVE_INDEX;
   private hasStarted = false;
   private elapsedTime = 0;
@@ -57,7 +56,15 @@ export class WaveSpawner implements IUpdatable {
   private activeShips: Set<Ship> = new Set();
   private activeControllers: Map<Ship, AIControllerSystem> = new Map();
 
-  private constructor(
+  private onMissionComplete: (() => void) | null = null;
+  private missionCompleteTriggered = false;
+
+  public setMissionCompleteHandler(cb: () => void): void {
+    this.onMissionComplete = cb;
+  }
+
+  public constructor(
+    private readonly waves: WaveDefinition[],
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly playerShip: Ship,
@@ -69,40 +76,13 @@ export class WaveSpawner implements IUpdatable {
     private readonly explosionSystem: ExplosionSystem
   ) {}
 
-  public static getInstance(
-    shipRegistry: ShipRegistry,
-    aiOrchestrator: AIOrchestratorSystem,
-    playerShip: Ship,
-    projectileSystem: ProjectileSystem,
-    laserSystem: LaserSystem,
-    particleManager: ParticleManager,
-    grid: Grid,
-    combatService: CombatService,
-    explosionSystem: ExplosionSystem
-  ): WaveSpawner {
-    if (!WaveSpawner.instance) {
-      WaveSpawner.instance = new WaveSpawner(
-        shipRegistry,
-        aiOrchestrator,
-        playerShip,
-        projectileSystem,
-        laserSystem,
-        particleManager,
-        grid,
-        combatService,
-        explosionSystem
-      );
-    }
-    return WaveSpawner.instance;
-  }
-
   public update(dt: number): void {
     // === Initial wave logic ===
     if (!this.hasStarted) {
       this.timeSinceStart += dt;
       if (this.timeSinceStart < this.initialDelay) return;
 
-      const wave = waveDefinitions[this.currentWaveIndex];
+      const wave = this.waves[this.currentWaveIndex];
       this.spawnWave(wave);
       this.currentWaveIndex++;
       this.elapsedTime = 0;
@@ -116,8 +96,8 @@ export class WaveSpawner implements IUpdatable {
       if (this.interWaveCountdown <= 0) {
         this.waitingToSpawnNextWave = false;
 
-        if (this.currentWaveIndex < waveDefinitions.length) {
-          const nextWave = waveDefinitions[this.currentWaveIndex];
+        if (this.currentWaveIndex < this.waves.length) {
+          const nextWave = this.waves[this.currentWaveIndex];
           this.spawnWave(nextWave);
           this.currentWaveIndex++;
           this.elapsedTime = 0;
@@ -134,11 +114,21 @@ export class WaveSpawner implements IUpdatable {
     // === Proceed with normal wave logic ===
     this.elapsedTime += dt;
 
-    if (this.currentWaveIndex < waveDefinitions.length && this.elapsedTime >= this.waveInterval) {
-      const wave = waveDefinitions[this.currentWaveIndex];
+    if (this.currentWaveIndex < this.waves.length && this.elapsedTime >= this.waveInterval) {
+      const wave = this.waves[this.currentWaveIndex];
       this.spawnWave(wave);
       this.currentWaveIndex++;
       this.elapsedTime = 0;
+    }
+
+    const allWavesSpawned = this.currentWaveIndex >= this.waves.length;
+    const noRemainingEnemies = this.activeShips.size === 0;
+    if (allWavesSpawned && noRemainingEnemies && !this.waitingToSpawnNextWave) {
+      if (!this.missionCompleteTriggered) {
+        this.missionCompleteTriggered = true;
+        this.onMissionComplete?.();
+        this.onMissionComplete = null;
+      }
     }
   }
 
@@ -214,11 +204,11 @@ export class WaveSpawner implements IUpdatable {
   }
 
   public skipToNextWave(): void {
-    if (this.currentWaveIndex >= waveDefinitions.length) return;
+    if (this.currentWaveIndex >= this.waves.length) return;
 
     this.clearCurrentWave();
 
-    const wave = waveDefinitions[this.currentWaveIndex];
+    const wave = this.waves[this.currentWaveIndex];
     this.spawnWave(wave);
     this.currentWaveIndex++;
     this.elapsedTime = 0;
@@ -282,6 +272,9 @@ export class WaveSpawner implements IUpdatable {
   public notifyShipDestruction(ship: Ship): void {
     // Remove from active tracking immediately
     const wasTracked = this.activeShips.has(ship);
+    if (wasTracked) {
+      missionResultStore.incrementKillCount();
+    }
     this.activeShips.delete(ship);
     
     const controller = this.activeControllers.get(ship);
@@ -290,5 +283,20 @@ export class WaveSpawner implements IUpdatable {
       // but we clean up our local reference
       this.activeControllers.delete(ship);
     }
+  }
+
+  public reset(): void {
+    this.clearCurrentWave();
+    this.currentWaveIndex = STARTING_WAVE_INDEX;
+    this.hasStarted = false;
+    this.elapsedTime = 0;
+    this.timeSinceStart = 0;
+    this.interWaveCountdown = -1;
+    this.waitingToSpawnNextWave = false;
+    this.activeWave = null;
+    this.activeShips.clear();
+    this.activeControllers.clear();
+    this.onMissionComplete = null;
+    this.missionCompleteTriggered = false;
   }
 }

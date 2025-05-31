@@ -1,4 +1,4 @@
-import { getMousePosition, wasMouseClicked } from '@/core/Input';
+import type { InputManager } from '@/core/InputManager';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawBlockTile } from '@/ui/primitives/UIBlockTile';
@@ -10,7 +10,6 @@ import { drawLabelLine } from '@/ui/utils/drawLabelLine';
 
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
-import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
 import type { BlockCategory } from '@/game/interfaces/types/BlockType';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Menu } from '@/ui/interfaces/Menu';
@@ -38,10 +37,8 @@ const IGNORED_KEYS = new Set(['canThrust', 'canFire']);
 const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
 
 export class ShipBuilderMenu implements Menu {
-  private static instanceCounter = 0;
   private repairAllHandler: (() => void) | null = null;
-  instanceId: number;
-
+  private inputManager: InputManager;
   private activeTab: BlockCategory = 'hull';
   private selectedBlockId: string | null = 'hull1';
 
@@ -49,13 +46,13 @@ export class ShipBuilderMenu implements Menu {
   private hoveredShipBlock: BlockInstance | undefined = undefined;
   private hoveredUtilityTool: ShipBuilderTool | null = null;
 
-  constructor() {
-    this.instanceId = ShipBuilderMenu.instanceCounter++;
+  constructor(inputManager: InputManager) {
+    this.inputManager = inputManager;
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    const mouse = getMousePosition();
-    const clicked = wasMouseClicked();
+    const mouse = this.inputManager.getMousePosition();
+    const clicked = this.inputManager.wasMouseClicked();
 
     const tabs = this.buildCategoryTabs();
     const tabWasClicked = drawWindow(

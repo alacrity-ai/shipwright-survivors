@@ -1,12 +1,6 @@
 // src/systems/controls/PlayerControllerSystem.ts
 
-import {
-  isKeyPressed,
-  isShiftPressed,
-  getMousePosition,
-  wasKeyJustPressed
-} from '@/core/Input';
-
+import type { InputManager } from '@/core/InputManager';
 import type { Camera } from '@/core/Camera';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
@@ -14,29 +8,29 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 
 export class PlayerControllerSystem {
-  constructor(private readonly camera: Camera) {}
+  constructor(private readonly camera: Camera, private readonly inputManager: InputManager) {}
 
   public getIntent(): ShipIntent {
-    const shift = isShiftPressed();
+    const shift = this.inputManager.isShiftPressed();
 
     // === Directional movement ===
     const movementIntent: MovementIntent = {
-      thrustForward: isKeyPressed('KeyW'),
-      brake: isKeyPressed('KeyS'),
+      thrustForward: this.inputManager.isKeyPressed('KeyW'),
+      brake: this.inputManager.isKeyPressed('KeyS'),
 
       // SHIFT+A/D → Strafe; A/D → Rotate
-      rotateLeft: !shift && isKeyPressed('KeyA'),
-      rotateRight: !shift && isKeyPressed('KeyD'),
+      rotateLeft: !shift && this.inputManager.isKeyPressed('KeyA'),
+      rotateRight: !shift && this.inputManager.isKeyPressed('KeyD'),
 
-      strafeLeft: isKeyPressed('KeyQ') || (shift && isKeyPressed('KeyA')),
-      strafeRight: isKeyPressed('KeyE') || (shift && isKeyPressed('KeyD')),
+      strafeLeft: this.inputManager.isKeyPressed('KeyQ') || (shift && this.inputManager.isKeyPressed('KeyA')),
+      strafeRight: this.inputManager.isKeyPressed('KeyE') || (shift && this.inputManager.isKeyPressed('KeyD')),
     };
 
     // === Weapon controls ===
-    const firePrimary = isKeyPressed('MouseLeft');
-    const fireSecondary = isKeyPressed('MouseRight');
+    const firePrimary = this.inputManager.isKeyPressed('MouseLeft');
+    const fireSecondary = this.inputManager.isKeyPressed('MouseRight');
 
-    const mouseScreen = getMousePosition();
+    const mouseScreen = this.inputManager.getMousePosition();
     const mouseWorld = this.camera.screenToWorld(mouseScreen.x, mouseScreen.y);
 
     const weaponIntent: WeaponIntent = {
@@ -46,7 +40,7 @@ export class PlayerControllerSystem {
     };
 
     // === Utility Controls === <--- NEW
-    const toggleShields = wasKeyJustPressed('Space');
+    const toggleShields = this.inputManager.wasKeyJustPressed('Space');
 
     const utilityIntent: UtilityIntent = {
       toggleShields,

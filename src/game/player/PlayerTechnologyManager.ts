@@ -1,6 +1,7 @@
 // src/game/player/PlayerTechnologyManager.ts
 
 import { getAllBlockTypes } from "@/game/blocks/BlockRegistry";
+import { missionResultStore } from "@/game/missions/MissionResultStore";
 
 export class PlayerTechnologyManager {
   private static instance: PlayerTechnologyManager;
@@ -17,6 +18,7 @@ export class PlayerTechnologyManager {
 
   unlock(blockId: string): void {
     this.unlockedBlockIds.add(blockId);
+    missionResultStore.addBlockUnlock(blockId);
   }
 
   unlockMany(blockIds: string[]): void {
@@ -37,6 +39,10 @@ export class PlayerTechnologyManager {
   }
 
   reset(): void {
+    this.unlockedBlockIds.clear();
+  }
+  
+  destroy(): void {
     this.unlockedBlockIds.clear();
   }
 }

@@ -1,33 +1,32 @@
-import { useEffect } from 'react';
-import { EngineRuntime } from '@/core/EngineRuntime';
+// src/App.tsx
 
-let runtime: EngineRuntime | null = null;
-let initialized = false;
+import { useEffect, useState } from 'react';
+import { sceneManager, type Scene } from '@/core/SceneManager';
 
-function App() {
+// SCENE ROOTS
+import { TitleScreen } from '@/scenes/TitleScreen';
+import { HubScreen } from '@/scenes/HubScreen';
+import { MissionRuntimeScreen } from '@/scenes/MissionRuntimeScreen';
+import { DebriefingScreen } from '@/scenes/DebriefingScreen';
+
+export default function App() {
+  const [scene, setScene] = useState<Scene>(sceneManager.getScene());
+
   useEffect(() => {
-    if (initialized) return;
-    initialized = true;
-
-    const container = document.getElementById('canvas-root');
-    if (!container) throw new Error('Missing canvas root');
-
-    runtime = new EngineRuntime();
-    runtime.start();
+    const unsubscribe = sceneManager.onSceneChange(setScene);
+    return () => unsubscribe();
   }, []);
 
-  return (
-    <div className="App">
-      <div id="canvas-root">
-        <canvas id="background-canvas" />
-        <canvas id="entity-canvas" />
-        <canvas id="fx-canvas" />
-        <canvas id="particles-canvas" />
-        <canvas id="ui-canvas" />
-        <canvas id="overlay-canvas" />
-      </div>
-    </div>
-  );
+  switch (scene) {
+    case 'title':
+      return <TitleScreen />;
+    case 'hub':
+      return <HubScreen />;
+    case 'mission':
+      return <MissionRuntimeScreen />;
+    case 'debriefing':
+      return <DebriefingScreen />;
+    default:
+      return <div>Error: Unknown scene `{scene}`</div>;
+  }
 }
-
-export default App;

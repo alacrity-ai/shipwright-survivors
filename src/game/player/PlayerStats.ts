@@ -63,4 +63,10 @@ export class PlayerStats {
     this.energy = this.maxEnergy;
     this.notifyEnergyChange();
   }
+
+  public destroy(): void {
+    this.energy = 0;
+    this.maxEnergy = 0;
+    this.onEnergyChangeCallbacks.length = 0;
+  }
 }

@@ -1,7 +1,7 @@
 // src/rendering/UIRenderer.ts
 
 import { CanvasManager } from '@/core/CanvasManager';
-import { getMousePosition } from '@/core/Input';
+import type { InputManager } from '@/core/InputManager';
 import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import type { MenuManager } from '@/ui/MenuManager';
 
@@ -10,9 +10,11 @@ export class UIRenderer {
 
   constructor(
     canvasManager: CanvasManager,
-    private readonly menuManager: MenuManager
+    private readonly menuManager: MenuManager,
+    private readonly inputManager: InputManager
   ) {
     this.ctx = canvasManager.getContext('ui');
+    this.inputManager = inputManager;
   }
 
   render() {
@@ -24,7 +26,7 @@ export class UIRenderer {
     } 
 
     // Always draw cursor
-    const mouse = getMousePosition();
+    const mouse = this.inputManager.getMousePosition();
     const cursor = getCursorSprite();
 
     this.ctx.drawImage(

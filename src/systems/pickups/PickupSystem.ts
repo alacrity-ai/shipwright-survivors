@@ -3,6 +3,7 @@
 import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import type { CanvasManager } from '@/core/CanvasManager';
@@ -141,7 +142,10 @@ export class PickupSystem {
 
   private collectPickup(pickup: PickupInstance): void {
     pickup.isPickedUp = true;
-    this.playerResources.addCurrency(pickup.currencyAmount);
+
+    const amount = pickup.currencyAmount;
+    this.playerResources.addCurrency(amount);
+    missionResultStore.addCurrency(amount);
 
     const index = this.pickups.indexOf(pickup);
     if (index !== -1) {

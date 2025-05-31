@@ -1,11 +1,14 @@
 // src/core/EngineRuntime.ts
-
 import { Camera } from './Camera';
 import { CanvasManager } from './CanvasManager';
-import { updateInputFrame, consumeZoomDelta, wasKeyJustPressed, wasRightBracketPressed } from './Input';
+import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
+import { missionLoader } from '@/game/missions/MissionLoader';
+import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { sceneManager } from './SceneManager';
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
@@ -59,22 +62,26 @@ import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
+  private readonly boundUpdate = (dt: number) => this.update(dt);
+  private readonly boundRender = (dt: number) => this.render(dt);
+
   private menuManager = new MenuManager();
-  private shipBuilderMenu = new ShipBuilderMenu();
-  private pauseMenu = new PauseMenu(this.menuManager);
+  private inputManager = new InputManager();
+  private shipBuilderMenu: ShipBuilderMenu
+  private pauseMenu: PauseMenu;
   private hud: HudOverlay;
   private miniMap: MiniMap;
 
   private canvasManager: CanvasManager;
-  private camera: Camera;
+  private camera: Camera | null = null;
 
-  // Use Singleton instance for ShipRegistry
+  private mission: MissionDefinition
   private shipRegistry = ShipRegistry.getInstance();
   private shipCulling: ShipCullingSystem;
   private aiOrchestrator: AIOrchestratorSystem;
 
-  private grid: Grid; // Global Grid instance
-  private ship: Ship;  // Declare ship as a property
+  private grid: Grid | null = null;
+  private ship: Ship | null = null;
 
   private projectileSystem: ProjectileSystem;
   private laserSystem: LaserSystem;
@@ -100,12 +107,21 @@ export class EngineRuntime {
   private updatables: IUpdatable[] = [];
   private renderables: IRenderable[] = [];
 
+  private isDestroyed = false;
+
   constructor() {
+    console.log('ENGINE RUNTIME INSTANTIATED')
     this.canvasManager = new CanvasManager();
+    
     this.gameLoop = new GameLoop();
+    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager);
+    this.pauseMenu = new PauseMenu(this.menuManager, this.inputManager);
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
+
+    this.mission = missionLoader.getMission();
+    missionResultStore.initialize();
 
     // Initialize player resources with starting currency
     const playerResources = PlayerResources.getInstance();
@@ -164,9 +180,9 @@ export class EngineRuntime {
     );
 
     // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
-    this.background = new BackgroundRenderer(this.canvasManager, this.camera);
-    this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling);
-    this.uiRenderer = new UIRenderer(this.canvasManager, this.menuManager);
+    this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
+    this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
+    this.uiRenderer = new UIRenderer(this.canvasManager, this.menuManager, this.inputManager);
 
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
@@ -181,9 +197,15 @@ export class EngineRuntime {
     );
 
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
-    this.playerController = new PlayerControllerSystem(this.camera);
+    this.playerController = new PlayerControllerSystem(this.camera, this.inputManager);
     this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
-    this.shipBuilderController = new ShipBuilderController(this.ship, this.shipBuilderMenu, this.camera, this.repairEffectSystem);
+    this.shipBuilderController = new ShipBuilderController(
+      this.ship, 
+      this.shipBuilderMenu, 
+      this.camera, 
+      this.repairEffectSystem,
+      this.inputManager
+    );
     this.shipBuilderMenu.setRepairAllHandler(() => {
       this.shipBuilderController.repairAllBlocks();
     });
@@ -192,7 +214,8 @@ export class EngineRuntime {
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
 
     // Create the enemy wave spawner
-    this.waveSpawner = WaveSpawner.getInstance(
+    this.waveSpawner = new WaveSpawner(
+      this.mission.waves,
       this.shipRegistry,
       this.aiOrchestrator,
       this.ship,
@@ -203,6 +226,7 @@ export class EngineRuntime {
       combatService,
       this.explosionSystem
     );
+    this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
 
     // Debug overlay
@@ -222,17 +246,15 @@ export class EngineRuntime {
       this.energyRechargeSystem,
       {
         update: (dt: number) => {
-          // Add defensive check to ensure ship still exists
-          if (!this.ship || !this.ship.getTransform) {
+          if (!this.ship) {
             return;
           }
-          
+
           const intent: ShipIntent = this.playerController.getIntent();
           this.movement.setIntent(intent.movement);
           this.weaponSystem.setIntent(intent.weapons);
           this.utilitySystem.setIntent(intent.utility);
-          
-          // Only update weapon system if ship is still valid
+
           try {
             this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
             this.utilitySystem.update(dt, this.ship, this.ship.getTransform());
@@ -265,13 +287,15 @@ export class EngineRuntime {
   }
 
   private registerLoopHandlers() {
-    this.gameLoop.onUpdate(this.update);
-    this.gameLoop.onRender(this.render);
+    this.gameLoop.onUpdate(this.boundUpdate);
+    this.gameLoop.onRender(this.boundRender);
   }
 
   private update = (dt: number) => {
+    if (this.isDestroyed) return;
+
     // Toggle the ship builder menu with Tab
-    if (wasKeyJustPressed('Tab')) {
+    if (this.inputManager.wasKeyJustPressed('Tab')) {
       if (this.menuManager.isMenuOpen()) {
         this.menuManager.close();
       } else {
@@ -279,7 +303,7 @@ export class EngineRuntime {
       }
     }
 
-    if (wasKeyJustPressed('Escape')) {
+    if (this.inputManager.wasKeyJustPressed('Escape')) {
       if (!this.menuManager.isBlocking()) {
         this.menuManager.open(this.pauseMenu);
       } else {
@@ -289,21 +313,40 @@ export class EngineRuntime {
 
     // Debug keys 
 
-    if (wasKeyJustPressed('Digit0')) {
+    if (this.inputManager.wasKeyJustPressed('Digit0')) {
       PlayerResources.getInstance().addCurrency(1000);
     }
 
-    if (wasKeyJustPressed('KeyU')) {
+    if (this.inputManager.wasKeyJustPressed('KeyU')) {
       PlayerTechnologyManager.getInstance().unlockAll();
     }
 
-    if (wasRightBracketPressed()) {
+    if (this.inputManager.wasRightBracketPressed()) {
       this.waveSpawner.skipToNextWave();
     }
 
-    const transform = this.ship.getTransform();
-    this.camera.adjustZoom(consumeZoomDelta());
-    this.camera.follow(transform.position);
+    if (this.inputManager.wasKeyJustPressed('KeyM')) {
+      console.log("Skipping to victory screen...");
+      this.handlePlayerVictory();
+    }
+
+    try {
+      if (
+        !this.ship ||
+        typeof this.ship.getTransform !== 'function' ||
+        !this.camera
+      ) {
+        return;
+      }
+      const transform = this.ship.getTransform();
+      this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
+      this.camera.follow(transform.position);
+      if (this.menuManager.isMenuOpen() && this.shipBuilderMenu.isOpen()) {
+          this.shipBuilderController.update(transform);
+      }
+    } catch (error) {
+      console.error("Error getting ship transform:", error);
+    }
 
     // Always update the RepairEffectSystem
     this.repairEffectSystem.update(dt);
@@ -312,14 +355,11 @@ export class EngineRuntime {
       this.updatables.forEach(system => system.update(dt));
     }
 
-    if (this.menuManager.isMenuOpen() && this.shipBuilderMenu.isOpen()) {
-      this.shipBuilderController.update(transform);
-    }
-
-    updateInputFrame();
+    this.inputManager.updateFrame();
   };
 
   private render = (dt: number) => {
+    if (!this.ship || this.isDestroyed) return;
     const transform = this.ship.getTransform();
 
     this.canvasManager.clearLayer('entities');
@@ -340,11 +380,56 @@ export class EngineRuntime {
     this.gameLoop.start();
   }
 
-  // Add this method to handle player ship destruction
+  public handlePlayerVictory(): void {
+    console.log("Player victorious — transitioning to debriefing screen.");
+    missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
+    this.destroy();
+    sceneManager.setScene('debriefing');
+  }
+
   public handlePlayerDeath(): void {
-    console.log("Player ship destroyed!");
-    
-    // Stop all systems that depend on the player ship
-    this.ship.destroy();
+    console.log("Player defeated — transitioning to debriefing screen.");
+    missionResultStore.finalize('defeat', this.gameLoop.getElapsedSeconds());
+    this.destroy();
+    sceneManager.setScene('debriefing');
+  }
+
+  public destroy(): void {
+    console.log("EngineRuntime: Performing cleanup before scene transition.");
+
+    this.isDestroyed = true;
+    this.gameLoop.offUpdate(this.boundUpdate);
+    this.gameLoop.offRender(this.boundRender);
+    this.gameLoop.stop();
+
+    // === Clean up singleton state ===
+    this.waveSpawner.reset();
+    this.shipRegistry.clear();
+    this.aiOrchestrator.clear();
+    ShieldEffectsSystem.getInstance().clear();
+    PlayerResources.getInstance().destroy();
+    PlayerStats.getInstance().destroy();
+    PlayerTechnologyManager.getInstance().destroy();
+
+    // Clear mission results
+    missionResultStore.clear();
+
+    // Optional: clear UI menus, overlays
+    this.menuManager.clear();  // Implement if needed
+    this.hud.destroy();          // Optional
+
+    // // Clear rendering and update lists
+    this.updatables.length = 0;
+    this.renderables.length = 0;
+
+    // Optional: Clear event listeners from global input systems
+    this.inputManager.destroy(); // or similar method
+
+    // Null references (defensive)
+    this.ship = null;
+    this.camera = null;
+    this.grid = null;
+
+    console.log("EngineRuntime: Cleanup complete.");
   }
 }

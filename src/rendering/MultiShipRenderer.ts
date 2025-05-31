@@ -2,7 +2,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
-import { getMousePosition } from '@/core/Input';
+import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 
 export class MultiShipRenderer {
@@ -11,14 +11,16 @@ export class MultiShipRenderer {
   constructor(
     canvasManager: CanvasManager,
     private readonly camera: Camera,
-    private readonly cullingSystem: ShipCullingSystem
+    private readonly cullingSystem: ShipCullingSystem,
+    private readonly inputManager: InputManager
   ) {
     this.ctx = canvasManager.getContext('entities');
+    this.inputManager = inputManager;
   }
 
   render(): void {
     const visibleShips = this.cullingSystem.getVisibleShips();
-    const mouseScreen = getMousePosition();
+    const mouseScreen = this.inputManager.getMousePosition();
     const mouseWorld = this.camera.screenToWorld(mouseScreen.x, mouseScreen.y);
 
     for (const ship of visibleShips) {

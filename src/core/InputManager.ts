@@ -1,0 +1,186 @@
+type KeyState = { pressed: boolean };
+type MouseState = {
+  x: number;
+  y: number;
+  leftDown: boolean;
+  rightDown: boolean;
+};
+
+export class InputManager {
+  private keyState: Record<string, KeyState> = {};
+  private prevKeyState: Record<string, boolean> = {};
+  private justPressedKeys: Set<string> = new Set();
+
+  private mouseState: MouseState = {
+    x: 0,
+    y: 0,
+    leftDown: false,
+    rightDown: false,
+  };
+
+  private scrollUpDetected = false;
+  private scrollDownDetected = false;
+  private initialized = false;
+
+  constructor() {
+    this.initialize();
+  }
+
+  // === Lifecycle ===
+  public initialize(): void {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    window.addEventListener('keydown', this.keyDownHandler);
+    window.addEventListener('keyup', this.keyUpHandler);
+    window.addEventListener('mousedown', this.mouseDownHandler);
+    window.addEventListener('mouseup', this.mouseUpHandler);
+    window.addEventListener('mousemove', this.mouseMoveHandler);
+    window.addEventListener('wheel', this.wheelHandler);
+    window.addEventListener('contextmenu', this.contextMenuHandler);
+  }
+
+  public destroy(): void {
+    if (!this.initialized) return;
+    this.initialized = false;
+
+    window.removeEventListener('keydown', this.keyDownHandler);
+    window.removeEventListener('keyup', this.keyUpHandler);
+    window.removeEventListener('mousedown', this.mouseDownHandler);
+    window.removeEventListener('mouseup', this.mouseUpHandler);
+    window.removeEventListener('mousemove', this.mouseMoveHandler);
+    window.removeEventListener('wheel', this.wheelHandler);
+    window.removeEventListener('contextmenu', this.contextMenuHandler);
+  }
+
+  // === Input Update ===
+  public updateFrame(): void {
+    this.justPressedKeys.clear();
+    this.scrollUpDetected = false;
+    this.scrollDownDetected = false;
+
+    if (!this.prevKeyState['MouseLeft'] && this.mouseState.leftDown) {
+      this.justPressedKeys.add('MouseLeft');
+    }
+    if (!this.prevKeyState['MouseRight'] && this.mouseState.rightDown) {
+      this.justPressedKeys.add('MouseRight');
+    }
+
+    this.prevKeyState['MouseLeft'] = this.mouseState.leftDown;
+    this.prevKeyState['MouseRight'] = this.mouseState.rightDown;
+
+    for (const code in this.keyState) {
+      const current = this.keyState[code]?.pressed ?? false;
+      const previous = this.prevKeyState[code] ?? false;
+
+      if (!previous && current) {
+        this.justPressedKeys.add(code);
+      }
+
+      this.prevKeyState[code] = current;
+    }
+  }
+
+  // === Accessors ===
+  public isKeyPressed(code: string): boolean {
+    return code === 'MouseLeft'
+      ? this.mouseState.leftDown
+      : code === 'MouseRight'
+      ? this.mouseState.rightDown
+      : this.keyState[code]?.pressed ?? false;
+  }
+
+  public wasKeyJustPressed(code: string): boolean {
+    return this.justPressedKeys.has(code);
+  }
+
+  public getMousePosition(): { x: number; y: number } {
+    return { x: this.mouseState.x, y: this.mouseState.y };
+  }
+
+  public wasMouseClicked(): boolean {
+    return this.wasKeyJustPressed('MouseLeft');
+  }
+
+  public wasRightClicked(): boolean {
+    return this.wasKeyJustPressed('MouseRight');
+  }
+
+  public wasScrollWheelUp(): boolean {
+    return this.scrollUpDetected;
+  }
+
+  public wasScrollWheelDown(): boolean {
+    return this.scrollDownDetected;
+  }
+
+  public isShiftPressed(): boolean {
+    return this.isKeyPressed('ShiftLeft') || this.isKeyPressed('ShiftRight');
+  }
+
+  public consumeZoomDelta(): number {
+    let delta = 0;
+    if (this.scrollUpDetected || this.isKeyPressed('KeyR')) delta += 10;
+    if (this.scrollDownDetected || this.isKeyPressed('KeyT')) delta -= 10;
+    return delta;
+  }
+
+  // === Custom aliases ===
+  public isEscapePressed(): boolean {
+    return this.isKeyPressed('Escape');
+  }
+
+  public isTabPressed(): boolean {
+    return this.isKeyPressed('Tab');
+  }
+
+  public is0Pressed(): boolean {
+    return this.isKeyPressed('Digit0');
+  }
+
+  public isLPressed(): boolean {
+    return this.isKeyPressed('KeyL');
+  }
+
+  public wasLeftBracketPressed(): boolean {
+    return this.wasKeyJustPressed('BracketLeft');
+  }
+
+  public wasRightBracketPressed(): boolean {
+    return this.wasKeyJustPressed('BracketRight');
+  }
+
+  // === Handlers (private) ===
+  private keyDownHandler = (e: KeyboardEvent) => {
+    this.keyState[e.code] = { pressed: true };
+  };
+
+  private keyUpHandler = (e: KeyboardEvent) => {
+    this.keyState[e.code] = { pressed: false };
+  };
+
+  private mouseDownHandler = (e: MouseEvent) => {
+    if (e.button === 0) this.mouseState.leftDown = true;
+    if (e.button === 2) this.mouseState.rightDown = true;
+  };
+
+  private mouseUpHandler = (e: MouseEvent) => {
+    if (e.button === 0) this.mouseState.leftDown = false;
+    if (e.button === 2) this.mouseState.rightDown = false;
+  };
+
+  private mouseMoveHandler = (e: MouseEvent) => {
+    this.mouseState.x = e.clientX;
+    this.mouseState.y = e.clientY;
+  };
+
+  private wheelHandler = (e: WheelEvent) => {
+    const delta = Math.sign(e.deltaY);
+    if (delta < 0) this.scrollUpDetected = true;
+    else if (delta > 0) this.scrollDownDetected = true;
+  };
+
+  private contextMenuHandler = (e: MouseEvent) => {
+    e.preventDefault();
+  };
+}
