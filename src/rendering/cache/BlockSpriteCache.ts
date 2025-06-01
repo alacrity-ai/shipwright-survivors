@@ -145,7 +145,7 @@ function drawProceduralBlock(typeId: string): void {
     case 'cockpit0':
       baseCtx.fillStyle = '#444';
       baseCtx.fillRect(0, 0, BLOCK_SIZE, BLOCK_SIZE);
-      baseCtx.fillStyle = '#0ff';
+      baseCtx.fillStyle = '#ff2222';
       baseCtx.beginPath();
       baseCtx.arc(BLOCK_SIZE / 2, BLOCK_SIZE / 2, 8, 0, Math.PI * 2);
       baseCtx.fill();

@@ -41,6 +41,19 @@ class SceneManager {
   private gameLoop = new GameLoop();
   private activeSceneManager: { stop(): void } | null = null;
 
+  // Fading
+  private fadeAlpha = 0;
+  private isFading = false;
+  private fadeDirection: 'in' | 'out' | null = null;
+  private fadeDuration = 500; // ms
+  private fadeStartTime = 0;
+  private nextScene: Scene | null = null;
+
+  constructor() {
+    this.gameLoop.onRender(this.renderOverlay);
+    this.gameLoop.onUpdate(this.updateFadeTransition);
+  }
+
   private ensureCanvasManager(): CanvasManager {
     if (!this.canvasManager) {
       this.canvasManager = new CanvasManager();
@@ -167,6 +180,44 @@ class SceneManager {
   public getInputManager(): InputManager | null {
     return this.inputManager;
   }
+
+  public fadeToScene(scene: Scene): void {
+    if (this.isFading) return; // Prevent overlapping transitions
+
+    this.isFading = true;
+    this.fadeAlpha = 0;
+    this.fadeStartTime = performance.now();
+    this.nextScene = scene;
+  }
+
+  private updateFadeTransition = (_dt: number): void => {
+    if (!this.isFading) return;
+
+    const now = performance.now();
+    const elapsed = now - this.fadeStartTime;
+    const t = Math.min(elapsed / this.fadeDuration, 1);
+    this.fadeAlpha = t;
+
+    if (t >= 1 && this.nextScene) {
+      this.setScene(this.nextScene);
+
+      // Immediately end fade
+      this.isFading = false;
+      this.fadeAlpha = 0;
+      this.nextScene = null;
+    }
+  };
+
+  private renderOverlay = (_dt: number): void => {
+    if (!this.isFading || this.fadeAlpha <= 0) return;
+
+    const ctx = this.canvasManager?.getContext('overlay');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  };
 }
 
 export const sceneManager = new SceneManager();

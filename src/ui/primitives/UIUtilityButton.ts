@@ -1,5 +1,7 @@
 // src/ui/primitives/UIUtilityButton.ts
 
+import { brightenColor } from '@/shared/colorUtils';
+
 export interface UIUtilityButton {
   x: number;
   y: number;
@@ -47,7 +49,8 @@ export function drawUtilityButton(ctx: CanvasRenderingContext2D, button: UIUtili
       : ctx.createRadialGradient(from[0], from[1], 0, from[0], from[1], radius);
 
     for (const stop of stops) {
-      gradient.addColorStop(stop.offset, stop.color);
+      const color = isHovered ? brightenColor(stop.color, 0.1) : stop.color;
+      gradient.addColorStop(stop.offset, color);
     }
 
     fillStyle = gradient;

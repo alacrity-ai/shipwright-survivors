@@ -1,5 +1,7 @@
 // src/ui/primitives/WindowBox.ts
 
+import { brightenColor } from '@/shared/colorUtils';
+
 export interface WindowTab {
   label: string;
   isActive: boolean;

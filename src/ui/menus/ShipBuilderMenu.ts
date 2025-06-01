@@ -10,6 +10,8 @@ import { drawLabelLine } from '@/ui/utils/drawLabelLine';
 
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
+
+import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { BlockCategory } from '@/game/interfaces/types/BlockType';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Menu } from '@/ui/interfaces/Menu';
@@ -39,6 +41,8 @@ const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
 export class ShipBuilderMenu implements Menu {
   private repairAllHandler: (() => void) | null = null;
   private inputManager: InputManager;
+  private cursorRenderer: CursorRenderer;
+
   private activeTab: BlockCategory = 'hull';
   private selectedBlockId: string | null = 'hull1';
 
@@ -48,8 +52,9 @@ export class ShipBuilderMenu implements Menu {
 
   private open = false;
 
-  constructor(inputManager: InputManager) {
+  constructor(inputManager: InputManager, cursorRenderer: CursorRenderer) {
     this.inputManager = inputManager;
+    this.cursorRenderer = cursorRenderer;
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -102,15 +107,26 @@ export class ShipBuilderMenu implements Menu {
     // === Tooltip override: hovered utility tool
     if (this.hoveredUtilityTool) {
       this.renderToolInfo(ctx, this.hoveredUtilityTool, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      this.cursorRenderer.setHoveredCursor();
     }
     // === Repair mode
     else if (this.activeTool === ShipBuilderTool.REPAIR) {
       this.renderRepairInfoForBlock(ctx, this.hoveredShipBlock, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      this.cursorRenderer.setWrenchCursor();
     }
     // === Block grid or selected block
     else {
       const blockToInspect = hoveredBlock ?? selectedBlock ?? null;
       this.renderBlockInfo(ctx, blockToInspect, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      if (hoveredBlock) {
+        this.cursorRenderer.setHoveredCursor();
+      } else {
+        if (this.activeTool === ShipBuilderTool.PLACE && !this.isPointInBounds(mouse.x, mouse.y)) {
+          this.cursorRenderer.setSmallCircleCursor();
+        } else {
+          this.cursorRenderer.setDefaultCursor();
+        }
+      }
     }
 
     this.renderUtilityWindow(
@@ -496,6 +512,7 @@ export class ShipBuilderMenu implements Menu {
 
   closeMenu(): void {
     this.open = false;
+    this.cursorRenderer.setDefaultCursor();
   }
 
   // Called from UI buttons (see below)
@@ -519,9 +536,11 @@ export class ShipBuilderMenu implements Menu {
     const utilityWindowTop = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET;
     const utilityWindowBottom = utilityWindowTop + INFO_WINDOW_HEIGHT;
 
+    const tabHeight = 30;
+
     const withinMainWindow =
       x >= WINDOW_X && x <= mainWindowRight &&
-      y >= WINDOW_Y && y <= mainWindowBottom;
+      y >= WINDOW_Y - tabHeight && y <= mainWindowBottom;
 
     const withinBlockInfoWindow =
       x >= WINDOW_X && x <= blockInfoRight &&
@@ -538,5 +557,10 @@ export class ShipBuilderMenu implements Menu {
   // Call this after instantiation
   public setRepairAllHandler(handler: () => void): void {
     this.repairAllHandler = handler;
+  }
+
+  // Get cursor renderer
+  public getCursorRenderer() {
+    return this.cursorRenderer;
   }
 }

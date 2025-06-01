@@ -5,7 +5,7 @@ import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 
-import { getCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
@@ -45,7 +45,7 @@ export class HubSceneManager {
       isHovered: false,
       onClick: () => {
         this.stop();
-        sceneManager.setScene('title');
+        sceneManager.fadeToScene('title');
       },
       style: {
         borderRadius: 10,
@@ -94,15 +94,15 @@ export class HubSceneManager {
     if (clicked) {
       if (inZone(INTERACTION_ZONES.terminal)) {
         this.stop();
-        sceneManager.setScene('passives');
+        sceneManager.fadeToScene('passives');
         return;
       } else if (inZone(INTERACTION_ZONES.map)) {
         this.stop();
-        sceneManager.setScene('galaxy');
+        sceneManager.fadeToScene('galaxy');
         return;
       } else if (inZone(INTERACTION_ZONES.breakroom)) {
         this.stop();
-        sceneManager.setScene('breakroom');
+        sceneManager.fadeToScene('breakroom');
         return;
       }
     }
@@ -133,7 +133,7 @@ export class HubSceneManager {
 
     const cursor = this.isHoveringInteraction
       ? getHoveredCursorSprite()
-      : getCursorSprite();
+      : getCrosshairCursorSprite();
 
     uiCtx.drawImage(cursor, m.x - cursor.width / 2, m.y - cursor.height / 2);
   };

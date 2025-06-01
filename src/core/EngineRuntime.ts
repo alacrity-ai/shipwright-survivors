@@ -111,7 +111,8 @@ export class EngineRuntime {
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.gameLoop = new GameLoop();
-    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager);
+    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
+    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
     this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this));
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
@@ -179,7 +180,6 @@ export class EngineRuntime {
     // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
     this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
-    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
 
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
@@ -194,7 +194,7 @@ export class EngineRuntime {
     );
 
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
-    this.playerController = new PlayerControllerSystem(this.camera, this.inputManager);
+    this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer);
     this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
     this.shipBuilderController = new ShipBuilderController(
       this.ship, 
@@ -293,7 +293,7 @@ export class EngineRuntime {
     if (this.isDestroyed) return;
 
     // Toggle the ship builder menu with Tab
-    if (this.inputManager.wasKeyJustPressed('Tab')) {
+    if (this.inputManager.wasKeyJustPressed('Tab') && !this.pauseMenu.isOpen()) {
       if (!this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.openMenu();
       } else {
@@ -302,10 +302,14 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Escape')) {
-      if (!this.pauseMenu.isOpen()) {
-        this.pauseMenu.openMenu();
+      if (this.shipBuilderMenu.isOpen()) {
+        this.shipBuilderMenu.closeMenu();
       } else {
-        this.pauseMenu.closeMenu();
+        if (!this.pauseMenu.isOpen()) {
+          this.pauseMenu.openMenu();
+        } else {
+          this.pauseMenu.closeMenu();
+        }
       }
     }
 

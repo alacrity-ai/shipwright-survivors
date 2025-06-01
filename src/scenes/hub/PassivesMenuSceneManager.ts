@@ -7,7 +7,7 @@ import { sceneManager } from '@/core/SceneManager';
 
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
-import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
@@ -52,7 +52,7 @@ export class PassivesMenuSceneManager {
         isHovered: false,
         onClick: () => {
           this.stop();
-          sceneManager.setScene('hub');
+          sceneManager.fadeToScene('hub');
         },
         style: crtStyle
       }
@@ -124,7 +124,7 @@ export class PassivesMenuSceneManager {
       drawButton(uiCtx, btn);
     }
 
-    const cursor = getCursorSprite();
+    const cursor = getCrosshairCursorSprite();
     uiCtx.drawImage(cursor, x - cursor.width / 2, y - cursor.height / 2);
   };
 }

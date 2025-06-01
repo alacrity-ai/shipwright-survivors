@@ -7,7 +7,7 @@ import { sceneManager } from '@/core/SceneManager';
 
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
-import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
@@ -56,7 +56,7 @@ export class GalaxyMapSceneManager {
         onClick: () => {
           missionLoader.setMission(missionRegistry['mission_001']);
           this.stop();
-          sceneManager.setScene('mission');
+          sceneManager.fadeToScene('mission');
         },
         style: crtStyle
       },
@@ -70,7 +70,7 @@ export class GalaxyMapSceneManager {
         onClick: () => {
           missionLoader.setMission(missionRegistry['mission_002']);
           this.stop();
-          sceneManager.setScene('mission');
+          sceneManager.fadeToScene('mission');
         },
         style: crtStyle
       },
@@ -83,7 +83,7 @@ export class GalaxyMapSceneManager {
         isHovered: false,
         onClick: () => {
           this.stop();
-          sceneManager.setScene('hub');
+          sceneManager.fadeToScene('hub');
         },
         style: crtStyle
       }
@@ -145,7 +145,7 @@ export class GalaxyMapSceneManager {
       drawButton(uiCtx, btn);
     }
 
-    const cursor = getCursorSprite();
+    const cursor = getCrosshairCursorSprite();
     uiCtx.drawImage(cursor, x - cursor.width / 2, y - cursor.height / 2);
   };
 }

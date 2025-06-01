@@ -1,9 +1,11 @@
+// src/scenes/title/TitleScreenManager.ts
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 
-import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
@@ -71,7 +73,7 @@ export class TitleScreenManager {
         isHovered: false,
         onClick: () => {
           this.stop();
-          sceneManager.setScene('hub');
+          sceneManager.fadeToScene('hub');
         },
         style: sharedStyle
       },
@@ -132,7 +134,7 @@ export class TitleScreenManager {
     }
 
     const mouse = this.inputManager.getMousePosition();
-    const cursor = getCursorSprite();
+    const cursor = getCrosshairCursorSprite();
     uiCtx.drawImage(
       cursor,
       mouse.x - cursor.width / 2,

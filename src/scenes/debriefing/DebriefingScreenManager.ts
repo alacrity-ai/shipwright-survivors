@@ -4,7 +4,7 @@ import { sceneManager } from '@/core/SceneManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
-import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import type { InputManager } from '@/core/InputManager';
 
 export class DebriefingScreenManager {
@@ -28,7 +28,7 @@ export class DebriefingScreenManager {
       onClick: () => {
         missionResultStore.clear();
         this.stop();
-        sceneManager.setScene('hub');
+        sceneManager.fadeToScene('hub');
       },
       style: {
         borderRadius: 10,
@@ -121,7 +121,7 @@ export class DebriefingScreenManager {
     drawButton(ctx, this.returnButton);
 
     // Draw cursor
-    const cursor = getCursorSprite();
+    const cursor = getCrosshairCursorSprite();
     const mouse = this.inputManager.getMousePosition();
     ctx.drawImage(cursor, mouse.x - cursor.width / 2, mouse.y - cursor.height / 2);
   };
