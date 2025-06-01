@@ -18,17 +18,42 @@ export type DestructionCause =
   | 'scripted';
 
 export class ShipDestructionService {
+  private destructionCallbacks: Set<(ship: Ship, cause: DestructionCause) => void> = new Set();
+
   constructor(
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
     private readonly shipRegistry: ShipRegistry,
-    private readonly aiOrchestrator: AIOrchestratorSystem
+    private readonly aiOrchestrator: AIOrchestratorSystem,
   ) {}
+
+  /**
+   * Register a callback to be called whenever a ship is destroyed
+   */
+  public onShipDestroyed(callback: (ship: Ship, cause: DestructionCause) => void): void {
+    this.destructionCallbacks.add(callback);
+  }
+
+  /**
+   * Unregister a ship destruction callback
+   */
+  public offShipDestroyed(callback: (ship: Ship, cause: DestructionCause) => void): void {
+    this.destructionCallbacks.delete(callback);
+  }
 
   destroyShip(ship: Ship, cause: DestructionCause = 'scripted'): void {
     const transform = ship.getTransform();
     const blocks = ship.getAllBlocks();
     const shipId = ship.id;
+
+    // === Step 0: Notify all listeners BEFORE cleanup ===
+    this.destructionCallbacks.forEach(callback => {
+      try {
+        callback(ship, cause);
+      } catch (error) {
+        console.error('Error in ship destruction callback:', error);
+      }
+    });
 
     // === Step 1: Eager cleanup BEFORE animations ===
     this.shipRegistry.remove(ship);

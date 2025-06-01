@@ -29,6 +29,19 @@ export class BreakroomSceneManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
 
+    const crtStyle = {
+      borderRadius: 10,
+      alpha: 0.85,
+      borderColor: '#00ff00',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#002200' },
+          { offset: 1, color: '#001500' }
+        ]
+      }
+    };
+
     this.buttons = [
       {
         x: 20,
@@ -41,6 +54,7 @@ export class BreakroomSceneManager {
           this.stop();
           sceneManager.setScene('hub');
         },
+        style: crtStyle
       }
     ];
   }
@@ -86,7 +100,14 @@ export class BreakroomSceneManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    drawWindow(uiCtx, 100, 420, 440, 130, 'Break Room');
+    // drawWindow({
+    //   ctx: uiCtx,
+    //   x: 100,
+    //   y: 420,
+    //   width: 440,
+    //   height: 130,
+    //   title: 'Break Room'
+    // });
 
     for (const btn of this.buttons) {
       drawButton(uiCtx, btn);

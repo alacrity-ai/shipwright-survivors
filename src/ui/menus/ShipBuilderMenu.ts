@@ -46,6 +46,8 @@ export class ShipBuilderMenu implements Menu {
   private hoveredShipBlock: BlockInstance | undefined = undefined;
   private hoveredUtilityTool: ShipBuilderTool | null = null;
 
+  private open = false;
+
   constructor(inputManager: InputManager) {
     this.inputManager = inputManager;
   }
@@ -55,17 +57,30 @@ export class ShipBuilderMenu implements Menu {
     const clicked = this.inputManager.wasMouseClicked();
 
     const tabs = this.buildCategoryTabs();
-    const tabWasClicked = drawWindow(
+    const tabWasClicked = drawWindow({
       ctx,
-      WINDOW_X,
-      WINDOW_Y,
-      WINDOW_WIDTH,
-      WINDOW_HEIGHT,
-      '',
+      x: WINDOW_X,
+      y: WINDOW_Y,
+      width: WINDOW_WIDTH,
+      height: WINDOW_HEIGHT,
+      title: '',
       tabs,
       mouse,
-      clicked
-    );
+      clicked,
+      options: {
+        alpha: 0.5,
+        borderRadius: 12,
+        borderColor: '#00ff00',
+        activeTabColor: '#66ff66',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
 
     const allBlocks = getAllBlockTypes();
     const blocks = allBlocks.filter(b => b.category === this.activeTab);
@@ -190,7 +205,26 @@ export class ShipBuilderMenu implements Menu {
     y: number,
     width: number
   ): void {
-    drawWindow(ctx, x, y, width, INFO_WINDOW_HEIGHT, 'Info');
+    drawWindow({
+      ctx,
+      x,
+      y,
+      width,
+      height: INFO_WINDOW_HEIGHT,
+      title: 'Info',
+      options: {
+        alpha: 0.5,
+        borderRadius: 12,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
 
     const textX = x + PADDING;
     let textY = y + 32;
@@ -233,7 +267,26 @@ export class ShipBuilderMenu implements Menu {
     y: number,
     width: number
   ): void {
-    drawWindow(ctx, x, y, width, INFO_WINDOW_HEIGHT, 'Repair Info');
+    drawWindow({
+      ctx,
+      x,
+      y,
+      width,
+      height: INFO_WINDOW_HEIGHT,
+      title: 'Repair Info',
+      options: {
+        alpha: 0.5,
+        borderRadius: 12,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
 
     const textX = x + PADDING;
     let textY = y + 32;
@@ -263,7 +316,26 @@ export class ShipBuilderMenu implements Menu {
     mouse: { x: number; y: number },
     clicked: boolean
   ): void {
-    drawWindow(ctx, x, y, width, height, '');
+    drawWindow({
+      ctx,
+      x,
+      y,
+      width,
+      height,
+      title: '',
+      options: {
+        alpha: 0.5,
+        borderRadius: 12,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
 
     const buttonHeight = 32;
     const spacing = 8;
@@ -326,7 +398,19 @@ export class ShipBuilderMenu implements Menu {
         label,
         isHovered,
         isActive,
-        onClick: action
+        onClick: action,
+        style: {
+          alpha: 0.6,
+          borderRadius: 8,
+          borderColor: '#00ff00',
+          backgroundGradient: {
+            type: 'linear',
+            stops: [
+              { offset: 0, color: '#002200' },
+              { offset: 1, color: '#001500' }
+            ]
+          }
+        }
       });
 
       if (isHovered && clicked) {
@@ -345,7 +429,26 @@ export class ShipBuilderMenu implements Menu {
     y: number,
     width: number
   ): void {
-    drawWindow(ctx, x, y, width, INFO_WINDOW_HEIGHT, 'Tool Info');
+    drawWindow({
+      ctx,
+      x,
+      y,
+      width,
+      height: INFO_WINDOW_HEIGHT,
+      title: 'Tool Info',
+      options: {
+        alpha: 0.5,
+        borderRadius: 12,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
 
     const textX = x + PADDING;
     let textY = y + 32;
@@ -384,7 +487,15 @@ export class ShipBuilderMenu implements Menu {
   }
 
   isOpen(): boolean {
-    return true; // TODO: make togglable
+    return this.open
+  }
+
+  openMenu(): void {
+    this.open = true;
+  }
+
+  closeMenu(): void {
+    this.open = false;
   }
 
   // Called from UI buttons (see below)

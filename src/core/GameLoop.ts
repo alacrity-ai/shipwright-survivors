@@ -1,5 +1,4 @@
 // src/core/GameLoop.ts
-console.log('Gameloop imported');
 type UpdateCallback = (deltaTime: number) => void;
 type RenderCallback = (deltaTime: number) => void;
 

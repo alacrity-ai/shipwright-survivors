@@ -9,21 +9,11 @@ import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
-import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
-import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
-import { MovementSystem } from '@/systems/physics/MovementSystem';
-import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
-import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
-import { ExplosiveLanceBackend } from '@/systems/combat/backends/ExplosiveLanceBackend';
-import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
-import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
-
-import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
-import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
+import { ShipFactory } from '@/game/ship/ShipFactory';
 import { CombatService } from '@/systems/combat/CombatService';
 
 type WaveType = 'wave' | 'boss' | string;
@@ -39,6 +29,7 @@ interface ActiveWaveContext {
 const STARTING_WAVE_INDEX = 0;
 
 export class WaveSpawner implements IUpdatable {
+  private readonly shipFactory: ShipFactory;
   private currentWaveIndex = STARTING_WAVE_INDEX;
   private hasStarted = false;
   private elapsedTime = 0;
@@ -74,7 +65,19 @@ export class WaveSpawner implements IUpdatable {
     private readonly grid: Grid,
     private readonly combatService: CombatService,
     private readonly explosionSystem: ExplosionSystem
-  ) {}
+  ) {
+    this.shipFactory = new ShipFactory(
+      this.grid,
+      this.shipRegistry,
+      this.aiOrchestrator,
+      this.playerShip,
+      this.particleManager,
+      this.projectileSystem,
+      this.laserSystem,
+      this.combatService,
+      this.explosionSystem
+    );
+  }
 
   public update(dt: number): void {
     // === Initial wave logic ===
@@ -102,14 +105,23 @@ export class WaveSpawner implements IUpdatable {
           this.currentWaveIndex++;
           this.elapsedTime = 0;
         }
-        return;
-      } else {
-        return;
       }
+      return;
     }
 
     // === Boss wave in progress, wait ===
     if (this.activeWave?.type === 'boss' && !this.activeWave.isComplete) return;
+
+    // === Check for mission completion FIRST ===
+    if (this.shouldCompleteMission()) {
+      if (!this.missionCompleteTriggered) {
+        this.missionCompleteTriggered = true;
+        console.log('Mission completed!');
+        this.onMissionComplete?.();
+        this.onMissionComplete = null;
+      }
+      return; // Stop all processing once mission is complete
+    }
 
     // === Proceed with normal wave logic ===
     this.elapsedTime += dt;
@@ -120,16 +132,18 @@ export class WaveSpawner implements IUpdatable {
       this.currentWaveIndex++;
       this.elapsedTime = 0;
     }
+  }
 
+  private shouldCompleteMission(): boolean {
+    // Mission is complete when:
+    // 1. All waves have been spawned
+    // 2. No enemies remain alive
+    // 3. Not waiting to spawn another wave
     const allWavesSpawned = this.currentWaveIndex >= this.waves.length;
     const noRemainingEnemies = this.activeShips.size === 0;
-    if (allWavesSpawned && noRemainingEnemies && !this.waitingToSpawnNextWave) {
-      if (!this.missionCompleteTriggered) {
-        this.missionCompleteTriggered = true;
-        this.onMissionComplete?.();
-        this.onMissionComplete = null;
-      }
-    }
+    const notWaitingForNextWave = !this.waitingToSpawnNextWave;
+
+    return allWavesSpawned && noRemainingEnemies && notWaitingForNextWave;
   }
 
   private clearCurrentWave(): void {
@@ -146,6 +160,8 @@ export class WaveSpawner implements IUpdatable {
   }
 
   private async spawnWave(wave: WaveDefinition): Promise<void> {
+    console.log(`Spawning wave ${wave.id} (type: ${wave.type})`);
+    
     this.activeWave = {
       id: wave.id,
       type: wave.type,
@@ -162,33 +178,16 @@ export class WaveSpawner implements IUpdatable {
 
     for (const entry of wave.ships) {
       for (let i = 0; i < entry.count; i++) {
-        const ship = await loadShipFromJson(`${entry.shipId}.json`, this.grid);
+        const posX = wave.type === 'boss'
+          ? (Math.random() - 0.5) * 200
+          : Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
 
-        const transform = ship.getTransform();
-        if (wave.type === 'boss') {
-          // Spawn bosses near origin for high drama
-          transform.position.x = (Math.random() - 0.5) * 200;
-          transform.position.y = (Math.random() - 0.5) * 200;
-        } else {
-          // Normal enemy spawn spread across full world
-          transform.position.x = Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
-          transform.position.y = Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
-        }
+        const posY = wave.type === 'boss'
+          ? (Math.random() - 0.5) * 200
+          : Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
 
-        this.shipRegistry.add(ship);
+        const { ship, controller } = await this.shipFactory.createShip(entry.shipId, posX, posY);
 
-        const emitter = new ThrusterEmitter(this.particleManager);
-        const movement = new MovementSystem(ship, emitter);
-        const weapons = new WeaponSystem(
-          new TurretBackend(this.projectileSystem), 
-          new LaserBackend(this.laserSystem),
-          new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem)
-        );
-        const utility = new UtilitySystem(new ShieldToggleBackend());
-        const controller = new AIControllerSystem(ship, movement, weapons, utility);
-        controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
-
-        this.aiOrchestrator.addController(controller);
         this.applyModifiers(ship, wave.mods);
 
         this.activeShips.add(ship);
@@ -208,7 +207,25 @@ export class WaveSpawner implements IUpdatable {
 
     this.clearCurrentWave();
 
+    // Mark the skipped wave as completed
+    if (this.activeWave) {
+      this.activeWave.isComplete = true;
+    }
+
+    // If we're at the last wave, don't try to spawn another
+    if (this.currentWaveIndex >= this.waves.length) return;
+
     const wave = this.waves[this.currentWaveIndex];
+
+    // Schedule inter-wave delay if the previous wave was a boss
+    if (this.activeWave?.type === 'boss') {
+      this.waitingToSpawnNextWave = true;
+      this.interWaveCountdown = this.interWaveDelay;
+      this.activeWave = null; // Effectively skip it
+      return; // Let update() handle spawning on next tick
+    }
+
+    // For regular waves, spawn immediately
     this.spawnWave(wave);
     this.currentWaveIndex++;
     this.elapsedTime = 0;
@@ -234,14 +251,24 @@ export class WaveSpawner implements IUpdatable {
     const remaining = new Set<Ship>(ships);
     for (const ship of ships) {
       ship.onDestroyed(() => {
-        if (!remaining.has(ship)) return; // Already cleaned up
+        if (!remaining.has(ship)) return;
         remaining.delete(ship);
 
         if (remaining.size === 0 && this.activeWave?.type === 'boss') {
           this.activeWave.isComplete = true;
           console.log(`Boss wave ${this.activeWave.id} defeated.`);
-          this.waitingToSpawnNextWave = true;
-          this.interWaveCountdown = this.interWaveDelay;
+
+          // Check if this is the final wave
+          const isFinalWave = this.currentWaveIndex >= this.waves.length;
+          
+          if (isFinalWave) {
+            // Don't start inter-wave countdown for the final wave
+            console.log('Final boss defeated - mission should complete');
+          } else {
+            // Start inter-wave delay for non-final boss waves
+            this.waitingToSpawnNextWave = true;
+            this.interWaveCountdown = this.interWaveDelay;
+          }
         }
       });
     }
@@ -261,6 +288,9 @@ export class WaveSpawner implements IUpdatable {
     }
 
     if (this.activeWave?.type === 'boss' && !this.activeWave.isComplete) return -1;
+
+    // If mission is complete, don't show countdown
+    if (this.shouldCompleteMission()) return -1;
 
     return Math.max(0, this.waveInterval - this.elapsedTime);
   }

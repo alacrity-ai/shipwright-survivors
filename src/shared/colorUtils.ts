@@ -24,3 +24,12 @@ export function hexToRgba32(hex: string): number {
   // Little-endian RGBA: (A << 24) | (B << 16) | (G << 8) | R
   return (255 << 24) | (b << 16) | (g << 8) | r;
 }
+
+export function brightenColor(hex: string, amount: number): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const num = parseInt(hex.slice(1), 16);
+  const r = clamp((num >> 16) + 255 * amount);
+  const g = clamp(((num >> 8) & 0x00FF) + 255 * amount);
+  const b = clamp((num & 0x0000FF) + 255 * amount);
+  return `rgb(${r}, ${g}, ${b})`;
+}

@@ -44,7 +44,7 @@ export class HudOverlay {
     drawLabel(ctx, x, y, `Energy: ${Math.round(energy)} / ${maxEnergy}`); y += lineHeight;
     drawLabel(ctx, x, y, `Mass: ${mass.toFixed(1)} kg`); y += lineHeight;
     drawLabel(ctx, x, y, `Speed: ${speed.toFixed(1)} px/s`); y += lineHeight;
-    drawLabel(ctx, x, y, `Currency: ${this.currency}`);
+    drawLabel(ctx, x, y, `Entropium: ${this.currency}`);
   }
 
   destroy(): void {

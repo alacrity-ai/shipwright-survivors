@@ -10,7 +10,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'Scrapfield Gauntlet',
     waves: waveSet1,
     environmentSettings: {
-      backgroundId: 'background_1_00.png',
+      backgroundId: 'background_4_00.png',
       gravity: 0,
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
@@ -21,7 +21,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'The Scrapyard Shift',
     waves: waveSet2,
     environmentSettings: {
-      backgroundId: 'background_0_00.png',
+      backgroundId: 'background_5_00.png',
       gravity: 0,
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],

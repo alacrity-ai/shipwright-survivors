@@ -4,7 +4,7 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { getAssetPath } from '@/shared/assetHelpers';
 
-const BACKGROUND_IMAGE_ALPHA = 0.3; // 🔧 Set desired opacity (0.0–1.0)
+const BACKGROUND_IMAGE_ALPHA = 1; // 🔧 Set desired opacity (0.0–1.0)
 const BACKGROUND_PARALLAX_SPEED = 0.1; // 🔧 How fast background moves with camera (0.0 = static, 1.0 = moves with world)
 const BACKGROUND_TILE_SIZE = 2420; // 🔧 Size of each background tile in world units
 const BACKGROUND_IMAGE_HORIZONTAL_OFFSET = 0; // 🔧 Horizontal offset for tiling
@@ -41,10 +41,10 @@ export class BackgroundRenderer {
 
     this.loadBackgroundImage(backgroundImageId);
 
-    this.layers.push(this.createLayer(30, '#444444', 0.03));
-    this.layers.push(this.createLayer(60, '#666666', 0.06));
-    this.layers.push(this.createLayer(80, '#aaaaaa', 0.12));
-    this.layers.push(this.createLayer(110, '#ffffff', 0.20));
+    this.layers.push(this.createLayer(30, '#444444', 0.01));
+    this.layers.push(this.createLayer(60, '#666666', 0.03));
+    this.layers.push(this.createLayer(80, '#aaaaaa', 0.05));
+    this.layers.push(this.createLayer(110, '#ffffff', 0.09));
   }
 
   private loadBackgroundImage(filename?: string) {
@@ -109,6 +109,8 @@ export class BackgroundRenderer {
       const startScreenX = startTileX * BACKGROUND_TILE_SIZE - parallaxOffsetX + BACKGROUND_IMAGE_HORIZONTAL_OFFSET;
       const startScreenY = startTileY * BACKGROUND_TILE_SIZE - parallaxOffsetY;
 
+      const bleed = 1; // pixels of overlap to hide seams
+
       for (let tileY = 0; tileY < tilesNeededY; tileY++) {
         for (let tileX = 0; tileX < tilesNeededX; tileX++) {
           const screenX = startScreenX + tileX * tileScreenSize;
@@ -120,9 +122,13 @@ export class BackgroundRenderer {
           ) {
             this.ctx.drawImage(
               img,
-              0, 0, img.width, img.height,
-              screenX, screenY,
-              tileScreenSize, tileScreenSize
+              bleed, bleed,               // Source x, y (crop slightly in)
+              img.width - 2 * bleed,      // Source width
+              img.height - 2 * bleed,     // Source height
+              screenX - bleed,            // Destination x (draw slightly earlier)
+              screenY - bleed,            // Destination y
+              tileScreenSize + 2 * bleed, // Destination width
+              tileScreenSize + 2 * bleed  // Destination height
             );
           }
         }

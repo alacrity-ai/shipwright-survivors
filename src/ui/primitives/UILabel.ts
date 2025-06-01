@@ -7,27 +7,56 @@ type LabelSegment = {
 
 type LabelInput = string | LabelSegment[];
 
+interface LabelDrawOptions {
+  font?: string;
+  align?: CanvasTextAlign;
+  alpha?: number;
+  shadowBlur?: number;
+  shadowColor?: string;
+  glow?: boolean; // shorthand for green glow
+}
+
 export function drawLabel(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   text: LabelInput,
-  options?: { font?: string; align?: CanvasTextAlign }
+  options?: LabelDrawOptions
 ) {
-  ctx.font = options?.font ?? '12px sans-serif';
-  ctx.textAlign = options?.align ?? 'left';
+  const {
+    font = '12px monospace',
+    align = 'left',
+    alpha = 1.0,
+    shadowBlur = 0,
+    shadowColor = '',
+    glow = false
+  } = options ?? {};
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = font;
+  ctx.textAlign = align;
   ctx.textBaseline = 'top';
 
-  if (typeof text === 'string') {
-    ctx.fillStyle = '#fff';
-    ctx.fillText(text, x, y);
-    return;
+  if (glow) {
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = '#00ff00';
+  } else if (shadowBlur > 0 && shadowColor) {
+    ctx.shadowBlur = shadowBlur;
+    ctx.shadowColor = shadowColor;
   }
 
-  let cursorX = x;
-  for (const segment of text) {
-    ctx.fillStyle = segment.color ?? '#fff';
-    ctx.fillText(segment.text, cursorX, y);
-    cursorX += ctx.measureText(segment.text).width;
+  if (typeof text === 'string') {
+    ctx.fillStyle = '#00ff00';
+    ctx.fillText(text, x, y);
+  } else {
+    let cursorX = x;
+    for (const segment of text) {
+      ctx.fillStyle = segment.color ?? '#00ff00';
+      ctx.fillText(segment.text, cursorX, y);
+      cursorX += ctx.measureText(segment.text).width;
+    }
   }
+
+  ctx.restore();
 }

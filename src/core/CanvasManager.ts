@@ -25,9 +25,7 @@ export class CanvasManager {
   }
 
   private initializeCanvases() {
-    console.log('Initializing Canvases...');
     for (const layer of Object.keys(LAYER_IDS) as CanvasLayer[]) {
-      console.log(`Initializing ${layer} canvas...`);
       const id = LAYER_IDS[layer];
       const canvas = document.getElementById(id) as HTMLCanvasElement | null;
 
@@ -46,7 +44,6 @@ export class CanvasManager {
 
       this.canvases[layer] = canvas;
       this.contexts[layer] = ctx;
-      console.log(`Initialized ${layer} canvas.`);
     }
   }
 

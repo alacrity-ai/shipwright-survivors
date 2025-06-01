@@ -6,29 +6,83 @@ export interface WindowTab {
   onClick: () => void;
 }
 
-export function drawWindow(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  title?: string,
-  tabs?: WindowTab[],
-  mouse?: { x: number; y: number },
-  clicked?: boolean
-): boolean { // Return whether a tab was clicked
-  // === Draw window background ===
-  ctx.fillStyle = '#111';
-  ctx.strokeStyle = '#555';
+export interface DrawWindowOptions {
+  borderRadius?: number;
+  backgroundColor?: string;
+  borderColor?: string;
+  alpha?: number;
+  activeTabColor?: string;
+  backgroundGradient?: {
+    type: 'linear' | 'radial';
+    stops: { offset: number; color: string }[];
+    from?: [number, number]; // default: top-left
+    to?: [number, number];   // default: bottom-right
+    radius?: number;         // for radial
+  };
+}
+
+export interface DrawWindowConfig {
+  ctx: CanvasRenderingContext2D;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  title?: string;
+  tabs?: WindowTab[];
+  mouse?: { x: number; y: number };
+  clicked?: boolean;
+  options?: DrawWindowOptions;
+}
+
+export function drawWindow(config: DrawWindowConfig): boolean {
+  const {
+    ctx, x, y, width, height,
+    title,
+    tabs,
+    mouse,
+    clicked,
+    options = {}
+  } = config;
+
+  const borderRadius = options.borderRadius ?? 8;
+  const backgroundColor = options.backgroundColor ?? '#111';
+  const borderColor = options.borderColor ?? '#555';
+  const alpha = options.alpha ?? 1.0;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  let fillStyle: string | CanvasGradient = backgroundColor;
+
+  if (options.backgroundGradient) {
+    const { type, stops, from = [x, y], to = [x + width, y + height], radius = width / 2 } = options.backgroundGradient;
+
+    const gradient = type === 'linear'
+      ? ctx.createLinearGradient(from[0], from[1], to[0], to[1])
+      : ctx.createRadialGradient(
+          from[0], from[1], 0,
+          from[0], from[1], radius
+        );
+
+    for (const stop of stops) {
+      gradient.addColorStop(stop.offset, stop.color);
+    }
+
+    fillStyle = gradient;
+  }
+
+  ctx.fillStyle = fillStyle;
+
+  ctx.strokeStyle = borderColor;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, 8);
+  ctx.roundRect(x, y, width, height, borderRadius);
   ctx.fill();
   ctx.stroke();
 
   if (title) {
-    ctx.fillStyle = '#ccc';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px monospace';
     ctx.fillText(title, x + 42, y + 16);
   }
 
@@ -38,7 +92,6 @@ export function drawWindow(
     const tabHeight = 24;
     const tabWidth = Math.floor((width - 16) / tabs.length);
 
-    // Loop through all the tabs to determine if one was clicked
     for (let i = 0; i < tabs.length; i++) {
       const tab = tabs[i];
       const tx = x + 8 + i * tabWidth;
@@ -52,25 +105,30 @@ export function drawWindow(
         mouse.y >= ty &&
         mouse.y <= ty + tabHeight;
 
-      // Fire tab click if mouse is clicked
       if (clicked && isHovered) {
-        tabs.forEach(t => t.isActive = false); // Reset all tabs
-        tab.isActive = true; // Set clicked tab as active
+        tabs.forEach(t => t.isActive = false);
+        tab.isActive = true;
         tab.onClick();
         tabWasClicked = true;
       }
 
-      // Render the tab based on its active state
-      ctx.fillStyle = tab.isActive ? '#333' : '#222';
-      ctx.strokeStyle = '#555';
+      // === Tab background: use window fillStyle for inactive; active uses activeTabColor if provided ===
+      ctx.fillStyle = tab.isActive
+        ? options.activeTabColor ?? borderColor
+        : fillStyle;
+
+      ctx.strokeStyle = borderColor;
       ctx.beginPath();
-      ctx.roundRect(tx, ty, tw, tabHeight, [8, 8, 0, 0]);
+      ctx.roundRect(tx, ty, tw, tabHeight, [borderRadius, borderRadius, 0, 0]);
       ctx.fill();
       ctx.stroke();
 
-      // Draw the tab label with active/inactive colors
-      ctx.fillStyle = tab.isActive ? '#fff' : '#aaa';
-      ctx.font = '12px sans-serif';
+      // === Tab label: use borderColor for inactive, activeTabColor for active (fallbacks preserved) ===
+      ctx.fillStyle = tab.isActive
+        ? options.activeTabColor ?? borderColor
+        : borderColor;
+
+      ctx.font = '12px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(tab.label, tx + tw / 2, ty + tabHeight / 2);
@@ -80,5 +138,7 @@ export function drawWindow(
     ctx.textBaseline = 'alphabetic';
   }
 
+
+  ctx.restore();
   return tabWasClicked;
 }

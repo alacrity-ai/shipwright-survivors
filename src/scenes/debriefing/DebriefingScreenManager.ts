@@ -30,6 +30,18 @@ export class DebriefingScreenManager {
         this.stop();
         sceneManager.setScene('hub');
       },
+      style: {
+        borderRadius: 10,
+        alpha: 0.85,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
     };
   }
 
@@ -67,20 +79,29 @@ export class DebriefingScreenManager {
 
     if (!missionResultStore.hasResult()) {
       drawLabel(ctx, 240, 240, 'Error: No mission data available', {
-        font: '20px sans-serif',
+        font: '20px monospace',
         align: 'center',
+        glow: true
       });
       return;
     }
 
     const result = missionResultStore.get();
     let y = 60;
+
     const line = (text: string) => {
-      drawLabel(ctx, 80, y, text, { font: '16px sans-serif' });
-      y += 24;
+      drawLabel(ctx, 80, y, text, {
+        font: '14px monospace',
+        glow: true
+      });
+      y += 22;
     };
 
-    drawLabel(ctx, 240, y, 'Mission Debriefing', { font: '24px sans-serif', align: 'center' });
+    drawLabel(ctx, 240, y, 'Mission Debriefing', {
+      font: '24px monospace',
+      align: 'center',
+      glow: true
+    });
     y += 40;
 
     line(`Mission Outcome: ${result.outcome === 'victory' ? 'Victory' : 'Defeat'}`);
@@ -96,14 +117,6 @@ export class DebriefingScreenManager {
         line(`• ${blockId}`);
       }
     }
-
-    // if (result.bonusObjectives?.length > 0) {
-    //   line('');
-    //   line('Bonus Objectives:');
-    //   for (const obj of result.bonusObjectives) {
-    //     line(`• ${obj}`);
-    //   }
-    // }
 
     drawButton(ctx, this.returnButton);
 

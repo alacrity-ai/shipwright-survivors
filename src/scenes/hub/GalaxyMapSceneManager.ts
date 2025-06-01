@@ -32,6 +32,19 @@ export class GalaxyMapSceneManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
 
+    const crtStyle = {
+      borderRadius: 10,
+      alpha: 0.85,
+      borderColor: '#00ff00',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#002200' },
+          { offset: 1, color: '#001500' }
+        ]
+      }
+    };
+
     this.buttons = [
       {
         x: 120,
@@ -45,6 +58,7 @@ export class GalaxyMapSceneManager {
           this.stop();
           sceneManager.setScene('mission');
         },
+        style: crtStyle
       },
       {
         x: 120,
@@ -58,6 +72,7 @@ export class GalaxyMapSceneManager {
           this.stop();
           sceneManager.setScene('mission');
         },
+        style: crtStyle
       },
       {
         x: 20,
@@ -70,8 +85,10 @@ export class GalaxyMapSceneManager {
           this.stop();
           sceneManager.setScene('hub');
         },
+        style: crtStyle
       }
     ];
+
   }
 
   async start() {
@@ -115,7 +132,14 @@ export class GalaxyMapSceneManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    drawWindow(uiCtx, 100, 400, 440, 130, 'Galaxy Map');
+    drawWindow({
+      ctx: uiCtx,
+      x: 100,
+      y: 400,
+      width: 440,
+      height: 130,
+      title: 'Galaxy Map'
+    });
 
     for (const btn of this.buttons) {
       drawButton(uiCtx, btn);

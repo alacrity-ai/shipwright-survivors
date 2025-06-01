@@ -4,8 +4,6 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 
 import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
-
-import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
@@ -17,18 +15,7 @@ export class TitleScreenManager {
   private inputManager: InputManager;
   private backgroundImage: HTMLImageElement | null = null;
 
-  private button: UIButton = {
-    x: 320,
-    y: 360,
-    width: 160,
-    height: 40,
-    label: 'New Game',
-    isHovered: false,
-    onClick: () => {
-      this.stop();
-      sceneManager.setScene('hub');
-    },
-  };
+  private buttons: UIButton[] = [];
 
   constructor(
     canvasManager: CanvasManager,
@@ -38,6 +25,8 @@ export class TitleScreenManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+
+    this.buttons = this.createButtons();
   }
 
   async start() {
@@ -52,18 +41,79 @@ export class TitleScreenManager {
     this.gameLoop.offRender(this.render);
   }
 
+  private createButtons(): UIButton[] {
+    const baseX = 40;
+    const baseY = 460;
+    const width = 160;
+    const height = 40;
+    const spacing = 10;
+
+    const sharedStyle = {
+      borderRadius: 10,
+      alpha: 1,
+      borderColor: '#00ff00',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#002200' },
+          { offset: 1, color: '#001500' }
+        ]
+      }
+    };
+
+    return [
+      {
+        x: baseX,
+        y: baseY,
+        width,
+        height,
+        label: 'New Game',
+        isHovered: false,
+        onClick: () => {
+          this.stop();
+          sceneManager.setScene('hub');
+        },
+        style: sharedStyle
+      },
+      {
+        x: baseX,
+        y: baseY + height + spacing,
+        width,
+        height,
+        label: 'Load Game',
+        isHovered: false,
+        onClick: () => {
+          console.log('Load Game clicked (not implemented)');
+        },
+        style: sharedStyle
+      },
+      {
+        x: baseX,
+        y: baseY + (height + spacing) * 2,
+        width,
+        height,
+        label: 'Credits',
+        isHovered: false,
+        onClick: () => {
+          console.log('Credits clicked (not implemented)');
+        },
+        style: sharedStyle
+      }
+    ];
+  }
+
   private update = (_dt: number) => {
     this.inputManager.updateFrame();
 
     const { x, y } = this.inputManager.getMousePosition();
-    const { x: bx, y: by, width, height } = this.button;
 
-    this.button.isHovered =
-      x >= bx && x <= bx + width &&
-      y >= by && y <= by + height;
+    for (const button of this.buttons) {
+      const { x: bx, y: by, width, height } = button;
+      button.isHovered = x >= bx && x <= bx + width && y >= by && y <= by + height;
 
-    if (this.inputManager.wasMouseClicked() && this.button.isHovered) {
-      this.button.onClick();
+      if (this.inputManager.wasMouseClicked() && button.isHovered) {
+        button.onClick();
+      }
     }
   };
 
@@ -77,16 +127,13 @@ export class TitleScreenManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    drawLabel(uiCtx, 320, 120, [
-      { text: '🚀 Shipwright Survivors', color: '#ffc600' }
-    ], { font: '32px sans-serif', align: 'center' });
+    for (const button of this.buttons) {
+      drawButton(uiCtx, button);
+    }
 
-    drawButton(uiCtx, this.button);
-  
-    // Draw cursor
     const mouse = this.inputManager.getMousePosition();
     const cursor = getCursorSprite();
-    this.canvasManager.getContext('ui').drawImage(
+    uiCtx.drawImage(
       cursor,
       mouse.x - cursor.width / 2,
       mouse.y - cursor.height / 2

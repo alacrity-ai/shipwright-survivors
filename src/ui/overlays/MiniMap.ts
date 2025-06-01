@@ -25,12 +25,22 @@ export class MiniMap {
     const x = canvasW - this.width - this.margin;
     const y = canvasH - this.height - this.margin;
 
-    // === Background box ===
-    ctx.fillStyle = `rgba(17, 17, 17, ${SETTINGS.MINIMAP_TRANSPARENCY})`; // Apply transparency to the background
-    ctx.strokeStyle = '#666';
+    const borderRadius = 8;
+    const alpha = SETTINGS.MINIMAP_TRANSPARENCY ?? 0.5;
+
+    // === CRT Background Box ===
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    const gradient = ctx.createLinearGradient(x, y, x, y + this.height);
+    gradient.addColorStop(0, '#002200');
+    gradient.addColorStop(1, '#001500');
+
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(x, y, this.width, this.height, 6);
+    ctx.roundRect(x, y, this.width, this.height, borderRadius);
     ctx.fill();
     ctx.stroke();
 
@@ -47,9 +57,6 @@ export class MiniMap {
       };
     };
 
-    // === Set transparency for ships using the value from settings ===
-    ctx.globalAlpha = SETTINGS.MINIMAP_TRANSPARENCY;
-
     // === Draw ships ===
     for (const ship of this.registry.getAll()) {
       const { position } = ship.getTransform();
@@ -58,17 +65,12 @@ export class MiniMap {
       ctx.beginPath();
       ctx.arc(px, py, 3, 0, Math.PI * 2);
 
-      if (ship === this.player) {
-        ctx.fillStyle = '#0f0'; // Green for player
-      } else {
-        ctx.fillStyle = '#f00'; // Red for others
-      }
-
+      ctx.fillStyle = ship === this.player ? '#33ff33' : '#ff4444';
       ctx.fill();
     }
 
-    // === Border or crosshair (optional) ===
-    ctx.strokeStyle = '#444';
+    // === CRT-style Crosshairs ===
+    ctx.strokeStyle = '#00ff00';
     ctx.beginPath();
     ctx.moveTo(x + this.width / 2, y);
     ctx.lineTo(x + this.width / 2, y + this.height);
@@ -76,7 +78,6 @@ export class MiniMap {
     ctx.lineTo(x + this.width, y + this.height / 2);
     ctx.stroke();
 
-    // Reset globalAlpha to default for other UI elements
-    ctx.globalAlpha = 1.0;
+    ctx.restore(); // Reset alpha, fill, stroke
   }
 }

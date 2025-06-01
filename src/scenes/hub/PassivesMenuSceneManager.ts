@@ -29,6 +29,19 @@ export class PassivesMenuSceneManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
 
+    const crtStyle = {
+      borderRadius: 10,
+      alpha: 0.85,
+      borderColor: '#00ff00',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#002200' },
+          { offset: 1, color: '#001500' }
+        ]
+      }
+    };
+
     this.buttons = [
       {
         x: 20,
@@ -41,6 +54,7 @@ export class PassivesMenuSceneManager {
           this.stop();
           sceneManager.setScene('hub');
         },
+        style: crtStyle
       }
     ];
   }
@@ -86,7 +100,25 @@ export class PassivesMenuSceneManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    drawWindow(uiCtx, 100, 420, 440, 130, 'Passives Menu');
+    drawWindow({
+      ctx: uiCtx,
+      x: 275,
+      y: 98,
+      width: 885,
+      height: 542,
+      options: {
+        alpha: 0.9,
+        borderRadius: 60,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
 
     for (const btn of this.buttons) {
       drawButton(uiCtx, btn);

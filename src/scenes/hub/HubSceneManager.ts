@@ -5,14 +5,14 @@ import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 
-import { getCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
 const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
 
 const INTERACTION_ZONES = {
-  terminal: { x: 50, y: 280, width: 320, height: 360 },
+  terminal: { x: 50, y: 280, width: 300, height: 360 },
   map: { x: 440, y: 160, width: 490, height: 380 },
   breakroom: { x: 970, y: 230, width: 230, height: 300 },
 };
@@ -22,6 +22,8 @@ export class HubSceneManager {
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private backgroundImage: HTMLImageElement | null = null;
+
+  private isHoveringInteraction = false;
 
   private quitButton: UIButton;
 
@@ -45,6 +47,18 @@ export class HubSceneManager {
         this.stop();
         sceneManager.setScene('title');
       },
+      style: {
+        borderRadius: 10,
+        alpha: 0.85,
+        borderColor: '#00ff00',
+        backgroundGradient: {
+          type: 'linear' as const,
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
     };
   }
 
@@ -70,7 +84,13 @@ export class HubSceneManager {
       m.x >= zone.x && m.x <= zone.x + zone.width &&
       m.y >= zone.y && m.y <= zone.y + zone.height;
 
-    // Handle scene changes via click zones
+    // Detect hovering over any interaction zone
+    this.isHoveringInteraction =
+      inZone(INTERACTION_ZONES.terminal) ||
+      inZone(INTERACTION_ZONES.map) ||
+      inZone(INTERACTION_ZONES.breakroom);
+
+    // Handle scene changes via click
     if (clicked) {
       if (inZone(INTERACTION_ZONES.terminal)) {
         this.stop();
@@ -87,7 +107,7 @@ export class HubSceneManager {
       }
     }
 
-    // Update hover state for quit button
+    // Handle quit button hover/click
     const { x, y, width, height } = this.quitButton;
     this.quitButton.isHovered =
       m.x >= x && m.x <= x + width && m.y >= y && m.y <= y + height;
@@ -109,10 +129,12 @@ export class HubSceneManager {
     }
 
     drawButton(uiCtx, this.quitButton);
+    // this.drawInteractionZones(uiCtx);
 
-    this.drawInteractionZones(uiCtx);
+    const cursor = this.isHoveringInteraction
+      ? getHoveredCursorSprite()
+      : getCursorSprite();
 
-    const cursor = getCursorSprite();
     uiCtx.drawImage(cursor, m.x - cursor.width / 2, m.y - cursor.height / 2);
   };
 

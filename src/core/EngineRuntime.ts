@@ -9,7 +9,6 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
-import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
@@ -19,7 +18,7 @@ import { MiniMap } from '@/ui/overlays/MiniMap';
 
 import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
 import { MultiShipRenderer } from '@/rendering/MultiShipRenderer';
-import { UIRenderer } from '@/rendering/UIRenderer';
+import { CursorRenderer } from '@/rendering/CursorRenderer';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
@@ -65,7 +64,6 @@ export class EngineRuntime {
   private readonly boundUpdate = (dt: number) => this.update(dt);
   private readonly boundRender = (dt: number) => this.render(dt);
 
-  private menuManager = new MenuManager();
   private inputManager: InputManager;
   private shipBuilderMenu: ShipBuilderMenu
   private pauseMenu: PauseMenu;
@@ -89,7 +87,7 @@ export class EngineRuntime {
   private particleManager: ParticleManager;
   private background: BackgroundRenderer;
   private multiShipRenderer: MultiShipRenderer;
-  private uiRenderer: UIRenderer;
+  private cursorRenderer: CursorRenderer;
   private waveSpawner: WaveSpawner;
   private wavesOverlay: WavesOverlay;
   private debugOverlay: DebugOverlay;
@@ -110,12 +108,11 @@ export class EngineRuntime {
   private isDestroyed = false;
 
   constructor() {
-    console.log('ENGINE RUNTIME INSTANTIATED')
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.gameLoop = new GameLoop();
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager);
-    this.pauseMenu = new PauseMenu(this.menuManager, this.inputManager);
+    this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this));
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
@@ -153,7 +150,7 @@ export class EngineRuntime {
       this.explosionSystem,
       pickupSpawner,
       this.shipRegistry,
-      this.aiOrchestrator
+      this.aiOrchestrator,
     );
 
     const combatService = new CombatService(
@@ -182,7 +179,7 @@ export class EngineRuntime {
     // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
     this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
-    this.uiRenderer = new UIRenderer(this.canvasManager, this.menuManager, this.inputManager);
+    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
 
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
@@ -227,6 +224,9 @@ export class EngineRuntime {
       this.explosionSystem
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
+    destructionService.onShipDestroyed((ship, _cause) => {
+      this.waveSpawner.notifyShipDestruction(ship);
+    });
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
 
     // Debug overlay
@@ -263,7 +263,6 @@ export class EngineRuntime {
           }
         }
       },
-      this.menuManager,
       this.background,
     ];
 
@@ -273,7 +272,6 @@ export class EngineRuntime {
       this.pickupSystem,
       this.particleManager,
       this.multiShipRenderer,
-      this.uiRenderer,
       this.hud,
       this.miniMap,
       this.explosionSystem,
@@ -296,19 +294,27 @@ export class EngineRuntime {
 
     // Toggle the ship builder menu with Tab
     if (this.inputManager.wasKeyJustPressed('Tab')) {
-      if (this.menuManager.isMenuOpen()) {
-        this.menuManager.close();
+      if (!this.shipBuilderMenu.isOpen()) {
+        this.shipBuilderMenu.openMenu();
       } else {
-        this.menuManager.open(this.shipBuilderMenu);
+        this.shipBuilderMenu.closeMenu();
       }
     }
 
     if (this.inputManager.wasKeyJustPressed('Escape')) {
-      if (!this.menuManager.isBlocking()) {
-        this.menuManager.open(this.pauseMenu);
+      if (!this.pauseMenu.isOpen()) {
+        this.pauseMenu.openMenu();
       } else {
-        this.menuManager.close();
+        this.pauseMenu.closeMenu();
       }
+    }
+
+    if (this.pauseMenu.isOpen()) {
+      this.pauseMenu.update();
+    }
+
+    if (this.shipBuilderMenu.isOpen()) {
+      this.shipBuilderMenu.update();
     }
 
     // Debug keys 
@@ -341,7 +347,7 @@ export class EngineRuntime {
       const transform = this.ship.getTransform();
       this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
       this.camera.follow(transform.position);
-      if (this.menuManager.isMenuOpen() && this.shipBuilderMenu.isOpen()) {
+      if (this.shipBuilderMenu.isOpen()) {
           this.shipBuilderController.update(transform);
       }
     } catch (error) {
@@ -351,7 +357,7 @@ export class EngineRuntime {
     // Always update the RepairEffectSystem
     this.repairEffectSystem.update(dt);
 
-    if (!this.menuManager.isBlocking()) {
+    if (!this.shipBuilderMenu.isOpen() && !this.pauseMenu.isOpen()) {
       this.updatables.forEach(system => system.update(dt));
     }
 
@@ -365,29 +371,44 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('entities');
     this.canvasManager.clearLayer('fx');
     this.canvasManager.clearLayer('particles');
+    this.canvasManager.clearLayer('ui');
+    this.canvasManager.clearLayer('overlay');
 
     this.renderables.forEach(system => system.render(dt));
 
     // Always render the repair effect system
     this.repairEffectSystem.render();
 
-    if (this.menuManager.isMenuOpen() && this.shipBuilderMenu.isOpen()) {
+    if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);
+      this.shipBuilderMenu.render(this.canvasManager.getContext('ui'));
     }
+
+    if (this.pauseMenu.isOpen()) {
+      this.pauseMenu.render(this.canvasManager.getContext('ui'));
+    }
+
+    this.cursorRenderer.render();
   };
 
   public start() {
     this.gameLoop.start();
   }
 
-  public handlePlayerVictory(): void {
-    console.log("Player victorious — transitioning to debriefing screen.");
-    missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
-    this.destroy();
-    sceneManager.setScene('debriefing');
+  public handlePlayerVictory(timeoutMs: number = 10_000): void {
+    console.log("Player victorious — debriefing will begin in 10 seconds...");
+
+    // Optional: trigger victory effects here (e.g. music, overlay)
+    // victoryEffectManager.play(); // hypothetical example
+
+    setTimeout(() => {
+      missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
+      this.destroy();
+      sceneManager.setScene('debriefing');
+    }, timeoutMs);
   }
 
-  public handlePlayerDeath(): void {
+  public handlePlayerFailure(): void {
     console.log("Player defeated — transitioning to debriefing screen.");
     missionResultStore.finalize('defeat', this.gameLoop.getElapsedSeconds());
     this.destroy();
@@ -415,7 +436,6 @@ export class EngineRuntime {
     // missionResultStore.clear();
 
     // Optional: clear UI menus, overlays
-    this.menuManager.clear();  // Implement if needed
     this.hud.destroy();          // Optional
 
     // // Clear rendering and update lists
