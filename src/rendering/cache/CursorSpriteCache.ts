@@ -1,3 +1,5 @@
+// src/rendering/cache/CursorSpriteCache.ts
+
 const cursorSprite: HTMLCanvasElement = document.createElement('canvas');
 cursorSprite.width = 16;
 cursorSprite.height = 16;

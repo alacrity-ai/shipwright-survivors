@@ -66,7 +66,7 @@ export class EngineRuntime {
   private readonly boundRender = (dt: number) => this.render(dt);
 
   private menuManager = new MenuManager();
-  private inputManager = new InputManager();
+  private inputManager: InputManager;
   private shipBuilderMenu: ShipBuilderMenu
   private pauseMenu: PauseMenu;
   private hud: HudOverlay;
@@ -112,7 +112,7 @@ export class EngineRuntime {
   constructor() {
     console.log('ENGINE RUNTIME INSTANTIATED')
     this.canvasManager = new CanvasManager();
-    
+    this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.gameLoop = new GameLoop();
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager);
     this.pauseMenu = new PauseMenu(this.menuManager, this.inputManager);
@@ -412,7 +412,7 @@ export class EngineRuntime {
     PlayerTechnologyManager.getInstance().destroy();
 
     // Clear mission results
-    missionResultStore.clear();
+    // missionResultStore.clear();
 
     // Optional: clear UI menus, overlays
     this.menuManager.clear();  // Implement if needed

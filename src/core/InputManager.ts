@@ -1,3 +1,5 @@
+// src/core/InputManager.ts
+
 type KeyState = { pressed: boolean };
 type MouseState = {
   x: number;
@@ -22,9 +24,24 @@ export class InputManager {
   private scrollDownDetected = false;
   private initialized = false;
 
-  constructor() {
+  constructor(private canvasElement: HTMLCanvasElement) {
     this.initialize();
   }
+
+  public getMousePosition(): { x: number; y: number } {
+    return { x: this.mouseState.x, y: this.mouseState.y };
+  }
+
+  private mouseMoveHandler = (e: MouseEvent) => {
+    const target = e.target as HTMLCanvasElement;
+    const rect = target.getBoundingClientRect();
+
+    const scaleX = target.width / rect.width;
+    const scaleY = target.height / rect.height;
+
+    this.mouseState.x = (e.clientX - rect.left) * scaleX;
+    this.mouseState.y = (e.clientY - rect.top) * scaleY;
+  };
 
   // === Lifecycle ===
   public initialize(): void {
@@ -35,7 +52,8 @@ export class InputManager {
     window.addEventListener('keyup', this.keyUpHandler);
     window.addEventListener('mousedown', this.mouseDownHandler);
     window.addEventListener('mouseup', this.mouseUpHandler);
-    window.addEventListener('mousemove', this.mouseMoveHandler);
+    // window.addEventListener('mousemove', this.mouseMoveHandler);
+    this.canvasElement.addEventListener('mousemove', this.mouseMoveHandler);
     window.addEventListener('wheel', this.wheelHandler);
     window.addEventListener('contextmenu', this.contextMenuHandler);
   }
@@ -48,7 +66,8 @@ export class InputManager {
     window.removeEventListener('keyup', this.keyUpHandler);
     window.removeEventListener('mousedown', this.mouseDownHandler);
     window.removeEventListener('mouseup', this.mouseUpHandler);
-    window.removeEventListener('mousemove', this.mouseMoveHandler);
+    // window.removeEventListener('mousemove', this.mouseMoveHandler);
+    this.canvasElement.removeEventListener('mousemove', this.mouseMoveHandler);
     window.removeEventListener('wheel', this.wheelHandler);
     window.removeEventListener('contextmenu', this.contextMenuHandler);
   }
@@ -92,10 +111,6 @@ export class InputManager {
 
   public wasKeyJustPressed(code: string): boolean {
     return this.justPressedKeys.has(code);
-  }
-
-  public getMousePosition(): { x: number; y: number } {
-    return { x: this.mouseState.x, y: this.mouseState.y };
   }
 
   public wasMouseClicked(): boolean {
@@ -169,10 +184,10 @@ export class InputManager {
     if (e.button === 2) this.mouseState.rightDown = false;
   };
 
-  private mouseMoveHandler = (e: MouseEvent) => {
-    this.mouseState.x = e.clientX;
-    this.mouseState.y = e.clientY;
-  };
+  // private mouseMoveHandler = (e: MouseEvent) => {
+  //   this.mouseState.x = e.clientX;
+  //   this.mouseState.y = e.clientY;
+  // };
 
   private wheelHandler = (e: WheelEvent) => {
     const delta = Math.sign(e.deltaY);

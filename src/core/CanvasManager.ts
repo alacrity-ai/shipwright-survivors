@@ -25,10 +25,18 @@ export class CanvasManager {
   }
 
   private initializeCanvases() {
+    console.log('Initializing Canvases...');
     for (const layer of Object.keys(LAYER_IDS) as CanvasLayer[]) {
+      console.log(`Initializing ${layer} canvas...`);
       const id = LAYER_IDS[layer];
-      const canvas = document.getElementById(id) as HTMLCanvasElement;
-      if (!canvas) throw new Error(`Canvas element with ID "${id}" not found`);
+      const canvas = document.getElementById(id) as HTMLCanvasElement | null;
+
+      if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+        throw new Error(
+          `CanvasManager error: element with ID "${id}" not found. Ensure canvases are in the DOM before sceneManager.setScene(...)`
+        );
+      }
+
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error(`2D context not supported for "${id}"`);
 
@@ -38,6 +46,7 @@ export class CanvasManager {
 
       this.canvases[layer] = canvas;
       this.contexts[layer] = ctx;
+      console.log(`Initialized ${layer} canvas.`);
     }
   }
 
