@@ -24,7 +24,7 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Whoa there! You're awake!",
+        text: "Greetings, Shipwright Second Class. Assessing pilot consciousness status...",
       },
       {
         type: 'pause',
@@ -33,7 +33,12 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
       {
         type: 'line',
         speakerId: 'carl',
-        text: "I'm going to turn on your control system. One second...",
+        text: "Neural activity meets minimum viable contractor threshold. Initiating pre-flight checks.",
+      },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Activating Engine Systems. Please remain stationary until accidents are formally authorized.",
       },
       {
         type: 'command',
@@ -43,12 +48,12 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
       },
       {
         type: 'pause',
-        durationMs: 1000,
+        durationMs: 500,
       },
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Okay, the helm should be responsive! Try using W, A, S, or D.',
+        text: 'Thruster interface enabled. W, A, S, D keys mapped—pending your keyboard competency certification.',
       },
       {
         type: 'command',
@@ -79,12 +84,17 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Good! Now let's verify you still remember how to use your weapons.",
+        text: "Mobility nominal. Unexpectedly, your motor cortex appears to be functional.",
       },
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Try aiming with the mouse, and firing with the Left mouse button...",
+        text: "Firing vector locked. Wiggle the mouse—yes, the rodent-shaped input relic—to express hostility.",
+      },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Please Left-click to discharge kinetic discouragement...",
       },
       {
         type: 'command',
@@ -104,12 +114,17 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Excellent! I'm detecting potential reclaimants entering the area.",
+        text: "Weapon discharge successful. No signs of sabotage by operator. Unexpected.",
       },
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Track them down and reclaim their assets.",
+        text: "Telemetry indicates unidentified salvage targets approaching. Classification: 'reclaimable liability clusters'.",
+      },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Standard procedure: convert threats into revenue. Failure to do so may impact your survivability rating.",
       },
       {
         type: 'command',

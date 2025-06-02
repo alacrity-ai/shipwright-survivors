@@ -123,8 +123,9 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Load Game
   - [ ] Credits
 - [ ] Story/dialogue/characters
-  - [ ] Basic Implementation of Dialogue in Hub
-  - [ ] Basic Implementation of Dialogue in Mission
+  - [x] Basic Implementation of Dialogue in Hub
+  - [x] Basic Implementation of Dialogue in Mission
+  - [ ] In Hub, have characters slide-in from the left, and slide back out after dialogue
   - [ ] Full script / Stories / Sound
 - [x] Boss encounters
 - [ ] Environmental Events

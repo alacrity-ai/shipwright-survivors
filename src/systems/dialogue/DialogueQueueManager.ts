@@ -8,8 +8,10 @@ const POST_LINE_DELAY_MS = 500;
 
 const INPERSON_TEXTBOXRECT = { x: 320, y: 120, width: 520, height: 100 };
 const INPERSON_PORTRAIT_POSITION = { x: 80, y: 420 };
-const TRANSMISSION_TEXTBOXRECT = { x: 180, y: 20, width: 440, height: 100 };
+const TRANSMISSION_TEXTBOXRECT = { x: 180, y: 20, width: 500, height: 120 };
 const TRANSMISSION_PORTRAIT_POSITION = { x: 20, y: 20 };
+const INPERSON_FONT = '24px monospace';
+const TRANSMISSION_FONT = '20px monospace';
 
 export class DialogueQueueManager {
   private currentScript: DialogueScript | null = null;
@@ -54,7 +56,7 @@ export class DialogueQueueManager {
           speakerId: event.speakerId,
           text: event.text,
           textColor: event.options?.textColor,
-          font: event.options?.font,
+          font: event.options?.font ?? (lineMode === 'inPerson' ? INPERSON_FONT : TRANSMISSION_FONT),
           textBoxRect: lineMode === 'inPerson' ? INPERSON_TEXTBOXRECT : TRANSMISSION_TEXTBOXRECT,
           position: lineMode === 'inPerson' ? INPERSON_PORTRAIT_POSITION : TRANSMISSION_PORTRAIT_POSITION,
           mode: lineMode,
