@@ -14,7 +14,7 @@ export class DialogueOrchestratorFactory {
       new PortraitRenderer(),
       new TextboxRenderer(),
       new RollingTextRenderer(),
-      new BlipAudioSynchronizer((file, options) => audioManager.play(file, options)),
+      new BlipAudioSynchronizer((file, options) => audioManager.play(file, 'dialogue', options)),
       speakerVoiceRegistry
     );
   }

@@ -43,7 +43,7 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
       {
         type: 'command',
         run: () => {
-          audioManager.play('assets/sounds/sfx/power_on.wav');
+          audioManager.play('assets/sounds/sfx/power_on.wav', 'sfx');
         },
       },
       {
@@ -67,10 +67,10 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
               if (
-                inputManager.wasKeyJustPressed('KeyW') ||
-                inputManager.wasKeyJustPressed('KeyA') ||
-                inputManager.wasKeyJustPressed('KeyS') ||
-                inputManager.wasKeyJustPressed('KeyD')
+                inputManager.isKeyPressed('KeyW') ||
+                inputManager.isKeyPressed('KeyA') ||
+                inputManager.isKeyPressed('KeyS') ||
+                inputManager.isKeyPressed('KeyD')
               ) {
                 resolve();
               } else {
@@ -101,7 +101,7 @@ export function createIntroBriefingScript(inputManager: InputManager): DialogueS
         run: () => {
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
-              if (inputManager.wasMouseClicked()) {
+              if (inputManager.isMouseLeftPressed()) {
                 resolve();
               } else {
                 requestAnimationFrame(waitForInput);

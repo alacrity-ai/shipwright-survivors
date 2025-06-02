@@ -13,6 +13,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       backgroundId: 'background_4_00.png',
       gravity: 0,
     },
+    music: {
+      file: 'assets/sounds/music/track_02_mission1.mp3'
+    },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 2
   },

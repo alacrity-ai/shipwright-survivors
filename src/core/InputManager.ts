@@ -162,6 +162,14 @@ export class InputManager {
     return this.isKeyPressed('Escape');
   }
 
+  public isMouseLeftPressed(): boolean {
+    return this.isKeyPressed('MouseLeft');
+  }
+
+  public isMouseRightPressed(): boolean {
+    return this.isKeyPressed('MouseRight');
+  }
+
   public isTabPressed(): boolean {
     return this.isKeyPressed('Tab');
   }

@@ -4,6 +4,7 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
+import { audioManager } from '@/audio/Audio';
 
 import { getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
@@ -68,6 +69,7 @@ export class HubSceneManager {
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
+    audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
   }
 
   stop() {

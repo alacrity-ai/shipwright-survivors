@@ -17,7 +17,7 @@ export class RollingTextRenderer {
     this.revealedCharCount = 0;
     this.elapsed = 0;
 
-    this.charDelay = 0.075; // could be adjusted per speaker or line.mode
+    this.charDelay = line.textSpeed ?? this.charDelay;
   }
 
   public update(dt: number): void {

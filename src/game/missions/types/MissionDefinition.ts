@@ -1,6 +1,7 @@
 // src/game/missions/MissionDefinition.ts
 
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
+import type { MusicTrack } from '@/audio/AudioManager';
 
 export interface MissionDefinition {
   id: string;
@@ -13,4 +14,5 @@ export interface MissionDefinition {
   };
   bonusObjectives?: string[];
   passiveReward?: number;
+  music?: MusicTrack;
 }

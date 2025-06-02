@@ -3,6 +3,7 @@
 import type { DialogueScript } from './interfaces/DialogueScript';
 
 import { DialogueOrchestrator } from './DialogueOrchestrator';
+import { speakerVoiceRegistry } from './registry/SpeakerVoiceRegistry';
 
 const POST_LINE_DELAY_MS = 500;
 
@@ -60,6 +61,7 @@ export class DialogueQueueManager {
           textBoxRect: lineMode === 'inPerson' ? INPERSON_TEXTBOXRECT : TRANSMISSION_TEXTBOXRECT,
           position: lineMode === 'inPerson' ? INPERSON_PORTRAIT_POSITION : TRANSMISSION_PORTRAIT_POSITION,
           mode: lineMode,
+          textSpeed: speakerVoiceRegistry.getProfile(event.speakerId)?.textSpeed,
         });
 
         return; // Prevents fall-through to next event (e.g. command)

@@ -15,7 +15,7 @@ export class SpeakerVoiceRegistry {
       portrait: this.loadImage('assets/characters/character_marla-thinx.png'),
       blipAudioFile: 'assets/sounds/bleeps/girl_ah.wav',
       basePitch: 1.2,
-      pitchVariance: 0.1,
+      pitchVariance: 0.3,
       syllableDuration: 120,
       portraitOffset: { x: -100, y: -200 },
     });
@@ -33,6 +33,9 @@ export class SpeakerVoiceRegistry {
       id: 'carl',
       portrait: this.loadImage('assets/characters/character_carl.png'),
       blipAudioFile: 'assets/sounds/bleeps/man_ah.wav',
+      textSpeed: 0.04,
+      pitchVariance: 0.5,
+      syllableDuration: 100,
       basePitch: 0.95,
     });
 

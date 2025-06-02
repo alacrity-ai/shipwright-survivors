@@ -6,6 +6,7 @@ export interface SpeakerVoiceProfile {
   blipAudioFile: string; // e.g. assets/sounds/bleeps/girl_ah.wav
   basePitch: number;
   pitchVariance?: number;
+  textSpeed?: number;
   syllableDuration?: number;
   portraitOffset?: { x: number; y: number };
   transmissionStyle?: boolean;

@@ -10,4 +10,5 @@ export interface DialogueLine {
   textBoxRect: { x: number; y: number; width: number; height: number };
   textColor?: string;
   font?: string;
+  textSpeed?: number;
 }
