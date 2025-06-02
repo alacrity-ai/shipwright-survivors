@@ -38,7 +38,7 @@ export class ShipFactory {
   public async createShip(
     jsonName: string,
     x: number,
-    y: number
+    y: number,
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
@@ -51,9 +51,9 @@ export class ShipFactory {
     const emitter = new ThrusterEmitter(this.particleManager);
     const movement = new MovementSystem(ship, emitter);
     const weapons = new WeaponSystem(
-      new TurretBackend(this.projectileSystem),
+      new TurretBackend(this.projectileSystem, this.playerShip),
       new LaserBackend(this.laserSystem),
-      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem)
+      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.playerShip)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 

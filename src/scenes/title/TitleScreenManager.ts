@@ -4,10 +4,13 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
+import { audioManager } from '@/audio/Audio';
 
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
+import { missionRegistry } from '@/game/missions/MissionRegistry';
+import { missionLoader } from '@/game/missions/MissionLoader';
 
 const TITLE_IMAGE_PATH = 'assets/title_screen.png';
 
@@ -73,8 +76,10 @@ export class TitleScreenManager {
         label: 'New Game',
         isHovered: false,
         onClick: () => {
+          audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx');
           this.stop();
-          sceneManager.fadeToScene('hub');
+          missionLoader.setMission(missionRegistry['mission_001']);
+          sceneManager.fadeToScene('mission');
         },
         style: sharedStyle
       },

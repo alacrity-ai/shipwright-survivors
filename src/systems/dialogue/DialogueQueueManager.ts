@@ -9,9 +9,12 @@ const POST_LINE_DELAY_MS = 500;
 
 const INPERSON_TEXTBOXRECT = { x: 320, y: 120, width: 520, height: 100 };
 const INPERSON_PORTRAIT_POSITION = { x: 80, y: 420 };
-const TRANSMISSION_TEXTBOXRECT = { x: 180, y: 20, width: 500, height: 120 };
-const TRANSMISSION_PORTRAIT_POSITION = { x: 20, y: 20 };
 const INPERSON_FONT = '24px monospace';
+
+const TRANSMISSION_TEXTBOXRECT = { x: 180, y: 20, width: 500, height: 120 };
+const TRANSMISSION_TEXTBOXRECT_RIGHT = { x: 590, y: 20, width: 500, height: 120 };
+const TRANSMISSION_PORTRAIT_POSITION_RIGHT = { x: 1130, y: 20 };
+const TRANSMISSION_PORTRAIT_POSITION = { x: 20, y: 20 };
 const TRANSMISSION_FONT = '20px monospace';
 
 export class DialogueQueueManager {
@@ -52,19 +55,35 @@ export class DialogueQueueManager {
 
         const defaultMode = this.currentScript.defaultMode ?? 'inPerson';
         const lineMode = event.options?.mode ?? defaultMode;
+        const side = event.options?.side ?? 'left';
+
+        const isInPerson = lineMode === 'inPerson';
+        const isRightSide = side === 'right';
+
+        const textBoxRect = isInPerson
+          ? INPERSON_TEXTBOXRECT
+          : isRightSide
+            ? TRANSMISSION_TEXTBOXRECT_RIGHT
+            : TRANSMISSION_TEXTBOXRECT;
+
+        const position = isInPerson
+          ? INPERSON_PORTRAIT_POSITION
+          : isRightSide
+            ? TRANSMISSION_PORTRAIT_POSITION_RIGHT
+            : TRANSMISSION_PORTRAIT_POSITION;
 
         this.orchestrator.startDialogue({
           speakerId: event.speakerId,
           text: event.text,
           textColor: event.options?.textColor,
-          font: event.options?.font ?? (lineMode === 'inPerson' ? INPERSON_FONT : TRANSMISSION_FONT),
-          textBoxRect: lineMode === 'inPerson' ? INPERSON_TEXTBOXRECT : TRANSMISSION_TEXTBOXRECT,
-          position: lineMode === 'inPerson' ? INPERSON_PORTRAIT_POSITION : TRANSMISSION_PORTRAIT_POSITION,
+          font: event.options?.font ?? (isInPerson ? INPERSON_FONT : TRANSMISSION_FONT),
+          textBoxRect,
+          position,
           mode: lineMode,
           textSpeed: speakerVoiceRegistry.getProfile(event.speakerId)?.textSpeed,
         });
 
-        return; // Prevents fall-through to next event (e.g. command)
+        return;
       }
 
       case 'pause': {
@@ -84,6 +103,24 @@ export class DialogueQueueManager {
         } else {
           this.isBlocked = false;
         }
+        return;
+      }
+
+      case 'hideUI': {
+        this.orchestrator.setVisualsVisible(false);
+        this.advance(); // immediately move to next event
+        return;
+      }
+
+      case 'showUI': {
+        this.orchestrator.setVisualsVisible(true);
+        this.advance(); // immediately move to next event
+        return;
+      }
+
+      default: {
+        console.warn(`Unknown dialogue event type: ${(event as any).type}`);
+        this.advance();
         return;
       }
     }

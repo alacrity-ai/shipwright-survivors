@@ -12,7 +12,11 @@ export class InputManager {
   private keyState: Record<string, KeyState> = {};
   private prevKeyState: Record<string, boolean> = {};
   private justPressedKeys: Set<string> = new Set();
+  private justReleasedKeys: Set<string> = new Set();
+  private disabledKeys: Set<string> = new Set();
   private inputDisabled = false;
+
+  private mouseMoved = false;
 
   private mouseState: MouseState = {
     x: 0,
@@ -48,8 +52,15 @@ export class InputManager {
     const scaleX = target.width / rect.width;
     const scaleY = target.height / rect.height;
 
-    this.mouseState.x = (e.clientX - rect.left) * scaleX;
-    this.mouseState.y = (e.clientY - rect.top) * scaleY;
+    const newX = (e.clientX - rect.left) * scaleX;
+    const newY = (e.clientY - rect.top) * scaleY;
+
+    if (newX !== this.mouseState.x || newY !== this.mouseState.y) {
+      this.mouseMoved = true;
+    }
+
+    this.mouseState.x = newX;
+    this.mouseState.y = newY;
   };
 
   // === Lifecycle ===
@@ -83,21 +94,34 @@ export class InputManager {
 
   // === Input Update ===
   public updateFrame(): void {
+    this.mouseMoved = false;
     this.justPressedKeys.clear();
+    this.justReleasedKeys.clear();
     this.scrollUpDetected = false;
     this.scrollDownDetected = false;
 
+    // === Mouse buttons ===
     if (!this.prevKeyState['MouseLeft'] && this.mouseState.leftDown) {
       this.justPressedKeys.add('MouseLeft');
     }
+    if (this.prevKeyState['MouseLeft'] && !this.mouseState.leftDown) {
+      this.justReleasedKeys.add('MouseLeft');
+    }
+
     if (!this.prevKeyState['MouseRight'] && this.mouseState.rightDown) {
       this.justPressedKeys.add('MouseRight');
+    }
+    if (this.prevKeyState['MouseRight'] && !this.mouseState.rightDown) {
+      this.justReleasedKeys.add('MouseRight');
     }
 
     this.prevKeyState['MouseLeft'] = this.mouseState.leftDown;
     this.prevKeyState['MouseRight'] = this.mouseState.rightDown;
 
+    // === Keyboard keys ===
     for (const code in this.keyState) {
+      if (this.disabledKeys.has(code)) continue;
+
       const current = this.keyState[code]?.pressed ?? false;
       const previous = this.prevKeyState[code] ?? false;
 
@@ -105,13 +129,29 @@ export class InputManager {
         this.justPressedKeys.add(code);
       }
 
+      if (previous && !current) {
+        this.justReleasedKeys.add(code);
+      }
+
       this.prevKeyState[code] = current;
     }
   }
 
+  public disableKey(code: string): void {
+    this.disabledKeys.add(code);
+  }
+
+  public enableKey(code: string): void {
+    this.disabledKeys.delete(code);
+  }
+
+  public enableAllKeys(): void {
+    this.disabledKeys.clear();
+  }
+
   // === Accessors ===
   public isKeyPressed(code: string): boolean {
-    if (this.inputDisabled) return false;
+    if (this.inputDisabled || this.disabledKeys.has(code)) return false;
     return code === 'MouseLeft'
       ? this.mouseState.leftDown
       : code === 'MouseRight'
@@ -120,8 +160,13 @@ export class InputManager {
   }
 
   public wasKeyJustPressed(code: string): boolean {
-    if (this.inputDisabled) return false;
+    if (this.inputDisabled || this.disabledKeys.has(code)) return false;
     return this.justPressedKeys.has(code);
+  }
+
+  public wasKeyJustReleased(code: string): boolean {
+    if (this.inputDisabled || this.disabledKeys.has(code)) return false;
+    return this.justReleasedKeys.has(code);
   }
 
   public wasMouseClicked(): boolean {
@@ -132,6 +177,11 @@ export class InputManager {
   public wasRightClicked(): boolean {
     if (this.inputDisabled) return false;
     return this.wasKeyJustPressed('MouseRight');
+  }
+
+  public wasMouseMoved(): boolean {
+    if (this.inputDisabled) return false;
+    return this.mouseMoved;
   }
 
   public wasScrollWheelUp(): boolean {

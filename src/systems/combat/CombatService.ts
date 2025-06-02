@@ -8,6 +8,8 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { ShipDestructionService } from '@/game/ship/ShipDestructionService';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
+import { audioManager } from '@/audio/Audio';
+import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 export class CombatService {
   constructor(
@@ -21,7 +23,8 @@ export class CombatService {
     block: BlockInstance,
     coord: GridCoord,
     damage: number,
-    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'scripted' = 'scripted'
+    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'scripted' = 'scripted',
+    playerShip: Ship
   ): boolean {
     // === Attempt shield absorption ===
     if (block.isShielded) {
@@ -57,6 +60,16 @@ export class CombatService {
       );
     }
 
+    // Play ship hit sound
+    playSpatialSfx(ship, playerShip, {
+      file: 'assets/sounds/sfx/explosions/hit_00.wav',
+      channel: 'sfx',
+      baseVolume: 0.25,
+      pitchRange: [0.2, 0.4],
+      volumeJitter: 0.1,
+      maxSimultaneous: 3,
+    });
+
     if (block.hp > 0) return false;
 
     const isCockpit = block.type.id.startsWith('cockpit');
@@ -71,11 +84,30 @@ export class CombatService {
       DEFAULT_EXPLOSION_SPARK_PALETTE
     );
 
+    // Play block destruction sound
+    playSpatialSfx(ship, playerShip, {
+      file: 'assets/sounds/sfx/explosions/explosion_00.wav',
+      channel: 'sfx',
+      baseVolume: 1.0,
+      pitchRange: [0.7, 1.0],
+      volumeJitter: 0.2,
+      maxSimultaneous: 3,
+    });
+
+
     this.pickupSpawner.spawnPickupOnBlockDestruction(block);
     ship.removeBlock(coord);
 
+    // Handle ship destruction
     if (isCockpit) {
       this.destructionService.destroyShip(ship, cause);
+      playSpatialSfx(ship, playerShip, {
+        file: 'assets/sounds/sfx/explosions/explosion_01.wav',
+        channel: 'sfx',
+        baseVolume: 0.8,
+        pitchRange: [0.7, 1.0],
+        volumeJitter: 0.2,
+      });
       return true;
     }
 

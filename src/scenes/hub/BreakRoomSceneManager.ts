@@ -71,7 +71,7 @@ export class BreakroomSceneManager {
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
 
     if (!flags.has('breakroom.marla-greeting.complete')) {
-      const script = getDialogueScript('marla-greeting', this.inputManager);
+      const script = getDialogueScript('marla-greeting', {});
       if (script) {
         this.dialogueQueueManager.startScript(script);
       }

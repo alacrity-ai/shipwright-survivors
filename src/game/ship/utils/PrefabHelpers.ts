@@ -3,6 +3,7 @@ import type { Grid } from '@/systems/physics/Grid';
 
 export function getStarterShip(grid: Grid) {
       const ship = new Ship(grid);
+      ship.setIsPlayerShip(true);
   
       // Initialize ship with blocks
       ship.placeBlockById({ x: 0, y: -3 }, 'hull1');

@@ -12,6 +12,7 @@ export type DialogueEvent =
         speed?: number;     // override charDelay
         pitchMod?: number;  // additional pitch shift
         mode?: DialogueMode;
+        side?: 'left' | 'right';
       };
     }
   | {
@@ -21,4 +22,10 @@ export type DialogueEvent =
   | {
       type: 'command';
       run: () => void | Promise<void>; // <-- updated to allow async
+    }
+  | {
+      type: 'hideUI';
+    }
+  | {
+      type: 'showUI';
     };

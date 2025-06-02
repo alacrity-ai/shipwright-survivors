@@ -4,6 +4,7 @@ import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { audioManager } from '@/audio/Audio';
 
 import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import type { CanvasManager } from '@/core/CanvasManager';
@@ -146,6 +147,7 @@ export class PickupSystem {
     const amount = pickup.currencyAmount;
     this.playerResources.addCurrency(amount);
     missionResultStore.addCurrency(amount);
+    audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', { maxSimultaneous: 3, volume: 0.95 });
 
     const index = this.pickups.indexOf(pickup);
     if (index !== -1) {

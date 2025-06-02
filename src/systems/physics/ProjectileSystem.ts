@@ -8,6 +8,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
+import type { Ship } from '@/game/ship/Ship';
 
 interface VisualizedProjectile extends Projectile {
   particle: Particle;
@@ -20,7 +21,8 @@ export class ProjectileSystem {
     _canvasManager: CanvasManager, // retained for compatibility
     private readonly grid: Grid,
     private readonly combatService: CombatService,
-    private readonly particleManager: ParticleManager
+    private readonly particleManager: ParticleManager,
+    private readonly playerShip: Ship
   ) {}
 
   spawnProjectile(
@@ -93,7 +95,7 @@ export class ProjectileSystem {
             if (ship) {
               const coord = findBlockCoordinatesInShip(block, ship);
               if (coord) {
-                this.combatService.applyDamageToBlock(ship, block, coord, p.damage, 'projectile');
+                this.combatService.applyDamageToBlock(ship, block, coord, p.damage, 'projectile', this.playerShip);
               }
               this.removeProjectile(p);
               return;

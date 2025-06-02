@@ -3,6 +3,8 @@ import { Camera } from './Camera';
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
+import { audioManager } from '@/audio/Audio';
+
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
 import { missionLoader } from '@/game/missions/MissionLoader';
@@ -104,6 +106,8 @@ export class EngineRuntime {
   private repairEffectSystem: RepairEffectSystem;
   private screenEffects: ScreenEffectsSystem;
 
+  private engineSoundPlaying = false;
+
   private updatables: IUpdatable[] = [];
   private renderables: IRenderable[] = [];
 
@@ -112,7 +116,6 @@ export class EngineRuntime {
   constructor() {
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
-    this.missionDialogueManager = new MissionDialogueManager(this.inputManager, this.canvasManager);
     
     this.gameLoop = new GameLoop();
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
@@ -171,6 +174,7 @@ export class EngineRuntime {
       this.grid,
       combatService,
       this.particleManager,
+      this.ship
     );
 
     this.laserSystem = new LaserSystem(
@@ -178,7 +182,8 @@ export class EngineRuntime {
       this.camera,
       this.grid,
       combatService,
-      this.particleManager
+      this.particleManager,
+      this.ship
     );
 
     // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
@@ -189,9 +194,9 @@ export class EngineRuntime {
     const emitter = new ThrusterEmitter(this.particleManager);
     this.movement = new MovementSystem(this.ship, emitter);
     this.weaponSystem = new WeaponSystem(
-      new TurretBackend(this.projectileSystem),
+      new TurretBackend(this.projectileSystem, this.ship),
       new LaserBackend(this.laserSystem),
-      new ExplosiveLanceBackend(combatService, this.particleManager, this.grid, this.explosionSystem)
+      new ExplosiveLanceBackend(combatService, this.particleManager, this.grid, this.explosionSystem, this.ship),
     );
     this.utilitySystem = new UtilitySystem(
       new ShieldToggleBackend()
@@ -231,8 +236,11 @@ export class EngineRuntime {
     destructionService.onShipDestroyed((ship, _cause) => {
       this.waveSpawner.notifyShipDestruction(ship);
     });
-    this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
 
+    this.missionDialogueManager = new MissionDialogueManager(this.inputManager, this.canvasManager, this.waveSpawner, this.ship);
+
+    // Waves overlay
+    this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
     // Debug overlay
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
 
@@ -268,7 +276,6 @@ export class EngineRuntime {
         }
       },
       this.background,
-      this.missionDialogueManager
     ];
 
     this.renderables = [
@@ -297,6 +304,21 @@ export class EngineRuntime {
 
   private update = (dt: number) => {
     if (this.isDestroyed) return;
+
+    // === Engine sound ===
+    if (this.inputManager.isKeyPressed('KeyW')) {
+      if (!this.engineSoundPlaying) {
+        audioManager.startLoop('assets/sounds/sfx/ship/engine_loop_00.wav', 'sfx', {
+          volume: 1.0,
+          pitch: 1.0,
+          pan: 0,
+        });
+        this.engineSoundPlaying = true;
+      }
+    } else {
+      audioManager.stopLoop('assets/sounds/sfx/ship/engine_loop_00.wav');
+      this.engineSoundPlaying = false;
+    }
 
     // Toggle the ship builder menu with Tab
     if (this.inputManager.wasKeyJustPressed('Tab') && !this.pauseMenu.isOpen()) {
@@ -372,6 +394,7 @@ export class EngineRuntime {
     }
 
     this.inputManager.updateFrame();
+    this.missionDialogueManager.update(dt);
   };
 
   private render = (dt: number) => {

@@ -15,6 +15,7 @@ export class DialogueOrchestrator {
   private blipTimeline: BlipTimelineEntry[] = [];
   private elapsed = 0;
   private finished = false;
+  private visualsVisible = true; // <-- added
 
   constructor(
     private readonly portraitRenderer: PortraitRenderer,
@@ -46,13 +47,14 @@ export class DialogueOrchestrator {
     this.elapsed += dt;
     this.textRenderer.update(dt);
     this.audioSynchronizer.update(this.elapsed);
+
     if (this.textRenderer.isFinished()) {
       this.finished = true;
     }
   }
 
   public render(ctx: CanvasRenderingContext2D): void {
-    if (!this.activeLine) return;
+    if (!this.visualsVisible || !this.activeLine) return;
 
     const line = this.activeLine;
     const speaker = this.speakerRegistry.getProfile(line.speakerId);
@@ -68,7 +70,6 @@ export class DialogueOrchestrator {
 
     this.textRenderer.skipToEnd?.();
     this.audioSynchronizer.skipToEnd?.();
-
     this.finished = true;
   }
 
@@ -82,5 +83,13 @@ export class DialogueOrchestrator {
     this.finished = false;
     this.textRenderer.clear();
     this.audioSynchronizer.clear();
+  }
+
+  public setVisualsVisible(visible: boolean): void {
+    this.visualsVisible = visible;
+  }
+
+  public getVisualsVisible(): boolean {
+    return this.visualsVisible;
   }
 }

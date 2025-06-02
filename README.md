@@ -118,13 +118,14 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Galaxy Map with Unlockable Nodes and good visual style
 - [ ] Title screen (Save files, New game etc)
   - [x] Basic Implementation
-  - [ ] New game
+  - [x] New game
     - [ ] 3 Save Files, with pilot name selection
   - [ ] Load Game
   - [ ] Credits
 - [ ] Story/dialogue/characters
   - [x] Basic Implementation of Dialogue in Hub
   - [x] Basic Implementation of Dialogue in Mission
+  - [x] First mission tutorial
   - [ ] In Hub, have characters slide-in from the left, and slide back out after dialogue
   - [ ] Full script / Stories / Sound
 - [x] Boss encounters
@@ -137,7 +138,8 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
-  - [ ] Make crosshair easier to see, lightup when firing or targetting an enemy
+  - [ ] Add warp in effect for spawning hostiles
+  - [x] Make crosshair easier to see, lightup when firing or targetting an enemy
   - [ ] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
   - [ ] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [ ] AI Patrol State, right now all created enemies just bumrush player

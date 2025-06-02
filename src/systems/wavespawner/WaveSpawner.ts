@@ -31,9 +31,11 @@ const STARTING_WAVE_INDEX = 0;
 export class WaveSpawner implements IUpdatable {
   private readonly shipFactory: ShipFactory;
   private currentWaveIndex = STARTING_WAVE_INDEX;
-  private hasStarted = false;
   private elapsedTime = 0;
   private timeSinceStart = 0;
+
+  private isRunning = false;              // NEW: WaveSpawner must be manually started
+  private hasSpawnedFirstWave = false;    // Tracks if first wave already triggered
 
   private readonly initialDelay = 10;
   private readonly waveInterval = 120;
@@ -79,9 +81,16 @@ export class WaveSpawner implements IUpdatable {
     );
   }
 
+  public start(): void {
+    this.isRunning = true;
+    this.timeSinceStart = 0;
+  }
+
   public update(dt: number): void {
-    // === Initial wave logic ===
-    if (!this.hasStarted) {
+    if (!this.isRunning) return;
+
+    // === First wave logic ===
+    if (!this.hasSpawnedFirstWave) {
       this.timeSinceStart += dt;
       if (this.timeSinceStart < this.initialDelay) return;
 
@@ -89,7 +98,7 @@ export class WaveSpawner implements IUpdatable {
       this.spawnWave(wave);
       this.currentWaveIndex++;
       this.elapsedTime = 0;
-      this.hasStarted = true;
+      this.hasSpawnedFirstWave = true;
       return;
     }
 
@@ -120,7 +129,7 @@ export class WaveSpawner implements IUpdatable {
         this.onMissionComplete?.();
         this.onMissionComplete = null;
       }
-      return; // Stop all processing once mission is complete
+      return;
     }
 
     // === Proceed with normal wave logic ===
@@ -134,7 +143,7 @@ export class WaveSpawner implements IUpdatable {
     }
   }
 
-  private shouldCompleteMission(): boolean {
+  public shouldCompleteMission(): boolean {
     // Mission is complete when:
     // 1. All waves have been spawned
     // 2. No enemies remain alive
@@ -299,6 +308,10 @@ export class WaveSpawner implements IUpdatable {
     return this.activeWave?.type === 'boss' && !this.activeWave.isComplete;
   }
 
+  public isBossWaveComplete(): boolean {
+    return this.activeWave?.type === 'boss' && this.activeWave.isComplete;
+  }
+
   public notifyShipDestruction(ship: Ship): void {
     // Remove from active tracking immediately
     const wasTracked = this.activeShips.has(ship);
@@ -318,7 +331,8 @@ export class WaveSpawner implements IUpdatable {
   public reset(): void {
     this.clearCurrentWave();
     this.currentWaveIndex = STARTING_WAVE_INDEX;
-    this.hasStarted = false;
+    this.isRunning = false;
+    this.hasSpawnedFirstWave = false;
     this.elapsedTime = 0;
     this.timeSinceStart = 0;
     this.interWaveCountdown = -1;

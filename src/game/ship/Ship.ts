@@ -32,6 +32,7 @@ export class Ship {
   private firingPlan: WeaponFiringPlanEntry[] = [];
   private firingPlanIndex: Map<BlockInstance, number> = new Map();
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
+  private isPlayerShip: boolean = false;
 
   private destroyedListeners: ShipDestroyedCallback[] = [];
   
@@ -161,6 +162,14 @@ export class Ship {
 
   getTransform(): ShipTransform {
     return this.transform;
+  }
+
+  getIsPlayerShip(): boolean {
+    return this.isPlayerShip;
+  }
+
+  setIsPlayerShip(isPlayerShip: boolean): void {
+    this.isPlayerShip = isPlayerShip;
   }
 
   setTransform(newTransform: ShipTransform): void {

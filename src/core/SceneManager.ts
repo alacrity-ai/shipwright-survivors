@@ -11,6 +11,8 @@ import { GalaxyMapSceneManager } from '@/scenes/hub/GalaxyMapSceneManager';
 import { PassivesMenuSceneManager } from '@/scenes/hub/PassivesMenuSceneManager';
 import { BreakroomSceneManager } from '@/scenes/hub/BreakRoomSceneManager';
 
+import { audioManager } from '@/audio/Audio';
+
 export type Scene =
   | 'title'
   | 'hub'
@@ -80,6 +82,9 @@ class SceneManager {
   }
 
   public setScene(scene: Scene): void {
+    // Guard to stop hanging loops from persisting across scenes
+    audioManager.stopAllLoops();
+
     if (this.currentScene === scene) return;
     this.currentScene = scene;
 

@@ -7,6 +7,7 @@ import { groupBlocksBySubcategory } from '@/ui/menus/helpers/groupBlocksBySubcat
 import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
 import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 import { drawLabelLine } from '@/ui/utils/drawLabelLine';
+import { audioManager } from '@/audio/Audio';
 
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
@@ -202,6 +203,7 @@ export class ShipBuilderMenu implements Menu {
         }
 
         if (isHovered && clicked && !tabWasClicked && isUnlocked) {
+          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
           this.selectedBlockId = block.id;
           this.setActiveTool(ShipBuilderTool.PLACE);
           this.setHoveredShipBlock(undefined);
@@ -366,6 +368,7 @@ export class ShipBuilderMenu implements Menu {
         label: '🔧', // Repair
         tool: ShipBuilderTool.REPAIR,
         action: () => {
+          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
           this.setActiveTool(ShipBuilderTool.REPAIR);
           this.setSelectedBlockId(null);
         }
@@ -374,6 +377,7 @@ export class ShipBuilderMenu implements Menu {
         label: '🛠️', // Repair All
         tool: ShipBuilderTool.REPAIR_ALL,
         action: () => {
+          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
           this.repairAllHandler?.();
         }
       },
@@ -381,6 +385,7 @@ export class ShipBuilderMenu implements Menu {
         label: '💾', // Save Ship
         tool: ShipBuilderTool.SAVE,
         action: () => {
+          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
           // future
         }
       },
@@ -388,6 +393,7 @@ export class ShipBuilderMenu implements Menu {
         label: '📂', // Load Ship
         tool: ShipBuilderTool.LOAD,
         action: () => {
+          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
           // future
         }
       }
@@ -507,6 +513,7 @@ export class ShipBuilderMenu implements Menu {
   }
 
   openMenu(): void {
+    audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
     this.open = true;
   }
 

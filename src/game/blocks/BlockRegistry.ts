@@ -661,7 +661,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Fin Mk II',
     armor: 50,
     mass: 10,
-    cost: 60,
+    cost: 40,
     behavior: {
       turnPower: 1,
     },
@@ -674,7 +674,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Fin Mk III',
     armor: 75,
     mass: 10,
-    cost: 120,
+    cost: 80,
     behavior: {
       turnPower: 1.4,
     },
@@ -687,7 +687,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Fin Mk IV',
     armor: 90,
     mass: 10,
-    cost: 180,
+    cost: 120,
     behavior: {
       turnPower: 2,
     },
@@ -700,7 +700,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Fin Mk IV',
     armor: 120,
     mass: 10,
-    cost: 250,
+    cost: 200,
     behavior: {
       turnPower: 2.8,
     },

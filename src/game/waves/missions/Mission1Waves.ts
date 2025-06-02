@@ -9,10 +9,10 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [
       { shipId: 'wave_0_00', count: 40 },
-      { shipId: 'wave_0_01', count: 35 },
-      { shipId: 'wave_0_02', count: 30 },
-      { shipId: 'wave_0_03', count: 20 },
-      { shipId: 'wave_0_04', count: 8 },
+      { shipId: 'wave_0_01', count: 40 },
+      { shipId: 'wave_0_02', count: 32 },
+      { shipId: 'wave_0_03', count: 24 },
+      { shipId: 'wave_0_04', count: 12 },
     ]
   },
   {

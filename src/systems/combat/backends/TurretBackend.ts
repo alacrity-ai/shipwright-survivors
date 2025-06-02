@@ -6,10 +6,10 @@ import type { ShipTransform } from '@/systems/physics/MovementSystem';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import { TURRET_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
-
+import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 export class TurretBackend implements WeaponBackend {
-  constructor(private readonly projectileSystem: ProjectileSystem) {}
+  constructor(private readonly projectileSystem: ProjectileSystem, private readonly playerShip: Ship) {}
 
   public update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
     const plan = ship.getFiringPlan().filter(p =>
@@ -22,11 +22,24 @@ export class TurretBackend implements WeaponBackend {
     const fireRequested = intent?.firePrimary ?? false;
 
     for (let i = plan.length - 1; i >= 0; i--) {
+
       const turret = plan[i];
       if (!ship.getBlockCoord(turret.block)) continue;
 
       turret.timeSinceLastShot += dt;
       if (!fireRequested || turret.timeSinceLastShot < turret.fireCooldown) continue;
+
+      // Only play SFX on first shot to avoid ear fatigue
+      if (i === 0) {
+        playSpatialSfx(ship, this.playerShip, {
+          file: 'assets/sounds/sfx/weapons/turret_00.wav',
+          channel: 'sfx',
+          pitchRange: [0.7, 1.0],
+          volumeJitter: 0.2,
+          baseVolume: 1.0,
+          maxSimultaneous: 5,
+        });
+      }
 
       turret.timeSinceLastShot = 0;
 

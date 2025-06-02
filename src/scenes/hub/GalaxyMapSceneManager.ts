@@ -61,20 +61,20 @@ export class GalaxyMapSceneManager {
         },
         style: crtStyle
       },
-      {
-        x: 120,
-        y: 480,
-        width: 360,
-        height: 40,
-        label: 'Launch "The Scrapyard Shift"',
-        isHovered: false,
-        onClick: () => {
-          missionLoader.setMission(missionRegistry['mission_002']);
-          this.stop();
-          sceneManager.fadeToScene('mission');
-        },
-        style: crtStyle
-      },
+      // {
+      //   x: 120,
+      //   y: 480,
+      //   width: 360,
+      //   height: 40,
+      //   label: 'Launch "The Scrapyard Shift"',
+      //   isHovered: false,
+      //   onClick: () => {
+      //     missionLoader.setMission(missionRegistry['mission_002']);
+      //     this.stop();
+      //     sceneManager.fadeToScene('mission');
+      //   },
+      //   style: crtStyle
+      // },
       {
         x: 20,
         y: 20,

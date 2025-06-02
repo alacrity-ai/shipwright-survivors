@@ -8,7 +8,6 @@ import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Grid } from '@/systems/physics/Grid';
-import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { findShipByBlock, findBlockCoordinatesInShip } from '@/game/ship/utils/shipBlockUtils';
@@ -42,7 +41,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
     private readonly grid: Grid,
-    private readonly explosionSystem: ExplosionSystem
+    private readonly explosionSystem: ExplosionSystem,
+    private readonly playerShip: Ship
   ) {}
 
   update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
@@ -213,7 +213,14 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               lance.particle.life = lance.detonationDelay + 0.2;
               lance.particle.size *= 1.25;
 
-              const wasDestroyed = this.combatService.applyDamageToBlock(ship, block, coord, lance.fireDamage, 'explosiveLance');
+              const wasDestroyed = this.combatService.applyDamageToBlock(
+                ship,
+                block,
+                coord,
+                lance.fireDamage,
+                'explosiveLance',
+                this.playerShip
+              );
               if (wasDestroyed) {
                 this.explodeLance(lance);
                 exploded.add(lance);
@@ -250,7 +257,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           block,
           coord,
           lance.explosionDamage,
-          'explosiveLanceAoE'
+          'explosiveLanceAoE',
+          this.playerShip
         );
       }
     }

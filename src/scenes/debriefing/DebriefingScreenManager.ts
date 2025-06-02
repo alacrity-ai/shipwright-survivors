@@ -27,6 +27,7 @@ export class DebriefingScreenManager {
       isHovered: false,
       onClick: () => {
         missionResultStore.clear();
+        this.inputManager.enableAllKeys();
         this.stop();
         sceneManager.fadeToScene('hub');
       },
@@ -107,6 +108,7 @@ export class DebriefingScreenManager {
     line(`Mission Outcome: ${result.outcome === 'victory' ? 'Victory' : 'Defeat'}`);
     line(`Enemies Destroyed: ${result.enemiesDestroyed}`);
     line(`Currency Gathered: ${result.currencyGathered}`);
+    line(`Blocks Placed: ${result.blockPlacedCount}`);
     line(`Passive Points Earned: ${result.passivePointsEarned}`);
     line(`Time Taken: ${result.timeTakenSeconds?.toFixed(1)}s`);
 

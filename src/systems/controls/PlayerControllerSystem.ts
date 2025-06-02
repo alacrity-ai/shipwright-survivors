@@ -9,6 +9,8 @@ import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 
 export class PlayerControllerSystem {
+  private isEnginePlaying = false;
+
   constructor(
     private readonly camera: Camera, 
     private readonly inputManager: InputManager, 

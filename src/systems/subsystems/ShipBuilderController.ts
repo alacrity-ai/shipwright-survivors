@@ -15,6 +15,8 @@ import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
 import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
+import { audioManager } from '@/audio/Audio';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 export class ShipBuilderController {
   private rotation: number = 0;
@@ -47,6 +49,7 @@ export class ShipBuilderController {
       this.menu.setHoveredShipBlock(hoveredBlock);
 
       if (hoveredBlock && this.inputManager.wasMouseClicked()) {
+        audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
         this.repairBlockAt(coord);
       }
 
@@ -77,10 +80,12 @@ export class ShipBuilderController {
       if (!block.type.id.startsWith('cockpit')) {
         const deletionSafe = this.ship.isDeletionSafe(coord);
         if (!deletionSafe) {
+          audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 3 });
           return;
         }
 
         this.ship.removeBlock(coord);
+        audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
         const refundCost = Math.round(blockCost / 2);
         PlayerResources.getInstance().addCurrency(refundCost);
       }
@@ -91,7 +96,9 @@ export class ShipBuilderController {
       if (this.inputManager.wasMouseClicked()) {
         if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
           this.ship.placeBlockById(coord, blockId, this.rotation);
+          audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx', { maxSimultaneous: 3 }); // Play sound effect when block is placed
           PlayerResources.getInstance().spendCurrency(blockCost); // Deduct the cost from player's currency
+          missionResultStore.incrementBlockPlacedCount();
         }
       }
     } 
@@ -216,6 +223,7 @@ export class ShipBuilderController {
     for (const { coord, block } of damagedBlocks) {
       const repairCost = getRepairCost(block);
       if (playerResources.hasEnoughCurrency(repairCost)) {
+        audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
         this.repairBlockAt(coord);
       } else {
         console.log("Stopped repair: insufficient funds.");

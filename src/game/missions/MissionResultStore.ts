@@ -5,6 +5,7 @@ export interface MissionResultData {
   enemiesDestroyed: number;
   currencyGathered: number;
   blocksUnlocked: string[];
+  blockPlacedCount: number;
   passivePointsEarned: number;
   bonusObjectives?: string[];
   timeTakenSeconds?: number;
@@ -19,6 +20,7 @@ class MissionResultStore {
       enemiesDestroyed: 0,
       currencyGathered: 0,
       blocksUnlocked: [],
+      blockPlacedCount: 0,
       passivePointsEarned: 0,
       bonusObjectives: [],
       timeTakenSeconds: 0
@@ -44,6 +46,11 @@ class MissionResultStore {
   public incrementKillCount(by = 1) {
     this.ensureInitialized();
     this.result!.enemiesDestroyed += by;
+  }
+
+  public incrementBlockPlacedCount(by = 1) {
+    this.ensureInitialized();
+    this.result!.blockPlacedCount += by;
   }
 
   public addBlockUnlock(blockId: string) {
