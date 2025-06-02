@@ -12,6 +12,7 @@ export class InputManager {
   private keyState: Record<string, KeyState> = {};
   private prevKeyState: Record<string, boolean> = {};
   private justPressedKeys: Set<string> = new Set();
+  private inputDisabled = false;
 
   private mouseState: MouseState = {
     x: 0,
@@ -26,6 +27,14 @@ export class InputManager {
 
   constructor(private canvasElement: HTMLCanvasElement) {
     this.initialize();
+  }
+
+  public disableInput(): void {
+    this.inputDisabled = true;
+  }
+
+  public enableInput(): void {
+    this.inputDisabled = false;
   }
 
   public getMousePosition(): { x: number; y: number } {
@@ -102,6 +111,7 @@ export class InputManager {
 
   // === Accessors ===
   public isKeyPressed(code: string): boolean {
+    if (this.inputDisabled) return false;
     return code === 'MouseLeft'
       ? this.mouseState.leftDown
       : code === 'MouseRight'
@@ -110,30 +120,37 @@ export class InputManager {
   }
 
   public wasKeyJustPressed(code: string): boolean {
+    if (this.inputDisabled) return false;
     return this.justPressedKeys.has(code);
   }
 
   public wasMouseClicked(): boolean {
+    if (this.inputDisabled) return false;
     return this.wasKeyJustPressed('MouseLeft');
   }
 
   public wasRightClicked(): boolean {
+    if (this.inputDisabled) return false;
     return this.wasKeyJustPressed('MouseRight');
   }
 
   public wasScrollWheelUp(): boolean {
+    if (this.inputDisabled) return false;
     return this.scrollUpDetected;
   }
 
   public wasScrollWheelDown(): boolean {
+    if (this.inputDisabled) return false;
     return this.scrollDownDetected;
   }
 
   public isShiftPressed(): boolean {
+    if (this.inputDisabled) return false;
     return this.isKeyPressed('ShiftLeft') || this.isKeyPressed('ShiftRight');
   }
 
   public consumeZoomDelta(): number {
+    if (this.inputDisabled) return 0;
     let delta = 0;
     if (this.scrollUpDetected || this.isKeyPressed('KeyR')) delta += 10;
     if (this.scrollDownDetected || this.isKeyPressed('KeyT')) delta -= 10;
@@ -183,11 +200,6 @@ export class InputManager {
     if (e.button === 0) this.mouseState.leftDown = false;
     if (e.button === 2) this.mouseState.rightDown = false;
   };
-
-  // private mouseMoveHandler = (e: MouseEvent) => {
-  //   this.mouseState.x = e.clientX;
-  //   this.mouseState.y = e.clientY;
-  // };
 
   private wheelHandler = (e: WheelEvent) => {
     const delta = Math.sign(e.deltaY);

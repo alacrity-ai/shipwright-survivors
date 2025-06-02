@@ -2,7 +2,7 @@
 
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '@/config/view';
 
-export type CanvasLayer = 'background' | 'entities' | 'fx' | 'particles' | 'ui' | 'overlay';
+export type CanvasLayer = 'background' | 'entities' | 'fx' | 'particles' | 'ui' | 'overlay' | 'dialogue';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
@@ -11,6 +11,7 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   particles: 'particles-canvas',
   ui: 'ui-canvas',
   overlay: 'overlay-canvas',
+  dialogue: 'dialogue-canvas'
 };
 
 export class CanvasManager {
@@ -64,6 +65,7 @@ export class CanvasManager {
       case 'particles': return 3;
       case 'ui': return 4;
       case 'overlay': return 5;
+      case 'dialogue': return 6;
     }
   }
 

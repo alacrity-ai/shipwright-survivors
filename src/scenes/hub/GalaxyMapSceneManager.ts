@@ -36,6 +36,7 @@ export class GalaxyMapSceneManager {
       borderRadius: 10,
       alpha: 0.85,
       borderColor: '#00ff00',
+      textFont: '18px monospace',
       backgroundGradient: {
         type: 'linear' as const,
         stops: [
@@ -50,7 +51,7 @@ export class GalaxyMapSceneManager {
         x: 120,
         y: 440,
         width: 360,
-        height: 30,
+        height: 40,
         label: 'Launch "Scrapfield Gauntlet"',
         isHovered: false,
         onClick: () => {
@@ -64,7 +65,7 @@ export class GalaxyMapSceneManager {
         x: 120,
         y: 480,
         width: 360,
-        height: 30,
+        height: 40,
         label: 'Launch "The Scrapyard Shift"',
         isHovered: false,
         onClick: () => {
@@ -77,8 +78,8 @@ export class GalaxyMapSceneManager {
       {
         x: 20,
         y: 20,
-        width: 100,
-        height: 40,
+        width: 120,
+        height: 50,
         label: '← Back',
         isHovered: false,
         onClick: () => {

@@ -4,10 +4,14 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
-
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
+import { flags } from '@/game/player/PlayerFlagManager';
+
+import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
+import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
+import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_break-room.png';
 
@@ -18,6 +22,7 @@ export class BreakroomSceneManager {
   private backgroundImage: HTMLImageElement | null = null;
 
   private buttons: UIButton[];
+  private dialogueQueueManager: DialogueQueueManager | null = null;
 
   constructor(
     canvasManager: CanvasManager,
@@ -32,6 +37,7 @@ export class BreakroomSceneManager {
       borderRadius: 10,
       alpha: 0.85,
       borderColor: '#00ff00',
+      textFont: '18px monospace',
       backgroundGradient: {
         type: 'linear' as const,
         stops: [
@@ -45,8 +51,8 @@ export class BreakroomSceneManager {
       {
         x: 20,
         y: 20,
-        width: 100,
-        height: 40,
+        width: 120,
+        height: 50,
         label: '← Back',
         isHovered: false,
         onClick: () => {
@@ -60,6 +66,23 @@ export class BreakroomSceneManager {
 
   async start() {
     this.backgroundImage = await loadImage(BACKGROUND_PATH);
+
+    // === Create and start the dialogue ===
+    this.dialogueQueueManager = DialogueQueueManagerFactory.create();
+
+    if (!flags.has('breakroom.marla-greeting.complete')) {
+      const script = getDialogueScript('marla-greeting', this.inputManager);
+      if (script) {
+        this.dialogueQueueManager.startScript(script);
+      }
+    }
+    // if (!flags.has('mission.vlox-attack.complete')) {
+    //   const script = getDialogueScript('vlox-attack', this.inputManager);
+    //   if (script) {
+    //     this.dialogueQueueManager.startScript(script);
+    //   }
+    // }
+
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
@@ -86,6 +109,15 @@ export class BreakroomSceneManager {
         break;
       }
     }
+
+    if (this.dialogueQueueManager) {
+      this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
+
+      // Optionally allow skip on click
+      if (clicked) {
+        this.dialogueQueueManager.skipOrAdvance();
+      }
+    }
   };
 
   private render = () => {
@@ -93,23 +125,20 @@ export class BreakroomSceneManager {
 
     const bgCtx = this.canvasManager.getContext('background');
     const uiCtx = this.canvasManager.getContext('ui');
+    const overlayCtx = this.canvasManager.getContext('overlay'); // Use overlay layer for dialogue
+
     const { x, y } = this.inputManager.getMousePosition();
 
     if (this.backgroundImage) {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    // drawWindow({
-    //   ctx: uiCtx,
-    //   x: 100,
-    //   y: 420,
-    //   width: 440,
-    //   height: 130,
-    //   title: 'Break Room'
-    // });
-
     for (const btn of this.buttons) {
       drawButton(uiCtx, btn);
+    }
+
+    if (this.dialogueQueueManager) {
+      this.dialogueQueueManager.render(overlayCtx);
     }
 
     const cursor = getCrosshairCursorSprite();

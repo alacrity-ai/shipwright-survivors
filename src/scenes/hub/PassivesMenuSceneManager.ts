@@ -33,6 +33,7 @@ export class PassivesMenuSceneManager {
       borderRadius: 10,
       alpha: 0.85,
       borderColor: '#00ff00',
+      textFont: '18px monospace',
       backgroundGradient: {
         type: 'linear' as const,
         stops: [
@@ -46,8 +47,8 @@ export class PassivesMenuSceneManager {
       {
         x: 20,
         y: 20,
-        width: 100,
-        height: 40,
+        width: 120,
+        height: 50,
         label: '← Back',
         isHovered: false,
         onClick: () => {

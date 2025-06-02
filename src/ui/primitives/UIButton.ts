@@ -16,6 +16,8 @@ export interface UIButton {
     borderRadius?: number;
     backgroundColor?: string;
     borderColor?: string;
+    textColor?: string;
+    textFont?: string;
     alpha?: number;
     backgroundGradient?: {
       type: 'linear' | 'radial';
@@ -70,8 +72,8 @@ export function drawButton(ctx: CanvasRenderingContext2D, button: UIButton) {
   ctx.stroke();
 
   // === Draw label ===
-  ctx.fillStyle = '#fff';
-  ctx.font = '13px monospace';
+  ctx.fillStyle = style.textColor ?? '#fff';
+  ctx.font = style.textFont ?? '13px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, x + width / 2, y + height / 2);

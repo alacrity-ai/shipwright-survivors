@@ -39,8 +39,8 @@ export class HubSceneManager {
     this.quitButton = {
       x: 20,
       y: 20,
-      width: 100,
-      height: 40,
+      width: 120,
+      height: 50,
       label: '← Quit',
       isHovered: false,
       onClick: () => {
@@ -51,6 +51,7 @@ export class HubSceneManager {
         borderRadius: 10,
         alpha: 0.85,
         borderColor: '#00ff00',
+        textFont: '18px monospace',
         backgroundGradient: {
           type: 'linear' as const,
           stops: [

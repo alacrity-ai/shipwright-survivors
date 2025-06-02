@@ -114,8 +114,18 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Passive Tree (Passive bonuses, e.g. Fins 10% more effective)
     - [ ] Way of unlocking passive tree through gameplay
 - [ ] Overworld / Level select
+  - [x] Basic Implemetation
+  - [ ] Galaxy Map with Unlockable Nodes and good visual style
 - [ ] Title screen (Save files, New game etc)
-- [ ] Basic story/dialogue/characters
+  - [x] Basic Implementation
+  - [ ] New game
+    - [ ] 3 Save Files, with pilot name selection
+  - [ ] Load Game
+  - [ ] Credits
+- [ ] Story/dialogue/characters
+  - [ ] Basic Implementation of Dialogue in Hub
+  - [ ] Basic Implementation of Dialogue in Mission
+  - [ ] Full script / Stories / Sound
 - [x] Boss encounters
 - [ ] Environmental Events
   - [ ] Asteroids
@@ -131,6 +141,7 @@ TODOS:
   - [ ] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [ ] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
+  - [ ] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
   - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
        This is potentially inefficient, but more imporantly, it resets your firing cooldown.
       So if you're having blocks destroyed while in combat, you might never be able to fire.

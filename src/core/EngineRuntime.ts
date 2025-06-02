@@ -27,6 +27,7 @@ import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
+import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
@@ -65,6 +66,7 @@ export class EngineRuntime {
   private readonly boundRender = (dt: number) => this.render(dt);
 
   private inputManager: InputManager;
+  private missionDialogueManager: MissionDialogueManager;
   private shipBuilderMenu: ShipBuilderMenu
   private pauseMenu: PauseMenu;
   private hud: HudOverlay;
@@ -110,6 +112,8 @@ export class EngineRuntime {
   constructor() {
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
+    this.missionDialogueManager = new MissionDialogueManager(this.inputManager, this.canvasManager);
+    
     this.gameLoop = new GameLoop();
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
@@ -264,6 +268,7 @@ export class EngineRuntime {
         }
       },
       this.background,
+      this.missionDialogueManager
     ];
 
     this.renderables = [
@@ -278,7 +283,8 @@ export class EngineRuntime {
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
       this.wavesOverlay,
-      this.debugOverlay
+      this.debugOverlay,
+      this.missionDialogueManager
     ];
 
     this.registerLoopHandlers();
@@ -377,6 +383,7 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('particles');
     this.canvasManager.clearLayer('ui');
     this.canvasManager.clearLayer('overlay');
+    this.canvasManager.clearLayer('dialogue');
 
     this.renderables.forEach(system => system.render(dt));
 
@@ -392,11 +399,13 @@ export class EngineRuntime {
       this.pauseMenu.render(this.canvasManager.getContext('ui'));
     }
 
+    // this.dialogueQueueManager.render(this.canvasManager.getContext('dialogue'));
     this.cursorRenderer.render();
   };
 
   public start() {
     this.gameLoop.start();
+    this.missionDialogueManager.initialize();
   }
 
   public handlePlayerVictory(timeoutMs: number = 10_000): void {
@@ -436,11 +445,8 @@ export class EngineRuntime {
     PlayerStats.getInstance().destroy();
     PlayerTechnologyManager.getInstance().destroy();
 
-    // Clear mission results
-    // missionResultStore.clear();
-
     // Optional: clear UI menus, overlays
-    this.hud.destroy();          // Optional
+    this.hud.destroy();
 
     // // Clear rendering and update lists
     this.updatables.length = 0;

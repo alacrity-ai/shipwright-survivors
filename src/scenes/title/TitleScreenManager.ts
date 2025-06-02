@@ -46,14 +46,15 @@ export class TitleScreenManager {
   private createButtons(): UIButton[] {
     const baseX = 40;
     const baseY = 460;
-    const width = 160;
-    const height = 40;
+    const width = 200;
+    const height = 60;
     const spacing = 10;
 
     const sharedStyle = {
       borderRadius: 10,
       alpha: 1,
       borderColor: '#00ff00',
+      textFont: '18px monospace',
       backgroundGradient: {
         type: 'linear' as const,
         stops: [

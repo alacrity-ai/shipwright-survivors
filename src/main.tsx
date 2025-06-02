@@ -7,6 +7,7 @@ import { bootstrapGlobalGuards } from '@/shared/bootstrap';
 import { initializeBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { initializeProjectileSprites } from '@/rendering/cache/ProjectileSpriteCache';
 import { initializePickupSpriteCache } from '@/rendering/cache/PickupSpriteCache';
+import { audioManager } from '@/audio/Audio'; // Lazy instantiation
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

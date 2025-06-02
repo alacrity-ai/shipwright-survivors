@@ -9,6 +9,7 @@ export class GameLoop {
   private updateCallbacks: UpdateCallback[] = [];
   private renderCallbacks: RenderCallback[] = [];
   private frameRequestId: number | null = null;
+  private currentDeltaTime: number = 0;
 
   start() {
     if (this.isRunning) return;
@@ -35,12 +36,17 @@ export class GameLoop {
 
     const deltaTime = (timestamp - this.lastFrameTime) / 1000;
     this.lastFrameTime = timestamp;
+    this.currentDeltaTime = deltaTime;
 
     this.updateCallbacks.forEach(cb => cb(deltaTime));
     this.renderCallbacks.forEach(cb => cb(deltaTime));
 
     this.frameRequestId = requestAnimationFrame(this.tick);
   };
+
+  getDeltaTime(): number {
+    return this.currentDeltaTime;
+  }
 
   onUpdate(cb: UpdateCallback) {
     this.updateCallbacks.push(cb);
