@@ -4,6 +4,8 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
+import { audioManager } from '@/audio/Audio';
+
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
@@ -56,6 +58,7 @@ export class BreakroomSceneManager {
         label: '← Back',
         isHovered: false,
         onClick: () => {
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
           this.stop();
           sceneManager.fadeToScene('hub');
         },

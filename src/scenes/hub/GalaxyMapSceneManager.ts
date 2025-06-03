@@ -4,6 +4,7 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
+import { audioManager } from '@/audio/Audio';
 
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
@@ -55,6 +56,7 @@ export class GalaxyMapSceneManager {
         label: 'Launch "Scrapfield Gauntlet"',
         isHovered: false,
         onClick: () => {
+          audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', { maxSimultaneous: 4 });
           missionLoader.setMission(missionRegistry['mission_001']);
           this.stop();
           sceneManager.fadeToScene('mission');
@@ -83,6 +85,7 @@ export class GalaxyMapSceneManager {
         label: '← Back',
         isHovered: false,
         onClick: () => {
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
           this.stop();
           sceneManager.fadeToScene('hub');
         },

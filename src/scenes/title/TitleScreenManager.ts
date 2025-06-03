@@ -6,14 +6,20 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
+import { SaveGameManager } from '@/core/save/saveGameManager';
 
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
+import { drawWindow } from '@/ui/primitives/WindowBox';
 import { loadImage } from '@/shared/imageCache';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
 const TITLE_IMAGE_PATH = 'assets/title_screen.png';
+
+function hasSaveData(slot: number): boolean {
+  return !!localStorage.getItem(`save${slot}`);
+}
 
 export class TitleScreenManager {
   private canvasManager: CanvasManager;
@@ -22,6 +28,11 @@ export class TitleScreenManager {
   private backgroundImage: HTMLImageElement | null = null;
 
   private buttons: UIButton[] = [];
+  private saveSlotButtons: UIButton[] = [];
+  private showingSaveSlots = false;
+
+  private confirmingDeleteSlot: number | null = null;
+  private confirmationButtons: UIButton[] = [];
 
   constructor(
     canvasManager: CanvasManager,
@@ -32,10 +43,11 @@ export class TitleScreenManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
 
-    this.buttons = this.createButtons();
+    this.buttons = this.createMainButtons();
   }
 
   async start() {
+    audioManager.playMusic({ file: 'assets/sounds/music/track_08_debriefing.mp3' });
     this.backgroundImage = await loadImage(TITLE_IMAGE_PATH);
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
@@ -47,7 +59,7 @@ export class TitleScreenManager {
     this.gameLoop.offRender(this.render);
   }
 
-  private createButtons(): UIButton[] {
+  private createMainButtons(): UIButton[] {
     const baseX = 40;
     const baseY = 460;
     const width = 200;
@@ -68,62 +80,217 @@ export class TitleScreenManager {
       }
     };
 
-    return [
-      {
+    const backButtonStyle = {
+      borderRadius: 10,
+      alpha: 1,
+      borderColor: '#ffaa00',
+      textFont: '18px monospace',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#221100' },
+          { offset: 1, color: '#150a00' }
+        ]
+      }
+    };
+
+    const buttons: UIButton[] = [];
+
+    // === Play/Back button (changes based on state) ===
+    buttons.push({
+      x: baseX,
+      y: baseY,
+      width,
+      height,
+      label: this.showingSaveSlots ? 'Back' : 'Play',
+      isHovered: false,
+      onClick: () => {
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+
+        if (this.showingSaveSlots) {
+          // Back to main menu
+          this.showingSaveSlots = false;
+          this.saveSlotButtons = [];
+          this.buttons = this.createMainButtons();
+        } else {
+          // Show save slots
+          this.showingSaveSlots = true;
+          this.saveSlotButtons = this.createSaveSlotButtons();
+          this.buttons = this.createMainButtons(); // Recreate to update button text/style
+        }
+      },
+      style: this.showingSaveSlots ? backButtonStyle : sharedStyle
+    });
+
+    // === Credits button (always visible) ===
+    buttons.push({
+      x: baseX,
+      y: baseY + (height + spacing),
+      width,
+      height,
+      label: 'Credits',
+      isHovered: false,
+      onClick: () => {
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+        console.log('Credits clicked (not implemented)');
+      },
+      style: sharedStyle
+    });
+
+    return buttons;
+  }
+
+  private createSaveSlotButtons(): UIButton[] {
+    const baseX = 260;
+    const baseY = 460;
+    const width = 260;
+    const height = 60;
+    const spacing = 10;
+
+    const sharedStyle = {
+      borderRadius: 10,
+      alpha: 1,
+      borderColor: '#00ff00',
+      textFont: '18px monospace',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#002200' },
+          { offset: 1, color: '#001500' }
+        ]
+      }
+    };
+
+    const buttons: UIButton[] = [];
+
+    for (let slot = 0; slot < 3; slot++) {
+      const hasData = hasSaveData(slot);
+      const label = hasData ? `Load Save ${slot + 1}` : `New Game`;
+
+      // === Main save/load button ===
+      buttons.push({
         x: baseX,
-        y: baseY,
+        y: baseY + (height + spacing) * slot,
         width,
         height,
-        label: 'Play',
+        label,
         isHovered: false,
         onClick: () => {
-          // All of this needs to be refactored 
-          const playerTechManager = PlayerTechnologyManager.getInstance();
-          playerTechManager.unlockMany(['hull1', 'engine1', 'turret1', 'fin1', 'facetplate1']);
+          SaveGameManager.initialize(slot);
+          const saveManager = SaveGameManager.getInstance();
+
           audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx');
-          this.stop();
-          missionLoader.setMission(missionRegistry['mission_001']);
-          sceneManager.fadeToScene('mission');
+
+          saveManager.changeSlot(slot);
+
+          if (hasData) {
+            saveManager.loadAll();
+            this.stop();
+            sceneManager.fadeToScene('hub');
+          } else {
+            PlayerTechnologyManager.getInstance().unlockMany([
+              'hull1', 'engine1', 'turret1', 'fin1', 'facetplate1'
+            ]);
+            missionLoader.setMission(missionRegistry['mission_001']);
+            this.stop();
+            sceneManager.fadeToScene('mission');
+          }
         },
         style: sharedStyle
-      },
+      });
+
+      // === Delete button if save exists ===
+      if (hasData) {
+        buttons.push({
+          x: baseX + width + 12,
+          y: baseY + (height + spacing) * slot,
+          width: 40,
+          height,
+          label: 'X',
+          isHovered: false,
+          onClick: () => {
+            audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+            this.confirmingDeleteSlot = slot;
+            this.createConfirmationButtons();
+          },
+          style: {
+            ...sharedStyle,
+            borderColor: '#ff0000',
+            backgroundGradient: {
+              type: 'linear',
+              stops: [
+                { offset: 0, color: '#220000' },
+                { offset: 1, color: '#110000' }
+              ]
+            }
+          }
+        });
+      }
+    }
+
+    return buttons;
+  }
+
+  private createConfirmationButtons(): void {
+    const confirmX = 320;
+    const confirmY = 340;
+    const width = 100;
+    const height = 40;
+
+    this.confirmationButtons = [
       {
-        x: baseX,
-        y: baseY + height + spacing,
+        x: confirmX,
+        y: confirmY,
         width,
         height,
-        label: 'Load Game',
+        label: 'Yes',
         isHovered: false,
         onClick: () => {
-          // We don't need this Load Game button anymore, instead, clicking the 'Play' button above will:
-          // Will popup 3 additional buttons to the right, these buttons will represent the 3 save slots.
-          // If there is no data yet for any of these files (and we'll need our SaveGameManager to check, perhaps we can have a method "get save data for slots" or something that can be run pre-initialize),
-          // Then if a slot (button for now) has no data, it will just be labeled New Game
-          // If the slot has data, then the button will be labeled with Load Save 1, Load Save 2, Load Save 3, etc
-          // Eventually we will load each save and display maybe time played, total unlocks, in each, but for now
-          //  We will just label the buttons with New Game or Load Game 1, etc
-          //  If save slot 1 is clicked on for example,
-          // In the case of a Load:
-          // We initialize the saveManager it with the proper slot, then loadFlags, loadTechnology, and loadPassives
-          // And then send the user to the hub scene.
-          // In the case of a New Game:
-          // We initialize the saveManager with the proper slot, we don't need to load anything,
-          // We just send the player directly to the mission scene, with the setMission, and fadeToScene calls as used above, and the 4 unlocks with the unlockMany call (just duplicate start above)
-          console.log('Load Game clicked (not implemented)');
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+          if (this.confirmingDeleteSlot !== null) {
+            SaveGameManager.eraseSave(this.confirmingDeleteSlot);
+            this.saveSlotButtons = this.createSaveSlotButtons();
+          }
+          this.confirmingDeleteSlot = null;
+          this.confirmationButtons = [];
         },
-        style: sharedStyle
+        style: {
+          borderRadius: 6,
+          borderColor: '#00ff00',
+          textFont: '16px monospace',
+          backgroundGradient: {
+            type: 'linear',
+            stops: [
+              { offset: 0, color: '#003300' },
+              { offset: 1, color: '#001900' }
+            ]
+          }
+        }
       },
       {
-        x: baseX,
-        y: baseY + (height + spacing) * 2,
+        x: confirmX + width + 20,
+        y: confirmY,
         width,
         height,
-        label: 'Credits',
+        label: 'No',
         isHovered: false,
         onClick: () => {
-          console.log('Credits clicked (not implemented)');
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+          this.confirmingDeleteSlot = null;
+          this.confirmationButtons = [];
         },
-        style: sharedStyle
+        style: {
+          borderRadius: 6,
+          borderColor: '#ff0000',
+          textFont: '16px monospace',
+          backgroundGradient: {
+            type: 'linear',
+            stops: [
+              { offset: 0, color: '#330000' },
+              { offset: 1, color: '#190000' }
+            ]
+          }
+        }
       }
     ];
   }
@@ -132,12 +299,17 @@ export class TitleScreenManager {
     this.inputManager.updateFrame();
 
     const { x, y } = this.inputManager.getMousePosition();
+    const click = this.inputManager.wasMouseClicked();
 
-    for (const button of this.buttons) {
+    const activeButtons = this.confirmingDeleteSlot !== null
+      ? this.confirmationButtons
+      : [...this.buttons, ...this.saveSlotButtons];
+
+    for (const button of activeButtons) {
       const { x: bx, y: by, width, height } = button;
       button.isHovered = x >= bx && x <= bx + width && y >= by && y <= by + height;
 
-      if (this.inputManager.wasMouseClicked() && button.isHovered) {
+      if (click && button.isHovered) {
         button.onClick();
       }
     }
@@ -153,8 +325,47 @@ export class TitleScreenManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
+    // Always render main buttons (Play/Back and Credits)
     for (const button of this.buttons) {
       drawButton(uiCtx, button);
+    }
+
+    // Render save slot buttons when showing save slots
+    if (this.showingSaveSlots) {
+      for (const button of this.saveSlotButtons) {
+        drawButton(uiCtx, button);
+      }
+    }
+
+    if (this.confirmingDeleteSlot !== null) {
+      drawWindow({
+        ctx: uiCtx,
+        x: 280,
+        y: 280,
+        width: 320,
+        height: 120,
+        title: 'Confirm Deletion',
+        mouse: this.inputManager.getMousePosition(),
+        clicked: this.inputManager.wasMouseClicked(),
+        options: {
+          borderColor: '#ff0000',
+          backgroundGradient: {
+            type: 'linear',
+            stops: [
+              { offset: 0, color: '#200000' },
+              { offset: 1, color: '#100000' }
+            ]
+          }
+        }
+      });
+
+      uiCtx.fillStyle = '#ff4444';
+      uiCtx.font = '14px monospace';
+      uiCtx.fillText('Erase this save file?', 300, 320);
+
+      for (const button of this.confirmationButtons) {
+        drawButton(uiCtx, button);
+      }
     }
 
     const mouse = this.inputManager.getMousePosition();

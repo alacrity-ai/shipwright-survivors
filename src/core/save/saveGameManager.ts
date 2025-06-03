@@ -50,6 +50,35 @@ export class SaveGameManager {
     localStorage.setItem(this.getStorageKey(), JSON.stringify(data));
   }
 
+  // === Convenience Methods
+
+  public saveAll(): void {
+    const data: SaveGameData = {
+      flags: JSON.parse(flags.toJSON()),
+      unlockedBlockIds: JSON.parse(PlayerTechnologyManager.getInstance().toJSON()),
+      passives: {}, // stub
+      version: 1
+    };
+    this.writeData(data);
+  }
+
+  public loadAll(): void {
+    const data = this.loadData();
+    flags.fromJSON(JSON.stringify(data.flags ?? []));
+    PlayerTechnologyManager.getInstance().fromJSON(JSON.stringify(data.unlockedBlockIds ?? []));
+    // passives: stub
+  }
+
+  public changeSlot(newSlot: number): void {
+    this.saveSlot = newSlot;
+  }
+
+  public static eraseSave(slot: number): void {
+    const key = `save${slot}`;
+    localStorage.removeItem(key);
+    console.log(`Save slot ${slot} erased.`);
+  }
+
   // === SAVE METHODS ===
 
   public saveFlags(): void {

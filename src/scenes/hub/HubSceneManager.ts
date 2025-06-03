@@ -6,6 +6,7 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
+import { SaveGameManager } from '@/core/save/saveGameManager';
 import { getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
@@ -46,6 +47,7 @@ export class HubSceneManager {
       isHovered: false,
       onClick: () => {
         this.stop();
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
         sceneManager.fadeToScene('title');
       },
       style: {
@@ -69,6 +71,7 @@ export class HubSceneManager {
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
+    SaveGameManager.getInstance().saveAll();
     audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
   }
 
@@ -95,6 +98,7 @@ export class HubSceneManager {
 
     // Handle scene changes via click
     if (clicked) {
+      audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
       if (inZone(INTERACTION_ZONES.terminal)) {
         this.stop();
         sceneManager.fadeToScene('passives');
