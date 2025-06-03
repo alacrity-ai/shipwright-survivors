@@ -21,6 +21,11 @@ function hasSaveData(slot: number): boolean {
   return !!localStorage.getItem(`save${slot}`);
 }
 
+const SLOT_START_Y_OFFSET = 300;
+const SLOT_SLIDE_SPEED = 10;
+const SLOT_OVERSHOOT = 16;
+const SLOT_SETTLE_SPEED = 2;
+
 export class TitleScreenManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
@@ -33,6 +38,10 @@ export class TitleScreenManager {
 
   private confirmingDeleteSlot: number | null = null;
   private confirmationButtons: UIButton[] = [];
+
+  private saveSlotYOffsets: number[] = [0, 0, 0];
+  private saveSlotAnimationPhase: 'sliding-up' | 'settling' | 'sliding-down' | null = null;
+  private isAnimatingSlots = false;
 
   constructor(
     canvasManager: CanvasManager,
@@ -108,15 +117,20 @@ export class TitleScreenManager {
         audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
 
         if (this.showingSaveSlots) {
-          // Back to main menu
-          this.showingSaveSlots = false;
-          this.saveSlotButtons = [];
-          this.buttons = this.createMainButtons();
+          // Animate sliding down
+          this.saveSlotAnimationPhase = 'sliding-down';
+          this.isAnimatingSlots = true;
+          
+          // Delay actual hide/removal until animation completes
         } else {
-          // Show save slots
+          // Animate sliding up
+          this.saveSlotYOffsets = [SLOT_START_Y_OFFSET, SLOT_START_Y_OFFSET, SLOT_START_Y_OFFSET];
+          this.saveSlotAnimationPhase = 'sliding-up';
+          this.isAnimatingSlots = true;
+
           this.showingSaveSlots = true;
           this.saveSlotButtons = this.createSaveSlotButtons();
-          this.buttons = this.createMainButtons(); // Recreate to update button text/style
+          this.buttons = this.createMainButtons(); // update label to "Back"
         }
       },
       style: this.showingSaveSlots ? backButtonStyle : sharedStyle
@@ -296,6 +310,41 @@ export class TitleScreenManager {
   }
 
   private update = (_dt: number) => {
+    // Handle sliding animation
+    if (this.isAnimatingSlots) {
+      if (this.saveSlotAnimationPhase === 'sliding-up') {
+        for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
+          this.saveSlotYOffsets[i] -= SLOT_SLIDE_SPEED;
+        }
+        if (this.saveSlotYOffsets[0] <= -SLOT_OVERSHOOT) {
+          this.saveSlotAnimationPhase = 'settling';
+        }
+      } else if (this.saveSlotAnimationPhase === 'settling') {
+        for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
+          this.saveSlotYOffsets[i] += SLOT_SETTLE_SPEED;
+          if (this.saveSlotYOffsets[i] > 0) this.saveSlotYOffsets[i] = 0;
+        }
+        if (this.saveSlotYOffsets.every(offset => offset === 0)) {
+          this.isAnimatingSlots = false;
+          this.saveSlotAnimationPhase = null;
+        } 
+      } else if (this.saveSlotAnimationPhase === 'sliding-down') {
+          for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
+            this.saveSlotYOffsets[i] += SLOT_SLIDE_SPEED;
+          }
+
+          if (this.saveSlotYOffsets[0] >= SLOT_START_Y_OFFSET) {
+            // Finalize: hide save slots after animation completes
+            this.isAnimatingSlots = false;
+            this.saveSlotAnimationPhase = null;
+            this.showingSaveSlots = false;
+            this.saveSlotButtons = [];
+            this.buttons = this.createMainButtons(); // update label to "Play"
+            this.saveSlotYOffsets = [0, 0, 0]; // Reset
+          }
+        }
+    }
+
     this.inputManager.updateFrame();
 
     const { x, y } = this.inputManager.getMousePosition();
@@ -333,9 +382,15 @@ export class TitleScreenManager {
     // Render save slot buttons when showing save slots
     if (this.showingSaveSlots) {
       for (const button of this.saveSlotButtons) {
+        const slotIndex = Math.floor((button.y - 460) / 70);
+        const offset = this.saveSlotYOffsets[slotIndex] ?? 0;
+        const originalY = button.y;
+        button.y += offset;
         drawButton(uiCtx, button);
+        button.y = originalY;
       }
     }
+
 
     if (this.confirmingDeleteSlot !== null) {
       drawWindow({
@@ -363,6 +418,7 @@ export class TitleScreenManager {
       uiCtx.font = '14px monospace';
       uiCtx.fillText('Erase this save file?', 300, 320);
 
+      // Did I accidently put this here when we should be rendering the delete confirmation buttons?
       for (const button of this.confirmationButtons) {
         drawButton(uiCtx, button);
       }

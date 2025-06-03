@@ -1,5 +1,3 @@
-// src/ui/menus/ShipBuilderMenu.ts
-
 import type { InputManager } from '@/core/InputManager';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
@@ -38,12 +36,6 @@ const WINDOW_HEIGHT = TILE_SIZE * GRID_ROWS + 60;
 const BLOCKINFO_WINDOW_WIDTH = TILE_SIZE * (GRID_COLS - 2) + PADDING * 3;
 const UTILITY_WINDOW_WIDTH = TILE_SIZE + PADDING;
 
-// Animation constants
-const TOTAL_MENU_WIDTH = WINDOW_WIDTH + BLOCKINFO_WINDOW_WIDTH + UTILITY_WINDOW_WIDTH + PADDING;
-const SLIDE_SPEED = 10;
-const OVERSHOOT_DISTANCE = 30;
-const SETTLE_SPEED = 4;
-
 const IGNORED_KEYS = new Set(['canThrust', 'canFire']);
 const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
 
@@ -61,17 +53,9 @@ export class ShipBuilderMenu implements Menu {
 
   private open = false;
 
-  // Animation state
-  private slideX = 0;
-  private isAnimating = false;
-  private animationPhase: 'sliding-in' | 'settling' | 'sliding-out' | null = null;
-  private targetX = 0;
-
   constructor(inputManager: InputManager, cursorRenderer: CursorRenderer) {
     this.inputManager = inputManager;
     this.cursorRenderer = cursorRenderer;
-    // Initialize slide position to be completely off-screen
-    this.slideX = -(TOTAL_MENU_WIDTH + 50);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -81,7 +65,7 @@ export class ShipBuilderMenu implements Menu {
     const tabs = this.buildCategoryTabs();
     const tabWasClicked = drawWindow({
       ctx,
-      x: WINDOW_X + this.slideX,
+      x: WINDOW_X,
       y: WINDOW_Y,
       width: WINDOW_WIDTH,
       height: WINDOW_HEIGHT,
@@ -113,12 +97,12 @@ export class ShipBuilderMenu implements Menu {
       blocks,
       mouse,
       clicked,
-      WINDOW_X + PADDING + this.slideX,
+      WINDOW_X + PADDING,
       WINDOW_Y + WINDOW_HEADER_HEIGHT,
       tabWasClicked
     );
 
-    const infoX = WINDOW_X + this.slideX;
+    const infoX = WINDOW_X;
     const infoY = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET;
 
     // === Tooltip override: hovered utility tool
@@ -148,7 +132,7 @@ export class ShipBuilderMenu implements Menu {
 
     this.renderUtilityWindow(
       ctx,
-      WINDOW_X + BLOCKINFO_WINDOW_WIDTH + PADDING + this.slideX,
+      WINDOW_X + BLOCKINFO_WINDOW_WIDTH + PADDING,
       WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET,
       UTILITY_WINDOW_WIDTH,
       INFO_WINDOW_HEIGHT,
@@ -459,6 +443,7 @@ export class ShipBuilderMenu implements Menu {
     }
   }
 
+
   private renderToolInfo(
     ctx: CanvasRenderingContext2D,
     tool: ShipBuilderTool,
@@ -504,30 +489,7 @@ export class ShipBuilderMenu implements Menu {
   }
 
   update(): void {
-    if (this.isAnimating) {
-      if (this.animationPhase === 'sliding-in') {
-        this.slideX += SLIDE_SPEED;
-        if (this.slideX >= this.targetX + OVERSHOOT_DISTANCE) {
-          this.animationPhase = 'settling';
-        }
-      } else if (this.animationPhase === 'settling') {
-        this.slideX -= SETTLE_SPEED;
-        if (this.slideX <= this.targetX) {
-          this.slideX = this.targetX;
-          this.isAnimating = false;
-          this.animationPhase = null;
-        }
-      } else if (this.animationPhase === 'sliding-out') {
-        this.slideX -= SLIDE_SPEED;
-        if (this.slideX <= this.targetX) {
-          this.slideX = this.targetX;
-          this.animationPhase = null;
-          this.isAnimating = false;
-          this.open = false;
-          this.cursorRenderer.setDefaultCursor();
-        }
-      }
-    }
+    // No-op
   }
 
   isBlocking(): boolean {
@@ -547,28 +509,17 @@ export class ShipBuilderMenu implements Menu {
   }
 
   isOpen(): boolean {
-    return this.open;
+    return this.open
   }
 
   openMenu(): void {
     audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
     this.open = true;
-    
-    // Start the slide animation
-    this.slideX = -(TOTAL_MENU_WIDTH + 50);
-    this.targetX = 0;
-    this.isAnimating = true;
-    this.animationPhase = 'sliding-in';
   }
 
   closeMenu(): void {
-    // Start the slide-out animation
-    this.targetX = -(TOTAL_MENU_WIDTH + 50); // target off-screen
-    this.animationPhase = 'sliding-out';
-    this.isAnimating = true;
-
-    // Do NOT immediately set open = false or reset slideX
-    // That will happen in the update() loop once animation completes
+    this.open = false;
+    this.cursorRenderer.setDefaultCursor();
   }
 
   // Called from UI buttons (see below)
@@ -581,14 +532,13 @@ export class ShipBuilderMenu implements Menu {
   }
 
   public isPointInBounds(x: number, y: number): boolean {
-    // Adjust bounds checking to account for slide offset
-    const mainWindowRight = WINDOW_X + WINDOW_WIDTH + this.slideX;
+    const mainWindowRight = WINDOW_X + WINDOW_WIDTH;
     const mainWindowBottom = WINDOW_Y + WINDOW_HEIGHT;
 
-    const blockInfoRight = WINDOW_X + BLOCKINFO_WINDOW_WIDTH + this.slideX;
+    const blockInfoRight = WINDOW_X + BLOCKINFO_WINDOW_WIDTH;
     const blockInfoBottom = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET + INFO_WINDOW_HEIGHT;
 
-    const utilityWindowLeft = WINDOW_X + BLOCKINFO_WINDOW_WIDTH + PADDING + this.slideX;
+    const utilityWindowLeft = WINDOW_X + BLOCKINFO_WINDOW_WIDTH + PADDING;
     const utilityWindowRight = utilityWindowLeft + UTILITY_WINDOW_WIDTH;
     const utilityWindowTop = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET;
     const utilityWindowBottom = utilityWindowTop + INFO_WINDOW_HEIGHT;
@@ -596,11 +546,11 @@ export class ShipBuilderMenu implements Menu {
     const tabHeight = 30;
 
     const withinMainWindow =
-      x >= WINDOW_X + this.slideX && x <= mainWindowRight &&
+      x >= WINDOW_X && x <= mainWindowRight &&
       y >= WINDOW_Y - tabHeight && y <= mainWindowBottom;
 
     const withinBlockInfoWindow =
-      x >= WINDOW_X + this.slideX && x <= blockInfoRight &&
+      x >= WINDOW_X && x <= blockInfoRight &&
       y >= WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET &&
       y <= blockInfoBottom;
 
