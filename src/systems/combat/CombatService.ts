@@ -25,6 +25,8 @@ export class CombatService {
     cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'scripted' = 'scripted',
     playerShip: Ship
   ): boolean {
+    if (block.indestructible) return false;
+
     // === Attempt shield absorption ===
     if (block.isShielded) {
       const energy = ship.getEnergyComponent();

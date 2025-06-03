@@ -137,7 +137,7 @@ export class DebriefingScreenManager {
       line('');
       line('> New Blocks Unlocked:', '#ffaa00');
       for (const blockId of result.blocksUnlocked) {
-        line(`    • ${getBlockType(blockId)}`, '#ffaa00');
+        line(`    • ${getBlockType(blockId)?.name}`, '#ffaa00');
       }
     }
 
