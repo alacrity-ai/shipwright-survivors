@@ -33,3 +33,15 @@ export function brightenColor(hex: string, amount: number): string {
   const b = clamp((num & 0x0000FF) + 255 * amount);
   return `rgb(${r}, ${g}, ${b})`;
 }
+
+export function addAlphaToHex(color: string, alphaHex: string): string {
+  // Expand #rgb → #rrggbb
+  if (/^#[0-9a-f]{3}$/i.test(color)) {
+    const [r, g, b] = color.slice(1);
+    return `#${r}${r}${g}${g}${b}${b}${alphaHex}`;
+  }
+  if (/^#[0-9a-f]{6}$/i.test(color)) {
+    return `${color}${alphaHex}`;
+  }
+  throw new Error(`Invalid hex color format: ${color}`);
+}

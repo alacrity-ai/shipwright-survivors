@@ -361,6 +361,15 @@ export class Ship {
     return this.blocks.get(toKey({ x: 0, y: 0 }));
   }
 
+  public getCockpitHp(): number | null {
+    const cockpit = this.getCockpit();
+    if (!cockpit) {
+      console.warn(`[Ship ${this.id}] Cockpit block missing.`);
+      return null;
+    }
+    return cockpit.hp;
+  }
+  
   getCockpitCoord(): GridCoord | undefined {
     if (this.getCockpit()) {
       return { x: 0, y: 0 };

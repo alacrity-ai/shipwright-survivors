@@ -17,8 +17,8 @@ export class WavesOverlay {
     const countdown = this.waveSpawner.getTimeUntilNextWave();
     const isBoss = this.waveSpawner.isBossWaveActive();
 
-    const x = 12;
-    let y = 580;
+    const x = 240;
+    let y = 680;
     const lineHeight = 18;
 
     drawLabel(ctx, x, y, `Wave: ${wave}`); y += lineHeight;

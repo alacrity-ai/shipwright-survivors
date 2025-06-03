@@ -1,11 +1,11 @@
-// src/core/save/SaveGameManager.ts
-
 import { flags } from '@/game/player/PlayerFlagManager';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 export interface SaveGameData {
   flags: string[];
   unlockedBlockIds: string[];
+  settings?: string; // JSON stringified settings blob
   passives?: any;
   version?: number;
 }
@@ -50,12 +50,13 @@ export class SaveGameManager {
     localStorage.setItem(this.getStorageKey(), JSON.stringify(data));
   }
 
-  // === Convenience Methods
+  // === Convenience Methods ===
 
   public saveAll(): void {
     const data: SaveGameData = {
       flags: JSON.parse(flags.toJSON()),
       unlockedBlockIds: JSON.parse(PlayerTechnologyManager.getInstance().toJSON()),
+      settings: PlayerSettingsManager.getInstance().toJSON(),
       passives: {}, // stub
       version: 1
     };
@@ -66,7 +67,9 @@ export class SaveGameManager {
     const data = this.loadData();
     flags.fromJSON(JSON.stringify(data.flags ?? []));
     PlayerTechnologyManager.getInstance().fromJSON(JSON.stringify(data.unlockedBlockIds ?? []));
-    // passives: stub
+    if (data.settings) {
+      PlayerSettingsManager.getInstance().fromJSON(data.settings);
+    }
   }
 
   public changeSlot(newSlot: number): void {
@@ -93,6 +96,12 @@ export class SaveGameManager {
     this.writeData(data);
   }
 
+  public saveSettings(): void {
+    const data = this.loadData();
+    data.settings = PlayerSettingsManager.getInstance().toJSON();
+    this.writeData(data);
+  }
+
   public savePassives(): void {
     const data = this.loadData();
     data.passives = {}; // stub
@@ -109,6 +118,13 @@ export class SaveGameManager {
   public loadTechnology(): void {
     const data = this.loadData();
     PlayerTechnologyManager.getInstance().fromJSON(JSON.stringify(data.unlockedBlockIds ?? []));
+  }
+
+  public loadSettings(): void {
+    const data = this.loadData();
+    if (data.settings) {
+      PlayerSettingsManager.getInstance().fromJSON(data.settings);
+    }
   }
 
   public loadPassives(): void {

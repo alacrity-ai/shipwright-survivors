@@ -8,7 +8,6 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { ShipDestructionService } from '@/game/ship/ShipDestructionService';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
-import { audioManager } from '@/audio/Audio';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 export class CombatService {
@@ -143,6 +142,38 @@ export class CombatService {
 
     if (orphanCoords.length > 0) {
       ship.removeBlocks(orphanCoords, orphanBlocks);
+    }
+
+    // === Enforce cockpit-isolation fatality invariant ===
+    const remainingBlocks = Array.from(ship.getBlockMap().values());
+    if (remainingBlocks.length === 1 && remainingBlocks[0].type.id.startsWith('cockpit')) {
+      const cockpitCoord = ship.getCockpitCoord?.();
+      if (cockpitCoord) {
+        const cockpitBlock = remainingBlocks[0];
+
+        this.explosionSystem.createBlockExplosion(
+          ship.getTransform().position,
+          ship.getTransform().rotation,
+          cockpitCoord,
+          140,
+          1.2,
+          undefined,
+          DEFAULT_EXPLOSION_SPARK_PALETTE
+        );
+
+        this.pickupSpawner.spawnPickupOnBlockDestruction(cockpitBlock);
+        ship.removeBlock(cockpitCoord);
+
+        this.destructionService.destroyShip(ship, cause);
+
+        playSpatialSfx(ship, playerShip, {
+          file: 'assets/sounds/sfx/explosions/explosion_01.wav',
+          channel: 'sfx',
+          baseVolume: 0.8,
+          pitchRange: [0.7, 1.0],
+          volumeJitter: 0.2,
+        });
+      }
     }
 
     return true;

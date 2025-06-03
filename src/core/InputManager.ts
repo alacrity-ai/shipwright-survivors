@@ -174,6 +174,11 @@ export class InputManager {
     return this.wasKeyJustPressed('MouseLeft');
   }
 
+  public wasLeftClicked(): boolean {
+    if (this.inputDisabled) return false;
+    return this.wasKeyJustPressed('MouseLeft');
+  }
+
   public wasRightClicked(): boolean {
     if (this.inputDisabled) return false;
     return this.wasKeyJustPressed('MouseRight');

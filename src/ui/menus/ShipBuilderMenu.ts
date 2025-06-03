@@ -29,7 +29,7 @@ const GRID_ROWS = 6;
 
 const WINDOW_HEADER_HEIGHT = 28;
 const BLOCK_INFO_OFFSET = 12;
-const INFO_WINDOW_HEIGHT = 240;
+const INFO_WINDOW_HEIGHT = 200;
 
 const WINDOW_X = 20;
 const WINDOW_Y = 40;
@@ -37,6 +37,8 @@ const WINDOW_WIDTH = TILE_SIZE * GRID_COLS + PADDING * 2;
 const WINDOW_HEIGHT = TILE_SIZE * GRID_ROWS + 60;
 const BLOCKINFO_WINDOW_WIDTH = TILE_SIZE * (GRID_COLS - 2) + PADDING * 3;
 const UTILITY_WINDOW_WIDTH = TILE_SIZE + PADDING;
+
+const UTILITY_BUTTON_VERTICAL_MARGIN = 14;
 
 // Animation constants
 const TOTAL_MENU_WIDTH = WINDOW_WIDTH + BLOCKINFO_WINDOW_WIDTH + UTILITY_WINDOW_WIDTH + PADDING;
@@ -198,11 +200,13 @@ export class ShipBuilderMenu implements Menu {
         const isSelected = this.selectedBlockId === block.id;
         const isUnlocked = techManager.isUnlocked(block.id);
 
+        const sprite = getBlockSprite(block.id);
         drawBlockTile(ctx, {
           x,
           y,
           size: TILE_SIZE,
-          sprite: getBlockSprite(block.id).base,
+          sprite: sprite.base,
+          overlaySprite: sprite.overlay,
           isHovered,
           isSelected,
           isLocked: !isUnlocked,
@@ -375,7 +379,7 @@ export class ShipBuilderMenu implements Menu {
     const spacing = 8;
     const buttonWidth = width - PADDING * 2;
     const startX = x + PADDING;
-    let currentY = y + WINDOW_HEADER_HEIGHT + spacing;
+    let currentY = y + WINDOW_HEADER_HEIGHT + spacing - UTILITY_BUTTON_VERTICAL_MARGIN;
 
     this.hoveredUtilityTool = null; // ← Reset before loop
 

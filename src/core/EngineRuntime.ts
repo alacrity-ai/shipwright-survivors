@@ -12,6 +12,7 @@ import type { MissionDefinition } from '@/game/missions/types/MissionDefinition'
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
+import { SettingsMenu } from '@/ui/menus/SettingsMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
 import { WavesOverlay } from '@/ui/overlays/WavesOverlay';
@@ -71,6 +72,7 @@ export class EngineRuntime {
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager;
   private shipBuilderMenu: ShipBuilderMenu
+  private settingsMenu: SettingsMenu;
   private pauseMenu: PauseMenu;
   private hud: HudOverlay;
   private miniMap: MiniMap;
@@ -123,7 +125,8 @@ export class EngineRuntime {
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this));
+    this.settingsMenu = new SettingsMenu(this.inputManager);
+    this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this), this.settingsMenu);
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
@@ -331,7 +334,7 @@ export class EngineRuntime {
     }
 
     // Toggle the ship builder menu with Tab
-    if (this.inputManager.wasKeyJustPressed('Tab') && !this.pauseMenu.isOpen()) {
+    if (this.inputManager.wasKeyJustPressed('Tab') && !this.pauseMenu.isOpen() && !this.settingsMenu.isOpen()) {
       if (!this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.openMenu();
       } else {
@@ -343,16 +346,21 @@ export class EngineRuntime {
       if (this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.closeMenu();
       } else {
-        if (!this.pauseMenu.isOpen()) {
+        if (!this.pauseMenu.isOpen() && !this.settingsMenu.isOpen()) {
           this.pauseMenu.openMenu();
         } else {
           this.pauseMenu.closeMenu();
+          this.settingsMenu.closeMenu();
         }
       }
     }
 
     if (this.pauseMenu.isOpen()) {
       this.pauseMenu.update();
+    }
+
+    if (this.settingsMenu.isOpen()) {
+      this.settingsMenu.update();
     }
 
     if (this.shipBuilderMenu.isOpen()) {
@@ -399,7 +407,7 @@ export class EngineRuntime {
     // Always update the RepairEffectSystem
     this.repairEffectSystem.update(dt);
 
-    if (!this.shipBuilderMenu.isOpen() && !this.pauseMenu.isOpen()) {
+    if (!this.shipBuilderMenu.isOpen() && !this.pauseMenu.isOpen() && !this.settingsMenu.isOpen()) {
       this.updatables.forEach(system => system.update(dt));
     }
 
@@ -430,6 +438,10 @@ export class EngineRuntime {
 
     if (this.pauseMenu.isOpen()) {
       this.pauseMenu.render(this.canvasManager.getContext('ui'));
+    }
+
+    if (this.settingsMenu.isOpen()) {
+      this.settingsMenu.render(this.canvasManager.getContext('ui'));
     }
 
     // this.dialogueQueueManager.render(this.canvasManager.getContext('dialogue'));
