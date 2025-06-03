@@ -13,7 +13,8 @@ interface LabelDrawOptions {
   alpha?: number;
   shadowBlur?: number;
   shadowColor?: string;
-  glow?: boolean; // shorthand for green glow
+  glow?: boolean;    // shorthand for green glow
+  color?: string;    // fallback or default color
 }
 
 export function drawLabel(
@@ -29,7 +30,8 @@ export function drawLabel(
     alpha = 1.0,
     shadowBlur = 0,
     shadowColor = '',
-    glow = false
+    glow = false,
+    color = '#00ff00' // ✅ NEW default
   } = options ?? {};
 
   ctx.save();
@@ -47,12 +49,12 @@ export function drawLabel(
   }
 
   if (typeof text === 'string') {
-    ctx.fillStyle = '#00ff00';
+    ctx.fillStyle = color; // respect options.color
     ctx.fillText(text, x, y);
   } else {
     let cursorX = x;
     for (const segment of text) {
-      ctx.fillStyle = segment.color ?? '#00ff00';
+      ctx.fillStyle = segment.color ?? color;
       ctx.fillText(segment.text, cursorX, y);
       cursorX += ctx.measureText(segment.text).width;
     }

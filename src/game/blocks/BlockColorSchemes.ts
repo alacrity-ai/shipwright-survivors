@@ -1,5 +1,13 @@
 // src/game/blocks/BlockColorSchemes.ts
 
+export const BLOCK_PICKUP_SPARK_COLOR_PALETTES: Array<string[]> = [
+  ['#fff', '#f90', '#ff0'],           // 
+  ['#fff', '#f90', '#ff0'],           // same as 0
+  ['#66ff66', '#33cc33', '#99ff99'],  // green
+  ['#66ccff', '#3399ff', '#99ddff'],  // blue
+  ['#cc88ff', '#9933ff', '#ddaaff'],  // purple
+];
+
 export const DEFAULT_EXPLOSION_SPARK_PALETTE: string[] = ['#ffdd00', '#ffaa00', '#ff6600', '#ff2200', '#ffffff'];
 
 export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
@@ -46,3 +54,5 @@ export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
   explosiveLance3: ['#ccccff', '#9999ff', '#4444aa'], // lavender/blue
   explosiveLance4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
 };
+
+

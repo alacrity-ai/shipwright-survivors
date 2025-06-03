@@ -15,6 +15,7 @@ import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
 import { WavesOverlay } from '@/ui/overlays/WavesOverlay';
+import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
@@ -94,6 +95,7 @@ export class EngineRuntime {
   private cursorRenderer: CursorRenderer;
   private waveSpawner: WaveSpawner;
   private wavesOverlay: WavesOverlay;
+  private popupMessageSystem: PopupMessageSystem;
   private debugOverlay: DebugOverlay;
 
   private movement: MovementSystem;
@@ -116,8 +118,9 @@ export class EngineRuntime {
   constructor() {
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
-    
     this.gameLoop = new GameLoop();
+    
+    this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
     this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this));
@@ -133,8 +136,6 @@ export class EngineRuntime {
     playerResources.initialize(0); // Start with 0 currency
     const playerStats = PlayerStats.getInstance();
     playerStats.initialize(100); // Start with 100 energy
-    const playerTechManager = PlayerTechnologyManager.getInstance();
-    playerTechManager.unlockMany(['hull1', 'engine1', 'turret1', 'fin1', 'facetplate1']);
 
     this.grid = new Grid();  // Initialize global grid
     this.ship = getStarterShip(this.grid);  // Now the grid is initialized before passing to getStarterShip
@@ -151,7 +152,14 @@ export class EngineRuntime {
     this.aiOrchestrator = new AIOrchestratorSystem();
 
     // === Step 2: Construct PickupSystem and PickupSpawner (unchanged) ===
-    this.pickupSystem = new PickupSystem(this.canvasManager, this.camera, this.ship, this.particleManager);
+    this.pickupSystem = new PickupSystem(
+      this.canvasManager, 
+      this.camera, 
+      this.ship, 
+      this.particleManager, 
+      this.screenEffects, 
+      this.popupMessageSystem
+    );
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
     const destructionService = new ShipDestructionService(
@@ -275,6 +283,7 @@ export class EngineRuntime {
           }
         }
       },
+      this.popupMessageSystem,
       this.background,
     ];
 
@@ -291,6 +300,7 @@ export class EngineRuntime {
       this.screenEffects,
       this.wavesOverlay,
       this.debugOverlay,
+      this.popupMessageSystem,
       this.missionDialogueManager
     ];
 
@@ -466,7 +476,9 @@ export class EngineRuntime {
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().destroy();
     PlayerStats.getInstance().destroy();
-    PlayerTechnologyManager.getInstance().destroy();
+
+    // Technology should persist between runs
+    // PlayerTechnologyManager.getInstance().destroy();
 
     // Optional: clear UI menus, overlays
     this.hud.destroy();

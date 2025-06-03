@@ -1,11 +1,12 @@
 // src/systems/dialogue/DialogueQueueManager.ts
 
 import type { DialogueScript } from './interfaces/DialogueScript';
+import type { DialogueMode } from './interfaces/DialogueMode';
 
 import { DialogueOrchestrator } from './DialogueOrchestrator';
 import { speakerVoiceRegistry } from './registry/SpeakerVoiceRegistry';
 
-const POST_LINE_DELAY_MS = 500;
+const POST_LINE_DELAY_MS = 800;
 
 const INPERSON_TEXTBOXRECT = { x: 320, y: 120, width: 520, height: 100 };
 const INPERSON_PORTRAIT_POSITION = { x: 80, y: 420 };
@@ -25,6 +26,15 @@ export class DialogueQueueManager {
   private pauseTimerMs: number | null = null;
   private postLineDelay = 0;
   private pendingCommand: Promise<void> | null = null;
+
+  private activeSpeakerId: string | null = null;
+  private activeSpeakerOptions: {
+    mode?: DialogueMode;
+    side?: 'left' | 'right';
+    textColor?: string;
+    font?: string;
+    pitchMod?: number;
+  } = {};
 
   constructor(
     private readonly orchestrator: DialogueOrchestrator,
@@ -54,8 +64,8 @@ export class DialogueQueueManager {
         this.isBlocked = true;
 
         const defaultMode = this.currentScript.defaultMode ?? 'inPerson';
-        const lineMode = event.options?.mode ?? defaultMode;
-        const side = event.options?.side ?? 'left';
+        const lineMode = event.options?.mode ?? this.activeSpeakerOptions.mode ?? defaultMode;
+        const side = event.options?.side ?? this.activeSpeakerOptions.side ?? 'left';
 
         const isInPerson = lineMode === 'inPerson';
         const isRightSide = side === 'right';
@@ -72,15 +82,31 @@ export class DialogueQueueManager {
             ? TRANSMISSION_PORTRAIT_POSITION_RIGHT
             : TRANSMISSION_PORTRAIT_POSITION;
 
+        const speakerId = event.speakerId ?? this.activeSpeakerId;
+        if (!speakerId) {
+          console.warn('No speaker defined for line event');
+          this.advance();
+          return;
+        }
+
+        const font =
+          event.options?.font ??
+          this.activeSpeakerOptions.font ??
+          (isInPerson ? INPERSON_FONT : TRANSMISSION_FONT);
+
+        const textColor =
+          event.options?.textColor ??
+          this.activeSpeakerOptions.textColor;
+
         this.orchestrator.startDialogue({
-          speakerId: event.speakerId,
+          speakerId,
           text: event.text,
-          textColor: event.options?.textColor,
-          font: event.options?.font ?? (isInPerson ? INPERSON_FONT : TRANSMISSION_FONT),
+          textColor,
+          font,
           textBoxRect,
           position,
           mode: lineMode,
-          textSpeed: speakerVoiceRegistry.getProfile(event.speakerId)?.textSpeed,
+          textSpeed: speakerVoiceRegistry.getProfile(speakerId)?.textSpeed,
         });
 
         return;
@@ -115,6 +141,13 @@ export class DialogueQueueManager {
       case 'showUI': {
         this.orchestrator.setVisualsVisible(true);
         this.advance(); // immediately move to next event
+        return;
+      }
+
+      case 'changespeaker': {
+        this.activeSpeakerId = event.speakerId;
+        this.activeSpeakerOptions = event.options ?? {};
+        this.advance(); // immediately proceed to next event
         return;
       }
 

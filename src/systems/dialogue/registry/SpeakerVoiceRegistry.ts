@@ -10,6 +10,7 @@ export class SpeakerVoiceRegistry {
   }
 
   private loadDefaults(): void {
+    // Main cast
     this.register({
       id: 'marla-thinx',
       portrait: this.loadImage('assets/characters/character_marla-thinx.png'),
@@ -51,7 +52,16 @@ export class SpeakerVoiceRegistry {
       portrait: this.loadImage('assets/characters/character_the-board.png'),
       blipAudioFile: 'assets/sounds/bleeps/girl_oh.wav',
       basePitch: 1.1,
-      transmissionStyle: true,
+    });
+
+    // Bosses
+    this.register({
+      id: 'crazy-moe',
+      portrait: this.loadImage('assets/characters/bosses/character_boss_wildjoe.png'),
+      blipAudioFile: 'assets/sounds/bleeps/man_eh.wav',
+      basePitch: 0.8,
+      textSpeed: 0.05,
+      pitchVariance: 0.5,
     });
   }
 

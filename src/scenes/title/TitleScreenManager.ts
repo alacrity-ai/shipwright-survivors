@@ -5,6 +5,7 @@ import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
+import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
@@ -73,9 +74,12 @@ export class TitleScreenManager {
         y: baseY,
         width,
         height,
-        label: 'New Game',
+        label: 'Play',
         isHovered: false,
         onClick: () => {
+          // All of this needs to be refactored 
+          const playerTechManager = PlayerTechnologyManager.getInstance();
+          playerTechManager.unlockMany(['hull1', 'engine1', 'turret1', 'fin1', 'facetplate1']);
           audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx');
           this.stop();
           missionLoader.setMission(missionRegistry['mission_001']);
@@ -91,6 +95,20 @@ export class TitleScreenManager {
         label: 'Load Game',
         isHovered: false,
         onClick: () => {
+          // We don't need this Load Game button anymore, instead, clicking the 'Play' button above will:
+          // Will popup 3 additional buttons to the right, these buttons will represent the 3 save slots.
+          // If there is no data yet for any of these files (and we'll need our SaveGameManager to check, perhaps we can have a method "get save data for slots" or something that can be run pre-initialize),
+          // Then if a slot (button for now) has no data, it will just be labeled New Game
+          // If the slot has data, then the button will be labeled with Load Save 1, Load Save 2, Load Save 3, etc
+          // Eventually we will load each save and display maybe time played, total unlocks, in each, but for now
+          //  We will just label the buttons with New Game or Load Game 1, etc
+          //  If save slot 1 is clicked on for example,
+          // In the case of a Load:
+          // We initialize the saveManager it with the proper slot, then loadFlags, loadTechnology, and loadPassives
+          // And then send the user to the hub scene.
+          // In the case of a New Game:
+          // We initialize the saveManager with the proper slot, we don't need to load anything,
+          // We just send the player directly to the mission scene, with the setMission, and fadeToScene calls as used above, and the 4 unlocks with the unlockMany call (just duplicate start above)
           console.log('Load Game clicked (not implemented)');
         },
         style: sharedStyle

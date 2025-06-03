@@ -84,7 +84,28 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       // Wait 1000ms
       {
         type: 'pause',
-        durationMs: 2000,
+        durationMs: 1000,
+      },
+      {
+        type: 'line',
+        speakerId: 'crazy-moe',
+        text: "WELL WHADDYA KNOW! A flyin' lunchbox full'a alloys!",
+      },
+      // Wait 1000ms
+      {
+        type: 'pause',
+        durationMs: 1000,
+      },
+      // Crazy moe says: "I'ma gonna strip you for parts!"
+      {
+        type: 'line',
+        speakerId: 'crazy-moe',
+        text: "Heh—I'ma pop yer cockpit like a soda tab and sniff the coolant fumes!",
+      },
+      // Wait 1000ms
+      {
+        type: 'pause',
+        durationMs: 1000,
       },
       // Hide UI
       {
@@ -101,16 +122,15 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'showUI',
       },
-      // Congratulate user on defeating the boss
       {
         type: 'line',
-        speakerId: 'carl',
-        text: 'Hostile neutralized. I am mildly impressed.  Clearance to return to headquarters granted.',
+        speakerId: 'crazy-moe',
+        text: "Y'got me! Sweet entropy, I see the light—*AND SHE'S MADE OF REBAR AND RADIATION!*",
       },
       // Wait 1000ms
       {
         type: 'pause',
-        durationMs: 1000,
+        durationMs: 2000,
       },
     ],
   };

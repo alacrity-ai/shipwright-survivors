@@ -45,4 +45,21 @@ export class PlayerTechnologyManager {
   destroy(): void {
     this.unlockedBlockIds.clear();
   }
+
+  // === Serialization ===
+
+  public toJSON(): string {
+    return JSON.stringify(Array.from(this.unlockedBlockIds));
+  }
+
+  public fromJSON(json: string): void {
+    try {
+      const parsed = JSON.parse(json);
+      if (Array.isArray(parsed)) {
+        this.unlockedBlockIds = new Set(parsed);
+      }
+    } catch (err) {
+      console.warn('Failed to load player technology from JSON:', err);
+    }
+  }
 }

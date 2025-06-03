@@ -28,11 +28,11 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   }
 
   private enqueueInitialDialogues(): void {
-    if (!flags.has('mission.intro-briefing.complete')) {
-      this.scriptQueue.push('intro-briefing');
-    } else {
+    // if (!flags.has('mission.intro-briefing.complete')) {
+    //   this.scriptQueue.push('intro-briefing');
+    // } else {
       this.scriptQueue.push('mission-generic');
-    }
+    // }
   }
 
   private getDialogueContext(): DialogueContext {

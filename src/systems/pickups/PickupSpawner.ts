@@ -15,17 +15,26 @@ export class PickupSpawner {
    * @param block The block that was destroyed.
    */
   spawnPickupOnBlockDestruction(block: BlockInstance): void {
-    // Determine the chance of spawning a pickup (e.g., 30% chance)
-    const spawnChance = Math.random();
-    if (spawnChance < 0.3) { // 30% chance
-      const currencyAmount = this.getCurrencyAmountForBlock(block);
-      
-      // Spawn the currency pickup at the block's position (slightly offset if necessary)
+    const blockType = block.type;
+    const { dropRate = 0 } = blockType;
+
+    if (Math.random() < dropRate) {
       const pickupPosition = {
         x: block.position?.x ?? 0,
         y: block.position?.y ?? 0,
       };
 
+      this.pickupSystem.spawnBlockUnlockPickup(pickupPosition, blockType);
+      return;
+    }
+
+    // Fallback to regular currency drop
+    if (Math.random() < 0.3) {
+      const currencyAmount = this.getCurrencyAmountForBlock(block);
+      const pickupPosition = {
+        x: block.position?.x ?? 0,
+        y: block.position?.y ?? 0,
+      };
       this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
     }
   }

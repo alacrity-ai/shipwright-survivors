@@ -28,4 +28,16 @@ export type DialogueEvent =
     }
   | {
       type: 'showUI';
-    };
+    }
+  | {
+      type: 'changespeaker';
+      speakerId: string;
+      options?: {
+        mode?: DialogueMode;
+        side?: 'left' | 'right';
+        textColor?: string;
+        font?: string;
+        pitchMod?: number;
+      };
+    }
+
