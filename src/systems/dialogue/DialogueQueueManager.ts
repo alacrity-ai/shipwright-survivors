@@ -8,7 +8,7 @@ import { speakerVoiceRegistry } from './registry/SpeakerVoiceRegistry';
 
 const POST_LINE_DELAY_MS = 800;
 
-const INPERSON_TEXTBOXRECT = { x: 320, y: 120, width: 520, height: 100 };
+const INPERSON_TEXTBOXRECT = { x: 320, y: 120, width: 520, height: 140 };
 const INPERSON_PORTRAIT_POSITION = { x: 80, y: 420 };
 const INPERSON_FONT = '24px monospace';
 

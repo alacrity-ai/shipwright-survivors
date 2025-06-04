@@ -9,10 +9,9 @@ import { audioManager } from '@/audio/Audio';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
-import { flags } from '@/game/player/PlayerFlagManager';
 
+import { flags } from '@/game/player/PlayerFlagManager';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
-import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_break-room.png';
@@ -73,12 +72,12 @@ export class BreakroomSceneManager {
     // === Create and start the dialogue ===
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
 
-    if (!flags.has('breakroom.marla-greeting.complete')) {
-      const script = getDialogueScript('marla-greeting', {});
-      if (script) {
-        this.dialogueQueueManager.startScript(script);
-      }
-    }
+    // if (!flags.has('breakroom.marla-greeting.complete')) {
+    //   const script = getDialogueScript('marla-greeting', {});
+    //   if (script) {
+    //     this.dialogueQueueManager.startScript(script);
+    //   }
+    // }
     // if (!flags.has('mission.vlox-attack.complete')) {
     //   const script = getDialogueScript('vlox-attack', this.inputManager);
     //   if (script) {
@@ -102,6 +101,19 @@ export class BreakroomSceneManager {
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
+    // Dialogue Handling
+    if (this.dialogueQueueManager?.isRunning()) {
+      // Skip all interaction and button logic if a dialogue is active
+      this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
+
+      // Allow skipping dialogue with click
+      if (clicked) {
+        this.dialogueQueueManager.skipOrAdvance();
+      }
+
+      return; // Prevent other interactions
+    }
+
     for (const btn of this.buttons) {
       btn.isHovered =
         x >= btn.x && x <= btn.x + btn.width &&
@@ -110,15 +122,6 @@ export class BreakroomSceneManager {
       if (clicked && btn.isHovered) {
         btn.onClick();
         break;
-      }
-    }
-
-    if (this.dialogueQueueManager) {
-      this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
-
-      // Optionally allow skip on click
-      if (clicked) {
-        this.dialogueQueueManager.skipOrAdvance();
       }
     }
   };
@@ -136,8 +139,10 @@ export class BreakroomSceneManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    for (const btn of this.buttons) {
-      drawButton(uiCtx, btn);
+    if (!this.dialogueQueueManager?.isRunning()) {
+      for (const btn of this.buttons) {
+        drawButton(uiCtx, btn);
+      }
     }
 
     if (this.dialogueQueueManager) {

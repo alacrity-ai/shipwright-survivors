@@ -259,14 +259,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'line',
         speakerId: 'carl',
         text: 'Entropium extraction threshold reached. Your contract remains marginally unbroken.',
-      },
-      // Unlock tab key
-      {
-        type: 'command',
-        run: () => {
-          inputManager.enableKey('Tab');
-        },
-      },
+      },  
       {
         type: 'command',
         run: () => {
@@ -280,6 +273,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         text: 'Shipbuilding module activated. Press Tab to access the module.',
         options: {
           side: 'right',
+        },
+      },
+      // Unlock tab key
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableKey('Tab');
         },
       },
       {
@@ -382,14 +382,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'pause',
         durationMs: 1500,
       },
-      // Unlock escape and tab keys
-      {
-        type: 'command',
-        run: () => {
-          inputManager.enableKey('Tab');
-          inputManager.enableKey('Escape');
-        },
-      },
       // Instruct user to close the shipbuilding menu with Tab or Escape
       {
         type: 'line',
@@ -397,6 +389,14 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         text: 'Close the shipbuilding menu by pressing Tab or Escape.',
         options: {
           side: 'right',
+        },
+      },
+      // Unlock escape and tab keys
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableKey('Tab');
+          inputManager.enableKey('Escape');
         },
       },
       {

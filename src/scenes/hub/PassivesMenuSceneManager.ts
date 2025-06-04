@@ -6,6 +6,11 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
+import { flags } from '@/game/player/PlayerFlagManager';
+import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
+import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
+import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
+
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
@@ -18,7 +23,7 @@ export class PassivesMenuSceneManager {
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private backgroundImage: HTMLImageElement | null = null;
-
+  private dialogueQueueManager: DialogueQueueManager | null = null;
   private buttons: UIButton[];
 
   constructor(
@@ -67,6 +72,15 @@ export class PassivesMenuSceneManager {
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
+
+    // Init dialogue
+    this.dialogueQueueManager = DialogueQueueManagerFactory.create();
+    if (!flags.has('hub.introduction-2.complete')) {
+      const script = getDialogueScript('hub-introduction-2', { inputManager: this.inputManager });
+      if (script) {
+        this.dialogueQueueManager.startScript(script);
+      }
+    }
   }
 
   stop() {
@@ -80,6 +94,19 @@ export class PassivesMenuSceneManager {
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
+    // Dialogue Handling
+    if (this.dialogueQueueManager?.isRunning()) {
+      // Skip all interaction and button logic if a dialogue is active
+      this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
+
+      // Allow skipping dialogue with click
+      if (clicked) {
+        this.dialogueQueueManager.skipOrAdvance();
+      }
+
+      return; // Prevent other interactions
+    }
+    
     for (const btn of this.buttons) {
       btn.isHovered =
         x >= btn.x && x <= btn.x + btn.width &&
@@ -123,8 +150,15 @@ export class PassivesMenuSceneManager {
       }
     });
 
-    for (const btn of this.buttons) {
-      drawButton(uiCtx, btn);
+    if (!this.dialogueQueueManager?.isRunning()) {
+      for (const btn of this.buttons) {
+        drawButton(uiCtx, btn);
+      }
+    }
+
+    // Render dialogue
+    if (this.dialogueQueueManager) {
+      this.dialogueQueueManager.render(uiCtx);
     }
 
     const cursor = getCrosshairCursorSprite();

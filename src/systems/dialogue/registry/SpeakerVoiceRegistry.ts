@@ -12,22 +12,24 @@ export class SpeakerVoiceRegistry {
   private loadDefaults(): void {
     // Main cast
     this.register({
-      id: 'marla-thinx',
+      id: 'marla',
       portrait: this.loadImage('assets/characters/character_marla-thinx.png'),
       blipAudioFile: 'assets/sounds/bleeps/girl_ah.wav',
       basePitch: 1.2,
+      textSpeed: 0.04,
       pitchVariance: 0.3,
       syllableDuration: 120,
       portraitOffset: { x: -100, y: -200 },
     });
 
     this.register({
-      id: 'rexor-the-intern',
+      id: 'rexor',
       portrait: this.loadImage('assets/characters/character_rexor-the-intern.png'),
       blipAudioFile: 'assets/sounds/bleeps/man_eh.wav',
+      textSpeed: 0.04,
       basePitch: 0.85,
       pitchVariance: 0.15,
-      portraitOffset: { x: 0, y: 0 },
+      portraitOffset: { x: -100, y: -200 },
     });
 
     this.register({
