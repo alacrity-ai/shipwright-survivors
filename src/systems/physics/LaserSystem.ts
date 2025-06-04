@@ -4,11 +4,15 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { Grid } from '@/systems/physics/Grid';
 import type { Ship } from '@/game/ship/Ship';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import { LASER_BEAM_COLORS } from '@/game/blocks/BlockColorSchemes';
-import { findShipByBlock, findBlockCoordinatesInShip, getWorldPositionFromShipCoord, rotate } from '@/game/ship/utils/shipBlockUtils';
+import { 
+  findObjectByBlock, 
+  findBlockCoordinatesInObject, 
+  getWorldPositionFromObjectCoord, 
+  rotate } from '@/game/entities/utils/universalBlockInterfaceUtils';
 
 interface LaserBeam {
   origin: { x: number; y: number };
@@ -24,7 +28,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly beamLength = 2000;
   private activeBeams: LaserBeam[] = [];
-  private intentMap: Map<Ship, { intent: WeaponIntent; transform: ShipTransform }> = new Map();
+  private intentMap: Map<Ship, { intent: WeaponIntent; transform: BlockEntityTransform }> = new Map();
 
   constructor(
     canvasManager: CanvasManager,
@@ -37,7 +41,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
     this.ctx = canvasManager.getContext('fx');
   }
 
-  public queueUpdate(ship: Ship, transform: ShipTransform, intent: WeaponIntent): void {
+  public queueUpdate(ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent): void {
     this.intentMap.set(ship, { intent, transform });
   }
 
@@ -78,7 +82,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
 
       for (const [coord, block] of laserBlocks) {
         const fire = block.type.behavior!.fire!;
-        const origin = getWorldPositionFromShipCoord(transform, coord);
+        const origin = getWorldPositionFromObjectCoord(transform, coord);
         if (!intent.aimAt) continue;
 
         // With this corrected calculation (following thruster pattern):
@@ -109,8 +113,8 @@ export class LaserSystem implements IUpdatable, IRenderable {
           beamTargetX = hit.point.x;
           beamTargetY = hit.point.y;
 
-          const targetShip = findShipByBlock(hit.block);
-          const hitCoord = targetShip ? findBlockCoordinatesInShip(hit.block, targetShip) : null;
+          const targetShip = findObjectByBlock(hit.block);
+          const hitCoord = targetShip ? findBlockCoordinatesInObject(hit.block, targetShip) : null;
           if (targetShip && hitCoord) {
             this.combatService.applyDamageToBlock(
               targetShip,

@@ -1,56 +1,41 @@
 // src/game/ship/systems/ShipCullingSystem.ts
 
+import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
+import type { Grid } from '@/systems/physics/Grid';
 import type { Camera } from '@/core/Camera';
-import type { Ship } from '@/game/ship/Ship';
-import type { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { Ship } from '@/game/ship/Ship';
 
 export class ShipCullingSystem {
   constructor(
-    private readonly registry: ShipRegistry,
+    private readonly grid: Grid,
     private readonly camera: Camera
   ) {}
 
   getVisibleShips(): Ship[] {
-    return this.queryShipsInRange(200); // UI-visible
+    return this.queryShipsInBounds(250);
   }
 
   getActiveAIShips(): Ship[] {
-    // During initialization, return all ships
-    const allShips = Array.from(this.registry.getAll());
-    
-    // If we're still initializing (few ships), return all of them
-    if (allShips.length < 20) {
-      return allShips;
-    }
-    
-    // Otherwise, use normal culling logic
-    return this.queryShipsInRange(2000); // Combat-visible
+    return this.queryShipsInBounds(2000);
   }
 
-  private queryShipsInRange(margin: number): Ship[] {
+  private queryShipsInBounds(margin: number): Ship[] {
     const bounds = this.camera.getViewportBounds();
-    const visible: Ship[] = [];
+    const minX = bounds.x - margin;
+    const minY = bounds.y - margin;
+    const maxX = bounds.x + bounds.width + margin;
+    const maxY = bounds.y + bounds.height + margin;
 
-    for (const ship of this.registry.getAll()) {
-      try {
-        const transform = ship.getTransform?.();
-        if (!transform) continue;
+    const nearbyBlocks = this.grid.getBlocksInArea(minX, minY, maxX, maxY);
+    const resultSet = new Set<Ship>();
 
-        const x = transform.position.x;
-        const y = transform.position.y;
-
-        const inX = x > bounds.x - margin && x < bounds.x + bounds.width + margin;
-        const inY = y > bounds.y - margin && y < bounds.y + bounds.height + margin;
-
-        if (inX && inY) {
-          visible.push(ship);
-        }
-      } catch (error) {
-        console.error("Error checking ship visibility:", error);
-        // Skip this ship if there's an error
+    for (const block of nearbyBlocks) {
+      const obj = BlockToObjectIndex.getObject(block);
+      if (obj && obj instanceof Ship) {
+        resultSet.add(obj);
       }
     }
 
-    return visible;
+    return Array.from(resultSet);
   }
 }

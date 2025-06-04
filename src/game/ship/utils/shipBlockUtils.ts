@@ -1,7 +1,7 @@
 // src/game/ship/utils/ShipBlockUtils.ts
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { Ship } from '@/game/ship/Ship';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
@@ -49,7 +49,7 @@ export function findBlockCoordinatesInShip(targetBlock: BlockInstance, ship: Shi
 }
 
 export function getWorldPositionFromShipCoord(
-  transform: ShipTransform,
+  transform: BlockEntityTransform,
   coord: { x: number; y: number }
 ): { x: number; y: number } {
   const localX = coord.x * 32;

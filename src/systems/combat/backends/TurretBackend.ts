@@ -2,7 +2,7 @@
 
 import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import { TURRET_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
@@ -11,7 +11,7 @@ import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 export class TurretBackend implements WeaponBackend {
   constructor(private readonly projectileSystem: ProjectileSystem, private readonly playerShip: Ship) {}
 
-  public update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
+  public update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const plan = ship.getFiringPlan().filter(p =>
       p.block.type.id.startsWith('turret')
     );

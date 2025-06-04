@@ -1,11 +1,11 @@
 // src/systems/utility/UtilitySystem.ts
 
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 
 export interface UtilityBackend {
-  update(dt: number, ship: Ship, transform: ShipTransform, intent: UtilityIntent | null): void;
+  update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: UtilityIntent | null): void;
 }
 
 export class UtilitySystem {
@@ -20,7 +20,7 @@ export class UtilitySystem {
     this.currentIntent = intent;
   }
 
-  public update(dt: number, ship: Ship, transform: ShipTransform): void {
+  public update(dt: number, ship: Ship, transform: BlockEntityTransform): void {
     for (const backend of this.backends) {
       backend.update(dt, ship, transform, this.currentIntent);
     }

@@ -2,7 +2,7 @@
 
 import type { BlockBehavior } from '@/game/interfaces/behavior/BlockBehavior';
 
-export type BlockCategory = 'system' | 'hull' | 'engine' | 'weapon' | 'utility';
+export type BlockCategory = 'system' | 'hull' | 'engine' | 'weapon' | 'utility' | 'environment';
 
 export interface BlockType {
   id: string;
@@ -15,5 +15,5 @@ export interface BlockType {
   subcategory?: string;
   behavior?: BlockBehavior;
   size?: number;
-  dropRate?: number; // ADDED
+  dropRate?: number;
 }

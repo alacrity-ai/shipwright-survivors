@@ -3,12 +3,13 @@
 import type { Projectile } from '@/game/interfaces/types/Projectile';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { Particle } from '@/systems/fx/interfaces/Particle';
-import { findShipByBlock, findBlockCoordinatesInShip } from '@/game/ship/utils/shipBlockUtils';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Ship } from '@/game/ship/Ship';
+
+import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 
 interface VisualizedProjectile extends Projectile {
   particle: Particle;
@@ -81,27 +82,30 @@ export class ProjectileSystem {
     this.checkCollisions();
   }
 
-  private checkCollisions() {
+  private checkCollisions(): void {
     for (const p of this.projectiles) {
-      const relevantCells = this.grid.getRelevantCells(p.position);
+      const size = 32; // radius of projectile check area
+      const blocks = this.grid.getBlocksInArea(
+        p.position.x - size,
+        p.position.y - size,
+        p.position.x + size,
+        p.position.y + size
+      );
 
-      for (const cell of relevantCells) {
-        const blocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y);
+      for (const block of blocks) {
+        if (block.ownerShipId === p.ownerShipId) continue;
+        if (!this.checkCollision(p, block)) continue;
 
-        for (const block of blocks) {
-          if (block.ownerShipId === p.ownerShipId) continue;
-          if (this.checkCollision(p, block)) {
-            const ship = findShipByBlock(block);
-            if (ship) {
-              const coord = findBlockCoordinatesInShip(block, ship);
-              if (coord) {
-                this.combatService.applyDamageToBlock(ship, block, coord, p.damage, 'projectile', this.playerShip);
-              }
-              this.removeProjectile(p);
-              return;
-            }
-          }
-        }
+        // fast Map lookup here
+        const obj = BlockToObjectIndex.getObject(block);
+        if (!obj) continue;
+
+        const coord = obj.getBlockCoord(block);
+        if (!coord) continue;
+
+        this.combatService.applyDamageToBlock(obj, block, coord, p.damage, 'projectile', this.playerShip);
+        this.removeProjectile(p);
+        return;
       }
     }
   }
@@ -115,7 +119,8 @@ export class ProjectileSystem {
     const dy = projectile.position.y - block.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    return distance < (projectileRadius + blockSize / 2);
+    const inRange = distance < (projectileRadius + blockSize / 2);
+    return inRange;
   }
 
   private removeProjectile(projectile: VisualizedProjectile) {

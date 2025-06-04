@@ -2,14 +2,17 @@
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-import { getBlockType } from '@/game/blocks/BlockRegistry';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
+import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
+
+import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
+import { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import { Grid } from '@/systems/physics/Grid';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
-import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
@@ -21,11 +24,7 @@ interface WeaponFiringPlanEntry {
   timeSinceLastShot: number;
 }
 
-export class Ship {
-  id: string;  // Unique identifier for the ship
-  private blocks: Map<CoordKey, BlockInstance> = new Map();
-  private blockToCoordMap: Map<BlockInstance, GridCoord> = new Map(); // Reverse lookup
-  private transform: ShipTransform;
+export class Ship extends CompositeBlockObject {
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
@@ -33,64 +32,56 @@ export class Ship {
   private firingPlanIndex: Map<BlockInstance, number> = new Map();
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
   private isPlayerShip: boolean = false;
-
   private destroyedListeners: ShipDestroyedCallback[] = [];
-  
-  // === Step 3: Two-phase destruction tracking ===
-  private destroyed = false;
-  private deathTimestamp: number | null = null;
 
-  // === Memoized mass cache
-  private totalMass: number | null = null;
+  protected override generateId(): string {
+    return 'ship-' + Math.random().toString(36).slice(2, 9);
+  }
 
   constructor(
-    private grid: Grid,
+    grid: Grid,
     initialBlocks?: [GridCoord, BlockInstance][],
-    initialTransform?: Partial<ShipTransform>
+    initialTransform?: Partial<BlockEntityTransform>
   ) {
-    this.id = this.generateUniqueShipId();
-
+    super(grid, initialBlocks, initialTransform);
     this.shieldComponent = new ShieldComponent(this);
-
-    if (initialBlocks) {
-      for (const [coord, block] of initialBlocks) {
-        this.blocks.set(toKey(coord), block);
-        this.grid.addBlockToCell(block);
-      }
-
-      this.shieldComponent.recalculateCoverage();
-    }
-
-    this.transform = {
-      position: initialTransform?.position ?? { x: 640, y: 360 },
-      velocity: initialTransform?.velocity ?? { x: 0, y: 0 },
-      rotation: initialTransform?.rotation ?? 0,
-      angularVelocity: initialTransform?.angularVelocity ?? 0
-    };
+    this.validateFiringPlan();
   }
+
+  public getIsPlayerShip(): boolean {
+    return this.isPlayerShip;
+  }
+
+  public setIsPlayerShip(isPlayerShip: boolean): void {
+    this.isPlayerShip = isPlayerShip;
+  }
+
+  // === Cockpit ===
+
+  getCockpit(): BlockInstance | undefined {
+    return this.blocks.get(toKey({ x: 0, y: 0 }));
+  }
+
+  public getCockpitHp(): number | null {
+    const cockpit = this.getCockpit();
+    if (!cockpit) {
+      console.warn(`[Ship ${this.id}] Cockpit block missing.`);
+      return null;
+    }
+    return cockpit.hp;
+  }
+  
+  getCockpitCoord(): GridCoord | undefined {
+    if (this.getCockpit()) {
+      return { x: 0, y: 0 };
+    }
+    return undefined;
+  }
+
+  // === Firing Plan ===
 
   public getFiringPlan(): WeaponFiringPlanEntry[] {
     return this.firingPlan;
-  }
-
-  /**
-   * Adds a weapon to the firing plan if the block qualifies.
-   */
-  private addWeaponToPlanIfApplicable(coord: GridCoord, block: BlockInstance): void {
-    const fire = block.type.behavior?.fire;
-    if (!fire || !block.type?.behavior?.canFire) return;
-
-    const entry: WeaponFiringPlanEntry = {
-      coord,
-      block,
-      fireRate: fire.fireRate || 1,
-      fireCooldown: 1 / (fire.fireRate || 1),
-      timeSinceLastShot: 0,
-    };
-
-    const index = this.firingPlan.length;
-    this.firingPlan.push(entry);
-    this.firingPlanIndex.set(block, index);
   }
 
   /**
@@ -115,6 +106,26 @@ export class Ship {
 
     this.firingPlan = valid;
     this.firingPlanIndex = newIndex;
+  }
+
+  /**
+   * Adds a weapon to the firing plan if the block qualifies.
+   */
+  private addWeaponToPlanIfApplicable(coord: GridCoord, block: BlockInstance): void {
+    const fire = block.type.behavior?.fire;
+    if (!fire || !block.type?.behavior?.canFire) return;
+
+    const entry: WeaponFiringPlanEntry = {
+      coord,
+      block,
+      fireRate: fire.fireRate || 1,
+      fireCooldown: 1 / (fire.fireRate || 1),
+      timeSinceLastShot: 0,
+    };
+
+    const index = this.firingPlan.length;
+    this.firingPlan.push(entry);
+    this.firingPlanIndex.set(block, index);
   }
 
   /**
@@ -160,22 +171,80 @@ export class Ship {
     this.firingPlanIndex = newIndex;
   }
 
-  getTransform(): ShipTransform {
-    return this.transform;
+  // === Energy & Shield ===
+
+  public getEnergyComponent(): EnergyComponent | null {
+    return this.energyComponent;
   }
 
-  getIsPlayerShip(): boolean {
-    return this.isPlayerShip;
+  public getShieldComponent(): ShieldComponent {
+    return this.shieldComponent;
   }
 
-  setIsPlayerShip(isPlayerShip: boolean): void {
-    this.isPlayerShip = isPlayerShip;
+  public getShieldBlocks(): Iterable<BlockInstance> {
+    return this.shieldBlocks;
   }
 
-  setTransform(newTransform: ShipTransform): void {
-    this.transform = newTransform;
-    this.updateBlockPositions();  // Update block positions when transform changes
+  public updateEnergy(dt: number): void {
+    this.energyComponent?.update(dt);
   }
+
+  private recomputeEnergyStats(): void {
+    if (!this.energyComponent) {
+      this.enableEnergyComponent();
+    }
+
+    const energyComponent = this.getEnergyComponent();
+    if (!energyComponent) return;
+
+    const { max, regen } = this.computeEnergyStats();
+    energyComponent.setMax(max);
+    energyComponent.setRechargeRate(regen);
+  }
+
+  public enableEnergyComponent(): void {
+    if (this.energyComponent) return;
+
+    const { max, regen } = this.computeEnergyStats();
+    if (max === 0) return;
+
+    this.energyComponent = new EnergyComponent(max, regen);
+  }
+
+  private computeEnergyStats(): { max: number; regen: number } {
+    let totalMax = 0;
+    let totalRegen = 0;
+
+    for (const [, block] of this.blocks.entries()) {
+      const behavior = block.type.behavior;
+
+      // Any energy-contributing block declares it explicitly
+      if (behavior?.energyMaxIncrease) {
+        totalMax += behavior.energyMaxIncrease;
+      }
+
+      if (behavior?.energyChargeRate) {
+        totalRegen += behavior.energyChargeRate;
+      }
+    }
+
+    return {
+      max: totalMax,
+      regen: totalRegen > 0 ? totalRegen : 10,
+    };
+  }
+
+  // === Utility Systems: Harvesting, etc ===
+
+  public getTotalHarvestRate(): number {
+    let total = 0;
+    for (const rate of this.harvesterBlocks.values()) {
+      total += rate;
+    }
+    return total;
+  }
+
+  // === Ship Specific Block Placement & Removal Overrides ===
 
   placeBlockById(coord: GridCoord, blockId: string, rotation?: number): void {
     const type = getBlockType(blockId);
@@ -201,6 +270,9 @@ export class Ship {
     this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
 
+    // Register block-to-object index
+    BlockToObjectIndex.registerBlock(block, this);
+
     // Track if it's a shield block
     if (block.type.behavior?.shieldRadius) {
       this.shieldBlocks.add(block);
@@ -224,12 +296,13 @@ export class Ship {
       this.grid.removeBlockFromCell(block);
       this.blockToCoordMap.delete(block);
 
-      // Remove from harvester index
+      // Remove from subsystem indices
       this.harvesterBlocks.delete(block);
-      // Remove from shield index
       this.shieldBlocks.delete(block);
-      // Remove from turret index
       this.removeWeaponFromPlanIfApplicable(block);
+
+      // Unregister from block→object index
+      BlockToObjectIndex.unregisterBlock(block);
     }
 
     this.blocks.delete(key);
@@ -276,6 +349,7 @@ export class Ship {
     for (const block of blocksToRemove) {
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
+      BlockToObjectIndex.unregisterBlock(block);
     }
 
     this.removeWeaponsFromPlan(blocksToRemove);
@@ -331,146 +405,6 @@ export class Ship {
     return visited.size === remaining.size;
   }
 
-  getBlock(coord: GridCoord): BlockInstance | undefined {
-    return this.blocks.get(toKey(coord));
-  }
-
-  public getAllBlocks(): [GridCoord, BlockInstance][] {
-    if (!this.blocks) {
-      return []; // Return empty array instead of undefined
-    }
-    
-    return Array.from(this.blocks.entries()).map(([key, block]) => {
-      return [fromKey(key), block];
-    });
-  }
-
-  public getBlockMap(): Map<string, BlockInstance> {
-    return this.blocks;
-  }
-
-  public getShieldBlocks(): Iterable<BlockInstance> {
-    return this.shieldBlocks;
-  }
-
-  hasBlockAt(coord: GridCoord): boolean {
-    return this.blocks.has(toKey(coord));
-  }
-
-  getCockpit(): BlockInstance | undefined {
-    return this.blocks.get(toKey({ x: 0, y: 0 }));
-  }
-
-  public getCockpitHp(): number | null {
-    const cockpit = this.getCockpit();
-    if (!cockpit) {
-      console.warn(`[Ship ${this.id}] Cockpit block missing.`);
-      return null;
-    }
-    return cockpit.hp;
-  }
-  
-  getCockpitCoord(): GridCoord | undefined {
-    if (this.getCockpit()) {
-      return { x: 0, y: 0 };
-    }
-    return undefined;
-  }
-
-  public getBlockCoord(block: BlockInstance): GridCoord | null {
-    return this.blockToCoordMap.get(block) ?? null;
-  }
-
-  getBlocksWithinGridDistance(centerCoord: GridCoord, distance: number): BlockInstance[] {
-    const blocksInRange: BlockInstance[] = [];
-    
-    for (const [_, block] of this.getAllBlocks()) {
-      const blockCoord = this.getBlockCoord(block);
-      if (!blockCoord) continue;
-      
-      const dx = Math.abs(blockCoord.x - centerCoord.x);
-      const dy = Math.abs(blockCoord.y - centerCoord.y);
-      
-      const gridDistance = Math.max(dx, dy); // Chebyshev (square coverage)
-      
-      if (gridDistance <= distance) {
-        blocksInRange.push(block);
-      }
-    }
-    
-    return blocksInRange;
-  }
-
-  getTotalMass(): number {
-    if (this.totalMass == null) {
-      this.totalMass = 0;
-      for (const block of this.blocks.values()) {
-        this.totalMass += block.type.mass;
-      }
-    }
-    return this.totalMass;
-  }
-
-  public getTotalHarvestRate(): number {
-    let total = 0;
-    for (const rate of this.harvesterBlocks.values()) {
-      total += rate;
-    }
-    return total;
-  }
-
-  private invalidateMass(): void {
-    this.totalMass = null;
-  }
-
-  private generateUniqueShipId(): string {
-    return 'ship-' + Math.random().toString(36).substr(2, 9);
-  }
-
-  // Get block's world position based on ship's transform
-  getBlockWorldPosition(block: BlockInstance): { x: number; y: number } {
-    if (!block.position) return { x: 0, y: 0 };
-
-    const transform = this.getTransform();
-    const cos = Math.cos(transform.rotation);
-    const sin = Math.sin(transform.rotation);
-
-    const worldX = transform.position.x + block.position.x * 32 * cos - block.position.y * 32 * sin;
-    const worldY = transform.position.y + block.position.x * 32 * sin + block.position.y * 32 * cos;
-
-    return { x: worldX, y: worldY };
-  }
-
-  // Update all blocks' positions based on ship's transform (world position and rotation)
-  public updateBlockPositions(): void {
-    for (const [coordKey, block] of this.blocks.entries()) {
-      const coord = fromKey(coordKey);  // Get the block's grid position
-
-      // Remove from old grid position before updating
-      this.grid.removeBlockFromCell(block);
-
-      // Calculate the new world position of the block
-      const worldPos = this.calculateBlockWorldPosition(coord);
-      block.position = worldPos;
-
-      // Add to new grid position based on updated world position
-      this.grid.addBlockToCell(block);
-    }
-  }
-
-  // Calculate block's world position based on ship's transform
-  private calculateBlockWorldPosition(coord: GridCoord): { x: number; y: number } {
-    const transform = this.getTransform();
-    const cos = Math.cos(transform.rotation);
-    const sin = Math.sin(transform.rotation);
-
-    // Calculate the world position of the block based on its grid position and ship's transform
-    const worldX = transform.position.x + coord.x * 32 * cos - coord.y * 32 * sin;
-    const worldY = transform.position.y + coord.x * 32 * sin + coord.y * 32 * cos;
-
-    return { x: worldX, y: worldY };
-  }
-
   loadFromJson(data: SerializedShip): void {
     const transform = this.getTransform();
     transform.position = data.transform.position;
@@ -484,48 +418,7 @@ export class Ship {
     this.validateFiringPlan();
   }
 
-  /**
-   * Given a block instance, return its corresponding grid coordinate within the ship.
-   * Returns null if the block is not found or no longer exists.
-   */
-  public findBlockCoord(block: BlockInstance): GridCoord | null {
-    for (const [key, stored] of this.blocks.entries()) {
-      if (stored === block) {
-        return fromKey(key);
-      }
-    }
-    return null;
-  }
-
-  getGrid(): Grid {
-    return this.grid;
-  }
-
-  public destroy(): void {
-    if (this.destroyed) return;
-    
-    this.destroyed = true;
-    this.deathTimestamp = performance.now();
-
-    // Remove all blocks from collision grid
-    for (const block of this.blocks.values()) {
-      this.grid.removeBlockFromCell(block);
-    }
-
-    // Clear internal block references
-    this.blocks.clear();
-    this.blockToCoordMap.clear();
-
-    // Notify all listeners that this ship was logically destroyed
-    // This triggers wave progression, AI cleanup, registry removal, etc.
-    for (const callback of this.destroyedListeners) {
-      callback(this);
-    }
-
-    // Clear listeners to break reference chains
-    this.destroyedListeners.length = 0;
-  }
-
+  // What about this?
   public destroyInstantly(): void {
     if (this.destroyed) return;
     
@@ -545,45 +438,8 @@ export class Ship {
     this.destroyedListeners.length = 0;
   }
 
-  /**
-   * Returns true if the ship has been logically destroyed.
-   */
-  public isDestroyed(): boolean {
-    return this.destroyed;
-  }
-
-  /**
-   * Returns true if enough time has passed since destruction that visual effects
-   * 
-   * @param visualEffectDurationMs How long visual effects should persist (default: 2000ms)
-   */
-  public isVisuallyExpired(visualEffectDurationMs: number = 2000): boolean {
-    if (!this.destroyed || this.deathTimestamp === null) {
-      return false;
-    }
-    return (performance.now() - this.deathTimestamp) > visualEffectDurationMs;
-  }
-
-  /**
-   * Returns the timestamp when the ship was destroyed, or null if still alive.
-   * Useful for calculating time-based visual effects or debugging.
-   */
-  public getDeathTimestamp(): number | null {
-    return this.deathTimestamp;
-  }
-
-  /**
-   * Returns milliseconds since destruction, or 0 if still alive.
-   * Useful for fade-out calculations or time-based visual effects.
-   */
-  public getTimeSinceDeath(): number {
-    if (!this.destroyed || this.deathTimestamp === null) {
-      return 0;
-    }
-    return performance.now() - this.deathTimestamp;
-  }
-
-  public onDestroyed(callback: ShipDestroyedCallback): void {
+  // What about this?
+  public onDestroyedCallback(callback: ShipDestroyedCallback): void {
     if (this.destroyed) {
       // If already destroyed, fire callback immediately
       callback(this);
@@ -592,61 +448,10 @@ export class Ship {
     this.destroyedListeners.push(callback);
   }
 
-  public getEnergyComponent(): EnergyComponent | null {
-    return this.energyComponent;
-  }
-
-  public getShieldComponent(): ShieldComponent {
-    return this.shieldComponent;
-  }
-
-  public updateEnergy(dt: number): void {
-    this.energyComponent?.update(dt);
-  }
-
-  private recomputeEnergyStats(): void {
-    if (!this.energyComponent) {
-      this.enableEnergyComponent();
+  public onDestroyed(): void {
+    for (const cb of this.destroyedListeners) {
+      cb(this);
     }
-
-    const energyComponent = this.getEnergyComponent();
-    if (!energyComponent) return;
-
-    const { max, regen } = this.computeEnergyStats();
-    energyComponent.setMax(max);
-    energyComponent.setRechargeRate(regen);
-  }
-
-  public enableEnergyComponent(): void {
-    if (this.energyComponent) return;
-
-    const { max, regen } = this.computeEnergyStats();
-    if (max === 0) return;
-
-    this.energyComponent = new EnergyComponent(max, regen);
-  }
-
-  private computeEnergyStats(): { max: number; regen: number } {
-    let totalMax = 0;
-    let totalRegen = 0;
-
-    for (const [, block] of this.blocks.entries()) {
-      const behavior = block.type.behavior;
-
-      // Any energy-contributing block declares it explicitly
-      if (behavior?.energyMaxIncrease) {
-        totalMax += behavior.energyMaxIncrease;
-      }
-
-      if (behavior?.energyChargeRate) {
-        totalRegen += behavior.energyChargeRate;
-      }
-    }
-
-    return {
-      max: totalMax,
-      regen: totalRegen > 0 ? totalRegen : 10,
-    };
+    this.destroyedListeners.length = 0;
   }
 }
-

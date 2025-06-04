@@ -2,7 +2,7 @@
 
 import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 
@@ -11,7 +11,7 @@ export class LaserBackend implements WeaponBackend {
 
   constructor(private readonly laserSystem: LaserSystem) {}
 
-  update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
+  update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     if (!intent?.fireSecondary) {
       this.fireEligibility.set(ship, false);
       return;

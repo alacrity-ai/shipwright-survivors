@@ -3,7 +3,7 @@ import { getBlockCost } from '@/game/blocks/BlockRegistry';
 import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
 import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { Camera } from '@/core/Camera';
 import type { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
@@ -32,7 +32,7 @@ export class ShipBuilderController {
     private readonly inputManager: InputManager
   ) {}
 
-  update(transform: ShipTransform) {
+  update(transform: BlockEntityTransform) {
     if (this.inputManager.wasKeyJustPressed('Space')) {
       this.rotation = (this.rotation + 90) % 360;
     }
@@ -117,7 +117,7 @@ export class ShipBuilderController {
     }
   }
 
-  render(ctx: CanvasRenderingContext2D, transform: ShipTransform): void {
+  render(ctx: CanvasRenderingContext2D, transform: BlockEntityTransform): void {
     const mouse = this.inputManager.getMousePosition();
     if (this.isCursorOverMenu(mouse)) return;
 

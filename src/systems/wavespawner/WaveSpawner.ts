@@ -10,6 +10,7 @@ import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
+import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -30,6 +31,7 @@ const STARTING_WAVE_INDEX = 0;
 
 export class WaveSpawner implements IUpdatable {
   private readonly shipFactory: ShipFactory;
+
   private currentWaveIndex = STARTING_WAVE_INDEX;
   private elapsedTime = 0;
   private timeSinceStart = 0;
@@ -66,7 +68,8 @@ export class WaveSpawner implements IUpdatable {
     private readonly particleManager: ParticleManager,
     private readonly grid: Grid,
     private readonly combatService: CombatService,
-    private readonly explosionSystem: ExplosionSystem
+    private readonly explosionSystem: ExplosionSystem,
+    private readonly collisionSystem: BlockObjectCollisionSystem
   ) {
     this.shipFactory = new ShipFactory(
       this.grid,
@@ -77,7 +80,8 @@ export class WaveSpawner implements IUpdatable {
       this.projectileSystem,
       this.laserSystem,
       this.combatService,
-      this.explosionSystem
+      this.explosionSystem,
+      this.collisionSystem
     );
   }
 
@@ -214,7 +218,7 @@ export class WaveSpawner implements IUpdatable {
   public skipToNextWave(): void {
     if (this.currentWaveIndex >= this.waves.length) return;
 
-    this.clearCurrentWave();
+    // this.clearCurrentWave();
 
     // Mark the skipped wave as completed
     if (this.activeWave) {
@@ -259,7 +263,7 @@ export class WaveSpawner implements IUpdatable {
   private monitorBossWaveCompletion(ships: Ship[]): void {
     const remaining = new Set<Ship>(ships);
     for (const ship of ships) {
-      ship.onDestroyed(() => {
+      ship.onDestroyedCallback(() => {
         if (!remaining.has(ship)) return;
         remaining.delete(ship);
 

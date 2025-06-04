@@ -3,6 +3,7 @@
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 import { drawLabel } from '@/ui/primitives/UILabel';
 
 export class DebugOverlay {
@@ -16,6 +17,7 @@ export class DebugOverlay {
 
   render(dt: number): void {
     const ctx = this.canvasManager.getContext('ui');
+    const compositeBlockRegistry = CompositeBlockObjectRegistry.getInstance();
 
     // === FPS CALCULATION ===
     const instantaneousFps = 1 / dt;
@@ -49,5 +51,8 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `AI Controllers: ${aiControllerCount}`); y += lineHeight;
     drawLabel(ctx, x, y, `Shielded Blocks: ${totalShieldedBlocks}`); y += lineHeight;
     drawLabel(ctx, x, y, `Total Shield Efficiency: ${totalShieldEfficiency.toFixed(2)}`);
+    y += lineHeight;
+    drawLabel(ctx, x, y, `Composite Objects: ${compositeBlockRegistry.count()}`); y += lineHeight;
+    drawLabel(ctx, x, y, `First 5 IDs: ${compositeBlockRegistry.getFirst5Ids().join(', ')}`);
   }
 }

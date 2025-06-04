@@ -1,9 +1,11 @@
-import type { Ship } from '@/game/ship/Ship';
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+
+import { Ship } from '@/game/ship/Ship';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
 
@@ -17,8 +19,8 @@ export type DestructionCause =
   | 'self'
   | 'scripted';
 
-export class ShipDestructionService {
-  private destructionCallbacks: Set<(ship: Ship, cause: DestructionCause) => void> = new Set();
+export class CompositeBlockDestructionService {
+  private destructionCallbacks: Set<(entity: CompositeBlockObject, cause: DestructionCause) => void> = new Set();
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -27,40 +29,37 @@ export class ShipDestructionService {
     private readonly aiOrchestrator: AIOrchestratorSystem,
   ) {}
 
-  /**
-   * Register a callback to be called whenever a ship is destroyed
-   */
-  public onShipDestroyed(callback: (ship: Ship, cause: DestructionCause) => void): void {
+  public onEntityDestroyed(callback: (entity: CompositeBlockObject, cause: DestructionCause) => void): void {
     this.destructionCallbacks.add(callback);
   }
 
-  /**
-   * Unregister a ship destruction callback
-   */
-  public offShipDestroyed(callback: (ship: Ship, cause: DestructionCause) => void): void {
+  public offEntityDestroyed(callback: (entity: CompositeBlockObject, cause: DestructionCause) => void): void {
     this.destructionCallbacks.delete(callback);
   }
 
-  destroyShip(ship: Ship, cause: DestructionCause = 'scripted'): void {
-    const transform = ship.getTransform();
-    const blocks = ship.getAllBlocks();
-    const shipId = ship.id;
+  public destroyEntity(entity: CompositeBlockObject, cause: DestructionCause = 'scripted'): void {
+    const transform = entity.getTransform();
+    const blocks = entity.getAllBlocks();
+    const entityId = entity.id;
 
-    // === Step 0: Notify all listeners BEFORE cleanup ===
+    // === Step 0: Notify destruction observers ===
     this.destructionCallbacks.forEach(callback => {
       try {
-        callback(ship, cause);
-      } catch (error) {
-        console.error('Error in ship destruction callback:', error);
+        callback(entity, cause);
+      } catch (err) {
+        console.error('Error in destruction callback:', err);
       }
     });
 
-    // === Step 1: Eager cleanup BEFORE animations ===
-    this.shipRegistry.remove(ship);
-    this.aiOrchestrator.removeControllersForShip?.(shipId);
-    ship.destroy();
+    // === Step 1: Pre-destruction cleanup ===
+    if (entity instanceof Ship) {
+      this.shipRegistry.remove(entity);
+      this.aiOrchestrator.removeControllersForShip?.(entityId);
+    }
 
-    // === Step 2: Visual explosion + pickup burst
+    entity.destroy();
+
+    // === Step 2: Explosion & pickup animation ===
     blocks.forEach(([coord, block], index) => {
       setTimeout(() => {
         this.explosionSystem.createBlockExplosion(
@@ -76,10 +75,12 @@ export class ShipDestructionService {
       }, index * 50);
     });
 
-    // === Step 3: Optional detachment of orphaned disconnected blocks
-    const cockpitCoord = ship.getCockpitCoord?.();
-    if (cockpitCoord) {
-      const connectedSet = getConnectedBlockCoords(ship, cockpitCoord);
+    // === Step 3: Ship-only orphaned block detonation ===
+    if (entity instanceof Ship) {
+      const cockpitCoord = entity.getCockpitCoord?.();
+      if (!cockpitCoord) return;
+
+      const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
       const serialize = (c: GridCoord) => `${c.x},${c.y}`;
 
       for (const [coord, block] of blocks) {

@@ -33,13 +33,16 @@ import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
+import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
-import { ShipDestructionService } from '@/game/ship/ShipDestructionService';
+import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
+import { AsteroidRenderer } from '@/rendering/AsteroidRenderer';
 import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
 import { ExplosiveLanceBackend } from '@/systems/combat/backends/ExplosiveLanceBackend';
@@ -49,10 +52,14 @@ import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
+import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
+import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
+import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/CompositeBlockObjectCullingSystem';
+import { CompositeBlockObjectUpdateSystem } from '@/game/entities/systems/CompositeBlockObjectUpdateSystem';
 import { getStarterShip } from '@/game/ship/utils/PrefabHelpers';
 import { Grid } from '@/systems/physics/Grid';
+import { Ship } from '@/game/ship/Ship';
 
-import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
@@ -82,7 +89,10 @@ export class EngineRuntime {
 
   private mission: MissionDefinition
   private shipRegistry = ShipRegistry.getInstance();
+  private blockObjectRegistry = CompositeBlockObjectRegistry.getInstance();
   private shipCulling: ShipCullingSystem;
+  private blockObjectCulling: CompositeBlockObjectCullingSystem;
+  private blockObjectUpdate: CompositeBlockObjectUpdateSystem;
   private aiOrchestrator: AIOrchestratorSystem;
 
   private grid: Grid | null = null;
@@ -94,12 +104,15 @@ export class EngineRuntime {
   private particleManager: ParticleManager;
   private background: BackgroundRenderer;
   private multiShipRenderer: MultiShipRenderer;
+  private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
   private waveSpawner: WaveSpawner;
+  private asteroidSpawner: AsteroidSpawningSystem;
   private wavesOverlay: WavesOverlay;
   private popupMessageSystem: PopupMessageSystem;
   private debugOverlay: DebugOverlay;
 
+  private collisionSystem: BlockObjectCollisionSystem;
   private movement: MovementSystem;
   private weaponSystem: WeaponSystem;
   private utilitySystem: UtilitySystem;
@@ -121,7 +134,7 @@ export class EngineRuntime {
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.gameLoop = new GameLoop();
-    
+
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
@@ -145,7 +158,11 @@ export class EngineRuntime {
 
     // Register player ship using the Singleton ShipRegistry
     this.shipRegistry.add(this.ship);
-    this.shipCulling = new ShipCullingSystem(this.shipRegistry, this.camera);
+    this.collisionSystem = new BlockObjectCollisionSystem();
+
+    // Register culling systems
+    this.shipCulling = new ShipCullingSystem(this.grid, this.camera);
+    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.grid, this.camera);
 
     // Initialize ExplosionSystem and ScreenEffectsSystem
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager);
@@ -165,7 +182,7 @@ export class EngineRuntime {
     );
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
-    const destructionService = new ShipDestructionService(
+    const destructionService = new CompositeBlockDestructionService(
       this.explosionSystem,
       pickupSpawner,
       this.shipRegistry,
@@ -197,13 +214,17 @@ export class EngineRuntime {
       this.ship
     );
 
-    // this.thrusterFx = new ThrusterParticleSystem(this.canvasManager, this.camera);
+    // Renderers
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
     this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
+    this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
+
+    // Additional Update Systems
+    this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
 
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
-    this.movement = new MovementSystem(this.ship, emitter);
+    this.movement = new MovementSystem(this.ship, emitter, this.collisionSystem);
     this.weaponSystem = new WeaponSystem(
       new TurretBackend(this.projectileSystem, this.ship),
       new LaserBackend(this.laserSystem),
@@ -241,18 +262,24 @@ export class EngineRuntime {
       this.particleManager,
       this.grid,
       combatService,
-      this.explosionSystem
+      this.explosionSystem,
+      this.collisionSystem
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
-    destructionService.onShipDestroyed((ship, _cause) => {
-      this.waveSpawner.notifyShipDestruction(ship);
+    destructionService.onEntityDestroyed((entity, _cause) => {
+      if (entity instanceof Ship) {
+        this.waveSpawner.notifyShipDestruction(entity);
+      }
     });
 
+    // Create AsteroidSpawner
+    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry);
+
+    // Create Dialogue Manager
     this.missionDialogueManager = new MissionDialogueManager(this.inputManager, this.canvasManager, this.waveSpawner, this.ship);
 
-    // Waves overlay
+    // Overlays
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
-    // Debug overlay
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
 
     this.updatables = [
@@ -261,6 +288,7 @@ export class EngineRuntime {
       this.laserSystem,
       this.particleManager,
       this.aiOrchestrator,
+      this.blockObjectUpdate,
       this.explosionSystem,
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
@@ -296,6 +324,7 @@ export class EngineRuntime {
       this.pickupSystem,
       this.particleManager,
       this.multiShipRenderer,
+      this.asteroidRenderer,
       this.hud,
       this.miniMap,
       this.explosionSystem,
@@ -451,6 +480,7 @@ export class EngineRuntime {
   public start() {
     this.gameLoop.start();
     this.missionDialogueManager.initialize();
+    this.asteroidSpawner.spawnFieldById('asteroid-field-01');
   }
 
   public handlePlayerVictory(timeoutMs: number = 10_000): void {
@@ -488,6 +518,7 @@ export class EngineRuntime {
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().destroy();
     PlayerStats.getInstance().destroy();
+    BlockToObjectIndex.clear();
 
     // Technology should persist between runs
     // PlayerTechnologyManager.getInstance().destroy();

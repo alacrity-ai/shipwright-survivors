@@ -1,0 +1,107 @@
+{
+  "transform": {
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "rotation": 0
+  },
+  "blocks": [
+    {
+      "id": "rock0",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetRock0",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetRock1",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 270
+    },
+    {
+      "id": "rock0",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetRockSlim0",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetRock0",
+      "coord": {
+        "x": 2,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "rock0",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetRockSlim0",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "facetRock1",
+      "coord": {
+        "x": 0,
+        "y": 2
+      },
+      "rotation": 180
+    },
+    {
+      "id": "rock0",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetRock0",
+      "coord": {
+        "x": 2,
+        "y": 1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "facetRock0",
+      "coord": {
+        "x": 1,
+        "y": 2
+      },
+      "rotation": 180
+    }
+  ]
+}

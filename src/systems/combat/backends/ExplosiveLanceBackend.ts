@@ -1,6 +1,7 @@
 import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
@@ -10,7 +11,7 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Grid } from '@/systems/physics/Grid';
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
-import { findShipByBlock, findBlockCoordinatesInShip } from '@/game/ship/utils/shipBlockUtils';
+import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
 
 interface ActiveExplosiveLance {
   position: { x: number; y: number };
@@ -22,7 +23,7 @@ interface ActiveExplosiveLance {
   elapsed: number;
   stuck: boolean;
   targetBlock: BlockInstance | null;
-  targetShip: Ship | null;
+  targetShip: CompositeBlockObject | null;
   coord: GridCoord | null;
   ownerShipId: string;
   particle: Particle;
@@ -45,7 +46,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     private readonly playerShip: Ship
   ) {}
 
-  update(dt: number, ship: Ship, transform: ShipTransform, intent: WeaponIntent | null): void {
+  update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const plan = ship.getFiringPlan().filter(p => p.block.type.behavior?.fire?.fireType === 'explosiveLance');
     if (plan.length === 0) return;
 
@@ -191,17 +192,17 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < 32) {
-            const ship = findShipByBlock(block);
-            const coord = ship ? findBlockCoordinatesInShip(block, ship) : null;
+            const compositeBlockObject = findObjectByBlock(block);
+            const coord = compositeBlockObject ? findBlockCoordinatesInObject(block, compositeBlockObject) : null;
 
-            if (ship && coord) {
+            if (compositeBlockObject && coord) {
               lance.stuck = true;
               lance.targetBlock = block;
-              lance.targetShip = ship;
+              lance.targetShip = compositeBlockObject;
               lance.coord = coord;
 
               // Anchor offset relative to ship at moment of impact
-              const shipPos = ship.getTransform().position;
+              const shipPos = compositeBlockObject.getTransform().position;
               lance.anchorOffset = {
                 x: lance.position.x - shipPos.x,
                 y: lance.position.y - shipPos.y,
@@ -214,7 +215,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               lance.particle.size *= 1.25;
 
               const wasDestroyed = this.combatService.applyDamageToBlock(
-                ship,
+                compositeBlockObject,
                 block,
                 coord,
                 lance.fireDamage,

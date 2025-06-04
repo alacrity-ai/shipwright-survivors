@@ -2,13 +2,13 @@
 
 import type { UtilityBackend } from '@/systems/combat/UtilitySystem';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipTransform } from '@/systems/physics/MovementSystem';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 
 export class ShieldToggleBackend implements UtilityBackend {
   private wasPressedLastFrame = new WeakMap<Ship, boolean>();
 
-  update(dt: number, ship: Ship, transform: ShipTransform, intent: UtilityIntent | null): void {
+  update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: UtilityIntent | null): void {
     const isPressed = !!intent?.toggleShields;
     const wasPressed = this.wasPressedLastFrame.get(ship) ?? false;
 

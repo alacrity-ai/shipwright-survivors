@@ -20,7 +20,7 @@ import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
-
+import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 
 export class ShipFactory {
   public constructor(
@@ -32,7 +32,8 @@ export class ShipFactory {
     private readonly projectileSystem: ProjectileSystem,
     private readonly laserSystem: LaserSystem,
     private readonly combatService: CombatService,
-    private readonly explosionSystem: ExplosionSystem
+    private readonly explosionSystem: ExplosionSystem,
+    private readonly collisionSystem: BlockObjectCollisionSystem
   ) {}
 
   public async createShip(
@@ -49,7 +50,7 @@ export class ShipFactory {
     this.registry.add(ship);
 
     const emitter = new ThrusterEmitter(this.particleManager);
-    const movement = new MovementSystem(ship, emitter);
+    const movement = new MovementSystem(ship, emitter, this.collisionSystem);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem, this.playerShip),
       new LaserBackend(this.laserSystem),

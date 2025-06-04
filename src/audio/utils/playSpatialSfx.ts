@@ -1,4 +1,4 @@
-import type { Ship } from '@/game/ship/Ship';
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { AudioChannel } from '@/audio/AudioManager';
 import { audioManager } from '@/audio/Audio';
 
@@ -13,8 +13,8 @@ type SpatialAudioOptions = {
 };
 
 export function playSpatialSfx(
-  emitterShip: Ship,
-  listenerShip: Ship,
+  emitterShip: CompositeBlockObject,
+  listenerShip: CompositeBlockObject,
   {
     file,
     channel,

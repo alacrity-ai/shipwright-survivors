@@ -1,18 +1,14 @@
 // src/systems/physics/MovementSystem.ts
 
-import type { Ship } from '@/game/ship/Ship';
 import { classifyThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
+import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
+
+import type { Ship } from '@/game/ship/Ship';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { ThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
 import type { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-
-export interface ShipTransform {
-  position: { x: number; y: number };
-  velocity: { x: number; y: number };
-  rotation: number;
-  angularVelocity: number;
-}
 
 const BASE_MASS = 200;
 const INERTIAL_DAMPENING_FACTOR = 0.50; // 0.98 per second (~2% velocity loss/sec)
@@ -42,7 +38,8 @@ export class MovementSystem {
 
   constructor(
     private readonly ship: Ship,
-    private readonly emitter: ThrusterEmitter
+    private readonly emitter: ThrusterEmitter,
+    private readonly collisionSystem: BlockObjectCollisionSystem
   ) {}
 
   public setIntent(intent: MovementIntent): void {
@@ -108,26 +105,21 @@ export class MovementSystem {
       }
     }
 
-    // === Diminishing returns on fin-based turn power ===
-    const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
-
     // === Angular motion with assist ===
+    const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
     const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3, 20);
     let targetAngularVelocity = 0;
-    if (rotateLeft) {
-      targetAngularVelocity = -maxAngularSpeed;
-    } else if (rotateRight) {
-      targetAngularVelocity = maxAngularSpeed;
-    }
+    if (rotateLeft) targetAngularVelocity = -maxAngularSpeed;
+    else if (rotateRight) targetAngularVelocity = maxAngularSpeed;
 
     const angularDelta = targetAngularVelocity - transform.angularVelocity;
     transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * dt;
-
     transform.angularVelocity = Math.max(
       -maxAngularSpeed,
       Math.min(transform.angularVelocity, maxAngularSpeed)
     );
 
+    // === Linear thrust
     if (thrustForward) {
       this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position);
     }
@@ -138,16 +130,16 @@ export class MovementSystem {
       this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position);
     }
 
-    // === Apply inertial dampening if no thrust applied ===
+    // === Inertial dampening
     if (!thrustForward && !strafeLeft && !strafeRight) {
       const dampen = Math.pow(INERTIAL_DAMPENING_FACTOR, dt);
       velocity.x *= dampen;
       velocity.y *= dampen;
     }
 
-    // === Braking ===
+    // === Braking logic
     if (brake) {
-      const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+      const speed = Math.hypot(velocity.x, velocity.y);
       if (speed > 0) {
         const vxNorm = velocity.x / speed;
         const vyNorm = velocity.y / speed;
@@ -169,11 +161,23 @@ export class MovementSystem {
       }
     }
 
-    // === Integrate motion ===
+    // === Step 1: Resolve collisions *before* integration
+    if (this.ship.getIsPlayerShip()) {
+      this.collisionSystem.resolveCollisions(this.ship);
+
+      // Optional: Clamp very small residuals to zero
+      const v = transform.velocity;
+      // Try quantizing to remove floating point drift:
+      v.x = Math.round(v.x * 1000) / 1000;  // Round to 3 decimal places
+      v.y = Math.round(v.y * 1000) / 1000;
+    }
+
+    // === Step 2: Integrate motion (velocity → position)
     transform.rotation += transform.angularVelocity * dt;
     position.x += velocity.x * dt;
     position.y += velocity.y * dt;
 
+    // === Step 3: Update world-space block positions
     this.ship.updateBlockPositions();
   }
 
@@ -181,7 +185,7 @@ export class MovementSystem {
     dt: number,
     thrustDirection: ThrustDirection,
     thrusters: { coord: GridCoord; power: number; rotation: number }[],
-    transform: ShipTransform,
+    transform: BlockEntityTransform,
     position: { x: number; y: number }
   ): void {
     let totalThrustX = 0;

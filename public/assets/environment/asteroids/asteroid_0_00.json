@@ -1,0 +1,19 @@
+{
+  "transform": {
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "rotation": 0
+  },
+  "blocks": [
+    {
+      "id": "circleRock0",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    }
+  ]
+}

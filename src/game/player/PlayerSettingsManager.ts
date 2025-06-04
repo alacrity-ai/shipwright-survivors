@@ -10,6 +10,7 @@ export class PlayerSettingsManager {
 
   private particlesEnabled: boolean = true;
   private lightingEnabled: boolean = true;
+  private collisionsEnabled: boolean = true;
 
   private constructor() {}
 
@@ -46,11 +47,16 @@ export class PlayerSettingsManager {
     this.lightingEnabled = enabled;
   }
 
+  setCollisionsEnabled(enabled: boolean): void {
+    this.collisionsEnabled = enabled;
+  }
+
   getMasterVolume(): number { return this.masterVolume; }
   getMusicVolume(): number { return this.musicVolume; }
   getSfxVolume(): number { return this.sfxVolume; }
   getDialogueVolume(): number { return this.dialogueVolume; }
 
+  isCollisionsEnabled(): boolean { return this.collisionsEnabled; }
   isParticlesEnabled(): boolean { return this.particlesEnabled; }
   isLightingEnabled(): boolean { return this.lightingEnabled; }
 

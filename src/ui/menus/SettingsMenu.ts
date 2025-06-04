@@ -25,6 +25,7 @@ export class SettingsMenu implements Menu {
 
   private particleCheckbox: UICheckbox;
   private lightingCheckbox: UICheckbox;
+  private collisionsCheckbox: UICheckbox;
 
   constructor(inputManager: InputManager) {
     this.inputManager = inputManager;
@@ -107,8 +108,21 @@ export class SettingsMenu implements Menu {
       label: 'Lighting Enabled',
       checked: settings.isLightingEnabled(),
       onToggle: (val) => {
-        this.particleCheckbox.checked = val;
-        settings.setParticlesEnabled(val);
+        this.lightingCheckbox.checked = val;
+        settings.setLightingEnabled(val);
+        SaveGameManager.getInstance().saveSettings();
+      }
+    };
+
+    this.collisionsCheckbox = {
+      x: 160,
+      y: 240,
+      size: 14,
+      label: 'Collisions Enabled',
+      checked: settings.isCollisionsEnabled(),
+      onToggle: (val) => {
+        this.collisionsCheckbox.checked = val;
+        settings.setCollisionsEnabled(val);
         SaveGameManager.getInstance().saveSettings();
       }
     };
@@ -130,7 +144,7 @@ export class SettingsMenu implements Menu {
     }
 
     if (this.activeTab === 'general') {
-      for (const cb of [this.particleCheckbox, this.lightingCheckbox]) {
+      for (const cb of [this.particleCheckbox, this.lightingCheckbox, this.collisionsCheckbox]) {
         const within = (
           x >= cb.x && x <= cb.x + cb.size &&
           y >= cb.y && y <= cb.y + cb.size
@@ -212,6 +226,7 @@ export class SettingsMenu implements Menu {
     if (this.activeTab === 'general') {
       drawCheckbox(ctx, this.particleCheckbox);
       drawCheckbox(ctx, this.lightingCheckbox);
+      drawCheckbox(ctx, this.collisionsCheckbox);
     } else if (this.activeTab === 'volume') {
       for (let i = 0; i < this.volumeSliders.length; i++) {
         const slider = this.volumeSliders[i];

@@ -66,12 +66,11 @@ export function deserializeShip(data: SerializedShip, grid: Grid): Ship {
 }
 
 export function loadShipFromJson(fileName: string, grid: Grid): Promise<Ship> {
-  console.log('Loading ship from: /assets/ships/', fileName);
   return fetch(getAssetPath(`/assets/ships/${fileName}`))
     .then(response => response.json())
     .then(data => {
       const ship = new Ship(grid);  // Pass the grid to the ship constructor
-      ship.loadFromJson(data);  // Assuming loadFromJson is already implemented
+      ship.loadFromJson(data);
       return ship;
     });
 }

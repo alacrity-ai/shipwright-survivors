@@ -110,7 +110,7 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Drone Hanger Bay (Introduces minion playstyle)
 - [ ] Progression system
   - [x] Technology Tree System (Block Type Unlocks)
-    - [ ] Way of unlocking blocks through gameplay
+    - [x] Way of unlocking blocks through gameplay
   - [ ] Passive Tree (Passive bonuses, e.g. Fins 10% more effective)
     - [ ] Way of unlocking passive tree through gameplay
 - [ ] Overworld / Level select
@@ -119,8 +119,9 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 - [ ] Title screen (Save files, New game etc)
   - [x] Basic Implementation
   - [x] New game
-    - [ ] 3 Save Files, with pilot name selection
-  - [ ] Load Game
+    - [x] 3 Save Files
+    - [ ] Pilot name selection
+  - [x] Load Game
   - [ ] Credits
 - [ ] Story/dialogue/characters
   - [x] Basic Implementation of Dialogue in Hub
@@ -130,7 +131,7 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Full script / Stories / Sound
 - [x] Boss encounters
 - [ ] Environmental Events
-  - [ ] Asteroids
+  - [x] Asteroids
   - [ ] Nebulae
   - [ ] Wormholes
   - [ ] Planets
@@ -139,9 +140,10 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 TODOS:
   - [ ] Add warp in effect for spawning hostiles
+  - [x] Block to block collisions
   - [x] Make crosshair easier to see, lightup when firing or targetting an enemy
-  - [ ] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
-  - [ ] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
+  - [x] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
+  - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [ ] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
   - [ ] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks

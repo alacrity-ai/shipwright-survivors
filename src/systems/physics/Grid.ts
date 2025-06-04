@@ -9,111 +9,135 @@ export interface RaycastHit {
 }
 
 export class Grid {
-  private cells: Map<string, BlockInstance[]> = new Map();  // Map of cell coordinates to blocks
-  private cellSize: number;  // Size of each grid cell
+  private cells: Map<number, Map<number, BlockInstance[]>> = new Map();
+  private cellSize: number;
 
   constructor(cellSize: number = 256) {
     this.cellSize = cellSize;
   }
 
-  // Converts world position (x, y) to cell coordinates (grid position)
-  getCellCoordinates(x: number, y: number): string {
-    const cellX = Math.floor(x / this.cellSize);
-    const cellY = Math.floor(y / this.cellSize);
-    return `${cellX},${cellY}`;
+  private getCellCoords(x: number, y: number): [number, number] {
+    return [Math.floor(x / this.cellSize), Math.floor(y / this.cellSize)];
   }
 
-  // Adds a block to the appropriate grid cell. Ensures that duplicates are not added.
-  addBlockToCell(block: BlockInstance): void {
-    const { x, y } = block.position!;  // Block's world position
-    const cellKey = this.getCellCoordinates(x, y);  // Get the corresponding cell key
-
-    if (!this.cells.has(cellKey)) {
-      this.cells.set(cellKey, []);  // Create a new array for the cell if it doesn't exist
+  private getOrCreateCell(cellX: number, cellY: number): BlockInstance[] {
+    let row = this.cells.get(cellX);
+    if (!row) {
+      row = new Map();
+      this.cells.set(cellX, row);
     }
+    let cell = row.get(cellY);
+    if (!cell) {
+      cell = [];
+      row.set(cellY, cell);
+    }
+    return cell;
+  }
 
-    const cell = this.cells.get(cellKey)!;
-
-    // Only add the block if it's not already in the cell
+  addBlockToCell(block: BlockInstance): void {
+    const { x, y } = block.position!;
+    const [cellX, cellY] = this.getCellCoords(x, y);
+    const cell = this.getOrCreateCell(cellX, cellY);
     if (!cell.includes(block)) {
       cell.push(block);
     }
   }
 
-  // Removes a block from its corresponding grid cell.
   removeBlockFromCell(block: BlockInstance): void {
     const { x, y } = block.position!;
-    const cellKey = this.getCellCoordinates(x, y);  // Get the cell key based on block position
-
-    const cell = this.cells.get(cellKey);  // Get the cell for the block
+    const [cellX, cellY] = this.getCellCoords(x, y);
+    const row = this.cells.get(cellX);
+    const cell = row?.get(cellY);
     if (cell) {
       const index = cell.indexOf(block);
       if (index !== -1) {
-        cell.splice(index, 1);  // Remove the block from the cell's block list
+        cell.splice(index, 1);
       }
     }
   }
 
   removeBlocksFromCells(blocks: BlockInstance[]): void {
-    // Group blocks by cellKey
-    const grouped = new Map<string, BlockInstance[]>();
+    const grouped = new Map<number, Map<number, BlockInstance[]>>();
 
     for (const block of blocks) {
       const pos = block.position;
       if (!pos) continue;
 
-      const key = this.getCellCoordinates(pos.x, pos.y);
-      let list = grouped.get(key);
-      if (!list) {
-        list = [];
-        grouped.set(key, list);
+      const [cellX, cellY] = this.getCellCoords(pos.x, pos.y);
+
+      let row = grouped.get(cellX);
+      if (!row) {
+        row = new Map();
+        grouped.set(cellX, row);
       }
-      list.push(block);
+
+      let group = row.get(cellY);
+      if (!group) {
+        group = [];
+        row.set(cellY, group);
+      }
+
+      group.push(block);
     }
 
-    // Remove blocks per cell
-    for (const [cellKey, blocksToRemove] of grouped) {
-      const cell = this.cells.get(cellKey);
-      if (!cell) continue;
+    for (const [cellX, row] of grouped) {
+      const gridRow = this.cells.get(cellX);
+      if (!gridRow) continue;
 
-      // Create a Set for quick lookup
-      const toRemove = new Set(blocksToRemove);
+      for (const [cellY, blocksToRemove] of row) {
+        const cell = gridRow.get(cellY);
+        if (!cell) continue;
 
-      // Filter out all blocks that should be removed
-      this.cells.set(
-        cellKey,
-        cell.filter(block => !toRemove.has(block))
-      );
+        const toRemove = new Set(blocksToRemove);
+        const filtered = cell.filter(block => !toRemove.has(block));
+        gridRow.set(cellY, filtered);
+      }
     }
   }
 
-  // Returns the blocks within a given cell, identified by world coordinates
   getBlocksInCell(x: number, y: number): BlockInstance[] {
-    const cellKey = this.getCellCoordinates(x, y);
-    return this.cells.get(cellKey) || [];  // Return blocks in cell, or empty array if no blocks
+    const [cellX, cellY] = this.getCellCoords(x, y);
+    return this.cells.get(cellX)?.get(cellY) ?? [];
   }
 
-  // Get all the relevant cells to check based on a given position (e.g., for projectiles)
-  getRelevantCells(position: { x: number, y: number }): { x: number, y: number }[] {
-    const relevantCells = [];
-    const centerX = Math.floor(position.x / this.cellSize);
-    const centerY = Math.floor(position.y / this.cellSize);
+  getBlocksInCellByCoords(cellX: number, cellY: number): BlockInstance[] {
+    return this.cells.get(cellX)?.get(cellY) ?? [];
+  }
 
-    // Add surrounding cells (including the cell the object is in) to the relevant cells
+  getRelevantCells(pos: { x: number; y: number }): { x: number; y: number }[] {
+    const centerX = Math.floor(pos.x / this.cellSize);
+    const centerY = Math.floor(pos.y / this.cellSize);
+
+    const cells = [];
     for (let dx = -1; dx <= 1; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
-        relevantCells.push({ x: centerX + dx, y: centerY + dy });
+        cells.push({ x: centerX + dx, y: centerY + dy });
       }
     }
-
-    return relevantCells;
+    return cells;
   }
 
- /**
- * Traverses grid cells along a ray from start to end using 2D DDA.
- * Optionally expands sampling orthogonally based on `beamThickness` (in world units).
- * Returns a flat list of all BlockInstances intersected by the ray path.
- */
+  getAllBlocksInCells(minX: number, minY: number, maxX: number, maxY: number): BlockInstance[] {
+    const blocks: BlockInstance[] = [];
+    for (let cx = minX; cx <= maxX; cx++) {
+      const row = this.cells.get(cx);
+      if (!row) continue;
+      for (let cy = minY; cy <= maxY; cy++) {
+        const cell = row.get(cy);
+        if (cell) blocks.push(...cell);
+      }
+    }
+    return blocks;
+  }
+
+  getBlocksInArea(minX: number, minY: number, maxX: number, maxY: number): BlockInstance[] {
+    const minCellX = Math.floor(minX / this.cellSize);
+    const minCellY = Math.floor(minY / this.cellSize);
+    const maxCellX = Math.floor(maxX / this.cellSize);
+    const maxCellY = Math.floor(maxY / this.cellSize);
+    return this.getAllBlocksInCells(minCellX, minCellY, maxCellX, maxCellY);
+  }
+
   getBlocksAlongRay(
     start: { x: number; y: number },
     end: { x: number; y: number },
@@ -151,29 +175,31 @@ export class Grid {
 
     const maxSteps = 500;
 
-    // Precompute orthogonal offset range
     let sideOffsets: [number, number][] = [[0, 0]];
 
     if (beamThickness > 0) {
       const radius = beamThickness / 2;
 
-      // Normalize direction
       const mag = Math.sqrt(dx * dx + dy * dy);
       const dirX = dx / mag;
       const dirY = dy / mag;
 
-      // Perpendicular vector
       const normalX = -dirY;
       const normalY = dirX;
 
-      // Sample grid offsets within beam radius
-      const maxOffset = Math.ceil(radius / this.cellSize);
+      const cellRadius = Math.ceil(radius / this.cellSize);
+      const seen = new Set<number>();
+
       sideOffsets = [];
 
-      for (let i = -maxOffset; i <= maxOffset; i++) {
+      for (let i = -cellRadius; i <= cellRadius; i++) {
         const offsetX = Math.round(normalX * i);
         const offsetY = Math.round(normalY * i);
-        sideOffsets.push([offsetX, offsetY]);
+        const hash = (offsetX << 8) ^ offsetY;
+        if (!seen.has(hash)) {
+          seen.add(hash);
+          sideOffsets.push([offsetX, offsetY]);
+        }
       }
     }
 
@@ -182,8 +208,8 @@ export class Grid {
         const cx = x + ox;
         const cy = y + oy;
 
-        const cellBlocks = this.getBlocksInCellByCoords(cx, cy);
-        for (const block of cellBlocks) {
+        const blocks = this.getBlocksInCellByCoords(cx, cy);
+        for (const block of blocks) {
           blocksHit.add(block);
         }
       }
@@ -201,19 +227,19 @@ export class Grid {
 
     return Array.from(blocksHit);
   }
-  
+
   public getFirstBlockAlongRay(
     origin: { x: number; y: number },
     target: { x: number; y: number },
     excludeShipId?: string
   ): RaycastHit | null {
-    const dirX = target.x - origin.x;
-    const dirY = target.y - origin.y;
-    const mag = Math.sqrt(dirX * dirX + dirY * dirY);
+    const dx = target.x - origin.x;
+    const dy = target.y - origin.y;
+    const mag = Math.sqrt(dx * dx + dy * dy);
 
     if (mag === 0) return null;
 
-    const rayDir = { x: dirX / mag, y: dirY / mag };
+    const rayDir = { x: dx / mag, y: dy / mag };
     const blocks = this.getBlocksAlongRay(origin, target);
 
     let closestHit: RaycastHit | null = null;
@@ -222,14 +248,14 @@ export class Grid {
     for (const block of blocks) {
       if (excludeShipId && block.ownerShipId === excludeShipId) continue;
 
-      const blockPos = block.position!;
-      const halfSize = this.cellSize / 2; // Assume block size == cell size
+      const pos = block.position!;
+      const half = this.cellSize / 2;
 
-      const boxMin = { x: blockPos.x - halfSize, y: blockPos.y - halfSize };
-      const boxMax = { x: blockPos.x + halfSize, y: blockPos.y + halfSize };
+      const min = { x: pos.x - half, y: pos.y - half };
+      const max = { x: pos.x + half, y: pos.y + half };
 
-      const result = rayIntersectsAABB(origin, rayDir, boxMin, boxMax);
-      if (result.hit && result.tmin < closestT && result.tmin >= 0 && result.tmin <= mag) {
+      const result = rayIntersectsAABB(origin, rayDir, min, max);
+      if (result.hit && result.tmin >= 0 && result.tmin < closestT && result.tmin <= mag) {
         closestT = result.tmin;
         closestHit = {
           block,
@@ -242,12 +268,6 @@ export class Grid {
     }
 
     return closestHit;
-  }
-
-  // Get blocks in a cell using cell coordinates, not world coordinates
-  getBlocksInCellByCoords(cellX: number, cellY: number): BlockInstance[] {
-    const cellKey = `${cellX},${cellY}`;
-    return this.cells.get(cellKey) || []; // Return blocks for the given cell, or empty array if none
   }
 
   // Clears all grid data
