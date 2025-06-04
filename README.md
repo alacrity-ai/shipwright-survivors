@@ -146,7 +146,7 @@ TODOS:
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [ ] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
-  - [ ] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
+  - [x] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
   - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
        This is potentially inefficient, but more imporantly, it resets your firing cooldown.
       So if you're having blocks destroyed while in combat, you might never be able to fire.

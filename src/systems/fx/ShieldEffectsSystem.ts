@@ -87,7 +87,6 @@ export class ShieldEffectsSystem {
     for (const visual of this.activeVisuals) {
       const blockPos = visual.block.position;
       if (!blockPos) continue;
-
       const screen = this.camera.worldToScreen(blockPos.x, blockPos.y);
       const x = screen.x / this.camera.zoom;
       const y = screen.y / this.camera.zoom;

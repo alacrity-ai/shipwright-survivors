@@ -37,6 +37,15 @@ export class CombatService {
 
         if (energy && energy.spend(energyCost)) {
           if (block.position) {
+            playSpatialSfx(entity, playerShip, {
+              file: 'assets/sounds/sfx/ship/energy-shield-hit_00.wav',
+              channel: 'sfx',
+              baseVolume: 0.65,
+              pitchRange: [2, 2.5],
+              volumeJitter: 0.1,
+              maxSimultaneous: 5,
+            });
+
             this.explosionSystem.createShieldDeflection(
               block.position,
               block.shieldSourceId ?? 'shield0'

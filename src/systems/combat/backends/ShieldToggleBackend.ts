@@ -5,6 +5,8 @@ import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 
+import { audioManager } from '@/audio/Audio';
+
 export class ShieldToggleBackend implements UtilityBackend {
   private wasPressedLastFrame = new WeakMap<Ship, boolean>();
 
@@ -21,8 +23,10 @@ export class ShieldToggleBackend implements UtilityBackend {
     if (!shieldComponent.hasShieldBlocks()) return;
 
     if (shieldComponent.isActive()) {
+      audioManager.play('assets/sounds/sfx/ship/energy-shield-reverse_00.wav', 'sfx', { maxSimultaneous: 3 });
       shieldComponent.deactivate();
     } else {
+      audioManager.play('assets/sounds/sfx/ship/energy-shield_00.wav', 'sfx', { maxSimultaneous: 3 });
       shieldComponent.activate();
     }
   }
