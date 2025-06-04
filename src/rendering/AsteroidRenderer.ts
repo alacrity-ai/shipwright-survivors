@@ -6,8 +6,10 @@ import type { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/
 import type { InputManager } from '@/core/InputManager';
 
 import { Asteroid } from '@/game/entities/Asteroid';
+import { Ship } from '@/game/ship/Ship';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { getAsteroidBlockSprite, AsteroidDamageLevel } from '@/rendering/cache/AsteroidSpriteCache';
+import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 
 export class AsteroidRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -25,7 +27,7 @@ export class AsteroidRenderer {
     const visibleObjects = this.cullingSystem.getVisibleObjects();
 
     for (const obj of visibleObjects) {
-      if (!(obj instanceof Asteroid)) continue;
+      if (obj instanceof Ship) continue;
       const transform = obj.getTransform();
       const { position, rotation } = transform;
 
@@ -35,10 +37,20 @@ export class AsteroidRenderer {
       this.ctx.translate(screen.x, screen.y);
       this.ctx.scale(this.camera.zoom, this.camera.zoom);
       this.ctx.rotate(rotation);
+      
+      let sprite = null;
+      let damageLevel = null;
 
       for (const [coord, block] of obj.getAllBlocks()) {
-        const damageLevel = this.getAsteroidDamageLevel(block.hp, block.type.armor ?? 1);
-        const sprite = getAsteroidBlockSprite(block.type.id, damageLevel);
+        // Damage level is not actually something we need to be calculating here??
+        
+        if (obj instanceof Asteroid) {
+          damageLevel = this.getAsteroidDamageLevel(block.hp, block.type.armor ?? 1);
+          sprite = getAsteroidBlockSprite(block.type.id, damageLevel);
+        } else {
+          damageLevel = getDamageLevel(block.hp, block.type.armor ?? 1);
+          sprite = getBlockSprite(block.type.id, damageLevel);
+        }
 
         const px = coord.x * BLOCK_SIZE;
         const py = coord.y * BLOCK_SIZE;

@@ -1,5 +1,8 @@
 // src/game/entities/factories/AsteroidFactory.ts
 
+// import { MovementSystem } from '@/systems/physics/MovementSystem';
+// import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
+// import type { Ship } from '@/game/ship/Ship';
 import type { Grid } from '@/systems/physics/Grid';
 import { Asteroid } from '@/game/entities/Asteroid';
 import type { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
@@ -25,6 +28,9 @@ export class AsteroidFactory {
     transform.angularVelocity = angularVelocity;
 
     this.registry.add(asteroid);
+    // const movement = new MovementSystem(asteroid as Ship, null as any, null as any); // TODO: Handle this
+    // MovementSystemRegistry.register(asteroid, movement);
+
     return asteroid;
   }
 }

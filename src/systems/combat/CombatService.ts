@@ -22,7 +22,7 @@ export class CombatService {
     coord: GridCoord,
     damage: number,
     cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'scripted' = 'scripted',
-    playerShip: Ship
+    playerShip: Ship | null = null
   ): boolean {
     if (block.indestructible) return false;
 

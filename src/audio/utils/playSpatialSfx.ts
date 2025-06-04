@@ -14,7 +14,7 @@ type SpatialAudioOptions = {
 
 export function playSpatialSfx(
   emitterShip: CompositeBlockObject,
-  listenerShip: CompositeBlockObject,
+  listenerShip: CompositeBlockObject | null,
   {
     file,
     channel,
@@ -24,12 +24,10 @@ export function playSpatialSfx(
     volumeJitter = 0.2,
   }: SpatialAudioOptions
 ): void {
-  const isSame = emitterShip === listenerShip;
-
   let pan = 0;
   let attenuation = 1;
 
-  if (!isSame) {
+  if (listenerShip && emitterShip !== listenerShip) {
     const emitterPos = emitterShip.getTransform().position;
     const listenerPos = listenerShip.getTransform().position;
 

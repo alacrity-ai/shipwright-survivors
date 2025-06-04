@@ -93,6 +93,10 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'facetplate0',
     category: 'system',
     subcategory: 'system',
+    behavior: {
+      rammingDamageMultiplier: 1.1,
+      rammingArmor: 7,
+    },
     dropRate: 0
   },
   facetplate1: {
@@ -104,7 +108,11 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'facetplate1',
     category: 'hull',
     subcategory: 'facetplate',
-    dropRate: 0.05
+    dropRate: 0.05,
+    behavior: {
+      rammingDamageMultiplier: 1.3,
+      rammingArmor: 7,
+    },
   },
   facetplate2: {
     id: 'facetplate2',
@@ -115,6 +123,10 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'facetplate2',
     category: 'hull',
     subcategory: 'facetplate',
+    behavior: {
+      rammingDamageMultiplier: 1.5,
+      rammingArmor: 12,
+    },
     dropRate: 0.08
   },
   facetplate3: {
@@ -126,6 +138,10 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'facetplate3',
     category: 'hull',
     subcategory: 'facetplate',
+    behavior: {
+      rammingDamageMultiplier: 1.7,
+      rammingArmor: 17,
+    },
     dropRate: 0.04
   },
   facetplate4: {
@@ -137,6 +153,10 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'facetplate4',
     category: 'hull',
     subcategory: 'facetplate',
+    behavior: {
+      rammingDamageMultiplier: 2,
+      rammingArmor: 22,
+    },
     dropRate: 0.02
   },
   turret0: {

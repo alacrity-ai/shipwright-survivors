@@ -12,6 +12,8 @@ import type { MissionDefinition } from '@/game/missions/types/MissionDefinition'
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
+import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
+import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
 import { SettingsMenu } from '@/ui/menus/SettingsMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
@@ -33,6 +35,7 @@ import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
+import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
@@ -57,8 +60,10 @@ import { CompositeBlockObjectRegistry } from '@/game/entities/registries/Composi
 import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/CompositeBlockObjectCullingSystem';
 import { CompositeBlockObjectUpdateSystem } from '@/game/entities/systems/CompositeBlockObjectUpdateSystem';
 import { getStarterShip } from '@/game/ship/utils/PrefabHelpers';
+import { getStarterSpaceStation } from '@/ui/menus/dev/getStarterSpaceStation';
 import { Grid } from '@/systems/physics/Grid';
 import { Ship } from '@/game/ship/Ship';
+import { SpaceStation } from '@/game/entities/SpaceStation';
 
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
@@ -79,6 +84,7 @@ export class EngineRuntime {
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager;
   private shipBuilderMenu: ShipBuilderMenu
+  private spaceStationBuilderMenu: SpaceStationBuilderMenu;
   private settingsMenu: SettingsMenu;
   private pauseMenu: PauseMenu;
   private hud: HudOverlay;
@@ -97,6 +103,7 @@ export class EngineRuntime {
 
   private grid: Grid | null = null;
   private ship: Ship | null = null;
+  private spaceStation: SpaceStation | null = null;
 
   private projectileSystem: ProjectileSystem;
   private laserSystem: LaserSystem;
@@ -119,6 +126,7 @@ export class EngineRuntime {
   private energyRechargeSystem: EnergyRechargeSystem;
   private playerController: PlayerControllerSystem;
   private shipBuilderController: ShipBuilderController;
+  private spaceStationBuilderController: SpaceStationBuilderController;
   private explosionSystem: ExplosionSystem;
   private repairEffectSystem: RepairEffectSystem;
   private screenEffects: ScreenEffectsSystem;
@@ -158,7 +166,6 @@ export class EngineRuntime {
 
     // Register player ship using the Singleton ShipRegistry
     this.shipRegistry.add(this.ship);
-    this.collisionSystem = new BlockObjectCollisionSystem();
 
     // Register culling systems
     this.shipCulling = new ShipCullingSystem(this.grid, this.camera);
@@ -194,7 +201,8 @@ export class EngineRuntime {
       pickupSpawner,
       destructionService
     );
-
+    this.collisionSystem = new BlockObjectCollisionSystem(combatService);
+    
     // === Step 4: Instantiate ProjectileSystem with CombatService ===
     // Deprecate this awful class and put it into the turret backend 
     this.projectileSystem = new ProjectileSystem(
@@ -225,6 +233,7 @@ export class EngineRuntime {
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
     this.movement = new MovementSystem(this.ship, emitter, this.collisionSystem);
+    MovementSystemRegistry.register(this.ship, this.movement);
     this.weaponSystem = new WeaponSystem(
       new TurretBackend(this.projectileSystem, this.ship),
       new LaserBackend(this.laserSystem),
@@ -247,6 +256,17 @@ export class EngineRuntime {
     this.shipBuilderMenu.setRepairAllHandler(() => {
       this.shipBuilderController.repairAllBlocks();
     });
+
+    // Dev
+    this.spaceStationBuilderMenu = new SpaceStationBuilderMenu(this.inputManager, this.cursorRenderer);
+    this.spaceStation = getStarterSpaceStation(this.grid);
+    this.spaceStationBuilderController = new SpaceStationBuilderController(
+      this.spaceStation, 
+      this.spaceStationBuilderMenu, 
+      this.camera, 
+      this.repairEffectSystem,
+      this.inputManager
+    );
 
     this.hud = new HudOverlay(this.canvasManager, this.ship);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
@@ -371,6 +391,16 @@ export class EngineRuntime {
       }
     }
 
+    if (this.inputManager.wasKeyJustPressed('KeyI')) {
+      if (!this.spaceStationBuilderMenu.isOpen()) {
+        console.log("Opening space station builder menu...");
+        this.spaceStationBuilderMenu.openMenu();
+      } else {
+        console.log("Closing space station builder menu...");
+        this.spaceStationBuilderMenu.closeMenu();
+      }
+    }
+
     if (this.inputManager.wasKeyJustPressed('Escape')) {
       if (this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.closeMenu();
@@ -394,6 +424,10 @@ export class EngineRuntime {
 
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderMenu.update();
+    }
+
+    if (this.spaceStationBuilderMenu.isOpen()) {
+      this.spaceStationBuilderMenu.update();
     }
 
     // Debug keys 
@@ -426,8 +460,14 @@ export class EngineRuntime {
       const transform = this.ship.getTransform();
       this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
       this.camera.follow(transform.position);
+      this.camera.update(dt);
       if (this.shipBuilderMenu.isOpen()) {
           this.shipBuilderController.update(transform);
+      }
+      if (this.spaceStationBuilderMenu.isOpen()) {
+        if (this.spaceStation) {
+          this.spaceStationBuilderController.update(this.spaceStation.getTransform());
+        }
       }
     } catch (error) {
       console.error("Error getting ship transform:", error);
@@ -436,7 +476,7 @@ export class EngineRuntime {
     // Always update the RepairEffectSystem
     this.repairEffectSystem.update(dt);
 
-    if (!this.shipBuilderMenu.isOpen() && !this.pauseMenu.isOpen() && !this.settingsMenu.isOpen()) {
+    if (!this.shipBuilderMenu.isOpen() && !this.pauseMenu.isOpen() && !this.settingsMenu.isOpen() && !this.spaceStationBuilderMenu.isOpen()) {
       this.updatables.forEach(system => system.update(dt));
     }
 
@@ -463,6 +503,13 @@ export class EngineRuntime {
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);
       this.shipBuilderMenu.render(this.canvasManager.getContext('ui'));
+    }
+
+    if (this.spaceStationBuilderMenu.isOpen()) {
+      if (this.spaceStation) {
+        this.spaceStationBuilderController.render(this.canvasManager.getContext('entities'), this.spaceStation.getTransform());
+        this.spaceStationBuilderMenu.render(this.canvasManager.getContext('ui'));
+      }
     }
 
     if (this.pauseMenu.isOpen()) {
@@ -518,6 +565,7 @@ export class EngineRuntime {
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().destroy();
     PlayerStats.getInstance().destroy();
+    MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();
 
     // Technology should persist between runs

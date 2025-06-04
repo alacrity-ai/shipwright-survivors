@@ -15,4 +15,6 @@ export interface BlockBehavior {
   shieldRadius?: number;
   shieldEnergyDrain?: number;
   harvestRate?: number;
+  rammingDamageMultiplier?: number; // NEW
+  rammingArmor?: number; // NEW
 }

@@ -26,6 +26,8 @@ const DIMINISHING_RATE = 0.15;
 export class MovementSystem {
   private readonly fallbackThrustPower = 10;
   private readonly baseThrust = 5;
+  private externalImpulse = { x: 0, y: 0 };
+
 
   private currentIntent: MovementIntent = {
     thrustForward: false,
@@ -46,6 +48,11 @@ export class MovementSystem {
     this.currentIntent = intent;
   }
 
+  public applyExternalImpulse(dx: number, dy: number): void {
+    this.externalImpulse.x += dx;
+    this.externalImpulse.y += dy;
+  }
+
   private rotateVector(x: number, y: number, angleRad: number): { x: number; y: number } {
     const cos = Math.cos(angleRad);
     const sin = Math.sin(angleRad);
@@ -64,122 +71,129 @@ export class MovementSystem {
     return { x: thrustX, y: thrustY };
   }
 
-  public update(dt: number): void {
-    const transform = this.ship.getTransform();
-    const { position, velocity } = transform;
+public update(dt: number): void {
+  const transform = this.ship.getTransform();
+  const { position, velocity } = transform;
 
-    const {
-      rotateLeft,
-      rotateRight,
-      thrustForward,
-      brake,
-      strafeLeft,
-      strafeRight,
-    } = this.currentIntent;
+  const {
+    rotateLeft,
+    rotateRight,
+    thrustForward,
+    brake,
+    strafeLeft,
+    strafeRight,
+  } = this.currentIntent;
 
-    // === Evaluate mass and scaling ===
-    const mass = this.ship.getTotalMass();
-    const angularScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), ANGULAR_MASS_SCALE_EXPONENT));
+  // === Apply any external impulses from prior frame ===
+  velocity.x += this.externalImpulse.x;
+  velocity.y += this.externalImpulse.y;
 
-    const thrustGroups: Record<ThrustDirection, { coord: GridCoord; power: number; rotation: number }[]> = {
-      forward: [],
-      strafeLeft: [],
-      strafeRight: [],
-    };
+  // Clear after applying
+  this.externalImpulse.x = 0;
+  this.externalImpulse.y = 0;
 
-    let rawTurnPower = 1;
+  // === Evaluate mass and scaling ===
+  const mass = this.ship.getTotalMass();
+  const angularScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), ANGULAR_MASS_SCALE_EXPONENT));
 
-    for (const [coord, block] of this.ship.getAllBlocks()) {
-      const behavior = block.type.behavior;
+  const thrustGroups: Record<ThrustDirection, { coord: GridCoord; power: number; rotation: number }[]> = {
+    forward: [],
+    strafeLeft: [],
+    strafeRight: [],
+  };
 
-      if (behavior?.canThrust) {
-        const power = behavior.thrustPower ?? this.baseThrust;
-        const dir = classifyThrustDirection(block.rotation ?? 0);
-        if (dir) {
-          thrustGroups[dir].push({ coord, power, rotation: block.rotation ?? 0 });
-        }
-      }
+  let rawTurnPower = 1;
 
-      if (block.type.id.startsWith('fin')) {
-        rawTurnPower += behavior?.turnPower ?? 0;
-      }
-    }
+  for (const [coord, block] of this.ship.getAllBlocks()) {
+    const behavior = block.type.behavior;
 
-    // === Angular motion with assist ===
-    const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
-    const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3, 20);
-    let targetAngularVelocity = 0;
-    if (rotateLeft) targetAngularVelocity = -maxAngularSpeed;
-    else if (rotateRight) targetAngularVelocity = maxAngularSpeed;
-
-    const angularDelta = targetAngularVelocity - transform.angularVelocity;
-    transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * dt;
-    transform.angularVelocity = Math.max(
-      -maxAngularSpeed,
-      Math.min(transform.angularVelocity, maxAngularSpeed)
-    );
-
-    // === Linear thrust
-    if (thrustForward) {
-      this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position);
-    }
-    if (strafeLeft) {
-      this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position);
-    }
-    if (strafeRight) {
-      this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position);
-    }
-
-    // === Inertial dampening
-    if (!thrustForward && !strafeLeft && !strafeRight) {
-      const dampen = Math.pow(INERTIAL_DAMPENING_FACTOR, dt);
-      velocity.x *= dampen;
-      velocity.y *= dampen;
-    }
-
-    // === Braking logic
-    if (brake) {
-      const speed = Math.hypot(velocity.x, velocity.y);
-      if (speed > 0) {
-        const vxNorm = velocity.x / speed;
-        const vyNorm = velocity.y / speed;
-        const allThrusters = [...thrustGroups.forward, ...thrustGroups.strafeLeft, ...thrustGroups.strafeRight];
-        const totalThrustPower = allThrusters.reduce((sum, t) => sum + t.power, 0) + this.fallbackThrustPower;
-        const brakingForce = totalThrustPower * dt * BRAKING_FORCE_MULTIPLIER;
-
-        const newVx = velocity.x - vxNorm * brakingForce;
-        const newVy = velocity.y - vyNorm * brakingForce;
-        const dot = newVx * velocity.x + newVy * velocity.y;
-
-        if (dot < 0) {
-          velocity.x = 0;
-          velocity.y = 0;
-        } else {
-          velocity.x = newVx;
-          velocity.y = newVy;
-        }
+    if (behavior?.canThrust) {
+      const power = behavior.thrustPower ?? this.baseThrust;
+      const dir = classifyThrustDirection(block.rotation ?? 0);
+      if (dir) {
+        thrustGroups[dir].push({ coord, power, rotation: block.rotation ?? 0 });
       }
     }
 
-    // === Step 1: Resolve collisions *before* integration
-    if (this.ship.getIsPlayerShip()) {
-      this.collisionSystem.resolveCollisions(this.ship);
-
-      // Optional: Clamp very small residuals to zero
-      const v = transform.velocity;
-      // Try quantizing to remove floating point drift:
-      v.x = Math.round(v.x * 1000) / 1000;  // Round to 3 decimal places
-      v.y = Math.round(v.y * 1000) / 1000;
+    if (block.type.id.startsWith('fin')) {
+      rawTurnPower += behavior?.turnPower ?? 0;
     }
-
-    // === Step 2: Integrate motion (velocity → position)
-    transform.rotation += transform.angularVelocity * dt;
-    position.x += velocity.x * dt;
-    position.y += velocity.y * dt;
-
-    // === Step 3: Update world-space block positions
-    this.ship.updateBlockPositions();
   }
+
+  // === Angular motion with assist ===
+  const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
+  const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3, 20);
+  let targetAngularVelocity = 0;
+  if (rotateLeft) targetAngularVelocity = -maxAngularSpeed;
+  else if (rotateRight) targetAngularVelocity = maxAngularSpeed;
+
+  const angularDelta = targetAngularVelocity - transform.angularVelocity;
+  transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * dt;
+  transform.angularVelocity = Math.max(
+    -maxAngularSpeed,
+    Math.min(transform.angularVelocity, maxAngularSpeed)
+  );
+
+  // === Linear thrust
+  if (thrustForward) {
+    this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position);
+  }
+  if (strafeLeft) {
+    this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position);
+  }
+  if (strafeRight) {
+    this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position);
+  }
+
+  // === Inertial dampening
+  if (!thrustForward && !strafeLeft && !strafeRight) {
+    const dampen = Math.pow(INERTIAL_DAMPENING_FACTOR, dt);
+    velocity.x *= dampen;
+    velocity.y *= dampen;
+  }
+
+  // === Braking logic
+  if (brake) {
+    const speed = Math.hypot(velocity.x, velocity.y);
+    if (speed > 0) {
+      const vxNorm = velocity.x / speed;
+      const vyNorm = velocity.y / speed;
+      const allThrusters = [...thrustGroups.forward, ...thrustGroups.strafeLeft, ...thrustGroups.strafeRight];
+      const totalThrustPower = allThrusters.reduce((sum, t) => sum + t.power, 0) + this.fallbackThrustPower;
+      const brakingForce = totalThrustPower * dt * BRAKING_FORCE_MULTIPLIER;
+
+      const newVx = velocity.x - vxNorm * brakingForce;
+      const newVy = velocity.y - vyNorm * brakingForce;
+      const dot = newVx * velocity.x + newVy * velocity.y;
+
+      if (dot < 0) {
+        velocity.x = 0;
+        velocity.y = 0;
+      } else {
+        velocity.x = newVx;
+        velocity.y = newVy;
+      }
+    }
+  }
+
+  // === Step 1: Resolve collisions *before* integration
+  if (this.ship.getIsPlayerShip()) {
+    this.collisionSystem.resolveCollisions(this.ship);
+
+    // Optional: Clamp very small residuals to zero
+    const v = transform.velocity;
+    v.x = Math.round(v.x * 1000) / 1000;
+    v.y = Math.round(v.y * 1000) / 1000;
+  }
+
+  // === Step 2: Integrate motion (velocity → position)
+  transform.rotation += transform.angularVelocity * dt;
+  position.x += velocity.x * dt;
+  position.y += velocity.y * dt;
+
+  // === Step 3: Update world-space block positions
+  this.ship.updateBlockPositions();
+}
 
   private applyDirectionalThrust(
     dt: number,

@@ -6,6 +6,7 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
 import { Ship } from '@/game/ship/Ship';
+import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
 
@@ -54,6 +55,7 @@ export class CompositeBlockDestructionService {
     // === Step 1: Pre-destruction cleanup ===
     if (entity instanceof Ship) {
       this.shipRegistry.remove(entity);
+      MovementSystemRegistry.unregister(entity);
       this.aiOrchestrator.removeControllersForShip?.(entityId);
     }
 
