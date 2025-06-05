@@ -39,6 +39,7 @@ export class WaveSpawner implements IUpdatable {
   private timeSinceStart = 0;
 
   private isRunning = false;              // NEW: WaveSpawner must be manually started
+  private isPaused = false;
   private hasSpawnedFirstWave = false;    // Tracks if first wave already triggered
 
   private readonly initialDelay = 10;
@@ -94,8 +95,24 @@ export class WaveSpawner implements IUpdatable {
     this.timeSinceStart = 0;
   }
 
+  public pause(): void {
+    this.isPaused = true;
+  }
+
+  public resume(): void {
+    this.isPaused = false;
+  }
+
+  public getIsRunning(): boolean {
+    return this.isRunning;
+  }
+
+  public getIsPaused(): boolean {
+    return this.isPaused;
+  }
+
   public update(dt: number): void {
-    if (!this.isRunning) return;
+    if (!this.isRunning || this.isPaused) return;
 
     // === First wave logic ===
     if (!this.hasSpawnedFirstWave) {

@@ -2,6 +2,8 @@
 
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { InputManager } from '@/core/InputManager';
+import type { MenuManager } from '@/ui/MenuManager';
+
 import { drawCheckbox, type UICheckbox } from '@/ui/primitives/UICheckBox';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
@@ -16,6 +18,7 @@ type SettingsTab = 'general' | 'volume';
 
 export class SettingsMenu implements Menu {
   private inputManager: InputManager;
+  private menuManager: MenuManager;
   private activeTab: SettingsTab = 'general';
   private open = false;
 
@@ -27,8 +30,9 @@ export class SettingsMenu implements Menu {
   private lightingCheckbox: UICheckbox;
   private collisionsCheckbox: UICheckbox;
 
-  constructor(inputManager: InputManager) {
+  constructor(inputManager: InputManager, menuManager: MenuManager) {
     this.inputManager = inputManager;
+    this.menuManager = menuManager;
 
     this.closeButton = {
       x: 400,
@@ -36,7 +40,11 @@ export class SettingsMenu implements Menu {
       width: 120,
       height: 40,
       label: 'Close',
-      onClick: () => this.closeMenu(),
+      onClick: () => {
+        const pauseMenu = this.menuManager.getMenu('pauseMenu');
+        if (!pauseMenu) return;
+        this.menuManager.transition(pauseMenu);
+      },
       style: {
         borderRadius: 10,
         alpha: 0.8,

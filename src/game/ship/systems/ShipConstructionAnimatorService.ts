@@ -8,6 +8,7 @@ import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { drawBlockHighlightWithMask } from '@/rendering/primitives/HighlightUtils';
+import { drawShockwave } from '@/game/ship/utils/drawShockwave';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 interface ConstructingShipState {
@@ -24,8 +25,8 @@ export class ShipConstructionAnimatorService {
   private readonly activeShips: ConstructingShipState[] = [];
 
   private readonly animationDuration = 500; // ms
-  private readonly startBlockRevealInterval = 200; // ms
-  private readonly finalBlockRevealInterval = 10;  // ms
+  private readonly startBlockRevealInterval = 360; // ms
+  private readonly finalBlockRevealInterval = 30;  // ms
   private readonly decayFactor = 5; // exponential decay aggressiveness
 
   private readonly playerShip: Ship;
@@ -114,73 +115,104 @@ export class ShipConstructionAnimatorService {
     }
   }
 
+  public render(dt: number): void {
+    const playerPos = this.playerShip.getTransform().position;
+    const grid = this.playerShip.getGrid();
 
-public render(dt: number): void {
-  const playerPos = this.playerShip.getTransform().position;
-  const grid = this.playerShip.getGrid();
+    const viewRadius = 3000;
+    const minX = playerPos.x - viewRadius;
+    const minY = playerPos.y - viewRadius;
+    const maxX = playerPos.x + viewRadius;
+    const maxY = playerPos.y + viewRadius;
 
-  const viewRadius = 3000;
-  const minX = playerPos.x - viewRadius;
-  const minY = playerPos.y - viewRadius;
-  const maxX = playerPos.x + viewRadius;
-  const maxY = playerPos.y + viewRadius;
+    const nearbyBlocks = grid.getBlocksInArea(minX, minY, maxX, maxY);
 
-  const nearbyBlocks = grid.getBlocksInArea(minX, minY, maxX, maxY);
+    // Track ships that have been processed for shockwaves
+    const processedShips = new Set<Ship>();
 
-  for (const block of nearbyBlocks) {
-    const parent = BlockToObjectIndex.getObject(block);
-    if (!parent || !(parent instanceof Ship)) continue;
+    for (const block of nearbyBlocks) {
+      const parent = BlockToObjectIndex.getObject(block);
+      if (!parent || !(parent instanceof Ship)) continue;
 
-    const shipState = this.activeShips.find(s => s.ship === parent);
-    if (!shipState) continue;
+      const shipState = this.activeShips.find(s => s.ship === parent);
+      if (!shipState) continue;
 
-    const coord = [...shipState.ship.getBlockMap().entries()]
-      .find(([, b]) => b === block)?.[0];
-    if (!coord) continue;
+      const coord = [...shipState.ship.getBlockMap().entries()]
+        .find(([, b]) => b === block)?.[0];
+      if (!coord) continue;
 
-    const key = coord;
-    const timer = shipState.animationTimers.get(key);
-    if (!timer) continue;
+      const key = coord;
+      const timer = shipState.animationTimers.get(key);
+      if (!timer) continue;
 
-    const transform = parent.getTransform();
-    const local = fromKey(coord);
+      // Draw shockwave for this ship (only once per ship)
+      if (!processedShips.has(parent)) {
+        processedShips.add(parent);
+        
+        const shipTransform = parent.getTransform();
+        const shipScreen = this.camera.worldToScreen(shipTransform.position.x, shipTransform.position.y);
+        
+        // Calculate progress for the shockwave (0 = start, 1 = end)
+        const shockwaveProgress = 1 - timer / this.animationDuration;
+        
+        // Scale shockwave size based on ship's block count
+        const blockCount = parent.getBlockMap().size;
+        const baseRadius = 150; // Minimum radius for small ships
+        const scaleFactor = Math.sqrt(blockCount) * 20; // Scale with square root for better visual balance
+        const maxRadius = (baseRadius + scaleFactor) * this.camera.zoom;
+        const thickness = Math.max(8, Math.sqrt(blockCount) * 2) * this.camera.zoom;
+        
+        // Draw the shockwave at the ship's center
+        drawShockwave(
+          this.ctx,
+          shipScreen.x,
+          shipScreen.y,
+          shockwaveProgress,
+          maxRadius,
+          '#00AAFF',
+          thickness
+        );
+      }
 
-    // Step 1: local block grid coord → block-local position
-    const localX = local.x * BLOCK_SIZE;
-    const localY = local.y * BLOCK_SIZE;
+      const transform = parent.getTransform();
+      const local = fromKey(coord);
 
-    // Step 2: rotate into world-space using ship transform
-    const cos = Math.cos(transform.rotation);
-    const sin = Math.sin(transform.rotation);
-    const rotatedX = localX * cos - localY * sin;
-    const rotatedY = localX * sin + localY * cos;
+      // Step 1: local block grid coord → block-local position
+      const localX = local.x * BLOCK_SIZE;
+      const localY = local.y * BLOCK_SIZE;
 
-    const worldX = transform.position.x + rotatedX;
-    const worldY = transform.position.y + rotatedY;
+      // Step 2: rotate into world-space using ship transform
+      const cos = Math.cos(transform.rotation);
+      const sin = Math.sin(transform.rotation);
+      const rotatedX = localX * cos - localY * sin;
+      const rotatedY = localX * sin + localY * cos;
 
-    // Step 3: convert to screen space
-    const screen = this.camera.worldToScreen(worldX, worldY);
+      const worldX = transform.position.x + rotatedX;
+      const worldY = transform.position.y + rotatedY;
 
-    const progress = 1 - timer / this.animationDuration;
-    const alpha = (1 - progress) * 0.6;
+      // Step 3: convert to screen space
+      const screen = this.camera.worldToScreen(worldX, worldY);
 
-    this.ctx.save();
-    this.ctx.translate(screen.x, screen.y);
-    this.ctx.scale(this.camera.zoom, this.camera.zoom);
+      const progress = 1 - timer / this.animationDuration;
+      const alpha = (1 - progress) * 0.6;
 
-    // Apply local block rotation (not ship rotation)
-    const blockRotation = (block.rotation ?? 0) * Math.PI / 180;
-    this.ctx.rotate(blockRotation);
+      this.ctx.save();
+      this.ctx.translate(screen.x, screen.y);
+      this.ctx.scale(this.camera.zoom, this.camera.zoom);
 
-    drawBlockHighlightWithMask(
-      this.ctx,
-      block.type.id,
-      block.rotation ?? 0,
-      `rgba(0,255,255,${alpha.toFixed(3)})`
-    );
+      // Apply local block rotation (not ship rotation)
+      const blockRotation = (block.rotation ?? 0) * Math.PI / 180;
+      this.ctx.rotate(blockRotation);
 
-    this.ctx.restore();
+      drawBlockHighlightWithMask(
+        this.ctx,
+        block.type.id,
+        block.rotation ?? 0,
+        `rgba(0,255,255,${alpha.toFixed(3)})`
+      );
+
+      this.ctx.restore();
+    }
   }
-}
 }
 

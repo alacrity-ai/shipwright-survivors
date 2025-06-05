@@ -4,7 +4,7 @@ import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton } from '@/ui/primitives/UIButton';
 
-import type { SettingsMenu } from '@/ui/menus/SettingsMenu';
+import type { MenuManager } from '@/ui/MenuManager';
 import type { UIButton } from '@/ui/primitives/UIButton';
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { InputManager } from '@/core/InputManager';
@@ -19,7 +19,7 @@ export class PauseMenu implements Menu {
   constructor(
     private readonly inputManager: InputManager,
     private readonly onAbandon: () => void,
-    private readonly settingsMenu: SettingsMenu
+    private readonly menuManager: MenuManager
   ) {
     const sharedStyle = {
       borderRadius: 10,
@@ -41,8 +41,9 @@ export class PauseMenu implements Menu {
       height: 40,
       label: 'Settings',
       onClick: () => {
-        this.closeMenu();
-        this.settingsMenu.openMenu();
+        const settingsMenu = this.menuManager.getMenu('settingsMenu');
+        if (!settingsMenu) return;
+        this.menuManager.transition(settingsMenu);
       },
       style: sharedStyle
     };

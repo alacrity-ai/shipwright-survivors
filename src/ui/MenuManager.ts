@@ -1,39 +1,59 @@
-// src/ui/MenuManager.ts
-
 import type { Menu } from '@/ui/interfaces/Menu';
 
 export class MenuManager {
-  private currentMenu: Menu | null = null;
+  private readonly stack: Menu[] = [];
+  private readonly registry: Record<string, Menu> = {};
 
-  open(menu: Menu) {
-    this.currentMenu = menu;
+  open(menu: Menu): void {
+    const top = this.getTop();
+    if (top === menu) return;
+
+    if (!this.stack.includes(menu)) {
+      this.stack.push(menu);
+    }
+
+    menu.openMenu();
   }
 
-  close() {
-    this.currentMenu = null;
+  close(menu: Menu): void {
+    const idx = this.stack.indexOf(menu);
+    if (idx !== -1) {
+      this.stack.splice(idx, 1);
+      menu.closeMenu();
+    }
   }
 
-  isBlocking(): boolean {
-    return this.currentMenu?.isBlocking() ?? false;
+  transition(to: Menu): void {
+    this.pop();
+    this.open(to);
   }
 
-  update(dt: number) {
-    this.currentMenu?.update(dt);
+  pop(): void {
+    const popped = this.stack.pop();
+    popped?.closeMenu();
   }
 
-  render(ctx: CanvasRenderingContext2D) {
-    this.currentMenu?.render(ctx);
+  getTop(): Menu | null {
+    return this.stack.length > 0 ? this.stack[this.stack.length - 1] : null;
   }
 
-  isMenuOpen(): boolean {
-    return !!this.currentMenu;
+  anyOpen(): boolean {
+    return this.stack.length > 0;
   }
 
-  getCurrentMenu(): Menu | null {
-    return this.currentMenu;
+  clearAll(): void {
+    while (this.stack.length > 0) {
+      this.stack.pop()?.closeMenu();
+    }
   }
 
-  public clear(): void {
-    this.currentMenu = null;
-  }  
+  /** Registers a menu under a string key */
+  registerMenu(key: string, menu: Menu): void {
+    this.registry[key] = menu;
+  }
+
+  /** Retrieves a registered menu by key */
+  getMenu(key: string): Menu | undefined {
+    return this.registry[key];
+  }
 }

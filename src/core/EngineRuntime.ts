@@ -11,6 +11,8 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
+
+import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
 import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
@@ -55,6 +57,9 @@ import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBacke
 import { CombatService } from '@/systems/combat/CombatService';
 import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
 
+import { handleEngineSound } from '@/core/runtimeHelpers/handleEngineSound';
+import { handleMenuInput } from '@/ui/utils/handleMenuInput';
+
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
@@ -85,6 +90,7 @@ export class EngineRuntime {
 
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager;
+  private menuManager: MenuManager;
   private shipBuilderMenu: ShipBuilderMenu
   private spaceStationBuilderMenu: SpaceStationBuilderMenu;
   private settingsMenu: SettingsMenu;
@@ -140,18 +146,28 @@ export class EngineRuntime {
   private updatables: IUpdatable[] = [];
   private renderables: IRenderable[] = [];
 
+  private isPaused = false;
   private isDestroyed = false;
 
   constructor() {
     this.canvasManager = new CanvasManager();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
+    this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
-
-    this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
+    
+    // Persistent UI
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
+    this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
+    
+    // Menus
+    this.menuManager = new MenuManager();
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.settingsMenu = new SettingsMenu(this.inputManager);
-    this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this), this.settingsMenu);
+    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager);
+    this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this), this.menuManager);
+    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
+    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
+    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
+
     this.camera = new Camera(1280, 720);
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
@@ -163,9 +179,8 @@ export class EngineRuntime {
     const playerResources = PlayerResources.getInstance();
     playerResources.initialize(0); // Start with 0 currency
     const playerStats = PlayerStats.getInstance();
-    playerStats.initialize(100); // Start with 100 energy
+    playerStats.initialize(); // Start with 100 energy
 
-    this.grid = new Grid();  // Initialize global grid
     this.ship = getStarterShip(this.grid);  // Now the grid is initialized before passing to getStarterShip
 
     // Register player ship using the Singleton ShipRegistry
@@ -378,55 +393,35 @@ export class EngineRuntime {
     this.gameLoop.onRender(this.boundRender);
   }
 
+  private pause() {
+    this.isPaused = true;
+    this.waveSpawner.pause();
+  }
+
+  private resume() {
+    this.isPaused = false;
+    this.waveSpawner.resume();
+  }
+
   private update = (dt: number) => {
     if (this.isDestroyed) return;
 
     // === Engine sound ===
-    if (this.inputManager.isKeyPressed('KeyW')) {
-      if (!this.engineSoundPlaying) {
-        audioManager.startLoop('assets/sounds/sfx/ship/engine_loop_00.wav', 'sfx', {
-          volume: 1.0,
-          pitch: 1.0,
-          pan: 0,
-        });
-        this.engineSoundPlaying = true;
-      }
-    } else {
-      audioManager.stopLoop('assets/sounds/sfx/ship/engine_loop_00.wav');
-      this.engineSoundPlaying = false;
-    }
+    this.engineSoundPlaying = handleEngineSound(
+      this.inputManager.isKeyPressed('KeyW'),
+      this.engineSoundPlaying
+    );
 
     // Toggle the ship builder menu with Tab
-    if (this.inputManager.wasKeyJustPressed('Tab') && !this.pauseMenu.isOpen() && !this.settingsMenu.isOpen()) {
-      if (!this.shipBuilderMenu.isOpen()) {
-        this.shipBuilderMenu.openMenu();
-      } else {
-        this.shipBuilderMenu.closeMenu();
-      }
-    }
-
-    if (this.inputManager.wasKeyJustPressed('KeyI')) {
-      if (!this.spaceStationBuilderMenu.isOpen()) {
-        console.log("Opening space station builder menu...");
-        this.spaceStationBuilderMenu.openMenu();
-      } else {
-        console.log("Closing space station builder menu...");
-        this.spaceStationBuilderMenu.closeMenu();
-      }
-    }
-
-    if (this.inputManager.wasKeyJustPressed('Escape')) {
-      if (this.shipBuilderMenu.isOpen()) {
-        this.shipBuilderMenu.closeMenu();
-      } else {
-        if (!this.pauseMenu.isOpen() && !this.settingsMenu.isOpen()) {
-          this.pauseMenu.openMenu();
-        } else {
-          this.pauseMenu.closeMenu();
-          this.settingsMenu.closeMenu();
-        }
-      }
-    }
+    handleMenuInput({
+      inputManager: this.inputManager,
+      pause: this.pause.bind(this),
+      resume: this.resume.bind(this),
+      shipBuilderMenu: this.shipBuilderMenu,
+      pauseMenu: this.pauseMenu,
+      settingsMenu: this.settingsMenu,
+      menuManager: this.menuManager,
+    });
 
     if (this.pauseMenu.isOpen()) {
       this.pauseMenu.update();
@@ -458,10 +453,19 @@ export class EngineRuntime {
       this.waveSpawner.skipToNextWave();
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyM')) {
-      console.log("Skipping to victory screen...");
-      this.handlePlayerVictory();
+    if (this.inputManager.wasKeyJustPressed('KeyI')) {
+      if (!this.spaceStationBuilderMenu.isOpen()) {
+        this.pause();
+        console.log("Opening space station builder menu...");
+        this.spaceStationBuilderMenu.openMenu();
+      } else {
+        this.resume();
+        console.log("Closing space station builder menu...");
+        this.spaceStationBuilderMenu.closeMenu();
+      }
     }
+
+    // === Camera ===
 
     try {
       if (
@@ -487,13 +491,13 @@ export class EngineRuntime {
       console.error("Error getting ship transform:", error);
     }
 
-    // Always update the RepairEffectSystem
-    this.repairEffectSystem.update(dt);
-
-    if (!this.shipBuilderMenu.isOpen() && !this.pauseMenu.isOpen() && !this.settingsMenu.isOpen() && !this.spaceStationBuilderMenu.isOpen()) {
+    // Update all systems if not paused
+    if (!this.isPaused) {
       this.updatables.forEach(system => system.update(dt));
     }
 
+    // Always update these systems
+    this.repairEffectSystem.update(dt);
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);
   };
@@ -534,14 +538,27 @@ export class EngineRuntime {
       this.settingsMenu.render(this.canvasManager.getContext('ui'));
     }
 
-    // this.dialogueQueueManager.render(this.canvasManager.getContext('dialogue'));
     this.cursorRenderer.render();
   };
 
   public start() {
     this.gameLoop.start();
-    this.missionDialogueManager.initialize();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
+    // set a timeout of 2000ms, then animate ship construction
+    this.inputManager.disableInput();
+    setTimeout(() => {
+      if (this.ship) {
+        this.shipConstructionAnimator.animateShipConstruction(this.ship);
+      }
+      this.inputManager.enableInput();
+      this.inputManager.disableKey('Escape');
+    }, 1000);
+    setTimeout(() => {
+      this.missionDialogueManager.initialize();
+      this.inputManager.enableKey('Escape');
+    }, 3200);
+    // Should probably disable Escape key, so we can't abandon mission until this timeout has resolved
+
   }
 
   public handlePlayerVictory(timeoutMs: number = 10_000): void {

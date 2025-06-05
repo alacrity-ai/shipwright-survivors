@@ -19,5 +19,8 @@ export function getStarterShip(grid: Grid) {
       ship.placeBlockById({ x: 0, y: 1 }, 'engine1');
       ship.placeBlockById({ x: -1, y: 1 }, 'engine1');
       ship.placeBlockById({ x: 1, y: 1 }, 'engine1');
+
+      ship.hideAllBlocks();
+
       return ship;
 }
