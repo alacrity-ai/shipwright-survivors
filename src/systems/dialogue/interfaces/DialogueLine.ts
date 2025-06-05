@@ -8,6 +8,7 @@ export interface DialogueLine {
   mode: DialogueMode;
   position: { x: number; y: number };
   textBoxRect: { x: number; y: number; width: number; height: number };
+  textBoxAlpha?: number;
   textColor?: string;
   font?: string;
   textSpeed?: number;

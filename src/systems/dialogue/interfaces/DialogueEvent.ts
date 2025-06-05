@@ -8,6 +8,7 @@ export type DialogueEvent =
       text: string;
       options?: {
         textColor?: string;
+        textBoxAlpha?: number;
         font?: string;
         speed?: number;     // override charDelay
         pitchMod?: number;  // additional pitch shift

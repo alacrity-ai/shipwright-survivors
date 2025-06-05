@@ -1,3 +1,5 @@
+// src/ui/primitives/CRTText.ts
+
 interface CRTTextStyle {
   font?: string;
   color?: string;

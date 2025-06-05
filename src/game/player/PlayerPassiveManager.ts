@@ -57,6 +57,26 @@ export class PlayerPassiveManager {
     return this.passivePoints;
   }
 
+  public getUpgradeCost(nextTier: PassiveTier, currentTier: PassiveTier | null = null): number {
+    const from = currentTier ?? 0;
+
+    const tierCost = (tier: number): number => {
+      switch (tier) {
+        case 1: return 1;
+        case 2: return 2;
+        case 3: return 3;
+        default: return 0;
+      }
+    };
+
+    let total = 0;
+    for (let t = from + 1; t <= nextTier; t++) {
+      total += tierCost(t);
+    }
+
+    return total;
+  }
+
   public canAfford(tier: PassiveTier): boolean {
     return this.passivePoints >= tier;
   }
@@ -64,8 +84,8 @@ export class PlayerPassiveManager {
   // === Passive Tier Assignment ===
 
   public setPassiveTier(id: PassiveId, tier: PassiveTier): boolean {
-    const current = this.passives.get(id) ?? 0;
-    const cost = tier - current;
+    const current = this.passives.get(id) ?? null;
+    const cost = this.getUpgradeCost(tier, current);
 
     if (cost < 0) return false; // disallow downgrade
     if (this.passivePoints < cost) return false;
@@ -85,6 +105,28 @@ export class PlayerPassiveManager {
 
   public getAllPassives(): Map<PassiveId, PassiveTier> {
     return new Map(this.passives);
+  }
+
+  public getTotalPassivesSpent(): number {
+    let total = 0;
+    for (const tier of this.passives.values()) {
+      switch (tier) {
+        case 1:
+          total += 1;
+          break;
+        case 2:
+          total += 2;
+          break;
+        case 3:
+          total += 3;
+          break;
+      }
+    }
+    return total;
+  }
+
+  public hasAnyPassives(): boolean {
+    return this.passives.size > 0;
   }
 
   // === Refund & Reset ===

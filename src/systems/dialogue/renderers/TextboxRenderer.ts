@@ -14,7 +14,7 @@ export class TextboxRenderer {
     if (line.mode === 'transmission' || speaker.transmissionStyle) {
       this.drawTransmissionBox(ctx, x, y, width, height);
     } else {
-      this.drawSpeechBubble(ctx, x, y, width, height);
+      this.drawSpeechBubble(ctx, x, y, width, height, line.textBoxAlpha ?? 0.8);
     }
   }
 
@@ -23,14 +23,15 @@ export class TextboxRenderer {
     x: number,
     y: number,
     width: number,
-    height: number
+    height: number,
+    alpha: number
   ): void {
     const radius = 16;
     ctx.save();
 
     // Bubble body
     ctx.fillStyle = '#000000';
-    ctx.globalAlpha = 0.8;
+    ctx.globalAlpha = alpha;
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + width - radius, y);

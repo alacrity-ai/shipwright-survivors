@@ -104,6 +104,7 @@ export class DialogueQueueManager {
           textColor,
           font,
           textBoxRect,
+          textBoxAlpha: event.options?.textBoxAlpha ?? 0.8,
           position,
           mode: lineMode,
           textSpeed: speakerVoiceRegistry.getProfile(speakerId)?.textSpeed,

@@ -7,7 +7,8 @@ import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves
 export const missionRegistry: Record<string, MissionDefinition> = {
   mission_001: {
     id: 'mission_001',
-    name: 'intro-briefing',
+    name: 'Shipwright Second-Class',
+    dialogue: 'intro-briefing',
     waves: waveSet1,
     environmentSettings: {
       backgroundId: 'background_4_00.png',

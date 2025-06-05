@@ -11,10 +11,14 @@ import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/Dialog
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
-import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
+
+import { CRTMonitor } from '@/ui/primitives/CRTMonitor';
+import { PassivesMenuIntroAnimationController } from '@/scenes/hub/passives_menu/PassivesMenuIntroAnimationController';
+import { PassiveMenuManager } from '@/scenes/hub/passives_menu/PassiveMenuManager';
+import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
 
@@ -25,6 +29,12 @@ export class PassivesMenuSceneManager {
   private backgroundImage: HTMLImageElement | null = null;
   private dialogueQueueManager: DialogueQueueManager | null = null;
   private buttons: UIButton[];
+  private loopSoundStopped = false;
+
+  private crtMonitor: CRTMonitor;
+  private introAnimationController: PassivesMenuIntroAnimationController;
+
+  private passiveMenuManager: PassiveMenuManager;
 
   constructor(
     canvasManager: CanvasManager,
@@ -65,22 +75,44 @@ export class PassivesMenuSceneManager {
         style: crtStyle
       }
     ];
+
+    this.crtMonitor = new CRTMonitor(275, 98, 885, 542, {
+      alpha: 0.95,
+      borderRadius: 60,
+      borderColor: '#00ff33',
+      glowColor: '#00ff33',
+      scanlineSpacing: 6,
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#000900' },
+          { offset: 1, color: '#000000' }
+        ]
+      }
+    });
+
+    this.introAnimationController = new PassivesMenuIntroAnimationController();
+
+    this.passiveMenuManager = new PassiveMenuManager(
+      this.inputManager,
+      PlayerPassiveManager.getInstance(),
+      { x: 285, y: 108, width: 865, height: 522 }
+    );
   }
 
   async start() {
+    audioManager.startLoop('assets/sounds/sfx/ui/typing_00.wav', 'sfx', {
+      volume: 1.0,
+      pitch: 1.0,
+      pan: 0,
+    });
+
     this.backgroundImage = await loadImage(BACKGROUND_PATH);
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
 
-    // Init dialogue
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
-    if (!flags.has('hub.introduction-2.complete')) {
-      const script = getDialogueScript('hub-introduction-2', { inputManager: this.inputManager });
-      if (script) {
-        this.dialogueQueueManager.startScript(script);
-      }
-    }
   }
 
   stop() {
@@ -89,24 +121,34 @@ export class PassivesMenuSceneManager {
   }
 
   private update = () => {
+    const now = performance.now();
     this.inputManager.updateFrame();
+    this.crtMonitor.update(now);
+    this.introAnimationController.update(now);
 
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
-    // Dialogue Handling
-    if (this.dialogueQueueManager?.isRunning()) {
-      // Skip all interaction and button logic if a dialogue is active
-      this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
+    // Animation lockout
+    if (!this.introAnimationController.isComplete()) return;
 
-      // Allow skipping dialogue with click
-      if (clicked) {
-        this.dialogueQueueManager.skipOrAdvance();
-      }
-
-      return; // Prevent other interactions
+    // Dialogue gating
+    if (
+      this.dialogueQueueManager &&
+      !this.dialogueQueueManager.isRunning() &&
+      !flags.has('hub.introduction-2.complete')
+    ) {
+      const script = getDialogueScript('hub-introduction-2', { inputManager: this.inputManager });
+      if (script) this.dialogueQueueManager.startScript(script);
     }
-    
+
+    if (this.dialogueQueueManager?.isRunning()) {
+      this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
+      if (clicked) this.dialogueQueueManager.skipOrAdvance();
+      // return;
+    }
+
+    // Update UI buttons
     for (const btn of this.buttons) {
       btn.isHovered =
         x >= btn.x && x <= btn.x + btn.width &&
@@ -117,6 +159,17 @@ export class PassivesMenuSceneManager {
         break;
       }
     }
+
+    // === DEBUG TODO: REMOVE
+    if (this.inputManager.wasKeyJustPressed('KeyP')) {
+      PlayerPassiveManager.getInstance().addPassivePoints(1);
+    }
+    if (this.inputManager.wasKeyJustPressed('KeyR')) {
+      PlayerPassiveManager.getInstance().refundAll();
+    }
+
+    // === Passive menu manager update
+    this.passiveMenuManager.update();
   };
 
   private render = () => {
@@ -124,41 +177,36 @@ export class PassivesMenuSceneManager {
 
     const bgCtx = this.canvasManager.getContext('background');
     const uiCtx = this.canvasManager.getContext('ui');
+    const overlayCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 
     if (this.backgroundImage) {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    drawWindow({
-      ctx: uiCtx,
-      x: 275,
-      y: 98,
-      width: 885,
-      height: 542,
-      options: {
-        alpha: 0.9,
-        borderRadius: 60,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
+    // CRT monitor base layer
+    this.crtMonitor.draw(uiCtx);
+
+    if (!this.introAnimationController.isComplete()) {
+      this.introAnimationController.draw(overlayCtx);
+    } else {
+      if (!this.loopSoundStopped) {
+        audioManager.stopLoop('assets/sounds/sfx/ui/typing_00.wav');
+        this.loopSoundStopped = true;
+      }
+
+      if (!this.dialogueQueueManager?.isRunning()) {
+        for (const btn of this.buttons) {
+          drawButton(uiCtx, btn);
         }
       }
-    });
 
-    if (!this.dialogueQueueManager?.isRunning()) {
-      for (const btn of this.buttons) {
-        drawButton(uiCtx, btn);
+      if (this.dialogueQueueManager) {
+        this.dialogueQueueManager.render(overlayCtx);
       }
-    }
 
-    // Render dialogue
-    if (this.dialogueQueueManager) {
-      this.dialogueQueueManager.render(uiCtx);
+      // === Passive menu rendering
+      this.passiveMenuManager.render(uiCtx);
     }
 
     const cursor = getCrosshairCursorSprite();

@@ -5,6 +5,8 @@ import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueCont
 
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 
+import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
+
 import { flags } from '@/game/player/PlayerFlagManager';
 
 export function createHubIntroductionScript(ctx: DialogueContext): DialogueScript {
@@ -100,16 +102,24 @@ export function createHubIntroductionScript2(ctx: DialogueContext): DialogueScri
       },
       // Explain how to use the passive terminal
       // ShowUI
+      // Wait 3 seconds
       {
-        type: 'showUI',
+        type: 'pause',
+        durationMs: 2000,
       },
       {
         type: 'line',
+        options: {
+          textBoxAlpha: 1,
+        },
         speakerId: 'rexor',
         text: "Pick a category—Offense, Defense, Utility. Then slap a point into whatever looks shiny."
       },
       {
         type: 'line',
+        options: {
+          textBoxAlpha: 1,
+        },
         speakerId: 'rexor',
         text: "Each upgrade stacks up to three times. Click confirm to make it official and mildly irreversible."
       },
@@ -124,11 +134,10 @@ export function createHubIntroductionScript2(ctx: DialogueContext): DialogueScri
           inputManager.enableInput();
         },
       },
-      // TODO: Re-add this once passive terminal is implemented
-      // {
-      //   type: 'command',
-      //   run: () => awaitCondition(() => flags.has('hub.passive-terminal.used')),
-      // },
+      {
+        type: 'command',
+        run: () => awaitCondition(() => PlayerPassiveManager.getInstance().hasAnyPassives()),
+      },
       // show ui
       {
         type: 'showUI',

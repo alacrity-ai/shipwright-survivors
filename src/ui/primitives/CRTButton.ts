@@ -1,4 +1,4 @@
-// src/ui/primitives/UICRTButton.ts
+// src/ui/primitives/CRTButton.ts
 
 import { brightenColor } from "@/shared/colorUtils";
 
