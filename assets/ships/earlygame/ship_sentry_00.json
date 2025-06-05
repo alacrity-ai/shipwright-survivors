@@ -1,0 +1,83 @@
+{
+  "transform": {
+    "position": {
+      "x": -1112.1297626285143,
+      "y": -6423.236288470678
+    },
+    "rotation": 6.341409273201688
+  },
+  "blocks": [
+    {
+      "id": "cockpit0",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 180
+    }
+  ]
+}

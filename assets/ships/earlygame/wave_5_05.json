@@ -8,7 +8,7 @@
   },
   "blocks": [
     {
-      "id": "cockpit1",
+      "id": "cockpit0",
       "coord": {
         "x": 0,
         "y": 0
@@ -160,7 +160,7 @@
       "rotation": 180
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -5,
         "y": 0
@@ -168,7 +168,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -4,
         "y": 0
@@ -176,7 +176,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -5,
         "y": -1
@@ -184,7 +184,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -4,
         "y": -1
@@ -296,7 +296,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 4,
         "y": 0
@@ -304,7 +304,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 5,
         "y": 0
@@ -312,7 +312,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 5,
         "y": -1
@@ -320,7 +320,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 4,
         "y": -1
@@ -440,7 +440,7 @@
       "rotation": 90
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 0,
         "y": 7
@@ -448,7 +448,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 1,
         "y": 7
@@ -456,7 +456,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -1,
         "y": 7
@@ -464,7 +464,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -1,
         "y": 8
@@ -472,7 +472,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 0,
         "y": 8
@@ -480,7 +480,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 1,
         "y": 8
@@ -592,7 +592,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 0,
         "y": 16
@@ -600,7 +600,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -1,
         "y": 16
@@ -608,7 +608,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 1,
         "y": 16
@@ -616,7 +616,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 1,
         "y": 17
@@ -624,7 +624,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 0,
         "y": 17
@@ -632,7 +632,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -1,
         "y": 17

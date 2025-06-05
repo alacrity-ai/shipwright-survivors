@@ -1,14 +1,14 @@
 {
   "transform": {
     "position": {
-      "x": -488.52486612123823,
-      "y": -1541.0747639123808
+      "x": -586.07370989297,
+      "y": -2361.7036981181377
     },
-    "rotation": 18.77312672692068
+    "rotation": 18.83365150048877
   },
   "blocks": [
     {
-      "id": "cockpit1",
+      "id": "cockpit0",
       "coord": {
         "x": 0,
         "y": 0
@@ -112,14 +112,6 @@
       "rotation": 0
     },
     {
-      "id": "facetplate1",
-      "coord": {
-        "x": 0,
-        "y": 3
-      },
-      "rotation": 180
-    },
-    {
       "id": "hull1",
       "coord": {
         "x": -2,
@@ -168,7 +160,7 @@
       "rotation": 180
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -5,
         "y": 0
@@ -176,7 +168,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -4,
         "y": 0
@@ -184,7 +176,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -5,
         "y": -1
@@ -192,7 +184,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": -4,
         "y": -1
@@ -304,7 +296,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 4,
         "y": 0
@@ -312,7 +304,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 5,
         "y": 0
@@ -320,7 +312,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 5,
         "y": -1
@@ -328,7 +320,7 @@
       "rotation": 0
     },
     {
-      "id": "turret1",
+      "id": "turret0",
       "coord": {
         "x": 4,
         "y": -1
@@ -398,6 +390,158 @@
         "y": -1
       },
       "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 3
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 4
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 5
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 6
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": 6
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": 6
+      },
+      "rotation": 90
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": 7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 1,
+        "y": 7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": -1,
+        "y": 7
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": -1,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 0,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "turret0",
+      "coord": {
+        "x": 1,
+        "y": 8
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": 9
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": 9
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 9
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": -2,
+        "y": 7
+      },
+      "rotation": 270
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": -2,
+        "y": 8
+      },
+      "rotation": 270
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 2,
+        "y": 8
+      },
+      "rotation": 90
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 2,
+        "y": 7
+      },
+      "rotation": 90
     }
   ]
 }
