@@ -46,6 +46,10 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       backgroundId: 'background_9_00.png',
       gravity: 0,
     },
+    planets: [
+      { name: 'Aetherion', x: -3000, y: 4000 },
+      { name: 'Gilipe', x: 9000, y: -4000 },
+    ],
     enemyPower: 0.5,
     music: {
       file: 'assets/sounds/music/track_09_junkyard.mp3'

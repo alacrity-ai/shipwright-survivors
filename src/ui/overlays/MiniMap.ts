@@ -4,6 +4,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+import type { PlanetSystem } from '@/game/planets/PlanetSystem';
 
 import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_CENTER } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
@@ -27,12 +28,14 @@ export class MiniMap {
     hunter: HTMLCanvasElement;
   };
   private playerMarker: HTMLCanvasElement;
+  private planetMarker: HTMLCanvasElement;
 
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly player: Ship,
     private readonly registry: ShipRegistry,
-    private readonly aiOrchestrator: AIOrchestratorSystem
+    private readonly aiOrchestrator: AIOrchestratorSystem,
+    private readonly planetSystem: PlanetSystem
   ) {
     this.initializeStaticCache();
 
@@ -43,6 +46,7 @@ export class MiniMap {
       hunter: this.createEnemyDot('#ff0000'),
     };
 
+    this.planetMarker = this.createPlanetDot('#00ffff');
     this.playerMarker = this.createPlayerMarker();
   }
 
@@ -112,6 +116,9 @@ export class MiniMap {
         y: y + 10 + relY * scaleY
       };
     };
+
+    // === Draw planets
+    this.drawPlanets(ctx, project);
 
     // === Draw ships (simplified) ===
     this.drawShips(ctx, project);
@@ -203,6 +210,17 @@ export class MiniMap {
     ctx.stroke();
   }
 
+  private drawPlanets(
+    ctx: CanvasRenderingContext2D,
+    project: (pos: { x: number; y: number }) => { x: number; y: number }
+  ): void {
+    for (const planet of this.planetSystem.getPlanets()) {
+      const pos = planet.getPosition(); // Assumes a public accessor exists
+      const screen = project(pos);
+      ctx.drawImage(this.planetMarker, screen.x - 8, screen.y - 8); // Centered
+    }
+  }
+
   private drawShips(
     ctx: CanvasRenderingContext2D,
     project: (pos: { x: number; y: number }) => { x: number; y: number }
@@ -235,6 +253,24 @@ export class MiniMap {
     ctx.rotate(playerRotation);
     ctx.drawImage(this.playerMarker, -8, -8); // Centered draw
     ctx.restore();
+  }
+
+  private createPlanetDot(color: string): HTMLCanvasElement {
+    const size = 16; // 4x standard dot size (normal is 8px)
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, 6, 0, Math.PI * 2); // Larger radius
+    ctx.fill();
+
+    return canvas;
   }
 
   private drawScanlines(ctx: CanvasRenderingContext2D, x: number, y: number): void {

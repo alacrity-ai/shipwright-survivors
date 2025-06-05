@@ -1,5 +1,7 @@
 // src/game/mission/MissionLoader.ts
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
+
 import { audioManager } from '@/audio/Audio';
 
 class MissionLoader {
@@ -25,6 +27,11 @@ class MissionLoader {
   getEnemyPower(): number {
     if (!this.currentMission) throw new Error('No mission loaded');
     return this.currentMission.enemyPower ?? 1;
+  }
+
+  getPlanetSpawnConfigs(): PlanetSpawnConfig[] {
+    if (!this.currentMission) throw new Error('No mission loaded');
+    return this.currentMission.planets ?? [];
   }
 
   clear() {

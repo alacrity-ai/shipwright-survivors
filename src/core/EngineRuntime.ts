@@ -39,6 +39,7 @@ import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
+import { PlanetSystem } from '@/game/planets/PlanetSystem';
 import { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
 import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
@@ -123,6 +124,7 @@ export class EngineRuntime {
   private movement: MovementSystem;
   private weaponSystem: WeaponSystem;
   private utilitySystem: UtilitySystem;
+  private planetSystem: PlanetSystem;
   private energyRechargeSystem: EnergyRechargeSystem;
   private playerController: PlayerControllerSystem;
   private shipBuilderController: ShipBuilderController;
@@ -230,6 +232,8 @@ export class EngineRuntime {
 
     // Additional Update Systems
     this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
+    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, 'background');
+    this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
@@ -270,7 +274,7 @@ export class EngineRuntime {
     );
 
     this.hud = new HudOverlay(this.canvasManager, this.ship);
-    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry, this.aiOrchestrator);
+    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry, this.aiOrchestrator, this.planetSystem);
 
     // Create the enemy wave spawner
     this.waveSpawner = new WaveSpawner(
@@ -337,6 +341,7 @@ export class EngineRuntime {
       },
       this.popupMessageSystem,
       this.background,
+      this.planetSystem
     ];
 
     this.renderables = [
@@ -354,7 +359,8 @@ export class EngineRuntime {
       this.wavesOverlay,
       this.debugOverlay,
       this.popupMessageSystem,
-      this.missionDialogueManager
+      this.missionDialogueManager,
+      this.planetSystem
     ];
 
     this.registerLoopHandlers();
