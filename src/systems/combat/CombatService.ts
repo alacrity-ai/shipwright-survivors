@@ -4,6 +4,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { Ship } from '@/game/ship/Ship';
+import { missionLoader } from '@/game/missions/MissionLoader';
 import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
@@ -13,7 +14,7 @@ export class CombatService {
   constructor(
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
-    private readonly destructionService: CompositeBlockDestructionService
+    private readonly destructionService: CompositeBlockDestructionService,
   ) {}
 
   public applyDamageToBlock(
@@ -25,6 +26,18 @@ export class CombatService {
     playerShip: Ship | null = null
   ): boolean {
     if (block.indestructible) return false;
+
+    // === Scale damage by mission difficulty ===
+    const enemyPower = missionLoader.getEnemyPower();
+
+    // Scale if damage is dealt *by* the player to a non-player entity
+    if (playerShip?.getIsPlayerShip() && !(entity instanceof Ship && entity.getIsPlayerShip())) {
+      damage /= enemyPower;
+    }
+    // Scale damage *received* by the player from enemies, if desired
+    else if (!(playerShip?.getIsPlayerShip()) && entity instanceof Ship && entity.getIsPlayerShip()) {
+      damage *= enemyPower;
+    }
 
     // === Ship-only shield absorption ===
     if (block.isShielded && entity instanceof Ship) {

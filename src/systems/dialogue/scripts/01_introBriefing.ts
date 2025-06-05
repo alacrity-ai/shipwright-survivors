@@ -6,6 +6,7 @@ import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueCont
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
 const playerResources = PlayerResources.getInstance();
 
@@ -28,6 +29,11 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
     id: 'intro-briefing',
     defaultMode: 'transmission',
     events: [
+      // Check flag to end early
+      {
+        type: 'endIf',
+        condition: () => flags.has('mission.intro-briefing.complete'),
+      },
       {
         type: 'command',
         run: () => {
@@ -519,6 +525,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           return awaitCondition(() => waveSpawner.shouldCompleteMission());
+        },
+      },
+      // Add passive point
+      {
+        type: 'command',
+        run: () => {
+          PlayerPassiveManager.getInstance().addPassivePoints(1);
         },
       },
       {

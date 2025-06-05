@@ -3,6 +3,8 @@
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
+import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+
 import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_CENTER } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
 
@@ -18,13 +20,30 @@ export class MiniMap {
   private staticCanvas: HTMLCanvasElement | null = null;
   private staticCtx: CanvasRenderingContext2D | null = null;
   private staticCacheValid = false;
+  private enemyMarkers: {
+    passive: HTMLCanvasElement;
+    seeking: HTMLCanvasElement;
+    attacking: HTMLCanvasElement;
+    hunter: HTMLCanvasElement;
+  };
+  private playerMarker: HTMLCanvasElement;
 
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly player: Ship,
-    private readonly registry: ShipRegistry
+    private readonly registry: ShipRegistry,
+    private readonly aiOrchestrator: AIOrchestratorSystem
   ) {
     this.initializeStaticCache();
+
+    this.enemyMarkers = {
+      passive: this.createEnemyDot('#3399ff'),
+      seeking: this.createEnemyDot('#ffbb33'),
+      attacking: this.createEnemyDot('#ff0000'),
+      hunter: this.createEnemyDot('#ff0000'),
+    };
+
+    this.playerMarker = this.createPlayerMarker();
   }
 
   private initializeStaticCache(): void {
@@ -184,52 +203,37 @@ export class MiniMap {
     ctx.stroke();
   }
 
-  private drawShips(ctx: CanvasRenderingContext2D, project: (pos: { x: number; y: number }) => { x: number; y: number }): void {
-    // Batch ship rendering for better performance
+  private drawShips(
+    ctx: CanvasRenderingContext2D,
+    project: (pos: { x: number; y: number }) => { x: number; y: number }
+  ): void {
     const playerPos = project(this.player.getTransform().position);
     const playerRotation = this.player.getTransform().rotation;
 
-    // Draw enemies first (simple dots)
-    ctx.fillStyle = '#ff4044';
-    ctx.shadowColor = '#ff4044';
-    ctx.shadowBlur = 4;
-    
-    for (const ship of this.registry.getAll()) {
-      if (ship === this.player) continue;
-      
+    // === Draw Enemies (blit pre-rendered canvases) ===
+    for (const [controller, ship] of this.aiOrchestrator.getAllControllers()) {
       const { position } = ship.getTransform();
       const { x: px, y: py } = project(position);
-      
-      ctx.beginPath();
-      ctx.arc(px, py, 2, 0, Math.PI * 2);
-      ctx.fill();
+
+      const state = controller.getCurrentStateString();
+
+      const markerCanvas =
+        controller.isHunter()
+          ? this.enemyMarkers.hunter
+          : state === 'AttackState'
+            ? this.enemyMarkers.attacking
+            : state === 'SeekTargetState'
+              ? this.enemyMarkers.seeking
+              : this.enemyMarkers.passive;
+
+      ctx.drawImage(markerCanvas, px - 4, py - 4); // Center on dot
     }
 
-    // Draw player (diamond with orientation)
+    // === Draw Player (diamond with orientation, rasterized) ===
     ctx.save();
     ctx.translate(playerPos.x, playerPos.y);
     ctx.rotate(playerRotation);
-    
-    ctx.fillStyle = '#00ff41';
-    ctx.shadowColor = '#00ff41';
-    ctx.shadowBlur = 6;
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -4);
-    ctx.lineTo(3, 0);
-    ctx.lineTo(0, 4);
-    ctx.lineTo(-3, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    // Direction indicator
-    ctx.strokeStyle = '#00ff41';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, -4);
-    ctx.lineTo(0, -8);
-    ctx.stroke();
-
+    ctx.drawImage(this.playerMarker, -8, -8); // Centered draw
     ctx.restore();
   }
 
@@ -268,4 +272,55 @@ export class MiniMap {
   public invalidateCache(): void {
     this.staticCacheValid = false;
   }
+
+  private createEnemyDot(color: string): HTMLCanvasElement {
+    const size = 8;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 4;
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    return canvas;
+  }
+
+  private createPlayerMarker(): HTMLCanvasElement {
+    const size = 16;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.translate(size / 2, size / 2);
+    ctx.rotate(0); // Leave unrotated; rotate at render time if needed
+
+    ctx.fillStyle = '#00ff41';
+    ctx.shadowColor = '#00ff41';
+    ctx.shadowBlur = 6;
+
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.lineTo(3, 0);
+    ctx.lineTo(0, 4);
+    ctx.lineTo(-3, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#00ff41';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.lineTo(0, -8);
+    ctx.stroke();
+
+    return canvas;
+  }
+
 }

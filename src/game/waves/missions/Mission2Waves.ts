@@ -8,11 +8,14 @@ export const waveDefinitions: WaveDefinition[] = [
     type: 'wave',
     mods: [],
     ships: [
-      { shipId: 'wave_0_00', count: 40 },
-      { shipId: 'wave_0_01', count: 35 },
-      { shipId: 'wave_0_02', count: 30 },
-      { shipId: 'wave_0_03', count: 20 },
+      { shipId: 'wave_0_00', count: 22 },
+      { shipId: 'wave_0_01', count: 20 },
+      { shipId: 'wave_0_02', count: 14 },
+      { shipId: 'wave_0_03', count: 14 },
       { shipId: 'wave_0_04', count: 8 },
+      { shipId: '/earlygame/ship_turret_00', count: 10 },
+      { shipId: '/earlygame/ship_miniturret_00', count: 20 },
+      { shipId: '/earlygame/ship_rammerspear_00', count: 14, hunter: true }
     ]
   },
   {
@@ -20,12 +23,15 @@ export const waveDefinitions: WaveDefinition[] = [
     type: 'wave',
     mods: ['extra-aggressive'],
     ships: [
-      { shipId: 'ship_0_00', count: 20 },
-      { shipId: 'ship_0_01', count: 18 },
-      { shipId: 'ship_0_02', count: 12 },
-      { shipId: 'ship_0_03', count: 8 },
-      { shipId: 'ship_0_04', count: 6 },
-      { shipId: 'ship_0_station', count: 6 }
+      { shipId: '/earlygame/ship_turret_00', count: 10 },
+      { shipId: '/earlygame/ship_miniturret_00', count: 8 },
+      { shipId: '/earlygame/ship_rammerspear_00', count: 16, hunter: true },
+      { shipId: '/earlygame/ship_rammerhead_00', count: 6, hunter: true },
+      { shipId: '/earlygame/ship_dragonfly_00', count: 12, hunter: true },
+      { shipId: '/earlygame/ship_minifly_00', count: 20, hunter: true },
+      { shipId: '/earlygame/ship_lanceturret_00', count: 10 },
+      { shipId: '/earlygame/ship_sentry_00', count: 12 },
+      { shipId: '/earlygame/ship_stalker_00', count: 4, hunter: true },
     ]
   },
   {
@@ -33,13 +39,12 @@ export const waveDefinitions: WaveDefinition[] = [
     type: 'wave',
     mods: ['shielded'],
     ships: [
-      { shipId: 'ship_scrapper_0', count: 12 },
-      { shipId: 'ship_scrapper_1', count: 10 },
-      { shipId: 'ship_scrapper_2', count: 8 },
-      { shipId: 'ship_scrapper_3', count: 6 },
-      { shipId: 'ship_scrapper_4', count: 5 },
-      { shipId: 'ship_scrapper_5', count: 4 },
-      { shipId: 'ship_scrapper_6', count: 3 }
+      { shipId: '/earlygame/ship_turret_00', count: 14 },
+      { shipId: '/earlygame/ship_miniturret_00', count: 22 },
+      { shipId: '/earlygame/ship_rammerspear_00', count: 28, hunter: true },
+      { shipId: '/earlygame/ship_rammerhead_00', count: 14, hunter: true },
+      { shipId: '/earlygame/ship_dragonfly_00', count: 14, hunter: true },
+      { shipId: '/earlygame/ship_minifly_00', count: 18, hunter: true },
     ]
   },
   {
@@ -47,7 +52,7 @@ export const waveDefinitions: WaveDefinition[] = [
     type: 'boss',
     mods: ['shielded', 'extra-aggressive'],
     ships: [
-      { shipId: 'boss_0_00', count: 1 }
+      { shipId: 'boss_0_00', count: 1, hunter: true }
     ]
   }
 ];

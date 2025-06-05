@@ -40,6 +40,7 @@ export class ShipFactory {
     jsonName: string,
     x: number,
     y: number,
+    hunter: boolean = false
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
@@ -60,8 +61,11 @@ export class ShipFactory {
 
     const controller = new AIControllerSystem(ship, movement, weapons, utility);
     controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
+    controller.setHunter(hunter);
 
     this.orchestrator.addController(controller);
+
+    ship.updateBlockPositions();
 
     return { ship, controller };
   }

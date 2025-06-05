@@ -109,7 +109,7 @@ export class BackgroundRenderer {
       const startScreenX = startTileX * BACKGROUND_TILE_SIZE - parallaxOffsetX + BACKGROUND_IMAGE_HORIZONTAL_OFFSET;
       const startScreenY = startTileY * BACKGROUND_TILE_SIZE - parallaxOffsetY;
 
-      const bleed = 1; // pixels of overlap to hide seams
+      const bleed = 0.3; // pixels of overlap to hide seams
 
       for (let tileY = 0; tileY < tilesNeededY; tileY++) {
         for (let tileX = 0; tileX < tilesNeededX; tileX++) {

@@ -144,6 +144,15 @@ export class DialogueQueueManager {
         return;
       }
 
+      case 'endIf': {
+        if (event.condition()) {
+          this.clear(); // End the dialogue immediately
+        } else {
+          this.advance(); // Continue to next event
+        }
+        return;
+      }
+
       case 'changespeaker': {
         this.activeSpeakerId = event.speakerId;
         this.activeSpeakerOptions = event.options ?? {};

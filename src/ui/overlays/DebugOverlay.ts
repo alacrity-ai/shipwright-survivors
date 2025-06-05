@@ -5,6 +5,7 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 import { drawLabel } from '@/ui/primitives/UILabel';
+import { missionLoader } from '@/game/missions/MissionLoader';
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
@@ -52,7 +53,6 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Shielded Blocks: ${totalShieldedBlocks}`); y += lineHeight;
     drawLabel(ctx, x, y, `Total Shield Efficiency: ${totalShieldEfficiency.toFixed(2)}`);
     y += lineHeight;
-    drawLabel(ctx, x, y, `Composite Objects: ${compositeBlockRegistry.count()}`); y += lineHeight;
-    drawLabel(ctx, x, y, `First 5 IDs: ${compositeBlockRegistry.getFirst5Ids().join(', ')}`);
+    drawLabel(ctx, x, y, `Enemy Power: ${missionLoader.getEnemyPower()}`);
   }
 }

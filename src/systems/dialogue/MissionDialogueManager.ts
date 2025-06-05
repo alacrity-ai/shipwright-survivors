@@ -6,6 +6,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 import type { Ship } from '@/game/ship/Ship';
 
+import { missionLoader } from '@/game/missions/MissionLoader';
 import { DialogueQueueManagerFactory } from './factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from './registry/DialogueScriptRegistry';
 import { flags } from '@/game/player/PlayerFlagManager';
@@ -28,11 +29,12 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   }
 
   private enqueueInitialDialogues(): void {
-    // Eventually this logic should be moved to the MissionRegistry or somewhere similar
-    if (!flags.has('mission.intro-briefing.complete')) {
-      this.scriptQueue.push('intro-briefing');
-    } else {
-      this.scriptQueue.push('mission-generic');
+    const dialogueKey = missionLoader.getMissionDialogue();
+    if (dialogueKey) {
+      const dialogueScript = getDialogueScript(dialogueKey, this.getDialogueContext());
+      if (dialogueScript) {
+        this.scriptQueue.push(dialogueKey);
+      }
     }
   }
 

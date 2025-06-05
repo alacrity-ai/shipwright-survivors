@@ -1,12 +1,13 @@
 import { flags } from '@/game/player/PlayerFlagManager';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
 export interface SaveGameData {
   flags: string[];
   unlockedBlockIds: string[];
   settings?: string; // JSON stringified settings blob
-  passives?: any;
+  passives?: any;     // Parsed passive manager state
   version?: number;
 }
 
@@ -57,7 +58,7 @@ export class SaveGameManager {
       flags: JSON.parse(flags.toJSON()),
       unlockedBlockIds: JSON.parse(PlayerTechnologyManager.getInstance().toJSON()),
       settings: PlayerSettingsManager.getInstance().toJSON(),
-      passives: {}, // stub
+      passives: JSON.parse(PlayerPassiveManager.getInstance().toJSON()),
       version: 1
     };
     this.writeData(data);
@@ -69,6 +70,9 @@ export class SaveGameManager {
     PlayerTechnologyManager.getInstance().fromJSON(JSON.stringify(data.unlockedBlockIds ?? []));
     if (data.settings) {
       PlayerSettingsManager.getInstance().fromJSON(data.settings);
+    }
+    if (data.passives) {
+      PlayerPassiveManager.getInstance().fromJSON(JSON.stringify(data.passives));
     }
   }
 
@@ -104,7 +108,7 @@ export class SaveGameManager {
 
   public savePassives(): void {
     const data = this.loadData();
-    data.passives = {}; // stub
+    data.passives = JSON.parse(PlayerPassiveManager.getInstance().toJSON());
     this.writeData(data);
   }
 
@@ -129,6 +133,8 @@ export class SaveGameManager {
 
   public loadPassives(): void {
     const data = this.loadData();
-    // stub
+    if (data.passives) {
+      PlayerPassiveManager.getInstance().fromJSON(JSON.stringify(data.passives));
+    }
   }
 }

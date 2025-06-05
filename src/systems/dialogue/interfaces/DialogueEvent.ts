@@ -30,6 +30,11 @@ export type DialogueEvent =
       type: 'showUI';
     }
   | {
+      type: 'endIf';
+      condition: () => boolean;
+    }
+  // Deprecated changespeaker
+  | {
       type: 'changespeaker';
       speakerId: string;
       options?: {

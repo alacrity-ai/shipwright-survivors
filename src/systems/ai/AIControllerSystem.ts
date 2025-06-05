@@ -15,6 +15,7 @@ export class AIControllerSystem {
   private readonly weaponSystem: WeaponSystem;
   private readonly utilitySystem: UtilitySystem;
   private currentState: BaseAIState;
+  private hunter: boolean = false; // Hunter controllers always run, regardless of distance from player
 
   constructor(
     ship: Ship, 
@@ -32,6 +33,7 @@ export class AIControllerSystem {
   }
 
   public update(dt: number): void {
+    console.log('Calling update for AIControllerSystem for ship ID: ', this.ship.id);
     // Check if ship is still valid
     if (!this.ship || !this.ship.getTransform) {
       return;
@@ -62,5 +64,17 @@ export class AIControllerSystem {
 
   public getCurrentState(): BaseAIState {
     return this.currentState;
+  }
+
+  public getCurrentStateString(): string {
+    return this.currentState.constructor.name;
+  }
+
+  public setHunter(hunter: boolean): void {
+    this.hunter = hunter;
+  }
+
+  public isHunter(): boolean {
+    return this.hunter;
   }
 }

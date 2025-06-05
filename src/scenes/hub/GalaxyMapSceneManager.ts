@@ -53,30 +53,30 @@ export class GalaxyMapSceneManager {
         y: 440,
         width: 360,
         height: 40,
-        label: 'Launch "Scrapfield Gauntlet"',
+        label: 'Launch "Tutorial Mission"',
         isHovered: false,
         onClick: () => {
           audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', { maxSimultaneous: 4 });
-          missionLoader.setMission(missionRegistry['mission_001']);
+          missionLoader.setMission(missionRegistry['mission_002']);
           this.stop();
           sceneManager.fadeToScene('mission');
         },
         style: crtStyle
       },
-      // {
-      //   x: 120,
-      //   y: 480,
-      //   width: 360,
-      //   height: 40,
-      //   label: 'Launch "The Scrapyard Shift"',
-      //   isHovered: false,
-      //   onClick: () => {
-      //     missionLoader.setMission(missionRegistry['mission_002']);
-      //     this.stop();
-      //     sceneManager.fadeToScene('mission');
-      //   },
-      //   style: crtStyle
-      // },
+      {
+        x: 120,
+        y: 480,
+        width: 360,
+        height: 40,
+        label: 'Launch "Scrapyard Revenant"',
+        isHovered: false,
+        onClick: () => {
+          missionLoader.setMission(missionRegistry['mission_003']);
+          this.stop();
+          sceneManager.fadeToScene('mission');
+        },
+        style: crtStyle
+      },
       {
         x: 20,
         y: 20,

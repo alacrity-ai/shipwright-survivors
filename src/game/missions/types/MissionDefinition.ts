@@ -15,4 +15,6 @@ export interface MissionDefinition {
   bonusObjectives?: string[];
   passiveReward?: number;
   music?: MusicTrack;
+  dialogue?: string;
+  enemyPower?: number; // Multiplier for enemy stats, 1 is normal, 0.5 is half power, 2 is double, etc.
 }

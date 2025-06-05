@@ -177,6 +177,7 @@ export class EngineRuntime {
     
     // === Step 1: Initialize orchestrator first ===
     this.aiOrchestrator = new AIOrchestratorSystem();
+    this.aiOrchestrator.registerPlayerShip(this.ship);
 
     // === Step 2: Construct PickupSystem and PickupSpawner (unchanged) ===
     this.pickupSystem = new PickupSystem(
@@ -269,7 +270,7 @@ export class EngineRuntime {
     );
 
     this.hud = new HudOverlay(this.canvasManager, this.ship);
-    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry);
+    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry, this.aiOrchestrator);
 
     // Create the enemy wave spawner
     this.waveSpawner = new WaveSpawner(

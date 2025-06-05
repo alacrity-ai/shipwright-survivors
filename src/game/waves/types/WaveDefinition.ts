@@ -7,5 +7,6 @@ export interface WaveDefinition {
   ships: {
     shipId: string;
     count: number;
+    hunter?: boolean;
   }[];
 }

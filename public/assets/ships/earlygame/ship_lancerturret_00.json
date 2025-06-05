@@ -1,0 +1,131 @@
+{
+  "transform": {
+    "position": {
+      "x": -772.2511163285019,
+      "y": -14265.434437970573
+    },
+    "rotation": -0.03721309704701074
+  },
+  "blocks": [
+    {
+      "id": "cockpit0",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "explosiveLance1",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": 3
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": 3
+      },
+      "rotation": 180
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 0,
+        "y": 3
+      },
+      "rotation": 0
+    }
+  ]
+}

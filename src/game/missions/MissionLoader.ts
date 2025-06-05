@@ -17,6 +17,16 @@ class MissionLoader {
     return this.currentMission;
   }
 
+  getMissionDialogue(): string | null {
+    if (!this.currentMission) throw new Error('No mission loaded');
+    return this.currentMission.dialogue ?? null; 
+  }
+
+  getEnemyPower(): number {
+    if (!this.currentMission) throw new Error('No mission loaded');
+    return this.currentMission.enemyPower ?? 1;
+  }
+
   clear() {
     this.currentMission = null;
   }

@@ -267,7 +267,7 @@ export class Ship extends CompositeBlockObject {
   placeBlock(coord: GridCoord, block: BlockInstance): void {
     const key = toKey(coord);
     this.blocks.set(key, block);
-    this.grid.addBlockToCell(block);
+    this.grid.addBlockToCell(block); // Block is added to grid
     this.blockToCoordMap.set(block, coord);
 
     // Register block-to-object index

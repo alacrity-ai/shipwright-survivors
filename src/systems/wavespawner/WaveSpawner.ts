@@ -199,7 +199,7 @@ export class WaveSpawner implements IUpdatable {
           ? (Math.random() - 0.5) * 200
           : Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
 
-        const { ship, controller } = await this.shipFactory.createShip(entry.shipId, posX, posY);
+        const { ship, controller } = await this.shipFactory.createShip(entry.shipId, posX, posY, entry.hunter ?? false);
 
         this.applyModifiers(ship, wave.mods);
 
