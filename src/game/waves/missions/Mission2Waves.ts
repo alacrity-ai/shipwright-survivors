@@ -16,7 +16,6 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: '/earlygame/ship_turret_00', count: 10 },
       { shipId: '/earlygame/ship_miniturret_00', count: 20 },
       { shipId: '/earlygame/ship_rammerspear_00', count: 14, hunter: true },
-      { shipId: '/earlygame/ship_rammerhead_00', count: 614, hunter: true },
     ]
   },
   {
