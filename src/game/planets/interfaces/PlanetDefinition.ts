@@ -5,5 +5,5 @@ export interface PlanetDefinition {
   imagePath: string;                   // Relative or absolute image asset path
   scale: number;                       // Render scale multiplier (1.0 = native size)
   interactionDialogueId: string;       // Dialogue ID for landing/interaction
-  approachDialogueId: string;         // Dialogue ID for approaching the planet
+  approachDialogueId?: string;         // Dialogue ID for approaching the planet
 }

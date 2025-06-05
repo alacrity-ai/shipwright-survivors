@@ -14,4 +14,5 @@ export interface BlockInstance {
   shieldEfficiency?: number; // efficiency of the shield protecting this block
   shieldHighlightColor?: string;
   shieldSourceId?: string;
+  hidden?: boolean; // JUST ADDED THIS <----
 }

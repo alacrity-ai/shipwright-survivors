@@ -134,18 +134,21 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [x] Asteroids
   - [ ] Nebulae
   - [ ] Wormholes
-  - [ ] Planets
+  - [x] Planets
+    - [ ] Planet interactions (Quests, vendors, salvage, etc)
   - [ ] Space Stations
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
-  - [ ] Add warp in effect for spawning hostiles
+  - [ ] Player death state
+  - [ ] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
   - [x] Block to block collisions
   - [x] Make crosshair easier to see, lightup when firing or targetting an enemy
   - [x] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [ ] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
+  - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
   - [ ] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
       E.g. if I pause on wave 1, wait a minute or so, then unpause, the waves won't spawn properly, in fact, if I pause for several minutes, and unpause, no waves spawn at all
   - [ ] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play

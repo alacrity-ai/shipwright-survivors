@@ -21,6 +21,7 @@ import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
+import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 
 export class ShipFactory {
   public constructor(
@@ -33,7 +34,8 @@ export class ShipFactory {
     private readonly laserSystem: LaserSystem,
     private readonly combatService: CombatService,
     private readonly explosionSystem: ExplosionSystem,
-    private readonly collisionSystem: BlockObjectCollisionSystem
+    private readonly collisionSystem: BlockObjectCollisionSystem,
+    private readonly shipConstructionAnimator: ShipConstructionAnimatorService
   ) {}
 
   public async createShip(
@@ -65,7 +67,9 @@ export class ShipFactory {
 
     this.orchestrator.addController(controller);
 
+    ship.hideAllBlocks();
     ship.updateBlockPositions();
+    this.shipConstructionAnimator.animateShipConstruction(ship);
 
     return { ship, controller };
   }

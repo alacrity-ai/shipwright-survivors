@@ -11,6 +11,8 @@ import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
+import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
+
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -69,7 +71,8 @@ export class WaveSpawner implements IUpdatable {
     private readonly grid: Grid,
     private readonly combatService: CombatService,
     private readonly explosionSystem: ExplosionSystem,
-    private readonly collisionSystem: BlockObjectCollisionSystem
+    private readonly collisionSystem: BlockObjectCollisionSystem,
+    private readonly shipConstructionAnimator: ShipConstructionAnimatorService
   ) {
     this.shipFactory = new ShipFactory(
       this.grid,
@@ -81,7 +84,8 @@ export class WaveSpawner implements IUpdatable {
       this.laserSystem,
       this.combatService,
       this.explosionSystem,
-      this.collisionSystem
+      this.collisionSystem,
+      this.shipConstructionAnimator
     );
   }
 

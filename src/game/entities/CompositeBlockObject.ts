@@ -83,6 +83,10 @@ export abstract class CompositeBlockObject {
     return Array.from(this.blocks.entries()).map(([key, block]) => [fromKey(key), block]);
   }
 
+  public getBlockCount(): number {
+    return this.blocks.size;
+  }
+
   public getCenterBlock(): BlockInstance | undefined {
     return this.blocks.get('0,0');
   }
@@ -110,6 +114,18 @@ export abstract class CompositeBlockObject {
     }
     
     return blocksInRange;
+  }
+
+  public hideAllBlocks(): void {
+    for (const block of this.blocks.values()) {
+      block.hidden = true;
+    }
+  }
+
+  public showAllBlocks(): void {
+    for (const block of this.blocks.values()) {
+      block.hidden = false;
+    }
   }
 
   /**

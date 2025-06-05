@@ -9,6 +9,8 @@ import { TURRET_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 export class TurretBackend implements WeaponBackend {
+  private fireSoundTimer: number = 0;
+
   constructor(private readonly projectileSystem: ProjectileSystem, private readonly playerShip: Ship) {}
 
   public update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
@@ -20,6 +22,7 @@ export class TurretBackend implements WeaponBackend {
 
     const target = intent?.aimAt;
     const fireRequested = intent?.firePrimary ?? false;
+    this.fireSoundTimer++;
 
     for (let i = plan.length - 1; i >= 0; i--) {
 
@@ -29,16 +32,17 @@ export class TurretBackend implements WeaponBackend {
       turret.timeSinceLastShot += dt;
       if (!fireRequested || turret.timeSinceLastShot < turret.fireCooldown) continue;
 
-      // Only play SFX on first shot to avoid ear fatigue
-      if (i === 0) {
+      // Stagger allowed firing sounds
+      if (this.fireSoundTimer > 5) {
         playSpatialSfx(ship, this.playerShip, {
           file: 'assets/sounds/sfx/weapons/turret_00.wav',
           channel: 'sfx',
-          pitchRange: [0.7, 1.0],
+          pitchRange: [0.7, 1.4],
           volumeJitter: 0.2,
           baseVolume: 1.0,
-          maxSimultaneous: 5,
+          maxSimultaneous: 7,
         });
+        this.fireSoundTimer = 0;
       }
 
       turret.timeSinceLastShot = 0;

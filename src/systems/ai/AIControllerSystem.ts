@@ -33,7 +33,6 @@ export class AIControllerSystem {
   }
 
   public update(dt: number): void {
-    console.log('Calling update for AIControllerSystem for ship ID: ', this.ship.id);
     // Check if ship is still valid
     if (!this.ship || !this.ship.getTransform) {
       return;

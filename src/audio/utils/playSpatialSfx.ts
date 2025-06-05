@@ -1,7 +1,8 @@
+// src/audio/utils/playSpatialSfx.ts
+
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { AudioChannel } from '@/audio/AudioManager';
 import { audioManager } from '@/audio/Audio';
-
 
 type SpatialAudioOptions = {
   file: string;
@@ -45,6 +46,13 @@ export function playSpatialSfx(
     pan = Math.max(-0.7, Math.min(0.7, dx / 300));
   }
 
+  // === Early exit optimization: skip if volume is imperceptible ===
+  const maxJitteredVolume = baseVolume * (1.0 - volumeJitter);
+  const maxFinalVolume = maxJitteredVolume * attenuation;
+
+  if (maxFinalVolume < 0.01) return;
+
+  // === Now generate pitch and jittered volume ===
   const [minPitch, maxPitch] = pitchRange;
   const pitch = minPitch + Math.random() * (maxPitch - minPitch);
   const jitteredVolume = baseVolume * (1.0 - volumeJitter * Math.random());

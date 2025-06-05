@@ -5,6 +5,6 @@ export const AetherionPlanet: PlanetDefinition = {
   name: 'Aetherion',
   imagePath: 'assets/planets/17.png',
   scale: 5,
-  interactionDialogueId: 'dialogue-aetherion-landing',
-  approachDialogueId: 'dialogue-aetherion-approach',
+  interactionDialogueId: 'planet-generic',
+  // approachDialogueId: 'dialogue-aetherion-approach',
 };

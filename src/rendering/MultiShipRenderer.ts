@@ -34,18 +34,20 @@ export class MultiShipRenderer {
       this.ctx.scale(this.camera.zoom, this.camera.zoom);
       this.ctx.rotate(rotation);
 
-      // === Base layer: hulls, cockpits, engines with damage variants
       for (const [coord, block] of ship.getAllBlocks()) {
+        if (block.hidden) continue;
+
         const maxHp = block.type.armor ?? 1;
         const damageLevel = getDamageLevel(block.hp, maxHp);
         const sprite = getBlockSprite(block.type.id, damageLevel);
-        
-        const px = coord.x * BLOCK_SIZE;
-        const py = coord.y * BLOCK_SIZE;
+
+        const localX = coord.x * BLOCK_SIZE;
+        const localY = coord.y * BLOCK_SIZE;
         const blockRotation = (block.rotation ?? 0) * (Math.PI / 180);
 
+        // === Base Layer ===
         this.ctx.save();
-        this.ctx.translate(px, py);
+        this.ctx.translate(localX, localY);
         this.ctx.rotate(blockRotation);
         this.ctx.drawImage(
           sprite.base,
@@ -55,38 +57,29 @@ export class MultiShipRenderer {
           BLOCK_SIZE
         );
         this.ctx.restore();
-      }
 
-      // === Overlay pass: e.g. turret barrels with damage variants
-      for (const [coord, block] of ship.getAllBlocks()) {
-        const maxHp = block.type.armor ?? 1;
-        const damageLevel = getDamageLevel(block.hp, maxHp);
-        const sprite = getBlockSprite(block.type.id, damageLevel);
-        
-        if (!sprite.overlay) continue;
+        // === Overlay Layer (if applicable) ===
+        if (sprite.overlay) {
+          const worldX = ship.getTransform().position.x + localX;
+          const worldY = ship.getTransform().position.y + localY;
 
-        const localX = coord.x * BLOCK_SIZE;
-        const localY = coord.y * BLOCK_SIZE;
+          const dx = mouseWorld.x - worldX;
+          const dy = mouseWorld.y - worldY;
+          const globalAngle = Math.atan2(dy, dx);
+          const localAngle = globalAngle - rotation + Math.PI / 2;
 
-        const worldX = position.x + localX;
-        const worldY = position.y + localY;
-
-        const dx = mouseWorld.x - worldX;
-        const dy = mouseWorld.y - worldY;
-        const globalAngle = Math.atan2(dy, dx);
-        const localAngle = globalAngle - rotation + Math.PI / 2;
-
-        this.ctx.save();
-        this.ctx.translate(localX, localY);
-        this.ctx.rotate(localAngle);
-        this.ctx.drawImage(
-          sprite.overlay,
-          -BLOCK_SIZE / 2,
-          -BLOCK_SIZE / 2,
-          BLOCK_SIZE,
-          BLOCK_SIZE
-        );
-        this.ctx.restore();
+          this.ctx.save();
+          this.ctx.translate(localX, localY);
+          this.ctx.rotate(localAngle);
+          this.ctx.drawImage(
+            sprite.overlay,
+            -BLOCK_SIZE / 2,
+            -BLOCK_SIZE / 2,
+            BLOCK_SIZE,
+            BLOCK_SIZE
+          );
+          this.ctx.restore();
+        }
       }
 
       this.ctx.restore();

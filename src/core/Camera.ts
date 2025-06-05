@@ -100,4 +100,12 @@ export class Camera {
       height,
     };
   }
+
+  getViewportWidth(): number {
+    return this.viewportWidth;
+  }
+
+  getViewportHeight(): number {
+    return this.viewportHeight;
+  }
 }

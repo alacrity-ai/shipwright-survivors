@@ -24,6 +24,7 @@ import { MiniMap } from '@/ui/overlays/MiniMap';
 
 import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
 import { MultiShipRenderer } from '@/rendering/MultiShipRenderer';
+import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
@@ -114,6 +115,7 @@ export class EngineRuntime {
   private multiShipRenderer: MultiShipRenderer;
   private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
+  private shipConstructionAnimator: ShipConstructionAnimatorService;
   private waveSpawner: WaveSpawner;
   private asteroidSpawner: AsteroidSpawningSystem;
   private wavesOverlay: WavesOverlay;
@@ -229,11 +231,10 @@ export class EngineRuntime {
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
     this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
     this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
+    this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
 
     // Additional Update Systems
     this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
-    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, 'background');
-    this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // Add components to player ship (Should all be abstracted into one factory)
     const emitter = new ThrusterEmitter(this.particleManager);
@@ -273,9 +274,6 @@ export class EngineRuntime {
       this.inputManager
     );
 
-    this.hud = new HudOverlay(this.canvasManager, this.ship);
-    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry, this.aiOrchestrator, this.planetSystem);
-
     // Create the enemy wave spawner
     this.waveSpawner = new WaveSpawner(
       this.mission.waves,
@@ -288,7 +286,8 @@ export class EngineRuntime {
       this.grid,
       combatService,
       this.explosionSystem,
-      this.collisionSystem
+      this.collisionSystem,
+      this.shipConstructionAnimator
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
     destructionService.onEntityDestroyed((entity, _cause) => {
@@ -296,6 +295,10 @@ export class EngineRuntime {
         this.waveSpawner.notifyShipDestruction(entity);
       }
     });
+
+    // Create Planet System
+    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveSpawner);
+    this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // Create AsteroidSpawner
     this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry);
@@ -306,6 +309,8 @@ export class EngineRuntime {
     // Overlays
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
+    this.hud = new HudOverlay(this.canvasManager, this.ship);
+    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry, this.aiOrchestrator, this.planetSystem);
 
     this.updatables = [
       this.movement,
@@ -341,6 +346,7 @@ export class EngineRuntime {
       },
       this.popupMessageSystem,
       this.background,
+      this.shipConstructionAnimator,
       this.planetSystem
     ];
 
@@ -360,6 +366,7 @@ export class EngineRuntime {
       this.debugOverlay,
       this.popupMessageSystem,
       this.missionDialogueManager,
+      this.shipConstructionAnimator,
       this.planetSystem
     ];
 

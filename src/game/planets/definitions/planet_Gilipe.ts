@@ -5,6 +5,6 @@ export const GilipePlanet: PlanetDefinition = {
   name: 'Gilipe',
   imagePath: 'assets/planets/5.png',
   scale: 8,
-  interactionDialogueId: 'dialogue-aetherion-landing',
-  approachDialogueId: 'dialogue-aetherion-approach',
+  interactionDialogueId: 'planet-generic',
+  // approachDialogueId: 'dialogue-aetherion-approach',
 };

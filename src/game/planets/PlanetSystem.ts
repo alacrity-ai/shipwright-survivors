@@ -6,6 +6,7 @@ import type { Camera } from '@/core/Camera';
 import type { PlanetDefinition } from './interfaces/PlanetDefinition';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
+import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 
 import { PlanetController } from './PlanetController';
 import { PlanetFactory } from './PlanetFactory';
@@ -13,15 +14,19 @@ import { PlanetFactory } from './PlanetFactory';
 export class PlanetSystem {
   private readonly planets: Set<PlanetController> = new Set();
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly overlayCtx: CanvasRenderingContext2D;
+  private readonly dialogueCtx: CanvasRenderingContext2D;
 
   constructor(
     private readonly playerShip: Ship,
     private readonly inputManager: InputManager,
     private readonly camera: Camera,
     private readonly canvasManager: CanvasManager,
-    private readonly layer: 'background' | 'fx' = 'background' // default to 'background'
+    private readonly waveSpawner: WaveSpawner
   ) {
-    this.ctx = canvasManager.getContext(layer);
+    this.ctx = canvasManager.getContext('background');
+    this.overlayCtx = canvasManager.getContext('ui');
+    this.dialogueCtx = canvasManager.getContext('dialogue');
   }
 
   registerPlanetsFromConfigs(configs: PlanetSpawnConfig[]): void {
@@ -37,7 +42,8 @@ export class PlanetSystem {
       this.playerShip,
       this.inputManager,
       this.camera,
-      def
+      def,
+      this.waveSpawner
     );
     this.planets.add(controller);
   }
@@ -49,7 +55,8 @@ export class PlanetSystem {
       y,
       this.playerShip,
       this.inputManager,
-      this.camera
+      this.camera,
+      this.waveSpawner
     );
     this.planets.add(controller);
   }
@@ -71,7 +78,7 @@ export class PlanetSystem {
   /** Renders to the internally held canvas context on the specified layer */
   render(dt: number): void {
     for (const planet of this.planets) {
-      planet.render(this.ctx);
+      planet.render(this.ctx, this.overlayCtx, this.dialogueCtx);
     }
   }
 }
