@@ -1,4 +1,4 @@
-# 🚀 ShipForge: Space Survival
+# 🚀 Shipwright Survivors
 
 A block-based space survival game where you build ships, collect resources, and battle waves of enemies.
 
@@ -6,7 +6,7 @@ A block-based space survival game where you build ships, collect resources, and 
 
 ## 🎮 Game Overview
 
-ShipForge combines the addictive wave-based combat of games like Vampire Survivors with deep ship customization and resource management:
+Shipwright Survivors (SWS) combines the addictive wave-based combat of games like Vampire Survivors with deep ship customization and resource management:
 
 - **Block-Based Ship Building**: Construct your ship from modular blocks, each with unique properties
 - **Resource Collection**: Gather currency from defeated enemies to upgrade your ship
