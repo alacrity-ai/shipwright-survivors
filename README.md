@@ -135,33 +135,23 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Nebulae
   - [ ] Wormholes
   - [x] Planets
-    - [x] Planet interaction dialogue
     - [ ] Planet interactions (Quests, vendors, salvage, etc)
   - [ ] Space Stations
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
-  - [ ] Main menu needs to:
-    - [ ] Use CRT Buttons
-    - [ ] Replace background image with in-engine rendering of planet, asteroids, etc
-  - [ ] Dialogue Choices
   - [ ] Player death state
-  - [ ] Mission loading state (Hide UI, show loading screen/or black screen)
-    - [ ] When UI elements are loaded, we should fade in
-    - [ ] Then slide in the UI elements, e.g. health bars from bottom, speedometer from left side, minimap from right side
-    - [ ] Then we animate in the ship
-    - [ ] Then start the dialogue
-  - [x] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
+  - [ ] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
   - [x] Block to block collisions
   - [x] Make crosshair easier to see, lightup when firing or targetting an enemy
   - [x] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
-  - [x] AI Culling, right now all created enemies just rush player
+  - [ ] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
   - [ ] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
       E.g. if I pause on wave 1, wait a minute or so, then unpause, the waves won't spawn properly, in fact, if I pause for several minutes, and unpause, no waves spawn at all
-  - [x] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play
+  - [ ] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play
   - [x] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
   - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
        This is potentially inefficient, but more imporantly, it resets your firing cooldown.
