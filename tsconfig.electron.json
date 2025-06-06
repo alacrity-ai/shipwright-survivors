@@ -14,6 +14,6 @@
     },
     "jsx": "preserve"
   },
-  "include": ["src/electron/**/*.ts", "src/electron/**/*.mts"],
+  "include": ["src/electron/**/*.ts", "src/electron/**/*.mts", "src/electron/**/*.mjs"],
   "exclude": ["node_modules", "dist", "dist-electron"]
 }

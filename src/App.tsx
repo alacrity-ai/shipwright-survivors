@@ -4,11 +4,17 @@ import { useEffect, useState } from 'react';
 import { sceneManager, type Scene } from '@/core/SceneManager';
 import { MissionRuntimeScreen } from '@/scenes/MissionRuntimeScreen';
 import { audioManager } from '@/audio/Audio';
+import { isElectron } from '@/shared/isElectron';
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
 
   useEffect(() => {
+    // Full screen
+    if (isElectron()) {
+      window.electronAPI.toggleFullscreen();
+    }
+
     // Audio unlock
     const unlock = () => {
       audioManager.unlock();

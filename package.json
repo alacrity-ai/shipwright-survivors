@@ -26,7 +26,6 @@
     "files": [
       "dist/",
       "dist-electron/",
-      "preload.cjs",
       "package.json"
     ],
     "directories": {

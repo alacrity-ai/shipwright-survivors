@@ -15,6 +15,8 @@ import { loadImage } from '@/shared/imageCache';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
+import { isElectron } from '@/shared/isElectron';
+
 const TITLE_IMAGE_PATH = 'assets/title_screen.png';
 
 function hasSaveData(slot: number): boolean {
@@ -150,6 +152,27 @@ export class TitleScreenManager {
       },
       style: sharedStyle
     });
+
+    // === Quit button (always visible in Electron builds) ===
+    if (isElectron()) {
+      buttons.push({
+        x: baseX,
+        y: baseY + 2 * (height + spacing), // one row below Credits
+        width,
+        height,
+        label: 'Quit',
+        isHovered: false,
+        onClick: () => {
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+          if (window?.electronAPI?.closeGame) {
+            window.electronAPI.closeGame();
+          } else {
+            console.warn('Quit button pressed, but electronAPI.closeGame is not available.');
+          }
+        },
+        style: sharedStyle
+      });
+    }
 
     return buttons;
   }
