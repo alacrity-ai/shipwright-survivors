@@ -544,21 +544,16 @@ export class EngineRuntime {
   public start() {
     this.gameLoop.start();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
-    // set a timeout of 2000ms, then animate ship construction
     this.inputManager.disableInput();
     setTimeout(() => {
       if (this.ship) {
         this.shipConstructionAnimator.animateShipConstruction(this.ship);
       }
-      this.inputManager.enableInput();
-      this.inputManager.disableKey('Escape');
     }, 1000);
     setTimeout(() => {
       this.missionDialogueManager.initialize();
-      this.inputManager.enableKey('Escape');
+      this.inputManager.enableInput();
     }, 3200);
-    // Should probably disable Escape key, so we can't abandon mission until this timeout has resolved
-
   }
 
   public handlePlayerVictory(timeoutMs: number = 10_000): void {
