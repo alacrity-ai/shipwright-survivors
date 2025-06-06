@@ -551,8 +551,8 @@ export class EngineRuntime {
       }
     }, 1000);
     setTimeout(() => {
-      this.missionDialogueManager.initialize();
       this.inputManager.enableInput();
+      this.missionDialogueManager.initialize();
     }, 3200);
   }
 

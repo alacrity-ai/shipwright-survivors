@@ -141,16 +141,18 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 TODOS:
   - [ ] Player death state
-  - [ ] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
+  - [ ] Add click-to-move movement option (Instead of WASD)
+  - [x] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
   - [x] Block to block collisions
   - [x] Make crosshair easier to see, lightup when firing or targetting an enemy
   - [x] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
-  - [ ] AI Patrol State, right now all created enemies just bumrush player
+  - [x] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
-  - [ ] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
+  - [x] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
       E.g. if I pause on wave 1, wait a minute or so, then unpause, the waves won't spawn properly, in fact, if I pause for several minutes, and unpause, no waves spawn at all
+      - [ ] Test this fix, verify by pausing on map start (after first wave has spawned, and before), waiting like 3 minutes, then unpausing and verifying all waves spawn.
   - [ ] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play
   - [x] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
   - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
