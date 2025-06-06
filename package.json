@@ -3,12 +3,30 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "main.js",
+  "author": "Leif Taylor",
+  "build": {
+    "appId": "com.shipwright.survivors",
+    "productName": "Shipwright Survivors",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "main.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "win": { "target": "nsis" }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "deploy": "vite build && gh-pages -d dist",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vite build && tsc && electron-builder"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -17,10 +35,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@types/electron": "^1.6.12",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
@@ -28,6 +50,7 @@
     "globals": "^16.0.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "wait-on": "^8.0.3"
   }
 }
