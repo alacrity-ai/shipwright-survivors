@@ -140,6 +140,8 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [ ] Allow pause menu parameterization wherein the abandon mission button is greyed out during the first tutorial mission
+      - [ ] Also allow Quitting directly from this menu if we're in electron
   - [x] Clicking Resume on the pause menu does not free up input
   - [ ] Correct positioning of inPerson conversations
   - [ ] Add resolution select to settings menu

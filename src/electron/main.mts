@@ -5,15 +5,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ipcMain, dialog } from 'electron';
 
-import { getViewportWidth, getViewportHeight } from '@/config/view'; // TODO: MIGHT NOT BE AVAILABLE HERE AND CAUSE ERRORS
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function createWindow() {
   const win = new BrowserWindow({
-    width: getViewportWidth(),
-    height: getViewportHeight(),
+    width: 1920,
+    height: 1080,
     // autoHideMenuBar: true,   // TODO: Dev: Enable this on release | Hides the menu bar
     frame: true,
     webPreferences: {
