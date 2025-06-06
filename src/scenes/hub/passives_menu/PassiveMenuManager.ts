@@ -81,9 +81,6 @@ export class PassiveMenuManager {
 
         const snappedOffset = Math.round(rawOffset / rowHeight) * rowHeight;
         this.scrollOffset = Math.min(snappedOffset, snappedMaxScroll);
-
-        console.log('Snapped: ', snappedOffset);
-        console.log('Scrolloffset: ', this.scrollOffset);
       } else {
         this.scrollOffset = 0;
       }

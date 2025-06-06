@@ -541,6 +541,15 @@ export class EngineRuntime {
     this.cursorRenderer.render();
   };
 
+  public async load(): Promise<void> {
+    // Delegate to each subsystem that loads images
+    await Promise.all([
+      this.background?.load?.(),           // BackgroundRenderer
+      // this.planetSystem?.load?.(),         // PlanetSystem (loads spritePath)
+      // etc...
+    ]);
+  }
+
   public start() {
     this.gameLoop.start();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
@@ -553,7 +562,7 @@ export class EngineRuntime {
     setTimeout(() => {
       this.inputManager.enableInput();
       this.missionDialogueManager.initialize();
-    }, 3200);
+    }, 4200);
   }
 
   public handlePlayerVictory(timeoutMs: number = 10_000): void {

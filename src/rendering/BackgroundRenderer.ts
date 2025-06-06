@@ -29,17 +29,16 @@ export class BackgroundRenderer {
   private ctx: CanvasRenderingContext2D;
   private camera: Camera;
 
+  private backgroundImageId?: string;
   private backgroundImage: HTMLImageElement | undefined;
-  private backgroundLoaded: boolean = false;
 
-  constructor(canvasManager: CanvasManager, camera: Camera, backgroundImageId: string | undefined) {
+  constructor(canvasManager: CanvasManager, camera: Camera, backgroundImageId?: string) {
     const { width, height } = canvasManager.getDimensions();
     this.width = width;
     this.height = height;
     this.ctx = canvasManager.getContext('background');
     this.camera = camera;
-
-    this.loadBackgroundImage(backgroundImageId);
+    this.backgroundImageId = backgroundImageId;
 
     this.layers.push(this.createLayer(30, '#444444', 0.01));
     this.layers.push(this.createLayer(60, '#666666', 0.03));
@@ -47,19 +46,19 @@ export class BackgroundRenderer {
     this.layers.push(this.createLayer(110, '#ffffff', 0.09));
   }
 
-  private loadBackgroundImage(filename?: string) {
-    if (!filename) {
-      this.backgroundLoaded = false;
-      this.backgroundImage = undefined;
-      return;
-    }
+  public async load(): Promise<void> {
+    if (!this.backgroundImageId) return;
 
-    const img = new Image();
-    img.src = getAssetPath(`/assets/backgrounds/${filename}`);
-    img.onload = () => {
-      this.backgroundImage = img;
-      this.backgroundLoaded = true;
-    };
+    this.backgroundImage = await this.loadImageAsync(this.backgroundImageId);
+  }
+
+  private loadImageAsync(id: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = getAssetPath(`/assets/backgrounds/${id}`);
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    });
   }
 
   private createLayer(count: number, color: string, speedMultiplier: number): StarLayer {
@@ -83,16 +82,14 @@ export class BackgroundRenderer {
     };
   }
 
-  update() {
-    // Stars are static in this parallax system
-  }
+  update() {}
 
   render(): void {
     this.ctx.clearRect(0, 0, this.width, this.height);
     const offset = this.camera.getOffset();
 
-    // === Optional: Render tiled background image with parallax ===
-    if (this.backgroundLoaded && this.backgroundImage) {
+    // === Tiled image background ===
+    if (this.backgroundImage) {
       const img = this.backgroundImage;
       this.ctx.globalAlpha = BACKGROUND_IMAGE_ALPHA;
 
@@ -109,7 +106,7 @@ export class BackgroundRenderer {
       const startScreenX = startTileX * BACKGROUND_TILE_SIZE - parallaxOffsetX + BACKGROUND_IMAGE_HORIZONTAL_OFFSET;
       const startScreenY = startTileY * BACKGROUND_TILE_SIZE - parallaxOffsetY;
 
-      const bleed = 0.3; // pixels of overlap to hide seams
+      const bleed = 0.3;
 
       for (let tileY = 0; tileY < tilesNeededY; tileY++) {
         for (let tileX = 0; tileX < tilesNeededX; tileX++) {
@@ -122,13 +119,13 @@ export class BackgroundRenderer {
           ) {
             this.ctx.drawImage(
               img,
-              bleed, bleed,               // Source x, y (crop slightly in)
-              img.width - 2 * bleed,      // Source width
-              img.height - 2 * bleed,     // Source height
-              screenX - bleed,            // Destination x (draw slightly earlier)
-              screenY - bleed,            // Destination y
-              tileScreenSize + 2 * bleed, // Destination width
-              tileScreenSize + 2 * bleed  // Destination height
+              bleed, bleed,
+              img.width - 2 * bleed,
+              img.height - 2 * bleed,
+              screenX - bleed,
+              screenY - bleed,
+              tileScreenSize + 2 * bleed,
+              tileScreenSize + 2 * bleed
             );
           }
         }
@@ -137,7 +134,7 @@ export class BackgroundRenderer {
       this.ctx.globalAlpha = 1.0;
     }
 
-    // === Render star parallax layers ===
+    // === Star layers ===
     for (const layer of this.layers) {
       this.ctx.fillStyle = layer.color;
       this.ctx.globalAlpha = layer.alpha;

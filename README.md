@@ -141,6 +141,7 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 TODOS:
   - [ ] Player death state
+  - [ ] If ship builder menu is open during dialogue, they overlap. (Need to move dialogue right in this case)
   - [ ] Add click-to-move movement option (Instead of WASD)
   - [x] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
   - [x] Block to block collisions

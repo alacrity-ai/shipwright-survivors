@@ -11,6 +11,8 @@ import { drawBlockHighlightWithMask } from '@/rendering/primitives/HighlightUtil
 import { drawShockwave } from '@/game/ship/utils/drawShockwave';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
+type ConstructionPhase = 'building' | 'shockwave';
+
 interface ConstructingShipState {
   ship: Ship;
   queue: [GridCoord, BlockInstance][];
@@ -19,15 +21,22 @@ interface ConstructingShipState {
   timeSinceLastReveal: number;
   blockRevealInterval: number;
   totalBlockCount: number;
+  blocksRevealed: number;
+  phase: ConstructionPhase;
+  shockwaveTimer: number;
 }
 
 export class ShipConstructionAnimatorService {
   private readonly activeShips: ConstructingShipState[] = [];
 
-  private readonly animationDuration = 500; // ms
-  private readonly startBlockRevealInterval = 360; // ms
-  private readonly finalBlockRevealInterval = 30;  // ms
-  private readonly decayFactor = 5; // exponential decay aggressiveness
+  private readonly animationDuration = 500;
+  private readonly startBlockRevealInterval = 200; // ms
+  private readonly decrementPerBlock = 5;
+  private readonly finalBlockRevealInterval = 5;  // ms
+
+  private readonly basePitch = 0.5;
+  private readonly pitchIncrement = 0.03;
+  private readonly maxPitch = 2;
 
   private readonly playerShip: Ship;
   private readonly camera: Camera;
@@ -41,7 +50,6 @@ export class ShipConstructionAnimatorService {
 
   public animateShipConstruction(ship: Ship): void {
     const blocks = ship.getAllBlocks();
-    console.log('Constructing SHIP: ', ship.id);
 
     for (const [, block] of blocks) {
       block.hidden = true;
@@ -55,14 +63,9 @@ export class ShipConstructionAnimatorService {
       timeSinceLastReveal: 0,
       blockRevealInterval: this.startBlockRevealInterval,
       totalBlockCount: blocks.length,
-    });
-
-    playSpatialSfx(ship, this.playerShip, {
-      file: 'assets/sounds/sfx/ship/repair_00.wav',
-      channel: 'sfx',
-      baseVolume: 1,
-      pitchRange: [0.7, 1.2],
-      volumeJitter: 0.2,
+      blocksRevealed: 0,
+      phase: 'building',
+      shockwaveTimer: this.animationDuration,
     });
   }
 
@@ -75,23 +78,44 @@ export class ShipConstructionAnimatorService {
 
       let revealsThisFrame = 0;
 
-      if (state.timeSinceLastReveal >= state.blockRevealInterval && state.queue.length > 0) {
+      while (
+        state.timeSinceLastReveal >= state.blockRevealInterval &&
+        state.queue.length > 0
+      ) {
         const [coord, block] = state.queue.shift()!;
         block.hidden = false;
         const key = toKey(coord);
         state.revealed.add(key);
         state.animationTimers.set(key, this.animationDuration);
-        state.timeSinceLastReveal = 0;
+        state.timeSinceLastReveal -= state.blockRevealInterval;
         revealsThisFrame++;
 
-        // === Decay the interval toward finalBlockRevealInterval ===
-        const progress = state.revealed.size / state.totalBlockCount;
-        const decay = Math.exp(-this.decayFactor * progress);
-        state.blockRevealInterval =
-          this.finalBlockRevealInterval +
-          (this.startBlockRevealInterval - this.finalBlockRevealInterval) * decay;
+        // === Play sound with increasing pitch ===
+        const pitch = Math.min(this.basePitch + state.blocksRevealed * this.pitchIncrement, this.maxPitch);
+
+        playSpatialSfx(state.ship, this.playerShip, {
+          file: 'assets/sounds/sfx/ship/gather_00.wav',
+          channel: 'sfx',
+          baseVolume: 1,
+          pitchRange: [pitch, pitch], // static pitch
+          volumeJitter: 0.2,
+          maxSimultaneous: 5,
+        });
+
+        // === Deterministic linear interval decay ===
+        const initial = this.startBlockRevealInterval; // 400ms
+        const decrement = this.decrementPerBlock;
+        const minInterval = this.finalBlockRevealInterval; // 10ms
+
+        state.blockRevealInterval = Math.max(
+          minInterval,
+          initial - decrement * state.blocksRevealed
+        );
+
+        state.blocksRevealed++; // <-- increment after use
       }
 
+      // Decrement animation timers
       for (const [key, time] of state.animationTimers.entries()) {
         const newTime = time - ms;
         if (newTime <= 0) {
@@ -101,8 +125,26 @@ export class ShipConstructionAnimatorService {
         }
       }
 
-      if (state.revealed.size === state.ship.getBlockCount()) {
-        this.activeShips.splice(i, 1);
+      // Remove completed ship
+      if (state.phase === 'building') {
+        if (state.revealed.size === state.ship.getBlockCount()) {
+          state.phase = 'shockwave';
+          state.shockwaveTimer = this.animationDuration;
+
+          playSpatialSfx(state.ship, this.playerShip, {
+            file: 'assets/sounds/sfx/ship/repair_00.wav',
+            channel: 'sfx',
+            baseVolume: 1,
+            pitchRange: [0.7, 1.2],
+            volumeJitter: 0.1,
+            maxSimultaneous: 3,
+          });
+        }
+      } else if (state.phase === 'shockwave') {
+        state.shockwaveTimer -= ms;
+        if (state.shockwaveTimer <= 0) {
+          this.activeShips.splice(i, 1);
+        }
       }
 
       if (revealsThisFrame > 0) {
@@ -148,21 +190,21 @@ export class ShipConstructionAnimatorService {
       // Draw shockwave for this ship (only once per ship)
       if (!processedShips.has(parent)) {
         processedShips.add(parent);
-        
+
+        // Skip if not in shockwave phase
+        if (shipState.phase !== 'shockwave') continue;
+
         const shipTransform = parent.getTransform();
         const shipScreen = this.camera.worldToScreen(shipTransform.position.x, shipTransform.position.y);
-        
-        // Calculate progress for the shockwave (0 = start, 1 = end)
-        const shockwaveProgress = 1 - timer / this.animationDuration;
-        
-        // Scale shockwave size based on ship's block count
+
+        const shockwaveProgress = 1 - shipState.shockwaveTimer / this.animationDuration;
+
         const blockCount = parent.getBlockMap().size;
-        const baseRadius = 150; // Minimum radius for small ships
-        const scaleFactor = Math.sqrt(blockCount) * 20; // Scale with square root for better visual balance
+        const baseRadius = 250;
+        const scaleFactor = Math.sqrt(blockCount) * 20;
         const maxRadius = (baseRadius + scaleFactor) * this.camera.zoom;
         const thickness = Math.max(8, Math.sqrt(blockCount) * 2) * this.camera.zoom;
-        
-        // Draw the shockwave at the ship's center
+
         drawShockwave(
           this.ctx,
           shipScreen.x,
@@ -200,9 +242,9 @@ export class ShipConstructionAnimatorService {
       this.ctx.translate(screen.x, screen.y);
       this.ctx.scale(this.camera.zoom, this.camera.zoom);
 
-      // Apply local block rotation (not ship rotation)
-      const blockRotation = (block.rotation ?? 0) * Math.PI / 180;
-      this.ctx.rotate(blockRotation);
+      // // Apply local block rotation (not ship rotation)
+      // const blockRotation = (block.rotation ?? 0) * Math.PI / 180;
+      // this.ctx.rotate(blockRotation);
 
       drawBlockHighlightWithMask(
         this.ctx,

@@ -138,7 +138,6 @@ export class InputManager {
   
     // === Global Inputs (DEV) TODO: ===
     if (this.wasKeyJustPressed('KeyY')) {
-      console.log('[InputManager] Toggling fullscreen...');
       window.electronAPI.toggleFullscreen();
     }
   }

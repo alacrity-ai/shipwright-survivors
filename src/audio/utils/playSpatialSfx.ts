@@ -37,7 +37,7 @@ export function playSpatialSfx(
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     // === Distance attenuation ===
-    const maxHearingDistance = 1650;
+    const maxHearingDistance = 2450;
     const nearThreshold = 300;
     const linearAttenuation = Math.max(0, 1 - (dist - nearThreshold) / (maxHearingDistance - nearThreshold));
     attenuation = Math.min(1, linearAttenuation);
