@@ -2,7 +2,7 @@
 
 A block-based space survival game where you build ships, collect resources, and battle waves of enemies.
 
-![Gameplay](gameplay.gif)
+![Gameplay](gameplay.png)
 
 ## 🎮 Game Overview
 

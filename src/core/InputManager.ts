@@ -135,6 +135,12 @@ export class InputManager {
 
       this.prevKeyState[code] = current;
     }
+  
+    // === Global Inputs (DEV) TODO: ===
+    if (this.wasKeyJustPressed('KeyY')) {
+      console.log('[InputManager] Toggling fullscreen...');
+      window.electronAPI.toggleFullscreen();
+    }
   }
 
   public disableKey(code: string): void {

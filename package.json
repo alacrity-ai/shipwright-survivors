@@ -1,15 +1,47 @@
 {
   "name": "shipwright-survivors",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
+  "productName": "Shipwright Survivors",
+  "description": "A modular space combat roguelike built with Electron and React.",
+  "author": "Leif Taylor",
+  "license": "MIT",
+  "main": "dist-electron/main.mjs",
+
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:electron": "tsc -p tsconfig.electron.json && vite build --mode electron",
     "deploy": "vite build && gh-pages -d dist",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "electron .",
+    "dist": "npm run build:electron && electron-builder --win"
   },
+
+  "build": {
+    "appId": "com.shipwright.survivors",
+    "productName": "Shipwright Survivors",
+    "files": [
+      "dist/",
+      "dist-electron/",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico" 
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -21,6 +53,9 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "cross-env": "^7.0.3",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
