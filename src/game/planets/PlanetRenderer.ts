@@ -4,6 +4,7 @@ import type { Camera } from '@/core/Camera';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { CRTMonitor } from '@/ui/primitives/CRTMonitor';
+import { getViewportWidth } from '@/config/view';
 
 export class PlanetRenderer {
   private image: HTMLImageElement | null = null;
@@ -21,7 +22,7 @@ export class PlanetRenderer {
     // Fixed-size overlay box (in screen-space)
     const width = 360;
     const height = 80;
-    const x = (1280 - width) / 2; // Centered for fixed viewport
+    const x = (getViewportWidth() - width) / 2; // Centered for fixed viewport
     const y = 48;
 
 this.overlayBox = new CRTMonitor(x, y, width, height, {

@@ -16,9 +16,12 @@ import { getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/ca
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
+import { getViewportWidth, getViewportHeight } from '@/config/view';
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
+
 const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
 
-const INTERACTION_ZONES = {
+const INTERACTION_ZONES_VIRTUAL = {
   terminal: { x: 50, y: 280, width: 300, height: 360 },
   map: { x: 440, y: 160, width: 490, height: 380 },
   breakroom: { x: 970, y: 230, width: 230, height: 300 },
@@ -29,6 +32,23 @@ const INTERACTION_FLAGS = {
   map: 'hub.mission-computer.unlocked',
   breakroom: 'hub.breakroom.unlocked',
 } as const;
+
+function scaleX(x: number): number {
+  return x * getViewportWidth() / VIRTUAL_WIDTH;
+}
+
+function scaleY(y: number): number {
+  return y * getViewportHeight() / VIRTUAL_HEIGHT;
+}
+
+function scaleRect(rect: { x: number; y: number; width: number; height: number }) {
+  return {
+    x: scaleX(rect.x),
+    y: scaleY(rect.y),
+    width: scaleX(rect.width),
+    height: scaleY(rect.height),
+  };
+}
 
 export class HubSceneManager {
   private canvasManager: CanvasManager;
@@ -59,7 +79,7 @@ export class HubSceneManager {
       isHovered: false,
       onClick: () => {
         this.stop();
-        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
         sceneManager.fadeToScene('title');
       },
       style: {
@@ -86,11 +106,9 @@ export class HubSceneManager {
     SaveGameManager.getInstance().saveAll();
     audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
 
-    // === Create and start the dialogue ===
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
 
     if (!flags.has('hub.introduction-1.complete')) {
-      console.log('Starting hub introduction dialogue');
       const script = getDialogueScript('hub-introduction-1', { inputManager: this.inputManager });
       if (script) {
         this.dialogueQueueManager.startScript(script);
@@ -111,7 +129,6 @@ export class HubSceneManager {
   private update = (_dt: number) => {
     this.inputManager.updateFrame();
 
-    // DEBUG
     if (this.inputManager.wasKeyJustPressed('KeyF')) {
       flags.clear();
     }
@@ -119,48 +136,43 @@ export class HubSceneManager {
     const m = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
-    // Dialogue Handling
     if (this.dialogueQueueManager?.isRunning()) {
-      // Skip all interaction and button logic if a dialogue is active
       this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
-
-      // Allow skipping dialogue with click
-      if (clicked) {
-        this.dialogueQueueManager.skipOrAdvance();
-      }
-
-      return; // Prevent other interactions
+      if (clicked) this.dialogueQueueManager.skipOrAdvance();
+      return;
     }
 
-    const inZone = (zone: { x: number; y: number; width: number; height: number }) =>
-      m.x >= zone.x && m.x <= zone.x + zone.width &&
-      m.y >= zone.y && m.y <= zone.y + zone.height;
+    const inZone = (zoneVirtual: { x: number; y: number; width: number; height: number }) => {
+      const zone = scaleRect(zoneVirtual);
+      return (
+        m.x >= zone.x && m.x <= zone.x + zone.width &&
+        m.y >= zone.y && m.y <= zone.y + zone.height
+      );
+    };
 
-    // Detect hovering over any interaction zone
-    this.isHoveringInteraction = Object.entries(INTERACTION_ZONES).some(
+    this.isHoveringInteraction = Object.entries(INTERACTION_ZONES_VIRTUAL).some(
       ([key, zone]) =>
-        inZone(zone) && flags.has(INTERACTION_FLAGS[key as keyof typeof INTERACTION_ZONES])
+        inZone(zone) && flags.has(INTERACTION_FLAGS[key as keyof typeof INTERACTION_ZONES_VIRTUAL])
     );
 
-    // Handle scene changes via click
     if (clicked) {
       audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
-      if (inZone(INTERACTION_ZONES.terminal) && flags.has('hub.passive-terminal.unlocked')) {
+
+      if (inZone(INTERACTION_ZONES_VIRTUAL.terminal) && flags.has('hub.passive-terminal.unlocked')) {
         this.stop();
         sceneManager.fadeToScene('passives');
         return;
-      } else if (inZone(INTERACTION_ZONES.map) && flags.has('hub.mission-computer.unlocked')) {
+      } else if (inZone(INTERACTION_ZONES_VIRTUAL.map) && flags.has('hub.mission-computer.unlocked')) {
         this.stop();
         sceneManager.fadeToScene('galaxy');
         return;
-      } else if (inZone(INTERACTION_ZONES.breakroom) && flags.has('hub.breakroom.unlocked')) {
+      } else if (inZone(INTERACTION_ZONES_VIRTUAL.breakroom) && flags.has('hub.breakroom.unlocked')) {
         this.stop();
         sceneManager.fadeToScene('breakroom');
         return;
       }
     }
 
-    // Handle quit button hover/click
     const { x, y, width, height } = this.quitButton;
     this.quitButton.isHovered =
       m.x >= x && m.x <= x + width && m.y >= y && m.y <= y + height;
@@ -187,20 +199,22 @@ export class HubSceneManager {
 
     if (this.dialogueQueueManager) {
       this.dialogueQueueManager.render(uiCtx);
-    }   
+    }
 
     const cursor = this.isHoveringInteraction
       ? getHoveredCursorSprite()
       : getCrosshairCursorSprite();
 
     uiCtx.drawImage(cursor, m.x - cursor.width / 2, m.y - cursor.height / 2);
+    // this.drawInteractionZones(uiCtx);
   };
 
   private drawInteractionZones(ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 1;
-    for (const zone of Object.values(INTERACTION_ZONES)) {
-      ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+    for (const zone of Object.values(INTERACTION_ZONES_VIRTUAL)) {
+      const scaled = scaleRect(zone);
+      ctx.strokeRect(scaled.x, scaled.y, scaled.width, scaled.height);
     }
   }
 }

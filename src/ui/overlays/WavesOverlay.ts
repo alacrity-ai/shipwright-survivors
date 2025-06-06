@@ -12,13 +12,15 @@ export class WavesOverlay {
 
   render(): void {
     const ctx = this.canvasManager.getContext('ui');
+    const canvas = ctx.canvas;
 
     const wave = this.waveSpawner.getCurrentWaveNumber();
     const countdown = this.waveSpawner.getTimeUntilNextWave();
     const isBoss = this.waveSpawner.isBossWaveActive();
 
     const x = 240;
-    let y = 680;
+
+    let y = canvas.height - 36;
     const lineHeight = 18;
 
     drawLabel(ctx, x, y, `Wave: ${wave}`); y += lineHeight;

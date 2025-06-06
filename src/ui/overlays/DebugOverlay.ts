@@ -18,6 +18,7 @@ export class DebugOverlay {
 
   render(dt: number): void {
     const ctx = this.canvasManager.getContext('ui');
+    const canvas = ctx.canvas;
     const compositeBlockRegistry = CompositeBlockObjectRegistry.getInstance();
 
     // === FPS CALCULATION ===
@@ -42,7 +43,7 @@ export class DebugOverlay {
     }
 
     // === Label layout
-    const x = 1080;
+    const x = canvas.width - 220;
     let y = 12;
     const lineHeight = 18;
 

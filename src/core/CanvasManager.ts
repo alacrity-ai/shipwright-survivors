@@ -1,6 +1,6 @@
 // src/core/CanvasManager.ts
 
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '@/config/view';
+import { getViewportWidth, getViewportHeight } from '@/config/view';
 
 export type CanvasLayer = 'background' | 'entities' | 'fx' | 'particles' | 'ui' | 'overlay' | 'dialogue';
 
@@ -17,8 +17,8 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
 export class CanvasManager {
   private canvases: Record<CanvasLayer, HTMLCanvasElement> = {} as any;
   private contexts: Record<CanvasLayer, CanvasRenderingContext2D> = {} as any;
-  private readonly width = VIEWPORT_WIDTH;
-  private readonly height = VIEWPORT_HEIGHT;
+  private readonly width = getViewportWidth();
+  private readonly height = getViewportHeight();
 
   constructor() {
     this.initializeCanvases();

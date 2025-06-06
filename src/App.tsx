@@ -1,31 +1,39 @@
-// src/App.tsx
-
 import { useEffect, useState } from 'react';
 import { sceneManager, type Scene } from '@/core/SceneManager';
 import { MissionRuntimeScreen } from '@/scenes/MissionRuntimeScreen';
 import { audioManager } from '@/audio/Audio';
 import { isElectron } from '@/shared/isElectron';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { applyViewportResolution } from '@/shared/applyViewportResolution';
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
 
   useEffect(() => {
-    // Full screen
+    // === Fullscreen toggle for Electron ===
     if (isElectron()) {
       window.electronAPI.toggleFullscreen();
     }
 
-    // Audio unlock
+    // === Audio unlock on first input ===
     const unlock = () => {
       audioManager.unlock();
       window.removeEventListener('pointerdown', unlock);
     };
-
     window.addEventListener('pointerdown', unlock, { once: true });
 
+    // === Subscribe to scene changes ===
     const unsubscribe = sceneManager.onSceneChange(setScene);
 
-    // ⬇Set initial scene AFTER canvas elements have mounted
+    // === Apply initial resolution to all canvas layers ===
+    applyViewportResolution();
+
+    // === Subscribe to resolution changes (optional) ===
+    PlayerSettingsManager.getInstance().onResolutionChange(() => {
+      applyViewportResolution();
+    });
+
+    // === Initialize scene after DOM has mounted ===
     setTimeout(() => {
       sceneManager.setScene('title');
     }, 0);

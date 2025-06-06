@@ -12,6 +12,10 @@ export class PlayerSettingsManager {
   private lightingEnabled: boolean = true;
   private collisionsEnabled: boolean = true;
 
+  private viewportWidth: number = 1920;
+  private viewportHeight: number = 1080;
+  private resolutionChangeCallbacks: (() => void)[] = [];
+
   private constructor() {}
 
   static getInstance(): PlayerSettingsManager {
@@ -21,7 +25,35 @@ export class PlayerSettingsManager {
     return PlayerSettingsManager.instance;
   }
 
+  onResolutionChange(cb: () => void): void {
+    this.resolutionChangeCallbacks.push(cb);
+  }
+
+  private notifyResolutionChange(): void {
+    for (const cb of this.resolutionChangeCallbacks) {
+      cb();
+    }
+  }
+
   // === Getters and Setters ===
+
+  setViewportWidth(w: number): void {
+    this.viewportWidth = Math.max(640, w);
+    this.notifyResolutionChange();
+  }
+
+  setViewportHeight(h: number): void {
+    this.viewportHeight = Math.max(480, h);
+    this.notifyResolutionChange();
+  }
+
+  getViewportWidth(): number {
+    return this.viewportWidth;
+  }
+
+  getViewportHeight(): number {
+    return this.viewportHeight;
+  }
 
   setMasterVolume(value: number): void {
     this.masterVolume = this.clampVolume(value);
@@ -70,6 +102,8 @@ export class PlayerSettingsManager {
       dialogueVolume: this.dialogueVolume,
       particlesEnabled: this.particlesEnabled,
       lightingEnabled: this.lightingEnabled,
+      viewportWidth: this.viewportWidth,
+      viewportHeight: this.viewportHeight,
     });
   }
 
@@ -83,6 +117,8 @@ export class PlayerSettingsManager {
         this.dialogueVolume = this.clampVolume(parsed.dialogueVolume ?? this.dialogueVolume);
         this.particlesEnabled = Boolean(parsed.particlesEnabled ?? this.particlesEnabled);
         this.lightingEnabled = Boolean(parsed.lightingEnabled ?? this.lightingEnabled);
+        this.viewportWidth = Math.max(640, parsed.viewportWidth ?? this.viewportWidth);
+        this.viewportHeight = Math.max(480, parsed.viewportHeight ?? this.viewportHeight);
       }
     } catch (err) {
       console.warn('Failed to load player settings from JSON:', err);

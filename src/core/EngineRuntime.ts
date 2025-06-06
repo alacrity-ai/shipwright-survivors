@@ -1,9 +1,9 @@
 // src/core/EngineRuntime.ts
 import { Camera } from './Camera';
+import { getViewportWidth, getViewportHeight } from '@/config/view';
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
-import { audioManager } from '@/audio/Audio';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -163,12 +163,17 @@ export class EngineRuntime {
     this.menuManager = new MenuManager();
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
     this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager);
-    this.pauseMenu = new PauseMenu(this.inputManager, this.handlePlayerFailure.bind(this), this.menuManager);
+    this.pauseMenu = new PauseMenu(
+      this.inputManager,
+      this.handlePlayerFailure.bind(this),
+      this.menuManager,
+    );
     this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
     this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
     this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
+    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
 
-    this.camera = new Camera(1280, 720);
+    this.camera = new Camera(getViewportWidth(), getViewportHeight());
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 

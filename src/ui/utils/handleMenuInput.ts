@@ -1,3 +1,5 @@
+// src/ui/utils/handleMenuInput.ts
+
 import type { InputManager } from '@/core/InputManager';
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { MenuManager } from '@/ui/MenuManager';

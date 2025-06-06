@@ -20,7 +20,28 @@ import { PassivesMenuIntroAnimationController } from '@/scenes/hub/passives_menu
 import { PassiveMenuManager } from '@/scenes/hub/passives_menu/PassiveMenuManager';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
+import { getViewportWidth, getViewportHeight } from '@/config/view';
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
+
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
+
+// === Virtual Coordinate Helpers ===
+function scaleX(x: number): number {
+  return x * getViewportWidth() / VIRTUAL_WIDTH;
+}
+
+function scaleY(y: number): number {
+  return y * getViewportHeight() / VIRTUAL_HEIGHT;
+}
+
+function scaleRect(rect: { x: number; y: number; width: number; height: number }) {
+  return {
+    x: scaleX(rect.x),
+    y: scaleY(rect.y),
+    width: scaleX(rect.width),
+    height: scaleY(rect.height),
+  };
+}
 
 export class PassivesMenuSceneManager {
   private canvasManager: CanvasManager;
@@ -59,12 +80,12 @@ export class PassivesMenuSceneManager {
       }
     };
 
+    // Virtual button definition
+    const btn = { x: 20, y: 20, width: 120, height: 50 };
+
     this.buttons = [
       {
-        x: 20,
-        y: 20,
-        width: 120,
-        height: 50,
+        ...scaleRect(btn),
         label: '← Back',
         isHovered: false,
         onClick: () => {
@@ -76,7 +97,8 @@ export class PassivesMenuSceneManager {
       }
     ];
 
-    this.crtMonitor = new CRTMonitor(275, 98, 885, 542, {
+    const crtRect = scaleRect({ x: 275, y: 98, width: 885, height: 542 });
+    this.crtMonitor = new CRTMonitor(crtRect.x, crtRect.y, crtRect.width, crtRect.height, {
       alpha: 0.95,
       borderRadius: 60,
       borderColor: '#00ff33',
@@ -91,13 +113,14 @@ export class PassivesMenuSceneManager {
       }
     });
 
-    this.introAnimationController = new PassivesMenuIntroAnimationController();
-
+    const passiveRect = scaleRect({ x: 285, y: 108, width: 865, height: 522 });
     this.passiveMenuManager = new PassiveMenuManager(
       this.inputManager,
       PlayerPassiveManager.getInstance(),
-      { x: 285, y: 108, width: 865, height: 522 }
+      passiveRect
     );
+
+    this.introAnimationController = new PassivesMenuIntroAnimationController();
   }
 
   async start() {
@@ -129,10 +152,8 @@ export class PassivesMenuSceneManager {
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
-    // Animation lockout
     if (!this.introAnimationController.isComplete()) return;
 
-    // Dialogue gating
     if (
       this.dialogueQueueManager &&
       !this.dialogueQueueManager.isRunning() &&
@@ -145,10 +166,8 @@ export class PassivesMenuSceneManager {
     if (this.dialogueQueueManager?.isRunning()) {
       this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
       if (clicked) this.dialogueQueueManager.skipOrAdvance();
-      // return;
     }
 
-    // Update UI buttons
     for (const btn of this.buttons) {
       btn.isHovered =
         x >= btn.x && x <= btn.x + btn.width &&
@@ -160,7 +179,6 @@ export class PassivesMenuSceneManager {
       }
     }
 
-    // === DEBUG TODO: REMOVE
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
       PlayerPassiveManager.getInstance().addPassivePoints(1);
     }
@@ -168,7 +186,6 @@ export class PassivesMenuSceneManager {
       PlayerPassiveManager.getInstance().refundAll();
     }
 
-    // === Passive menu manager update
     this.passiveMenuManager.update();
   };
 
@@ -184,7 +201,6 @@ export class PassivesMenuSceneManager {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
     }
 
-    // CRT monitor base layer
     this.crtMonitor.draw(uiCtx);
 
     if (!this.introAnimationController.isComplete()) {
@@ -205,7 +221,6 @@ export class PassivesMenuSceneManager {
         this.dialogueQueueManager.render(overlayCtx);
       }
 
-      // === Passive menu rendering
       this.passiveMenuManager.render(uiCtx);
     }
 

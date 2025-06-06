@@ -2,6 +2,8 @@
 
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { RollingText } from './RollingText';
+import { getViewportWidth, getViewportHeight } from '@/config/view';
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
 
 type AnimationPhase =
   | 'loginPrompt'
@@ -13,6 +15,17 @@ type AnimationPhase =
   | 'clear2'
   | 'done';
 
+// === Scaling Helpers ===
+function scaleX(x: number): number {
+  return x * getViewportWidth() / VIRTUAL_WIDTH;
+}
+function scaleY(y: number): number {
+  return y * getViewportHeight() / VIRTUAL_HEIGHT;
+}
+function scaledFont(px: number, family = 'monospace'): string {
+  return `${Math.round(scaleY(px))}px ${family}`;
+}
+
 export class PassivesMenuIntroAnimationController {
   private phase: AnimationPhase = 'loginPrompt';
   private timer = 0;
@@ -20,7 +33,6 @@ export class PassivesMenuIntroAnimationController {
   private username = new RollingText('Shipwright SecondClass', 30, 40);
   private password = new RollingText('************', 60, 20);
   private bootText = new RollingText('VIEW_PASSIVES()    ', 50, 1);
-
   private delayAfterPhaseComplete = 600; // ms
 
   update(now: number): void {
@@ -51,11 +63,11 @@ export class PassivesMenuIntroAnimationController {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    const x = 300;
-    let y = 160;
+    const x = scaleX(300);
+    let y = scaleY(160);
 
     const style = {
-      font: '18px monospace',
+      font: scaledFont(18),
       color: '#00ff41',
       glow: true,
       chromaticAberration: true as const
@@ -63,7 +75,6 @@ export class PassivesMenuIntroAnimationController {
 
     ctx.save();
     ctx.fillStyle = '#000';
-    // ctx.fillRect(275, 98, 885, 542); // Commented out
     ctx.restore();
 
     switch (this.phase) {
@@ -76,12 +87,12 @@ export class PassivesMenuIntroAnimationController {
         break;
       case 'passwordPrompt':
         drawCRTText(ctx, x, y, 'login: Shipwright SecondClass', style);
-        y += 32;
+        y += scaleY(32);
         drawCRTText(ctx, x, y, 'password:', style);
         this.advance('passwordInput');
         break;
       case 'passwordInput':
-        drawCRTText(ctx, x, y - 32, 'login: Shipwright SecondClass', style);
+        drawCRTText(ctx, x, y - scaleY(32), 'login: Shipwright SecondClass', style);
         drawCRTText(ctx, x, y, 'password: ' + this.password.getText(), style);
         break;
       case 'clear1':

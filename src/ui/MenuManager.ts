@@ -1,8 +1,29 @@
+// src/ui/MenuManager.ts
+
 import type { Menu } from '@/ui/interfaces/Menu';
 
 export class MenuManager {
   private readonly stack: Menu[] = [];
   private readonly registry: Record<string, Menu> = {};
+
+  private pauseFn?: () => void;
+  private resumeFn?: () => void;
+
+  /** Registers callbacks for pausing and resuming the game */
+  registerPauseHandlers(pause: () => void, resume: () => void): void {
+    this.pauseFn = pause;
+    this.resumeFn = resume;
+  }
+
+  /** Pauses the game via the registered callback */
+  pause(): void {
+    this.pauseFn?.();
+  }
+
+  /** Resumes the game via the registered callback */
+  resume(): void {
+    this.resumeFn?.();
+  }
 
   open(menu: Menu): void {
     const top = this.getTop();

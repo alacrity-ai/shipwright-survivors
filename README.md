@@ -140,6 +140,10 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [x] Clicking Resume on the pause menu does not free up input
+  - [ ] Correct positioning of inPerson conversations
+  - [ ] Add resolution select to settings menu
+  - [ ] Spending a passive point should have SATISFYING auditory and visual feedback
   - [ ] Player death state
   - [ ] If ship builder menu is open during dialogue, they overlap. (Need to move dialogue right in this case)
   - [ ] Add click-to-move movement option (Instead of WASD)

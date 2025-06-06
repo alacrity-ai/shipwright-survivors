@@ -19,7 +19,7 @@ export class PauseMenu implements Menu {
   constructor(
     private readonly inputManager: InputManager,
     private readonly onAbandon: () => void,
-    private readonly menuManager: MenuManager
+    private readonly menuManager: MenuManager,
   ) {
     const sharedStyle = {
       borderRadius: 10,
@@ -54,7 +54,10 @@ export class PauseMenu implements Menu {
       width: 140,
       height: 40,
       label: 'Resume',
-      onClick: () => this.closeMenu(),
+      onClick: () => { 
+        this.menuManager.close(this),
+        this.menuManager.resume();
+      },
       style: sharedStyle
     };
 

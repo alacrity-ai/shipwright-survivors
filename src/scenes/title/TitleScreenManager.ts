@@ -116,7 +116,7 @@ export class TitleScreenManager {
       label: this.showingSaveSlots ? 'Back' : 'Play',
       isHovered: false,
       onClick: () => {
-        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
 
         if (this.showingSaveSlots) {
           // Animate sliding down
@@ -147,7 +147,7 @@ export class TitleScreenManager {
       label: 'Credits',
       isHovered: false,
       onClick: () => {
-        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
         console.log('Credits clicked (not implemented)');
       },
       style: sharedStyle
@@ -163,7 +163,7 @@ export class TitleScreenManager {
         label: 'Quit',
         isHovered: false,
         onClick: () => {
-          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
           if (window?.electronAPI?.closeGame) {
             window.electronAPI.closeGame();
           } else {
@@ -283,7 +283,7 @@ export class TitleScreenManager {
         label: 'Yes',
         isHovered: false,
         onClick: () => {
-          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
           if (this.confirmingDeleteSlot !== null) {
             SaveGameManager.eraseSave(this.confirmingDeleteSlot);
             this.saveSlotButtons = this.createSaveSlotButtons();
@@ -312,7 +312,7 @@ export class TitleScreenManager {
         label: 'No',
         isHovered: false,
         onClick: () => {
-          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+          audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
           this.confirmingDeleteSlot = null;
           this.confirmationButtons = [];
         },
