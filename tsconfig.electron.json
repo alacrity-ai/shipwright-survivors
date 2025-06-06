@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",                 // Future-proof for top-level await
+    "module": "ESNext",                 // Native ESM output
+    "moduleResolution": "Node",     // Required for .mts/.mjs resolution
+    "outDir": "dist-electron",
+    "rootDir": "src/electron",
+    "lib": ["ES2022"],
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "jsx": "preserve"
+  },
+  "include": ["src/electron/**/*.ts", "src/electron/**/*.mts"],
+  "exclude": ["node_modules", "dist", "dist-electron"]
+}

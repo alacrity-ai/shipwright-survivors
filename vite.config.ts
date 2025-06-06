@@ -5,19 +5,21 @@ import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 
-const isProduction = process.env.NODE_ENV === 'production';
+export default defineConfig(({ mode }) => {
+  const isElectron = mode === 'electron';
+  const isProduction = mode === 'production' || isElectron; // electron implies prod
 
-export default defineConfig({
-    base: isProduction ? '/shipwright-survivors/' : './',
-    plugins: [
-      react(),
-      tsconfigPaths(),
-    ],
+  console.log('Vite mode:', mode, '| isElectron:', isElectron);
+
+  return {
+    base: isElectron ? '' : isProduction ? '/shipwright-survivors/' : './',
+    plugins: [react(), tsconfigPaths()],
     publicDir: 'public',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
         '/static': path.resolve(__dirname, 'public/static'),
       }
-    },
+    }
+  };
 });
