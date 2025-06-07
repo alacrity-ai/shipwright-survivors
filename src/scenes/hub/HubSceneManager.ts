@@ -6,14 +6,16 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 import { flags } from '@/game/player/PlayerFlagManager';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 import { SaveGameManager } from '@/core/save/saveGameManager';
-import { getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
-import { drawButton, UIButton } from '@/ui/primitives/UIButton';
+import { drawCursor, getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
 import { scaleX, scaleY } from '@/config/virtualResolution';
@@ -164,13 +166,7 @@ export class HubSceneManager {
       }
     }
 
-    const { x, y, width, height } = this.quitButton;
-    this.quitButton.isHovered =
-      m.x >= x && m.x <= x + width && m.y >= y && m.y <= y + height;
-
-    if (clicked && this.quitButton.isHovered) {
-      this.quitButton.onClick();
-    }
+    handleButtonInteraction(this.quitButton, m.x, m.y, clicked, getUniformScaleFactor());
   };
 
   private render = (_dt: number) => {
@@ -185,7 +181,7 @@ export class HubSceneManager {
     }
 
     if (!this.dialogueQueueManager?.isRunning()) {
-      drawButton(uiCtx, this.quitButton);
+      drawButton(uiCtx, this.quitButton, getUniformScaleFactor());
     }
 
     if (this.dialogueQueueManager) {
@@ -196,7 +192,7 @@ export class HubSceneManager {
       ? getHoveredCursorSprite()
       : getCrosshairCursorSprite();
 
-    uiCtx.drawImage(cursor, m.x - cursor.width / 2, m.y - cursor.height / 2);
+    drawCursor(uiCtx, cursor, m.x, m.y, getUniformScaleFactor());
     // this.drawInteractionZones(uiCtx);
   };
 

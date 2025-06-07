@@ -3,6 +3,7 @@
 import type { DialogueScript } from './interfaces/DialogueScript';
 import type { DialogueMode } from './interfaces/DialogueMode';
 
+import { getUniformScaleFactor } from '@/config/view';
 import { DialogueOrchestrator } from './DialogueOrchestrator';
 import { speakerVoiceRegistry } from './registry/SpeakerVoiceRegistry';
 
@@ -70,18 +71,6 @@ export class DialogueQueueManager {
         const isInPerson = lineMode === 'inPerson';
         const isRightSide = side === 'right';
 
-        const textBoxRect = isInPerson
-          ? INPERSON_TEXTBOXRECT
-          : isRightSide
-            ? TRANSMISSION_TEXTBOXRECT_RIGHT
-            : TRANSMISSION_TEXTBOXRECT;
-
-        const position = isInPerson
-          ? INPERSON_PORTRAIT_POSITION
-          : isRightSide
-            ? TRANSMISSION_PORTRAIT_POSITION_RIGHT
-            : TRANSMISSION_PORTRAIT_POSITION;
-
         const speakerId = event.speakerId ?? this.activeSpeakerId;
         if (!speakerId) {
           console.warn('No speaker defined for line event');
@@ -89,10 +78,40 @@ export class DialogueQueueManager {
           return;
         }
 
+        const uiScale = getUniformScaleFactor();
+
+        const textBoxRect = isInPerson
+          ? {
+              x: 320 * uiScale,
+              y: 120 * uiScale,
+              width: 520 * uiScale,
+              height: 140 * uiScale,
+            }
+          : isRightSide
+            ? {
+                x: 590 * uiScale,
+                y: 20 * uiScale,
+                width: 500 * uiScale,
+                height: 120 * uiScale,
+              }
+            : {
+                x: 180 * uiScale,
+                y: 20 * uiScale,
+                width: 500 * uiScale,
+                height: 120 * uiScale,
+              };
+
+        const position = isInPerson
+          ? { x: 80 * uiScale, y: 420 * uiScale }
+          : isRightSide
+            ? { x: 1130 * uiScale, y: 20 * uiScale }
+            : { x: 20 * uiScale, y: 20 * uiScale };
+
+        const baseFontSize = isInPerson ? 24 : 20;
         const font =
           event.options?.font ??
           this.activeSpeakerOptions.font ??
-          (isInPerson ? INPERSON_FONT : TRANSMISSION_FONT);
+          `${Math.round(baseFontSize * uiScale)}px monospace`;
 
         const textColor =
           event.options?.textColor ??

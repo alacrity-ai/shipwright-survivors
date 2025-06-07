@@ -11,8 +11,8 @@ import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/Dialog
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
-import { drawButton, UIButton } from '@/ui/primitives/UIButton';
-import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
+import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
 
 import { CRTMonitor } from '@/ui/primitives/CRTMonitor';
@@ -21,6 +21,7 @@ import { PassiveMenuManager } from '@/scenes/hub/passives_menu/PassiveMenuManage
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
 import { scaleRect } from '@/config/virtualResolution';
+import { getUniformScaleFactor } from '@/config/view';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
 
@@ -63,12 +64,12 @@ export class PassivesMenuSceneManager {
       }
     };
 
-    // Virtual button definition
-    const btn = { x: 20, y: 20, width: 120, height: 50 };
-
     this.buttons = [
       {
-        ...scaleRect(btn),
+        x: 20,
+        y: 20,
+        width: 120,
+        height: 50,
         label: '← Back',
         isHovered: false,
         onClick: () => {
@@ -152,14 +153,7 @@ export class PassivesMenuSceneManager {
     }
 
     for (const btn of this.buttons) {
-      btn.isHovered =
-        x >= btn.x && x <= btn.x + btn.width &&
-        y >= btn.y && y <= btn.y + btn.height;
-
-      if (clicked && btn.isHovered) {
-        btn.onClick();
-        break;
-      }
+      handleButtonInteraction(btn, x, y, clicked, getUniformScaleFactor());
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
@@ -196,7 +190,7 @@ export class PassivesMenuSceneManager {
 
       if (!this.dialogueQueueManager?.isRunning()) {
         for (const btn of this.buttons) {
-          drawButton(uiCtx, btn);
+          drawButton(uiCtx, btn, getUniformScaleFactor());
         }
       }
 
@@ -208,6 +202,6 @@ export class PassivesMenuSceneManager {
     }
 
     const cursor = getCrosshairCursorSprite();
-    uiCtx.drawImage(cursor, x - cursor.width / 2, y - cursor.height / 2);
+    drawCursor(uiCtx, cursor, x, y, getUniformScaleFactor());
   };
 }

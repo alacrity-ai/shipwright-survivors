@@ -6,11 +6,13 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
-import { drawButton, UIButton } from '@/ui/primitives/UIButton';
-import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { getUniformScaleFactor } from '@/config/view';
+import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
+import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
 
 import { flags } from '@/game/player/PlayerFlagManager';
+import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
@@ -72,6 +74,11 @@ export class BreakroomSceneManager {
     // === Create and start the dialogue ===
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
 
+    const script = getDialogueScript('test-script', {});
+    if (script) {
+      this.dialogueQueueManager.startScript(script);
+    }
+
     // if (!flags.has('breakroom.marla-greeting.complete')) {
     //   const script = getDialogueScript('marla-greeting', {});
     //   if (script) {
@@ -114,16 +121,7 @@ export class BreakroomSceneManager {
       return; // Prevent other interactions
     }
 
-    for (const btn of this.buttons) {
-      btn.isHovered =
-        x >= btn.x && x <= btn.x + btn.width &&
-        y >= btn.y && y <= btn.y + btn.height;
-
-      if (clicked && btn.isHovered) {
-        btn.onClick();
-        break;
-      }
-    }
+    handleButtonInteraction(this.buttons[0], x, y, clicked, getUniformScaleFactor());
   };
 
   private render = () => {
@@ -141,7 +139,7 @@ export class BreakroomSceneManager {
 
     if (!this.dialogueQueueManager?.isRunning()) {
       for (const btn of this.buttons) {
-        drawButton(uiCtx, btn);
+        drawButton(uiCtx, btn, getUniformScaleFactor());
       }
     }
 
@@ -150,6 +148,6 @@ export class BreakroomSceneManager {
     }
 
     const cursor = getCrosshairCursorSprite();
-    uiCtx.drawImage(cursor, x - cursor.width / 2, y - cursor.height / 2);
+    drawCursor(uiCtx, cursor, x, y, getUniformScaleFactor());
   };
 }

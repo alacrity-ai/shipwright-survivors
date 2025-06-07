@@ -1,22 +1,22 @@
 // src/systems/dialogue/renderers/RollingTextRenderer.ts
 
 import type { DialogueLine } from '@/systems/dialogue/interfaces/DialogueLine';
+import { getUniformScaleFactor } from '@/config/view';
 
 export class RollingTextRenderer {
   private fullText: string = '';
   private lines: string[] = [];
   private revealedCharCount = 0;
   private elapsed = 0;
-  private charDelay = 0.075; // ms per character
-  private readonly paddingX = 16;
-  private readonly lineHeight = 22;
+  private charDelay = 0.075; // seconds per character (already correct)
+  private paddingX = 16; // Will scale in render
+  private baseLineHeight = 22; // Will scale in render
 
   public start(line: DialogueLine): void {
     this.fullText = line.text;
     this.lines = this.wrapText(line);
     this.revealedCharCount = 0;
     this.elapsed = 0;
-
     this.charDelay = line.textSpeed ?? this.charDelay;
   }
 
@@ -27,31 +27,35 @@ export class RollingTextRenderer {
   }
 
   public render(ctx: CanvasRenderingContext2D, line: DialogueLine): void {
+    const scale = getUniformScaleFactor();
     const { x, y, width, height } = line.textBoxRect;
     const font = line.font ?? '24px monospace';
     const color = line.textColor ?? (line.mode === 'transmission' ? '#00ff88' : '#ffffff');
+
+    const lineHeight = this.baseLineHeight * scale;
+    const paddingX = this.paddingX * scale;
 
     ctx.save();
     ctx.font = font;
     ctx.fillStyle = color;
 
-    const maxVisibleLines = Math.floor(height / this.lineHeight) - 1;
+    const maxVisibleLines = Math.floor(height / lineHeight) - 1;
     let visibleChars = this.revealedCharCount;
-    let drawY = y + 32;
+    let drawY = y + (32 * scale);
 
     for (let i = 0; i < this.lines.length && i < maxVisibleLines; i++) {
       const wrappedLine = this.lines[i];
       if (visibleChars <= 0) break;
 
       const textToDraw = wrappedLine.slice(0, visibleChars);
-      ctx.fillText(textToDraw, x + this.paddingX, drawY);
-      drawY += this.lineHeight;
+      ctx.fillText(textToDraw, x + paddingX, drawY);
+      drawY += lineHeight;
       visibleChars -= wrappedLine.length;
     }
 
     // If text is truncated, show ellipsis on last line
     if (this.lines.length > maxVisibleLines && visibleChars > 0) {
-      ctx.fillText('…', x + width - this.paddingX - 8, drawY - this.lineHeight);
+      ctx.fillText('…', x + width - paddingX - (8 * scale), drawY - lineHeight);
     }
 
     ctx.restore();
@@ -79,6 +83,9 @@ export class RollingTextRenderer {
     const ctx = document.createElement('canvas').getContext('2d')!;
     ctx.font = line.font ?? '24px monospace';
 
+    const scale = getUniformScaleFactor();
+    const paddingX = this.paddingX * scale;
+
     const lines: string[] = [];
     let currentLine = '';
 
@@ -86,7 +93,7 @@ export class RollingTextRenderer {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
       const testWidth = ctx.measureText(testLine).width;
 
-      if (testWidth > width - 2 * this.paddingX && currentLine) {
+      if (testWidth > width - 2 * paddingX && currentLine) {
         lines.push(currentLine);
         currentLine = word;
       } else {

@@ -16,8 +16,8 @@
     "deploy": "vite build && gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "electron .",
-    "dist": "npm run build:electron && electron-builder --win"
+    "start:electron": "electron .",
+    "dist:electron": "npm run build:electron && electron-builder --win"
   },
 
   "build": {

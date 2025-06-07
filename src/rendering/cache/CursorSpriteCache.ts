@@ -1,5 +1,34 @@
 // src/rendering/cache/CursorSpriteCache.ts
 
+
+/**
+ * Draws a scaled, centered cursor sprite at the given screen position.
+ *
+ * @param ctx - The canvas rendering context to draw to
+ * @param sprite - The cursor sprite (e.g. from getCrosshairCursorSprite())
+ * @param x - The screen-space X position (center of the cursor)
+ * @param y - The screen-space Y position (center of the cursor)
+ * @param scale - A uniform scale factor (e.g. getUniformScaleFactor())
+ */
+export function drawCursor(
+  ctx: CanvasRenderingContext2D,
+  sprite: HTMLCanvasElement,
+  x: number,
+  y: number,
+  scale: number
+): void {
+  const scaledWidth = sprite.width * scale;
+  const scaledHeight = sprite.height * scale;
+
+  ctx.drawImage(
+    sprite,
+    x - scaledWidth / 2,
+    y - scaledHeight / 2,
+    scaledWidth,
+    scaledHeight
+  );
+}
+
 const cursorSprite: HTMLCanvasElement = document.createElement('canvas');
 cursorSprite.width = 24;
 cursorSprite.height = 24;

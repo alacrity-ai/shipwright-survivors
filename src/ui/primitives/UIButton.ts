@@ -109,3 +109,37 @@ export function drawButton(
 
   ctx.restore();
 }
+
+/**
+ * Handles interaction for a UIButton, computing hover and click state.
+ *
+ * @param button - UIButton to evaluate
+ * @param mouseX - Current mouse X position
+ * @param mouseY - Current mouse Y position
+ * @param wasClicked - Whether the mouse was just clicked this frame
+ * @param uiScale - Optional UI scale factor (default = 1.0)
+ * @returns true if the button was clicked
+ */
+export function handleButtonInteraction(
+  button: UIButton,
+  mouseX: number,
+  mouseY: number,
+  wasClicked: boolean,
+  uiScale: number = 1.0
+): boolean {
+  const scaledWidth = button.width * uiScale;
+  const scaledHeight = button.height * uiScale;
+
+  const isHovered =
+    mouseX >= button.x && mouseX <= button.x + scaledWidth &&
+    mouseY >= button.y && mouseY <= button.y + scaledHeight;
+
+  button.isHovered = isHovered;
+
+  if (isHovered && wasClicked) {
+    button.onClick();
+    return true;
+  }
+
+  return false;
+}

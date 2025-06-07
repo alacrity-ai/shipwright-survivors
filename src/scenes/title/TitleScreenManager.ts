@@ -7,9 +7,9 @@ import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
-
-import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
-import { drawButton, UIButton } from '@/ui/primitives/UIButton';
+import { getUniformScaleFactor } from '@/config/view';
+import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { loadImage } from '@/shared/imageCache';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
@@ -27,6 +27,11 @@ const SLOT_START_Y_OFFSET = 300;
 const SLOT_SLIDE_SPEED = 10;
 const SLOT_OVERSHOOT = 16;
 const SLOT_SETTLE_SPEED = 2;
+
+const WINDOW_X = 280;
+const WINDOW_Y = 280;
+const WINDOW_WIDTH = 320;
+const WINDOW_HEIGHT = 120;
 
 export class TitleScreenManager {
   private canvasManager: CanvasManager;
@@ -71,8 +76,9 @@ export class TitleScreenManager {
   }
 
   private createMainButtons(): UIButton[] {
+    const uiScale = getUniformScaleFactor();
     const baseX = 40;
-    const baseY = 460;
+    const baseY = 460 * uiScale;
     const width = 200;
     const height = 60;
     const spacing = 10;
@@ -107,10 +113,12 @@ export class TitleScreenManager {
 
     const buttons: UIButton[] = [];
 
+    const scaledVerticalSpacing = (height * uiScale) + (spacing * uiScale);
+
     // === Play/Back button (changes based on state) ===
     buttons.push({
       x: baseX,
-      y: baseY,
+      y: baseY + (scaledVerticalSpacing * 0),
       width,
       height,
       label: this.showingSaveSlots ? 'Back' : 'Play',
@@ -126,7 +134,8 @@ export class TitleScreenManager {
           // Delay actual hide/removal until animation completes
         } else {
           // Animate sliding up
-          this.saveSlotYOffsets = [SLOT_START_Y_OFFSET, SLOT_START_Y_OFFSET, SLOT_START_Y_OFFSET];
+          const scaledStartYOffset = SLOT_START_Y_OFFSET * uiScale;
+          this.saveSlotYOffsets = [scaledStartYOffset, scaledStartYOffset, scaledStartYOffset];
           this.saveSlotAnimationPhase = 'sliding-up';
           this.isAnimatingSlots = true;
 
@@ -141,7 +150,7 @@ export class TitleScreenManager {
     // === Credits button (always visible) ===
     buttons.push({
       x: baseX,
-      y: baseY + (height + spacing),
+      y: baseY + (scaledVerticalSpacing * 1),
       width,
       height,
       label: 'Credits',
@@ -157,7 +166,7 @@ export class TitleScreenManager {
     if (isElectron()) {
       buttons.push({
         x: baseX,
-        y: baseY + 2 * (height + spacing), // one row below Credits
+        y: baseY + (scaledVerticalSpacing * 2), // one row below Credits
         width,
         height,
         label: 'Quit',
@@ -178,8 +187,9 @@ export class TitleScreenManager {
   }
 
   private createSaveSlotButtons(): UIButton[] {
+    const uiScale = getUniformScaleFactor();
     const baseX = 260;
-    const baseY = 460;
+    const baseY = 460 * uiScale;
     const width = 260;
     const height = 60;
     const spacing = 10;
@@ -204,10 +214,14 @@ export class TitleScreenManager {
       const hasData = hasSaveData(slot);
       const label = hasData ? `Load Save ${slot + 1}` : `New Game`;
 
+      const scaledVerticalSpacing = (height * uiScale) + (spacing * uiScale);
+      const scaledHorizontalSpacing = (width * uiScale) + (spacing * uiScale);
+      const scaledWidth = width * uiScale;
+
       // === Main save/load button ===
       buttons.push({
-        x: baseX,
-        y: baseY + (height + spacing) * slot,
+        x: baseX * uiScale,
+        y: baseY + scaledVerticalSpacing * slot,
         width,
         height,
         label,
@@ -233,14 +247,16 @@ export class TitleScreenManager {
             sceneManager.fadeToScene('mission');
           }
         },
-        style: sharedStyle
-      });
+        style: sharedStyle,
+        // 👇 Attach slot index for animation
+        slotIndex: slot
+      } as UIButton & { slotIndex: number });
 
       // === Delete button if save exists ===
       if (hasData) {
         buttons.push({
-          x: baseX + width + 12,
-          y: baseY + (height + spacing) * slot,
+          x: baseX + scaledHorizontalSpacing + (0.65 * scaledWidth),
+          y: baseY + scaledVerticalSpacing * slot,
           width: 40,
           height,
           label: 'X',
@@ -260,19 +276,27 @@ export class TitleScreenManager {
                 { offset: 1, color: '#110000' }
               ]
             }
-          }
-        });
+          },
+          slotIndex: slot // 👇 Needed so delete button animates with its row
+        } as UIButton & { slotIndex: number });
       }
     }
 
     return buttons;
   }
 
+
   private createConfirmationButtons(): void {
-    const confirmX = 320;
-    const confirmY = 340;
+    const uiScale = getUniformScaleFactor();
+    const scaledWindowX = WINDOW_X * uiScale;
+    const scaledWindowY = WINDOW_Y * uiScale;
+    const confirmX = scaledWindowX + (40 * uiScale); // 40
+    const confirmY = scaledWindowY + (60 * uiScale); // 60
     const width = 100;
     const height = 40;
+    const spacing = 20;
+
+    const scaledHorizontalSpacing = (width * uiScale) + (spacing * uiScale);
 
     this.confirmationButtons = [
       {
@@ -305,7 +329,7 @@ export class TitleScreenManager {
         }
       },
       {
-        x: confirmX + width + 20,
+        x: confirmX + scaledHorizontalSpacing,
         y: confirmY,
         width,
         height,
@@ -334,17 +358,24 @@ export class TitleScreenManager {
 
   private update = (_dt: number) => {
     // Handle sliding animation
+    const uiScale = getUniformScaleFactor();
+
+    const scaledSlotSlideSpeed = SLOT_SLIDE_SPEED * uiScale;
+    const scaledSlotOvershoot = SLOT_OVERSHOOT * uiScale;
+    const scaledSlotSettleSpeed = SLOT_SETTLE_SPEED * uiScale;
+    const scaledSlotStartYOffset = SLOT_START_Y_OFFSET * uiScale;
+
     if (this.isAnimatingSlots) {
       if (this.saveSlotAnimationPhase === 'sliding-up') {
         for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
-          this.saveSlotYOffsets[i] -= SLOT_SLIDE_SPEED;
+          this.saveSlotYOffsets[i] -= scaledSlotSlideSpeed;
         }
-        if (this.saveSlotYOffsets[0] <= -SLOT_OVERSHOOT) {
+        if (this.saveSlotYOffsets[0] <= -scaledSlotOvershoot) {
           this.saveSlotAnimationPhase = 'settling';
         }
       } else if (this.saveSlotAnimationPhase === 'settling') {
         for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
-          this.saveSlotYOffsets[i] += SLOT_SETTLE_SPEED;
+          this.saveSlotYOffsets[i] += scaledSlotSettleSpeed;
           if (this.saveSlotYOffsets[i] > 0) this.saveSlotYOffsets[i] = 0;
         }
         if (this.saveSlotYOffsets.every(offset => offset === 0)) {
@@ -353,10 +384,10 @@ export class TitleScreenManager {
         } 
       } else if (this.saveSlotAnimationPhase === 'sliding-down') {
           for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
-            this.saveSlotYOffsets[i] += SLOT_SLIDE_SPEED;
+            this.saveSlotYOffsets[i] += scaledSlotSlideSpeed;
           }
 
-          if (this.saveSlotYOffsets[0] >= SLOT_START_Y_OFFSET) {
+          if (this.saveSlotYOffsets[0] >= scaledSlotStartYOffset) {
             // Finalize: hide save slots after animation completes
             this.isAnimatingSlots = false;
             this.saveSlotAnimationPhase = null;
@@ -378,18 +409,14 @@ export class TitleScreenManager {
       : [...this.buttons, ...this.saveSlotButtons];
 
     for (const button of activeButtons) {
-      const { x: bx, y: by, width, height } = button;
-      button.isHovered = x >= bx && x <= bx + width && y >= by && y <= by + height;
-
-      if (click && button.isHovered) {
-        button.onClick();
-      }
+      handleButtonInteraction(button, x, y, click, uiScale);
     }
   };
 
   private render = (_dt: number) => {
     this.canvasManager.clearAll();
 
+    const uiScale = getUniformScaleFactor();
     const bgCtx = this.canvasManager.getContext('background');
     const uiCtx = this.canvasManager.getContext('ui');
 
@@ -399,32 +426,32 @@ export class TitleScreenManager {
 
     // Always render main buttons (Play/Back and Credits)
     for (const button of this.buttons) {
-      drawButton(uiCtx, button);
+      drawButton(uiCtx, button, uiScale);
     }
 
     // Render save slot buttons when showing save slots
     if (this.showingSaveSlots) {
       for (const button of this.saveSlotButtons) {
-        const slotIndex = Math.floor((button.y - 460) / 70);
+        const slotIndex = (button as UIButton & { slotIndex: number }).slotIndex;
         const offset = this.saveSlotYOffsets[slotIndex] ?? 0;
         const originalY = button.y;
         button.y += offset;
-        drawButton(uiCtx, button);
+        drawButton(uiCtx, button, uiScale);
         button.y = originalY;
       }
     }
 
-
     if (this.confirmingDeleteSlot !== null) {
       drawWindow({
         ctx: uiCtx,
-        x: 280,
-        y: 280,
-        width: 320,
-        height: 120,
+        x: WINDOW_X * uiScale,
+        y: WINDOW_Y * uiScale,
+        width: WINDOW_WIDTH,
+        height: WINDOW_HEIGHT,
         title: 'Confirm Deletion',
         mouse: this.inputManager.getMousePosition(),
         clicked: this.inputManager.wasMouseClicked(),
+        uiScale: uiScale,
         options: {
           borderColor: '#ff0000',
           backgroundGradient: {
@@ -437,22 +464,20 @@ export class TitleScreenManager {
         }
       });
 
+      // === Confirmation text ===
+      const fontSize = 14 * uiScale;
       uiCtx.fillStyle = '#ff4444';
-      uiCtx.font = '14px monospace';
-      uiCtx.fillText('Erase this save file?', 300, 320);
+      uiCtx.font = `${Math.round(fontSize)}px monospace`;
+      uiCtx.fillText('Erase this save file?', 300 * uiScale, 320 * uiScale);
 
       // Did I accidently put this here when we should be rendering the delete confirmation buttons?
       for (const button of this.confirmationButtons) {
-        drawButton(uiCtx, button);
+        drawButton(uiCtx, button, uiScale);
       }
     }
 
     const mouse = this.inputManager.getMousePosition();
     const cursor = getCrosshairCursorSprite();
-    uiCtx.drawImage(
-      cursor,
-      mouse.x - cursor.width / 2,
-      mouse.y - cursor.height / 2
-    );
+    drawCursor(uiCtx, cursor, mouse.x, mouse.y, uiScale);
   };
 }

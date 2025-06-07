@@ -6,9 +6,10 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
+import { getUniformScaleFactor } from '@/config/view';
 import { drawWindow } from '@/ui/primitives/WindowBox';
-import { drawButton, UIButton } from '@/ui/primitives/UIButton';
-import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
+import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
@@ -47,10 +48,13 @@ export class GalaxyMapSceneManager {
       }
     };
 
+    const uiScale = getUniformScaleFactor();
+    const buttonVerticalSpacing = 40 * uiScale;
+
     this.buttons = [
       {
         x: 120,
-        y: 440,
+        y: 440 * uiScale,
         width: 360,
         height: 40,
         label: 'Launch "Tutorial Mission"',
@@ -65,7 +69,7 @@ export class GalaxyMapSceneManager {
       },
       {
         x: 120,
-        y: 480,
+        y: (480 * uiScale) + buttonVerticalSpacing,
         width: 360,
         height: 40,
         label: 'Launch "Scrapyard Revenant"',
@@ -118,10 +122,7 @@ export class GalaxyMapSceneManager {
         x >= btn.x && x <= btn.x + btn.width &&
         y >= btn.y && y <= btn.y + btn.height;
 
-      if (clicked && btn.isHovered) {
-        btn.onClick();
-        break;
-      }
+      handleButtonInteraction(btn, x, y, clicked, getUniformScaleFactor());
     }
   };
 
@@ -146,10 +147,10 @@ export class GalaxyMapSceneManager {
     });
 
     for (const btn of this.buttons) {
-      drawButton(uiCtx, btn);
+      drawButton(uiCtx, btn, getUniformScaleFactor());
     }
 
     const cursor = getCrosshairCursorSprite();
-    uiCtx.drawImage(cursor, x - cursor.width / 2, y - cursor.height / 2);
+    drawCursor(uiCtx, cursor, x, y, getUniformScaleFactor());
   };
 }

@@ -1,5 +1,7 @@
 // src/core/Camera.ts
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export class Camera {
   public x = 0;
   public y = 0;
@@ -73,7 +75,10 @@ export class Camera {
         ? this.zoom * Math.pow(baseFactor, scrollSteps)
         : this.zoom / Math.pow(baseFactor, -scrollSteps);
 
-    this.zoom = Math.min(1, Math.max(0.2, newZoom));
+    const uiScale = getUniformScaleFactor();
+    const scaledMinZoom = 0.15 * uiScale;
+    const scaledMaxZoom = 1.0 * uiScale;
+    this.zoom = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, newZoom));
 
     const centerWorldAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
 

@@ -1,5 +1,6 @@
 // src/config/view.ts
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from './virtualResolution';
 
 export function getViewportWidth(): number {
   return PlayerSettingsManager.getInstance().getViewportWidth();
@@ -7,6 +8,18 @@ export function getViewportWidth(): number {
 
 export function getViewportHeight(): number {
   return PlayerSettingsManager.getInstance().getViewportHeight();
+}
+
+export function getWidthScaleFactor(): number {
+  return getViewportWidth() / VIRTUAL_WIDTH;
+}
+
+export function getHeightScaleFactor(): number {
+  return getViewportHeight() / VIRTUAL_HEIGHT;
+}
+
+export function getUniformScaleFactor(): number {
+  return Math.min(getWidthScaleFactor(), getHeightScaleFactor());
 }
 
 export function getResolutionScaleFactor(): number {

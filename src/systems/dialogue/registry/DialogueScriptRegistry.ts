@@ -3,6 +3,7 @@
 import type { DialogueScript } from '@/systems/dialogue/interfaces/DialogueScript';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
+import { createTestScript } from '@/systems/dialogue/scripts/0x_test_script';
 import { createHubIntroductionScript, createHubIntroductionScript2, createHubIntroductionScript3 } from '@/systems/dialogue/scripts/00_hub_introduction';
 import { createIntroBriefingScript } from '@/systems/dialogue/scripts/01_introBriefing';
 import { createMissionGenericScript } from '@/systems/dialogue/scripts/02_missionGeneric';
@@ -11,6 +12,7 @@ import { createPlanetGenericScript } from '@/systems/dialogue/scripts/03_planet_
 type DialogueScriptFactory = (context: DialogueContext) => DialogueScript;
 
 const dialogueScriptRegistry = new Map<string, DialogueScriptFactory>([
+  ['test-script', createTestScript],
   ['hub-introduction-1', createHubIntroductionScript],
   ['hub-introduction-2', createHubIntroductionScript2],
   ['hub-introduction-3', createHubIntroductionScript3],
