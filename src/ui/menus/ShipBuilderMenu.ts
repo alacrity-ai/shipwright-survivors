@@ -11,6 +11,10 @@ import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 import { drawLabelLine } from '@/ui/utils/drawLabelLine';
 import { audioManager } from '@/audio/Audio';
 
+import { getUIScale } from '@/ui/menus/helpers/getUIScale';
+import { getResolutionScaleFactor } from '@/config/view';
+import { getUITextScale } from '@/ui/menus/helpers/getUIScale';
+
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 
@@ -20,31 +24,6 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { WindowTab } from '@/ui/primitives/WindowBox';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-
-// === Layout Constants ===
-const PADDING = 16;
-const TILE_SIZE = 40;
-const GRID_COLS = 6;
-const GRID_ROWS = 6;
-
-const WINDOW_HEADER_HEIGHT = 28;
-const BLOCK_INFO_OFFSET = 12;
-const INFO_WINDOW_HEIGHT = 200;
-
-const WINDOW_X = 20;
-const WINDOW_Y = 40;
-const WINDOW_WIDTH = TILE_SIZE * GRID_COLS + PADDING * 2;
-const WINDOW_HEIGHT = TILE_SIZE * GRID_ROWS + 60;
-const BLOCKINFO_WINDOW_WIDTH = TILE_SIZE * (GRID_COLS - 2) + PADDING * 3;
-const UTILITY_WINDOW_WIDTH = TILE_SIZE + PADDING;
-
-const UTILITY_BUTTON_VERTICAL_MARGIN = 14;
-
-// Animation constants
-const TOTAL_MENU_WIDTH = WINDOW_WIDTH + BLOCKINFO_WINDOW_WIDTH + UTILITY_WINDOW_WIDTH + PADDING;
-const SLIDE_SPEED = 10;
-const OVERSHOOT_DISTANCE = 30;
-const SETTLE_SPEED = 4;
 
 const IGNORED_KEYS = new Set(['canThrust', 'canFire']);
 const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
@@ -63,6 +42,29 @@ export class ShipBuilderMenu implements Menu {
 
   private open = false;
 
+  private scaleMulti = 0.8;
+
+  private PADDING: number = 0;
+  private TILE_SIZE: number = 0;
+  private GRID_COLS: number = 6;
+  private GRID_ROWS: number = 6;
+  private WINDOW_HEADER_HEIGHT: number = 0;
+  private BLOCK_INFO_OFFSET: number = 0;
+  private INFO_WINDOW_HEIGHT: number = 0;
+  private WINDOW_X: number = 0;
+  private WINDOW_Y: number = 0;
+  private WINDOW_WIDTH: number = 0;
+  private WINDOW_HEIGHT: number = 0;
+  private BLOCKINFO_WINDOW_WIDTH: number = 0;
+  private UTILITY_WINDOW_WIDTH: number = 0;
+  private UTILITY_BUTTON_VERTICAL_MARGIN: number = 0;
+  private UTILITY_BUTTON_SPACING: number = 0;
+  private UTILITY_BUTTON_HEIGHT: number = 0;
+  private TOTAL_MENU_WIDTH: number = 0;
+  private SLIDE_SPEED: number = 0;
+  private OVERSHOOT_DISTANCE: number = 0;
+  private SETTLE_SPEED: number = 0;
+
   // Animation state
   private slideX = 0;
   private isAnimating = false;
@@ -70,10 +72,41 @@ export class ShipBuilderMenu implements Menu {
   private targetX = 0;
 
   constructor(inputManager: InputManager, cursorRenderer: CursorRenderer) {
+    this.resize();
     this.inputManager = inputManager;
     this.cursorRenderer = cursorRenderer;
     // Initialize slide position to be completely off-screen
-    this.slideX = -(TOTAL_MENU_WIDTH + 50);
+    this.slideX = -(this.TOTAL_MENU_WIDTH! + 50);
+  }
+
+  resize(): void {
+    // This isn't good enough, for larger resolutions, we need the scale multi to grow
+    // E.g. in 1080p, it's 1, in 1440p, it's 1.4, in 4k, it's 1.8
+    const scale = Math.max(1, getUIScale() * getResolutionScaleFactor());
+
+    this.PADDING = 16 * scale;
+    this.TILE_SIZE = 40 * scale;
+  
+    this.WINDOW_HEADER_HEIGHT = 28 * scale;
+    this.BLOCK_INFO_OFFSET = 12 * scale;
+    this.INFO_WINDOW_HEIGHT = 200 * scale;
+
+    this.WINDOW_X = 20 * scale;
+    this.WINDOW_Y = 40 * scale;
+    this.WINDOW_WIDTH = this.TILE_SIZE * this.GRID_COLS + this.PADDING * 2;
+
+    this.WINDOW_HEIGHT = this.TILE_SIZE * this.GRID_ROWS + (60 * scale);
+    this.BLOCKINFO_WINDOW_WIDTH = this.TILE_SIZE * (this.GRID_COLS - 2) + (this.PADDING * 2);
+    this.UTILITY_WINDOW_WIDTH = this.TILE_SIZE + (this.PADDING * 2);
+
+    this.UTILITY_BUTTON_VERTICAL_MARGIN = 14 * scale;
+    this.UTILITY_BUTTON_SPACING = 8 * scale;
+    this.UTILITY_BUTTON_HEIGHT = 32 * scale;
+
+    this.TOTAL_MENU_WIDTH = this.WINDOW_WIDTH + this.BLOCKINFO_WINDOW_WIDTH + this.UTILITY_WINDOW_WIDTH + this.PADDING;
+    this.SLIDE_SPEED = 10 * scale;
+    this.OVERSHOOT_DISTANCE = 30 * scale;
+    this.SETTLE_SPEED = 4 * scale;
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -83,10 +116,10 @@ export class ShipBuilderMenu implements Menu {
     const tabs = this.buildCategoryTabs();
     const tabWasClicked = drawWindow({
       ctx,
-      x: WINDOW_X + this.slideX,
-      y: WINDOW_Y,
-      width: WINDOW_WIDTH,
-      height: WINDOW_HEIGHT,
+      x: this.WINDOW_X + this.slideX,
+      y: this.WINDOW_Y,
+      width: this.WINDOW_WIDTH,
+      height: this.WINDOW_HEIGHT,
       title: '',
       tabs,
       mouse,
@@ -115,28 +148,28 @@ export class ShipBuilderMenu implements Menu {
       blocks,
       mouse,
       clicked,
-      WINDOW_X + PADDING + this.slideX,
-      WINDOW_Y + WINDOW_HEADER_HEIGHT,
+      this.WINDOW_X + this.PADDING + this.slideX,
+      this.WINDOW_Y + this.WINDOW_HEADER_HEIGHT,
       tabWasClicked
     );
 
-    const infoX = WINDOW_X + this.slideX;
-    const infoY = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET;
+    const infoX = this.WINDOW_X + this.slideX;
+    const infoY = this.WINDOW_Y + this.WINDOW_HEIGHT + this.BLOCK_INFO_OFFSET;
 
     // === Tooltip override: hovered utility tool
     if (this.hoveredUtilityTool) {
-      this.renderToolInfo(ctx, this.hoveredUtilityTool, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      this.renderToolInfo(ctx, this.hoveredUtilityTool, infoX, infoY, this.BLOCKINFO_WINDOW_WIDTH);
       this.cursorRenderer.setHoveredCursor();
     }
     // === Repair mode
     else if (this.activeTool === ShipBuilderTool.REPAIR) {
-      this.renderRepairInfoForBlock(ctx, this.hoveredShipBlock, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      this.renderRepairInfoForBlock(ctx, this.hoveredShipBlock, infoX, infoY, this.BLOCKINFO_WINDOW_WIDTH);
       this.cursorRenderer.setWrenchCursor();
     }
     // === Block grid or selected block
     else {
       const blockToInspect = hoveredBlock ?? selectedBlock ?? null;
-      this.renderBlockInfo(ctx, blockToInspect, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      this.renderBlockInfo(ctx, blockToInspect, infoX, infoY, this.BLOCKINFO_WINDOW_WIDTH);
       if (hoveredBlock) {
         this.cursorRenderer.setHoveredCursor();
       } else {
@@ -150,10 +183,10 @@ export class ShipBuilderMenu implements Menu {
 
     this.renderUtilityWindow(
       ctx,
-      WINDOW_X + BLOCKINFO_WINDOW_WIDTH + PADDING + this.slideX,
-      WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET,
-      UTILITY_WINDOW_WIDTH,
-      INFO_WINDOW_HEIGHT,
+      this.WINDOW_X + this.BLOCKINFO_WINDOW_WIDTH + (0.5 * this.PADDING) + this.slideX,
+      this.WINDOW_Y + this.WINDOW_HEIGHT + this.BLOCK_INFO_OFFSET,
+      this.UTILITY_WINDOW_WIDTH,
+      this.INFO_WINDOW_HEIGHT,
       mouse,
       clicked
     );
@@ -182,21 +215,21 @@ export class ShipBuilderMenu implements Menu {
   ): BlockType | null {
     const techManager = PlayerTechnologyManager.getInstance();
     const grouped = groupBlocksBySubcategory(blocks);
-    const rowSpacing = TILE_SIZE;
+    const rowSpacing = this.TILE_SIZE;
     let currentRow = 0;
     let hoveredBlock: BlockType | null = null;
 
     for (const [, groupBlocks] of grouped) {
       for (let i = 0; i < groupBlocks.length; i++) {
         const block = groupBlocks[i];
-        const col = i % GRID_COLS;
+        const col = i % this.GRID_COLS;
         const row = currentRow;
 
-        const x = originX + col * TILE_SIZE;
+        const x = originX + col * this.TILE_SIZE;
         const y = originY + row * rowSpacing;
 
-        const isHovered = mouse.x >= x && mouse.x <= x + TILE_SIZE &&
-                          mouse.y >= y && mouse.y <= y + TILE_SIZE;
+        const isHovered = mouse.x >= x && mouse.x <= x + this.TILE_SIZE &&
+                          mouse.y >= y && mouse.y <= y + this.TILE_SIZE;
         const isSelected = this.selectedBlockId === block.id;
         const isUnlocked = techManager.isUnlocked(block.id);
 
@@ -204,7 +237,7 @@ export class ShipBuilderMenu implements Menu {
         drawBlockTile(ctx, {
           x,
           y,
-          size: TILE_SIZE,
+          size: this.TILE_SIZE,
           sprite: sprite.base,
           overlaySprite: sprite.overlay,
           isHovered,
@@ -248,7 +281,7 @@ export class ShipBuilderMenu implements Menu {
       x,
       y,
       width,
-      height: INFO_WINDOW_HEIGHT,
+      height: this.INFO_WINDOW_HEIGHT,
       title: 'Info',
       options: {
         alpha: 0.5,
@@ -264,9 +297,9 @@ export class ShipBuilderMenu implements Menu {
       }
     });
 
-    const textX = x + PADDING;
+    const textX = x + this.PADDING;
     let textY = y + 32;
-    const wrapWidth = width + 10;
+    const wrapWidth = width;
 
     const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
     const formatValue = (val: unknown): string | number =>
@@ -277,22 +310,24 @@ export class ShipBuilderMenu implements Menu {
 
     if (!block) return;
 
-    textY = drawLabelLine(ctx, textX, textY, 'Name', block.name, '#6cf', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Armor', formatValue(block.armor), '#09f', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Mass', formatValue(block.mass), '#999', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Cost', formatValue(block.cost), '#6f6', wrapWidth);
+    const textScale = Math.max(0.75, getUITextScale(getUIScale()));
+
+    textY = drawLabelLine(ctx, textX, textY, 'Name', block.name, '#6cf', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Armor', formatValue(block.armor), '#09f', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Mass', formatValue(block.mass), '#999', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Cost', formatValue(block.cost), '#6f6', wrapWidth, textScale);
 
     if (block.behavior) {
       Object.entries(block.behavior).forEach(([key, val]) => {
         if (IGNORED_KEYS.has(key)) return;
         if (val && typeof val === 'object' && !Array.isArray(val)) {
-          textY = drawLabelLine(ctx, textX, textY, capitalize(key), '', '#fc6', wrapWidth);
+          textY = drawLabelLine(ctx, textX, textY, capitalize(key), '', '#fc6', wrapWidth, textScale);
           Object.entries(val).forEach(([subKey, subVal]) => {
             const label = `• ${capitalize(subKey)}`;
-            textY = drawLabelLine(ctx, textX, textY, label, formatValue(subVal), '#999', wrapWidth);
+            textY = drawLabelLine(ctx, textX, textY, label, formatValue(subVal), '#999', wrapWidth, textScale);
           });
         } else {
-          textY = drawLabelLine(ctx, textX, textY, capitalize(key), formatValue(val), '#fc6', wrapWidth);
+          textY = drawLabelLine(ctx, textX, textY, capitalize(key), formatValue(val), '#fc6', wrapWidth, textScale);
         }
       });
     }
@@ -310,7 +345,7 @@ export class ShipBuilderMenu implements Menu {
       x,
       y,
       width,
-      height: INFO_WINDOW_HEIGHT,
+      height: this.INFO_WINDOW_HEIGHT,
       title: 'Repair Info',
       options: {
         alpha: 0.5,
@@ -326,23 +361,25 @@ export class ShipBuilderMenu implements Menu {
       }
     });
 
-    const textX = x + PADDING;
+    const textX = x + this.PADDING;
     let textY = y + 32;
-    const wrapWidth = width + 10;
+    const wrapWidth = width;
+
+    const textScale = Math.max(0.75, getUITextScale(getUIScale()));
 
     if (!block) {
-      textY = drawLabelLine(ctx, textX, textY, 'Hover block', 'to inspect', '#888', wrapWidth);
-      textY = drawLabelLine(ctx, textX, textY, 'Repair', 'Left-click', '#888', wrapWidth);
+      textY = drawLabelLine(ctx, textX, textY, 'Hover block', 'to inspect', '#888', wrapWidth, textScale);
+      textY = drawLabelLine(ctx, textX, textY, 'Repair', 'Left-click', '#888', wrapWidth, textScale);
       return;
     }
 
     const { type, hp } = block;
     const missingHp = type.armor - hp;
 
-    textY = drawLabelLine(ctx, textX, textY, 'Name', type.name, '#6cf', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Armor', `${hp} / ${type.armor}`, '#09f', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Damage', missingHp > 0 ? missingHp : 'None', '#f66', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Repair Cost', missingHp > 0 ? getRepairCost(block) : '—', '#6f6', wrapWidth);
+    textY = drawLabelLine(ctx, textX, textY, 'Name', type.name, '#6cf', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Armor', `${hp} / ${type.armor}`, '#09f', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Damage', missingHp > 0 ? missingHp : 'None', '#f66', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Repair Cost', missingHp > 0 ? getRepairCost(block) : '—', '#6f6', wrapWidth, textScale);
   }
 
   private renderUtilityWindow(
@@ -375,11 +412,11 @@ export class ShipBuilderMenu implements Menu {
       }
     });
 
-    const buttonHeight = 32;
-    const spacing = 8;
-    const buttonWidth = width - PADDING * 2;
-    const startX = x + PADDING;
-    let currentY = y + WINDOW_HEADER_HEIGHT + spacing - UTILITY_BUTTON_VERTICAL_MARGIN;
+    const spacing = this.UTILITY_BUTTON_SPACING;
+    const buttonHeight = this.UTILITY_BUTTON_HEIGHT;
+    const buttonWidth = width - this.PADDING * 2;
+    const startX = x + this.PADDING;
+    let currentY = y + this.WINDOW_HEADER_HEIGHT + spacing - this.UTILITY_BUTTON_VERTICAL_MARGIN;
 
     this.hoveredUtilityTool = null; // ← Reset before loop
 
@@ -475,7 +512,7 @@ export class ShipBuilderMenu implements Menu {
       x,
       y,
       width,
-      height: INFO_WINDOW_HEIGHT,
+      height: this.INFO_WINDOW_HEIGHT,
       title: 'Tool Info',
       options: {
         alpha: 0.5,
@@ -491,38 +528,39 @@ export class ShipBuilderMenu implements Menu {
       }
     });
 
-    const textX = x + PADDING;
+    const textX = x + this.PADDING;
     let textY = y + 32;
-    const wrapWidth = width + 10;
+    const wrapWidth = width - this.PADDING;
+    const textScale = Math.max(0.75, getUITextScale(getUIScale()));
 
     if (tool === ShipBuilderTool.REPAIR) {
-      textY = drawLabelLine(ctx, textX, textY, 'Repair Mode', 'Individual block repair', '#888', wrapWidth);
-      textY = drawLabelLine(ctx, textX, textY, 'Cost', 'Based on damage', '#888', wrapWidth);
+      textY = drawLabelLine(ctx, textX, textY, 'Repair Mode', 'Individual block repair', '#888', wrapWidth, textScale);
+      textY = drawLabelLine(ctx, textX, textY, 'Cost', 'Based on damage', '#888', wrapWidth, textScale);
     }
 
     if (tool === ShipBuilderTool.REPAIR_ALL) {
-      textY = drawLabelLine(ctx, textX, textY, 'Repair All', 'Repairs all damaged blocks', '#888', wrapWidth);
-      textY = drawLabelLine(ctx, textX, textY, 'Cost', 'As much as you can afford', '#888', wrapWidth);
-      textY = drawLabelLine(ctx, textX, textY, 'Order', 'Repairs most damaged blocks first', '#888', wrapWidth);
+      textY = drawLabelLine(ctx, textX, textY, 'Repair All', 'Repairs all damaged blocks', '#888', wrapWidth, textScale);
+      textY = drawLabelLine(ctx, textX, textY, 'Cost', 'As much as you can afford', '#888', wrapWidth, textScale);
+      textY = drawLabelLine(ctx, textX, textY, 'Order', 'Repairs most damaged blocks first', '#888', wrapWidth, textScale);
     }
   }
 
   update(): void {
     if (this.isAnimating) {
       if (this.animationPhase === 'sliding-in') {
-        this.slideX += SLIDE_SPEED;
-        if (this.slideX >= this.targetX + OVERSHOOT_DISTANCE) {
+        this.slideX += this.SLIDE_SPEED;
+        if (this.slideX >= this.targetX + this.OVERSHOOT_DISTANCE) {
           this.animationPhase = 'settling';
         }
       } else if (this.animationPhase === 'settling') {
-        this.slideX -= SETTLE_SPEED;
+        this.slideX -= this.SETTLE_SPEED;
         if (this.slideX <= this.targetX) {
           this.slideX = this.targetX;
           this.isAnimating = false;
           this.animationPhase = null;
         }
       } else if (this.animationPhase === 'sliding-out') {
-        this.slideX -= SLIDE_SPEED;
+        this.slideX -= this.SLIDE_SPEED;
         if (this.slideX <= this.targetX) {
           this.slideX = this.targetX;
           this.animationPhase = null;
@@ -555,11 +593,12 @@ export class ShipBuilderMenu implements Menu {
   }
 
   openMenu(): void {
+    this.resize();
     audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
     this.open = true;
     
     // Start the slide animation
-    this.slideX = -(TOTAL_MENU_WIDTH + 50);
+    this.slideX = -(this.TOTAL_MENU_WIDTH + 50);
     this.targetX = 0;
     this.isAnimating = true;
     this.animationPhase = 'sliding-in';
@@ -567,7 +606,7 @@ export class ShipBuilderMenu implements Menu {
 
   closeMenu(): void {
     // Start the slide-out animation
-    this.targetX = -(TOTAL_MENU_WIDTH + 50); // target off-screen
+    this.targetX = -(this.TOTAL_MENU_WIDTH + 50); // target off-screen
     this.animationPhase = 'sliding-out';
     this.isAnimating = true;
 
@@ -586,26 +625,26 @@ export class ShipBuilderMenu implements Menu {
 
   public isPointInBounds(x: number, y: number): boolean {
     // Adjust bounds checking to account for slide offset
-    const mainWindowRight = WINDOW_X + WINDOW_WIDTH + this.slideX;
-    const mainWindowBottom = WINDOW_Y + WINDOW_HEIGHT;
+    const mainWindowRight = this.WINDOW_X + this.WINDOW_WIDTH + this.slideX;
+    const mainWindowBottom = this.WINDOW_Y + this.WINDOW_HEIGHT;
 
-    const blockInfoRight = WINDOW_X + BLOCKINFO_WINDOW_WIDTH + this.slideX;
-    const blockInfoBottom = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET + INFO_WINDOW_HEIGHT;
+    const blockInfoRight = this.WINDOW_X + this.BLOCKINFO_WINDOW_WIDTH + this.slideX;
+    const blockInfoBottom = this.WINDOW_Y + this.WINDOW_HEIGHT + this.BLOCK_INFO_OFFSET + this.INFO_WINDOW_HEIGHT;
 
-    const utilityWindowLeft = WINDOW_X + BLOCKINFO_WINDOW_WIDTH + PADDING + this.slideX;
-    const utilityWindowRight = utilityWindowLeft + UTILITY_WINDOW_WIDTH;
-    const utilityWindowTop = WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET;
-    const utilityWindowBottom = utilityWindowTop + INFO_WINDOW_HEIGHT;
+    const utilityWindowLeft = this.WINDOW_X + this.BLOCKINFO_WINDOW_WIDTH + this.PADDING + this.slideX;
+    const utilityWindowRight = utilityWindowLeft + this.UTILITY_WINDOW_WIDTH;
+    const utilityWindowTop = this.WINDOW_Y + this.WINDOW_HEIGHT + this.BLOCK_INFO_OFFSET;
+    const utilityWindowBottom = utilityWindowTop + this.INFO_WINDOW_HEIGHT;
 
     const tabHeight = 30;
 
     const withinMainWindow =
-      x >= WINDOW_X + this.slideX && x <= mainWindowRight &&
-      y >= WINDOW_Y - tabHeight && y <= mainWindowBottom;
+      x >= this.WINDOW_X + this.slideX && x <= mainWindowRight &&
+      y >= this.WINDOW_Y - tabHeight && y <= mainWindowBottom;
 
     const withinBlockInfoWindow =
-      x >= WINDOW_X + this.slideX && x <= blockInfoRight &&
-      y >= WINDOW_Y + WINDOW_HEIGHT + BLOCK_INFO_OFFSET &&
+      x >= this.WINDOW_X + this.slideX && x <= blockInfoRight &&
+      y >= this.WINDOW_Y + this.WINDOW_HEIGHT + this.BLOCK_INFO_OFFSET &&
       y <= blockInfoBottom;
 
     const withinUtilityWindow =

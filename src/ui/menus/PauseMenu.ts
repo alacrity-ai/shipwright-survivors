@@ -3,6 +3,9 @@
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton } from '@/ui/primitives/UIButton';
+import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
+import { getUIScale } from '@/ui/menus/helpers/getUIScale';
+import { flags } from '@/game/player/PlayerFlagManager';
 
 import type { MenuManager } from '@/ui/MenuManager';
 import type { UIButton } from '@/ui/primitives/UIButton';
@@ -13,15 +16,28 @@ export class PauseMenu implements Menu {
   private resumeButton: UIButton;
   private abandonButton: UIButton;
   private settingsButton: UIButton;
+  private sharedStyle: UIButton['style'];
+  private disabledStyle: UIButton['style'];
 
   private open = false;
+
+  // Window position constants
+  private readonly windowX = 120;
+  private readonly windowY = 100;
+  private readonly windowWidth = 220;
+  private readonly windowHeight = 240;
+
+  // Button size constants
+  private readonly buttonWidth = 140;
+  private readonly buttonHeight = 40;
 
   constructor(
     private readonly inputManager: InputManager,
     private readonly onAbandon: () => void,
     private readonly menuManager: MenuManager,
   ) {
-    const sharedStyle = {
+    // Style definitions
+    this.sharedStyle = {
       borderRadius: 10,
       alpha: 0.9,
       borderColor: '#00ff00',
@@ -34,83 +50,107 @@ export class PauseMenu implements Menu {
       }
     };
 
+    this.disabledStyle = {
+      borderRadius: 10,
+      alpha: 0.5,
+      borderColor: '#445544',
+      backgroundGradient: {
+        type: 'linear' as const,
+        stops: [
+          { offset: 0, color: '#111911' },
+          { offset: 1, color: '#0a120a' }
+        ]
+      }
+    };
+
+    // These are instantiated later in `initialize()`
+    this.settingsButton = {} as UIButton;
+    this.abandonButton = {} as UIButton;
+    this.resumeButton = {} as UIButton;
+
+    this.initialize();
+  }
+
+  private initialize(): void {
+    const scale = getUIScale();
+
+    const scaledButtonHeight = this.buttonHeight * scale;
+    const scaledSpacing = scaledButtonHeight * 0.5;
+
+    const scaledWindowWidth = this.windowWidth * scale;
+    const scaledWindowHeight = this.windowHeight * scale;
+
+    const baseX = 0.2 * scaledWindowWidth + this.windowX;
+    const baseY = 0.2 * scaledWindowHeight + this.windowY;
+
     this.settingsButton = {
-      x: 160,
-      y: 160,
-      width: 140,
-      height: 40,
+      x: baseX,
+      y: baseY,
+      width: this.buttonWidth, // Set these as the unscaled values
+      height: this.buttonHeight, // They will be scaled via uiScale argument
       label: 'Settings',
       onClick: () => {
         const settingsMenu = this.menuManager.getMenu('settingsMenu');
-        if (!settingsMenu) return;
-        this.menuManager.transition(settingsMenu);
+        if (settingsMenu) this.menuManager.transition(settingsMenu);
       },
-      style: sharedStyle
-    };
-
-    this.resumeButton = {
-      x: 160,
-      y: 260,
-      width: 140,
-      height: 40,
-      label: 'Resume',
-      onClick: () => { 
-        this.menuManager.close(this),
-        this.menuManager.resume();
-      },
-      style: sharedStyle
+      style: this.sharedStyle
     };
 
     this.abandonButton = {
-      x: 160,
-      y: 210,
-      width: 140,
-      height: 40,
+      x: baseX,
+      y: baseY + (scaledSpacing * 1) + (scaledButtonHeight * 1),
+      width: this.buttonWidth,
+      height: this.buttonHeight,
       label: 'Abandon Mission',
+      onClick: flags.has('mission.intro-briefing.complete') ? this.onAbandon : () => {},
+      style: flags.has('mission.intro-briefing.complete') ? this.sharedStyle : this.disabledStyle
+    };
+
+    this.resumeButton = {
+      x: baseX,
+      y: baseY + (scaledSpacing * 2) + (scaledButtonHeight * 2),
+      width: this.buttonWidth,
+      height: this.buttonHeight,
+      label: 'Resume',
       onClick: () => {
-        this.onAbandon();
+        this.menuManager.close(this);
+        this.menuManager.resume();
       },
-      style: sharedStyle
+      style: this.sharedStyle
     };
   }
 
-  update() {
+  update(): void {
+    const scale = getUIScale();
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
     if (!mouse) return;
 
     const { x, y } = mouse;
 
-    this.settingsButton.isHovered =
-      x >= this.settingsButton.x && x <= this.settingsButton.x + this.settingsButton.width &&
-      y >= this.settingsButton.y && y <= this.settingsButton.y + this.settingsButton.height;
-
-    this.resumeButton.isHovered =
-      x >= this.resumeButton.x && x <= this.resumeButton.x + this.resumeButton.width &&
-      y >= this.resumeButton.y && y <= this.resumeButton.y + this.resumeButton.height;
-
-    this.abandonButton.isHovered =
-      x >= this.abandonButton.x && x <= this.abandonButton.x + this.abandonButton.width &&
-      y >= this.abandonButton.y && y <= this.abandonButton.y + this.abandonButton.height;
+    const buttons = [this.settingsButton, this.abandonButton, this.resumeButton];
+    for (const btn of buttons) {
+      const rect = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
+      btn.isHovered = isMouseOverRect(x, y, rect, scale);
+    }
 
     if (clicked) {
-      if (this.settingsButton.isHovered) {
-        this.settingsButton.onClick();
-      } else if (this.resumeButton.isHovered) {
-        this.resumeButton.onClick();
-      } else if (this.abandonButton.isHovered) {
-        this.abandonButton.onClick();
-      }
+      if (this.settingsButton.isHovered) this.settingsButton.onClick();
+      else if (this.abandonButton.isHovered) this.abandonButton.onClick();
+      else if (this.resumeButton.isHovered) this.resumeButton.onClick();
     }
   }
 
-  render(ctx: CanvasRenderingContext2D) {
+  render(ctx: CanvasRenderingContext2D): void {
+    const scale = getUIScale();
+
     drawWindow({
       ctx,
-      x: 120,
-      y: 100,
-      width: 220,
-      height: 240,
+      x: this.windowX,
+      y: this.windowY,
+      width: this.windowWidth,
+      height: this.windowHeight,
+      uiScale: scale,
       options: {
         alpha: 0.5,
         borderRadius: 12,
@@ -125,15 +165,22 @@ export class PauseMenu implements Menu {
       }
     });
 
-    drawLabel(ctx, 230, 120, 'Game Paused', {
-      font: '16px monospace',
-      align: 'center',
-      glow: true
-    });
+    drawLabel(
+      ctx,
+      this.windowX + this.windowWidth / 2,
+      this.windowY + 10,
+      'Game Paused',
+      {
+        font: '16px monospace',
+        align: 'center',
+        glow: true,
+      },
+      scale
+    );
 
-    drawButton(ctx, this.settingsButton);
-    drawButton(ctx, this.resumeButton);
-    drawButton(ctx, this.abandonButton);
+    drawButton(ctx, this.settingsButton, scale);
+    drawButton(ctx, this.abandonButton, scale);
+    drawButton(ctx, this.resumeButton, scale);
   }
 
   isOpen(): boolean {
@@ -141,6 +188,7 @@ export class PauseMenu implements Menu {
   }
 
   openMenu(): void {
+    this.initialize();
     this.open = true;
   }
 

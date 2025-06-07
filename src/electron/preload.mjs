@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ping: () => 'pong',
   getPlatform: () => process.platform,
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
-  closeGame: () => ipcRenderer.send('close-game')
+  closeGame: () => ipcRenderer.send('close-game'),
+  resizeGameViewport: (width, height) => {
+    ipcRenderer.send('resize-game-viewport', width, height);
+  }
 });
 

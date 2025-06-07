@@ -1,16 +1,16 @@
-// src/ui/utils/drawLabelLine.ts
-
 import { drawLabel } from '@/ui/primitives/UILabel';
 
 /**
  * Draws a label line, wrapping text as needed within the specified width.
+ *
  * @param ctx - The rendering context.
- * @param x - Starting x position.
- * @param y - Starting y position (will be mutated).
+ * @param x - Starting x position (unscaled).
+ * @param y - Starting y position (unscaled).
  * @param label - Left-side label text.
  * @param value - Right-side value text.
  * @param labelColor - Optional color for the label text.
- * @param width - Width to wrap within.
+ * @param width - Max width to wrap within (screen space).
+ * @param uiScale - UI scaling factor (default = 1.0).
  * @returns new y-position after drawing the wrapped lines.
  */
 export function drawLabelLine(
@@ -20,14 +20,19 @@ export function drawLabelLine(
   label: string,
   value: string | number,
   labelColor = '#888',
-  width: number
+  width: number,
+  uiScale: number = 1.0
 ): number {
+  const fontSize = Math.round(14 * uiScale);
+  const font = `${fontSize}px monospace`;
+  const lineHeight = 16 * uiScale;
+
+  ctx.font = font;
+
   const text = `${label}: ${value}`;
   const words = text.split(' ');
   const lines: string[] = [];
   let currentLine = '';
-
-  ctx.font = '14px monospace'; // Ensure consistent measureText
 
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
@@ -42,7 +47,6 @@ export function drawLabelLine(
   if (currentLine) lines.push(currentLine);
 
   for (const line of lines) {
-    // Highlight first colon-separated part
     const colonIndex = line.indexOf(':');
     const hasColon = colonIndex !== -1;
     const labelPart = hasColon ? line.slice(0, colonIndex + 1) : '';
@@ -51,8 +55,12 @@ export function drawLabelLine(
     drawLabel(ctx, x, y, [
       ...(hasColon ? [{ text: labelPart + ' ', color: labelColor }] : []),
       { text: valuePart, color: '#fff' }
-    ]);
-    y += 16;
+    ], {
+      font,
+      align: 'left',
+    });
+
+    y += lineHeight;
   }
 
   return y;

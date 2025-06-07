@@ -154,6 +154,7 @@ export class EngineRuntime {
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
+    this.camera = new Camera(getViewportWidth(), getViewportHeight());
     
     // Persistent UI
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
@@ -162,7 +163,7 @@ export class EngineRuntime {
     // Menus
     this.menuManager = new MenuManager();
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager);
+    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
     this.pauseMenu = new PauseMenu(
       this.inputManager,
       this.handlePlayerFailure.bind(this),
@@ -173,7 +174,6 @@ export class EngineRuntime {
     this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
     this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
 
-    this.camera = new Camera(getViewportWidth(), getViewportHeight());
     this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 

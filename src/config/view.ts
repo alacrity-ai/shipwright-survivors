@@ -8,3 +8,12 @@ export function getViewportWidth(): number {
 export function getViewportHeight(): number {
   return PlayerSettingsManager.getInstance().getViewportHeight();
 }
+
+export function getResolutionScaleFactor(): number {
+  const w = getViewportWidth();
+  const h = getViewportHeight();
+  if (w >= 3840) return 1.8;
+  if (w >= 2560) return 1.2;
+  if (h >= 1200) return 1.0;
+  return 0.8;
+}

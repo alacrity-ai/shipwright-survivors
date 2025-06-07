@@ -17,8 +17,8 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
 export class CanvasManager {
   private canvases: Record<CanvasLayer, HTMLCanvasElement> = {} as any;
   private contexts: Record<CanvasLayer, CanvasRenderingContext2D> = {} as any;
-  private readonly width = getViewportWidth();
-  private readonly height = getViewportHeight();
+  // private readonly width = getViewportWidth();
+  // private readonly height = getViewportHeight();
 
   constructor() {
     this.initializeCanvases();
@@ -50,10 +50,10 @@ export class CanvasManager {
 
   private setFixedSize() {
     for (const canvas of Object.values(this.canvases)) {
-      canvas.width = this.width;
-      canvas.height = this.height;
-      canvas.style.width = `${this.width}px`;
-      canvas.style.height = `${this.height}px`;
+      canvas.width = getViewportWidth();
+      canvas.height = getViewportHeight();
+      canvas.style.width = `${getViewportWidth()}px`;
+      canvas.style.height = `${getViewportHeight()}px`;
     }
   }
 
@@ -79,7 +79,7 @@ export class CanvasManager {
 
   clearLayer(layer: CanvasLayer) {
     const ctx = this.getContext(layer);
-    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.clearRect(0, 0, getViewportWidth(), getViewportHeight());
   }
 
   clearAll() {
@@ -89,15 +89,27 @@ export class CanvasManager {
   }
 
   getWidth(): number {
-    return this.width;
+    return getViewportWidth();
   }
 
   getHeight(): number {
-    return this.height;
+    return getViewportHeight();
   }
 
   getDimensions(): { width: number; height: number } {
-    return { width: this.width, height: this.height };
+    return { width: getViewportWidth(), height: getViewportHeight() };
+  }
+
+  public resize(): void {
+    const width = getViewportWidth();
+    const height = getViewportHeight();
+
+    for (const canvas of Object.values(this.canvases)) {
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+    }
   }
 }
 

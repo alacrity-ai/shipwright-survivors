@@ -1,5 +1,8 @@
 // src/core/InputManager.ts
 
+import { toggleBrowserFullscreen } from '@/shared/toggleBrowserFullscreen';
+import { isElectron } from '@/shared/isElectron';
+
 type KeyState = { pressed: boolean };
 type MouseState = {
   x: number;
@@ -137,8 +140,13 @@ export class InputManager {
     }
   
     // === Global Inputs (DEV) TODO: ===
+    // PUT A checkbox for fullscreen in the settings menu
     if (this.wasKeyJustPressed('KeyY')) {
-      window.electronAPI.toggleFullscreen();
+      if (isElectron() && window.electronAPI?.toggleFullscreen) {
+        window.electronAPI.toggleFullscreen();
+      } else {
+        toggleBrowserFullscreen();
+      }
     }
   }
 

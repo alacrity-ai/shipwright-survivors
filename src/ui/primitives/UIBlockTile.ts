@@ -3,7 +3,7 @@
 export interface UIBlockTile {
   x: number;
   y: number;
-  size: number;
+  size: number; // scaled tile size in pixels
   sprite: CanvasImageSource;
   overlaySprite?: CanvasImageSource;
   isHovered: boolean;
@@ -12,42 +12,66 @@ export interface UIBlockTile {
   onClick: () => void;
 }
 
+/**
+ * Renders a UI block tile with selection, hover, and lock states.
+ *
+ * @param ctx - Canvas 2D context
+ * @param tile - UIBlockTile configuration (with pre-scaled x/y/size)
+ * @param uiScale - Optional scale factor for font and stroke (default = 1.0)
+ */
+export function drawBlockTile(
+  ctx: CanvasRenderingContext2D,
+  tile: UIBlockTile,
+  uiScale: number = 1.0
+): void {
+  const {
+    x, y, size,
+    sprite,
+    overlaySprite,
+    isHovered,
+    isSelected,
+    isLocked
+  } = tile;
 
-export function drawBlockTile(ctx: CanvasRenderingContext2D, tile: UIBlockTile): void {
-  const { x, y, size, sprite, overlaySprite, isHovered, isSelected, isLocked } = tile;
+  const innerPadding = 4 * uiScale;
+  const innerSize = size - innerPadding;
 
-  // Draw tile background
+  // === Background ===
   ctx.fillStyle = isSelected ? '#4f4' : isHovered ? '#888' : '#333';
-  ctx.fillRect(x, y, size - 4, size - 4);
+  ctx.fillRect(x, y, innerSize, innerSize);
 
-  const iconSize = 32;
+  // === Sprite ===
+  const iconSize = 32 * uiScale;
   const offsetX = x + (size - iconSize) / 2;
   const offsetY = y + (size - iconSize) / 2;
 
-  // Draw base sprite
   ctx.drawImage(sprite, offsetX, offsetY, iconSize, iconSize);
 
-  // Draw overlay sprite if available
   if (overlaySprite) {
     ctx.drawImage(overlaySprite, offsetX, offsetY, iconSize, iconSize);
   }
 
-  // Dim and lock icon
+  // === Lock Overlay ===
   if (isLocked) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(x, y, size - 4, size - 4);
+    ctx.fillRect(x, y, innerSize, innerSize);
 
     ctx.fillStyle = '#ccc';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = `bold ${Math.round(12 * uiScale)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🔒', x + (size - 4) / 2, y + (size - 4) / 2);
+    ctx.fillText('🔒', x + innerSize / 2, y + innerSize / 2);
   }
 
-  // Selection border
+  // === Selection Border ===
   if (isSelected) {
     ctx.strokeStyle = '#0f0';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x + 1, y + 1, size - 6, size - 6);
+    ctx.lineWidth = 2 * uiScale;
+    ctx.strokeRect(
+      x + 1 * uiScale,
+      y + 1 * uiScale,
+      innerSize - 2 * uiScale,
+      innerSize - 2 * uiScale
+    );
   }
 }

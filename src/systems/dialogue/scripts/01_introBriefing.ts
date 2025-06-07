@@ -142,6 +142,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           inputManager.enableKey('MouseLeft');
+          inputManager.enableKey('Escape');
         },
       },
       {

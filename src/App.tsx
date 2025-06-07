@@ -5,35 +5,42 @@ import { audioManager } from '@/audio/Audio';
 import { isElectron } from '@/shared/isElectron';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
+import { SaveGameManager } from '@/core/save/saveGameManager';
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
 
   useEffect(() => {
-    // === Fullscreen toggle for Electron ===
+    // === Electron fullscreen toggle ===
     if (isElectron()) {
       window.electronAPI.toggleFullscreen();
     }
 
-    // === Audio unlock on first input ===
+    // === Apply stored resolution from save, if any ===
+    const res = SaveGameManager.getFirstAvailableResolution();
+    const settings = PlayerSettingsManager.getInstance();
+    settings.setViewportWidth(res.width);
+    settings.setViewportHeight(res.height);
+
+    // === Apply canvas dimensions immediately
+    applyViewportResolution();
+
+    // === Subscribe to resolution changes
+    settings.onResolutionChange(() => {
+      applyViewportResolution();
+    });
+
+    // === Audio unlock on first pointer input ===
     const unlock = () => {
       audioManager.unlock();
       window.removeEventListener('pointerdown', unlock);
     };
     window.addEventListener('pointerdown', unlock, { once: true });
 
-    // === Subscribe to scene changes ===
+    // === Scene change subscription
     const unsubscribe = sceneManager.onSceneChange(setScene);
 
-    // === Apply initial resolution to all canvas layers ===
-    applyViewportResolution();
-
-    // === Subscribe to resolution changes (optional) ===
-    PlayerSettingsManager.getInstance().onResolutionChange(() => {
-      applyViewportResolution();
-    });
-
-    // === Initialize scene after DOM has mounted ===
+    // === Kick off first scene after mount
     setTimeout(() => {
       sceneManager.setScene('title');
     }, 0);

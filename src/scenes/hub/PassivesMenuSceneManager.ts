@@ -20,28 +20,11 @@ import { PassivesMenuIntroAnimationController } from '@/scenes/hub/passives_menu
 import { PassiveMenuManager } from '@/scenes/hub/passives_menu/PassiveMenuManager';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
-import { getViewportWidth, getViewportHeight } from '@/config/view';
-import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
+import { scaleRect } from '@/config/virtualResolution';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
 
 // === Virtual Coordinate Helpers ===
-function scaleX(x: number): number {
-  return x * getViewportWidth() / VIRTUAL_WIDTH;
-}
-
-function scaleY(y: number): number {
-  return y * getViewportHeight() / VIRTUAL_HEIGHT;
-}
-
-function scaleRect(rect: { x: number; y: number; width: number; height: number }) {
-  return {
-    x: scaleX(rect.x),
-    y: scaleY(rect.y),
-    width: scaleX(rect.width),
-    height: scaleY(rect.height),
-  };
-}
 
 export class PassivesMenuSceneManager {
   private canvasManager: CanvasManager;

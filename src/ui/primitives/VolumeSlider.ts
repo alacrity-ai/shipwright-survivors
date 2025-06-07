@@ -28,15 +28,27 @@ const DEFAULT_STYLE = {
   labelColor: '#ccc',
 };
 
+/**
+ * Draws a volume slider with optional percentage and identity label.
+ *
+ * @param ctx - Canvas 2D context
+ * @param slider - VolumeSlider config
+ * @param uiScale - UI scale factor (default = 1.0)
+ * @param identityLabel - Optional label shown to the right of the slider
+ * @param showValueLabel - Whether to show "%"-based value label at right of bar (default: true)
+ */
 export function drawVolumeSlider(
   ctx: CanvasRenderingContext2D,
-  slider: VolumeSlider
+  slider: VolumeSlider,
+  uiScale: number = 1.0,
+  identityLabel?: string,
+  showValueLabel: boolean = true
 ): void {
   const {
     x, y, width, height,
     value,
     style = {},
-    isHovered
+    isHovered,
   } = slider;
 
   const {
@@ -44,35 +56,59 @@ export function drawVolumeSlider(
     knobColor,
     backgroundColor,
     borderColor,
-    labelColor
+    labelColor,
   } = { ...DEFAULT_STYLE, ...style };
 
-  // === Draw value as percentage ===
-  ctx.font = '12px monospace';
-  ctx.fillStyle = labelColor;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(`${Math.round(value * 100)}%`, x + width + 32, y + height / 2);
+  const scaledW = width * uiScale;
+  const scaledH = height * uiScale;
+  const font = `${Math.round(12 * uiScale)}px monospace`;
+  const midY = y + scaledH / 2;
 
-  // === Background bar ===
+  // === Background Bar ===
   ctx.fillStyle = backgroundColor;
-  ctx.fillRect(x, y, width, height);
+  ctx.fillRect(x, y, scaledW, scaledH);
 
-  // === Filled volume bar ===
-  const filledWidth = Math.round(value * width);
+  // === Filled Portion ===
+  const filledW = Math.round(value * scaledW);
   ctx.fillStyle = barColor;
-  ctx.fillRect(x, y, filledWidth, height);
+  ctx.fillRect(x, y, filledW, scaledH);
 
   // === Knob ===
-  const knobX = x + filledWidth;
-  const knobRadius = height / 2;
+  const knobX = x + filledW;
+  const knobRadius = scaledH / 2;
   ctx.beginPath();
-  ctx.arc(knobX, y + height / 2, knobRadius, 0, Math.PI * 2);
+  ctx.arc(knobX, midY, knobRadius, 0, Math.PI * 2);
   ctx.fillStyle = isHovered ? '#fff' : knobColor;
   ctx.fill();
 
   // === Border ===
   ctx.strokeStyle = borderColor;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x, y, width, height);
+  ctx.lineWidth = 1 * uiScale;
+  ctx.strokeRect(x, y, scaledW, scaledH);
+
+  // === Right-aligned % label
+  let cursorX = x + scaledW;
+  ctx.font = font;
+  ctx.fillStyle = labelColor;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+
+  if (showValueLabel) {
+    const percentPadding = 8 * uiScale;
+    cursorX += percentPadding;
+
+    const percentText = `${Math.round(value * 100)}%`;
+    ctx.fillText(percentText, cursorX, midY);
+
+    const textMetrics = ctx.measureText(percentText);
+    cursorX += textMetrics.width;
+  }
+
+  // === Identity label
+  if (identityLabel) {
+    const labelPadding = 12 * uiScale;
+    cursorX += labelPadding;
+
+    ctx.fillText(identityLabel, cursorX, midY);
+  }
 }

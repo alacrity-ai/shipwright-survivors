@@ -16,8 +16,7 @@ import { getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/ca
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
-import { getViewportWidth, getViewportHeight } from '@/config/view';
-import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
+import { scaleX, scaleY } from '@/config/virtualResolution';
 
 const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
 
@@ -32,14 +31,6 @@ const INTERACTION_FLAGS = {
   map: 'hub.mission-computer.unlocked',
   breakroom: 'hub.breakroom.unlocked',
 } as const;
-
-function scaleX(x: number): number {
-  return x * getViewportWidth() / VIRTUAL_WIDTH;
-}
-
-function scaleY(y: number): number {
-  return y * getViewportHeight() / VIRTUAL_HEIGHT;
-}
 
 function scaleRect(rect: { x: number; y: number; width: number; height: number }) {
   return {

@@ -16,7 +16,7 @@ export interface UIUtilityButton {
     backgroundColor?: string;
     borderColor?: string;
     alpha?: number;
-    activeColor?: string; // 🆕 Used when isActive === true
+    activeColor?: string;
     backgroundGradient?: {
       type: 'linear' | 'radial';
       stops: { offset: number; color: string }[];
@@ -27,11 +27,33 @@ export interface UIUtilityButton {
   };
 }
 
-export function drawUtilityButton(ctx: CanvasRenderingContext2D, button: UIUtilityButton): void {
+/**
+ * Draws a rectangular UI utility button with optional state and style decorations.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param button - Button configuration
+ * @param uiScale - Optional UI scale factor (default = 1.0)
+ */
+export function drawUtilityButton(
+  ctx: CanvasRenderingContext2D,
+  button: UIUtilityButton,
+  uiScale: number = 1.0
+): void {
   const { x, y, width, height, label, isHovered, isActive, style = {} } = button;
 
-  const borderRadius = style.borderRadius ?? 0;
-  const alpha = style.alpha ?? 1.0;
+  const {
+    borderRadius = 0,
+    backgroundColor,
+    borderColor,
+    alpha = 1.0,
+    activeColor,
+    backgroundGradient,
+  } = style;
+
+  // === Only scale dimensions and visuals ===
+  const scaledWidth = width * uiScale;
+  const scaledHeight = height * uiScale;
+  const drawR = borderRadius; // ← Not scaled
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -39,49 +61,57 @@ export function drawUtilityButton(ctx: CanvasRenderingContext2D, button: UIUtili
   // === Determine fill style ===
   let fillStyle: string | CanvasGradient;
 
-  if (isActive && style.activeColor) {
-    fillStyle = style.activeColor;
-  } else if (!isActive && style.backgroundGradient) {
-    const { type, stops, from = [x, y], to = [x + width, y + height], radius = width / 2 } = style.backgroundGradient;
+  if (isActive && activeColor) {
+    fillStyle = activeColor;
+  } else if (!isActive && backgroundGradient) {
+    const {
+      type,
+      stops,
+      from = [x, y],
+      to = [x + width, y + height],
+      radius = width / 2,
+    } = backgroundGradient;
 
+    // Do not scale positions; only scale dimensions and radius
     const gradient = type === 'linear'
       ? ctx.createLinearGradient(from[0], from[1], to[0], to[1])
-      : ctx.createRadialGradient(from[0], from[1], 0, from[0], from[1], radius);
+      : ctx.createRadialGradient(
+          from[0], from[1], 0,
+          from[0], from[1], radius * uiScale // ← Only radius is scaled for appearance
+        );
 
     for (const stop of stops) {
-      const color = isHovered ? brightenColor(stop.color, 0.1) : stop.color;
-      gradient.addColorStop(stop.offset, color);
+      gradient.addColorStop(stop.offset, isHovered ? brightenColor(stop.color, 0.1) : stop.color);
     }
 
     fillStyle = gradient;
   } else {
-    fillStyle = style.backgroundColor ??
-      (isActive ? '#4f4' : isHovered ? '#444' : '#222');
+    fillStyle = backgroundColor ?? (isActive ? '#4f4' : isHovered ? '#444' : '#222');
   }
 
-  const strokeStyle = style.borderColor ?? (isActive ? '#0f0' : '#888');
+  const strokeStyleFinal = borderColor ?? (isActive ? '#0f0' : '#888');
 
-  // === Draw background ===
+  // === Draw shape ===
   ctx.fillStyle = fillStyle;
-  ctx.strokeStyle = strokeStyle;
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = strokeStyleFinal;
+  ctx.lineWidth = 1 * uiScale;
 
-  if (borderRadius > 0) {
+  if (drawR > 0) {
     ctx.beginPath();
-    ctx.roundRect(x, y, width, height, borderRadius);
+    ctx.roundRect(x, y, scaledWidth, scaledHeight, drawR); // radius unscaled
     ctx.fill();
     ctx.stroke();
   } else {
-    ctx.fillRect(x, y, width, height);
-    ctx.strokeRect(x, y, width, height);
+    ctx.fillRect(x, y, scaledWidth, scaledHeight);
+    ctx.strokeRect(x, y, scaledWidth, scaledHeight);
   }
 
-  // === Draw label ===
+  // === Label ===
   ctx.fillStyle = '#fff';
-  ctx.font = '12px sans-serif';
+  ctx.font = `${Math.round(12 * uiScale)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, x + width / 2, y + height / 2);
+  ctx.fillText(label, x + scaledWidth / 2, y + scaledHeight / 2);
 
   ctx.restore();
 }

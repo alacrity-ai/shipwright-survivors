@@ -15,7 +15,7 @@ export interface UIVerticalResourceBar {
     glow?: boolean;
     textColor?: string;
     showLabel?: boolean;
-    unit?: string; // e.g., 'm/s', 'kg', '°C'
+    unit?: string;
   };
 }
 
@@ -41,7 +41,7 @@ interface VBarCacheEntry {
 class StaticVerticalBarCache {
   private static instance: StaticVerticalBarCache;
   private cache = new Map<string, VBarCacheEntry>();
-  private maxAge = 30000; // 30 seconds
+  private maxAge = 30_000;
 
   static getInstance(): StaticVerticalBarCache {
     if (!StaticVerticalBarCache.instance) {
@@ -50,36 +50,39 @@ class StaticVerticalBarCache {
     return StaticVerticalBarCache.instance;
   }
 
-  getOrCreate(bar: UIVerticalResourceBar): VBarCacheEntry {
+  getOrCreate(bar: UIVerticalResourceBar, uiScale: number): VBarCacheEntry {
     const { width, height, style = {} } = bar;
     const merged = { ...DEFAULT_STYLE, ...style };
 
-    const key = `vbar_${width}_${height}_${merged.backgroundColor}_${merged.borderColor}`;
+    const scaledW = Math.round(width * uiScale);
+    const scaledH = Math.round(height * uiScale);
+    const key = `vbar_${scaledW}_${scaledH}_${merged.backgroundColor}_${merged.borderColor}`;
 
     const existing = this.cache.get(key);
-    if (existing && Date.now() - existing.timestamp < this.maxAge) return existing;
+    if (existing && Date.now() - existing.timestamp < this.maxAge) {
+      return existing;
+    }
 
     const canvas = document.createElement('canvas');
-    canvas.width = width + 4;
-    canvas.height = height + 4;
+    canvas.width = scaledW + 4;
+    canvas.height = scaledH + 4;
     const ctx = canvas.getContext('2d')!;
 
-    // Render static background, border, scanlines
     ctx.save();
 
-    // === Background ===
+    // Background
     ctx.fillStyle = merged.backgroundColor;
-    ctx.fillRect(2, 2, width, height);
+    ctx.fillRect(2, 2, scaledW, scaledH);
 
-    // === Border ===
+    // Border
     ctx.strokeStyle = merged.borderColor;
     ctx.lineWidth = 1;
-    ctx.strokeRect(1.5, 1.5, width + 1, height + 1);
+    ctx.strokeRect(1.5, 1.5, scaledW + 1, scaledH + 1);
 
-    // === Scanlines ===
+    // Scanlines
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    for (let i = 0; i < height; i += 2) {
-      ctx.fillRect(2, 2 + i, width, 1);
+    for (let i = 0; i < scaledH; i += 2) {
+      ctx.fillRect(2, 2 + i, scaledW, 1);
     }
 
     ctx.restore();
@@ -90,6 +93,7 @@ class StaticVerticalBarCache {
       cacheKey: key,
       timestamp: Date.now(),
     };
+
     this.cache.set(key, entry);
     return entry;
   }
@@ -107,56 +111,60 @@ export function clearVerticalBarCache(): void {
 
 export function drawUIVerticalResourceBar(
   ctx: CanvasRenderingContext2D,
-  bar: UIVerticalResourceBar
+  bar: UIVerticalResourceBar,
+  uiScale: number = 1.0
 ): void {
   const {
     x, y, width, height,
     value, maxValue,
-    style = {}
+    style = {},
   } = bar;
 
   const {
     barColor,
-    backgroundColor,
-    borderColor,
     glow,
     textColor,
     showLabel,
     unit,
   } = { ...DEFAULT_STYLE, ...style };
 
-  const clampedValue = Math.max(0, Math.min(value, maxValue));
-  const fillHeight = (clampedValue / maxValue) * height;
+  const scaledW = width * uiScale;
+  const scaledH = height * uiScale;
 
-  // === Cached static layer ===
-  const staticCache = StaticVerticalBarCache.getInstance().getOrCreate(bar);
+  const clampedValue = Math.max(0, Math.min(value, maxValue));
+  const filledHeight = (clampedValue / maxValue) * scaledH;
+  const filledTop = y + scaledH - filledHeight;
+
+  // === Static Background Layer ===
+  const staticCache = StaticVerticalBarCache.getInstance().getOrCreate(bar, uiScale);
   ctx.drawImage(staticCache.canvas, x - 2, y - 2);
 
-  // === Filled segment ===
+  // === Filled Portion (grows upward from bottom) ===
   ctx.fillStyle = barColor;
-  ctx.fillRect(x, y + height - fillHeight, width, fillHeight);
+  ctx.fillRect(x, filledTop, scaledW, filledHeight);
 
-  // === Glow effect ===
   if (glow) {
     ctx.save();
     ctx.shadowColor = barColor;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 8 * uiScale;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     ctx.fillStyle = barColor;
-    ctx.fillRect(x, y + height - fillHeight, width, fillHeight);
+    ctx.fillRect(x, filledTop, scaledW, filledHeight);
     ctx.restore();
   }
 
-  // === Label ===
+  // === Text Label (above bar) ===
   if (showLabel) {
     ctx.save();
-    ctx.font = '11px monospace';
+    ctx.font = `${Math.round(11 * uiScale)}px monospace`;
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    const unitSuffix = unit ? ` ${unit}` : '';
-    ctx.fillText(`${Math.round(value)}${unitSuffix}`, x + width / 2, y - 4);
+
+    const labelText = `${Math.round(value)}${unit ? ` ${unit}` : ''}`;
+    ctx.fillText(labelText, x + scaledW / 2, y - 4 * uiScale);
+
     ctx.restore();
   }
 }

@@ -6,6 +6,7 @@ export interface ElectronAPI {
   toggleFullscreen: () => void;
   setFullscreen?: (flag: boolean) => void;
   closeGame: () => void;
+  resizeGameViewport(width: number, height: number): void;
 }
 
 declare global {

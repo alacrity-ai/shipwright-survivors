@@ -16,6 +16,8 @@ export class PlayerSettingsManager {
   private viewportHeight: number = 1080;
   private resolutionChangeCallbacks: (() => void)[] = [];
 
+  private interfaceScale: number = 1.0;
+
   private constructor() {}
 
   static getInstance(): PlayerSettingsManager {
@@ -53,6 +55,14 @@ export class PlayerSettingsManager {
 
   getViewportHeight(): number {
     return this.viewportHeight;
+  }
+
+  setInterfaceScale(scale: number): void {
+    this.interfaceScale = Math.max(0.5, Math.min(2.0, scale));
+  }
+
+  getInterfaceScale(): number {
+    return this.interfaceScale;
   }
 
   setMasterVolume(value: number): void {
@@ -104,6 +114,7 @@ export class PlayerSettingsManager {
       lightingEnabled: this.lightingEnabled,
       viewportWidth: this.viewportWidth,
       viewportHeight: this.viewportHeight,
+      interfaceScale: this.interfaceScale,
     });
   }
 
@@ -119,6 +130,7 @@ export class PlayerSettingsManager {
         this.lightingEnabled = Boolean(parsed.lightingEnabled ?? this.lightingEnabled);
         this.viewportWidth = Math.max(640, parsed.viewportWidth ?? this.viewportWidth);
         this.viewportHeight = Math.max(480, parsed.viewportHeight ?? this.viewportHeight);
+        this.interfaceScale = Math.max(0.5, Math.min(2.0, parsed.interfaceScale ?? this.interfaceScale));
       }
     } catch (err) {
       console.warn('Failed to load player settings from JSON:', err);
@@ -132,6 +144,7 @@ export class PlayerSettingsManager {
     this.dialogueVolume = 1.0;
     this.particlesEnabled = true;
     this.lightingEnabled = true;
+    this.interfaceScale = 1.0;
   }
 
   private clampVolume(v: number): number {

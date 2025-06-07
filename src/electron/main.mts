@@ -59,3 +59,21 @@ ipcMain.on('close-game', async (event) => {
     }
   }
 });
+
+ipcMain.on('resize-game-viewport', (event, width: number, height: number) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    // Remove size constraints temporarily
+    win.setMinimumSize(1, 1);
+    win.setMaximumSize(99999, 99999);
+    
+    // Set the content size (this is the web page area, excluding title bar/frame)
+    win.setContentSize(width, height);
+    
+    // Optional: Set new minimum size constraints based on new resolution
+    win.setMinimumSize(Math.floor(width * 0.5), Math.floor(height * 0.5));
+    
+    // Center the window after resize
+    win.center();
+  }
+});

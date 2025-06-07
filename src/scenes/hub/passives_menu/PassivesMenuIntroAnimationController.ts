@@ -2,8 +2,7 @@
 
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { RollingText } from './RollingText';
-import { getViewportWidth, getViewportHeight } from '@/config/view';
-import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
+import { scaleX, scaleY } from '@/config/virtualResolution';
 
 type AnimationPhase =
   | 'loginPrompt'
@@ -16,12 +15,6 @@ type AnimationPhase =
   | 'done';
 
 // === Scaling Helpers ===
-function scaleX(x: number): number {
-  return x * getViewportWidth() / VIRTUAL_WIDTH;
-}
-function scaleY(y: number): number {
-  return y * getViewportHeight() / VIRTUAL_HEIGHT;
-}
 function scaledFont(px: number, family = 'monospace'): string {
   return `${Math.round(scaleY(px))}px ${family}`;
 }

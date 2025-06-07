@@ -7,9 +7,11 @@ export interface SaveGameData {
   flags: string[];
   unlockedBlockIds: string[];
   settings?: string; // JSON stringified settings blob
-  passives?: any;     // Parsed passive manager state
+  passives?: any;
   version?: number;
 }
+
+const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
 
 export class SaveGameManager {
   private static instance: SaveGameManager;
@@ -61,7 +63,11 @@ export class SaveGameManager {
       passives: JSON.parse(PlayerPassiveManager.getInstance().toJSON()),
       version: 1
     };
+
     this.writeData(data);
+
+    // Update last save slot index
+    localStorage.setItem(LAST_SAVE_SLOT_KEY, String(this.saveSlot));
   }
 
   public loadAll(): void {
@@ -84,6 +90,42 @@ export class SaveGameManager {
     const key = `save${slot}`;
     localStorage.removeItem(key);
     console.log(`Save slot ${slot} erased.`);
+  }
+
+  public static getFirstAvailableResolution(): { width: number; height: number } {
+    const DEFAULT_RESOLUTION = { width: 1920, height: 1080 };
+    const lastSlot = SaveGameManager.getLastSaveSlot();
+
+    if (lastSlot !== null) {
+      const key = `save${lastSlot}`;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        try {
+          const data = JSON.parse(raw) as SaveGameData;
+          if (data.settings) {
+            const settings = JSON.parse(data.settings);
+            const width = parseInt(settings.viewportWidth);
+            const height = parseInt(settings.viewportHeight);
+            if (
+              Number.isFinite(width) && width > 0 &&
+              Number.isFinite(height) && height > 0
+            ) {
+              return { width, height };
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to parse save data from last slot ${lastSlot}:`, e);
+        }
+      }
+    }
+
+    return DEFAULT_RESOLUTION;
+  }
+
+  public static getLastSaveSlot(): number | null {
+    const raw = localStorage.getItem(LAST_SAVE_SLOT_KEY);
+    const parsed = parseInt(raw ?? '', 10);
+    return Number.isInteger(parsed) ? parsed : null;
   }
 
   // === SAVE METHODS ===

@@ -9,13 +9,15 @@ export class Camera {
   private targetY = 0;
 
   private skipSmoothingThisFrame = false;
-
   private readonly deadZoneRadius = 4;
 
-  constructor(
-    private readonly viewportWidth: number,
-    private readonly viewportHeight: number
-  ) {}
+  private viewportWidth: number;
+  private viewportHeight: number;
+
+  constructor(viewportWidth: number, viewportHeight: number) {
+    this.viewportWidth = viewportWidth;
+    this.viewportHeight = viewportHeight;
+  }
 
   /** Smooth update toward target, or snap if zooming occurred */
   update(dt: number): void {
@@ -107,5 +109,11 @@ export class Camera {
 
   getViewportHeight(): number {
     return this.viewportHeight;
+  }
+
+  /** Update camera's viewport size on resolution change */
+  resize(newWidth: number, newHeight: number): void {
+    this.viewportWidth = newWidth;
+    this.viewportHeight = newHeight;
   }
 }

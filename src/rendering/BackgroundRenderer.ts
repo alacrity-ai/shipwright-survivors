@@ -1,16 +1,15 @@
-// src/rendering/BackgroundRenderer.ts
-
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { getAssetPath } from '@/shared/assetHelpers';
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/config/virtualResolution';
 
-const BACKGROUND_IMAGE_ALPHA = 1; // 🔧 Set desired opacity (0.0–1.0)
-const BACKGROUND_PARALLAX_SPEED = 0.1; // 🔧 How fast background moves with camera (0.0 = static, 1.0 = moves with world)
-const BACKGROUND_TILE_SIZE = 2420; // 🔧 Size of each background tile in world units
-const BACKGROUND_IMAGE_HORIZONTAL_OFFSET = 0; // 🔧 Horizontal offset for tiling
+const BACKGROUND_IMAGE_ALPHA = 1; // 🔧 Opacity (0–1)
+const BACKGROUND_PARALLAX_SPEED = 0.1;
+const BACKGROUND_TILE_SIZE = 2420;
+const BACKGROUND_IMAGE_HORIZONTAL_OFFSET = 0;
 
 interface Star {
-  x: number; // world-relative layer coords
+  x: number;
   y: number;
   radius: number;
 }
@@ -18,28 +17,23 @@ interface Star {
 interface StarLayer {
   stars: Star[];
   color: string;
-  speedMultiplier: number; // determines parallax intensity
+  speedMultiplier: number;
   alpha: number;
 }
 
 export class BackgroundRenderer {
   private layers: StarLayer[] = [];
-  private width: number;
-  private height: number;
   private ctx: CanvasRenderingContext2D;
   private camera: Camera;
-
   private backgroundImageId?: string;
   private backgroundImage: HTMLImageElement | undefined;
 
   constructor(canvasManager: CanvasManager, camera: Camera, backgroundImageId?: string) {
-    const { width, height } = canvasManager.getDimensions();
-    this.width = width;
-    this.height = height;
     this.ctx = canvasManager.getContext('background');
     this.camera = camera;
     this.backgroundImageId = backgroundImageId;
 
+    // Star layers use virtual-aligned space for stable density
     this.layers.push(this.createLayer(30, '#444444', 0.01));
     this.layers.push(this.createLayer(60, '#666666', 0.03));
     this.layers.push(this.createLayer(80, '#aaaaaa', 0.05));
@@ -48,7 +42,6 @@ export class BackgroundRenderer {
 
   public async load(): Promise<void> {
     if (!this.backgroundImageId) return;
-
     this.backgroundImage = await this.loadImageAsync(this.backgroundImageId);
   }
 
@@ -63,8 +56,10 @@ export class BackgroundRenderer {
 
   private createLayer(count: number, color: string, speedMultiplier: number): StarLayer {
     const stars: Star[] = [];
-    const layerWidth = 5000;
-    const layerHeight = 5000;
+
+    // Virtual-aligned stable layer region
+    const layerWidth = VIRTUAL_WIDTH * 4;
+    const layerHeight = VIRTUAL_HEIGHT * 4;
 
     for (let i = 0; i < count; i++) {
       stars.push({
@@ -85,7 +80,8 @@ export class BackgroundRenderer {
   update() {}
 
   render(): void {
-    this.ctx.clearRect(0, 0, this.width, this.height);
+    const { width, height } = this.ctx.canvas;
+    this.ctx.clearRect(0, 0, width, height);
     const offset = this.camera.getOffset();
 
     // === Tiled image background ===
@@ -97,8 +93,8 @@ export class BackgroundRenderer {
       const parallaxOffsetY = offset.y * BACKGROUND_PARALLAX_SPEED;
 
       const tileScreenSize = BACKGROUND_TILE_SIZE;
-      const tilesNeededX = Math.ceil(this.width / tileScreenSize) + 2;
-      const tilesNeededY = Math.ceil(this.height / tileScreenSize) + 2;
+      const tilesNeededX = Math.ceil(width / tileScreenSize) + 2;
+      const tilesNeededY = Math.ceil(height / tileScreenSize) + 2;
 
       const startTileX = Math.floor(parallaxOffsetX / BACKGROUND_TILE_SIZE) - 1;
       const startTileY = Math.floor(parallaxOffsetY / BACKGROUND_TILE_SIZE) - 1;
@@ -114,8 +110,8 @@ export class BackgroundRenderer {
           const screenY = startScreenY + tileY * tileScreenSize;
 
           if (
-            screenX + tileScreenSize >= 0 && screenX <= this.width &&
-            screenY + tileScreenSize >= 0 && screenY <= this.height
+            screenX + tileScreenSize >= 0 && screenX <= width &&
+            screenY + tileScreenSize >= 0 && screenY <= height
           ) {
             this.ctx.drawImage(
               img,
@@ -143,11 +139,11 @@ export class BackgroundRenderer {
         const parallaxX = offset.x * layer.speedMultiplier;
         const parallaxY = offset.y * layer.speedMultiplier;
 
-        const sx = (star.x - parallaxX) % this.width;
-        const sy = (star.y - parallaxY) % this.height;
+        const sx = (star.x - parallaxX) % width;
+        const sy = (star.y - parallaxY) % height;
 
-        const drawX = sx < 0 ? sx + this.width : sx;
-        const drawY = sy < 0 ? sy + this.height : sy;
+        const drawX = sx < 0 ? sx + width : sx;
+        const drawY = sy < 0 ? sy + height : sy;
 
         const screenRadius = star.radius * this.camera.getZoom();
 

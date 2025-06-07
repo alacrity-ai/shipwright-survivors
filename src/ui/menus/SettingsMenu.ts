@@ -3,47 +3,119 @@
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { InputManager } from '@/core/InputManager';
 import type { MenuManager } from '@/ui/MenuManager';
+import type { AudioChannel } from '@/audio/AudioManager';
+import type { CanvasManager } from '@/core/CanvasManager';
+import type { Camera } from '@/core/Camera';
 
 import { drawCheckbox, type UICheckbox } from '@/ui/primitives/UICheckBox';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
+import { applyViewportResolution } from '@/shared/applyViewportResolution';
+import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
+import { getUIScale } from '@/ui/menus/helpers/getUIScale';
+import { getDropdownHoverInfo } from '@/ui/menus/helpers/getDropdownHoverInfo';
 
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawVolumeSlider, type VolumeSlider } from '@/ui/primitives/VolumeSlider';
+import { drawCRTDropDown, CRTDropDown } from '@/ui/primitives/CRTDropDown';
 import { audioManager } from '@/audio/Audio';
 
-type SettingsTab = 'general' | 'volume';
+type SettingsTab = 'display' | 'volume';
+
+type VolumeControlDef =
+  | { kind: 'master' }
+  | { kind: 'channel'; channel: AudioChannel };
+
+const volumeDefs: VolumeControlDef[] = [
+  { kind: 'master' },
+  { kind: 'channel', channel: 'music' },
+  { kind: 'channel', channel: 'sfx' },
+  { kind: 'channel', channel: 'dialogue' },
+];
 
 export class SettingsMenu implements Menu {
   private inputManager: InputManager;
   private menuManager: MenuManager;
-  private activeTab: SettingsTab = 'general';
+  private canvasManager: CanvasManager;
+  private camera: Camera;
+  private activeTab: SettingsTab = 'display';
   private open = false;
 
   private volumeLabels = ['Master Volume', 'Music Volume', 'Sound Effects', 'Dialogue Volume'];
-  private closeButton: UIButton;
-  private volumeSliders: VolumeSlider[];
 
-  private particleCheckbox: UICheckbox;
-  private lightingCheckbox: UICheckbox;
-  private collisionsCheckbox: UICheckbox;
+  private closeButton: UIButton | null = null;
+  private volumeSliders: VolumeSlider[] = [];
 
-  constructor(inputManager: InputManager, menuManager: MenuManager) {
+  private particleCheckbox: UICheckbox | null = null;
+  private lightingCheckbox: UICheckbox | null = null;
+  private collisionsCheckbox: UICheckbox | null = null;
+
+  private resolutionDropdown: CRTDropDown | null = null;
+  private interfaceScaleDropdown: CRTDropDown | null = null;
+
+  // Scalable UI Size Dimensions
+  // Scaled against getUIScale()
+  private windowX = 120;
+  private windowY = 80;
+  private windowHeight = 460;
+  private windowWidth = 440;
+
+  private headerStartY = 20;
+  private headerStartX = 80;
+  private headerHeight = 40;
+  private headerItemWidth = 100;
+  private headerHorizontalPadding = 16;
+
+  private buttonWidth = 120;
+  private buttonHeight = 40;
+  private sliderWidth = 120;
+  private sliderHeight = 12;
+  private dropdownWidth = 120;
+  private dropdownHeight = 28;
+  private checkboxSize = 14;
+
+  private itemVerticalSpacing = 40;
+
+  private margin = 20;
+
+  constructor(inputManager: InputManager, menuManager: MenuManager, canvasManager: CanvasManager, camera: Camera) {
     this.inputManager = inputManager;
     this.menuManager = menuManager;
+    this.canvasManager = canvasManager;
+    this.camera = camera;
 
+    // Initialize UI elements
+    this.initialize();
+  }
+
+  initialize(): void {
+    const settings = PlayerSettingsManager.getInstance();
+
+    const uiScale = getUIScale();
+    const scaledMargin = this.margin * uiScale;
+    const scaledHeaderHeight = this.headerHeight * uiScale;
+    const scaledItemVerticalSpacing = this.itemVerticalSpacing * uiScale;
+    const scaledWindowHeight = this.windowHeight * uiScale;
+    const scaledWindowWidth = this.windowWidth * uiScale;
+    const scaledButtonWidth = this.buttonWidth * uiScale;
+    const scaledButtonHeight = this.buttonHeight * uiScale;
+
+    const baseX = 160;
+    const baseY = this.windowY + scaledMargin + scaledHeaderHeight;
+
+    // Close button on Bottom right of window
+    // The buttons origin is its center
     this.closeButton = {
-      x: 400,
-      y: 340,
-      width: 120,
-      height: 40,
+      x: scaledWindowWidth - scaledButtonWidth / 2 - scaledMargin,
+      y: scaledWindowHeight - scaledButtonHeight / 2 - scaledMargin,
+      width: this.buttonWidth,
+      height: this.buttonHeight,
       label: 'Close',
       onClick: () => {
         const pauseMenu = this.menuManager.getMenu('pauseMenu');
-        if (!pauseMenu) return;
-        this.menuManager.transition(pauseMenu);
+        if (pauseMenu) this.menuManager.transition(pauseMenu);
       },
       style: {
         borderRadius: 10,
@@ -59,79 +131,132 @@ export class SettingsMenu implements Menu {
       }
     };
 
-    this.volumeSliders = [
-      {
-        x: 300,
-        y: 150,
-        width: 120,
-        height: 12,
-        value: audioManager.getMasterVolume(),
-        onChange: v => audioManager.setMasterVolume(v)
-      },
-      {
-        x: 300,
-        y: 190,
-        width: 120,
-        height: 12,
-        value: audioManager.getChannelVolume('music'),
-        onChange: v => audioManager.setChannelVolume('music', v)
-      },
-      {
-        x: 300,
-        y: 230,
-        width: 120,
-        height: 12,
-        value: audioManager.getChannelVolume('sfx'),
-        onChange: v => audioManager.setChannelVolume('sfx', v)
-      },
-      {
-        x: 300,
-        y: 270,
-        width: 120,
-        height: 12,
-        value: audioManager.getChannelVolume('dialogue'),
-        onChange: v => audioManager.setChannelVolume('dialogue', v)
-      }
-    ];
+    /* == UI Elements all in same column starting in top left of window 
+    == (Position accounting for margin and tabs bar) */
 
-    const settings = PlayerSettingsManager.getInstance();
+    // == Volume Tab
+    // Volume sliders are top most item in column in their tab
+    this.volumeSliders = volumeDefs.map((def, i) => ({
+      x: baseX,
+      y: baseY + i * scaledItemVerticalSpacing,
+      width: this.sliderWidth,
+      height: this.sliderHeight,
+      value:
+        def.kind === 'master'
+          ? audioManager.getMasterVolume()
+          : audioManager.getChannelVolume(def.channel),
+      onChange: (v: number) => {
+        if (def.kind === 'master') {
+          audioManager.setMasterVolume(v);
+        } else {
+          audioManager.setChannelVolume(def.channel, v);
+        }
+      },
+    }));
 
+    // == Display Tab
+    // Particle Checkbox is (first) top most item in column in its tab
     this.particleCheckbox = {
-      x: 160,
-      y: 160,
-      size: 14,
+      x: baseX,
+      y: baseY,
+      size: this.checkboxSize,
       label: 'Particles Enabled',
       checked: settings.isParticlesEnabled(),
       onToggle: (val) => {
-        this.particleCheckbox.checked = val;
+        this.particleCheckbox!.checked = val;
         settings.setParticlesEnabled(val);
         SaveGameManager.getInstance().saveSettings();
       }
     };
 
     this.lightingCheckbox = {
-      x: 160,
-      y: 200,
-      size: 14,
+      x: baseX,
+      y: baseY + scaledItemVerticalSpacing,
+      size: this.checkboxSize,
       label: 'Lighting Enabled',
       checked: settings.isLightingEnabled(),
       onToggle: (val) => {
-        this.lightingCheckbox.checked = val;
+        this.lightingCheckbox!.checked = val;
         settings.setLightingEnabled(val);
         SaveGameManager.getInstance().saveSettings();
       }
     };
 
     this.collisionsCheckbox = {
-      x: 160,
-      y: 240,
-      size: 14,
+      x: baseX,
+      y: baseY + scaledItemVerticalSpacing * 2,
+      size: this.checkboxSize,
       label: 'Collisions Enabled',
       checked: settings.isCollisionsEnabled(),
       onToggle: (val) => {
-        this.collisionsCheckbox.checked = val;
+        this.collisionsCheckbox!.checked = val;
         settings.setCollisionsEnabled(val);
         SaveGameManager.getInstance().saveSettings();
+      }
+    };
+
+    const currentRes = `${settings.getViewportWidth()}x${settings.getViewportHeight()}`;
+
+    const resolutionItems = [
+      { label: '1920x1080', value: '1920x1080' },
+      { label: '1920x1200', value: '1920x1200' },
+      { label: '2560x1440', value: '2560x1440' },
+      { label: '3840x2160', value: '3840x2160' },
+    ];
+
+    this.resolutionDropdown = {
+      x: baseX,
+      y: baseY + scaledItemVerticalSpacing * 3,
+      width: this.dropdownWidth,
+      height: this.dropdownHeight,
+      items: resolutionItems,
+      selectedIndex: resolutionItems.findIndex(item => item.value === currentRes) || 0,
+      isOpen: false,
+      onSelect: (item) => {
+        const [wStr, hStr] = item.value.split('x');
+        settings.setViewportWidth(parseInt(wStr, 10));
+        settings.setViewportHeight(parseInt(hStr, 10));
+        applyViewportResolution(this.canvasManager, this.camera);
+        SaveGameManager.getInstance().saveSettings();
+        this.initialize();
+      },
+      style: {
+        backgroundColor: '#001100',
+        borderColor: '#00ff41',
+        textColor: '#00ff41',
+        glow: true,
+        chromaticAberration: true,
+        alpha: 1.0,
+      }
+    };
+
+    const scaleItems = [
+      { label: '100%', value: '1.0' },
+      { label: '125%', value: '1.25' },
+      { label: '150%', value: '1.5' },
+      { label: '200%', value: '2.0' }
+    ];
+
+    this.interfaceScaleDropdown = {
+      x: baseX,
+      y: baseY + scaledItemVerticalSpacing * 4,
+      width: this.dropdownWidth,
+      height: this.dropdownHeight,
+      items: scaleItems,
+      selectedIndex: scaleItems.findIndex(item => parseFloat(item.value) === uiScale) || 0,
+      isOpen: false,
+      onSelect: (item) => {
+        settings.setInterfaceScale(parseFloat(item.value));
+        SaveGameManager.getInstance().saveSettings();
+        this.initialize();
+      },
+      style: {
+        backgroundColor: '#001100',
+        borderColor: '#00ff41',
+        textColor: '#00ff41',
+        glow: true,
+        chromaticAberration: true,
+        alpha: 1.0,
       }
     };
   }
@@ -140,42 +265,66 @@ export class SettingsMenu implements Menu {
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasLeftClicked?.();
     const held = this.inputManager.isMouseLeftPressed?.();
-    const { x, y } = mouse;
+    const scale = getUIScale();
+
+    const scaledHeaderItemWidth = this.headerItemWidth * scale;
+    const scaledHeaderHorizontalPadding = this.headerHorizontalPadding * scale;
 
     // === Tab click logic ===
     if (clicked) {
-      if (x >= 140 && x <= 240 && y >= 90 && y <= 130) {
-        this.activeTab = 'general';
-      } else if (x >= 260 && x <= 360 && y >= 90 && y <= 130) {
+      if (
+        isMouseOverRect(
+          mouse.x,
+          mouse.y,
+          {
+            x: this.headerStartX + this.windowX,
+            y: this.headerStartY + this.windowY,
+            width: this.headerItemWidth,
+            height: this.headerHeight,
+          },
+          scale
+        )
+      ) {
+        this.activeTab = 'display';
+      } else if (
+        isMouseOverRect(
+          mouse.x,
+          mouse.y,
+          {
+            x: this.headerStartX + this.windowX + scaledHeaderItemWidth + scaledHeaderHorizontalPadding,
+            y: this.headerStartY + this.windowY,
+            width: this.headerItemWidth,
+            height: this.headerHeight,
+          },
+          scale
+        )
+      ) {
         this.activeTab = 'volume';
       }
     }
 
-    if (this.activeTab === 'general') {
+    // === Display tab ===
+    if (this.activeTab === 'display') {
       for (const cb of [this.particleCheckbox, this.lightingCheckbox, this.collisionsCheckbox]) {
-        const within = (
-          x >= cb.x && x <= cb.x + cb.size &&
-          y >= cb.y && y <= cb.y + cb.size
-        );
-        cb.isHovered = within;
-        if (clicked && within) {
+        if (!cb) continue;
+        const rect = { x: cb.x, y: cb.y, width: cb.size, height: cb.size };
+        cb.isHovered = isMouseOverRect(mouse.x, mouse.y, rect, scale);
+        if (clicked && cb.isHovered) {
           cb.onToggle(!cb.checked);
         }
       }
     }
 
-    // === Volume slider interactivity
+    // === Volume tab ===
     if (this.activeTab === 'volume') {
       for (const slider of this.volumeSliders) {
-        const within =
-          x >= slider.x && x <= slider.x + slider.width &&
-          y >= slider.y && y <= slider.y + slider.height;
+        const rect = { x: slider.x, y: slider.y, width: slider.width, height: slider.height };
+        slider.isHovered = isMouseOverRect(mouse.x, mouse.y, rect, scale);
 
-        slider.isHovered = within;
-
-        if (held && within) {
-          const raw = (x - slider.x) / slider.width;
-          const clamped = Math.min(1, Math.max(0, raw));
+        if (held && slider.isHovered) {
+          // Correct: positions unscaled, dimensions scaled
+          const relativeX = mouse.x - slider.x;
+          const clamped = Math.min(1, Math.max(0, relativeX / (slider.width * scale)));
           slider.value = clamped;
           slider.onChange(clamped);
           slider.isDragging = true;
@@ -185,25 +334,71 @@ export class SettingsMenu implements Menu {
       }
     }
 
-    // === Close button hover
-    const btn = this.closeButton;
-    btn.isHovered = (
-      x >= btn.x && x <= btn.x + btn.width &&
-      y >= btn.y && y <= btn.y + btn.height
-    );
+    // === Resolution dropdown ===
+    const dd = this.resolutionDropdown;
+    if (dd) {
+      const { isHovered, hoverIndex } = getDropdownHoverInfo(dd, mouse, scale);
+      dd.isHovered = isHovered;
+      dd.hoverIndex = hoverIndex;
 
-    if (clicked && btn.isHovered) {
-      btn.onClick();
+      if (clicked && isHovered && hoverIndex === undefined) {
+        dd.isOpen = !dd.isOpen;
+      }
+
+      if (dd.isOpen && typeof hoverIndex === 'number') {
+        if (clicked) {
+          dd.selectedIndex = hoverIndex;
+          dd.isOpen = false;
+          dd.onSelect?.(dd.items[hoverIndex]);
+        }
+      }
+    }
+
+    // === Interface scale dropdown ===
+    const dd2 = this.interfaceScaleDropdown;
+    if (dd2) {
+      const { isHovered, hoverIndex } = getDropdownHoverInfo(dd2, mouse, scale);
+      dd2.isHovered = isHovered;
+      dd2.hoverIndex = hoverIndex;
+
+      if (clicked && isHovered && hoverIndex === undefined) {
+        dd2.isOpen = !dd2.isOpen;
+      }
+
+      if (dd2.isOpen && typeof hoverIndex === 'number') {
+        if (clicked) {
+          dd2.selectedIndex = hoverIndex;
+          dd2.isOpen = false;
+          dd2.onSelect?.(dd2.items[hoverIndex]);
+        }
+      }
+    }
+
+    // === Close button ===
+    const btn = this.closeButton;
+    if (btn) {
+      const rect = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
+      btn.isHovered = isMouseOverRect(mouse.x, mouse.y, rect, scale);
+
+      if (clicked && btn.isHovered) {
+        btn.onClick();
+      }
     }
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    const scale = getUIScale();
+
+    const scaledHeaderItemWidth = this.headerItemWidth * scale;
+    const scaledHeaderHorizontalPadding = this.headerHorizontalPadding * scale;
+
     drawWindow({
       ctx,
-      x: 120,
-      y: 80,
-      width: 440,
-      height: 320,
+      x: this.windowX,
+      y: this.windowY,
+      width: this.windowWidth,
+      height: this.windowHeight,
+      uiScale: scale,
       options: {
         alpha: 0.6,
         borderRadius: 12,
@@ -219,38 +414,51 @@ export class SettingsMenu implements Menu {
     });
 
     // === Tab Labels ===
-    drawLabel(ctx, 190, 100, 'General', {
-      font: '16px monospace',
-      align: 'center',
-      color: this.activeTab === 'general' ? '#6f6' : '#888'
-    });
+    drawLabel(
+      ctx,
+      this.headerStartX + this.windowX,
+      this.headerStartY + this.windowY,
+      'General',
+      {
+        font: '16px monospace',
+        align: 'left',
+        color: this.activeTab === 'display' ? '#6f6' : '#888',
+      },
+      scale
+    );
 
-    drawLabel(ctx, 310, 100, 'Volume', {
-      font: '16px monospace',
-      align: 'center',
-      color: this.activeTab === 'volume' ? '#6f6' : '#888'
-    });
+    drawLabel(
+      ctx,
+      this.headerStartX + this.windowX + scaledHeaderItemWidth + scaledHeaderHorizontalPadding,
+      this.headerStartY + this.windowY,
+      'Volume',
+      {
+        font: '16px monospace',
+        align: 'left',
+        color: this.activeTab === 'volume' ? '#6f6' : '#888',
+      },
+      scale
+    );
 
-    if (this.activeTab === 'general') {
-      drawCheckbox(ctx, this.particleCheckbox);
-      drawCheckbox(ctx, this.lightingCheckbox);
-      drawCheckbox(ctx, this.collisionsCheckbox);
+    // === Items in the active tab ===
+    if (this.activeTab === 'display') {
+      drawCheckbox(ctx, this.particleCheckbox!, scale);
+      drawCheckbox(ctx, this.lightingCheckbox!, scale);
+      drawCheckbox(ctx, this.collisionsCheckbox!, scale);
+
+      drawCRTDropDown(ctx, this.interfaceScaleDropdown!, scale, 'Interface Scale');
+      drawCRTDropDown(ctx, this.resolutionDropdown!, scale, 'Resolution');
+
     } else if (this.activeTab === 'volume') {
       for (let i = 0; i < this.volumeSliders.length; i++) {
         const slider = this.volumeSliders[i];
-        const label = this.volumeLabels[i];
+        const label = this.volumeLabels[i]; // e.g. 'Music', 'Master'
 
-        drawLabel(ctx, slider.x - 25, slider.y, label, {
-          font: '12px monospace',
-          color: '#ccc',
-          align: 'right'
-        });
-
-        drawVolumeSlider(ctx, slider);
+        drawVolumeSlider(ctx, slider, scale, label);
       }
     }
 
-    drawButton(ctx, this.closeButton);
+    drawButton(ctx, this.closeButton!, scale);
   }
 
   isOpen(): boolean {

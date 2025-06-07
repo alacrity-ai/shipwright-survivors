@@ -146,14 +146,6 @@ export class ShipConstructionAnimatorService {
           this.activeShips.splice(i, 1);
         }
       }
-
-      if (revealsThisFrame > 0) {
-        console.log(
-          `Revealed ${revealsThisFrame} block(s) on ship ${state.ship.id} (interval = ${Math.round(
-            state.blockRevealInterval
-          )}ms)`
-        );
-      }
     }
   }
 

@@ -1,14 +1,23 @@
+// src/ui/primitives/CRTBox.ts
+
 import { addAlphaToHex } from '@/shared/colorUtils';
 
 interface CRTBoxStyle {
   backgroundColor?: string;
   borderColor?: string;
   glow?: boolean;
-  scanlineIntensity?: number; // 0 to 1
+  scanlineIntensity?: number; // [0, 1]
   cornerBevel?: boolean;
   chromaticAberration?: boolean;
 }
 
+/**
+ * Renders a CRT-style beveled box with scanlines, glow, and chromatic aberration.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param opts - Box parameters
+ * @param uiScale - UI scaling factor for visual fidelity (not position)
+ */
 export function drawCRTBox(
   ctx: CanvasRenderingContext2D,
   opts: {
@@ -17,11 +26,13 @@ export function drawCRTBox(
     width: number;
     height: number;
     style?: CRTBoxStyle;
-  }
+  },
+  uiScale: number = 1.0
 ): void {
   const {
-    x, y, width, height,
-    style = {}
+    x, y,
+    width, height,
+    style = {},
   } = opts;
 
   const {
@@ -33,87 +44,91 @@ export function drawCRTBox(
     chromaticAberration = true,
   } = style;
 
-  const bevelSize = Math.min(3, height * 0.2);
+  const scaledWidth = width * uiScale;
+  const scaledHeight = height * uiScale;
 
+  const bevelSize = Math.min(3, height * 0.2); // Unscaled: fixed appearance
+
+  // === Clipping Path ===
   ctx.save();
-
-  // === Shape setup ===
   if (cornerBevel) {
     ctx.beginPath();
     ctx.moveTo(x + bevelSize, y);
-    ctx.lineTo(x + width - bevelSize, y);
-    ctx.lineTo(x + width, y + bevelSize);
-    ctx.lineTo(x + width, y + height - bevelSize);
-    ctx.lineTo(x + width - bevelSize, y + height);
-    ctx.lineTo(x + bevelSize, y + height);
-    ctx.lineTo(x, y + height - bevelSize);
+    ctx.lineTo(x + scaledWidth - bevelSize, y);
+    ctx.lineTo(x + scaledWidth, y + bevelSize);
+    ctx.lineTo(x + scaledWidth, y + scaledHeight - bevelSize);
+    ctx.lineTo(x + scaledWidth - bevelSize, y + scaledHeight);
+    ctx.lineTo(x + bevelSize, y + scaledHeight);
+    ctx.lineTo(x, y + scaledHeight - bevelSize);
     ctx.lineTo(x, y + bevelSize);
     ctx.closePath();
     ctx.clip();
   }
 
-  // === Background ===
-  const bgGradient = ctx.createLinearGradient(x, y, x, y + height);
-  bgGradient.addColorStop(0, addAlphaToHex(backgroundColor, 'ff'));
-  bgGradient.addColorStop(0.5, addAlphaToHex(backgroundColor, 'cc'));
-  bgGradient.addColorStop(1, addAlphaToHex(backgroundColor, 'ff'));
-  ctx.fillStyle = bgGradient;
-  ctx.fillRect(x, y, width, height);
+  // === Background Gradient ===
+  const gradient = ctx.createLinearGradient(x, y, x, y + scaledHeight);
+  gradient.addColorStop(0.0, addAlphaToHex(backgroundColor, 'ff'));
+  gradient.addColorStop(0.5, addAlphaToHex(backgroundColor, 'cc'));
+  gradient.addColorStop(1.0, addAlphaToHex(backgroundColor, 'ff'));
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, scaledWidth, scaledHeight);
 
   // === Scanlines ===
   if (scanlineIntensity > 0) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${scanlineIntensity * 0.05})`;
-    for (let i = 0; i < height; i += 2) {
-      ctx.fillRect(x, y + i, width, 1);
+    ctx.fillStyle = `rgba(255,255,255,${scanlineIntensity * 0.05})`;
+    for (let i = 0; i < scaledHeight; i += 2 * uiScale) {
+      ctx.fillRect(x, y + i, scaledWidth, uiScale);
     }
   }
 
   ctx.restore();
 
-  // === Glow border ===
+  // === Outer Border & Glow ===
   if (glow) {
     ctx.save();
     ctx.shadowColor = borderColor;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 10 * uiScale;
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * uiScale;
+
     if (cornerBevel) {
       ctx.beginPath();
       ctx.moveTo(x + bevelSize, y);
-      ctx.lineTo(x + width - bevelSize, y);
-      ctx.lineTo(x + width, y + bevelSize);
-      ctx.lineTo(x + width, y + height - bevelSize);
-      ctx.lineTo(x + width - bevelSize, y + height);
-      ctx.lineTo(x + bevelSize, y + height);
-      ctx.lineTo(x, y + height - bevelSize);
+      ctx.lineTo(x + scaledWidth - bevelSize, y);
+      ctx.lineTo(x + scaledWidth, y + bevelSize);
+      ctx.lineTo(x + scaledWidth, y + scaledHeight - bevelSize);
+      ctx.lineTo(x + scaledWidth - bevelSize, y + scaledHeight);
+      ctx.lineTo(x + bevelSize, y + scaledHeight);
+      ctx.lineTo(x, y + scaledHeight - bevelSize);
       ctx.lineTo(x, y + bevelSize);
       ctx.closePath();
       ctx.stroke();
     } else {
-      ctx.strokeRect(x, y, width, height);
+      ctx.strokeRect(x, y, scaledWidth, scaledHeight);
     }
+
     ctx.restore();
   }
 
-  // === Chromatic Aberration Border Pass ===
+  // === Chromatic Aberration Borders ===
   if (chromaticAberration) {
     ctx.save();
     ctx.globalAlpha = 0.2;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 * uiScale;
 
     ctx.strokeStyle = '#ff0000';
-    ctx.strokeRect(x - 0.5, y, width, height);
+    ctx.strokeRect(x - 0.5 * uiScale, y, scaledWidth, scaledHeight);
 
     ctx.strokeStyle = '#0000ff';
-    ctx.strokeRect(x + 0.5, y, width, height);
+    ctx.strokeRect(x + 0.5 * uiScale, y, scaledWidth, scaledHeight);
 
     ctx.restore();
   }
 
-  // === Final overlay inner highlight ===
+  // === Highlighted Inner Border ===
   ctx.save();
   ctx.strokeStyle = `${borderColor}40`;
   ctx.lineWidth = 1;
-  ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+  ctx.strokeRect(x + 1 * uiScale, y + 1 * uiScale, scaledWidth - 2 * uiScale, scaledHeight - 2 * uiScale);
   ctx.restore();
 }

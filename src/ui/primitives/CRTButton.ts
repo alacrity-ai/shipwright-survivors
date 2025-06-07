@@ -1,6 +1,6 @@
-// src/ui/primitives/CRTButton.ts
+// src/ui/primitives/UICRTButton.ts
 
-import { brightenColor } from "@/shared/colorUtils";
+import { brightenColor } from '@/shared/colorUtils';
 
 export interface UICRTButton {
   x: number;
@@ -22,9 +22,17 @@ export interface UICRTButton {
   };
 }
 
+/**
+ * Draws a stylized CRT-style button with optional glow and chromatic aberration.
+ *
+ * @param ctx - Canvas 2D rendering context
+ * @param button - Button configuration
+ * @param uiScale - UI scale factor for font and blur (default = 1.0)
+ */
 export function drawCRTButton(
   ctx: CanvasRenderingContext2D,
-  button: UICRTButton
+  button: UICRTButton,
+  uiScale: number = 1.0
 ): void {
   const {
     x, y, width, height, label, isHovered, style = {}
@@ -40,53 +48,57 @@ export function drawCRTButton(
     alpha = 1.0,
   } = style;
 
-  const highlightAmount = 0.8;
+  // === Scale width and height only ===
+  const scaledWidth = width * uiScale;
+  const scaledHeight = height * uiScale;
 
-  // === Apply hover brightening ===
+  const scaledFont = font.replace(
+    /(\d+)(px)/,
+    (_, sz, unit) => `${Math.round(parseInt(sz) * uiScale)}${unit}`
+  );
+
+  const highlightAmount = 0.8;
   const effectiveBorderColor = isHovered ? brightenColor(borderColor, highlightAmount) : borderColor;
   const effectiveTextColor = isHovered ? brightenColor(textColor, highlightAmount) : textColor;
 
+  // === Background Fill ===
   ctx.save();
   ctx.globalAlpha = alpha;
-
-  // === Background Fill ===
   ctx.fillStyle = backgroundColor;
-  ctx.fillRect(x, y, width, height);
+  ctx.fillRect(x, y, scaledWidth, scaledHeight);
 
-  // === Border Glow ===
   if (glow) {
     ctx.shadowColor = effectiveBorderColor;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 8 * uiScale;
   }
 
   ctx.strokeStyle = effectiveBorderColor;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, width, height);
-
+  ctx.lineWidth = 2 * uiScale;
+  ctx.strokeRect(x, y, scaledWidth, scaledHeight);
   ctx.restore();
 
-  // === Label ===
+  // === Text Rendering ===
+  const cx = x + scaledWidth / 2;
+  const cy = y + scaledHeight / 2;
+
   ctx.save();
-  ctx.font = font;
+  ctx.font = scaledFont;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const cx = x + width / 2;
-  const cy = y + height / 2;
-
   if (glow) {
     ctx.shadowColor = effectiveTextColor;
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = 4 * uiScale;
   }
 
   if (chromaticAberration) {
     ctx.save();
-    ctx.shadowBlur = 0;
     ctx.globalAlpha = 0.25;
+    ctx.shadowBlur = 0;
     ctx.fillStyle = '#ff0000';
-    ctx.fillText(label, cx - 0.5, cy);
+    ctx.fillText(label, cx - 0.5 * uiScale, cy);
     ctx.fillStyle = '#0000ff';
-    ctx.fillText(label, cx + 0.5, cy);
+    ctx.fillText(label, cx + 0.5 * uiScale, cy);
     ctx.restore();
   }
 
