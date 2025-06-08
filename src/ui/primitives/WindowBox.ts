@@ -1,5 +1,7 @@
 // src/ui/primitives/WindowBox.ts
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export interface WindowTab {
   label: string;
   isActive: boolean;
@@ -120,9 +122,10 @@ export function drawWindow(config: DrawWindowConfig): boolean {
     return false;
   }
 
-  const tabHeight = 24 * uiScale;
-  const tabMargin = 8 * uiScale;
-  const tabWidth = Math.floor((drawW - 2 * tabMargin) / tabs.length);
+  const uniformScale = getUniformScaleFactor();
+  const tabHeight = 24 * uiScale * uniformScale;
+  const tabMargin = 8 * uiScale * uniformScale;
+  const tabWidth = Math.floor((drawW - 2 * tabMargin) / tabs.length)
 
   for (let i = 0; i < tabs.length; i++) {
     const tab = tabs[i];
@@ -152,7 +155,7 @@ export function drawWindow(config: DrawWindowConfig): boolean {
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = `${Math.round(12 * uiScale)}px monospace`;
+    ctx.font = `${Math.round(12 * uiScale * uniformScale)}px monospace`;
     ctx.fillStyle = tab.isActive ? '#000' : borderColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

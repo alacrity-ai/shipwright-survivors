@@ -1,6 +1,7 @@
 // src/ui/primitives/UIUtilityButton.ts
 
 import { brightenColor } from '@/shared/colorUtils';
+import { getUniformScaleFactor } from '@/config/view';
 
 export interface UIUtilityButton {
   x: number;
@@ -108,7 +109,7 @@ export function drawUtilityButton(
 
   // === Label ===
   ctx.fillStyle = '#fff';
-  ctx.font = `${Math.round(12 * uiScale)}px sans-serif`;
+  ctx.font = `${Math.round(12 * uiScale * getUniformScaleFactor())}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, x + scaledWidth / 2, y + scaledHeight / 2);

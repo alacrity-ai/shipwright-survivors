@@ -1,5 +1,7 @@
 // src/ui/primitives/UIBlockTile.ts
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export interface UIBlockTile {
   x: number;
   y: number;
@@ -41,7 +43,7 @@ export function drawBlockTile(
   ctx.fillRect(x, y, innerSize, innerSize);
 
   // === Sprite ===
-  const iconSize = 32 * uiScale;
+  const iconSize = 32 * uiScale * getUniformScaleFactor();
   const offsetX = x + (size - iconSize) / 2;
   const offsetY = y + (size - iconSize) / 2;
 

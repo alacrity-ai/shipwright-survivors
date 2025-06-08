@@ -11,6 +11,7 @@ import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 import { drawLabelLine } from '@/ui/utils/drawLabelLine';
 import { audioManager } from '@/audio/Audio';
 
+import { getUniformScaleFactor } from '@/config/view';
 import { getUIScale } from '@/ui/menus/helpers/getUIScale';
 import { getResolutionScaleFactor } from '@/config/view';
 import { getUITextScale } from '@/ui/menus/helpers/getUIScale';
@@ -640,7 +641,7 @@ export class ShipBuilderMenu implements Menu {
 
     const withinMainWindow =
       x >= this.WINDOW_X + this.slideX && x <= mainWindowRight &&
-      y >= this.WINDOW_Y - tabHeight && y <= mainWindowBottom;
+      y >= this.WINDOW_Y - (tabHeight * getUniformScaleFactor()) && y <= mainWindowBottom;
 
     const withinBlockInfoWindow =
       x >= this.WINDOW_X + this.slideX && x <= blockInfoRight &&

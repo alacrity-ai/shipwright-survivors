@@ -1,6 +1,7 @@
 // src/rendering/CursorRenderer.ts
 
 import { CanvasManager } from '@/core/CanvasManager';
+import { getUniformScaleFactor } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
 import { 
   getCrosshairCursorSprite, 
@@ -9,6 +10,7 @@ import {
   getWrenchCursorSprite,
   getSmallCircleCursorSprite,
   getTargetCrosshairSprite,
+  drawCursor
  } from '@/rendering/cache/CursorSpriteCache';
 
 export class CursorRenderer {
@@ -31,11 +33,9 @@ export class CursorRenderer {
     // Always draw cursor
     const mouse = this.inputManager.getMousePosition();
 
-    this.ctx.drawImage(
-      this.cursorSprite,
-      mouse.x - this.cursorSprite.width / 2,
-      mouse.y - this.cursorSprite.height / 2
-    );
+    // Adjust size to uniformscale factor
+    const scale = getUniformScaleFactor();
+    drawCursor(this.ctx, this.cursorSprite, mouse.x, mouse.y, scale);
   }
 
   // Public API

@@ -26,10 +26,14 @@ export class RollingTextRenderer {
     this.revealedCharCount = Math.min(targetCount, this.fullText.length);
   }
 
-  public render(ctx: CanvasRenderingContext2D, line: DialogueLine): void {
+  public render(
+    ctx: CanvasRenderingContext2D,
+    rect: { x: number; y: number; width: number; height: number },
+    font: string,
+    line: DialogueLine
+  ): void {
     const scale = getUniformScaleFactor();
-    const { x, y, width, height } = line.textBoxRect;
-    const font = line.font ?? '24px monospace';
+    const { x, y, width, height } = rect;
     const color = line.textColor ?? (line.mode === 'transmission' ? '#00ff88' : '#ffffff');
 
     const lineHeight = this.baseLineHeight * scale;

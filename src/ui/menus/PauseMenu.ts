@@ -4,7 +4,7 @@ import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
-import { getUIScale } from '@/ui/menus/helpers/getUIScale';
+import { getUniformScaleFactor } from '@/config/view';
 import { flags } from '@/game/player/PlayerFlagManager';
 
 import type { MenuManager } from '@/ui/MenuManager';
@@ -72,7 +72,7 @@ export class PauseMenu implements Menu {
   }
 
   private initialize(): void {
-    const scale = getUIScale();
+    const scale = getUniformScaleFactor();
 
     const scaledButtonHeight = this.buttonHeight * scale;
     const scaledSpacing = scaledButtonHeight * 0.5;
@@ -121,7 +121,7 @@ export class PauseMenu implements Menu {
   }
 
   update(): void {
-    const scale = getUIScale();
+    const scale = getUniformScaleFactor();
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
     if (!mouse) return;
@@ -142,7 +142,7 @@ export class PauseMenu implements Menu {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    const scale = getUIScale();
+    const scale = getUniformScaleFactor();
 
     drawWindow({
       ctx,
@@ -167,8 +167,8 @@ export class PauseMenu implements Menu {
 
     drawLabel(
       ctx,
-      this.windowX + this.windowWidth / 2,
-      this.windowY + 10,
+      this.windowX + (this.windowWidth * scale) / 2,
+      this.windowY + (10 * scale),
       'Game Paused',
       {
         font: '16px monospace',

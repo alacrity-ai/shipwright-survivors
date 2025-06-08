@@ -3,11 +3,33 @@
 import type { Menu } from '@/ui/interfaces/Menu';
 
 export class MenuManager {
+  private static instance: MenuManager;
+
   private readonly stack: Menu[] = [];
   private readonly registry: Record<string, Menu> = {};
 
   private pauseFn?: () => void;
   private resumeFn?: () => void;
+
+  private constructor() {}
+
+  /** Singleton accessor */
+  public static getInstance(): MenuManager {
+    if (!MenuManager.instance) {
+      MenuManager.instance = new MenuManager();
+    }
+    return MenuManager.instance;
+  }
+
+  /** Clears all menu state and registered entries */
+  public reset(): void {
+    this.clearAll();
+    for (const key in this.registry) {
+      delete this.registry[key];
+    }
+    this.pauseFn = undefined;
+    this.resumeFn = undefined;
+  }
 
   /** Registers callbacks for pausing and resuming the game */
   registerPauseHandlers(pause: () => void, resume: () => void): void {
@@ -15,12 +37,10 @@ export class MenuManager {
     this.resumeFn = resume;
   }
 
-  /** Pauses the game via the registered callback */
   pause(): void {
     this.pauseFn?.();
   }
 
-  /** Resumes the game via the registered callback */
   resume(): void {
     this.resumeFn?.();
   }
@@ -68,12 +88,10 @@ export class MenuManager {
     }
   }
 
-  /** Registers a menu under a string key */
   registerMenu(key: string, menu: Menu): void {
     this.registry[key] = menu;
   }
 
-  /** Retrieves a registered menu by key */
   getMenu(key: string): Menu | undefined {
     return this.registry[key];
   }

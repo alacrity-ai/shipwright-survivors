@@ -5,6 +5,8 @@ import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 import { PlayerResources } from '@/game/player/PlayerResources';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export class HudOverlay {
   private playerResources: PlayerResources;
   private currency: number = 0;
@@ -23,6 +25,8 @@ export class HudOverlay {
   }
 
   render(dt: number): void {
+    const scale = getUniformScaleFactor();
+
     const ctx = this.canvasManager.getContext('ui');
     const { velocity } = this.ship.getTransform();
 
@@ -37,13 +41,13 @@ export class HudOverlay {
     const maxEnergy = energyComponent?.getMax() ?? 0;
 
     const canvas = ctx.canvas;
-    const barWidth = 180;
-    const barHeight = 12;
-    const spacing = 20;
+    const barWidth = Math.floor(180 * scale);
+    const barHeight = Math.floor(12 * scale);
+    const spacing = Math.floor(20 * scale);
     const totalWidth = barWidth * 2 + spacing;
 
     const baseX = Math.floor((canvas.width - totalWidth) / 2);
-    const y = canvas.height - 24;
+    const y = canvas.height - Math.floor(24 * scale);
 
     // === Draw Health Bar ===
     drawUIResourceBar(ctx, {
@@ -59,7 +63,7 @@ export class HudOverlay {
         backgroundColor: '#200',
         glow: true,
         textColor: '#f88',
-        font: '11px "Courier New", monospace',
+        font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
         scanlineIntensity: 0.3,
         chromaticAberration: true,
         phosphorDecay: true,
@@ -86,7 +90,7 @@ export class HudOverlay {
         backgroundColor: '#003',
         glow: true,
         textColor: '#9cf',
-        font: '11px "Courier New", monospace',
+        font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
         scanlineIntensity: 0.25,
         chromaticAberration: true,
         phosphorDecay: true,
@@ -100,11 +104,15 @@ export class HudOverlay {
     }, performance.now());
 
     // === Draw Speed Bar (Vertical) ===
-    const speedBarHeight = 120;
+    const speedBarHeight = Math.floor(120 * scale);
+    const speedBarWidth = Math.floor(12 * scale);
+    const speedBarX = Math.floor(32 * scale);
+    const speedBarY = y - speedBarHeight + Math.floor(14 * scale);
+    
     drawUIVerticalResourceBar(ctx, {
-      x: 32,
-      y: y - speedBarHeight + 14,
-      width: 12,
+      x: speedBarX,
+      y: speedBarY,
+      width: speedBarWidth,
       height: speedBarHeight,
       value: speed,
       maxValue: 2000,
@@ -120,12 +128,12 @@ export class HudOverlay {
     });
 
     // === Additional Metrics: Mass & Entropium ===
-    let infoY = y - 12;
-    const infoX = 64;
-    const lineHeight = 16;
+    let infoY = y - Math.floor(12 * scale);
+    const infoX = Math.floor(64 * scale);
+    const lineHeight = Math.floor(16 * scale);
 
-    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`); infoY += lineHeight;
-    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`);
+    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale); infoY += lineHeight;
+    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale);
   }
 
   destroy(): void {

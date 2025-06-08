@@ -15,6 +15,7 @@ export class PlayerSettingsManager {
   private viewportWidth: number = 1920;
   private viewportHeight: number = 1080;
   private resolutionChangeCallbacks: (() => void)[] = [];
+  private interfaceScaleChangeCallbacks: (() => void)[] = [];
 
   private interfaceScale: number = 1.0;
 
@@ -27,12 +28,30 @@ export class PlayerSettingsManager {
     return PlayerSettingsManager.instance;
   }
 
-  onResolutionChange(cb: () => void): void {
+  onResolutionChange(cb: () => void): () => void {
     this.resolutionChangeCallbacks.push(cb);
+    return () => {
+      this.resolutionChangeCallbacks = this.resolutionChangeCallbacks.filter(fn => fn !== cb);
+    };
   }
 
   private notifyResolutionChange(): void {
     for (const cb of this.resolutionChangeCallbacks) {
+      cb();
+    }
+  }
+
+  // DEPRECATED
+  onInterfaceScaleChange(cb: () => void): () => void {
+    this.interfaceScaleChangeCallbacks.push(cb);
+    return () => {
+      this.interfaceScaleChangeCallbacks = this.interfaceScaleChangeCallbacks.filter(fn => fn !== cb);
+    };
+  }
+
+  // DEPRECATED
+  private notifyInterfaceScaleChange(): void {
+    for (const cb of this.interfaceScaleChangeCallbacks) {
       cb();
     }
   }
@@ -57,12 +76,20 @@ export class PlayerSettingsManager {
     return this.viewportHeight;
   }
 
+  // DEPRECATED
   setInterfaceScale(scale: number): void {
-    this.interfaceScale = Math.max(0.5, Math.min(2.0, scale));
+    const clamped = Math.max(0.5, Math.min(2.0, scale));
+    if (this.interfaceScale !== clamped) {
+      this.interfaceScale = clamped;
+      this.notifyInterfaceScaleChange();
+    }
   }
 
+  // DEPRECATED
   getInterfaceScale(): number {
-    return this.interfaceScale;
+    // DEPRECATED, Returning 2 always now
+    return 2.0;
+    // return this.interfaceScale;
   }
 
   setMasterVolume(value: number): void {

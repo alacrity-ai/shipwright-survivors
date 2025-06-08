@@ -37,7 +37,7 @@ export class CRTMonitor {
     this.scanlineOffset = (this.scanlineOffset + delta * 0.03) % spacing;
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, uiScale: number = 1.0): void {
     const {
       borderRadius = 10,
       backgroundColor = '#000a00',
@@ -55,7 +55,7 @@ export class CRTMonitor {
     let fillStyle: string | CanvasGradient = backgroundColor;
 
     if (backgroundGradient) {
-      const { type, stops, from = [this.x, this.y], to = [this.x + this.width, this.y + this.height], radius = this.width / 2 } = backgroundGradient;
+      const { type, stops, from = [this.x, this.y], to = [this.x + (this.width * uiScale), this.y + (this.height * uiScale)], radius = (this.width * uiScale) / 2 } = backgroundGradient;
       const gradient = type === 'linear'
         ? ctx.createLinearGradient(from[0], from[1], to[0], to[1])
         : ctx.createRadialGradient(from[0], from[1], 0, from[0], from[1], radius);
@@ -74,7 +74,7 @@ export class CRTMonitor {
     ctx.shadowBlur = 12;
 
     ctx.beginPath();
-    ctx.roundRect(this.x, this.y, this.width, this.height, borderRadius);
+    ctx.roundRect(this.x, this.y, this.width * uiScale, this.height * uiScale, borderRadius);
     ctx.fill();
     ctx.stroke();
 
@@ -83,8 +83,8 @@ export class CRTMonitor {
     ctx.globalAlpha = 0.06;
     ctx.fillStyle = glowColor;
 
-    for (let i = -this.scanlineOffset; i < this.height; i += scanlineSpacing) {
-      ctx.fillRect(this.x, this.y + i, this.width, 1);
+    for (let i = -this.scanlineOffset; i < this.height * uiScale; i += scanlineSpacing) {
+      ctx.fillRect(this.x, this.y + i, this.width * uiScale, 1);
     }
 
     ctx.restore();

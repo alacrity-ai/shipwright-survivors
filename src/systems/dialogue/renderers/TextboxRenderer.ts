@@ -6,10 +6,11 @@ import type { SpeakerVoiceProfile } from '@/systems/dialogue/interfaces/SpeakerV
 export class TextboxRenderer {
   public render(
     ctx: CanvasRenderingContext2D,
+    rect: { x: number; y: number; width: number; height: number },
     line: DialogueLine,
     speaker: SpeakerVoiceProfile
   ): void {
-    const { x, y, width, height } = line.textBoxRect;
+    const { x, y, width, height } = rect;
 
     if (line.mode === 'transmission' || speaker.transmissionStyle) {
       this.drawTransmissionBox(ctx, x, y, width, height);

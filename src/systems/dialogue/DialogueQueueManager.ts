@@ -6,18 +6,9 @@ import type { DialogueMode } from './interfaces/DialogueMode';
 import { getUniformScaleFactor } from '@/config/view';
 import { DialogueOrchestrator } from './DialogueOrchestrator';
 import { speakerVoiceRegistry } from './registry/SpeakerVoiceRegistry';
+import { getTextBoxLayout } from './utils/getTextBoxLayout';
 
 const POST_LINE_DELAY_MS = 800;
-
-const INPERSON_TEXTBOXRECT = { x: 320, y: 120, width: 520, height: 140 };
-const INPERSON_PORTRAIT_POSITION = { x: 80, y: 420 };
-const INPERSON_FONT = '24px monospace';
-
-const TRANSMISSION_TEXTBOXRECT = { x: 180, y: 20, width: 500, height: 120 };
-const TRANSMISSION_TEXTBOXRECT_RIGHT = { x: 590, y: 20, width: 500, height: 120 };
-const TRANSMISSION_PORTRAIT_POSITION_RIGHT = { x: 1130, y: 20 };
-const TRANSMISSION_PORTRAIT_POSITION = { x: 20, y: 20 };
-const TRANSMISSION_FONT = '20px monospace';
 
 export class DialogueQueueManager {
   private currentScript: DialogueScript | null = null;
@@ -68,9 +59,6 @@ export class DialogueQueueManager {
         const lineMode = event.options?.mode ?? this.activeSpeakerOptions.mode ?? defaultMode;
         const side = event.options?.side ?? this.activeSpeakerOptions.side ?? 'left';
 
-        const isInPerson = lineMode === 'inPerson';
-        const isRightSide = side === 'right';
-
         const speakerId = event.speakerId ?? this.activeSpeakerId;
         if (!speakerId) {
           console.warn('No speaker defined for line event');
@@ -78,44 +66,18 @@ export class DialogueQueueManager {
           return;
         }
 
-        const uiScale = getUniformScaleFactor();
-
-        const textBoxRect = isInPerson
-          ? {
-              x: 320 * uiScale,
-              y: 120 * uiScale,
-              width: 520 * uiScale,
-              height: 140 * uiScale,
-            }
-          : isRightSide
-            ? {
-                x: 590 * uiScale,
-                y: 20 * uiScale,
-                width: 500 * uiScale,
-                height: 120 * uiScale,
-              }
-            : {
-                x: 180 * uiScale,
-                y: 20 * uiScale,
-                width: 500 * uiScale,
-                height: 120 * uiScale,
-              };
-
-        const position = isInPerson
-          ? { x: 80 * uiScale, y: 420 * uiScale }
-          : isRightSide
-            ? { x: 1130 * uiScale, y: 20 * uiScale }
-            : { x: 20 * uiScale, y: 20 * uiScale };
-
-        const baseFontSize = isInPerson ? 24 : 20;
-        const font =
-          event.options?.font ??
-          this.activeSpeakerOptions.font ??
-          `${Math.round(baseFontSize * uiScale)}px monospace`;
-
         const textColor =
           event.options?.textColor ??
           this.activeSpeakerOptions.textColor;
+
+        const fontOverride =
+          event.options?.font ?? this.activeSpeakerOptions.font;
+
+        const { textBoxRect, position, font } = getTextBoxLayout({
+          mode: lineMode,
+          side,
+          fontOverride,
+        });
 
         this.orchestrator.startDialogue({
           speakerId,
@@ -126,6 +88,7 @@ export class DialogueQueueManager {
           textBoxAlpha: event.options?.textBoxAlpha ?? 0.8,
           position,
           mode: lineMode,
+          side,
           textSpeed: speakerVoiceRegistry.getProfile(speakerId)?.textSpeed,
         });
 

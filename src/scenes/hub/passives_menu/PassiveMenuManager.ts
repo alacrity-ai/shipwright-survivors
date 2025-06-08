@@ -4,6 +4,8 @@ import type { InputManager } from '@/core/InputManager';
 import type { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import type { PassiveId, PassiveTier } from '@/game/player/PlayerPassiveManager';
 
+import { getUniformScaleFactor } from '@/config/view'; // ADDED THIS IMPORT
+
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { drawCRTButton, type UICRTButton } from '@/ui/primitives/CRTButton';
 
@@ -11,7 +13,7 @@ import { PassiveMetadata, PassiveCategoryLabels, PassiveCategory } from './types
 
 export class PassiveMenuManager {
   private scrollOffset = 0;
-  private readonly scrollSpeed = 40;
+  private readonly baseScrollSpeed = 40;
 
   private isDraggingThumb = false;
   private thumbDragOffsetY = 0;
@@ -27,18 +29,20 @@ export class PassiveMenuManager {
   ) {}
 
   update(): void {
-    const scrollBarWidth = 28;
-    const scrollButtonHeight = 24;
+    const scale = getUniformScaleFactor();
+    const scrollSpeed = Math.floor(this.baseScrollSpeed * scale);
+    const scrollBarWidth = Math.floor(28 * scale);
+    const scrollButtonHeight = Math.floor(24 * scale);
     const scrollBarX = this.bounds.x + this.bounds.width - scrollBarWidth;
 
     const maxScroll = Math.max(0, this.contentHeight - this.bounds.height);
 
     if (this.inputManager.wasScrollWheelDown() || this.inputManager.isKeyPressed('KeyS')) {
-      this.scrollOffset = Math.min(this.scrollOffset + this.scrollSpeed, maxScroll);
+      this.scrollOffset = Math.min(this.scrollOffset + scrollSpeed, maxScroll);
     }
 
     if (this.inputManager.wasScrollWheelUp() || this.inputManager.isKeyPressed('KeyW')) {
-      this.scrollOffset = Math.max(0, this.scrollOffset - this.scrollSpeed);
+      this.scrollOffset = Math.max(0, this.scrollOffset - scrollSpeed);
     }
 
     const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
@@ -51,13 +55,13 @@ export class PassiveMenuManager {
     const trackHeight = this.bounds.height - scrollButtonHeight * 2;
 
     const visibleRatio = this.bounds.height / Math.max(this.contentHeight, 1);
-    const thumbHeight = Math.max(30, visibleRatio * trackHeight);
-    const thumbX = scrollBarX + 2;
+    const thumbHeight = Math.max(Math.floor(30 * scale), visibleRatio * trackHeight);
+    const thumbX = scrollBarX + Math.floor(2 * scale);
     const thumbY = trackTop + (this.scrollOffset / maxScroll) * (trackHeight - thumbHeight);
 
     const isOverThumb =
       mouseX >= thumbX &&
-      mouseX <= thumbX + (scrollBarWidth - 4) &&
+      mouseX <= thumbX + (scrollBarWidth - Math.floor(4 * scale)) &&
       mouseY >= thumbY &&
       mouseY <= thumbY + thumbHeight;
 
@@ -71,7 +75,7 @@ export class PassiveMenuManager {
       const scrollTrackSpan = trackHeight - thumbHeight;
 
       if (scrollTrackSpan > 0) {
-        const rowHeight = 32;
+        const rowHeight = Math.floor(32 * scale);
         const rawMaxScroll = Math.max(0, this.contentHeight - this.bounds.height);
         const snappedMaxScroll = Math.round(rawMaxScroll / rowHeight) * rowHeight;
 
@@ -106,6 +110,7 @@ export class PassiveMenuManager {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    const scale = getUniformScaleFactor();
     const { x, y, width, height } = this.bounds;
 
     ctx.save();
@@ -115,13 +120,13 @@ export class PassiveMenuManager {
 
     let cursorY = y - this.scrollOffset;
 
-    const paddingX = 32;
-    const rowHeight = 28;
-    const tierSpacing = 70;
-    const tierOffsetX = x + 320;
+    const paddingX = Math.floor(32 * scale);
+    const rowHeight = Math.floor(28 * scale);
+    const tierSpacing = Math.floor(70 * scale);
+    const tierOffsetX = x + Math.floor(320 * scale);
 
-    const scrollBarWidth = 28;
-    const scrollButtonHeight = 24;
+    const scrollBarWidth = Math.floor(28 * scale);
+    const scrollButtonHeight = Math.floor(24 * scale);
     const scrollBarX = x + width - scrollBarWidth;
 
     this.activeButtons = [];
@@ -132,7 +137,7 @@ export class PassiveMenuManager {
       const categoryLabel = PassiveCategoryLabels[categoryKey];
 
       drawCRTText(ctx, x + paddingX, cursorY, categoryLabel.toUpperCase(), {
-        font: '18px monospace',
+        font: `${Math.floor(18 * scale)}px monospace`,
         color: '#00ff00',
       });
       cursorY += rowHeight;
@@ -143,7 +148,7 @@ export class PassiveMenuManager {
         const currentTier = this.passiveManager.getPassiveTier(id as PassiveId);
 
         drawCRTText(ctx, x + paddingX, cursorY, meta.label, {
-          font: '15px monospace',
+          font: `${Math.floor(15 * scale)}px monospace`,
           color: '#ffffff',
         });
 
@@ -154,7 +159,7 @@ export class PassiveMenuManager {
           const tx = tierOffsetX + tierIndex * tierSpacing;
 
           drawCRTText(ctx, tx, cursorY, label, {
-            font: '15px monospace',
+            font: `${Math.floor(15 * scale)}px monospace`,
             color: currentTier !== null && tierLevel <= currentTier ? '#00ff41' : '#666666',
           });
 
@@ -164,7 +169,7 @@ export class PassiveMenuManager {
         const nextTier: PassiveTier = ((currentTier ?? 0) + 1) as PassiveTier;
         const canUpgrade = nextTier <= 3 && this.passiveManager.canAfford(nextTier);
 
-        let lastX = tierOffsetX + 3 * tierSpacing + 10;
+        let lastX = tierOffsetX + 3 * tierSpacing + Math.floor(10 * scale);
 
         const isValidTier = nextTier <= 3;
         const upgradeCost = isValidTier ? this.passiveManager.getUpgradeCost(nextTier, currentTier) : 0;
@@ -173,9 +178,9 @@ export class PassiveMenuManager {
         if (isValidTier) {
           const btn: UICRTButton = {
             x: lastX,
-            y: cursorY - 2,
-            width: 30,
-            height: 20,
+            y: cursorY - Math.floor(2 * scale),
+            width: Math.floor(30 * scale),
+            height: Math.floor(20 * scale),
             label: '+',
             onClick: canAfford
               ? () => {
@@ -183,7 +188,7 @@ export class PassiveMenuManager {
                 }
               : () => {}, // noop if unaffordable
             style: {
-              font: '14px monospace',
+              font: `${Math.floor(14 * scale)}px monospace`,
               backgroundColor: '#111111',
               borderColor: canAfford ? '#00ff00' : '#444444',
               textColor: canAfford ? '#00ff00' : '#666666',
@@ -196,18 +201,18 @@ export class PassiveMenuManager {
           this.activeButtons.push(btn);
           drawCRTButton(ctx, btn);
 
-          drawCRTText(ctx, btn.x + btn.width + 8, cursorY, `Cost: ${upgradeCost}`, {
-            font: '13px monospace',
+          drawCRTText(ctx, btn.x + btn.width + Math.floor(8 * scale), cursorY, `Cost: ${upgradeCost}`, {
+            font: `${Math.floor(13 * scale)}px monospace`,
             color: canAfford ? '#00ff00' : '#666666',
           });
 
-          lastX = btn.x + btn.width + 80;
+          lastX = btn.x + btn.width + Math.floor(80 * scale);
         }
 
         if (passiveRowIndex === 0) {
           const points = this.passiveManager.getAvailablePoints();
           drawCRTText(ctx, lastX, cursorY, `Passive Licenses: ${points}`, {
-            font: '14px monospace',
+            font: `${Math.floor(14 * scale)}px monospace`,
             color: '#00ff00',
           });
         }
@@ -216,7 +221,7 @@ export class PassiveMenuManager {
         cursorY += rowHeight;
       }
 
-      cursorY += 6;
+      cursorY += Math.floor(6 * scale);
     }
 
     // === Update content height and scroll offset ===
@@ -228,17 +233,18 @@ export class PassiveMenuManager {
     ctx.save();
 
     // === Scroll Buttons ===
+    const scrollSpeed = Math.floor(this.baseScrollSpeed * scale);
     const upBtn: UICRTButton = {
       x: scrollBarX,
-      y: y + 32,
+      y: y + Math.floor(32 * scale),
       width: scrollBarWidth,
       height: scrollButtonHeight,
       label: '▲',
       onClick: () => {
-        this.scrollOffset = Math.max(0, this.scrollOffset - this.scrollSpeed);
+        this.scrollOffset = Math.max(0, this.scrollOffset - scrollSpeed);
       },
       style: {
-        font: '13px monospace',
+        font: `${Math.floor(13 * scale)}px monospace`,
         backgroundColor: '#001100',
         borderColor: '#00ff00',
         textColor: '#00ff00',
@@ -250,12 +256,12 @@ export class PassiveMenuManager {
 
     const downBtn: UICRTButton = {
       x: scrollBarX,
-      y: y + height - scrollButtonHeight - 32,
+      y: y + height - scrollButtonHeight - Math.floor(32 * scale),
       width: scrollBarWidth,
       height: scrollButtonHeight,
       label: '▼',
       onClick: () => {
-        this.scrollOffset = Math.min(this.scrollOffset + this.scrollSpeed, maxScroll);
+        this.scrollOffset = Math.min(this.scrollOffset + scrollSpeed, maxScroll);
       },
       style: upBtn.style
     };
@@ -265,18 +271,15 @@ export class PassiveMenuManager {
     drawCRTButton(ctx, downBtn);
 
     // === Thumb ===
-    const trackTop = y + scrollButtonHeight + 32;
-    const trackHeight = height - scrollButtonHeight * 2 - 64;
+    const trackTop = y + scrollButtonHeight + Math.floor(32 * scale);
+    const trackHeight = height - scrollButtonHeight * 2 - Math.floor(64 * scale);
     const visibleRatio = height / Math.max(this.contentHeight, 1);
-    const thumbHeight = Math.max(30, visibleRatio * trackHeight);
+    const thumbHeight = Math.max(Math.floor(30 * scale), visibleRatio * trackHeight);
     const thumbY = trackTop + (this.scrollOffset / maxScroll) * (trackHeight - thumbHeight);
 
     ctx.fillStyle = '#00ff00';
     ctx.globalAlpha = 0.3;
-    ctx.fillRect(scrollBarX + 2, thumbY, scrollBarWidth - 4, thumbHeight);
+    ctx.fillRect(scrollBarX + Math.floor(2 * scale), thumbY, scrollBarWidth - Math.floor(4 * scale), thumbHeight);
     ctx.restore();
   }
-
-
-
 }

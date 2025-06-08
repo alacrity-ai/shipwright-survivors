@@ -4,6 +4,8 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export class WavesOverlay {
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -18,17 +20,19 @@ export class WavesOverlay {
     const countdown = this.waveSpawner.getTimeUntilNextWave();
     const isBoss = this.waveSpawner.isBossWaveActive();
 
-    const x = 240;
+    const scale = getUniformScaleFactor();
 
-    let y = canvas.height - 36;
-    const lineHeight = 18;
+    const x = 240 * scale;
 
-    drawLabel(ctx, x, y, `Wave: ${wave}`); y += lineHeight;
+    let y = canvas.height - (36 * scale); // 36px from bottom of screen
+    const lineHeight = 18 * scale;
+
+    drawLabel(ctx, x, y, `Wave: ${wave}`, {}, scale); y += lineHeight;
 
     if (isBoss) {
-      drawLabel(ctx, x, y, `Boss Encounter`);
+      drawLabel(ctx, x, y, `Boss Encounter`, {}, scale);
     } else {
-      drawLabel(ctx, x, y, `Next wave in: ${Math.ceil(countdown)}s`);
+      drawLabel(ctx, x, y, `Next wave in: ${Math.ceil(countdown)}s`, {}, scale);
     }
   }
 }

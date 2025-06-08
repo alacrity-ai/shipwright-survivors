@@ -65,7 +65,7 @@ export class Camera {
   }
 
   adjustZoom(delta: number): void {
-    const baseFactor = 1.05;
+    const baseFactor = 1.08;
     const scrollSteps = Math.max(-1, Math.min(1, delta));
 
     const centerWorldBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
@@ -77,7 +77,7 @@ export class Camera {
 
     const uiScale = getUniformScaleFactor();
     const scaledMinZoom = 0.15 * uiScale;
-    const scaledMaxZoom = 1.0 * uiScale;
+    const scaledMaxZoom = 0.5 * uiScale;
     this.zoom = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, newZoom));
 
     const centerWorldAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);

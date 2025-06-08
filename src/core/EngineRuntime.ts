@@ -1,6 +1,6 @@
 // src/core/EngineRuntime.ts
 import { Camera } from './Camera';
-import { getViewportWidth, getViewportHeight } from '@/config/view';
+import { getViewportWidth, getViewportHeight, getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
@@ -90,7 +90,7 @@ export class EngineRuntime {
 
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager;
-  private menuManager: MenuManager;
+  private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
   private spaceStationBuilderMenu: SpaceStationBuilderMenu;
   private settingsMenu: SettingsMenu;
@@ -161,7 +161,6 @@ export class EngineRuntime {
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
     
     // Menus
-    this.menuManager = new MenuManager();
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
     this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
     this.pauseMenu = new PauseMenu(
@@ -330,7 +329,7 @@ export class EngineRuntime {
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
     this.hud = new HudOverlay(this.canvasManager, this.ship);
-    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.shipRegistry, this.aiOrchestrator, this.planetSystem);
+    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
     this.updatables = [
       this.movement,
@@ -505,6 +504,9 @@ export class EngineRuntime {
     this.repairEffectSystem.update(dt);
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);
+
+    // On resolution change, recreate the minimap
+    // INSERT CODE HERE
   };
 
   private render = (dt: number) => {
@@ -613,6 +615,7 @@ export class EngineRuntime {
 
     // Optional: clear UI menus, overlays
     this.hud.destroy();
+    this.miniMap.destroy();
 
     // // Clear rendering and update lists
     this.updatables.length = 0;
@@ -620,6 +623,7 @@ export class EngineRuntime {
 
     // Optional: Clear event listeners from global input systems
     this.inputManager.destroy(); // or similar method
+    this.menuManager.reset();
 
     // Null references (defensive)
     this.ship = null;

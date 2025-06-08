@@ -12,4 +12,5 @@ export interface DialogueLine {
   textColor?: string;
   font?: string;
   textSpeed?: number;
+  side: 'left' | 'right';
 }

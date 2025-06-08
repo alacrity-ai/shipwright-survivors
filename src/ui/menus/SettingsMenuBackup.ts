@@ -12,9 +12,8 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
+import { getUIScale } from '@/ui/menus/helpers/getUIScale';
 import { getDropdownHoverInfo } from '@/ui/menus/helpers/getDropdownHoverInfo';
-
-import { getUniformScaleFactor } from '@/config/view';
 
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
@@ -23,7 +22,7 @@ import { drawVolumeSlider, type VolumeSlider } from '@/ui/primitives/VolumeSlide
 import { drawCRTDropDown, CRTDropDown } from '@/ui/primitives/CRTDropDown';
 import { audioManager } from '@/audio/Audio';
 
-type SettingsTab = 'display' | 'volume' | 'controls' | 'keybinds';
+type SettingsTab = 'display' | 'volume';
 
 type VolumeControlDef =
   | { kind: 'master' }
@@ -55,6 +54,8 @@ export class SettingsMenu implements Menu {
 
   private resolutionDropdown: CRTDropDown | null = null;
 
+  // Scalable UI Size Dimensions
+  // Scaled against getUIScale()
   private windowX = 120;
   private windowY = 80;
   private windowHeight = 460;
@@ -63,9 +64,8 @@ export class SettingsMenu implements Menu {
   private headerStartY = 20;
   private headerStartX = 80;
   private headerHeight = 40;
-  private headerItemWidth = 80;
-  private headerHorizontalPadding = 12;
-  private headerVerticalPadding = 6;
+  private headerItemWidth = 100;
+  private headerHorizontalPadding = 16;
 
   private buttonWidth = 120;
   private buttonHeight = 40;
@@ -92,7 +92,7 @@ export class SettingsMenu implements Menu {
   initialize(): void {
     const settings = PlayerSettingsManager.getInstance();
 
-    const uiScale = getUniformScaleFactor();
+    const uiScale = getUIScale();
     const scaledMargin = this.margin * uiScale;
     const scaledHeaderHeight = this.headerHeight * uiScale;
     const scaledItemVerticalSpacing = this.itemVerticalSpacing * uiScale;
@@ -107,8 +107,8 @@ export class SettingsMenu implements Menu {
     // Close button on Bottom right of window
     // The buttons origin is its center
     this.closeButton = {
-      x: this.windowX + scaledWindowWidth - (scaledButtonWidth) - scaledMargin,
-      y: this.windowY + scaledWindowHeight - (scaledButtonHeight) - scaledMargin,
+      x: scaledWindowWidth - scaledButtonWidth / 2 - scaledMargin,
+      y: scaledWindowHeight - scaledButtonHeight / 2 - scaledMargin,
       width: this.buttonWidth,
       height: this.buttonHeight,
       label: 'Close',
@@ -234,35 +234,41 @@ export class SettingsMenu implements Menu {
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasLeftClicked?.();
     const held = this.inputManager.isMouseLeftPressed?.();
-    const scale = getUniformScaleFactor();
+    const scale = getUIScale();
 
     const scaledHeaderItemWidth = this.headerItemWidth * scale;
     const scaledHeaderHorizontalPadding = this.headerHorizontalPadding * scale;
 
     // === Tab click logic ===
     if (clicked) {
-      const baseX = this.headerStartX + this.windowX;
-      const baseY = this.headerStartY + this.windowY;
-      const tabRects = [
-        { tab: 'display', label: 'General' },
-        { tab: 'volume', label: 'Volume' },
-        { tab: 'controls', label: 'Controls' },
-        { tab: 'keybinds', label: 'Keybinds' },
-      ];
-
-      for (let i = 0; i < tabRects.length; i++) {
-        const x = baseX + i * (scaledHeaderItemWidth + scaledHeaderHorizontalPadding);
-        if (
-          isMouseOverRect(mouse.x, mouse.y, {
-            x,
-            y: baseY + (this.headerVerticalPadding * scale),
+      if (
+        isMouseOverRect(
+          mouse.x,
+          mouse.y,
+          {
+            x: this.headerStartX + this.windowX,
+            y: this.headerStartY + this.windowY,
             width: this.headerItemWidth,
             height: this.headerHeight,
-          }, scale)
-        ) {
-          this.activeTab = tabRects[i].tab as SettingsTab;
-          break;
-        }
+          },
+          scale
+        )
+      ) {
+        this.activeTab = 'display';
+      } else if (
+        isMouseOverRect(
+          mouse.x,
+          mouse.y,
+          {
+            x: this.headerStartX + this.windowX + scaledHeaderItemWidth + scaledHeaderHorizontalPadding,
+            y: this.headerStartY + this.windowY,
+            width: this.headerItemWidth,
+            height: this.headerHeight,
+          },
+          scale
+        )
+      ) {
+        this.activeTab = 'volume';
       }
     }
 
@@ -330,7 +336,7 @@ export class SettingsMenu implements Menu {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    const scale = getUniformScaleFactor();
+    const scale = getUIScale();
 
     const scaledHeaderItemWidth = this.headerItemWidth * scale;
     const scaledHeaderHorizontalPadding = this.headerHorizontalPadding * scale;
@@ -357,61 +363,47 @@ export class SettingsMenu implements Menu {
     });
 
     // === Tab Labels ===
-    const tabs: { tab: SettingsTab; label: string }[] = [
-      { tab: 'display', label: 'General' },
-      { tab: 'volume', label: 'Volume' },
-      { tab: 'controls', label: 'Controls' },
-      { tab: 'keybinds', label: 'Keybinds' },
-    ];
+    drawLabel(
+      ctx,
+      this.headerStartX + this.windowX,
+      this.headerStartY + this.windowY,
+      'General',
+      {
+        font: '16px monospace',
+        align: 'left',
+        color: this.activeTab === 'display' ? '#6f6' : '#888',
+      },
+      scale
+    );
 
-    tabs.forEach((tabInfo, index) => {
-      drawLabel(
-        ctx,
-        this.headerStartX + this.windowX + index * (scaledHeaderItemWidth + scaledHeaderHorizontalPadding),
-        this.headerStartY + this.windowY + (this.headerVerticalPadding * scale),
-        tabInfo.label,
-        {
-          font: '16px monospace',
-          align: 'left',
-          color: this.activeTab === tabInfo.tab ? '#6f6' : '#888',
-        },
-        scale
-      );
-    });
+    drawLabel(
+      ctx,
+      this.headerStartX + this.windowX + scaledHeaderItemWidth + scaledHeaderHorizontalPadding,
+      this.headerStartY + this.windowY,
+      'Volume',
+      {
+        font: '16px monospace',
+        align: 'left',
+        color: this.activeTab === 'volume' ? '#6f6' : '#888',
+      },
+      scale
+    );
 
     // === Items in the active tab ===
     if (this.activeTab === 'display') {
       drawCheckbox(ctx, this.particleCheckbox!, scale);
       drawCheckbox(ctx, this.lightingCheckbox!, scale);
       drawCheckbox(ctx, this.collisionsCheckbox!, scale);
+
       drawCRTDropDown(ctx, this.resolutionDropdown!, scale, 'Resolution');
 
     } else if (this.activeTab === 'volume') {
       for (let i = 0; i < this.volumeSliders.length; i++) {
         const slider = this.volumeSliders[i];
-        const label = this.volumeLabels[i];
+        const label = this.volumeLabels[i]; // e.g. 'Music', 'Master'
+
         drawVolumeSlider(ctx, slider, scale, label);
       }
-
-    } else if (this.activeTab === 'controls') {
-      drawLabel(
-        ctx,
-        this.windowX + this.margin * scale,
-        this.windowY + 100 * scale,
-        'Controls tab coming soon...',
-        { font: '14px monospace', align: 'left', color: '#ccc' },
-        scale
-      );
-
-    } else if (this.activeTab === 'keybinds') {
-      drawLabel(
-        ctx,
-        this.windowX + this.margin * scale,
-        this.windowY + 100 * scale,
-        'Keybinds tab coming soon...',
-        { font: '14px monospace', align: 'left', color: '#ccc' },
-        scale
-      );
     }
 
     drawButton(ctx, this.closeButton!, scale);

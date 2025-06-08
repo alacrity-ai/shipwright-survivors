@@ -1,5 +1,7 @@
 // src/ui/primitives/UIVerticalResourceBar.ts
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export interface UIVerticalResourceBar {
   x: number;
   y: number;
@@ -157,13 +159,13 @@ export function drawUIVerticalResourceBar(
   // === Text Label (above bar) ===
   if (showLabel) {
     ctx.save();
-    ctx.font = `${Math.round(11 * uiScale)}px monospace`;
+    ctx.font = `${Math.round(11 * getUniformScaleFactor())}px monospace`;
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
 
     const labelText = `${Math.round(value)}${unit ? ` ${unit}` : ''}`;
-    ctx.fillText(labelText, x + scaledW / 2, y - 4 * uiScale);
+    ctx.fillText(labelText, x + scaledW / 2, y - 4 * getUniformScaleFactor());
 
     ctx.restore();
   }

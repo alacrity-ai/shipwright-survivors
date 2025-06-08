@@ -10,13 +10,14 @@ export class PortraitRenderer {
 
   public render(
     ctx: CanvasRenderingContext2D,
+    position: { x: number; y: number }, // <-- new parameter
     line: DialogueLine,
     speaker: SpeakerVoiceProfile
   ): void {
     const scale = getUniformScaleFactor();
 
     const { portrait, portraitOffset } = speaker;
-    const { x, y } = line.position;
+    const { x, y } = position; // <-- use live layout position
     const isTransmission = line.mode === 'transmission';
 
     const offsetX = (portraitOffset?.x ?? 0) * scale;
@@ -29,7 +30,6 @@ export class PortraitRenderer {
     const width = baseSize.width * scale;
     const height = baseSize.height * scale;
 
-    // Optional transmission-style frame and overlay
     if (isTransmission) {
       this.drawTransmissionFrame(ctx, drawX, drawY, width, height, scale);
     }
@@ -69,7 +69,6 @@ export class PortraitRenderer {
     ctx.fillStyle = 'rgba(0, 255, 100, 0.05)';
     ctx.fillRect(x, y, width, height);
 
-    // CRT-style scanlines
     ctx.strokeStyle = 'rgba(0, 255, 100, 0.12)';
     ctx.lineWidth = 1 * scale;
     const scanlineSpacing = 4 * scale;

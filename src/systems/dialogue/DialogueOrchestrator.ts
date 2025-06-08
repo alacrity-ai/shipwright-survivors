@@ -4,6 +4,8 @@ import type { DialogueLine } from '@/systems/dialogue/interfaces/DialogueLine';
 import type { BlipTimelineEntry } from '@/systems/dialogue/interfaces/BlipTimelineEntry';
 
 import { generateBlipTimeline } from '@/systems/dialogue/utils/generateBlipTimeline';
+import { getTextBoxLayout } from '@/systems/dialogue/utils/getTextBoxLayout';
+
 import { PortraitRenderer } from '@/systems/dialogue/renderers/PortraitRenderer';
 import { TextboxRenderer } from '@/systems/dialogue/renderers/TextboxRenderer';
 import { RollingTextRenderer } from '@/systems/dialogue/renderers/RollingTextRenderer';
@@ -15,7 +17,7 @@ export class DialogueOrchestrator {
   private blipTimeline: BlipTimelineEntry[] = [];
   private elapsed = 0;
   private finished = false;
-  private visualsVisible = true; // <-- added
+  private visualsVisible = true;
 
   constructor(
     private readonly portraitRenderer: PortraitRenderer,
@@ -60,9 +62,15 @@ export class DialogueOrchestrator {
     const speaker = this.speakerRegistry.getProfile(line.speakerId);
     if (!speaker) return;
 
-    this.portraitRenderer.render(ctx, line, speaker);
-    this.textboxRenderer.render(ctx, line, speaker);
-    this.textRenderer.render(ctx, line);
+    const layout = getTextBoxLayout({
+      mode: line.mode,
+      side: line.side,
+      fontOverride: line.font,
+    });
+
+    this.portraitRenderer.render(ctx, layout.position, line, speaker);
+    this.textboxRenderer.render(ctx, layout.textBoxRect, line, speaker);
+    this.textRenderer.render(ctx, layout.textBoxRect, layout.font, line);
   }
 
   public skipToEnd(): void {

@@ -6,11 +6,13 @@ import { drawCRTText } from '@/ui/primitives/CRTText';
 import { CRTMonitor } from '@/ui/primitives/CRTMonitor';
 import { getViewportWidth } from '@/config/view';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export class PlanetRenderer {
   private image: HTMLImageElement | null = null;
 
   // === Add overlay box ===
-  private readonly overlayBox: CRTMonitor;
+  // private readonly overlayBox: CRTMonitor;
 
   constructor(
     private readonly imagePath: string,
@@ -19,21 +21,20 @@ export class PlanetRenderer {
   ) {
     this.loadImage();
 
-    // Fixed-size overlay box (in screen-space)
-    const width = 360;
-    const height = 80;
-    const x = (getViewportWidth() - width) / 2; // Centered for fixed viewport
-    const y = 48;
+    // // Fixed-size overlay box (in screen-space)
+    // const width = 360;
+    // const height = 80;
+    // const x = (getViewportWidth() - (width * getUniformScaleFactor())) / 2; // Centered for fixed viewport
+    // const y = 48;
 
-this.overlayBox = new CRTMonitor(x, y, width, height, {
-  backgroundColor: '#0a0a0a',           // Deep neutral grey (instead of full black)
-  alpha: 0.4,                           // Reduced opacity for subtlety
-  glowColor: '#00aa33',                // Muted green glow (less neon)
-  borderColor: '#004411',              // Very dark green border
-  borderRadius: 4,                     // Slightly tighter corners
-  scanlineSpacing: 5                   // Slightly denser lines for better cohesion
-});
-
+    // this.overlayBox = new CRTMonitor(x, y, width, height, {
+    //   backgroundColor: '#0a0a0a',           // Deep neutral grey (instead of full black)
+    //   alpha: 0.4,                           // Reduced opacity for subtlety
+    //   glowColor: '#00aa33',                // Muted green glow (less neon)
+    //   borderColor: '#004411',              // Very dark green border
+    //   borderRadius: 4,                     // Slightly tighter corners
+    //   scanlineSpacing: 5                   // Slightly denser lines for better cohesion
+    // });
   }
 
   private loadImage(): void {
@@ -67,22 +68,23 @@ this.overlayBox = new CRTMonitor(x, y, width, height, {
 
     // === Interaction overlay ===
     if (inInteractionRange && !isInteracting) {
-      this.overlayBox.update(performance.now());
-      this.overlayBox.draw(overlayCtx);
+      const uiScale = getUniformScaleFactor();
+      // this.overlayBox.update(performance.now());
+      // this.overlayBox.draw(overlayCtx, uiScale);
 
       const screenCenterX = camera.getViewportWidth() / 2;
-      const topOffsetY = 64; // Y = 48 (box top) + 10px padding
+      const topOffsetY = 32 * uiScale;
 
       drawCRTText(overlayCtx, screenCenterX, topOffsetY, this.name, {
-        font: '24px "Courier New", monospace',
+        font: `${uiScale * 24}px "Courier New", monospace`,
         align: 'center',
         baseline: 'top',
         glow: true,
-        chromaticAberration: true
+        chromaticAberration: true,
       });
 
-      drawCRTText(overlayCtx, screenCenterX, topOffsetY + 32, 'Open Communications: [C]', {
-        font: '16px "Courier New", monospace',
+      drawCRTText(overlayCtx, screenCenterX, topOffsetY + (32 * uiScale), 'Open Communications: [C]', {
+        font: `${uiScale * 16}px "Courier New", monospace`,
         align: 'center',
         baseline: 'top',
         glow: true,

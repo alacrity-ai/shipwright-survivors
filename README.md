@@ -93,9 +93,12 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [x] Turret
   - [x] Laser
   - [ ] Mines (Potential Different types)
+  - [ ] Homing Missles (Seeking Missles)
   - [x] Explosive Lance (Fire a fast lance that hits an enemy block, sticks in, then detonates)
   - [ ] Orbiting Blade (Blades orbit the player ship, dealing damage on contact to enemies)
   - [ ] Arc Conduit Emitter (Chain lightning)
+  - [ ] Grappling Hook
+  - [ ] Garlic (In vampire Survivors)
   - [ ] Rail Lance (Long cooldown, pierces many blocks)
   - [ ] Suppressor Gas (Supresses engines and firepower)
   - [ ] Reflector Array (Reflects projectiles like bullets and lasers)
@@ -140,7 +143,26 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [ ] More UI Scaling fixes for resolution support/scaling support
+  - [ ] Explore gating hull size, and having max hull size increasable via the passive tree
+    - [ ] Starter ships could have implicit max hull sizes
+  - [ ] Add the concept of a selectable startship
+    - [ ] Upon returning to base, you are given 2 additional starter ships
+    - [ ] Starter ships will have implicit bonuses per ship, e.g.
+      - [ ] Starter ship 1: Engines add 20% more speed
+      - [ ] Starter ship 2: Projectiles only fire forward
+      - [ ] Starter ship 3: Turrets have 20% more damage
   - [ ] Add settings menu to the titlescreen
+  - [ ] Multilingual support, use this technique:
+      ``` 
+      import { tr } from '@/i18n/template';
+
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: tr`intro-briefing.line1|Greetings, Shipwright Second Class. Assessing your consciousness status...`,
+      }
+      ``` And then keep the other language definitions for intro-briefing.line1 in another file
   - [x] Allow pause menu parameterization wherein the abandon mission button is greyed out during the first tutorial mission
       - [ ] Also allow Quitting directly from this menu if we're in electron
   - [x] Clicking Resume on the pause menu does not free up input
