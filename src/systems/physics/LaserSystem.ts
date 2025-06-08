@@ -10,6 +10,7 @@ import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { createBeamLight } from '@/lighting/lights/createBeamLight';
+import { createPointLight } from '@/lighting/lights/createPointLight';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { randomFromArray } from '@/shared/arrayUtils';
 
@@ -168,19 +169,35 @@ export class LaserSystem implements IUpdatable, IRenderable {
         if (Math.random() < 0.1) {
           const palette = LASER_BEAM_COLORS[block.type.id];
           const lightingOrchestrator = LightingOrchestrator.getInstance();
+
           if (PlayerSettingsManager.getInstance().isLightingEnabled() && palette) {
             const color = randomFromArray(palette);
-            const light = createBeamLight({
+
+            // === Beam Light ===
+            const beamLight = createBeamLight({
               start: { x: origin.x, y: origin.y },
               end: { x: visualTargetX, y: visualTargetY },
-              width: 12 + Math.random() * 4,
+              width: 30 + Math.random() * 4,
               color,
-              intensity: 0.6 + Math.random() * 0.4,
-              life: 150,
+              intensity: 0.15 + Math.random() * 0.4,
+              life: 0.1 + Math.random() * 0.15,
               expires: true,
             });
 
-            lightingOrchestrator.registerLight(light);
+            lightingOrchestrator.registerLight(beamLight);
+
+            // === Muzzle Flash Light ===
+            const muzzleFlash = createPointLight({
+              x: origin.x,
+              y: origin.y,
+              radius: 186 + Math.random() * 32,
+              color,
+              intensity: 0.4 + Math.random() * 0.3,
+              life: 0.05 + Math.random() * 0.1,
+              expires: true,
+            });
+
+            lightingOrchestrator.registerLight(muzzleFlash);
           }
         }
       }

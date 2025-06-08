@@ -82,20 +82,37 @@ export class CombatService {
     // === Direct HP damage fallback ===
     block.hp -= damage;
 
-    // Set light options
-    const lightOptions = PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
-      ? { lightRadiusScalar: 10, lightIntensity: 0.3, lightLifeScalar: 0.5 }
-      : undefined;
+    // Light color for laser hits
+    const LASER_HIT_LIGHT_COLOR = '#00ffff';
+
+    // Configure light effect based on cause
+    const lightOptions =
+      PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
+        ? {
+            lightRadiusScalar: 12,
+            lightIntensity: 0.2,
+            lightLifeScalar: 0.7,
+            lightColor: cause === 'laser' ? LASER_HIT_LIGHT_COLOR : undefined,
+          }
+        : undefined;
 
     if (block.position) {
-      this.explosionSystem.createExplosion(
-        block.position,
-        20,
-        0.3,
-        undefined,
-        DEFAULT_EXPLOSION_SPARK_PALETTE,
-        lightOptions
-      );
+      let shouldExplode = true;
+
+      if (cause === 'laser' || cause === 'collision') {
+        shouldExplode = Math.random() < 0.2;
+      }
+
+      if (shouldExplode) {
+        this.explosionSystem.createExplosion(
+          block.position,
+          20,
+          0.3,
+          undefined,
+          DEFAULT_EXPLOSION_SPARK_PALETTE,
+          lightOptions
+        );
+      }
     }
 
     playSpatialSfx(entity, playerShip, {

@@ -129,7 +129,7 @@ export class ExplosionSystem {
         }
       : undefined;
 
-    this.createExplosion(position, 40, 0.4, explosionColor, sparkPalette, resolvedLightOptions);
+    this.createExplosion(position, 34, 0.3, explosionColor, sparkPalette, resolvedLightOptions);
   }
 
   update(dt: number): void {

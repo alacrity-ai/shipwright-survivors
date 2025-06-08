@@ -87,8 +87,8 @@ export class CompositeBlockDestructionService {
       if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
         const lightingOrchestrator = LightingOrchestrator.getInstance();
         const flashColor = '#ffffff'; // intense, eye-searing flash with a hint of heat
-        const intensity = 0.5;
-        const radius = 5 * entity.getTotalMass();
+        const intensity = 0.25;
+        const radius = 4 * entity.getTotalMass();
         const life = 0.5;
 
         const light = createPointLight({

@@ -62,6 +62,7 @@ export class LightingRenderer {
     this.beamUniforms.uColor = gl.getUniformLocation(this.beamProgram, 'uColor');
     this.beamUniforms.uIntensity = gl.getUniformLocation(this.beamProgram, 'uIntensity');
     this.beamUniforms.uFalloff = gl.getUniformLocation(this.beamProgram, 'uFalloff');
+    this.beamUniforms.uResolution = gl.getUniformLocation(this.beamProgram, 'uResolution'); // Add this line
 
     // Postprocessing shader uniforms
     this.postUniforms.uTexture = gl.getUniformLocation(this.postProgram, 'uTexture');
@@ -158,6 +159,8 @@ export class LightingRenderer {
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
+        gl.uniform2f(this.beamUniforms.uResolution, this.framebufferWidth, this.framebufferHeight);
+
         const start = camera.worldToScreen(light.start.x, light.start.y);
         const end = camera.worldToScreen(light.end.x, light.end.y);
 
@@ -166,13 +169,17 @@ export class LightingRenderer {
         const scaledEndX = end.x * this.resolutionScale;
         const scaledEndY = end.y * this.resolutionScale;
 
+        // === Apply Y-flip to match WebGL framebuffer space ===
+        const flippedStartY = this.framebufferHeight - scaledStartY;
+        const flippedEndY = this.framebufferHeight - scaledEndY;
+
         const rgba = this.hexToRgbaVec4(light.color);
         const width = light.width * camera.zoom * this.resolutionScale;
         const intensity = light.intensity;
         const falloff = light.animationPhase ?? 1.0;
 
-        gl.uniform2f(this.beamUniforms.uStart, scaledStartX, scaledStartY);
-        gl.uniform2f(this.beamUniforms.uEnd, scaledEndX, scaledEndY);
+        gl.uniform2f(this.beamUniforms.uStart, scaledStartX, flippedStartY);
+        gl.uniform2f(this.beamUniforms.uEnd, scaledEndX, flippedEndY);
         gl.uniform1f(this.beamUniforms.uWidth, width);
         gl.uniform4fv(this.beamUniforms.uColor, rgba);
         gl.uniform1f(this.beamUniforms.uIntensity, intensity);
