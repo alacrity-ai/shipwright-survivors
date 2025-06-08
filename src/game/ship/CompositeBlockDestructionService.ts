@@ -5,6 +5,9 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { Ship } from '@/game/ship/Ship';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
@@ -79,6 +82,28 @@ export class CompositeBlockDestructionService {
 
     // === Step 3: Ship-only orphaned block detonation ===
     if (entity instanceof Ship) {
+
+      // === Step 4: If lighting system enabled, make a big flash at entity position ===
+      if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
+        const lightingOrchestrator = LightingOrchestrator.getInstance();
+        const flashColor = '#ffffff'; // intense, eye-searing flash with a hint of heat
+        const intensity = 0.5;
+        const radius = 5 * entity.getTotalMass();
+        const life = 0.5;
+
+        const light = createPointLight({
+          x: transform.position.x,
+          y: transform.position.y,
+          radius,
+          color: flashColor,
+          intensity,
+          life,
+          expires: true,
+        });
+
+        lightingOrchestrator.registerLight(light);
+      }
+
       const cockpitCoord = entity.getCockpitCoord?.();
       if (!cockpitCoord) return;
 
@@ -98,7 +123,7 @@ export class CompositeBlockDestructionService {
               DEFAULT_EXPLOSION_SPARK_PALETTE
             );
             this.pickupSpawner.spawnPickupOnBlockDestruction(block);
-          }, 250 + Math.random() * 300);
+          }, 50 + Math.random() * 100);
         }
       }
     }

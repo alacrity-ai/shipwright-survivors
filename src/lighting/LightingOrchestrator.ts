@@ -37,6 +37,10 @@ export class LightingOrchestrator {
     return _instance;
   }
 
+  public static hasInstance(): boolean {
+    return !!_instance;
+  }
+
   registerLight(light: AnyLightInstance): void {
     if (!light.id) light.id = `light_${nextLightId++}`;
     this.lights.set(light.id, light);
@@ -46,6 +50,13 @@ export class LightingOrchestrator {
     const light = this.lights.get(id);
     if (light) this.recycleLight(light);
     this.lights.delete(id);
+  }
+
+  public resizeLighting(): void {
+    this.renderer.resize(
+      this.camera.getViewportWidth(),
+      this.camera.getViewportHeight()
+    );
   }
 
   clear(): void {
@@ -168,11 +179,13 @@ export class LightingOrchestrator {
   }
 
   public destroy(): void {
+    if (_instance !== this) return;
+
     this.clear();
     this.lightPool.length = 0;
+    this.renderer.destroy();
 
-    // @ts-ignore - explicitly release singleton (GC hint)
-    _instance = null as any;
+    _instance = null;
+    nextLightId = 0;
   }
-
 }

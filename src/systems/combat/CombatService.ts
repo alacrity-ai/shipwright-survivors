@@ -3,6 +3,8 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
+
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { Ship } from '@/game/ship/Ship';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUtils';
@@ -45,6 +47,13 @@ export class CombatService {
       const efficiency = block.shieldEfficiency ?? 0;
 
       if (efficiency > 0) {
+        // Make a big blue light on hit
+        // Random 5-10
+        const lightRadiusScalar = Math.random() * 5 + 5;
+        const lightOptions = PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
+          ? { lightRadiusScalar: lightRadiusScalar, lightIntensity: 0.4, lightLifeScalar: 0.5, lightColor: '#00ffff' }
+          : undefined;
+
         const clampedEfficiency = Math.max(0.001, efficiency);
         const energyCost = damage / clampedEfficiency;
 
@@ -61,7 +70,8 @@ export class CombatService {
 
             this.explosionSystem.createShieldDeflection(
               block.position,
-              block.shieldSourceId ?? 'shield0'
+              block.shieldSourceId ?? 'shield0',
+              lightOptions
             );
           }
           return false;
@@ -72,6 +82,11 @@ export class CombatService {
     // === Direct HP damage fallback ===
     block.hp -= damage;
 
+    // Set light options
+    const lightOptions = PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
+      ? { lightRadiusScalar: 10, lightIntensity: 0.3, lightLifeScalar: 0.5 }
+      : undefined;
+
     if (block.position) {
       this.explosionSystem.createExplosion(
         block.position,
@@ -79,8 +94,7 @@ export class CombatService {
         0.3,
         undefined,
         DEFAULT_EXPLOSION_SPARK_PALETTE,
-        4,
-        0.2
+        lightOptions
       );
     }
 
@@ -112,8 +126,6 @@ export class CombatService {
       0.7 * (isCockpit ? 2 : 1),
       undefined,
       DEFAULT_EXPLOSION_SPARK_PALETTE,
-      8,
-      0.2
     );
 
     playSpatialSfx(entity, playerShip, {
@@ -166,8 +178,6 @@ export class CombatService {
           0.5 + Math.random() * 0.3,
           undefined,
           DEFAULT_EXPLOSION_SPARK_PALETTE,
-          5,
-          0.2
         );
 
         this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
@@ -194,8 +204,6 @@ export class CombatService {
             1.2,
             undefined,
             DEFAULT_EXPLOSION_SPARK_PALETTE,
-            14,
-            0.3
           );
 
           this.pickupSpawner.spawnPickupOnBlockDestruction(cockpitBlock);

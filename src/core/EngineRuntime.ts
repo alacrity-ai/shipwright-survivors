@@ -534,9 +534,9 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('ui');
     this.canvasManager.clearLayer('overlay');
     this.canvasManager.clearLayer('dialogue');
-    if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-      this.canvasManager.clearWebGLLayer('lighting');
-    }
+    // if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
+    //   this.canvasManager.clearWebGLLayer('lighting');
+    // }
 
     this.renderables.forEach(system => system.render(dt));
 

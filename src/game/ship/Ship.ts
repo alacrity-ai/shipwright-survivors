@@ -52,7 +52,7 @@ export class Ship extends CompositeBlockObject {
     this.validateFiringPlan();
     this.isPlayerShip = isPlayerShip ?? false;
 
-    // Lighting
+    // // Lighting
     // const auraRadius = 3000
     // this.lightAuraId = `aura-${this.id}`;
     // if (this.isPlayerShip) {

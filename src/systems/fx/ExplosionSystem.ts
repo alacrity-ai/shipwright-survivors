@@ -5,6 +5,7 @@ import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { ensureHexColor } from '@/shared/colorUtils';
+import { randomFromArray } from '@/shared/arrayUtils';
 
 import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
@@ -16,6 +17,13 @@ interface Explosion {
   life: number;
   maxLife: number;
   color: string;
+}
+
+interface LightExplosionOptions {
+  lightColor?: string;
+  lightRadiusScalar?: number;
+  lightIntensity?: number;
+  lightLifeScalar?: number;
 }
 
 export class ExplosionSystem {
@@ -38,8 +46,7 @@ export class ExplosionSystem {
     life: number = 0.6,
     color?: string,
     sparkPalette?: string[],
-    lightRadiusScalar?: number,
-    lightIntensity?: number
+    lightOptions?: LightExplosionOptions
   ): void {
     this.particleManager.emitBurst(position, 10 + Math.floor(size / 10), {
       colors: sparkPalette,
@@ -49,15 +56,15 @@ export class ExplosionSystem {
       fadeOut: true
     });
 
-    if (this.lightingOrchestrator && PlayerSettingsManager.getInstance().isLightingEnabled()) {
+    if (this.lightingOrchestrator && PlayerSettingsManager.getInstance().isLightingEnabled() && lightOptions) {
       const hexColor = ensureHexColor(color);
       const light = createPointLight({
         x: position.x,
         y: position.y,
-        radius: size * (lightRadiusScalar ?? 5),
-        color: hexColor,
-        intensity: lightIntensity ?? 0.3,
-        life: life * 0.5,
+        radius: size * (lightOptions.lightRadiusScalar ?? 5),
+        color: lightOptions.lightColor ?? hexColor,
+        intensity: lightOptions.lightIntensity ?? 0.3,
+        life: life * (lightOptions.lightLifeScalar ?? 1.0),
         expires: true,
       });
 
@@ -83,8 +90,7 @@ export class ExplosionSystem {
     life: number = 0.7,  // Increased life
     color?: string,
     sparkPalette?: string[],
-    lightRadiusScalar?: number,
-    lightIntensity?: number
+    lightOptions?: LightExplosionOptions
   ): void {
     const BLOCK_SIZE = 32;
     
@@ -103,15 +109,27 @@ export class ExplosionSystem {
     const worldY = shipPosition.y + rotatedY;
     
     // Create the explosion
-    this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette, lightRadiusScalar, lightIntensity);
+    this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette, lightOptions);
   }
 
-  createShieldDeflection(position: { x: number; y: number }, sourceId: string): void {
+  createShieldDeflection(
+    position: { x: number; y: number },
+    sourceId: string,
+    lightOptions?: LightExplosionOptions
+  ): void {
     const palette = SHIELD_COLOR_PALETTES[sourceId];
     const explosionColor = palette?.[0] ?? 'rgba(100, 255, 255, 0.6)';
     const sparkPalette = palette ?? ['#ffff00', '#ff9900', '#ff6600'];
 
-    this.createExplosion(position, 40, 0.4, explosionColor, sparkPalette);
+    // Override lightColor based on palette if not explicitly set
+    const resolvedLightOptions: LightExplosionOptions | undefined = lightOptions
+      ? {
+          ...lightOptions,
+          lightColor: lightOptions.lightColor ?? randomFromArray(palette ?? ['#00ffff']),
+        }
+      : undefined;
+
+    this.createExplosion(position, 40, 0.4, explosionColor, sparkPalette, resolvedLightOptions);
   }
 
   update(dt: number): void {

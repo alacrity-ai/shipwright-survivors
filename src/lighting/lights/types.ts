@@ -4,7 +4,7 @@
 export type LightColor = string; // e.g. "#ffcc00" or "#ffffff88"
 
 /** Enum of supported light types for polymorphic dispatch */
-export type LightType = 'point' | 'spot' | 'directional';
+export type LightType = 'point' | 'spot' | 'directional' | 'beam';
 
 /** Base interface for all lights, independently of subtype */
 export interface LightInstance {
@@ -45,6 +45,34 @@ export interface PointLightInstance extends LightInstance {
   type: 'point';
 }
 
+/** Elongated capsule-shaped beam of light (e.g., laser glow) */
+export interface BeamLightInstance {
+  id: string;
+  type: 'beam';
+
+  /** Start and end world positions */
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+
+  /** Beam width (world-space, before camera zoom) */
+  width: number;
+
+  /** Additive beam color */
+  color: LightColor;
+
+  /** Brightness multiplier */
+  intensity: number;
+
+  /** Optional lifespan for fading out */
+  life?: number;
+  maxLife?: number;
+  expires?: boolean;
+
+  /** Optional animation (pulsing, intensity falloff) */
+  animationPhase?: number;
+}
+
+
 /** Specialized light with a directional cone (future) */
 export interface SpotLightInstance extends LightInstance {
   type: 'spot';
@@ -65,4 +93,6 @@ export interface DirectionalLightInstance extends LightInstance {
 export type AnyLightInstance =
   | PointLightInstance
   | SpotLightInstance
-  | DirectionalLightInstance;
+  | DirectionalLightInstance
+  | BeamLightInstance;
+

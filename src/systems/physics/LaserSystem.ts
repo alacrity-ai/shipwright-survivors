@@ -7,6 +7,12 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
+
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { createBeamLight } from '@/lighting/lights/createBeamLight';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { randomFromArray } from '@/shared/arrayUtils';
+
 import { LASER_BEAM_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { 
   findObjectByBlock, 
@@ -157,6 +163,26 @@ export class LaserSystem implements IUpdatable, IRenderable {
           glowPulse: Math.random() * Math.PI * 2,
           blockTypeId: block.type.id,
         });
+
+        // Stochastic random chance to create the light:
+        if (Math.random() < 0.1) {
+          const palette = LASER_BEAM_COLORS[block.type.id];
+          const lightingOrchestrator = LightingOrchestrator.getInstance();
+          if (PlayerSettingsManager.getInstance().isLightingEnabled() && palette) {
+            const color = randomFromArray(palette);
+            const light = createBeamLight({
+              start: { x: origin.x, y: origin.y },
+              end: { x: visualTargetX, y: visualTargetY },
+              width: 12 + Math.random() * 4,
+              color,
+              intensity: 0.6 + Math.random() * 0.4,
+              life: 150,
+              expires: true,
+            });
+
+            lightingOrchestrator.registerLight(light);
+          }
+        }
       }
     }
 
