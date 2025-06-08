@@ -35,5 +35,5 @@ canvas {
 } */
 
 .lighting-canvas {
-  mix-blend-mode: multiply; /* or screen, overlay, multiply, etc. */
+  mix-blend-mode: overlay; /* or screen, overlay, multiply, etc. */
 }

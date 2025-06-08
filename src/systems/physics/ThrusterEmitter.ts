@@ -1,14 +1,15 @@
-// src/systems/physics/ThrusterEmitter.ts
-
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { ENGINE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { rotate } from '@/game/ship/utils/shipBlockUtils';
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 interface ThrusterDefinition {
   coord: GridCoord;
-  block: BlockInstance; // now required
+  block: BlockInstance;
   blockRotation: number;
   shipRotation: number;
   shipPosition: { x: number; y: number };
@@ -17,12 +18,14 @@ interface ThrusterDefinition {
 const DEFAULT_FLAME_COLORS = ['#fff', '#f90', '#ff0'];
 
 export class ThrusterEmitter {
-  constructor(private readonly sparkManager: ParticleManager) {}
+  constructor(
+    private readonly sparkManager: ParticleManager,
+  ) {}
 
   emit(def: ThrusterDefinition): void {
     const { coord, blockRotation, shipRotation, shipPosition, block } = def;
-
     const BLOCK_SIZE = 32;
+
     const localBlockX = coord.x * BLOCK_SIZE;
     const localBlockY = coord.y * BLOCK_SIZE;
 
@@ -37,7 +40,6 @@ export class ThrusterEmitter {
 
     const nozzleOffsetLocal = { x: 0, y: 16 };
     const blockRotRad = blockRotation * (Math.PI / 180);
-
     const nozzleRotatedByBlock = rotate(nozzleOffsetLocal.x, nozzleOffsetLocal.y, blockRotRad);
     const nozzleWorldOffset = rotate(nozzleRotatedByBlock.x, nozzleRotatedByBlock.y, shipRotation);
 
@@ -69,6 +71,31 @@ export class ThrusterEmitter {
           fadeOut: true,
         }
       );
+    }
+
+    // --- 💡 Engine Flash Light (stochastic) ---
+    if (
+      PlayerSettingsManager.getInstance().isLightingEnabled() &&
+      Math.random() < 0.1 // 10% chance
+    ) {
+      const lightingOrchestrator = LightingOrchestrator.getInstance();
+
+      const flashColor = flameColors[0]; // Primary color
+      const intensity = 0.25 + Math.random() * 0.1;
+      const radius = 25 + Math.random() * 50;
+      const life = 0.45 + Math.random() * 0.15;
+
+      const light = createPointLight({
+        x: nozzleWorldX,
+        y: nozzleWorldY,
+        radius,
+        color: flashColor,
+        intensity,
+        life,
+        expires: true,
+      });
+
+      lightingOrchestrator.registerLight(light);
     }
   }
 }

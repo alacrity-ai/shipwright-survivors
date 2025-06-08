@@ -57,7 +57,7 @@ export class ExplosionSystem {
         radius: size * (lightRadiusScalar ?? 5),
         color: hexColor,
         intensity: lightIntensity ?? 0.3,
-        life,
+        life: life * 0.5,
         expires: true,
       });
 
