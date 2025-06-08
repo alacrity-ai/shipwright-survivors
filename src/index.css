@@ -28,3 +28,12 @@ canvas {
   left: 0;
   display: block;
 }
+
+/* Main content, e.g. entities, background, etc. */
+/* .content-layers {
+  isolation: isolate;
+} */
+
+.lighting-canvas {
+  mix-blend-mode: multiply; /* or screen, overlay, multiply, etc. */
+}

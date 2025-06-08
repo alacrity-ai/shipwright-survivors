@@ -6,6 +6,8 @@ import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTr
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import { Grid } from '@/systems/physics/Grid';
@@ -31,8 +33,9 @@ export class Ship extends CompositeBlockObject {
   private firingPlan: WeaponFiringPlanEntry[] = [];
   private firingPlanIndex: Map<BlockInstance, number> = new Map();
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
-  private isPlayerShip: boolean = false;
+  private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
+  private lightAuraId: string | null = null;
 
   protected override generateId(): string {
     return 'ship-' + Math.random().toString(36).slice(2, 9);
@@ -41,11 +44,36 @@ export class Ship extends CompositeBlockObject {
   constructor(
     grid: Grid,
     initialBlocks?: [GridCoord, BlockInstance][],
-    initialTransform?: Partial<BlockEntityTransform>
+    initialTransform?: Partial<BlockEntityTransform>,
+    isPlayerShip?: boolean
   ) {
     super(grid, initialBlocks, initialTransform);
     this.shieldComponent = new ShieldComponent(this);
     this.validateFiringPlan();
+    this.isPlayerShip = isPlayerShip ?? false;
+
+    // Lighting
+    // const auraRadius = 3000
+    // this.lightAuraId = `aura-${this.id}`;
+    // if (this.isPlayerShip) {
+    //   try {
+    //     const orchestrator = LightingOrchestrator.getInstance();
+
+    //     const auraLight = createPointLight({
+    //       id: this.lightAuraId,
+    //       x: this.getTransform().position.x,
+    //       y: this.getTransform().position.y,
+    //       radius: auraRadius,
+    //       // Pure white
+    //       color: '#ffffff',
+    //       intensity: 0.3,
+    //     });
+
+    //     orchestrator.registerLight(auraLight);
+    //   } catch (e) {
+    //     console.warn(`[Ship ${this.id}] LightingOrchestrator not available; aura light skipped.`);
+    //   }
+    // }
   }
 
   public getIsPlayerShip(): boolean {
@@ -54,6 +82,10 @@ export class Ship extends CompositeBlockObject {
 
   public setIsPlayerShip(isPlayerShip: boolean): void {
     this.isPlayerShip = isPlayerShip;
+  }
+
+  public getLightAuraId(): string | null {
+    return this.lightAuraId;
   }
 
   // === Cockpit ===
@@ -421,22 +453,32 @@ export class Ship extends CompositeBlockObject {
   // What about this?
   public destroyInstantly(): void {
     if (this.destroyed) return;
-    
-    this.destroyed = true;
-    this.deathTimestamp = performance.now() - 10000; // Mark as expired long ago
 
-    // Same cleanup as destroy()
+    this.destroyed = true;
+    this.deathTimestamp = performance.now() - 10000;
+
     for (const block of this.blocks.values()) {
       this.grid.removeBlockFromCell(block);
     }
     this.blocks.clear();
     this.blockToCoordMap.clear();
 
+    // --- Aura Light Cleanup ---
+    if (this.lightAuraId) {
+      try {
+        LightingOrchestrator.getInstance().removeLight(this.lightAuraId);
+      } catch (e) {
+        console.warn(`[Ship ${this.id}] Failed to remove light aura:`, e);
+      }
+      this.lightAuraId = null;
+    }
+
     for (const callback of this.destroyedListeners) {
       callback(this);
     }
     this.destroyedListeners.length = 0;
   }
+
 
   // What about this?
   public onDestroyedCallback(callback: ShipDestroyedCallback): void {
@@ -449,6 +491,15 @@ export class Ship extends CompositeBlockObject {
   }
 
   public onDestroyed(): void {
+    if (this.lightAuraId) {
+      try {
+        LightingOrchestrator.getInstance().removeLight(this.lightAuraId);
+      } catch (e) {
+        console.warn(`[Ship ${this.id}] Failed to remove light aura:`, e);
+      }
+      this.lightAuraId = null;
+    }
+
     for (const cb of this.destroyedListeners) {
       cb(this);
     }

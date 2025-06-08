@@ -6,6 +6,7 @@ import { isElectron } from '@/shared/isElectron';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { SaveGameManager } from '@/core/save/saveGameManager';
+import { checkWebGLSupport } from '@/lighting/webgl/helpers/checkWebGLSupport';
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
@@ -16,6 +17,12 @@ export default function App() {
       window.electronAPI.toggleFullscreen();
     }
 
+    // === WebGL support check ===
+    const webglCheck = checkWebGLSupport();
+    if (!webglCheck.supported) {
+      console.error('WebGL is not supported on this device or browser. Lighting will not work.', webglCheck.error);
+    }
+    
     // === Apply stored resolution from save, if any ===
     const res = SaveGameManager.getFirstAvailableResolution();
     const settings = PlayerSettingsManager.getInstance();
@@ -54,6 +61,7 @@ export default function App() {
       <canvas id="entity-canvas" />
       <canvas id="fx-canvas" />
       <canvas id="particles-canvas" />
+      <canvas id="lighting-canvas" />
       <canvas id="ui-canvas" />
       <canvas id="overlay-canvas" />
       <canvas id="dialogue-canvas" />

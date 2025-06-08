@@ -3,6 +3,8 @@
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { MusicTrack } from '@/audio/AudioManager';
 
+export type SceneLightingRGBA = [number, number, number, number];
+
 export type PlanetSpawnConfig = {
   name: string;
   x: number;
@@ -24,4 +26,5 @@ export interface MissionDefinition {
   music?: MusicTrack;
   dialogue?: string;
   enemyPower?: number;
+  sceneLighting?: SceneLightingRGBA;
 }

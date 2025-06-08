@@ -78,7 +78,9 @@ export class CombatService {
         20,
         0.3,
         undefined,
-        DEFAULT_EXPLOSION_SPARK_PALETTE
+        DEFAULT_EXPLOSION_SPARK_PALETTE,
+        4,
+        0.2
       );
     }
 
@@ -109,7 +111,9 @@ export class CombatService {
       70 * (isCockpit ? 2 : 1),
       0.7 * (isCockpit ? 2 : 1),
       undefined,
-      DEFAULT_EXPLOSION_SPARK_PALETTE
+      DEFAULT_EXPLOSION_SPARK_PALETTE,
+      8,
+      0.2
     );
 
     playSpatialSfx(entity, playerShip, {
@@ -161,7 +165,9 @@ export class CombatService {
           60 + Math.random() * 20,
           0.5 + Math.random() * 0.3,
           undefined,
-          DEFAULT_EXPLOSION_SPARK_PALETTE
+          DEFAULT_EXPLOSION_SPARK_PALETTE,
+          5,
+          0.2
         );
 
         this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
@@ -187,7 +193,9 @@ export class CombatService {
             140,
             1.2,
             undefined,
-            DEFAULT_EXPLOSION_SPARK_PALETTE
+            DEFAULT_EXPLOSION_SPARK_PALETTE,
+            14,
+            0.3
           );
 
           this.pickupSpawner.spawnPickupOnBlockDestruction(cockpitBlock);

@@ -23,7 +23,7 @@ export class ProjectileSystem {
     private readonly grid: Grid,
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
-    private readonly playerShip: Ship
+    private readonly playerShip: Ship,
   ) {}
 
   spawnProjectile(
@@ -58,6 +58,9 @@ export class ProjectileSystem {
       sizeRange: [3.2, 3.2],
       lifeRange: [lifetime, lifetime + 0.1], // tightly synced
       velocity: { x: vx, y: vy },
+      light: true,
+      lightRadiusScalar: 35,
+      lightIntensity: 0.3,
     });
 
     this.projectiles.push({

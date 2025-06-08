@@ -2,7 +2,7 @@ import { Ship } from '@/game/ship/Ship';
 import type { Grid } from '@/systems/physics/Grid';
 
 export function getStarterShip(grid: Grid) {
-      const ship = new Ship(grid);
+      const ship = new Ship(grid, undefined, undefined, true);
       ship.setIsPlayerShip(true);
   
       // Initialize ship with blocks

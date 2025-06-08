@@ -1,9 +1,11 @@
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
-import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 export class MultiShipRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -22,11 +24,29 @@ export class MultiShipRenderer {
     const visibleShips = this.cullingSystem.getVisibleShips();
     const mouseScreen = this.inputManager.getMousePosition();
     const mouseWorld = this.camera.screenToWorld(mouseScreen.x, mouseScreen.y);
+    const lightingEnabled = PlayerSettingsManager.getInstance().isLightingEnabled();
 
     for (const ship of visibleShips) {
       const transform = ship.getTransform();
       const { position, rotation } = transform;
 
+      // === Update light aura position if lighting is enabled ===
+      if (lightingEnabled) {
+        const auraId = ship.getLightAuraId?.();
+        if (auraId) {
+          try {
+            LightingOrchestrator.getInstance().updateLight(auraId, {
+              x: position.x,
+              y: position.y,
+            });
+            console.log('Updating ship light for ship: ', ship.id);
+          } catch (e) {
+            console.warn(`[MultiShipRenderer] Failed to update aura light for ship ${ship.id}:`, e);
+          }
+        }
+      }
+
+      // === Render ship ===
       const screen = this.camera.worldToScreen(position.x, position.y);
 
       this.ctx.save();
@@ -45,7 +65,7 @@ export class MultiShipRenderer {
         const localY = coord.y * BLOCK_SIZE;
         const blockRotation = (block.rotation ?? 0) * (Math.PI / 180);
 
-        // === Base Layer ===
+        // === Base layer ===
         this.ctx.save();
         this.ctx.translate(localX, localY);
         this.ctx.rotate(blockRotation);
@@ -58,10 +78,10 @@ export class MultiShipRenderer {
         );
         this.ctx.restore();
 
-        // === Overlay Layer (if applicable) ===
+        // === Overlay (e.g., turret heads) ===
         if (sprite.overlay) {
-          const worldX = ship.getTransform().position.x + localX;
-          const worldY = ship.getTransform().position.y + localY;
+          const worldX = position.x + localX;
+          const worldY = position.y + localY;
 
           const dx = mouseWorld.x - worldX;
           const dy = mouseWorld.y - worldY;

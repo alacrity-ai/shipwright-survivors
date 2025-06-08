@@ -2,6 +2,11 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { SHIELD_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { ensureHexColor } from '@/shared/colorUtils';
+
+import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 interface Explosion {
@@ -20,7 +25,8 @@ export class ExplosionSystem {
   constructor(
     canvasManager: CanvasManager,
     private readonly camera: Camera,
-    private readonly particleManager: ParticleManager
+    private readonly particleManager: ParticleManager,
+    private readonly lightingOrchestrator?: LightingOrchestrator
   ) {
     this.ctx = canvasManager.getContext('fx');
   }
@@ -31,7 +37,9 @@ export class ExplosionSystem {
     size: number = 60,
     life: number = 0.6,
     color?: string,
-    sparkPalette?: string[]
+    sparkPalette?: string[],
+    lightRadiusScalar?: number,
+    lightIntensity?: number
   ): void {
     this.particleManager.emitBurst(position, 10 + Math.floor(size / 10), {
       colors: sparkPalette,
@@ -40,7 +48,22 @@ export class ExplosionSystem {
       lifeRange: [0.4, 1],
       fadeOut: true
     });
-    
+
+    if (this.lightingOrchestrator && PlayerSettingsManager.getInstance().isLightingEnabled()) {
+      const hexColor = ensureHexColor(color);
+      const light = createPointLight({
+        x: position.x,
+        y: position.y,
+        radius: size * (lightRadiusScalar ?? 5),
+        color: hexColor,
+        intensity: lightIntensity ?? 0.3,
+        life,
+        expires: true,
+      });
+
+      this.lightingOrchestrator.registerLight(light);
+    }
+
     this.explosions.push({
       position: { ...position },
       size: 1, // Start small and grow
@@ -59,7 +82,9 @@ export class ExplosionSystem {
     size: number = 70, // Increased size
     life: number = 0.7,  // Increased life
     color?: string,
-    sparkPalette?: string[]
+    sparkPalette?: string[],
+    lightRadiusScalar?: number,
+    lightIntensity?: number
   ): void {
     const BLOCK_SIZE = 32;
     
@@ -78,7 +103,7 @@ export class ExplosionSystem {
     const worldY = shipPosition.y + rotatedY;
     
     // Create the explosion
-    this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette);
+    this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette, lightRadiusScalar, lightIntensity);
   }
 
   createShieldDeflection(position: { x: number; y: number }, sourceId: string): void {

@@ -55,6 +55,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       file: 'assets/sounds/music/track_09_junkyard.mp3'
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
-    passiveReward: 1
+    passiveReward: 1,
+    sceneLighting: [0.1, 0.0, 0.2, 0]
   }
 };

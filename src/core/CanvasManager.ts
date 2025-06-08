@@ -2,13 +2,14 @@
 
 import { getViewportWidth, getViewportHeight } from '@/config/view';
 
-export type CanvasLayer = 'background' | 'entities' | 'fx' | 'particles' | 'ui' | 'overlay' | 'dialogue';
+export type CanvasLayer = 'background' | 'entities' | 'fx' | 'particles' | 'lighting' | 'ui' | 'overlay' | 'dialogue';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
   entities: 'entity-canvas',
   fx: 'fx-canvas',
   particles: 'particles-canvas',
+  lighting: 'lighting-canvas',
   ui: 'ui-canvas',
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas'
@@ -17,8 +18,6 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
 export class CanvasManager {
   private canvases: Record<CanvasLayer, HTMLCanvasElement> = {} as any;
   private contexts: Record<CanvasLayer, CanvasRenderingContext2D> = {} as any;
-  // private readonly width = getViewportWidth();
-  // private readonly height = getViewportHeight();
 
   constructor() {
     this.initializeCanvases();
@@ -36,15 +35,17 @@ export class CanvasManager {
         );
       }
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error(`2D context not supported for "${id}"`);
+      if (layer !== 'lighting') {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error(`2D context not supported for "${id}"`);
+        this.contexts[layer] = ctx;
+      }
 
       canvas.style.zIndex = this.getZIndexForLayer(layer).toString();
       canvas.style.pointerEvents = layer === 'ui' ? 'auto' : 'none';
       canvas.style.position = 'absolute';
 
       this.canvases[layer] = canvas;
-      this.contexts[layer] = ctx;
     }
   }
 
@@ -61,11 +62,12 @@ export class CanvasManager {
     switch (layer) {
       case 'background': return 0;
       case 'entities': return 1;
-      case 'fx': return 2;
-      case 'particles': return 3;
-      case 'ui': return 4;
-      case 'overlay': return 5;
-      case 'dialogue': return 6;
+      case 'lighting': return 2;
+      case 'fx': return 3;
+      case 'particles': return 4;
+      case 'ui': return 5;
+      case 'overlay': return 6;
+      case 'dialogue': return 7;
     }
   }
 
@@ -77,9 +79,32 @@ export class CanvasManager {
     return this.contexts[layer];
   }
 
-  clearLayer(layer: CanvasLayer) {
-    const ctx = this.getContext(layer);
-    ctx.clearRect(0, 0, getViewportWidth(), getViewportHeight());
+  getWebGLContext(layer: CanvasLayer): WebGLRenderingContext {
+    const canvas = this.getCanvas(layer);
+    const gl = canvas.getContext('webgl');
+    if (!gl) throw new Error(`WebGL context not supported for "${layer}"`);
+    return gl;
+  }
+
+  clearLayer(layer: CanvasLayer): void {
+    if (layer === 'lighting') {
+      this.clearWebGLLayer(layer);
+    } else {
+      const ctx = this.getContext(layer);
+      ctx.clearRect(0, 0, getViewportWidth(), getViewportHeight());
+    }
+  }
+
+  clearWebGLLayer(layer: CanvasLayer, color: [number, number, number, number] = [0, 0, 0, 1]): void {
+    const canvas = this.getCanvas(layer);
+    const gl = canvas.getContext('webgl');
+    if (!gl) {
+      throw new Error(`Cannot clear WebGL layer '${layer}': no WebGL context available`);
+    }
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(...color); // default: opaque black
+    gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
   clearAll() {

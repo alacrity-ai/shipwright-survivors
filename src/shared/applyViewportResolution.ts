@@ -21,6 +21,7 @@ export function applyViewportResolution(
     'entity-canvas',
     'fx-canvas',
     'particles-canvas',
+    'lighting-canvas',
     'ui-canvas',
     'overlay-canvas',
     'dialogue-canvas',

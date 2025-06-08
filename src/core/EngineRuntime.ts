@@ -11,6 +11,7 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
@@ -28,6 +29,8 @@ import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
 import { MultiShipRenderer } from '@/rendering/MultiShipRenderer';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { LightingRenderer } from '@/lighting/LightingRenderer';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
@@ -127,6 +130,7 @@ export class EngineRuntime {
   private wavesOverlay: WavesOverlay;
   private popupMessageSystem: PopupMessageSystem;
   private debugOverlay: DebugOverlay;
+  private lightingOrchestrator: LightingOrchestrator;
 
   private collisionSystem: BlockObjectCollisionSystem;
   private movement: MovementSystem;
@@ -173,7 +177,16 @@ export class EngineRuntime {
     this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
     this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
 
-    this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera);
+    // Lighting System
+    const lightingCanvas = this.canvasManager.getCanvas('lighting');
+    const lightingGL = this.canvasManager.getWebGLContext('lighting');
+    const lightingRenderer = new LightingRenderer(lightingGL, lightingCanvas);
+    this.lightingOrchestrator = LightingOrchestrator.getInstance(lightingRenderer, this.camera);
+    const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
+    this.lightingOrchestrator.setClearColor(...sceneLighting);
+
+    // Particle System
+    this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera, this.lightingOrchestrator);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
     this.mission = missionLoader.getMission();
@@ -195,7 +208,7 @@ export class EngineRuntime {
     this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.grid, this.camera);
 
     // Initialize ExplosionSystem and ScreenEffectsSystem
-    this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager);
+    this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     
     // === Step 1: Initialize orchestrator first ===
@@ -366,7 +379,8 @@ export class EngineRuntime {
       this.popupMessageSystem,
       this.background,
       this.shipConstructionAnimator,
-      this.planetSystem
+      this.planetSystem,
+      this.lightingOrchestrator
     ];
 
     this.renderables = [
@@ -386,7 +400,8 @@ export class EngineRuntime {
       this.popupMessageSystem,
       this.missionDialogueManager,
       this.shipConstructionAnimator,
-      this.planetSystem
+      this.planetSystem,
+      this.lightingOrchestrator
     ];
 
     this.registerLoopHandlers();
@@ -519,6 +534,9 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('ui');
     this.canvasManager.clearLayer('overlay');
     this.canvasManager.clearLayer('dialogue');
+    if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
+      this.canvasManager.clearWebGLLayer('lighting');
+    }
 
     this.renderables.forEach(system => system.render(dt));
 
@@ -616,6 +634,7 @@ export class EngineRuntime {
     // Optional: clear UI menus, overlays
     this.hud.destroy();
     this.miniMap.destroy();
+    this.lightingOrchestrator.destroy();
 
     // // Clear rendering and update lists
     this.updatables.length = 0;

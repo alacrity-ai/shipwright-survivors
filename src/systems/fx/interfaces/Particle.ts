@@ -11,4 +11,5 @@ export interface Particle {
   speed: number;
   initialLife?: number; // optional, for alpha fading
   fadeOut?: boolean;    // optional, toggle per particle
+  lightId?: string; // <-- new
 }

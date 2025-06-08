@@ -1,8 +1,11 @@
 import type { Camera } from '@/core/Camera';
 import type { Particle } from '@/systems/fx/interfaces/Particle';
+import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+
 import { hexToRgba32 } from '@/shared/colorUtils';
 import { generateCircleMask } from '@/shared/maskUtils';
 import { randomInRange, randomIntInclusive, randomAngle } from '@/shared/mathUtils';
+import { createPointLight } from '@/lighting/lights/createPointLight'; // or wherever your factory lives
 
 export interface ParticleOptions {
   colors?: string[];
@@ -11,6 +14,9 @@ export interface ParticleOptions {
   lifeRange?: [number, number];
   velocity?: { x: number; y: number };
   fadeOut?: boolean;
+  light?: boolean;
+  lightRadiusScalar?: number;
+  lightIntensity?: number;
 }
 
 const ZOOM_EXPONENT = 2;
@@ -32,7 +38,8 @@ export class ParticleManager {
 
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
-    private readonly camera: Camera
+    private readonly camera: Camera,
+    private readonly lightingOrchestrator: LightingOrchestrator
   ) {}
 
   private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
@@ -59,6 +66,22 @@ export class ParticleManager {
     particle.initialLife = particle.life;
     particle.fadeOut = options.fadeOut ?? false;
     particle.color = colors[randomIntInclusive(0, colors.length - 1)];
+
+    if (this.lightingOrchestrator && options.light) {
+      // --- Create light tied to particle ---
+      const light = createPointLight({
+        x: particle.x,
+        y: particle.y,
+        radius: particle.size * (options.lightRadiusScalar ?? 3),
+        color: particle.color,
+        intensity: options.lightIntensity ?? 1.0,
+        life: particle.life,
+        expires: true,
+      });
+
+      this.lightingOrchestrator.registerLight(light);
+      particle.lightId = light.id;
+    }
 
     this.activeParticles.push(particle);
     return particle;
@@ -101,6 +124,16 @@ export class ParticleManager {
       particle.x += particle.vx * dt;
       particle.y += particle.vy * dt;
       particle.life -= dt;
+
+      // Sync light position, if exists
+      if (particle.lightId) {
+        const light = this.lightingOrchestrator.getLightById(particle.lightId);
+
+        if (light && (light.type === 'point' || light.type === 'spot')) {
+          light.x = particle.x;
+          light.y = particle.y;
+        }
+      }
     }
 
     this.activeParticles = this.activeParticles.filter(p => {
@@ -189,8 +222,14 @@ export class ParticleManager {
   }
 
   private recycleParticle(p: Particle): void {
+    if (p.lightId) {
+      this.lightingOrchestrator.removeLight(p.lightId);
+      p.lightId = undefined;
+    }
+
     p.initialLife = undefined;
     p.fadeOut = undefined;
+
     this.particlePool.push(p);
   }
 }

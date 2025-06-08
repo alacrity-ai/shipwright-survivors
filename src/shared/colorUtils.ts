@@ -25,6 +25,50 @@ export function hexToRgba32(hex: string): number {
   return (255 << 24) | (b << 16) | (g << 8) | r;
 }
 
+/**
+ * Converts RGBA components (0–255) into a hex string.
+ * If alpha is omitted or 255, returns #rrggbb.
+ * If alpha < 255, returns #rrggbbaa.
+ */
+export function rgbaToHex(r: number, g: number, b: number, a: number = 255): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+
+  const toHex = (v: number) => clamp(v).toString(16).padStart(2, '0');
+
+  const rHex = toHex(r);
+  const gHex = toHex(g);
+  const bHex = toHex(b);
+  const aHex = toHex(a);
+
+  // Only include alpha if it's not opaque
+  return a === 255 ? `#${rHex}${gHex}${bHex}` : `#${rHex}${gHex}${bHex}${aHex}`;
+}
+
+export function ensureHexColor(color: string | undefined): string {
+  if (!color) return '#ffffff';
+  if (color.startsWith('#')) return color;
+
+  try {
+    return rgbaStringToHex(color);
+  } catch (e) {
+    console.warn('[ExplosionSystem] Invalid color format, defaulting to white:', color);
+    return '#ffffff';
+  }
+}
+
+
+export function rgbaStringToHex(css: string): string {
+  const match = css.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([.\d]+))?\)/i);
+  if (!match) throw new Error(`Invalid rgba() color string: ${css}`);
+
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
+  const a = match[4] !== undefined ? Math.round(parseFloat(match[4]) * 255) : 255;
+
+  return rgbaToHex(r, g, b, a);
+}
+
 export function brightenColor(hex: string, amount: number): string {
   const clamp = (v: number) => Math.max(0, Math.min(255, v));
   const num = parseInt(hex.slice(1), 16);
