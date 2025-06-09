@@ -159,7 +159,7 @@ export class EngineRuntime {
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
-    this.camera = new Camera(getViewportWidth(), getViewportHeight());
+    this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     
     // Resolution fix for electron
@@ -168,19 +168,7 @@ export class EngineRuntime {
     // Persistent UI
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
-    
-    // Menus
-    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
-    this.pauseMenu = new PauseMenu(
-      this.inputManager,
-      this.handlePlayerFailure.bind(this),
-      this.menuManager,
-    );
-    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
-    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
-    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
-    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
+  
 
     // Lighting System
     const lightingCanvas = this.canvasManager.getCanvas('lighting');
@@ -208,6 +196,7 @@ export class EngineRuntime {
 
     // Register player ship using the Singleton ShipRegistry
     this.shipRegistry.add(this.ship);
+    this.shipRegistry.setPlayerShip(this.ship);
 
     // Register culling systems
     this.shipCulling = new ShipCullingSystem(this.grid, this.camera);
@@ -296,7 +285,18 @@ export class EngineRuntime {
     // Player controls
     this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer);
 
-    // Ship Building Menu
+    // Menus
+    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
+    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
+    this.pauseMenu = new PauseMenu(
+      this.inputManager,
+      this.handlePlayerFailure.bind(this),
+      this.menuManager,
+    );
+    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
+    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
+    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
+    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
     this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
     this.shipBuilderController = new ShipBuilderController(
       this.ship, 
@@ -646,12 +646,14 @@ export class EngineRuntime {
     PlayerStats.getInstance().destroy();
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();
+    Camera.destroy();
 
     // Optional: clear UI menus, overlays
     this.hud.destroy();
     this.miniMap.destroy();
     this.lightingOrchestrator.destroy();
     this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
+    this.background.destroy();
     destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
 
     // // Clear rendering and update lists

@@ -36,6 +36,9 @@ export class Ship extends CompositeBlockObject {
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
   private lightAuraId: string | null = null;
+  private thrusting: boolean = true;
+  private strafingLeft: boolean = false;
+  private strafingRight: boolean = false;
 
   protected override generateId(): string {
     return 'ship-' + Math.random().toString(36).slice(2, 9);
@@ -86,6 +89,30 @@ export class Ship extends CompositeBlockObject {
 
   public getLightAuraId(): string | null {
     return this.lightAuraId;
+  }
+
+  public isThrusting(): boolean {
+    return this.thrusting;
+  }
+
+  public isStrafingLeft(): boolean {
+    return this.strafingLeft;
+  }
+
+  public isStrafingRight(): boolean {
+    return this.strafingRight;
+  }
+
+  public setThrusting(thrusting: boolean): void {
+    this.thrusting = thrusting;
+  }
+
+  public setStrafingLeft(strafingLeft: boolean): void {
+    this.strafingLeft = strafingLeft;
+  }
+
+  public setStrafingRight(strafingRight: boolean): void {
+    this.strafingRight = strafingRight;
   }
 
   // === Cockpit ===

@@ -1,24 +1,28 @@
 // src/shared/applyViewportResolution.ts
 
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { isElectron } from '@/shared/isElectron';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 
-// Alternative approach: Calculate zoom based on screen dimensions
+/**
+ * Applies resolution and canvas sizing logic based on viewport and player settings.
+ * Optionally invokes a callback after all resizes are completed.
+ */
 export function applyViewportResolution(
   canvasManager: CanvasManager | null = null,
-  camera: Camera | null = null
+  camera: Camera | null = null,
+  onComplete?: () => void
 ): void {
   const settings = PlayerSettingsManager.getInstance();
   const width = settings.getViewportWidth();
   const height = settings.getViewportHeight();
 
-  // === 1-4. Same canvas/manager/camera/electron logic as above ===
   const canvasIds = [
     'background-canvas',
+    'backgroundgl-canvas',
+    'entitygl-canvas',
     'entity-canvas',
     'fx-canvas',
     'particles-canvas',
@@ -46,19 +50,15 @@ export function applyViewportResolution(
     camera.resize(width, height);
   }
 
-  // === Solution 1: Use Viewport Dimensions Instead of Screen ===
   const root = document.getElementById('canvas-root');
   if (root) {
-    // Use actual viewport dimensions instead of screen dimensions
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
-    // Calculate zoom to fit viewport
+
     const zoomX = viewportWidth / width;
     const zoomY = viewportHeight / height;
     const optimalZoom = Math.min(zoomX, zoomY);
-    
-    // Apply zoom
+
     root.style.zoom = optimalZoom.toString();
     root.style.width = `${width}px`;
     root.style.height = `${height}px`;
@@ -66,7 +66,13 @@ export function applyViewportResolution(
   }
 
   if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-    if (!LightingOrchestrator.hasInstance()) return;
-    LightingOrchestrator.getInstance().resizeLighting();
+    if (LightingOrchestrator.hasInstance()) {
+      LightingOrchestrator.getInstance().resizeLighting();
+    }
+  }
+
+  // Invoke callback after all resizing and zoom application
+  if (onComplete) {
+    onComplete();
   }
 }

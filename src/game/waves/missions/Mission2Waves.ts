@@ -1,6 +1,7 @@
 // src/game/waves/missions/Mission1Waves.ts
 
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
+import { RammingBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 export const waveDefinitions: WaveDefinition[] = [
   {
@@ -15,7 +16,7 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'wave_0_04', count: 8 },
       { shipId: '/earlygame/ship_turret_00', count: 10 },
       { shipId: '/earlygame/ship_miniturret_00', count: 20 },
-      { shipId: '/earlygame/ship_rammerspear_00', count: 14, hunter: true },
+      { shipId: '/earlygame/ship_rammerspear_00', count: 14, hunter: true, behaviorProfile: RammingBehaviorProfile },
     ]
   },
   {
@@ -25,8 +26,8 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: '/earlygame/ship_turret_00', count: 10 },
       { shipId: '/earlygame/ship_miniturret_00', count: 8 },
-      { shipId: '/earlygame/ship_rammerspear_00', count: 16, hunter: true },
-      { shipId: '/earlygame/ship_rammerhead_00', count: 6, hunter: true },
+      { shipId: '/earlygame/ship_rammerspear_00', count: 16, hunter: true, behaviorProfile: RammingBehaviorProfile },
+      { shipId: '/earlygame/ship_rammerhead_00', count: 6, hunter: true, behaviorProfile: RammingBehaviorProfile },
       { shipId: '/earlygame/ship_dragonfly_00', count: 12, hunter: true },
       { shipId: '/earlygame/ship_minifly_00', count: 20, hunter: true },
       { shipId: '/earlygame/ship_lanceturret_00', count: 10 },
@@ -41,8 +42,8 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: '/earlygame/ship_turret_00', count: 14 },
       { shipId: '/earlygame/ship_miniturret_00', count: 22 },
-      { shipId: '/earlygame/ship_rammerspear_00', count: 28, hunter: true },
-      { shipId: '/earlygame/ship_rammerhead_00', count: 14, hunter: true },
+      { shipId: '/earlygame/ship_rammerspear_00', count: 28, hunter: true, behaviorProfile: RammingBehaviorProfile },
+      { shipId: '/earlygame/ship_rammerhead_00', count: 14, hunter: true, behaviorProfile: RammingBehaviorProfile },
       { shipId: '/earlygame/ship_dragonfly_00', count: 14, hunter: true },
       { shipId: '/earlygame/ship_minifly_00', count: 18, hunter: true },
     ]

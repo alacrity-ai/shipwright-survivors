@@ -100,15 +100,16 @@ export class PlanetRenderer {
     const dx = worldX - camPos.x;
     const dy = worldY - camPos.y;
 
-    const dxScreen = dx * camera.zoom;
-    const dyScreen = dy * camera.zoom;
+    const dxScreen = dx * camera.getZoom();
+    const dyScreen = dy * camera.getZoom();
 
     const ndcOffsetX = dxScreen / (width / 2);
     const ndcOffsetY = -dyScreen / (height / 2); // WebGL Y flip
 
-    const scaleX = (drawWidthWorld * camera.zoom) / width;
-    const scaleY = (drawHeightWorld * camera.zoom) / height;
+    const scaleX = (drawWidthWorld * camera.getZoom()) / width;
+    const scaleY = (drawHeightWorld * camera.getZoom()) / height;
 
+    this.gl.viewport(0, 0, width, height);
     this.gl.useProgram(this.program);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
 

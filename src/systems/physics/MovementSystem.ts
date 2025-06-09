@@ -2,6 +2,8 @@
 
 import { classifyThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { Camera } from '@/core/Camera';
 
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
@@ -83,6 +85,11 @@ public update(dt: number): void {
     strafeLeft,
     strafeRight,
   } = this.currentIntent;
+
+  // === Update Ship Movement Flags ===
+  this.ship.setThrusting(thrustForward);
+  this.ship.setStrafingLeft(strafeLeft);
+  this.ship.setStrafingRight(strafeRight);
 
   // === Apply any external impulses from prior frame ===
   velocity.x += this.externalImpulse.x;
@@ -235,6 +242,26 @@ public update(dt: number): void {
     totalThrustX += fallbackDirection.x * fallbackPower;
     totalThrustY += fallbackDirection.y * fallbackPower;
 
+    // Determine if we're near the player ship (For thruster effects)
+    const playerShip = ShipRegistry.getInstance().getPlayerShip();
+    let emit = false;
+
+    if (playerShip && playerShip !== this.ship) {
+      const cameraBounds = Camera.getInstance().getViewportBounds();
+      const MARGIN = 100;
+
+      const minX = cameraBounds.x - MARGIN;
+      const minY = cameraBounds.y - MARGIN;
+      const maxX = cameraBounds.x + cameraBounds.width + MARGIN;
+      const maxY = cameraBounds.y + cameraBounds.height + MARGIN;
+
+      const center = this.ship.getTransform().position;
+      emit = center.x >= minX && center.x <= maxX &&
+            center.y >= minY && center.y <= maxY;
+    } else {
+      emit = true; // Always emit if it's the player ship
+    }
+
     // === Apply thruster force
     for (const { coord, power, rotation: blockRotation } of thrusters) {
       const block = this.ship.getBlock(coord);
@@ -246,13 +273,15 @@ public update(dt: number): void {
       totalThrustX += worldThrust.x * power;
       totalThrustY += worldThrust.y * power;
 
-      this.emitter.emit({
-        coord,
-        block,
-        blockRotation,
-        shipRotation: transform.rotation,
-        shipPosition: position,
-      });
+      if (emit) {
+        this.emitter.emit({
+          coord,
+          block,
+          blockRotation,
+          shipRotation: transform.rotation,
+          shipPosition: position,
+        });
+      }
     }
 
     // === Apply impulse

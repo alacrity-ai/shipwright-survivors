@@ -78,8 +78,8 @@ export class MultiShipRendererGL {
   }
 
   private updateProjectionMatrix(): void {
-    const halfWidth = this.camera.getViewportWidth() / (2 * this.camera.zoom);
-    const halfHeight = this.camera.getViewportHeight() / (2 * this.camera.zoom);
+    const halfWidth = this.camera.getViewportWidth() / (2 * this.camera.getZoom());
+    const halfHeight = this.camera.getViewportHeight() / (2 * this.camera.getZoom());
 
     const left = -halfWidth;
     const right = halfWidth;

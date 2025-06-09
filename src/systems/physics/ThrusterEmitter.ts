@@ -16,86 +16,121 @@ interface ThrusterDefinition {
 }
 
 const DEFAULT_FLAME_COLORS = ['#fff', '#f90', '#ff0'];
+const BLOCK_SIZE = 32;
+const NOZZLE_OFFSET_Y = 16;
+const EXHAUST_SPEED = 40;
+const JITTER_RANGE = 10;
+const LIGHT_CHANCE = 0.1;
+
+// Pre-allocate reusable objects
+const tempVec = { x: 0, y: 0 };
+const tempOffset = { x: 0, y: 0 };
+const tempDir = { x: 0, y: 0 };
 
 export class ThrusterEmitter {
+  private readonly playerSettings: PlayerSettingsManager;
+  private readonly lightingOrchestrator: LightingOrchestrator;
+  
+  // Cache for expensive lookups
+  private readonly colorCache = new Map<string, string[]>();
+  
   constructor(
     private readonly sparkManager: ParticleManager,
-  ) {}
+  ) {
+    // Cache singletons to avoid repeated getInstance() calls
+    this.playerSettings = PlayerSettingsManager.getInstance();
+    this.lightingOrchestrator = LightingOrchestrator.getInstance();
+  }
 
   emit(def: ThrusterDefinition): void {
+    if (!this.playerSettings.isParticlesEnabled()) return;
+
+    // TODO: These calculations are causing noticeable slowdown.  This needs to be re-evaluated.
+    // We can potentially use GPU Shaders, directly on the blocks - Or render lights directly on the blocks
+    // And we should do it in a script that is already calculating block positions, to save on CPU/cycles
+
     const { coord, blockRotation, shipRotation, shipPosition, block } = def;
-    const BLOCK_SIZE = 32;
 
-    const localBlockX = coord.x * BLOCK_SIZE;
-    const localBlockY = coord.y * BLOCK_SIZE;
-
+    // Pre-calculate trig values once
     const shipCos = Math.cos(shipRotation);
     const shipSin = Math.sin(shipRotation);
+    const blockRotRad = blockRotation * 0.017453292519943295; // Math.PI / 180 pre-calculated
 
-    const rotatedBlockX = localBlockX * shipCos - localBlockY * shipSin;
-    const rotatedBlockY = localBlockX * shipSin + localBlockY * shipCos;
+    // Calculate world block position
+    const localBlockX = coord.x * BLOCK_SIZE;
+    const localBlockY = coord.y * BLOCK_SIZE;
+    
+    const worldBlockX = shipPosition.x + (localBlockX * shipCos - localBlockY * shipSin);
+    const worldBlockY = shipPosition.y + (localBlockX * shipSin + localBlockY * shipCos);
 
-    const worldBlockX = shipPosition.x + rotatedBlockX;
-    const worldBlockY = shipPosition.y + rotatedBlockY;
+    // Calculate nozzle position (reuse temp objects)
+    tempOffset.x = 0;
+    tempOffset.y = NOZZLE_OFFSET_Y;
+    
+    // Inline rotation to avoid function call overhead
+    const blockCos = Math.cos(blockRotRad);
+    const blockSin = Math.sin(blockRotRad);
+    
+    const nozzleRotX = tempOffset.x * blockCos - tempOffset.y * blockSin;
+    const nozzleRotY = tempOffset.x * blockSin + tempOffset.y * blockCos;
+    
+    const nozzleWorldX = worldBlockX + (nozzleRotX * shipCos - nozzleRotY * shipSin);
+    const nozzleWorldY = worldBlockY + (nozzleRotX * shipSin + nozzleRotY * shipCos);
 
-    const nozzleOffsetLocal = { x: 0, y: 16 };
-    const blockRotRad = blockRotation * (Math.PI / 180);
-    const nozzleRotatedByBlock = rotate(nozzleOffsetLocal.x, nozzleOffsetLocal.y, blockRotRad);
-    const nozzleWorldOffset = rotate(nozzleRotatedByBlock.x, nozzleRotatedByBlock.y, shipRotation);
+    // Calculate exhaust direction (inline rotation)
+    const localExhaustX = blockSin; // Math.sin(blockRotRad)
+    const localExhaustY = blockCos; // Math.cos(blockRotRad)
+    
+    const worldExhaustX = localExhaustX * shipCos - localExhaustY * shipSin;
+    const worldExhaustY = localExhaustX * shipSin + localExhaustY * shipCos;
 
-    const nozzleWorldX = worldBlockX + nozzleWorldOffset.x;
-    const nozzleWorldY = worldBlockY + nozzleWorldOffset.y;
-
-    const localExhaustDir = { x: Math.sin(blockRotRad), y: Math.cos(blockRotRad) };
-    const worldExhaustDir = rotate(localExhaustDir.x, localExhaustDir.y, shipRotation);
-
+    // Get flame colors with caching
     const blockId = block?.type.id ?? '';
-    const flameColors = ENGINE_COLOR_PALETTES[blockId] ?? DEFAULT_FLAME_COLORS;
-
-    for (let i = 0; i < 2; i++) {
-      const randomJitterX = (Math.random() - 0.5) * 10;
-      const randomJitterY = (Math.random() - 0.5) * 10;
-
-      this.sparkManager.emitBurst(
-        { x: nozzleWorldX, y: nozzleWorldY },
-        1,
-        {
-          colors: flameColors,
-          velocity: {
-            x: worldExhaustDir.x * 40 + randomJitterX,
-            y: worldExhaustDir.y * 40 + randomJitterY,
-          },
-          baseSpeed: 1,
-          sizeRange: [1, 3],
-          lifeRange: [0.2, 0.35],
-          fadeOut: true,
-        }
-      );
+    let flameColors = this.colorCache.get(blockId);
+    if (!flameColors) {
+      flameColors = ENGINE_COLOR_PALETTES[blockId] ?? DEFAULT_FLAME_COLORS;
+      this.colorCache.set(blockId, flameColors);
     }
 
-    // --- 💡 Engine Flash Light (stochastic) ---
-    if (
-      PlayerSettingsManager.getInstance().isLightingEnabled() &&
-      Math.random() < 0.1 // 10% chance
-    ) {
-      const lightingOrchestrator = LightingOrchestrator.getInstance();
+    // Emit particles (reduced loop overhead)
+    const baseVelX = worldExhaustX * EXHAUST_SPEED;
+    const baseVelY = worldExhaustY * EXHAUST_SPEED;
+    
+    tempVec.x = nozzleWorldX;
+    tempVec.y = nozzleWorldY;
+    
+    // Emit both particles in one go to reduce function call overhead
+    this.sparkManager.emitBurst(
+      tempVec,
+      2, // Emit 2 particles at once instead of looping
+      {
+        colors: flameColors,
+        velocity: {
+          x: baseVelX,
+          y: baseVelY,
+        },
+        baseSpeed: 1,
+        sizeRange: [1, 3],
+        lifeRange: [0.2, 0.35],
+        fadeOut: true,
+      }
+    );
 
-      const flashColor = flameColors[0]; // Primary color
-      const intensity = 0.25 + Math.random() * 0.1;
-      const radius = 25 + Math.random() * 50;
-      const life = 0.45 + Math.random() * 0.15;
-
-      const light = createPointLight({
-        x: nozzleWorldX,
-        y: nozzleWorldY,
-        radius,
-        color: flashColor,
-        intensity,
-        life,
-        expires: true,
-      });
-
-      lightingOrchestrator.registerLight(light);
+    // Stochastic lighting (early return pattern)
+    if (!this.playerSettings.isLightingEnabled() || Math.random() >= LIGHT_CHANCE) {
+      return;
     }
+
+    const light = createPointLight({
+      x: nozzleWorldX,
+      y: nozzleWorldY,
+      radius: 25 + Math.random() * 50,
+      color: flameColors[0],
+      intensity: 0.25 + Math.random() * 0.1,
+      life: 0.45 + Math.random() * 0.15,
+      expires: true,
+    });
+
+    this.lightingOrchestrator.registerLight(light);
   }
 }

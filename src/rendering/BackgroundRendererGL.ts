@@ -5,6 +5,7 @@ import { getAssetPath } from '@/shared/assetHelpers';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { createTextureFromCanvas } from '@/rendering/gl/glTextureUtils';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 const BACKGROUND_PARALLAX_SPEED = 0.1;
 const BACKGROUND_TILE_SIZE = 2420;
@@ -36,18 +37,24 @@ void main() {
 export class BackgroundRendererGL {
   private readonly gl: WebGLRenderingContext;
   private readonly camera: Camera;
-  private readonly program: WebGLProgram;
-  private readonly quadBuffer: WebGLBuffer;
+  private program: WebGLProgram | null;
+  private quadBuffer: WebGLBuffer | null;
 
   private uOffset!: WebGLUniformLocation;
   private uScale!: WebGLUniformLocation;
   private uTexture!: WebGLUniformLocation;
   private uAlpha!: WebGLUniformLocation;
 
+  private imageLoadPromise: Promise<void> | null = null;
+
   private texture: WebGLTexture | null = null;
   private image: HTMLImageElement | null = null;
 
-  constructor(canvasManager: CanvasManager, camera: Camera, private readonly backgroundImageId?: string) {
+  constructor(
+    canvasManager: CanvasManager,
+    camera: Camera,
+    private readonly backgroundImageId?: string
+  ) {
     const gl = canvasManager.getWebGLContext('backgroundgl');
     this.gl = gl;
     this.camera = camera;
@@ -56,7 +63,8 @@ export class BackgroundRendererGL {
     this.initUniformLocations();
   }
 
-  private initUniformLocations() {
+  private initUniformLocations(): void {
+    if (!this.program) return;
     this.uOffset = this.gl.getUniformLocation(this.program, 'uOffset')!;
     this.uScale = this.gl.getUniformLocation(this.program, 'uScale')!;
     this.uTexture = this.gl.getUniformLocation(this.program, 'uTexture')!;
@@ -65,13 +73,36 @@ export class BackgroundRendererGL {
 
   async load(): Promise<void> {
     if (!this.backgroundImageId) return;
-    this.image = await this.loadImageAsync(this.backgroundImageId);
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = this.image.width;
-    tempCanvas.height = this.image.height;
-    const tempCtx = tempCanvas.getContext('2d')!;
-    tempCtx.drawImage(this.image, 0, 0);
-    this.texture = createTextureFromCanvas(this.gl, tempCanvas);
+    if (this.imageLoadPromise) return this.imageLoadPromise;
+
+    const imageId = this.backgroundImageId; // Narrow and capture for inner scope
+
+    this.imageLoadPromise = new Promise(async (resolve, reject) => {
+      try {
+        const image = await this.loadImageAsync(imageId);
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = image.width;
+        tempCanvas.height = image.height;
+        const tempCtx = tempCanvas.getContext('2d')!;
+        tempCtx.drawImage(image, 0, 0);
+
+        if (this.texture) {
+          this.gl.deleteTexture(this.texture);
+        }
+
+        this.image = image;
+        this.texture = createTextureFromCanvas(this.gl, tempCanvas);
+
+        resolve();
+      } catch (e) {
+        reject(e);
+      } finally {
+        this.imageLoadPromise = null;
+      }
+    });
+
+    return this.imageLoadPromise;
   }
 
   private loadImageAsync(id: string): Promise<HTMLImageElement> {
@@ -84,15 +115,16 @@ export class BackgroundRendererGL {
   }
 
   update(): void {
-    // no-op
+    // No-op if no background defined
   }
 
   render(): void {
-    if (!this.texture) return;
+    if (!this.texture || !this.program || !this.quadBuffer) return;
 
     const gl = this.gl;
     const { width, height } = gl.canvas;
 
+    this.gl.viewport(0, 0, width, height);
     gl.useProgram(this.program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
 
@@ -124,7 +156,7 @@ export class BackgroundRendererGL {
         const screenY = (startTileY + y) * BACKGROUND_TILE_SIZE - parallaxY;
 
         const ndcOffsetX = (screenX / width) * 2;
-        const ndcOffsetY = -(screenY / height) * 2; // ← flipped here
+        const ndcOffsetY = -(screenY / height) * 2;
 
         gl.uniform2f(this.uOffset, ndcOffsetX, ndcOffsetY);
         gl.uniform2f(this.uScale, scaleX, scaleY);
@@ -136,5 +168,29 @@ export class BackgroundRendererGL {
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.useProgram(null);
+  }
+
+  public destroy(): void {
+    if (this.texture) {
+      this.gl.deleteTexture(this.texture);
+      this.texture = null;
+    }
+
+    if (this.quadBuffer) {
+      this.gl.deleteBuffer(this.quadBuffer);
+      this.quadBuffer = null;
+    }
+
+    if (this.program) {
+      this.gl.deleteProgram(this.program);
+      this.program = null;
+    }
+
+    // Clear the canvas
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    this.gl.clearColor(0, 0, 0, 0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+    console.log('[BackgroundRendererGL] Destroyed and cleared all GL state.');
   }
 }

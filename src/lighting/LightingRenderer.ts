@@ -140,7 +140,7 @@ export class LightingRenderer {
         const scaledY = screen.y * this.resolutionScale;
 
         const rgba = this.hexToRgbaVec4(light.color);
-        const radius = light.radius * camera.zoom * this.resolutionScale;
+        const radius = light.radius * camera.getZoom() * this.resolutionScale;
         const intensity = light.intensity;
         const falloff = light.animationPhase ?? 1.0;
 
@@ -174,7 +174,7 @@ export class LightingRenderer {
         const flippedEndY = this.framebufferHeight - scaledEndY;
 
         const rgba = this.hexToRgbaVec4(light.color);
-        const width = light.width * camera.zoom * this.resolutionScale;
+        const width = light.width * camera.getZoom() * this.resolutionScale;
         const intensity = light.intensity;
         const falloff = light.animationPhase ?? 1.0;
 

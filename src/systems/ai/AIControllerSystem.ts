@@ -5,15 +5,17 @@ import type { MovementSystem } from '@/systems/physics/MovementSystem';
 import type { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import type { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { BehaviorProfile } from './types/BehaviorProfile';
+import type { BaseAIState } from './fsm/BaseAIState';
 
 import { IdleState } from './fsm/IdleState';
-import type { BaseAIState } from './fsm/BaseAIState';
 
 export class AIControllerSystem {
   private readonly ship: Ship;
   private readonly movementSystem: MovementSystem;
   private readonly weaponSystem: WeaponSystem;
   private readonly utilitySystem: UtilitySystem;
+  private readonly behaviorProfile: BehaviorProfile;
   private currentState: BaseAIState;
   private hunter: boolean = false; // Hunter controllers always run, regardless of distance from player
 
@@ -21,12 +23,14 @@ export class AIControllerSystem {
     ship: Ship, 
     movementSystem: MovementSystem, 
     weaponSystem: WeaponSystem, 
-    utilitySystem: UtilitySystem) 
+    utilitySystem: UtilitySystem, 
+    behaviorProfile: BehaviorProfile) 
     {
     this.ship = ship;
     this.movementSystem = movementSystem;
     this.weaponSystem = weaponSystem;
     this.utilitySystem = utilitySystem;
+    this.behaviorProfile = behaviorProfile;
 
     // Initial state
     this.currentState = new IdleState(this, ship);
@@ -59,6 +63,10 @@ export class AIControllerSystem {
 
   public getShip(): Ship {
     return this.ship;
+  }
+
+  public getBehaviorProfile(): BehaviorProfile {
+    return this.behaviorProfile;
   }
 
   public getCurrentState(): BaseAIState {

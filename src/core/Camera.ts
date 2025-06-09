@@ -4,9 +4,21 @@ import { getUniformScaleFactor } from '@/config/view';
 import type { CanvasManager } from '@/core/CanvasManager';
 
 export class Camera {
-  public x = 0;
-  public y = 0;
-  public zoom = 0.3;
+  private static _instance: Camera | null = null;
+
+  public static getInstance(viewportWidth?: number, viewportHeight?: number): Camera {
+    if (!Camera._instance) {
+      if (viewportWidth == null || viewportHeight == null) {
+        throw new Error('[Camera] Must supply viewport dimensions on first initialization');
+      }
+      Camera._instance = new Camera(viewportWidth, viewportHeight);
+    }
+    return Camera._instance;
+  }
+
+  private x = 0;
+  private y = 0;
+  private zoom = 0.3;
 
   private targetX = 0;
   private targetY = 0;
@@ -17,12 +29,11 @@ export class Camera {
   private viewportWidth: number;
   private viewportHeight: number;
 
-  constructor(viewportWidth: number, viewportHeight: number) {
+  private constructor(viewportWidth: number, viewportHeight: number) {
     this.viewportWidth = viewportWidth;
     this.viewportHeight = viewportHeight;
   }
 
-  /** Smooth update toward target, or snap if zooming occurred */
   update(dt: number): void {
     const dx = this.targetX - this.x;
     const dy = this.targetY - this.y;
@@ -34,7 +45,6 @@ export class Camera {
     } else if (distSq > this.deadZoneRadius * this.deadZoneRadius) {
       const smoothingFactor = 1.05;
       const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
       this.x = lerp(this.x, this.targetX, smoothingFactor);
       this.y = lerp(this.y, this.targetY, smoothingFactor);
     }
@@ -129,7 +139,6 @@ export class Camera {
     };
   }
 
-
   getViewportWidth(): number {
     return this.viewportWidth;
   }
@@ -138,9 +147,27 @@ export class Camera {
     return this.viewportHeight;
   }
 
-  /** Update camera's viewport size on resolution change */
   resize(newWidth: number, newHeight: number): void {
     this.viewportWidth = newWidth;
     this.viewportHeight = newHeight;
+  }
+
+  public static destroy(): void {
+    if (Camera._instance) {
+      Camera._instance.cleanup();
+      Camera._instance = null;
+    }
+  }
+
+  private cleanup(): void {
+    // Wipe all internal state if needed (not strictly necessary here)
+    this.x = 0;
+    this.y = 0;
+    this.zoom = 0.3;
+    this.targetX = 0;
+    this.targetY = 0;
+    this.skipSmoothingThisFrame = false;
+    this.viewportWidth = 0;
+    this.viewportHeight = 0;
   }
 }

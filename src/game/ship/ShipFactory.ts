@@ -11,6 +11,8 @@ import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
+import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+
 import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
@@ -22,6 +24,7 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 export class ShipFactory {
   public constructor(
@@ -42,7 +45,8 @@ export class ShipFactory {
     jsonName: string,
     x: number,
     y: number,
-    hunter: boolean = false
+    hunter: boolean = false,
+    behaviorProfile: BehaviorProfile = DefaultBehaviorProfile
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
@@ -61,7 +65,7 @@ export class ShipFactory {
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
-    const controller = new AIControllerSystem(ship, movement, weapons, utility);
+    const controller = new AIControllerSystem(ship, movement, weapons, utility, behaviorProfile);
     controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
     controller.setHunter(hunter);
 

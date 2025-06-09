@@ -6,6 +6,7 @@ import { hexToRgba32 } from '@/shared/colorUtils';
 import { generateCircleMask } from '@/shared/maskUtils';
 import { randomInRange, randomIntInclusive, randomAngle } from '@/shared/mathUtils';
 import { createPointLight } from '@/lighting/lights/createPointLight'; // or wherever your factory lives
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 export interface ParticleOptions {
   colors?: string[];
@@ -121,6 +122,8 @@ export class ParticleManager {
   }
 
   update(dt: number): void {
+    if (!PlayerSettingsManager.getInstance().isParticlesEnabled()) return;
+
     for (const particle of this.activeParticles) {
       particle.x += particle.vx * dt;
       particle.y += particle.vy * dt;
@@ -145,6 +148,8 @@ export class ParticleManager {
   }
 
   render(): void {
+    if (!PlayerSettingsManager.getInstance().isParticlesEnabled()) return;
+
     const canvas = this.ctx.canvas;
     const needResize = !this.imageData || this.canvasWidth !== canvas.width || this.canvasHeight !== canvas.height;
 
@@ -156,7 +161,7 @@ export class ParticleManager {
 
     const screenWidth = canvas.width;
     const screenHeight = canvas.height;
-    const zoom = this.camera.zoom;
+    const zoom = this.camera.getZoom();
 
     for (const particle of this.activeParticles) {
       const screen = this.camera.worldToScreen(particle.x, particle.y);

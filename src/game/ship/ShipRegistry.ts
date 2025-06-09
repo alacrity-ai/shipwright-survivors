@@ -8,6 +8,8 @@ export class ShipRegistry {
   private ships: Set<Ship> = new Set();
   private shipIdMap: Map<string, Ship> = new Map();
 
+  private playerShip: Ship | null = null;
+
   private constructor() {}
 
   public static getInstance(): ShipRegistry {
@@ -29,6 +31,9 @@ export class ShipRegistry {
   remove(ship: Ship): void {
     this.ships.delete(ship);
     this.shipIdMap.delete(ship.id);
+    if (this.playerShip === ship) {
+      this.playerShip = null;
+    }
   }
 
   getAll(): Iterable<Ship> {
@@ -38,9 +43,21 @@ export class ShipRegistry {
   clear(): void {
     this.ships.clear();
     this.shipIdMap.clear();
+    this.playerShip = null;
   }
 
   count(): number {
     return this.ships.size;
+  }
+
+  setPlayerShip(ship: Ship): void {
+    if (!this.ships.has(ship)) {
+      this.add(ship);
+    }
+    this.playerShip = ship;
+  }
+
+  getPlayerShip(): Ship | null {
+    return this.playerShip;
   }
 }

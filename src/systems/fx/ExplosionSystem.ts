@@ -155,12 +155,12 @@ export class ExplosionSystem {
   render(): void {
     const ctx = this.ctx;
     ctx.save();
-    ctx.scale(this.camera.zoom, this.camera.zoom);
+    ctx.scale(this.camera.getZoom(), this.camera.getZoom());
     
     for (const explosion of this.explosions) {
       const screen = this.camera.worldToScreen(explosion.position.x, explosion.position.y);
-      const x = screen.x / this.camera.zoom;
-      const y = screen.y / this.camera.zoom;
+      const x = screen.x / this.camera.getZoom();
+      const y = screen.y / this.camera.getZoom();
       
       // Create a radial gradient for the explosion
       const gradient = ctx.createRadialGradient(

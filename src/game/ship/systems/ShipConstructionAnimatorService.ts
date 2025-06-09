@@ -194,8 +194,8 @@ export class ShipConstructionAnimatorService {
         const blockCount = parent.getBlockMap().size;
         const baseRadius = 250;
         const scaleFactor = Math.sqrt(blockCount) * 20;
-        const maxRadius = (baseRadius + scaleFactor) * this.camera.zoom;
-        const thickness = Math.max(8, Math.sqrt(blockCount) * 2) * this.camera.zoom;
+        const maxRadius = (baseRadius + scaleFactor) * this.camera.getZoom();
+        const thickness = Math.max(8, Math.sqrt(blockCount) * 2) * this.camera.getZoom();
 
         drawShockwave(
           this.ctx,
@@ -232,7 +232,7 @@ export class ShipConstructionAnimatorService {
 
       this.ctx.save();
       this.ctx.translate(screen.x, screen.y);
-      this.ctx.scale(this.camera.zoom, this.camera.zoom);
+      this.ctx.scale(this.camera.getZoom(), this.camera.getZoom());
 
       // // Apply local block rotation (not ship rotation)
       // const blockRotation = (block.rotation ?? 0) * Math.PI / 180;
