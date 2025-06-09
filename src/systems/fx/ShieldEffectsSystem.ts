@@ -81,15 +81,15 @@ export class ShieldEffectsSystem {
   public render(): void {
     const ctx = this.ctx;
     ctx.save();
-    ctx.scale(this.camera.zoom, this.camera.zoom);
+    ctx.scale(this.camera.getZoom(), this.camera.getZoom());
 
     // === 1. Render radial shield circles around active emitter blocks
     for (const visual of this.activeVisuals) {
       const blockPos = visual.block.position;
       if (!blockPos) continue;
       const screen = this.camera.worldToScreen(blockPos.x, blockPos.y);
-      const x = screen.x / this.camera.zoom;
-      const y = screen.y / this.camera.zoom;
+      const x = screen.x / this.camera.getZoom();
+      const y = screen.y / this.camera.getZoom();
 
       const radius = visual.radius;
       const alpha = 0.75 + 0.1 * Math.sin(visual.age * 3);
@@ -133,7 +133,7 @@ export class ShieldEffectsSystem {
       const screen = this.camera.worldToScreen(worldX, worldY);
 
       ctx.save();
-      ctx.translate(screen.x / this.camera.zoom, screen.y / this.camera.zoom);
+      ctx.translate(screen.x / this.camera.getZoom(), screen.y / this.camera.getZoom());
       ctx.rotate(transform.rotation);
       const glowColor = block.shieldHighlightColor ?? 'rgba(255, 0, 0, 0.4)';
       drawBlockHighlightWithMask(ctx, block.type.id, block.rotation, glowColor);

@@ -136,7 +136,7 @@ export class PickupSystem {
       pickup.rotation += ROTATION_SPEED[pickup.type.category] ?? 0.5;
 
       // Scale computation
-      let scale = this.camera.zoom;
+      let scale = this.camera.getZoom();
 
       if (pickup.type.category === 'currency') {
         const scaleFactor = Math.log2(pickup.currencyAmount + 1) / 5;

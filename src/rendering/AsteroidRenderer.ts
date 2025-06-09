@@ -35,7 +35,7 @@ export class AsteroidRenderer {
 
       this.ctx.save();
       this.ctx.translate(screen.x, screen.y);
-      this.ctx.scale(this.camera.zoom, this.camera.zoom);
+      this.ctx.scale(this.camera.getZoom(), this.camera.getZoom());
       this.ctx.rotate(rotation);
       
       let sprite = null;

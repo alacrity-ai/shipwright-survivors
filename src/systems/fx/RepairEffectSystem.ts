@@ -104,12 +104,12 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
   render(): void {
     const ctx = this.ctx;
     ctx.save();
-    ctx.scale(this.camera.zoom, this.camera.zoom);
+    ctx.scale(this.camera.getZoom(), this.camera.getZoom());
 
     for (const effect of this.effects) {
       const screen = this.camera.worldToScreen(effect.position.x, effect.position.y);
-      const x = screen.x / this.camera.zoom;
-      const y = screen.y / this.camera.zoom;
+      const x = screen.x / this.camera.getZoom();
+      const y = screen.y / this.camera.getZoom();
       const alpha = effect.life / effect.maxLife;
 
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, effect.size);
@@ -125,8 +125,8 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
 
       for (const s of effect.sparkles) {
         const screenSpark = this.camera.worldToScreen(s.x, s.y);
-        const sx = screenSpark.x / this.camera.zoom;
-        const sy = screenSpark.y / this.camera.zoom;
+        const sx = screenSpark.x / this.camera.getZoom();
+        const sy = screenSpark.y / this.camera.getZoom();
 
         ctx.globalAlpha = s.life;
         ctx.fillStyle = s.color;

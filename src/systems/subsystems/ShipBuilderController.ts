@@ -140,7 +140,7 @@ export class ShipBuilderController {
 
     ctx.save();
     ctx.translate(screen.x, screen.y);
-    ctx.scale(this.camera.zoom, this.camera.zoom);
+    ctx.scale(this.camera.getZoom(), this.camera.getZoom());
     ctx.rotate(transform.rotation);
 
     const tool = this.menu.getActiveTool();
