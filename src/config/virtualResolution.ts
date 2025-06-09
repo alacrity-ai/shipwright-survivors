@@ -8,6 +8,7 @@ export const VIRTUAL_HEIGHT = 720;
 export function scaleX(x: number): number {
   return x * getViewportWidth() / VIRTUAL_WIDTH;
 }
+
 export function scaleY(y: number): number {
   return y * getViewportHeight() / VIRTUAL_HEIGHT;
 }

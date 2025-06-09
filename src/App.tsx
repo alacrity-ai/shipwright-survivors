@@ -29,8 +29,8 @@ export default function App() {
     const settings = PlayerSettingsManager.getInstance();
     settings.setViewportWidth(res.width);
     settings.setViewportHeight(res.height);
-
     const canvasManager = CanvasManager.getInstance();
+    
     // === Apply canvas dimensions immediately
     applyViewportResolution(canvasManager);
 

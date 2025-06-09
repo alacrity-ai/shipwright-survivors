@@ -203,7 +203,8 @@ export class EngineRuntime {
     const playerStats = PlayerStats.getInstance();
     playerStats.initialize(); // Start with 100 energy
 
-    this.ship = getStarterShip(this.grid);  // Now the grid is initialized before passing to getStarterShip
+    // Get starter ship, TODO: Replace this with user's selected starter ship
+    this.ship = getStarterShip(this.grid);
 
     // Register player ship using the Singleton ShipRegistry
     this.shipRegistry.add(this.ship);
@@ -216,11 +217,11 @@ export class EngineRuntime {
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     
-    // === Step 1: Initialize orchestrator first ===
+    // === AI Orchestrator
     this.aiOrchestrator = new AIOrchestratorSystem();
     this.aiOrchestrator.registerPlayerShip(this.ship);
 
-    // === Step 2: Construct PickupSystem and PickupSpawner (unchanged) ===
+    // === Construct PickupSystem and PickupSpawner ===
     this.pickupSystem = new PickupSystem(
       this.canvasManager, 
       this.camera, 
@@ -231,6 +232,7 @@ export class EngineRuntime {
     );
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
+    // === Destruction and Combat Services
     const destructionService = new CompositeBlockDestructionService(
       this.explosionSystem,
       pickupSpawner,
@@ -243,10 +245,13 @@ export class EngineRuntime {
       pickupSpawner,
       destructionService
     );
+
+    // Collision System
     this.collisionSystem = new BlockObjectCollisionSystem(combatService);
     
-    // === Step 4: Instantiate ProjectileSystem with CombatService ===
+    // === Shared ship systems ===
     // Deprecate this awful class and put it into the turret backend 
+    // Projectile system (Single instance shared by all ships)
     this.projectileSystem = new ProjectileSystem(
       this.canvasManager,
       this.grid,
@@ -254,7 +259,7 @@ export class EngineRuntime {
       this.particleManager,
       this.ship
     );
-
+    // Laser system (Single instance shared by all ships)
     this.laserSystem = new LaserSystem(
       this.canvasManager,
       this.camera,
@@ -263,6 +268,8 @@ export class EngineRuntime {
       this.particleManager,
       this.ship
     );
+    // Energy Recharge System: Single instance used by all ships
+    this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
 
     // Renderers
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
@@ -286,8 +293,10 @@ export class EngineRuntime {
       new ShieldToggleBackend()
     );
 
-    this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
+    // Player controls
     this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer);
+
+    // Ship Building Menu
     this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
     this.shipBuilderController = new ShipBuilderController(
       this.ship, 
@@ -300,7 +309,7 @@ export class EngineRuntime {
       this.shipBuilderController.repairAllBlocks();
     });
 
-    // Dev
+    // Dev Tools
     this.spaceStationBuilderMenu = new SpaceStationBuilderMenu(this.inputManager, this.cursorRenderer);
     this.spaceStation = getStarterSpaceStation(this.grid);
     this.spaceStationBuilderController = new SpaceStationBuilderController(
@@ -311,7 +320,7 @@ export class EngineRuntime {
       this.inputManager
     );
 
-    // Create the enemy wave spawner
+    // == Enemy Wave Spawning System
     this.waveSpawner = new WaveSpawner(
       this.mission.waves,
       this.shipRegistry,
@@ -333,22 +342,23 @@ export class EngineRuntime {
       }
     });
 
-    // Create Planet System
+    // Planet System
     this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveSpawner);
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
-    // Create AsteroidSpawner
+    // AsteroidSpawner
     this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry);
 
-    // Create Dialogue Manager
+    // Dialogue Manager
     this.missionDialogueManager = new MissionDialogueManager(this.inputManager, this.canvasManager, this.waveSpawner, this.ship);
 
-    // Overlays
+    // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
     this.hud = new HudOverlay(this.canvasManager, this.ship);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
+    // All systems that need to be updated every frame
     this.updatables = [
       this.movement,
       this.projectileSystem,
@@ -388,6 +398,7 @@ export class EngineRuntime {
       this.lightingOrchestrator
     ];
 
+    // All systems that need to be rendered every frame
     this.renderables = [
       this.background,
       this.laserSystem,
@@ -430,13 +441,13 @@ export class EngineRuntime {
   private update = (dt: number) => {
     if (this.isDestroyed) return;
 
-    // === Engine sound ===
+    // === Engine sound === TODO: Move this elsewhere, shouldn't fire on pause
     this.engineSoundPlaying = handleEngineSound(
       this.inputManager.isKeyPressed('KeyW'),
       this.engineSoundPlaying
     );
 
-    // Toggle the ship builder menu with Tab
+    // Handle Menu Input
     handleMenuInput({
       inputManager: this.inputManager,
       pause: this.pause.bind(this),
@@ -447,6 +458,7 @@ export class EngineRuntime {
       menuManager: this.menuManager,
     });
 
+    // TODO: Move this elsewhere
     if (this.pauseMenu.isOpen()) {
       this.pauseMenu.update();
     }
@@ -520,13 +532,10 @@ export class EngineRuntime {
       this.updatables.forEach(system => system.update(dt));
     }
 
-    // Always update these systems
+    // Always update these systems regardless of pause state
     this.repairEffectSystem.update(dt);
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);
-
-    // On resolution change, recreate the minimap
-    // INSERT CODE HERE
   };
 
   private render = (dt: number) => {
@@ -577,6 +586,9 @@ export class EngineRuntime {
     ]);
   }
 
+  /**
+   * Starts the game loop and initializes the mission.
+  **/
   public start() {
     this.gameLoop.start();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
@@ -612,6 +624,10 @@ export class EngineRuntime {
     sceneManager.setScene('debriefing');
   }
 
+  /**
+  * Destroys the runtime and all associated systems.
+  * Always called when returning to the Hub zone.
+  **/
   public destroy(): void {
     console.log("EngineRuntime: Performing cleanup before scene transition.");
 

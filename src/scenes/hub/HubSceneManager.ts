@@ -18,7 +18,7 @@ import { drawCursor, getCrosshairCursorSprite, getHoveredCursorSprite } from '@/
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
-import { scaleX, scaleY } from '@/config/virtualResolution';
+import { scaleRect } from '@/config/virtualResolution';
 
 const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
 
@@ -33,15 +33,6 @@ const INTERACTION_FLAGS = {
   map: 'hub.mission-computer.unlocked',
   breakroom: 'hub.breakroom.unlocked',
 } as const;
-
-function scaleRect(rect: { x: number; y: number; width: number; height: number }) {
-  return {
-    x: scaleX(rect.x),
-    y: scaleY(rect.y),
-    width: scaleX(rect.width),
-    height: scaleY(rect.height),
-  };
-}
 
 export class HubSceneManager {
   private canvasManager: CanvasManager;
@@ -196,6 +187,7 @@ export class HubSceneManager {
     // this.drawInteractionZones(uiCtx);
   };
 
+  /** For debugging */
   private drawInteractionZones(ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 1;
