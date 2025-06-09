@@ -12,6 +12,7 @@ import { renderBatteryModule } from './blockRenderers/batteryBlockRenderer';
 import { renderShieldGenerator } from './blockRenderers/shieldBlockRenderer';
 import { renderHarvester } from './blockRenderers/harvestBlockRenderer';
 import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRenderer';
+import { createTextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 
 // --- Damage Level Enum ---
 
@@ -37,6 +38,22 @@ export interface DamagedBlockSprite {
 }
 
 const spriteCache: Map<string, DamagedBlockSprite> = new Map();
+
+// --- GL Sprite Interfaces ---
+
+export interface GLBlockSprite {
+  base: WebGLTexture;
+  overlay?: WebGLTexture;
+}
+
+export interface GLDamagedBlockSprite {
+  [DamageLevel.NONE]: GLBlockSprite;
+  [DamageLevel.LIGHT]: GLBlockSprite;
+  [DamageLevel.MODERATE]: GLBlockSprite;
+  [DamageLevel.HEAVY]: GLBlockSprite;
+}
+
+const glSpriteCache: Map<string, GLDamagedBlockSprite> = new Map();
 
 // --- Canvas Helpers ---
 
@@ -674,6 +691,57 @@ export function initializeBlockSpriteCache(): void {
   }
 }
 
+export function initializeGLBlockSpriteCache(gl: WebGLRenderingContext): void {
+  let convertedCount = 0;
+
+  for (const block of getAllBlockTypes()) {
+    const raster = spriteCache.get(block.id);
+    if (!raster) {
+      console.warn(`[GLCache] No raster sprite found for block: ${block.id}`);
+      continue;
+    }
+
+    try {
+      const glVariants: GLDamagedBlockSprite = {
+        [DamageLevel.NONE]: {
+          base: createTextureFromCanvas(gl, raster[DamageLevel.NONE].base),
+          overlay: raster[DamageLevel.NONE].overlay
+            ? createTextureFromCanvas(gl, raster[DamageLevel.NONE].overlay!)
+            : undefined,
+        },
+        [DamageLevel.LIGHT]: {
+          base: createTextureFromCanvas(gl, raster[DamageLevel.LIGHT].base),
+          overlay: raster[DamageLevel.LIGHT].overlay
+            ? createTextureFromCanvas(gl, raster[DamageLevel.LIGHT].overlay!)
+            : undefined,
+        },
+        [DamageLevel.MODERATE]: {
+          base: createTextureFromCanvas(gl, raster[DamageLevel.MODERATE].base),
+          overlay: raster[DamageLevel.MODERATE].overlay
+            ? createTextureFromCanvas(gl, raster[DamageLevel.MODERATE].overlay!)
+            : undefined,
+        },
+        [DamageLevel.HEAVY]: {
+          base: createTextureFromCanvas(gl, raster[DamageLevel.HEAVY].base),
+          overlay: raster[DamageLevel.HEAVY].overlay
+            ? createTextureFromCanvas(gl, raster[DamageLevel.HEAVY].overlay!)
+            : undefined,
+        },
+      };
+
+      glSpriteCache.set(block.id, glVariants);
+      convertedCount++;
+
+      console.log(`[GLCache] Converted block '${block.id}' into GPU textures`);
+    } catch (e) {
+      console.error(`[GLCache] Failed to convert block '${block.id}' to WebGL textures:`, e);
+    }
+  }
+
+  console.log(`[GLCache] Total GL textures initialized: ${convertedCount}`);
+}
+
+
 export function getDamageLevel(currentHp: number, maxHp: number): DamageLevel {
   const ratio = Math.max(0, currentHp / maxHp);
   if (ratio > 0.75) return DamageLevel.NONE;
@@ -685,5 +753,11 @@ export function getDamageLevel(currentHp: number, maxHp: number): DamageLevel {
 export function getBlockSprite(typeId: string, level: DamageLevel = DamageLevel.NONE): BlockSprite {
   const entry = spriteCache.get(typeId);
   if (!entry) throw new Error(`Block sprite not cached: ${typeId}`);
+  return entry[level];
+}
+
+export function getGLBlockSprite(typeId: string, level: DamageLevel = DamageLevel.NONE): GLBlockSprite {
+  const entry = glSpriteCache.get(typeId);
+  if (!entry) throw new Error(`GL block sprite not cached: ${typeId}`);
   return entry[level];
 }

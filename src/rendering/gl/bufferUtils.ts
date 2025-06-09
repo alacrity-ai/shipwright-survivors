@@ -1,4 +1,4 @@
-// src/lighting/webgl/bufferUtils.ts
+// src/rendering/gl/webgl/bufferUtils.ts
 
 /**
  * Creates a buffer containing a unit quad (two triangles in a strip).

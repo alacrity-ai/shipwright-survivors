@@ -11,7 +11,7 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
-import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { initializeGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
@@ -27,6 +27,7 @@ import { MiniMap } from '@/ui/overlays/MiniMap';
 
 import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
 import { MultiShipRenderer } from '@/rendering/MultiShipRenderer';
+import { MultiShipRendererGL } from '@/rendering/MultiShipRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -122,6 +123,7 @@ export class EngineRuntime {
   private particleManager: ParticleManager;
   private background: BackgroundRenderer;
   private multiShipRenderer: MultiShipRenderer;
+  private multiShipRendererGL: MultiShipRendererGL;
   private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
@@ -159,6 +161,7 @@ export class EngineRuntime {
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = new Camera(getViewportWidth(), getViewportHeight());
+    initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     
     // Persistent UI
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
@@ -262,6 +265,7 @@ export class EngineRuntime {
     // Renderers
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
     this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
+    this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
     this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
 
@@ -388,7 +392,8 @@ export class EngineRuntime {
       this.laserSystem,
       this.pickupSystem,
       this.particleManager,
-      this.multiShipRenderer,
+      // this.multiShipRenderer,
+      this.multiShipRendererGL,
       this.asteroidRenderer,
       this.hud,
       this.miniMap,
@@ -535,7 +540,7 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('overlay');
     this.canvasManager.clearLayer('dialogue');
     // if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-    //   this.canvasManager.clearWebGLLayer('lighting');
+    //   this.canvasManager.clearWebGLLayer('lighting'); // Not needed for lighting as it clears its own layer
     // }
 
     this.renderables.forEach(system => system.render(dt));

@@ -1,7 +1,7 @@
 import type { Camera } from '@/core/Camera';
 import type { AnyLightInstance } from './lights/types';
-import { createProgramFromSources } from './webgl/shaderUtils';
-import { createQuadBuffer } from './webgl/bufferUtils';
+import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
+import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { VERT_SHADER_SRC, FRAG_SHADER_SRC } from './webgl/defaultShaders';
 import { POST_VERT_SHADER_SRC, POST_FRAG_SHADER_SRC, BEAM_VERT_SHADER_SRC, BEAM_FRAG_SHADER_SRC } from './webgl/defaultShaders';
 

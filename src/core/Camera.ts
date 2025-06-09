@@ -1,6 +1,7 @@
 // src/core/Camera.ts
 
 import { getUniformScaleFactor } from '@/config/view';
+import type { CanvasManager } from '@/core/CanvasManager';
 
 export class Camera {
   public x = 0;
@@ -11,7 +12,7 @@ export class Camera {
   private targetY = 0;
 
   private skipSmoothingThisFrame = false;
-  private readonly deadZoneRadius = 4;
+  private readonly deadZoneRadius = 12;
 
   private viewportWidth: number;
   private viewportHeight: number;
@@ -31,7 +32,7 @@ export class Camera {
       this.x = this.targetX;
       this.y = this.targetY;
     } else if (distSq > this.deadZoneRadius * this.deadZoneRadius) {
-      const smoothingFactor = 0.05;
+      const smoothingFactor = 1.05;
       const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
       this.x = lerp(this.x, this.targetX, smoothingFactor);
@@ -107,6 +108,20 @@ export class Camera {
       height,
     };
   }
+
+  getViewBounds(canvasManager: CanvasManager): { left: number; right: number; top: number; bottom: number } {
+    const canvas = canvasManager.getCanvas('entitygl');
+    const width = canvas.width / this.zoom;
+    const height = canvas.height / this.zoom;
+
+    return {
+      left: this.x,
+      right: this.x + width,
+      bottom: this.y + height,
+      top: this.y,
+    };
+  }
+
 
   getViewportWidth(): number {
     return this.viewportWidth;

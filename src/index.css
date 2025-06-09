@@ -34,6 +34,15 @@ canvas {
   isolation: isolate;
 } */
 
-.lighting-canvas {
-  mix-blend-mode: overlay; /* or screen, overlay, multiply, etc. */
+/* Lighting layer (WebGL) visual blending */
+#lighting-canvas {
+  mix-blend-mode: screen; /* or overlay/multiply depending on aesthetic */
+}
+
+/* 🔹 New: entitygl canvas styling */
+#entitygl-canvas {
+  z-index: 3;               /* Should match CanvasManager z-index logic */
+  pointer-events: none;     /* Prevent mouse capture */
+  image-rendering: pixelated; /* Optional: preserve crisp scaling for raster sprites */
+  mix-blend-mode: normal;   /* Prevent interference with other layers */
 }

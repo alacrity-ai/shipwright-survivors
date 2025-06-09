@@ -66,7 +66,7 @@ export class Ship extends CompositeBlockObject {
     //       radius: auraRadius,
     //       // Pure white
     //       color: '#ffffff',
-    //       intensity: 0.3,
+    //       intensity: 1,
     //     });
 
     //     orchestrator.registerLight(auraLight);

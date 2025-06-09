@@ -1,4 +1,4 @@
-// src/lighting/webgl/shaderUtils.ts
+// src/rendering/gl/webgl/shaderUtils.ts
 
 /**
  * Compiles a shader from source.
