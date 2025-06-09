@@ -9,7 +9,8 @@ import { getDamageLevel, getGLBlockSprite } from '@/rendering/cache/BlockSpriteC
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
-import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
+import { createOrthographicMatrix, createTranslationMatrix, createRotationMatrix, multiplyMatrices } from '@/rendering/gl/matrixUtils';
+import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { VERT_SHADER_SRC, FRAG_SHADER_SRC } from '@/rendering/gl/shaders/shipSpriteShaders';
 
@@ -24,7 +25,6 @@ function isMetallicSheenBlock(id: string): boolean {
   return id.startsWith('hull') || id.startsWith('fin') || id.startsWith('faceplate') || id.startsWith('engine');
 }
 
-
 export class MultiShipRendererGL {
   private readonly gl: WebGLRenderingContext;
   private readonly program: WebGLProgram;
@@ -32,14 +32,24 @@ export class MultiShipRendererGL {
 
   private readonly attribs = { position: 0 };
   private readonly uniforms: {
-    uTransform: WebGLUniformLocation | null;
+    uProjectionMatrix: WebGLUniformLocation | null;
+    uViewMatrix: WebGLUniformLocation | null;
+    uModelMatrix: WebGLUniformLocation | null;
     uTexture: WebGLUniformLocation | null;
     uTime: WebGLUniformLocation | null;
     uGlowStrength: WebGLUniformLocation | null;
     uEnergyPulse: WebGLUniformLocation | null;
     uChargeColor: WebGLUniformLocation | null;
     uSheenStrength: WebGLUniformLocation | null;
+    uBlockPosition: WebGLUniformLocation | null;
+    uBlockRotation: WebGLUniformLocation | null;
+    uBlockScale: WebGLUniformLocation | null;
   };
+
+  // Cached matrices to avoid recreation every frame
+  private projectionMatrix: Float32Array = new Float32Array(16);
+  private viewMatrix: Float32Array = new Float32Array(16);
+  private shipModelMatrix: Float32Array = new Float32Array(16);
 
   constructor(
     canvasManager: CanvasManager,
@@ -52,14 +62,36 @@ export class MultiShipRendererGL {
     this.quadBuffer = createQuadBuffer(this.gl);
 
     this.uniforms = {
-      uTransform: this.gl.getUniformLocation(this.program, 'uTransform'),
+      uProjectionMatrix: this.gl.getUniformLocation(this.program, 'uProjectionMatrix'),
+      uViewMatrix: this.gl.getUniformLocation(this.program, 'uViewMatrix'),
+      uModelMatrix: this.gl.getUniformLocation(this.program, 'uModelMatrix'),
       uTexture: this.gl.getUniformLocation(this.program, 'uTexture'),
       uTime: this.gl.getUniformLocation(this.program, 'uTime'),
       uGlowStrength: this.gl.getUniformLocation(this.program, 'uGlowStrength'),
       uEnergyPulse: this.gl.getUniformLocation(this.program, 'uEnergyPulse'),
       uChargeColor: this.gl.getUniformLocation(this.program, 'uChargeColor'),
-      uSheenStrength: this.gl.getUniformLocation(this.program, 'uSheenStrength'), // 0 if disabled, 1 for full effect
+      uSheenStrength: this.gl.getUniformLocation(this.program, 'uSheenStrength'),
+      uBlockPosition: this.gl.getUniformLocation(this.program, 'uBlockPosition'),
+      uBlockRotation: this.gl.getUniformLocation(this.program, 'uBlockRotation'),
+      uBlockScale: this.gl.getUniformLocation(this.program, 'uBlockScale'),
     };
+  }
+
+  private updateProjectionMatrix(): void {
+    const halfWidth = this.camera.getViewportWidth() / (2 * this.camera.zoom);
+    const halfHeight = this.camera.getViewportHeight() / (2 * this.camera.zoom);
+
+    const left = -halfWidth;
+    const right = halfWidth;
+    const bottom = halfHeight;
+    const top = -halfHeight;
+
+    this.projectionMatrix = createOrthographicMatrix(left, right, bottom, top);
+  }
+
+  private updateViewMatrix(): void {
+    const camPos = this.camera.getPosition();
+    this.viewMatrix = createTranslationMatrix(-camPos.x, -camPos.y);
   }
 
   render(): void {
@@ -72,8 +104,11 @@ export class MultiShipRendererGL {
 
     const canvasWidth = gl.canvas.width;
     const canvasHeight = gl.canvas.height;
-    const zoom = this.camera.zoom;
     const time = performance.now() / 1000;
+
+    // Update matrices once per frame
+    this.updateProjectionMatrix();
+    this.updateViewMatrix();
 
     gl.viewport(0, 0, canvasWidth, canvasHeight);
     gl.useProgram(this.program);
@@ -81,11 +116,15 @@ export class MultiShipRendererGL {
     gl.enableVertexAttribArray(this.attribs.position);
     gl.vertexAttribPointer(this.attribs.position, 2, gl.FLOAT, false, 0, 0);
 
+    // Upload matrices once per frame
+    gl.uniformMatrix4fv(this.uniforms.uProjectionMatrix, false, this.projectionMatrix);
+    gl.uniformMatrix4fv(this.uniforms.uViewMatrix, false, this.viewMatrix);
     gl.uniform1f(this.uniforms.uTime, time);
 
     for (const ship of visibleShips) {
       const { position, rotation } = ship.getTransform();
 
+      // Handle lighting
       if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
         const auraId = ship.getLightAuraId?.();
         if (auraId) {
@@ -97,14 +136,11 @@ export class MultiShipRendererGL {
         }
       }
 
-      const shipScreen = this.camera.worldToScreen(position.x, position.y);
-      const shipNdcX = (shipScreen.x / canvasWidth) * 2 - 1;
-      const shipNdcY = (shipScreen.y / canvasHeight) * -2 + 1;
-
-      const cosShip = Math.cos(rotation);
-      const sinShip = Math.sin(rotation);
-      const scaleX = (BLOCK_SIZE * zoom) / canvasWidth;
-      const scaleY = (BLOCK_SIZE * zoom) / canvasHeight;
+      // Create ship model matrix (translation + rotation)
+      this.shipModelMatrix = multiplyMatrices(
+        createRotationMatrix(rotation),
+        createTranslationMatrix(position.x, position.y)
+      );
 
       for (const [coord, block] of ship.getAllBlocks()) {
         if (block.hidden) continue;
@@ -113,31 +149,20 @@ export class MultiShipRendererGL {
         const damageLevel = getDamageLevel(block.hp, maxHp);
         const sprite = getGLBlockSprite(block.type.id, damageLevel);
 
-        const localX = coord.x * BLOCK_SIZE;
-        const localY = coord.y * BLOCK_SIZE;
-
-        const rotatedLocalX = cosShip * localX - sinShip * localY;
-        const rotatedLocalY = sinShip * localX + cosShip * localY;
-
-        const finalX = shipNdcX + (rotatedLocalX * zoom * 2) / canvasWidth;
-        const finalY = shipNdcY - (rotatedLocalY * zoom * 2) / canvasHeight;
-
+        // Block transforms in local space
+        const blockLocalX = coord.x * BLOCK_SIZE;
+        const blockLocalY = coord.y * BLOCK_SIZE;
         const blockRotation = (block.rotation ?? 0) * (Math.PI / 180);
-        const totalRotation = rotation + blockRotation;
 
-        const cos = Math.cos(totalRotation);
-        const sin = Math.sin(totalRotation);
+        // Pass block-specific data to shader
+        gl.uniform2f(this.uniforms.uBlockPosition, blockLocalX, blockLocalY);
+        gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
+        gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
 
-        const transform = new Float32Array([
-          cos * scaleX, -sin * scaleY, 0,
-          sin * scaleX,  cos * scaleY, 0,
-          finalX,        finalY,       1,
-        ]);
+        // Upload ship model matrix
+        gl.uniformMatrix4fv(this.uniforms.uModelMatrix, false, this.shipModelMatrix);
 
-        gl.uniformMatrix3fv(this.uniforms.uTransform, false, transform);
-        gl.uniform1i(this.uniforms.uTexture, 0);
-
-        // === Add block specific shader effects ===
+        // Block-specific shader effects
         const chargeColor = getChargeColor(block.type.id);
         const energyPulse = chargeColor ? Math.sin(time * 6.0) * 0.5 + 0.5 : 0.0;
         const glowStrength = block.type.id.startsWith('cockpit') ? 1.0 : 0.0;
@@ -153,30 +178,28 @@ export class MultiShipRendererGL {
           gl.uniform3f(this.uniforms.uChargeColor, 0.0, 0.0, 0.0);
         }
 
+        gl.uniform1i(this.uniforms.uTexture, 0);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, sprite.base);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+        // Handle overlay rendering with mouse targeting
         if (sprite.overlay) {
-          const blockWorldX = position.x + localX;
-          const blockWorldY = position.y + localY;
+          const blockWorldX = position.x + blockLocalX * Math.cos(rotation) - blockLocalY * Math.sin(rotation);
+          const blockWorldY = position.y + blockLocalX * Math.sin(rotation) + blockLocalY * Math.cos(rotation);
+          
           const dx = mouseWorld.x - blockWorldX;
           const dy = mouseWorld.y - blockWorldY;
           const globalAngle = Math.atan2(dy, dx);
           const overlayAngle = globalAngle - rotation + Math.PI / 2;
 
-          const cosO = Math.cos(overlayAngle);
-          const sinO = Math.sin(overlayAngle);
-
-          const transformOverlay = new Float32Array([
-            cosO * scaleX, -sinO * scaleY, 0,
-            sinO * scaleX,  cosO * scaleY, 0,
-            finalX,         finalY,        1,
-          ]);
-
-          gl.uniformMatrix3fv(this.uniforms.uTransform, false, transformOverlay);
+          // Override block rotation for overlay
+          gl.uniform1f(this.uniforms.uBlockRotation, overlayAngle);
           gl.bindTexture(gl.TEXTURE_2D, sprite.overlay);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          
+          // Restore original block rotation for next iteration
+          gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
         }
       }
     }

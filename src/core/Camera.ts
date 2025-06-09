@@ -65,6 +65,13 @@ export class Camera {
     return { x: this.x, y: this.y };
   }
 
+  getPosition(): { x: number; y: number } {
+    return {
+      x: this.x + (this.viewportWidth / 2) / this.zoom,
+      y: this.y + (this.viewportHeight / 2) / this.zoom,
+    };
+  }
+
   adjustZoom(delta: number): void {
     const baseFactor = 1.08;
     const scrollSteps = Math.max(-1, Math.min(1, delta));

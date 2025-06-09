@@ -58,3 +58,52 @@ export function createProjectionMatrix(
     tx, ty,  1,
   ]);
 }
+
+export function createOrthographicMatrix(left: number, right: number, bottom: number, top: number): Float32Array {
+  const width = right - left;
+  const height = top - bottom;
+  
+  return new Float32Array([
+    2 / width, 0, 0, 0,
+    0, 2 / height, 0, 0,
+    0, 0, -1, 0,
+    -(right + left) / width, -(top + bottom) / height, 0, 1
+  ]);
+}
+
+export function createTranslationMatrix(x: number, y: number): Float32Array {
+  return new Float32Array([
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    x, y, 0, 1
+  ]);
+}
+
+export function createRotationMatrix(angle: number): Float32Array {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  
+  return new Float32Array([
+    cos, sin, 0, 0,
+    -sin, cos, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ]);
+}
+
+export function multiplyMatrices(a: Float32Array, b: Float32Array): Float32Array {
+  const result = new Float32Array(16);
+  
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      result[i * 4 + j] = 
+        a[i * 4 + 0] * b[0 * 4 + j] +
+        a[i * 4 + 1] * b[1 * 4 + j] +
+        a[i * 4 + 2] * b[2 * 4 + j] +
+        a[i * 4 + 3] * b[3 * 4 + j];
+    }
+  }
+  
+  return result;
+}

@@ -28,3 +28,19 @@ export function createQuadBuffer(gl: WebGLRenderingContext): WebGLBuffer {
 
   return buffer;
 }
+
+
+// src/rendering/gl/quadUtils.ts
+export function createQuadBuffer2(gl: WebGLRenderingContext): WebGLBuffer {
+  const quadVertices = new Float32Array([
+    -1, -1,
+     1, -1,
+    -1,  1,
+     1,  1,
+  ]);
+
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
+  return buffer;
+}

@@ -33,22 +33,61 @@
 
 // src/rendering/gl/shaders/shipSpriteShaders.ts
 
+// export const VERT_SHADER_SRC = `
+//   precision mediump float;
+
+//   attribute vec2 position;
+//   uniform mat3 uTransform;
+
+//   varying vec2 vUV;
+
+//   void main() {
+//     // Flip Y to match canvas convention
+//     vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
+//     vec3 pos = uTransform * vec3(position, 1.0);
+//     gl_Position = vec4(pos.xy, 0.0, 1.0);
+//   }
+// `;
+
 export const VERT_SHADER_SRC = `
   precision mediump float;
 
   attribute vec2 position;
-  uniform mat3 uTransform;
+
+  uniform mat4 uProjectionMatrix;
+  uniform mat4 uViewMatrix;
+  uniform mat4 uModelMatrix;
+  uniform vec2 uBlockPosition;
+  uniform float uBlockRotation;
+  uniform vec2 uBlockScale;
 
   varying vec2 vUV;
 
   void main() {
-    // Flip Y to match canvas convention
+    // Compute UV coordinates (Y-flipped for WebGL)
     vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
-    vec3 pos = uTransform * vec3(position, 1.0);
-    gl_Position = vec4(pos.xy, 0.0, 1.0);
+
+    // Flip Y to match canvas-style asset orientation
+    vec2 scaledPosition = position * uBlockScale * 0.5;
+    vec2 flippedPosition = vec2(scaledPosition.x, -scaledPosition.y);
+
+    // Apply rotation
+    float cos_rot = cos(uBlockRotation);
+    float sin_rot = sin(uBlockRotation);
+    vec2 rotatedPosition = vec2(
+      flippedPosition.x * cos_rot - flippedPosition.y * sin_rot,
+      flippedPosition.x * sin_rot + flippedPosition.y * cos_rot
+    );
+
+    // Translate to block-local world position
+    vec2 blockWorldPosition = rotatedPosition + uBlockPosition;
+
+    // Full transform pipeline
+    vec4 worldPos = uModelMatrix * vec4(blockWorldPosition, 0.0, 1.0);
+    vec4 viewPos = uViewMatrix * worldPos;
+    gl_Position = uProjectionMatrix * viewPos;
   }
 `;
-
 
 export const FRAG_SHADER_SRC = `
   precision mediump float;
