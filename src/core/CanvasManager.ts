@@ -72,8 +72,8 @@ export class CanvasManager {
   private getZIndexForLayer(layer: CanvasLayer): number {
     switch (layer) {
       case 'background': return 0;
+      case 'entitygl': return 1;
       case 'entities': return 2;
-      case 'entitygl': return 3;
       case 'lighting': return 3;
       case 'fx': return 4;
       case 'particles': return 5;

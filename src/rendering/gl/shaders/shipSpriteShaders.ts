@@ -33,21 +33,21 @@
 
 // src/rendering/gl/shaders/shipSpriteShaders.ts
 
-// export const VERT_SHADER_SRC = `
-//   precision mediump float;
+export const VERT_SHADER_SRC = `
+  precision mediump float;
 
-//   attribute vec2 position;
-//   uniform mat3 uTransform;
+  attribute vec2 position;
+  uniform mat3 uTransform;
 
-//   varying vec2 vUV;
+  varying vec2 vUV;
 
-//   void main() {
-//     // Flip Y to match canvas convention
-//     vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
-//     vec3 pos = uTransform * vec3(position, 1.0);
-//     gl_Position = vec4(pos.xy, 0.0, 1.0);
-//   }
-// `;
+  void main() {
+    // Flip Y to match canvas convention
+    vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
+    vec3 pos = uTransform * vec3(position, 1.0);
+    gl_Position = vec4(pos.xy, 0.0, 1.0);
+  }
+`;
 
 
 export const FRAG_SHADER_SRC = `
@@ -121,26 +121,26 @@ export const FRAG_SHADER_SRC = `
 
 // src/rendering/gl/shaders/shipSpriteShaders.ts
 
-export const VERT_SHADER_SRC = `
-  precision mediump float;
+// export const VERT_SHADER_SRC = `
+//   precision mediump float;
 
-  attribute vec2 position;
-  uniform mat3 uModel;
-  uniform mat3 uProjection;
+//   attribute vec2 position;
+//   uniform mat3 uModel;
+//   uniform mat3 uProjection;
 
-  varying vec2 vUV;
+//   varying vec2 vUV;
 
-  void main() {
-    // Flip Y to match canvas convention
-    vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
+//   void main() {
+//     // Flip Y to match canvas convention
+//     vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
     
-    // Transform: World space -> NDC via model then projection
-    vec3 worldPos = uModel * vec3(position, 1.0);
-    vec3 ndcPos = uProjection * worldPos;
+//     // Transform: World space -> NDC via model then projection
+//     vec3 worldPos = uModel * vec3(position, 1.0);
+//     vec3 ndcPos = uProjection * worldPos;
     
-    gl_Position = vec4(ndcPos.xy, 0.0, 1.0);
-  }
-`;
+//     gl_Position = vec4(ndcPos.xy, 0.0, 1.0);
+//   }
+// `;
 
 // export const FRAG_SHADER_SRC = `
 //   precision mediump float;

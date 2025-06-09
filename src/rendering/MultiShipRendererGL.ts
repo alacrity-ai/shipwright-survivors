@@ -185,4 +185,17 @@ export class MultiShipRendererGL {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.useProgram(null);
   }
+
+  destroy(): void {
+    if (!this.gl.isProgram(this.program)) return;
+
+    this.gl.deleteProgram(this.program);
+    this.gl.deleteBuffer(this.quadBuffer);
+
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    this.gl.clearColor(0, 0, 0, 0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+    console.log('[MultiShipRendererGL] Resources destroyed and canvas cleared.');
+  }
 }

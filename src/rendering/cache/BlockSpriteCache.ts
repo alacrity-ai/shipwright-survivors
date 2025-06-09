@@ -741,6 +741,23 @@ export function initializeGLBlockSpriteCache(gl: WebGLRenderingContext): void {
   console.log(`[GLCache] Total GL textures initialized: ${convertedCount}`);
 }
 
+export function destroyGLBlockSpriteCache(gl: WebGLRenderingContext): void {
+  for (const [typeId, damagedVariants] of glSpriteCache.entries()) {
+    for (const level of Object.values(DamageLevel)) {
+      const sprite = damagedVariants[level];
+      if (sprite.base && gl.isTexture(sprite.base)) {
+        gl.deleteTexture(sprite.base);
+      }
+      if (sprite.overlay && gl.isTexture(sprite.overlay)) {
+        gl.deleteTexture(sprite.overlay);
+      }
+    }
+  }
+
+  glSpriteCache.clear();
+  console.log('[GLCache] All GPU block textures have been deleted and cache cleared.');
+}
+
 
 export function getDamageLevel(currentHp: number, maxHp: number): DamageLevel {
   const ratio = Math.max(0, currentHp / maxHp);

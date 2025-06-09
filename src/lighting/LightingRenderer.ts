@@ -246,11 +246,32 @@ export class LightingRenderer {
 
   public destroy(): void {
     const gl = this.gl;
-    gl.deleteProgram(this.lightProgram);
-    gl.deleteProgram(this.beamProgram);
-    gl.deleteProgram(this.postProgram);
-    gl.deleteBuffer(this.quadBuffer);
-    gl.deleteTexture(this.colorTexture);
-    gl.deleteFramebuffer(this.framebuffer);
+
+    // Unbind everything
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.useProgram(null);
+
+    // Clear the default framebuffer to transparent
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Delete programs if they were created
+    if (gl.isProgram(this.lightProgram)) gl.deleteProgram(this.lightProgram);
+    if (gl.isProgram(this.beamProgram)) gl.deleteProgram(this.beamProgram);
+    if (gl.isProgram(this.postProgram)) gl.deleteProgram(this.postProgram);
+
+    // Delete buffer if created
+    if (gl.isBuffer(this.quadBuffer)) gl.deleteBuffer(this.quadBuffer);
+
+    // Delete texture if created
+    if (gl.isTexture(this.colorTexture)) gl.deleteTexture(this.colorTexture);
+
+    // Delete framebuffer if created
+    if (gl.isFramebuffer(this.framebuffer)) gl.deleteFramebuffer(this.framebuffer);
+
+    console.log('[LightingRenderer] Destroyed and cleared all GL state.');
   }
 }

@@ -11,7 +11,7 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
-import { initializeGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeGLBlockSpriteCache, destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
@@ -640,6 +640,8 @@ export class EngineRuntime {
     this.hud.destroy();
     this.miniMap.destroy();
     this.lightingOrchestrator.destroy();
+    this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
+    destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
 
     // // Clear rendering and update lists
     this.updatables.length = 0;
