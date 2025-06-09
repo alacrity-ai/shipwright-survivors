@@ -4,6 +4,7 @@ import { getViewportWidth, getViewportHeight } from '@/config/view';
 
 export type CanvasLayer =
   | 'background'
+  | 'backgroundgl'  // <-- new
   | 'entities'
   | 'entitygl'
   | 'lighting'
@@ -15,6 +16,7 @@ export type CanvasLayer =
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
+  backgroundgl: 'backgroundgl-canvas', // <-- new
   entities: 'entity-canvas',
   entitygl: 'entitygl-canvas',
   lighting: 'lighting-canvas',
@@ -24,6 +26,7 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas',
 };
+
 
 export class CanvasManager {
   private static _instance: CanvasManager | null = null;
@@ -54,7 +57,7 @@ export class CanvasManager {
         );
       }
 
-      if (layer !== 'lighting' && layer !== 'entitygl') {
+      if (layer !== 'lighting' && layer !== 'entitygl' && layer !== 'backgroundgl') {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
@@ -79,15 +82,16 @@ export class CanvasManager {
 
   private getZIndexForLayer(layer: CanvasLayer): number {
     switch (layer) {
-      case 'background': return 0;
-      case 'entitygl': return 1;
-      case 'entities': return 2;
-      case 'lighting': return 3;
-      case 'fx': return 4;
-      case 'particles': return 5;
-      case 'ui': return 6;
-      case 'overlay': return 7;
-      case 'dialogue': return 8;
+      case 'background': return 1;
+      case 'backgroundgl': return 0;
+      case 'entitygl': return 2;
+      case 'entities': return 3;
+      case 'lighting': return 4;
+      case 'fx': return 5;
+      case 'particles': return 6;
+      case 'ui': return 7;
+      case 'overlay': return 8;
+      case 'dialogue': return 9;
     }
   }
 

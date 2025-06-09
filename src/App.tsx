@@ -60,6 +60,7 @@ export default function App() {
   return (
     <div id="canvas-root">
       <canvas id="background-canvas" />
+      <canvas id="backgroundgl-canvas" />
       <canvas id="entity-canvas" />
       <canvas id="entitygl-canvas" />
       <canvas id="fx-canvas" />

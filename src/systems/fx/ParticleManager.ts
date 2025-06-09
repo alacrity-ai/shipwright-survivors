@@ -35,6 +35,7 @@ export class ParticleManager {
 
   private colorCache = new Map<string, number>();
   private circleMaskCache = new Map<number, { dx: number; dy: number }[]>();
+  private colorAlphaCache = new Map<string, number>();
 
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
@@ -182,8 +183,17 @@ export class ParticleManager {
         const clampedAlpha = Math.min(1, alphaFraction);
         const alphaByte = Math.round(clampedAlpha * 255);
 
-        // Mask out existing alpha and set new alpha
-        color = (alphaByte << 24) | (baseColor & 0x00FFFFFF);
+        if (alphaByte === 0) continue; // 🚫 Skip fully transparent
+
+        const cacheKey = `${particle.color}_${alphaByte}`;
+        const cached = this.colorAlphaCache.get(cacheKey);
+
+        if (cached !== undefined) {
+          color = cached;
+        } else {
+          color = (alphaByte << 24) | (baseColor & 0x00FFFFFF);
+          this.colorAlphaCache.set(cacheKey, color);
+        }
       }
 
       this.drawPixelCircle(screenX, screenY, pixelRadius, color);

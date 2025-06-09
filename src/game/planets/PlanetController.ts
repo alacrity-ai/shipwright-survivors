@@ -4,6 +4,8 @@ import { PlanetRenderer } from './PlanetRenderer';
 
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
+import { CanvasManager } from '@/core/CanvasManager';
+
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
@@ -28,7 +30,8 @@ export class PlanetController {
     private readonly definition: PlanetDefinition,
     private readonly waveSpawner: WaveSpawner
   ) {
-    this.renderer = new PlanetRenderer(definition.imagePath, definition.scale, definition.name);
+    const gl = CanvasManager.getInstance().getWebGLContext('backgroundgl');
+    this.renderer = new PlanetRenderer(gl, definition.imagePath, definition.scale, definition.name);
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
   }
 
@@ -68,6 +71,9 @@ export class PlanetController {
       inInteractionRange
     } = this.calculateRanges();
 
+    // update planet atmosphere animation
+    this.renderer.update(dt);
+
     // Example: later trigger dialogue or highlight UI
     if (inInteractionRange && this.inputManager.wasKeyJustPressed('KeyC') && !this.isInteracting) {
       this.isInteracting = true;
@@ -103,7 +109,6 @@ export class PlanetController {
 
     if (inDrawingRange) {
       this.renderer.render(
-        ctx,
         overlayCtx,
         this.x,
         this.y,

@@ -26,7 +26,7 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
-import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
+import { BackgroundRendererGL as BackgroundRenderer } from '@/rendering/BackgroundRendererGL';
 import { MultiShipRendererGL } from '@/rendering/MultiShipRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
@@ -542,6 +542,7 @@ export class EngineRuntime {
     if (!this.ship || this.isDestroyed) return;
     const transform = this.ship.getTransform();
 
+    // this.canvasManager.clearLayer('background');
     this.canvasManager.clearLayer('entities');
     this.canvasManager.clearLayer('fx');
     this.canvasManager.clearLayer('particles');
