@@ -43,7 +43,7 @@ export class WaveSpawner implements IUpdatable {
   private hasSpawnedFirstWave = false;    // Tracks if first wave already triggered
 
   private readonly initialDelay = 10;
-  private readonly waveInterval = 10;
+  private readonly waveInterval = 120;
   private readonly interWaveDelay = 10;
 
   private interWaveCountdown = -1;

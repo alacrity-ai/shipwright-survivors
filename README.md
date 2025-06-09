@@ -185,6 +185,7 @@ TODOS:
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [x] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
+  - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
   - [x] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
       E.g. if I pause on wave 1, wait a minute or so, then unpause, the waves won't spawn properly, in fact, if I pause for several minutes, and unpause, no waves spawn at all
