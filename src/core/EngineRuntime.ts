@@ -26,7 +26,6 @@ import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
 import { BackgroundRenderer } from '@/rendering/BackgroundRenderer';
-import { MultiShipRenderer } from '@/rendering/MultiShipRenderer';
 import { MultiShipRendererGL } from '@/rendering/MultiShipRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
@@ -122,7 +121,6 @@ export class EngineRuntime {
   private pickupSystem: PickupSystem;
   private particleManager: ParticleManager;
   private background: BackgroundRenderer;
-  private multiShipRenderer: MultiShipRenderer;
   private multiShipRendererGL: MultiShipRendererGL;
   private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
@@ -264,7 +262,6 @@ export class EngineRuntime {
 
     // Renderers
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
-    this.multiShipRenderer = new MultiShipRenderer(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
     this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
     this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
@@ -392,7 +389,6 @@ export class EngineRuntime {
       this.laserSystem,
       this.pickupSystem,
       this.particleManager,
-      // this.multiShipRenderer,
       this.multiShipRendererGL,
       this.asteroidRenderer,
       this.hud,
@@ -539,9 +535,6 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('ui');
     this.canvasManager.clearLayer('overlay');
     this.canvasManager.clearLayer('dialogue');
-    // if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-    //   this.canvasManager.clearWebGLLayer('lighting'); // Not needed for lighting as it clears its own layer
-    // }
 
     this.renderables.forEach(system => system.render(dt));
 

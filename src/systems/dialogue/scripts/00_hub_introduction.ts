@@ -123,6 +123,15 @@ export function createHubIntroductionScript2(ctx: DialogueContext): DialogueScri
         speakerId: 'rexor',
         text: "Each upgrade stacks up to three times. Click confirm to make it official and mildly irreversible."
       },
+      // If player for some reason has no passive points, add one to prevent soft lock
+      {
+        type: 'command',
+        run: () => {
+          if (PlayerPassiveManager.getInstance().getAvailablePoints() === 0) {
+            PlayerPassiveManager.getInstance().addPassivePoints(1);
+          }
+        },
+      },
       // hide ui
       {
         type: 'hideUI',

@@ -507,31 +507,10 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           return awaitCondition(() => waveSpawner.shouldCompleteMission());
         },
       },
-      // Show UI
-      {
-        type: 'showUI',
-      },
-      {
-        type: 'line',
-        speakerId: 'crazy-moe',
-        text: "Y'got me! Sweet entropy, I see the light—*AND SHE'S MADE OF REBAR AND RADIATION!*",
-      },
-      // Wait 1000ms
-      {
-        type: 'pause',
-        durationMs: 2000,
-      },
-      // Wait until boss is defeated
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveSpawner.shouldCompleteMission());
-        },
-      },
-      // Add passive point
-      {
-        type: 'command',
-        run: () => {
+          console.log('Added passive point!')
           PlayerPassiveManager.getInstance().addPassivePoints(1);
         },
       },
@@ -541,6 +520,15 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           flags.set('mission.intro-briefing.complete');
         },
       },
+      // Show UI
+      {
+        type: 'showUI',
+      },
+      {
+        type: 'line',
+        speakerId: 'crazy-moe',
+        text: "Y'got me! Sweet entropy, I see the light—*AND SHE'S MADE OF REBAR AND RADIATION!*",
+      }
     ],
   };
 }
