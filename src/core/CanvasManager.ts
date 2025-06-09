@@ -5,7 +5,7 @@ import { getViewportWidth, getViewportHeight } from '@/config/view';
 export type CanvasLayer =
   | 'background'
   | 'entities'
-  | 'entitygl'  // <-- new WebGL layer
+  | 'entitygl'
   | 'lighting'
   | 'fx'
   | 'particles'
@@ -25,14 +25,22 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   dialogue: 'dialogue-canvas',
 };
 
-
 export class CanvasManager {
+  private static _instance: CanvasManager | null = null;
+
   private canvases: Record<CanvasLayer, HTMLCanvasElement> = {} as any;
   private contexts: Record<CanvasLayer, CanvasRenderingContext2D> = {} as any;
 
-  constructor() {
+  private constructor() {
     this.initializeCanvases();
     this.setFixedSize();
+  }
+
+  public static getInstance(): CanvasManager {
+    if (!CanvasManager._instance) {
+      CanvasManager._instance = new CanvasManager();
+    }
+    return CanvasManager._instance;
   }
 
   private initializeCanvases() {
@@ -115,7 +123,7 @@ export class CanvasManager {
     }
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(...color); // default: opaque black
+    gl.clearColor(...color);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
@@ -149,4 +157,3 @@ export class CanvasManager {
     }
   }
 }
-

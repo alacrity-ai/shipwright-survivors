@@ -4,6 +4,7 @@ import { getViewportWidth, getViewportHeight, getUniformScaleFactor } from '@/co
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
+import { applyViewportResolution } from '@/shared/applyViewportResolution';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -154,13 +155,16 @@ export class EngineRuntime {
   private isDestroyed = false;
 
   constructor() {
-    this.canvasManager = new CanvasManager();
+    this.canvasManager = CanvasManager.getInstance();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = new Camera(getViewportWidth(), getViewportHeight());
     initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     
+    // Resolution fix for electron
+    applyViewportResolution(this.canvasManager, this.camera);
+
     // Persistent UI
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
@@ -625,9 +629,6 @@ export class EngineRuntime {
     PlayerStats.getInstance().destroy();
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();
-
-    // Technology should persist between runs
-    // PlayerTechnologyManager.getInstance().destroy();
 
     // Optional: clear UI menus, overlays
     this.hud.destroy();

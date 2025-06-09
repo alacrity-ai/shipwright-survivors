@@ -58,7 +58,7 @@ class SceneManager {
 
   private ensureCanvasManager(): CanvasManager {
     if (!this.canvasManager) {
-      this.canvasManager = new CanvasManager();
+      this.canvasManager = CanvasManager.getInstance();
     }
     return this.canvasManager;
   }

@@ -143,7 +143,13 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
-  - [ ] More UI Scaling fixes for resolution support/scaling support
+  - [ ] Move 2d Canvas to webgl:
+    - [x] Ships
+    - [ ] Planets
+    - [ ] Particles
+    - [ ] Asteroids
+    - [ ] ExplosionSystem
+  - [x] More UI Scaling fixes for resolution support/scaling support
   - [ ] Explore gating hull size, and having max hull size increasable via the passive tree
     - [ ] Starter ships could have implicit max hull sizes
   - [ ] Add the concept of a selectable startship

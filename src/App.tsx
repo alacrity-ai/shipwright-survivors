@@ -7,6 +7,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { SaveGameManager } from '@/core/save/saveGameManager';
 import { checkWebGLSupport } from '@/lighting/webgl/helpers/checkWebGLSupport';
+import { CanvasManager } from '@/core/CanvasManager';
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
@@ -29,12 +30,13 @@ export default function App() {
     settings.setViewportWidth(res.width);
     settings.setViewportHeight(res.height);
 
+    const canvasManager = CanvasManager.getInstance();
     // === Apply canvas dimensions immediately
-    applyViewportResolution();
+    applyViewportResolution(canvasManager);
 
     // === Subscribe to resolution changes
     settings.onResolutionChange(() => {
-      applyViewportResolution();
+      applyViewportResolution(canvasManager);
     });
 
     // === Audio unlock on first pointer input ===
