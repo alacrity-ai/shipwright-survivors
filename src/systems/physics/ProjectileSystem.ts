@@ -55,12 +55,12 @@ export class ProjectileSystem {
     const particle = this.particleManager.emitParticle(origin, {
       colors: particleColors ?? ['#ffff88', '#ffaa00', '#ffcc33'],
       baseSpeed: 0,
-      sizeRange: [3.2, 3.2],
+      sizeRange: [2.2, 2.8],
       lifeRange: [lifetime, lifetime + 0.1], // tightly synced
       velocity: { x: vx, y: vy },
       light: true,
-      lightRadiusScalar: 35,
-      lightIntensity: 0.3,
+      lightRadiusScalar: 20,
+      lightIntensity: 0.8,
     });
 
     this.projectiles.push({

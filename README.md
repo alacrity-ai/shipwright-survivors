@@ -147,7 +147,7 @@ TODOS:
     - [x] Ships
     - [x] Planets
     - [x] Background
-    - [ ] Particles
+    - [x] Particles
     - [ ] Asteroids
     - [ ] ExplosionSystem
   - [x] More UI Scaling fixes for resolution support/scaling support
@@ -186,8 +186,9 @@ TODOS:
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [x] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
-  - [ ] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
-  - [ ] Background is different size in different resolutions
+  - [ ] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
+  - [x] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
+  - [x] Background is different size in different resolutions
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
   - [x] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.

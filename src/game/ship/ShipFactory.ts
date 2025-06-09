@@ -26,6 +26,11 @@ import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCo
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
+export type AuraLightOptions = {
+  color: string;
+  radius: number;
+};
+
 export class ShipFactory {
   public constructor(
     private readonly grid: Grid,
@@ -50,6 +55,9 @@ export class ShipFactory {
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
+    // If hunter auralight color is red, otherwise yellow
+    const auraLightOptions: AuraLightOptions = { color: '#ff0000', radius: 96 };
+
     const transform = ship.getTransform();
     transform.position.x = x;
     transform.position.y = y;
@@ -73,7 +81,7 @@ export class ShipFactory {
 
     ship.hideAllBlocks();
     ship.updateBlockPositions();
-    this.shipConstructionAnimator.animateShipConstruction(ship);
+    this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 
     return { ship, controller };
   }

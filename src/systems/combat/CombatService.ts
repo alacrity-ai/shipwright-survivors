@@ -51,7 +51,7 @@ export class CombatService {
         // Random 5-10
         const lightRadiusScalar = Math.random() * 5 + 5;
         const lightOptions = PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
-          ? { lightRadiusScalar: lightRadiusScalar, lightIntensity: 0.4, lightLifeScalar: 0.5, lightColor: '#00ffff' }
+          ? { lightRadiusScalar: lightRadiusScalar, lightIntensity: 1.2, lightLifeScalar: 0.5, lightColor: '#00ffff' }
           : undefined;
 
         const clampedEfficiency = Math.max(0.001, efficiency);
@@ -90,7 +90,7 @@ export class CombatService {
       PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
         ? {
             lightRadiusScalar: 12,
-            lightIntensity: 0.2,
+            lightIntensity: 1,
             lightLifeScalar: 0.7,
             lightColor: cause === 'laser' ? LASER_HIT_LIGHT_COLOR : undefined,
           }

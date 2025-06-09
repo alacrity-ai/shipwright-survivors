@@ -11,8 +11,8 @@ export const BLOCK_PICKUP_SPARK_COLOR_PALETTES: Array<string[]> = [
 export const DEFAULT_EXPLOSION_SPARK_PALETTE: string[] = ['#ffdd00', '#ffaa00', '#ff6600', '#ff2200', '#ffffff'];
 
 export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
-  engine0: ['#fff', '#f90', '#ff0'],           // classic flame
-  engine1: ['#fff', '#f90', '#ff0'],           // same as 0
+  engine0: ['#ffeeb0', '#ffc04d', '#ffd966'], // pale fire yellow, rich fire orange, yellow-orange glow
+  engine1: ['#ffeeb0', '#ffc04d', '#ffd966'],
   engine2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
   engine3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
   engine4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust

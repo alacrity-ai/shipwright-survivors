@@ -2,6 +2,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Camera } from '@/core/Camera';
 import type { CanvasManager } from '@/core/CanvasManager';
+import type { AuraLightOptions } from '@/game/ship/ShipFactory';
 
 import { Ship } from '@/game/ship/Ship';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
@@ -24,6 +25,7 @@ interface ConstructingShipState {
   blocksRevealed: number;
   phase: ConstructionPhase;
   shockwaveTimer: number;
+  auraLightOptions?: AuraLightOptions;
 }
 
 export class ShipConstructionAnimatorService {
@@ -48,7 +50,7 @@ export class ShipConstructionAnimatorService {
     this.ctx = canvasManager.getCanvas('fx').getContext('2d')!;
   }
 
-  public animateShipConstruction(ship: Ship): void {
+  public animateShipConstruction(ship: Ship, auraLightOptions?: AuraLightOptions): void {
     const blocks = ship.getAllBlocks();
 
     for (const [, block] of blocks) {
@@ -66,6 +68,7 @@ export class ShipConstructionAnimatorService {
       blocksRevealed: 0,
       phase: 'building',
       shockwaveTimer: this.animationDuration,
+      auraLightOptions,
     });
   }
 
@@ -139,6 +142,11 @@ export class ShipConstructionAnimatorService {
             volumeJitter: 0.1,
             maxSimultaneous: 3,
           });
+
+          // Turn on the auralight
+          if (state.auraLightOptions) {
+            state.ship.registerAuraLight(state.auraLightOptions.color, state.auraLightOptions.radius);
+          }
         }
       } else if (state.phase === 'shockwave') {
         state.shockwaveTimer -= ms;

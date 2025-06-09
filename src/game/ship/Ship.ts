@@ -54,29 +54,6 @@ export class Ship extends CompositeBlockObject {
     this.shieldComponent = new ShieldComponent(this);
     this.validateFiringPlan();
     this.isPlayerShip = isPlayerShip ?? false;
-
-    // // Lighting
-    // const auraRadius = 3000
-    // this.lightAuraId = `aura-${this.id}`;
-    // if (this.isPlayerShip) {
-    //   try {
-    //     const orchestrator = LightingOrchestrator.getInstance();
-
-    //     const auraLight = createPointLight({
-    //       id: this.lightAuraId,
-    //       x: this.getTransform().position.x,
-    //       y: this.getTransform().position.y,
-    //       radius: auraRadius,
-    //       // Pure white
-    //       color: '#ffffff',
-    //       intensity: 1,
-    //     });
-
-    //     orchestrator.registerLight(auraLight);
-    //   } catch (e) {
-    //     console.warn(`[Ship ${this.id}] LightingOrchestrator not available; aura light skipped.`);
-    //   }
-    // }
   }
 
   public getIsPlayerShip(): boolean {
@@ -85,6 +62,30 @@ export class Ship extends CompositeBlockObject {
 
   public setIsPlayerShip(isPlayerShip: boolean): void {
     this.isPlayerShip = isPlayerShip;
+  }
+
+  public registerAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
+    if (!LightingOrchestrator.hasInstance()) return;
+
+    const orchestrator = LightingOrchestrator.getInstance();
+    this.lightAuraId = `aura-${this.id}`;
+
+    const auraLight = createPointLight({
+      id: this.lightAuraId,
+      x: this.getTransform().position.x,
+      y: this.getTransform().position.y,
+      radius: radius,
+      color: color,
+      intensity: intensity,
+    });
+
+    orchestrator.registerLight(auraLight);
+  }
+
+  public cleanupAuraLight(): void {
+    if (!this.lightAuraId) return;
+    LightingOrchestrator.getInstance().removeLight(this.lightAuraId);
+    this.lightAuraId = null;
   }
 
   public getLightAuraId(): string | null {
@@ -491,14 +492,7 @@ export class Ship extends CompositeBlockObject {
     this.blockToCoordMap.clear();
 
     // --- Aura Light Cleanup ---
-    if (this.lightAuraId) {
-      try {
-        LightingOrchestrator.getInstance().removeLight(this.lightAuraId);
-      } catch (e) {
-        console.warn(`[Ship ${this.id}] Failed to remove light aura:`, e);
-      }
-      this.lightAuraId = null;
-    }
+    this.cleanupAuraLight();
 
     for (const callback of this.destroyedListeners) {
       callback(this);
@@ -518,14 +512,7 @@ export class Ship extends CompositeBlockObject {
   }
 
   public onDestroyed(): void {
-    if (this.lightAuraId) {
-      try {
-        LightingOrchestrator.getInstance().removeLight(this.lightAuraId);
-      } catch (e) {
-        console.warn(`[Ship ${this.id}] Failed to remove light aura:`, e);
-      }
-      this.lightAuraId = null;
-    }
+    this.cleanupAuraLight();
 
     for (const cb of this.destroyedListeners) {
       cb(this);

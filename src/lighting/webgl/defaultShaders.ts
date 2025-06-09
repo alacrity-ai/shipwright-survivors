@@ -1,6 +1,4 @@
-// src/lighting/webgl/defaultShaders.ts
-
-/** Vertex shader for fullscreen quad */
+// Point Light Vertex Shader - unchanged
 export const VERT_SHADER_SRC = `
   precision mediump float;
   
@@ -32,6 +30,7 @@ export const VERT_SHADER_SRC = `
   }
 `;
 
+// Point Light Fragment Shader - ADDED alpha modulation (Soft light blending)
 export const FRAG_SHADER_SRC = `
   precision mediump float;
 
@@ -40,7 +39,6 @@ export const FRAG_SHADER_SRC = `
   uniform mediump vec4 uColor;
   uniform mediump float uIntensity;
   uniform mediump float uFalloff;
-  uniform mediump float uMaxBrightness;
 
   varying vec2 vScreenPos;
 
@@ -53,19 +51,43 @@ export const FRAG_SHADER_SRC = `
     falloff *= uFalloff;
 
     vec3 color = uColor.rgb * falloff * uIntensity;
-
-    // Perceptual luminance approximation (ITU-R BT.709)
-    float brightness = dot(color, vec3(0.2126, 0.7152, 0.0722));
-
-    // Soft clamp: compress brightness into [0, uMaxBrightness]
-    float clamped = brightness / (1.0 + brightness / uMaxBrightness);
-    vec3 finalColor = color * (clamped / max(brightness, 0.0001)); // preserve hue
-
-    gl_FragColor = vec4(finalColor, uColor.a * falloff * uIntensity);
+    
+    // Use alpha to control blending behavior
+    // Lower alpha = more natural blending, less stacking
+    float alpha = falloff * uIntensity * 0.7; // Reduced from 1.0 to prevent over-stacking
+    
+    gl_FragColor = vec4(color, alpha);
   }
 `;
 
+// // Point Light Fragment Shader - REMOVED individual brightness capping
+// export const FRAG_SHADER_SRC = `
+//   precision mediump float;
 
+//   uniform mediump vec2 uLightPosition;
+//   uniform mediump float uRadius;
+//   uniform mediump vec4 uColor;
+//   uniform mediump float uIntensity;
+//   uniform mediump float uFalloff;
+
+//   varying vec2 vScreenPos;
+
+//   void main() {
+//     float dist = distance(vScreenPos, uLightPosition);
+//     float normDist = clamp(dist / uRadius, 0.0, 1.0);
+
+//     // Smooth radial falloff
+//     float falloff = pow(1.0 - normDist, 2.0);
+//     falloff *= uFalloff;
+
+//     // Simple color calculation - no individual brightness capping
+//     vec3 color = uColor.rgb * falloff * uIntensity;
+    
+//     gl_FragColor = vec4(color, uColor.a * falloff * uIntensity);
+//   }
+// `;
+
+// Post-processing Vertex Shader - unchanged
 export const POST_VERT_SHADER_SRC = `
   attribute vec2 position;
   varying vec2 vUV;
@@ -76,17 +98,31 @@ export const POST_VERT_SHADER_SRC = `
   }
 `;
 
+// Post-processing Fragment Shader - ADDED total brightness capping
 export const POST_FRAG_SHADER_SRC = `
   precision mediump float;
   varying vec2 vUV;
   uniform sampler2D uTexture;
+  uniform float uMaxBrightness;
 
   void main() {
-    gl_FragColor = texture2D(uTexture, vUV);
+    vec4 color = texture2D(uTexture, vUV);
+    
+    // Calculate perceptual brightness using ITU-R BT.709 luminance weights
+    float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    
+    // Apply brightness capping to the total accumulated lighting
+    if (brightness > uMaxBrightness) {
+      // Scale down while preserving color ratios (hue preservation)
+      float scale = uMaxBrightness / brightness;
+      color.rgb *= scale;
+    }
+    
+    gl_FragColor = color;  
   }
 `;
 
-// Vertex Shader - no changes needed
+// Beam Vertex Shader - unchanged
 export const BEAM_VERT_SHADER_SRC = `
   attribute vec2 position;
   varying vec2 vPosition;
@@ -97,7 +133,7 @@ export const BEAM_VERT_SHADER_SRC = `
   }
 `;
 
-// Fragment Shader - fixed coordinate system issues
+// Beam Fragment Shader - unchanged (no individual capping needed)
 export const BEAM_FRAG_SHADER_SRC = `
   precision mediump float;
 
@@ -109,7 +145,7 @@ export const BEAM_FRAG_SHADER_SRC = `
   uniform vec4 uColor;
   uniform float uIntensity;
   uniform float uFalloff;
-  uniform vec2 uResolution; // Add this uniform
+  uniform vec2 uResolution;
 
   void main() {
     // Convert UV coordinates to pixel coordinates

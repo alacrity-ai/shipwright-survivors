@@ -126,7 +126,7 @@ export class ThrusterEmitter {
       y: nozzleWorldY,
       radius: 25 + Math.random() * 50,
       color: flameColors[0],
-      intensity: 0.25 + Math.random() * 0.1,
+      intensity: 1 + Math.random() * 0.5,
       life: 0.45 + Math.random() * 0.15,
       expires: true,
     });

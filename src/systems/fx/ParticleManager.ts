@@ -2,8 +2,7 @@ import type { Camera } from '@/core/Camera';
 import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
-import { hexToRgba32 } from '@/shared/colorUtils';
-import { generateCircleMask } from '@/shared/maskUtils';
+import { ParticleRendererGL } from './ParticleRendererGL';
 import { randomInRange, randomIntInclusive, randomAngle } from '@/shared/mathUtils';
 import { createPointLight } from '@/lighting/lights/createPointLight'; // or wherever your factory lives
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
@@ -20,29 +19,24 @@ export interface ParticleOptions {
   lightIntensity?: number;
 }
 
-const ZOOM_EXPONENT = 2;
+const PARTICLE_SCALE = 3;
 
 export class ParticleManager {
+  private renderer: ParticleRendererGL;
+
   private activeParticles: Particle[] = [];
   private particlePool: Particle[] = [];
 
   private readonly CULL_PADDING = 128;
   private emissionAccumulator = 0;
 
-  private imageData: ImageData | null = null;
-  private pixels: Uint32Array | null = null;
-  private canvasWidth = 0;
-  private canvasHeight = 0;
-
-  private colorCache = new Map<string, number>();
-  private circleMaskCache = new Map<number, { dx: number; dy: number }[]>();
-  private colorAlphaCache = new Map<string, number>();
-
   constructor(
-    private readonly ctx: CanvasRenderingContext2D,
+    gl: WebGLRenderingContext,
     private readonly camera: Camera,
     private readonly lightingOrchestrator: LightingOrchestrator
-  ) {}
+  ) {
+    this.renderer = new ParticleRendererGL(gl);
+  }
 
   private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
     const {
@@ -63,7 +57,7 @@ export class ParticleManager {
     particle.y = origin.y;
     particle.vx = vx;
     particle.vy = vy;
-    particle.size = randomInRange(sizeRange[0], sizeRange[1]);
+    particle.size = randomInRange(sizeRange[0], sizeRange[1]) * PARTICLE_SCALE; // Scale up particle size for better visibility
     particle.life = randomInRange(lifeRange[0], lifeRange[1]);
     particle.initialLife = particle.life;
     particle.fadeOut = options.fadeOut ?? false;
@@ -87,13 +81,6 @@ export class ParticleManager {
 
     this.activeParticles.push(particle);
     return particle;
-  }
-
-  private initializeImageData(width: number, height: number): void {
-    this.canvasWidth = width;
-    this.canvasHeight = height;
-    this.imageData = this.ctx.createImageData(width, height);
-    this.pixels = new Uint32Array(this.imageData.data.buffer);
   }
 
   emitBurst(origin: { x: number; y: number }, count: number, options: ParticleOptions = {}): void {
@@ -149,76 +136,7 @@ export class ParticleManager {
 
   render(): void {
     if (!PlayerSettingsManager.getInstance().isParticlesEnabled()) return;
-
-    const canvas = this.ctx.canvas;
-    const needResize = !this.imageData || this.canvasWidth !== canvas.width || this.canvasHeight !== canvas.height;
-
-    if (needResize) {
-      this.initializeImageData(canvas.width, canvas.height);
-    }
-
-    this.pixels!.fill(0);
-
-    const screenWidth = canvas.width;
-    const screenHeight = canvas.height;
-    const zoom = this.camera.getZoom();
-
-    for (const particle of this.activeParticles) {
-      const screen = this.camera.worldToScreen(particle.x, particle.y);
-      const screenX = Math.round(screen.x);
-      const screenY = Math.round(screen.y);
-
-      if (
-        screenX < -this.CULL_PADDING || screenX >= screenWidth + this.CULL_PADDING ||
-        screenY < -this.CULL_PADDING || screenY >= screenHeight + this.CULL_PADDING
-      ) continue;
-
-      const pixelRadius = Math.max(1, Math.round(particle.size * zoom * ZOOM_EXPONENT));
-
-      let baseColor = this.colorCache.get(particle.color);
-      if (baseColor === undefined) {
-        baseColor = hexToRgba32(particle.color);
-        this.colorCache.set(particle.color, baseColor);
-      }
-
-      let color = baseColor;
-
-      if (particle.fadeOut && particle.initialLife && particle.initialLife > 0) {
-        const alphaFraction = Math.max(0, particle.life / particle.initialLife);
-        const clampedAlpha = Math.min(1, alphaFraction);
-        const alphaByte = Math.round(clampedAlpha * 255);
-
-        if (alphaByte === 0) continue; // 🚫 Skip fully transparent
-
-        const cacheKey = `${particle.color}_${alphaByte}`;
-        const cached = this.colorAlphaCache.get(cacheKey);
-
-        if (cached !== undefined) {
-          color = cached;
-        } else {
-          color = (alphaByte << 24) | (baseColor & 0x00FFFFFF);
-          this.colorAlphaCache.set(cacheKey, color);
-        }
-      }
-
-      this.drawPixelCircle(screenX, screenY, pixelRadius, color);
-    }
-
-    this.ctx.putImageData(this.imageData!, 0, 0);
-  }
-
-  private drawPixelCircle(centerX: number, centerY: number, radius: number, color: number): void {
-    const mask = this.circleMaskCache.get(radius) ?? (() => {
-      const m = generateCircleMask(radius);
-      this.circleMaskCache.set(radius, m);
-      return m;
-    })();
-    for (const { dx, dy } of mask) {
-      const x = centerX + dx;
-      const y = centerY + dy;
-      if (x < 0 || x >= this.canvasWidth || y < 0 || y >= this.canvasHeight) continue;
-      this.pixels![y * this.canvasWidth + x] = color;
-    }
+    this.renderer.render(this.activeParticles, this.camera);
   }
 
   private getParticle(): Particle {

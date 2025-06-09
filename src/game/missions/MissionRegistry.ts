@@ -56,6 +56,6 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
-    sceneLighting: [0.0, 0.0, 0.0, 0.0]
+    sceneLighting: [0.0, 0.0, 0.0, 1.0]
   }
 };

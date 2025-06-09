@@ -173,13 +173,13 @@ export class EngineRuntime {
     // Lighting System
     const lightingCanvas = this.canvasManager.getCanvas('lighting');
     const lightingGL = this.canvasManager.getWebGLContext('lighting');
-    const lightingRenderer = new LightingRenderer(lightingGL, lightingCanvas);
+    const lightingRenderer = new LightingRenderer(lightingGL);
     this.lightingOrchestrator = LightingOrchestrator.getInstance(lightingRenderer, this.camera);
     const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
     this.lightingOrchestrator.setClearColor(...sceneLighting);
 
     // Particle System
-    this.particleManager = new ParticleManager(this.canvasManager.getContext('particles'), this.camera, this.lightingOrchestrator);
+    this.particleManager = new ParticleManager(this.canvasManager.getWebGLContext('entitygl'), this.camera, this.lightingOrchestrator);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
     this.mission = missionLoader.getMission();
@@ -596,7 +596,7 @@ export class EngineRuntime {
     this.inputManager.disableInput();
     setTimeout(() => {
       if (this.ship) {
-        this.shipConstructionAnimator.animateShipConstruction(this.ship);
+        this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#0000FF', radius: 96 });
       }
     }, 1000);
     setTimeout(() => {
