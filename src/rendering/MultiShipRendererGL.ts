@@ -146,14 +146,14 @@ export class MultiShipRendererGL {
         createTranslationMatrix(position.x, position.y)
       );
 
-      const isColliding = ship.isColliding?.() ?? false;
-
-      if (isColliding) {
-        gl.uniform1i(this.uniforms.uUseCollisionColor, 1);
-        gl.uniform3f(this.uniforms.uCollisionColor, 1.0, 0.1, 0.1); // Red
-      } else {
-        gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
-      }
+      // DEBUG: TODO: Remove in prod
+      // const isColliding = ship.isColliding?.() ?? false;
+      // if (isColliding) {
+      //   gl.uniform1i(this.uniforms.uUseCollisionColor, 1);
+      //   gl.uniform3f(this.uniforms.uCollisionColor, 1.0, 0.1, 0.1); // Red
+      // } else {
+      //   gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
+      // }
 
       for (const [coord, block] of ship.getAllBlocks()) {
         if (block.hidden) continue;
