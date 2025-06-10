@@ -7,10 +7,12 @@ export interface PickupInstance {
   position: { x: number; y: number };
   isPickedUp: boolean;
   currencyAmount: number;
+  repairAmount: number;      // NEW: health to restore to blocks
   ttl?: number;
   rotation: number;
   lightId?: string;
 }
+
 
 // Optional: Keep this here if other systems will use it directly
 export interface Spark {

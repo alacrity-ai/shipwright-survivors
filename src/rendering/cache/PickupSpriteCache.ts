@@ -1,9 +1,7 @@
-// src/rendering/cache/PickupSpriteCache.ts
-
-const PICKUP_SIZE = 8; // Set the size to 8x8 for smaller pickups, or change to 6 if you'd prefer it even smaller
+const PICKUP_SIZE = 8; // 8x8 pixel size
 
 export interface PickupSprite {
-  base: HTMLCanvasElement; // The base canvas with the sprite
+  base: HTMLCanvasElement;
 }
 
 const spriteCache: Map<string, PickupSprite> = new Map();
@@ -17,31 +15,49 @@ function createBlankCanvas(): HTMLCanvasElement {
 
 function drawCurrencyPickup(): HTMLCanvasElement {
   const baseCanvas = createBlankCanvas();
-  const baseCtx = baseCanvas.getContext('2d')!;
+  const ctx = baseCanvas.getContext('2d')!;
 
-  // Create a gradient for the blue orb
-  const orbGradient = baseCtx.createRadialGradient(PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0, PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2);
-  orbGradient.addColorStop(0, '#00BFFF'); // Light blue center
-  orbGradient.addColorStop(0.7, '#1E90FF'); // Slightly darker blue
-  orbGradient.addColorStop(1, '#4682B4'); // Dark blue edge
+  const gradient = ctx.createRadialGradient(
+    PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0,
+    PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2
+  );
+  gradient.addColorStop(0, '#00BFFF');
+  gradient.addColorStop(0.7, '#1E90FF');
+  gradient.addColorStop(1, '#4682B4');
 
-  baseCtx.fillStyle = orbGradient;
-  baseCtx.beginPath();
-  baseCtx.arc(PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0, Math.PI * 2);
-  baseCtx.fill();
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0, Math.PI * 2);
+  ctx.fill();
 
-  return baseCanvas; // Return the created canvas
+  return baseCanvas;
+}
+
+function drawRepairPickup(): HTMLCanvasElement {
+  const baseCanvas = createBlankCanvas();
+  const ctx = baseCanvas.getContext('2d')!;
+
+  const gradient = ctx.createRadialGradient(
+    PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0,
+    PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2
+  );
+  gradient.addColorStop(0, '#7CFC00'); // Light green center
+  gradient.addColorStop(0.7, '#32CD32'); // Lime green mid
+  gradient.addColorStop(1, '#228B22'); // Darker green edge
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  return baseCanvas;
 }
 
 export function initializePickupSpriteCache(): void {
-  // Generate the sprite for currency pickups and store it in the cache
-  const currencyPickupSprite: PickupSprite = { base: drawCurrencyPickup() };
-
-  // Store the sprite in the cache
-  spriteCache.set('currency', currencyPickupSprite);
+  spriteCache.set('currency', { base: drawCurrencyPickup() });
+  spriteCache.set('repair', { base: drawRepairPickup() });
 }
 
-// Retrieve a sprite by typeId (for future expandability)
 export function getPickupSprite(typeId: string): PickupSprite | undefined {
   return spriteCache.get(typeId);
 }

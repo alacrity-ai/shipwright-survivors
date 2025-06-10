@@ -1,6 +1,8 @@
 // src/systems/pickups/PickupSpawner.ts
 
-import { PickupSystem } from '@/systems/pickups/PickupSystem'; 
+import { PickupSystem } from '@/systems/pickups/PickupSystem';
+import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
+
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
 export class PickupSpawner {
@@ -10,10 +12,6 @@ export class PickupSpawner {
     this.pickupSystem = pickupSystem;
   }
 
-  /**
-   * Spawns a pickup when a block is destroyed based on a random chance.
-   * @param block The block that was destroyed.
-   */
   spawnPickupOnBlockDestruction(block: BlockInstance): void {
     const blockType = block.type;
     const { dropRate = 0 } = blockType;
@@ -28,50 +26,60 @@ export class PickupSpawner {
       return;
     }
 
-    // Fallback to regular currency drop
-    if (Math.random() < 0.3) {
-      const currencyAmount = this.getCurrencyAmountForBlock(block);
+    // Fallback drop (currency OR repair)
+    if (Math.random() < 0.2) {
       const pickupPosition = {
         x: block.position?.x ?? 0,
         y: block.position?.y ?? 0,
       };
-      this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
+
+      if (Math.random() < 0.07) {
+        // 10% of fallback drops are repair pickups
+        const repairAmount = this.getRepairAmountForBlock(block);
+        this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
+      } else {
+        const currencyAmount = this.getCurrencyAmountForBlock(block);
+        this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
+      }
     }
   }
 
-  /**
-   * Determines the amount of currency to spawn based on the block type and tier.
-   * @param block The block that was destroyed.
-   * @returns The amount of currency to spawn.
-   */
   private getCurrencyAmountForBlock(block: BlockInstance): number {
     const id = block.type.id;
-
-    if (id.startsWith('cockpit')) {
-      return 10 + Math.floor(Math.random() * 26); // Cockpit always base 200 + [0–25]
-    }
-
-    // Extract tier from ID (expects format like 'engine3', 'turret1', etc.)
-    const tierMatch = id.match(/(\d{1,2})$/);
-    const tier = tierMatch ? parseInt(tierMatch[1], 10) : -1;
+    const tier = getTierFromBlockId(id);
 
     const tierToBaseValue: Record<number, number> = {
-      0: 5,
-      1: 10,
-      2: 25,
-      3: 35,
-      4: 50,
-      5: 75,
-      6: 100,
-      7: 125,
-      8: 175,
-      9: 225,
-      10: 300,
+      0: 5, 1: 10, 2: 15, 3: 25, 4: 35, 5: 40,
+      6: 45, 7: 50, 8: 60, 9: 75, 10: 80,
     };
 
-    const baseValue = tierToBaseValue[tier] ?? 5;
-    const randomBonus = Math.floor(Math.random() * 6); // [0–5]
+    const base = tierToBaseValue[tier] ?? 0;
+    const bonus = Math.floor(Math.random() * 1.5);
 
-    return baseValue + randomBonus;
+    return base + bonus;
+  }
+
+  private getRepairAmountForBlock(block: BlockInstance): number {
+    const id = block.type.id;
+    const tier = getTierFromBlockId(id);
+
+    const tierToBaseRepair: Record<number, number> = {
+      0: 10,
+      1: 15,
+      2: 20,
+      3: 30,
+      4: 40,
+      5: 55,
+      6: 70,
+      7: 80,
+      8: 90,
+      9: 95,
+      10: 100,
+    };
+
+    const base = tierToBaseRepair[tier] ?? 5;
+    const variance = Math.floor(Math.random() * 2);
+
+    return base + variance;
   }
 }

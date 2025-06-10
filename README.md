@@ -143,6 +143,29 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [ ] Clearly give rewards on failure. E.g. Passive points:
+      - Unlockables in each mission should be shown in the debriefing, and how close you got to each.
+  - [ ] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
+  - [ ] Lots of Random Events things to discover in a run:
+    - [ ] Random Events (e.g. Black Hole, Gravitational Anomaly, etc)
+    - [ ] Enemy Spawner: When triggered, spawns a bunch of enemies, destroying it gives reward
+    - [ ] Healing beacons : destroying it drops a bunch of HP
+    - [ ] Treasure goblins - chase them and destroy them for reward.
+    - [ ] Shrines - Provides a bonus / boon / or bane duration Buff
+    - [ ] Planet interactions
+    - [ ] Miniboss triggers
+    - [ ] League mechanics? Such as: 
+      - [ ] Time dilation field: Time moves faster in here, or slower?
+      - [ ] Enemy spawner pod. Active until destroyed
+      - [ ] Explosive fuel depot: Chain reactive destructibles for battlefield control
+      - [ ] Turret emplacements: Defended stations with Loot cores
+      - [ ] Contested Cache: Triggers escalating waves as you open it: Reward based on survival?
+      - [ ] Entropy Spire: Pay entropium for XYZ bonus
+      - [ ] Salvage Drone Convoy: Maybe marked on the map, or spawn announced. Escorted hauler with loot.
+      - [ ] Ancient Data Vault: Requires collecting 3 keys scattered across the map?
+      - [ ] Cursed cargo: Opening it spawns elite squad with mods.
+      - [ ] Challenge Modifier Node: Choose a challenge mod for a bonus, e.g. 30% entropium gain.
+      - [ ] Orbiting Debris Field (Many asteroids)
   - [ ] Move 2d Canvas to webgl:
     - [x] Ships
     - [x] Planets
@@ -204,6 +227,18 @@ BUGS:
       Turret system needs to be re-evaluated.
   - [x] Significant performance degradation when destroying many blocks simultaneously. We need to batch this.
   - [x] Significant performance degradation when damaging a group of blocks with Explosive lance
+
+### Things to Explore:
+  - [ ] Instead of just being able to build all blocks gated by Entropium.
+    - [ ] What about: Enemies just have a chance to drop blocks. In your ship builder menu, you can only build the blocks you have.  E.g. if you loot 3 green hulls, you can build 3 green hulls, and a 3 will be over that block in the menu.
+    - [ ] You can always build the low tier blocks.  This way, what weapons you get, would be kind of random each round.
+        - [ ] E.g. this allows for lots of different events, treasure goblin rewards, league mechnics in a map,
+        convoys that you ambush, treasure chests, etc, that might contain nice blocks.
+    - [ ] Entropium now becomes a resource you would use for things in the meta game instead, passive unlocks,
+      more upgrades, etc.
+
+### Small Things:
+  - [ ] Turret shots vanish too fast, they should only vanish right at the end
 
 ## 📝 Commands
 

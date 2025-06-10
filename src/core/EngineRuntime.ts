@@ -211,13 +211,15 @@ export class EngineRuntime {
     this.aiOrchestrator.registerPlayerShip(this.ship);
 
     // === Construct PickupSystem and PickupSpawner ===
+    this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
     this.pickupSystem = new PickupSystem(
       this.canvasManager, 
       this.camera, 
       this.ship, 
       this.particleManager, 
       this.screenEffects, 
-      this.popupMessageSystem
+      this.popupMessageSystem,
+      this.repairEffectSystem
     );
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
@@ -297,7 +299,6 @@ export class EngineRuntime {
     this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
     this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
     this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
-    this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
     this.shipBuilderController = new ShipBuilderController(
       this.ship, 
       this.shipBuilderMenu, 

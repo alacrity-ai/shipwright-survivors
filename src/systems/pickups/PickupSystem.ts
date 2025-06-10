@@ -11,7 +11,9 @@ import { getBlockSprite, DamageLevel } from '@/rendering/cache/BlockSpriteCache'
 import { audioManager } from '@/audio/Audio';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { repairAllBlocksWithHealing } from '@/systems/pickups/helpers/repairAllBlocksWithHealing';
 
+import type { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import type { CanvasManager } from '@/core/CanvasManager';
@@ -27,8 +29,9 @@ const ATTRACTION_SPEED = 10;
 const PICKUP_ATTRACTION_EXPONENT = 2.0;
 const CULL_PADDING = 128;
 const ROTATION_SPEED = {
-  currency: 0.2,
+  currency: 0.1,
   blockUnlock: 0.05,
+  repair: 0.1,
 };
 
 const SPARK_OPTIONS: ParticleOptions = {
@@ -47,6 +50,7 @@ export class PickupSystem {
   private sparkManager: ParticleManager;
   private screenEffects: ScreenEffectsSystem;
   private popupMessageSystem: PopupMessageSystem;
+  private repairEffectSystem: RepairEffectSystem;
 
   constructor(
     canvasManager: CanvasManager,
@@ -54,7 +58,8 @@ export class PickupSystem {
     playerShip: Ship,
     sparkManager: ParticleManager,
     screenEffects: ScreenEffectsSystem,
-    popupMessageSystem: PopupMessageSystem
+    popupMessageSystem: PopupMessageSystem,
+    repairEffectSystem: RepairEffectSystem
   ) {
     this.ctx = canvasManager.getContext('entities');
     this.playerResources = PlayerResources.getInstance();
@@ -62,6 +67,7 @@ export class PickupSystem {
     this.sparkManager = sparkManager
     this.screenEffects = screenEffects;
     this.popupMessageSystem = popupMessageSystem;
+    this.repairEffectSystem = repairEffectSystem;
   }
 
   spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
@@ -87,9 +93,11 @@ export class PickupSystem {
         currencyAmount: amount,
         category: 'currency',
         sprite: 'currency',
+        repairAmount: 0,
       },
       position,
       isPickedUp: false,
+      repairAmount: 0,
       currencyAmount: amount,
       rotation: 0,
       lightId: light.id,
@@ -97,6 +105,43 @@ export class PickupSystem {
 
     this.pickups.push(newPickup);
   }
+
+  spawnRepairPickup(position: { x: number; y: number }, amount: number): void {
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    const light = createPointLight({
+      x: position.x,
+      y: position.y,
+      radius: 200,
+      color: '#00ff88', // minty green glow
+      intensity: 1.0,
+      life: 10000,
+      expires: true,
+    });
+
+    lightingOrchestrator.registerLight(light);
+    console.log('Registered light for repair pickup:', light.id);
+
+    const newPickup: PickupInstance = {
+      type: {
+        id: 'repair',
+        name: 'Repair Nanobot Swarm',
+        sprite: 'repair',
+        category: 'repair',
+        currencyAmount: 0,
+        repairAmount: amount,
+      },
+      position,
+      isPickedUp: false,
+      currencyAmount: 0,
+      repairAmount: amount,
+      rotation: 0,
+      lightId: light.id,
+    };
+
+    this.pickups.push(newPickup);
+  }
+
 
   spawnBlockUnlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
     const techManager = PlayerTechnologyManager.getInstance();
@@ -112,9 +157,11 @@ export class PickupSystem {
         currencyAmount: 0,
         category: 'blockUnlock',
         blockTypeId: blockType.id,
+        repairAmount: 0,
       },
       position,
       isPickedUp: false,
+      repairAmount: 0,
       currencyAmount: 0,
       rotation: 0,
     };
@@ -133,9 +180,9 @@ export class PickupSystem {
       const { x, y } = pickup.position;
       if (x < minX || x > maxX || y < minY || y > maxY) continue;
 
-      // Resolve sprite
+      // === Resolve sprite ===
       let sprite;
-      if (pickup.type.category === 'currency') {
+      if (pickup.type.category === 'currency' || pickup.type.category === 'repair') {
         sprite = getPickupSprite(pickup.type.id);
       } else if (pickup.type.category === 'blockUnlock' && pickup.type.blockTypeId) {
         try {
@@ -154,17 +201,20 @@ export class PickupSystem {
       const screenPosition = this.camera.worldToScreen(x, y);
       pickup.rotation += ROTATION_SPEED[pickup.type.category] ?? 0.5;
 
-      // Scale computation
+      // === Compute visual scale ===
       let scale = this.camera.getZoom();
 
       if (pickup.type.category === 'currency') {
         const scaleFactor = Math.log2(pickup.currencyAmount + 1) / 5;
-        scale *= (0.5 + scaleFactor); // currency pickup scale
+        scale *= (0.5 + scaleFactor);
+      } else if (pickup.type.category === 'repair') {
+        const scaleFactor = Math.log2(pickup.repairAmount + 1) / 5;
+        scale *= (0.5 + scaleFactor);
       } else if (pickup.type.category === 'blockUnlock') {
-        scale *= 2.0; // 2x BLOCK_SIZE for dramatic blueprint unlocks
+        scale *= 2.0;
       }
 
-      // Draw the pickup sprite
+      // === Draw the pickup sprite ===
       const drawSize = BLOCK_SIZE;
       this.ctx.save();
       this.ctx.translate(screenPosition.x, screenPosition.y);
@@ -179,12 +229,15 @@ export class PickupSystem {
       );
       this.ctx.restore();
 
-      // Tier-based spark effect for block unlocks
+      // === Spark emission ===
       let sparkColors = SPARK_OPTIONS.colors;
+
       if (pickup.type.category === 'blockUnlock' && pickup.type.blockTypeId) {
         const match = pickup.type.blockTypeId.match(/(\d+)/);
         const tier = match ? parseInt(match[1], 10) : 0;
         sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
+      } else if (pickup.type.category === 'repair') {
+        sparkColors = ['#22ff88', '#00cc66', '#33ffaa'];
       }
 
       this.sparkManager.emitContinuous(pickup.position, dt, 10, {
@@ -276,6 +329,13 @@ export class PickupSystem {
       const flashColor = palette[0];
 
       this.screenEffects.createFlash(flashColor, 0.4, 0.4);
+    } else if (pickup.type.category === 'repair') {
+      const amount = pickup.repairAmount;
+      
+      // TODO: Implement actual repair logic — heal damaged blocks etc.
+      repairAllBlocksWithHealing(this.playerShip, amount, this.repairEffectSystem);
+
+      audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', { maxSimultaneous: 2 }); 
     } else {
       console.warn('Unhandled pickup category or missing data:', pickup);
     }
