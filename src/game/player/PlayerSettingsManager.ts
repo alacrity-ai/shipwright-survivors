@@ -1,5 +1,7 @@
 // src/game/player/PlayerSettingsManager.ts
 
+import { audioManager } from '@/audio/Audio';
+
 export class PlayerSettingsManager {
   private static instance: PlayerSettingsManager;
 
@@ -94,18 +96,22 @@ export class PlayerSettingsManager {
 
   setMasterVolume(value: number): void {
     this.masterVolume = this.clampVolume(value);
+    audioManager.setMasterVolume(this.masterVolume);
   }
 
   setMusicVolume(value: number): void {
     this.musicVolume = this.clampVolume(value);
+    audioManager.setChannelVolume('music', this.musicVolume);
   }
 
   setSfxVolume(value: number): void {
     this.sfxVolume = this.clampVolume(value);
+    audioManager.setChannelVolume('sfx', this.sfxVolume);
   }
 
   setDialogueVolume(value: number): void {
     this.dialogueVolume = this.clampVolume(value);
+    audioManager.setChannelVolume('dialogue', this.dialogueVolume);
   }
 
   setParticlesEnabled(enabled: boolean): void {
@@ -149,10 +155,12 @@ export class PlayerSettingsManager {
     try {
       const parsed = JSON.parse(json);
       if (typeof parsed === 'object' && parsed !== null) {
-        this.masterVolume = this.clampVolume(parsed.masterVolume ?? this.masterVolume);
-        this.musicVolume = this.clampVolume(parsed.musicVolume ?? this.musicVolume);
-        this.sfxVolume = this.clampVolume(parsed.sfxVolume ?? this.sfxVolume);
-        this.dialogueVolume = this.clampVolume(parsed.dialogueVolume ?? this.dialogueVolume);
+        this.setMasterVolume(parsed.masterVolume ?? this.masterVolume);
+        this.setMusicVolume(parsed.musicVolume ?? this.musicVolume);
+        this.setSfxVolume(parsed.sfxVolume ?? this.sfxVolume);
+        this.setDialogueVolume(parsed.dialogueVolume ?? this.dialogueVolume);
+
+        // TODO maybe set these later?
         this.particlesEnabled = Boolean(parsed.particlesEnabled ?? this.particlesEnabled);
         this.lightingEnabled = Boolean(parsed.lightingEnabled ?? this.lightingEnabled);
         this.viewportWidth = Math.max(640, parsed.viewportWidth ?? this.viewportWidth);

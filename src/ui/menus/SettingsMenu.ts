@@ -21,7 +21,6 @@ import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawVolumeSlider, type VolumeSlider } from '@/ui/primitives/VolumeSlider';
 import { drawCRTDropDown, CRTDropDown } from '@/ui/primitives/CRTDropDown';
-import { audioManager } from '@/audio/Audio';
 
 type SettingsTab = 'display' | 'volume' | 'controls' | 'keybinds';
 
@@ -35,6 +34,21 @@ const volumeDefs: VolumeControlDef[] = [
   { kind: 'channel', channel: 'sfx' },
   { kind: 'channel', channel: 'dialogue' },
 ];
+
+const volumeGetters: Record<string, () => number> = {
+  master: () => PlayerSettingsManager.getInstance().getMasterVolume(),
+  music: () => PlayerSettingsManager.getInstance().getMusicVolume(),
+  sfx: () => PlayerSettingsManager.getInstance().getSfxVolume(),
+  dialogue: () => PlayerSettingsManager.getInstance().getDialogueVolume(),
+};
+
+const volumeSetters: Record<string, (v: number) => void> = {
+  master: (v) => PlayerSettingsManager.getInstance().setMasterVolume(v),
+  music: (v) => PlayerSettingsManager.getInstance().setMusicVolume(v),
+  sfx: (v) => PlayerSettingsManager.getInstance().setSfxVolume(v),
+  dialogue: (v) => PlayerSettingsManager.getInstance().setDialogueVolume(v),
+};
+
 
 export class SettingsMenu implements Menu {
   private inputManager: InputManager;
@@ -135,23 +149,20 @@ export class SettingsMenu implements Menu {
 
     // == Volume Tab
     // Volume sliders are top most item in column in their tab
-    this.volumeSliders = volumeDefs.map((def, i) => ({
-      x: baseX,
-      y: baseY + i * scaledItemVerticalSpacing,
-      width: this.sliderWidth,
-      height: this.sliderHeight,
-      value:
-        def.kind === 'master'
-          ? audioManager.getMasterVolume()
-          : audioManager.getChannelVolume(def.channel),
-      onChange: (v: number) => {
-        if (def.kind === 'master') {
-          audioManager.setMasterVolume(v);
-        } else {
-          audioManager.setChannelVolume(def.channel, v);
-        }
-      },
-    }));
+    this.volumeSliders = volumeDefs.map((def, i) => {
+      const key = def.kind === 'master' ? 'master' : def.channel;
+      return {
+        x: baseX,
+        y: baseY + i * scaledItemVerticalSpacing,
+        width: this.sliderWidth,
+        height: this.sliderHeight,
+        value: volumeGetters[key](),
+        onChange: (v: number) => {
+          volumeSetters[key](v);
+          SaveGameManager.getInstance().saveSettings();
+        },
+      };
+    });
 
     // == Display Tab
     // Particle Checkbox is (first) top most item in column in its tab

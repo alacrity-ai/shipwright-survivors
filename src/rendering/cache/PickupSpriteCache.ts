@@ -21,9 +21,10 @@ function drawCurrencyPickup(): HTMLCanvasElement {
     PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0,
     PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2
   );
-  gradient.addColorStop(0, '#00BFFF');
-  gradient.addColorStop(0.7, '#1E90FF');
-  gradient.addColorStop(1, '#4682B4');
+  // Farther on the color wheel: #0500FF
+  gradient.addColorStop(0, '#0091ff');   // Deep blue-violet center
+  gradient.addColorStop(0.6, '#0066FF'); // Bright blue mid
+  gradient.addColorStop(1, '#003399');   // Navy blue edge
 
   ctx.fillStyle = gradient;
   ctx.beginPath();
@@ -41,9 +42,10 @@ function drawRepairPickup(): HTMLCanvasElement {
     PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0,
     PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2
   );
-  gradient.addColorStop(0, '#7CFC00'); // Light green center
-  gradient.addColorStop(0.7, '#32CD32'); // Lime green mid
-  gradient.addColorStop(1, '#228B22'); // Darker green edge
+  // Farther on the color wheel: #00FF05
+  gradient.addColorStop(0, '#66FF00');   // Bright lime center
+  gradient.addColorStop(0.7, '#44CC00'); // Forest lime mid
+  gradient.addColorStop(1, '#228800');   // Deep forest green edge
 
   ctx.fillStyle = gradient;
   ctx.beginPath();

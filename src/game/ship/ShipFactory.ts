@@ -15,6 +15,7 @@ import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
+import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
@@ -51,9 +52,13 @@ export class ShipFactory {
     x: number,
     y: number,
     hunter: boolean = false,
-    behaviorProfile: BehaviorProfile = DefaultBehaviorProfile
+    behaviorProfile: BehaviorProfile = DefaultBehaviorProfile,
+    affixes: ShipAffixes = {}
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
+    
+    // Set ship affixes (modifers like: fire rate, damage, etc.)
+    ship.setAffixes(affixes);
 
     // If hunter auralight color is red, otherwise yellow
     const auraLightOptions: AuraLightOptions = { color: '#ff0000', radius: 96 };

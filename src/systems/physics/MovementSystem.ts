@@ -194,9 +194,14 @@ public update(dt: number): void {
   }
 
   // === Step 2: Integrate motion (velocity → position)
-  transform.rotation += transform.angularVelocity * dt;
-  position.x += velocity.x * dt;
-  position.y += velocity.y * dt;
+  const {
+    thrustPowerMulti = 1,
+    turnPowerMulti = 1,
+  } = this.ship.getAffixes() ?? {};
+
+  transform.rotation += transform.angularVelocity * dt * turnPowerMulti;
+  position.x += velocity.x * dt * thrustPowerMulti;
+  position.y += velocity.y * dt * thrustPowerMulti;
 
   // === Step 3: Update world-space block positions
   this.ship.updateBlockPositions();

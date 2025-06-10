@@ -24,6 +24,8 @@ export abstract class CompositeBlockObject {
   protected totalMass: number | null = null;
   protected immoveable: boolean = false;
 
+  protected collidingUntil: number = 0;
+
   constructor(
     grid: Grid,
     initialBlocks?: [GridCoord, BlockInstance][],
@@ -203,6 +205,18 @@ export abstract class CompositeBlockObject {
 
   public isImmoveable(): boolean {
     return this.immoveable;
+  }
+
+  // State // Movement // Positional States
+
+  public setColliding(active: boolean, durationMs: number = 100): void {
+    if (active) {
+      this.collidingUntil = performance.now() + durationMs;
+    }
+  }
+
+  public isColliding(): boolean {
+    return performance.now() < this.collidingUntil;
   }
 
   // FROM COMPOSITE BLOCK OBJECT

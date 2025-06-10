@@ -37,14 +37,19 @@ export class AttackState extends BaseAIState {
     const targetTransform = this.target.getTransform();
 
     if (behavior === 'ram') {
-      this.phaseTimer += dt;
-
-      if (this.phase === AttackPhase.Ramming && this.phaseTimer >= this.ramDuration) {
-        this.phase = AttackPhase.Orbiting;
-        this.phaseTimer = 0;
-      } else if (this.phase === AttackPhase.Orbiting && this.phaseTimer >= this.orbitDuration) {
-        this.phase = AttackPhase.Ramming;
-        this.phaseTimer = 0;
+      if (this.phase === AttackPhase.Ramming) {
+        // Transition to orbit if a collision just occurred
+        if (this.ship.isColliding()) {
+          this.phase = AttackPhase.Orbiting;
+          this.phaseTimer = 0;
+        }
+      } else if (this.phase === AttackPhase.Orbiting) {
+        // Return to ramming after orbit duration expires
+        this.phaseTimer += dt;
+        if (this.phaseTimer >= this.orbitDuration) {
+          this.phase = AttackPhase.Ramming;
+          this.phaseTimer = 0;
+        }
       }
 
       if (this.phase === AttackPhase.Ramming) {

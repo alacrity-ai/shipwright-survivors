@@ -98,8 +98,6 @@ export function orbitTarget(
   const radiusError = dist - desiredRadius;
 
   const directionToTarget = normalize(toTarget);
-
-  // Tangent vector (ideal orbit path)
   const orbitDirection = { x: -directionToTarget.y, y: directionToTarget.x };
 
   // === Phase 1: Determine rotation ===
@@ -116,21 +114,33 @@ export function orbitTarget(
   let thrustForward = false;
   let brake = false;
 
-  // New: Only brake if velocity is *against* the orbital path significantly
-  const velocityAlignment = dot(normalize(currentVel), orbitDirection);
+  const velocityMag = vectorMagnitude(currentVel);
+  const velocityAlignment = velocityMag > 0 ? dot(normalize(currentVel), orbitDirection) : 0;
 
-  if (Math.abs(radiusError) > 20) {
-    if (radiusError > 0) {
-      // Too far: increase orbital speed
+  const innerEscapeThreshold = 40; // Minimum radius where we must push outward
+  const misaligned = velocityAlignment < 0.5;
+
+  if (radiusError > 20) {
+    // === Too far: push along orbit direction to tighten orbit
+    thrustForward = true;
+  } else if (radiusError < -innerEscapeThreshold) {
+    // === Too close: actively escape outward from center
+    const outwardDir = normalize(subtract(currentPos, targetPos));
+    const velOutward = velocityMag > 0 ? dot(normalize(currentVel), outwardDir) : 0;
+
+    if (velOutward < 0.6) {
+      // Moving inwards or stagnant — push outward
       thrustForward = true;
-    } else if (radiusError < 0 && velocityAlignment > 0.7) {
-      // Too close: slow down, but only if still moving along orbit
-      brake = true;
+    } else {
+      // Already drifting out — allow it to coast
+      brake = false;
     }
   } else {
-    // Slightly too slow or misaligned? Push a little.
-    if (velocityAlignment < 0.5) {
+    // === Near optimal radius
+    if (misaligned) {
       thrustForward = true;
+    } else if (velocityAlignment > 0.7 && radiusError < 0) {
+      brake = true;
     }
   }
 

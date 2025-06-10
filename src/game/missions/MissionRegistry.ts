@@ -50,7 +50,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Ferrust', x: -3000, y: 4000 },
       { name: 'Gilipe', x: 9000, y: -4000 },
     ],
-    enemyPower: 0.5,
+    enemyPower: 0.25,
     music: {
       file: 'assets/sounds/music/track_09_junkyard.mp3'
     },

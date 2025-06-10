@@ -5,6 +5,7 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
+import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -39,6 +40,7 @@ export class Ship extends CompositeBlockObject {
   private thrusting: boolean = true;
   private strafingLeft: boolean = false;
   private strafingRight: boolean = false;
+  private affixes: ShipAffixes = {};
 
   protected override generateId(): string {
     return 'ship-' + Math.random().toString(36).slice(2, 9);
@@ -48,12 +50,14 @@ export class Ship extends CompositeBlockObject {
     grid: Grid,
     initialBlocks?: [GridCoord, BlockInstance][],
     initialTransform?: Partial<BlockEntityTransform>,
-    isPlayerShip?: boolean
+    isPlayerShip?: boolean,
+    affixes?: ShipAffixes
   ) {
     super(grid, initialBlocks, initialTransform);
     this.shieldComponent = new ShieldComponent(this);
     this.validateFiringPlan();
     this.isPlayerShip = isPlayerShip ?? false;
+    this.affixes = affixes ?? {};
   }
 
   public getIsPlayerShip(): boolean {
@@ -62,6 +66,15 @@ export class Ship extends CompositeBlockObject {
 
   public setIsPlayerShip(isPlayerShip: boolean): void {
     this.isPlayerShip = isPlayerShip;
+  }
+
+  // Affixes system
+  public getAffixes(): ShipAffixes {
+    return this.affixes;
+  }
+
+  public setAffixes(affixes: ShipAffixes): void {
+    this.affixes = affixes;
   }
 
   public registerAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
@@ -91,6 +104,8 @@ export class Ship extends CompositeBlockObject {
   public getLightAuraId(): string | null {
     return this.lightAuraId;
   }
+
+  // Ship movement / State
 
   public isThrusting(): boolean {
     return this.thrusting;
@@ -230,6 +245,8 @@ export class Ship extends CompositeBlockObject {
     this.firingPlan = newPlan;
     this.firingPlanIndex = newIndex;
   }
+
+  // === Ship affixes ===
 
   // === Energy & Shield ===
 

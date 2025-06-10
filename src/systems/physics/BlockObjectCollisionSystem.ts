@@ -3,6 +3,8 @@
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { CombatService } from '@/systems/combat/CombatService';
 
+import { getAffixesSafe } from '@/game/ship/utils/getAffixesSafe';
+
 import { getWorldPositionFromObjectCoord } from '@/game/entities/utils/universalBlockInterfaceUtils';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
@@ -27,9 +29,11 @@ export class BlockObjectCollisionSystem {
     if (!PlayerSettingsManager.getInstance().isCollisionsEnabled()) return;
 
     const nearbyObjects = this.getNearbyObjects(movingObject);
-
     for (const otherObject of nearbyObjects) {
       if (!this.aabbOverlap(movingObject, otherObject)) continue;
+
+      movingObject.setColliding(true);
+      otherObject.setColliding(true);
 
       this.applyCollisionDamage(movingObject, otherObject);
       const msv = this.computeMinimumSeparationVector(movingObject, otherObject);
@@ -38,6 +42,11 @@ export class BlockObjectCollisionSystem {
       this.resolvePenetration(movingObject, otherObject, msv);
       this.resolveImpulse(movingObject, otherObject, msv);
     }
+
+    // Removed this:
+    // if (!isColliding) {
+    //   movingObject.setColliding(false);
+    // }
   }
 
   private getNearbyObjects(target: CompositeBlockObject): CompositeBlockObject[] {
@@ -255,7 +264,7 @@ export class BlockObjectCollisionSystem {
     const relativeVelocity = this.computeRelativeVelocity(a, b);
     const speed = Math.sqrt(relativeVelocity.x ** 2 + relativeVelocity.y ** 2);
 
-    const minDamageSpeed = 100;
+    const minDamageSpeed = 70;
     const softCapSpeed = 1500;
     const maxDamage = 50;
 
@@ -274,26 +283,39 @@ export class BlockObjectCollisionSystem {
 
         if (!this.blocksOverlap(posA, posB)) continue;
 
-        // === Lookup behaviors ===
+        // === Lookup intrinsic behaviors ===
         const behaviorA = blockA.type.behavior ?? {};
         const behaviorB = blockB.type.behavior ?? {};
 
         const damageMultiplierA = behaviorA.rammingDamageMultiplier ?? 1;
         const damageMultiplierB = behaviorB.rammingDamageMultiplier ?? 1;
 
-        const rammingArmorA = behaviorA.rammingArmor ?? 0;
-        const rammingArmorB = behaviorB.rammingArmor ?? 0;
+        const baseArmorA = behaviorA.rammingArmor ?? 0;
+        const baseArmorB = behaviorB.rammingArmor ?? 0;
+
+        // === Affix lookups ===
+        const affixesA = getAffixesSafe(a) ?? {};
+        const affixesB = getAffixesSafe(b) ?? {};
+
+        const inflictMultiplierA = affixesA.rammingDamageInflictMultiplier ?? 1;
+        const inflictMultiplierB = affixesB.rammingDamageInflictMultiplier ?? 1;
+
+        const armorMultiplierA = affixesA.rammingArmorMultiplier ?? 1;
+        const armorMultiplierB = affixesB.rammingArmorMultiplier ?? 1;
+
+        const effectiveArmorA = baseArmorA * armorMultiplierA;
+        const effectiveArmorB = baseArmorB * armorMultiplierB;
 
         // === Asymmetric application ===
 
-        // Damage to B from A (multiplied by A's rammingDamageMultiplier, reduced by B's armor)
-        const rawToB = baseDamage * damageMultiplierA;
-        const reducedToB = Math.max(0, rawToB - rammingArmorB);
+        // Damage to B from A
+        const rawToB = baseDamage * damageMultiplierA * inflictMultiplierA;
+        const reducedToB = Math.max(0, rawToB - effectiveArmorB);
         this.combatService.applyDamageToBlock(b, blockB, coordB, reducedToB, 'collision', null);
 
-        // Damage to A from B (multiplied by B's rammingDamageMultiplier, reduced by A's armor)
-        const rawToA = baseDamage * damageMultiplierB;
-        const reducedToA = Math.max(0, rawToA - rammingArmorA);
+        // Damage to A from B
+        const rawToA = baseDamage * damageMultiplierB * inflictMultiplierB;
+        const reducedToA = Math.max(0, rawToA - effectiveArmorA);
         this.combatService.applyDamageToBlock(a, blockA, coordA, reducedToA, 'collision', null);
       }
     }

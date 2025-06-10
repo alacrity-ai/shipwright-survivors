@@ -44,6 +44,8 @@ export class MultiShipRendererGL {
     uBlockPosition: WebGLUniformLocation | null;
     uBlockRotation: WebGLUniformLocation | null;
     uBlockScale: WebGLUniformLocation | null;
+    uCollisionColor: WebGLUniformLocation | null;
+    uUseCollisionColor: WebGLUniformLocation | null;
   };
 
   // Cached matrices to avoid recreation every frame
@@ -74,6 +76,8 @@ export class MultiShipRendererGL {
       uBlockPosition: this.gl.getUniformLocation(this.program, 'uBlockPosition'),
       uBlockRotation: this.gl.getUniformLocation(this.program, 'uBlockRotation'),
       uBlockScale: this.gl.getUniformLocation(this.program, 'uBlockScale'),
+      uCollisionColor: this.gl.getUniformLocation(this.program, 'uCollisionColor'),
+      uUseCollisionColor: this.gl.getUniformLocation(this.program, 'uUseCollisionColor'),
     };
   }
 
@@ -141,6 +145,15 @@ export class MultiShipRendererGL {
         createRotationMatrix(rotation),
         createTranslationMatrix(position.x, position.y)
       );
+
+      const isColliding = ship.isColliding?.() ?? false;
+
+      if (isColliding) {
+        gl.uniform1i(this.uniforms.uUseCollisionColor, 1);
+        gl.uniform3f(this.uniforms.uCollisionColor, 1.0, 0.1, 0.1); // Red
+      } else {
+        gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
+      }
 
       for (const [coord, block] of ship.getAllBlocks()) {
         if (block.hidden) continue;

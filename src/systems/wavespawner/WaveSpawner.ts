@@ -225,7 +225,8 @@ export class WaveSpawner implements IUpdatable {
           posX,
           posY,
           entry.hunter ?? false,
-          entry.behaviorProfile
+          entry.behaviorProfile,
+          entry.affixes ?? {}
         );
 
         this.applyModifiers(ship, wave.mods);
