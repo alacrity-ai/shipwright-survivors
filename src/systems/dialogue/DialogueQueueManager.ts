@@ -1,10 +1,9 @@
-// src/systems/dialogue/DialogueQueueManager.ts
-
 import type { DialogueScript } from './interfaces/DialogueScript';
 import type { DialogueMode } from './interfaces/DialogueMode';
 
-import { getUniformScaleFactor } from '@/config/view';
 import { DialogueOrchestrator } from './DialogueOrchestrator';
+import { AsyncDialogueManager } from './AsyncDialogueManager';
+import { DialogueOrchestratorFactory } from './factories/DialogueOrchestratorFactory';
 import { speakerVoiceRegistry } from './registry/SpeakerVoiceRegistry';
 import { getTextBoxLayout } from './utils/getTextBoxLayout';
 
@@ -28,9 +27,13 @@ export class DialogueQueueManager {
     pitchMod?: number;
   } = {};
 
+  private readonly asyncManager: AsyncDialogueManager;
+
   constructor(
-    private readonly orchestrator: DialogueOrchestrator,
-  ) {}
+    private readonly orchestrator: DialogueOrchestrator
+  ) {
+    this.asyncManager = new AsyncDialogueManager(() => DialogueOrchestratorFactory.create());
+  }
 
   public startScript(script: DialogueScript): void {
     this.currentScript = script;
@@ -53,6 +56,7 @@ export class DialogueQueueManager {
 
     switch (event.type) {
       case 'line': {
+        this.orchestrator.setVisualsVisible(true);
         this.isBlocked = true;
 
         const defaultMode = this.currentScript.defaultMode ?? 'inPerson';
@@ -66,12 +70,8 @@ export class DialogueQueueManager {
           return;
         }
 
-        const textColor =
-          event.options?.textColor ??
-          this.activeSpeakerOptions.textColor;
-
-        const fontOverride =
-          event.options?.font ?? this.activeSpeakerOptions.font;
+        const textColor = event.options?.textColor ?? this.activeSpeakerOptions.textColor;
+        const fontOverride = event.options?.font ?? this.activeSpeakerOptions.font;
 
         const { textBoxRect, position, font } = getTextBoxLayout({
           mode: lineMode,
@@ -115,23 +115,29 @@ export class DialogueQueueManager {
         return;
       }
 
+      case 'async': {
+        this.asyncManager.startAsync(event.dialogue, () => !this.isRunning());
+        this.advance();
+        return;
+      }
+
       case 'hideUI': {
         this.orchestrator.setVisualsVisible(false);
-        this.advance(); // immediately move to next event
+        this.advance();
         return;
       }
 
       case 'showUI': {
         this.orchestrator.setVisualsVisible(true);
-        this.advance(); // immediately move to next event
+        this.advance();
         return;
       }
 
       case 'endIf': {
         if (event.condition()) {
-          this.clear(); // End the dialogue immediately
+          this.clear();
         } else {
-          this.advance(); // Continue to next event
+          this.advance();
         }
         return;
       }
@@ -139,7 +145,7 @@ export class DialogueQueueManager {
       case 'changespeaker': {
         this.activeSpeakerId = event.speakerId;
         this.activeSpeakerOptions = event.options ?? {};
-        this.advance(); // immediately proceed to next event
+        this.advance();
         return;
       }
 
@@ -154,9 +160,9 @@ export class DialogueQueueManager {
   public update(dt: number): void {
     if (!this.isActive) return;
 
+    this.asyncManager.update(dt);
     this.orchestrator.update(dt);
 
-    // === Frame-driven pause timer ===
     if (this.pauseTimerMs !== null) {
       this.pauseTimerMs -= dt * 1000;
       if (this.pauseTimerMs <= 0) {
@@ -172,9 +178,7 @@ export class DialogueQueueManager {
       return;
     }
 
-    if (this.pendingCommand) {
-      return;
-    }
+    if (this.pendingCommand) return;
 
     if (this.isBlocked) {
       if (this.orchestrator.isFinished()) {
@@ -188,16 +192,16 @@ export class DialogueQueueManager {
   }
 
   public render(ctx: CanvasRenderingContext2D): void {
-    if (this.isActive) {
-      this.orchestrator.render(ctx);
-    }
+    if (!this.isActive) return;
+    this.orchestrator.render(ctx);
+    this.asyncManager.render(ctx);
   }
 
   public skipOrAdvance(): void {
     if (!this.isActive) return;
 
     if (!this.orchestrator.isFinished()) {
-      this.orchestrator.skipToEnd?.(); // Fast-forward current line
+      this.orchestrator.skipToEnd?.();
     } else if (!this.pendingCommand && !this.isBlocked && this.postLineDelay <= 0) {
       this.advance();
     }
@@ -215,5 +219,6 @@ export class DialogueQueueManager {
     this.isBlocked = false;
     this.pendingCommand = null;
     this.orchestrator.clear();
+    this.asyncManager.clearAll();
   }
 }

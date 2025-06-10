@@ -5,6 +5,7 @@ import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { Ship } from '@/game/ship/Ship';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUtils';
@@ -156,6 +157,9 @@ export class CombatService {
 
     this.pickupSpawner.spawnPickupOnBlockDestruction(block);
     entity.removeBlock(coord);
+    if (entity instanceof Ship && entity.getIsPlayerShip?.()) {
+      missionResultStore.incrementBlocksLost(1);
+    }
 
     // === Ship-only cockpit invariants ===
     if (entity instanceof Ship) {
@@ -204,6 +208,9 @@ export class CombatService {
 
       if (orphanCoords.length > 0) {
         entity.removeBlocks(orphanCoords, orphanBlocks);
+        if (entity instanceof Ship && entity.getIsPlayerShip?.()) {
+          missionResultStore.incrementBlocksLost(orphanCoords.length);
+        }
       }
 
       // === Cockpit-only final fallback ===

@@ -9,6 +9,7 @@ export interface PickupInstance {
   currencyAmount: number;
   ttl?: number;
   rotation: number;
+  lightId?: string;
 }
 
 // Optional: Keep this here if other systems will use it directly

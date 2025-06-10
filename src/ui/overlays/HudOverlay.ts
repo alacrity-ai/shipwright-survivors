@@ -32,13 +32,13 @@ export class HudOverlay {
 
     const blocks = this.ship.getAllBlocks();
     const mass = blocks.reduce((sum, [_, b]) => sum + b.type.mass, 0);
-    const currentHp = this.ship.getCockpitHp() ?? 0;
-    const maxHp = this.ship.getCockpit()?.type.armor ?? 1;
+    const currentHp = Math.floor(this.ship.getCockpitHp() ?? 0);
+    const maxHp = Math.floor(this.ship.getCockpit()?.type.armor ?? 1);
     const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
 
     const energyComponent = this.ship.getEnergyComponent();
-    const energy = energyComponent?.getCurrent() ?? 0;
-    const maxEnergy = energyComponent?.getMax() ?? 0;
+    const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
+    const maxEnergy = Math.floor(energyComponent?.getMax() ?? 0);
 
     const canvas = ctx.canvas;
     const barWidth = Math.floor(180 * scale);

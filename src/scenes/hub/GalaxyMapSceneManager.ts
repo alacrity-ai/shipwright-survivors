@@ -75,7 +75,7 @@ export class GalaxyMapSceneManager {
         label: 'Launch "Scrapyard Revenant"',
         isHovered: false,
         onClick: () => {
-          missionLoader.setMission(missionRegistry['mission_003']);
+          missionLoader.setMission(missionRegistry['mission_003_00']);
           this.stop();
           sceneManager.fadeToScene('mission');
         },

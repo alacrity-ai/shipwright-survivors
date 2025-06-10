@@ -177,7 +177,7 @@ TODOS:
   - [x] Add resolution select to settings menu
   - [ ] Spending a passive point should have SATISFYING auditory and visual feedback
   - [ ] Player death state
-  - [ ] If ship builder menu is open during dialogue, they overlap. (Need to move dialogue right in this case)
+  - [x] If ship builder menu is open during dialogue, they overlap. (Need to move dialogue right in this case)
   - [ ] Add click-to-move movement option (Instead of WASD)
   - [x] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
   - [x] Block to block collisions
@@ -186,6 +186,8 @@ TODOS:
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [x] AI Patrol State, right now all created enemies just bumrush player
 BUGS:
+  - [ ] Mission result menu does not scale with resolution
+  - [ ] Planet Popping in and out of view when it's nearly offscreen but not completely
   - [ ] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
   - [x] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
   - [x] Background is different size in different resolutions

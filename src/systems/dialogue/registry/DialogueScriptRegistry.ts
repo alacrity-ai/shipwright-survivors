@@ -8,6 +8,7 @@ import { createHubIntroductionScript, createHubIntroductionScript2, createHubInt
 import { createIntroBriefingScript } from '@/systems/dialogue/scripts/01_introBriefing';
 import { createMissionGenericScript } from '@/systems/dialogue/scripts/02_missionGeneric';
 import { createPlanetGenericScript } from '@/systems/dialogue/scripts/03_planet_generic';
+import { createMission003Script00 } from '@/systems/dialogue/scripts/mission_003_00';
 
 type DialogueScriptFactory = (context: DialogueContext) => DialogueScript;
 
@@ -19,6 +20,7 @@ const dialogueScriptRegistry = new Map<string, DialogueScriptFactory>([
   ['intro-briefing', createIntroBriefingScript],
   ['mission-generic', createMissionGenericScript],
   ['planet-generic', createPlanetGenericScript],
+  ['mission_003_00', createMission003Script00],
 ]);
 
 export function getDialogueScript(id: string, context: DialogueContext): DialogueScript | undefined {

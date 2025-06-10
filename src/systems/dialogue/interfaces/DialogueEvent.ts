@@ -34,6 +34,10 @@ export type DialogueEvent =
       type: 'endIf';
       condition: () => boolean;
     }
+  | {
+      type: 'async';
+      dialogue: DialogueEvent[];
+    }
   // Deprecated changespeaker
   | {
       type: 'changespeaker';

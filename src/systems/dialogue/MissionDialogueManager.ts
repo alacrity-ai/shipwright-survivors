@@ -9,7 +9,6 @@ import type { Ship } from '@/game/ship/Ship';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { DialogueQueueManagerFactory } from './factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from './registry/DialogueScriptRegistry';
-import { flags } from '@/game/player/PlayerFlagManager';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
 export class MissionDialogueManager implements IUpdatable, IRenderable {

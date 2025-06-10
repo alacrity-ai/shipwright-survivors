@@ -53,10 +53,6 @@ export class LightingOrchestrator {
   }
 
   public resizeLighting(): void {
-    // this.renderer.resize(
-    //   this.camera.getViewportWidth(),
-    //   this.camera.getViewportHeight()
-    // );
     this.renderer.resize();
   }
 

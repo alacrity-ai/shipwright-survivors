@@ -37,17 +37,17 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1
   },
-  mission_003: {
-    id: 'mission_003',
+  mission_003_00: {
+    id: 'mission_003_00',
     name: 'The Scrapyard Revenant',
-    dialogue: 'mission-generic',
+    dialogue: 'mission_003_00',
     waves: waveSet2,
     environmentSettings: {
       backgroundId: 'background_9_00.png',
       gravity: 0,
     },
     planets: [
-      { name: 'Aetherion', x: -3000, y: 4000 },
+      { name: 'Ferrust', x: -3000, y: 4000 },
       { name: 'Gilipe', x: 9000, y: -4000 },
     ],
     enemyPower: 0.5,
@@ -56,6 +56,6 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
-    sceneLighting: [0.0, 0.0, 0.0, 1.0]
+    sceneLighting: [0.0, 0.0, 0.0, 0.0]
   }
 };

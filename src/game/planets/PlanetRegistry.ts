@@ -1,7 +1,7 @@
 // src/game/planets/PlanetRegistry.ts
 import type { PlanetDefinition } from './interfaces/PlanetDefinition';
 
-import { AetherionPlanet } from '@/game/planets/definitions/planet_Aetherion';
+import { FerrustPlanet } from '@/game/planets/definitions/planet_Ferrust';
 import { GilipePlanet } from '@/game/planets/definitions/planet_Gilipe';
 
 const planetMap: Map<string, PlanetDefinition> = new Map();
@@ -14,7 +14,7 @@ function registerPlanet(def: PlanetDefinition): void {
 }
 
 // === Register All Planets ===
-registerPlanet(AetherionPlanet);
+registerPlanet(FerrustPlanet);
 registerPlanet(GilipePlanet);
 
 export const PlanetRegistry = {

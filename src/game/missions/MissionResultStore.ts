@@ -9,6 +9,7 @@ export interface MissionResultData {
   passivePointsEarned: number;
   bonusObjectives?: string[];
   timeTakenSeconds?: number;
+  blocksLost: number;
 }
 
 class MissionResultStore {
@@ -23,7 +24,8 @@ class MissionResultStore {
       blockPlacedCount: 0,
       passivePointsEarned: 0,
       bonusObjectives: [],
-      timeTakenSeconds: 0
+      timeTakenSeconds: 0,
+      blocksLost: 0,
     };
   }
 
@@ -59,6 +61,16 @@ class MissionResultStore {
     if (!blocks.includes(blockId)) {
       blocks.push(blockId);
     }
+  }
+
+  public incrementBlocksLost(by = 1) {
+    this.ensureInitialized();
+    this.result!.blocksLost += by;
+  }
+
+  public getBlocksLost(): number {
+    this.ensureInitialized();
+    return this.result!.blocksLost;
   }
 
   public addBonusObjective(description: string) {

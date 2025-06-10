@@ -9,6 +9,8 @@ import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { getBlockSprite, DamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { audioManager } from '@/audio/Audio';
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { ParticleOptions } from '@/systems/fx/ParticleManager';
@@ -30,9 +32,9 @@ const ROTATION_SPEED = {
 };
 
 const SPARK_OPTIONS: ParticleOptions = {
-  colors: ['#00f', '#009', '#00a9f4', '#1e90ff'],
+  colors: ['#0022ff', '#000099', '#0055cc', '#003388'], // deeper blues
   baseSpeed: 50,
-  sizeRange: [1, 4],
+  sizeRange: [1, 2.5],   // further refined
   lifeRange: [1, 2],
   fadeOut: true,
 };
@@ -63,6 +65,21 @@ export class PickupSystem {
   }
 
   spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    const light = createPointLight({
+      x: position.x,
+      y: position.y,
+      radius: 200, // ~2x BLOCK_SIZE visually
+      color: '#00ccff', // cyan-blue glow
+      intensity: 1.0,
+      life: 10000,
+      expires: true,
+    });
+
+    lightingOrchestrator.registerLight(light);
+    console.log('Registered light for currency pickup:', light.id);
+
     const newPickup: PickupInstance = {
       type: {
         id: 'currency',
@@ -75,7 +92,9 @@ export class PickupSystem {
       isPickedUp: false,
       currencyAmount: amount,
       rotation: 0,
+      lightId: light.id,
     };
+
     this.pickups.push(newPickup);
   }
 
@@ -160,12 +179,12 @@ export class PickupSystem {
       );
       this.ctx.restore();
 
-      // ✨ Tier-based spark effect for block unlocks
+      // Tier-based spark effect for block unlocks
       let sparkColors = SPARK_OPTIONS.colors;
       if (pickup.type.category === 'blockUnlock' && pickup.type.blockTypeId) {
         const match = pickup.type.blockTypeId.match(/(\d+)/);
         const tier = match ? parseInt(match[1], 10) : 0;
-        sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? ['#fff', '#ccc', '#999'];
+        sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
       }
 
       this.sparkManager.emitContinuous(pickup.position, dt, 10, {
@@ -205,6 +224,15 @@ export class PickupSystem {
       pickup.position.x += nx * attractionSpeed;
       pickup.position.y += ny * attractionSpeed;
 
+      if (pickup.lightId) {
+        const lightingOrchestrator = LightingOrchestrator.getInstance();
+        const light = lightingOrchestrator.getLightById?.(pickup.lightId);
+        if (light && light.type === 'point') {
+          light.x = pickup.position.x;
+          light.y = pickup.position.y;
+        }
+      }
+
       if (distSq < pickupRadiusSq) {
         this.collectPickup(pickup);
       }
@@ -213,6 +241,11 @@ export class PickupSystem {
 
   private collectPickup(pickup: PickupInstance): void {
     pickup.isPickedUp = true;
+
+    if (pickup.lightId) {
+      const lightingOrchestrator = LightingOrchestrator.getInstance();
+      lightingOrchestrator.removeLight(pickup.lightId);
+    }
 
     const index = this.pickups.indexOf(pickup);
     if (index !== -1) {

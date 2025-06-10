@@ -225,5 +225,12 @@ export class LightingRenderer {
     if (gl.isBuffer(this.quadBuffer)) gl.deleteBuffer(this.quadBuffer);
     if (gl.isTexture(this.colorTexture)) gl.deleteTexture(this.colorTexture);
     if (gl.isFramebuffer(this.framebuffer)) gl.deleteFramebuffer(this.framebuffer);
+
+    // Clear the canvas
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    console.log('[LightingRenderer] Destroyed and cleared all GL state.');
   }
 }
