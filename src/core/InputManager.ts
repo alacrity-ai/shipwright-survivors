@@ -2,6 +2,7 @@
 
 import { toggleBrowserFullscreen } from '@/shared/toggleBrowserFullscreen';
 import { isElectron } from '@/shared/isElectron';
+import { Camera } from './Camera';
 
 type KeyState = { pressed: boolean };
 type MouseState = {
@@ -219,10 +220,15 @@ export class InputManager {
 
   public consumeZoomDelta(): number {
     if (this.inputDisabled) return 0;
-    let delta = 0;
-    if (this.scrollUpDetected || this.isKeyPressed('KeyR')) delta += 10;
-    if (this.scrollDownDetected || this.isKeyPressed('KeyT')) delta -= 10;
-    return delta;
+
+    const up = this.scrollUpDetected || this.isKeyPressed('KeyR');
+    const down = this.scrollDownDetected || this.isKeyPressed('KeyT');
+
+    if (up || down) {
+      Camera.getInstance().abortZoomAnimation();
+    }
+
+    return (up ? 10 : 0) + (down ? -10 : 0);
   }
 
   // === Custom aliases ===

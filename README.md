@@ -143,9 +143,12 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [ ] Screen edge indicators (e.g. showing objectives on the map, minibosses, etc): compliments radar
   - [ ] Clearly give rewards on failure. E.g. Passive points:
       - Unlockables in each mission should be shown in the debriefing, and how close you got to each.
   - [ ] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
+    - [x] Pickups added to game
+    - [ ] Repair removed
   - [ ] Lots of Random Events things to discover in a run:
     - [ ] Random Events (e.g. Black Hole, Gravitational Anomaly, etc)
     - [ ] Enemy Spawner: When triggered, spawns a bunch of enemies, destroying it gives reward
@@ -236,9 +239,11 @@ BUGS:
         convoys that you ambush, treasure chests, etc, that might contain nice blocks.
     - [ ] Entropium now becomes a resource you would use for things in the meta game instead, passive unlocks,
       more upgrades, etc.
+  - [ ] Add autofire option?
+  - [ ] Add autobuild option?
 
 ### Small Things:
-  - [ ] Turret shots vanish too fast, they should only vanish right at the end
+  - [x] Turret shots vanish too fast, they should only vanish right at the end
 
 ## 📝 Commands
 

@@ -20,6 +20,7 @@ export class TurretBackend implements WeaponBackend {
 
     if (plan.length === 0) return;
 
+    const { fireRateMulti = 1 } = ship.getAffixes();
     const target = intent?.aimAt;
     const fireRequested = intent?.firePrimary ?? false;
     this.fireSoundTimer++;
@@ -30,7 +31,7 @@ export class TurretBackend implements WeaponBackend {
       if (!ship.getBlockCoord(turret.block)) continue;
 
       turret.timeSinceLastShot += dt;
-      if (!fireRequested || turret.timeSinceLastShot < turret.fireCooldown) continue;
+      if (!fireRequested || turret.timeSinceLastShot < turret.fireCooldown / fireRateMulti) continue;
 
       // Stagger allowed firing sounds
       if (this.fireSoundTimer > 5) {
@@ -68,7 +69,8 @@ export class TurretBackend implements WeaponBackend {
         fire.lifetime ?? 2,
         fire.accuracy ?? 1,
         ship.id,
-        particleColors
+        particleColors,
+        'delayed'
       );
     }
   }

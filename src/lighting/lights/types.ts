@@ -6,6 +6,9 @@ export type LightColor = string; // e.g. "#ffcc00" or "#ffffff88"
 /** Enum of supported light types for polymorphic dispatch */
 export type LightType = 'point' | 'spot' | 'directional' | 'beam';
 
+/** Enum of supported fade modes for lights */
+export type LightFadeMode = 'linear' | 'delayed';
+
 /** Base interface for all lights, independently of subtype */
 export interface LightInstance {
   id: string;
@@ -38,6 +41,8 @@ export interface LightInstance {
 
   /** Optional animation state (interpolation, pulse, etc.) */
   animationPhase?: number; // between 0–1, updated by orchestrator if animated
+
+  fadeMode?: LightFadeMode; // linear or delayed fade
 }
 
 /** Specialized light with radial falloff */
@@ -70,6 +75,8 @@ export interface BeamLightInstance {
 
   /** Optional animation (pulsing, intensity falloff) */
   animationPhase?: number;
+
+  fadeMode?: LightFadeMode;
 }
 
 

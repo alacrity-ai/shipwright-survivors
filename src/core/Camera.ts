@@ -26,6 +26,9 @@ export class Camera {
   private skipSmoothingThisFrame = false;
   private readonly deadZoneRadius = 12;
 
+  private zoomAnimationTarget: number | null = null;
+  private zoomAnimationSpeed: number = 0.025;
+
   private viewportWidth: number;
   private viewportHeight: number;
 
@@ -47,6 +50,21 @@ export class Camera {
       const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
       this.x = lerp(this.x, this.targetX, smoothingFactor);
       this.y = lerp(this.y, this.targetY, smoothingFactor);
+    }
+
+    // === Zoom interpolation ===
+    if (this.zoomAnimationTarget !== null) {
+      const delta = this.zoomAnimationTarget - this.zoom;
+      if (Math.abs(delta) > 0.001) {
+        const zoomStep = this.zoomAnimationSpeed * delta;
+        const nextZoom = this.zoom + zoomStep;
+
+        const scrollSteps = Math.log(nextZoom / this.zoom) / Math.log(1.08);
+        this.adjustZoom(scrollSteps);
+      } else {
+        this.zoom = this.zoomAnimationTarget;
+        this.zoomAnimationTarget = null;
+      }
     }
 
     this.skipSmoothingThisFrame = false;
@@ -111,8 +129,21 @@ export class Camera {
     this.skipSmoothingThisFrame = true;
   }
 
+  public animateZoomTo(target: number, speed: number = 0.025): void {
+    const uiScale = getUniformScaleFactor();
+    const scaledMinZoom = 0.15 * uiScale;
+    const scaledMaxZoom = 0.5 * uiScale;
+
+    this.zoomAnimationTarget = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, target));
+    this.zoomAnimationSpeed = speed;
+  }
+
   getZoom(): number {
     return this.zoom;
+  }
+
+  public abortZoomAnimation(): void {
+    this.zoomAnimationTarget = null;
   }
 
   getViewportBounds(): { x: number; y: number; width: number; height: number } {

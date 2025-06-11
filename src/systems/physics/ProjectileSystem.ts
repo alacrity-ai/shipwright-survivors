@@ -35,7 +35,8 @@ export class ProjectileSystem {
     lifetime = 2,
     accuracy = 1,
     ownerShipId: string,
-    particleColors?: string[]
+    particleColors?: string[],
+    fadeMode?: 'linear' | 'delayed'
   ) {
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
@@ -61,6 +62,7 @@ export class ProjectileSystem {
       light: true,
       lightRadiusScalar: 20,
       lightIntensity: 0.8,
+      fadeMode
     });
 
     this.projectiles.push({

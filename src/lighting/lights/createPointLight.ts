@@ -1,4 +1,5 @@
 import type { PointLightInstance } from './types';
+import type { LightFadeMode } from './types';
 
 /** Configuration object for creating a point light instance */
 export interface PointLightConfig {
@@ -26,6 +27,9 @@ export interface PointLightConfig {
 
   /** Optional: Force a specific ID (useful for persistent lights) */
   id?: string;
+
+  /** Optional: Fade mode (default: 'linear') */
+  fadeMode?: LightFadeMode;
 }
 
 /** Generates a stable unique ID */
@@ -48,6 +52,7 @@ export function createPointLight(config: PointLightConfig): PointLightInstance {
     life,
     expires = false,
     id = generateLightId(),
+    fadeMode = 'linear',
   } = config;
 
   const instance: PointLightInstance = {
@@ -62,6 +67,7 @@ export function createPointLight(config: PointLightConfig): PointLightInstance {
     maxLife: life,
     expires,
     type: 'point',
+    fadeMode,
   };
 
   return instance;

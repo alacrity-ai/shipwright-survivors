@@ -10,6 +10,7 @@ import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
 import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 import { drawLabelLine } from '@/ui/utils/drawLabelLine';
 import { audioManager } from '@/audio/Audio';
+import { Camera } from '@/core/Camera';
 
 import { getUniformScaleFactor } from '@/config/view';
 import { getUIScale } from '@/ui/menus/helpers/getUIScale';
@@ -43,7 +44,7 @@ export class ShipBuilderMenu implements Menu {
 
   private open = false;
 
-  private scaleMulti = 0.8;
+  private originalZoom: number = 0;
 
   private PADDING: number = 0;
   private TILE_SIZE: number = 0;
@@ -105,9 +106,9 @@ export class ShipBuilderMenu implements Menu {
     this.UTILITY_BUTTON_HEIGHT = 32 * scale;
 
     this.TOTAL_MENU_WIDTH = this.WINDOW_WIDTH + this.BLOCKINFO_WINDOW_WIDTH + this.UTILITY_WINDOW_WIDTH + this.PADDING;
-    this.SLIDE_SPEED = 10 * scale;
+    this.SLIDE_SPEED = 6 * scale;
     this.OVERSHOOT_DISTANCE = 30 * scale;
-    this.SETTLE_SPEED = 4 * scale;
+    this.SETTLE_SPEED = 2 * scale;
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -547,6 +548,9 @@ export class ShipBuilderMenu implements Menu {
   }
 
   update(): void {
+    const cam = Camera.getInstance();
+
+    // === Animate menu slide ===
     if (this.isAnimating) {
       if (this.animationPhase === 'sliding-in') {
         this.slideX += this.SLIDE_SPEED;
@@ -597,8 +601,11 @@ export class ShipBuilderMenu implements Menu {
     this.resize();
     audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
     this.open = true;
-    
-    // Start the slide animation
+
+    const cam = Camera.getInstance();
+    this.originalZoom = cam.getZoom();
+    cam.animateZoomTo(this.getMenuTargetZoom());
+
     this.slideX = -(this.TOTAL_MENU_WIDTH + 50);
     this.targetX = 0;
     this.isAnimating = true;
@@ -606,13 +613,11 @@ export class ShipBuilderMenu implements Menu {
   }
 
   closeMenu(): void {
-    // Start the slide-out animation
-    this.targetX = -(this.TOTAL_MENU_WIDTH + 50); // target off-screen
+    this.targetX = -(this.TOTAL_MENU_WIDTH + 50);
     this.animationPhase = 'sliding-out';
     this.isAnimating = true;
 
-    // Do NOT immediately set open = false or reset slideX
-    // That will happen in the update() loop once animation completes
+    Camera.getInstance().animateZoomTo(this.originalZoom);
   }
 
   // Called from UI buttons (see below)
@@ -663,5 +668,10 @@ export class ShipBuilderMenu implements Menu {
   // Get cursor renderer
   public getCursorRenderer() {
     return this.cursorRenderer;
+  }
+
+  private getMenuTargetZoom(): number {
+    // Empirically tuned constant * uniform scale
+    return 0.5 * getUniformScaleFactor();
   }
 }

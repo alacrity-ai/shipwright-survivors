@@ -16,4 +16,5 @@ export interface BlockType {
   behavior?: BlockBehavior;
   size?: number;
   dropRate?: number;
+  placementSound?: string;
 }

@@ -4,8 +4,10 @@ import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 import { ParticleRendererGL } from './ParticleRendererGL';
 import { randomInRange, randomIntInclusive, randomAngle } from '@/shared/mathUtils';
-import { createPointLight } from '@/lighting/lights/createPointLight'; // or wherever your factory lives
+import { createPointLight } from '@/lighting/lights/createPointLight';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+
+export type FadeMode = 'linear' | 'delayed';
 
 export interface ParticleOptions {
   colors?: string[];
@@ -14,6 +16,7 @@ export interface ParticleOptions {
   lifeRange?: [number, number];
   velocity?: { x: number; y: number };
   fadeOut?: boolean;
+  fadeMode?: FadeMode;
   light?: boolean;
   lightRadiusScalar?: number;
   lightIntensity?: number;
@@ -57,14 +60,15 @@ export class ParticleManager {
     particle.y = origin.y;
     particle.vx = vx;
     particle.vy = vy;
-    particle.size = randomInRange(sizeRange[0], sizeRange[1]) * PARTICLE_SCALE; // Scale up particle size for better visibility
+    particle.size = randomInRange(sizeRange[0], sizeRange[1]) * PARTICLE_SCALE;
     particle.life = randomInRange(lifeRange[0], lifeRange[1]);
     particle.initialLife = particle.life;
     particle.fadeOut = options.fadeOut ?? false;
+    particle.fadeMode = options.fadeMode ?? 'linear';
+    particle.renderAlpha = 1.0;
     particle.color = colors[randomIntInclusive(0, colors.length - 1)];
 
     if (this.lightingOrchestrator && options.light) {
-      // --- Create light tied to particle ---
       const light = createPointLight({
         x: particle.x,
         y: particle.y,
@@ -73,6 +77,7 @@ export class ParticleManager {
         intensity: options.lightIntensity ?? 1.0,
         life: particle.life,
         expires: true,
+        fadeMode: options.fadeMode ?? 'linear',
       });
 
       this.lightingOrchestrator.registerLight(light);
@@ -116,14 +121,28 @@ export class ParticleManager {
       particle.y += particle.vy * dt;
       particle.life -= dt;
 
-      // Sync light position, if exists
       if (particle.lightId) {
         const light = this.lightingOrchestrator.getLightById(particle.lightId);
-
         if (light && (light.type === 'point' || light.type === 'spot')) {
           light.x = particle.x;
           light.y = particle.y;
         }
+      }
+
+      // === Compute renderAlpha based on fadeMode ===
+      const lifeRatio = particle.initialLife ? particle.life / particle.initialLife : 1.0;
+      const fadeThreshold = 0.10;
+
+      switch (particle.fadeMode) {
+        case 'delayed':
+          particle.renderAlpha = lifeRatio >= fadeThreshold
+            ? 1.0
+            : lifeRatio / fadeThreshold;
+          break;
+        case 'linear':
+        default:
+          particle.renderAlpha = lifeRatio;
+          break;
       }
     }
 
@@ -162,6 +181,8 @@ export class ParticleManager {
 
     p.initialLife = undefined;
     p.fadeOut = undefined;
+    p.fadeMode = undefined;
+    p.renderAlpha = undefined;
 
     this.particlePool.push(p);
   }

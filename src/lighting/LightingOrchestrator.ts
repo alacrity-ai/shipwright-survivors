@@ -73,7 +73,16 @@ export class LightingOrchestrator {
           continue;
         }
 
-        light.animationPhase = Math.max(0, light.life / light.maxLife);
+        const ratio = Math.max(0, light.life / light.maxLife);
+
+        if (light.fadeMode === 'delayed') {
+          const fadeThreshold = 0.10;
+          light.animationPhase = ratio >= fadeThreshold
+            ? 1.0
+            : ratio / fadeThreshold;
+        } else {
+          light.animationPhase = ratio; // linear
+        }
       }
 
       // Additional per-frame animation logic could go here

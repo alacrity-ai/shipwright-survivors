@@ -1,5 +1,6 @@
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { getBlockCost } from '@/game/blocks/BlockRegistry';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
 import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
 import type { Ship } from '@/game/ship/Ship';
@@ -96,12 +97,17 @@ export class ShipBuilderController {
       if (this.inputManager.wasMouseClicked()) {
         if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
           this.ship.placeBlockById(coord, blockId, this.rotation);
-          audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx', { maxSimultaneous: 3 }); // Play sound effect when block is placed
-          PlayerResources.getInstance().spendCurrency(blockCost); // Deduct the cost from player's currency
+          const placedBlock = this.ship.getBlock(coord);
+          if (placedBlock?.position) {
+            this.repairEffectSystem.createRepairEffect(placedBlock.position);
+          }
+          const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
+          audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
+          PlayerResources.getInstance().spendCurrency(blockCost);
           missionResultStore.incrementBlockPlacedCount();
         }
       }
-    } 
+    }
 
     // DEBUG SAVING (will be removed when out of development testing).
     // THIS IS NOT the same functionality as ingame ship saving:
