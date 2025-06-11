@@ -1,19 +1,8 @@
-// src/systems/fx/RepairEffectSystem.ts
+// src/systems/fx/ShipBuilderEffectsSystem.ts
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
-
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
-
-interface RepairPulse {
-  position: { x: number; y: number };
-  size: number;
-  maxSize: number;
-  life: number;
-  maxLife: number;
-  color: string;
-  sparkles: Sparkle[];
-}
 
 interface Sparkle {
   x: number;
@@ -25,10 +14,23 @@ interface Sparkle {
   color: string;
 }
 
-export class RepairEffectSystem implements IUpdatable, IRenderable {
-  runWhilePaused: boolean;
+type EffectKind = 'repair' | 'sell';
 
-  private effects: RepairPulse[] = [];
+interface BuilderEffect {
+  kind: EffectKind;
+  position: { x: number; y: number };
+  size: number;
+  maxSize: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  sparkles: Sparkle[];
+}
+
+export class ShipBuilderEffectsSystem implements IUpdatable, IRenderable {
+  runWhilePaused = true;
+
+  private effects: BuilderEffect[] = [];
   private ctx: CanvasRenderingContext2D;
 
   constructor(
@@ -36,41 +38,53 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
     private readonly camera: Camera
   ) {
     this.ctx = canvasManager.getContext('fx');
-    this.runWhilePaused = true;
   }
 
   createRepairEffect(position: { x: number; y: number }, size: number = 48, life: number = 0.5): void {
-    const sparkles = this.generateSparkles(position, 8 + Math.floor(size / 8));
-    this.effects.push({
+    this.effects.push(this.createEffect(position, size, life, 'repair'));
+  }
+
+  createSellEffect(position: { x: number; y: number }, size: number = 48, life: number = 0.5): void {
+    this.effects.push(this.createEffect(position, size, life, 'sell'));
+  }
+
+  private createEffect(
+    position: { x: number; y: number },
+    size: number,
+    life: number,
+    kind: EffectKind
+  ): BuilderEffect {
+    const sparkles = this.generateSparkles(position, 8 + Math.floor(size / 8), kind);
+    return {
+      kind,
       position: { ...position },
       size: 0,
       maxSize: size,
       life,
       maxLife: life,
-      color: this.getRandomRepairColor(),
+      color: this.getRandomColor(kind),
       sparkles
-    });
+    };
   }
 
-  private generateSparkles(position: { x: number; y: number }, count: number): Sparkle[] {
+  private generateSparkles(position: { x: number; y: number }, count: number, kind: EffectKind): Sparkle[] {
+    const colors =
+      kind === 'repair'
+        ? ['#00ffff', '#66ffcc', '#66ccff', '#33ffee', '#ccffff']
+        : ['#ff6666', '#ff3333', '#ff9999', '#ff4444', '#ff2200'];
+
     const sparkles: Sparkle[] = [];
-    const colors = ['#00ffff', '#66ffcc', '#66ccff', '#33ffee', '#ccffff'];
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 20 + Math.random() * 40;
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-      const life = 0.4 + Math.random() * 0.4;
-      const size = 1 + Math.random() * 2;
-
       sparkles.push({
         x: position.x,
         y: position.y,
-        vx,
-        vy,
-        size,
-        life,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 1 + Math.random() * 2,
+        life: 0.4 + Math.random() * 0.4,
         color: colors[Math.floor(Math.random() * colors.length)]
       });
     }
@@ -81,13 +95,11 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
   update(dt: number): void {
     for (const effect of this.effects) {
       effect.life -= dt;
-
-      const progress = 1 - (effect.life / effect.maxLife);
-      if (progress < 0.5) {
-        effect.size = effect.maxSize * (progress * 2);
-      } else {
-        effect.size = effect.maxSize * (1 - (progress - 0.5) * 2);
-      }
+      const progress = 1 - effect.life / effect.maxLife;
+      effect.size =
+        progress < 0.5
+          ? effect.maxSize * (progress * 2)
+          : effect.maxSize * (1 - (progress - 0.5) * 2);
 
       for (const s of effect.sparkles) {
         s.x += s.vx * dt;
@@ -113,7 +125,7 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
       const alpha = effect.life / effect.maxLife;
 
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, effect.size);
-      gradient.addColorStop(0, `rgba(100,255,255,${alpha})`);
+      gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
       gradient.addColorStop(0.3, effect.color);
       gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
@@ -124,14 +136,11 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
       ctx.fill();
 
       for (const s of effect.sparkles) {
-        const screenSpark = this.camera.worldToScreen(s.x, s.y);
-        const sx = screenSpark.x / this.camera.getZoom();
-        const sy = screenSpark.y / this.camera.getZoom();
-
+        const ss = this.camera.worldToScreen(s.x, s.y);
         ctx.globalAlpha = s.life;
         ctx.fillStyle = s.color;
         ctx.beginPath();
-        ctx.arc(sx, sy, s.size, 0, Math.PI * 2);
+        ctx.arc(ss.x / this.camera.getZoom(), ss.y / this.camera.getZoom(), s.size, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -139,13 +148,22 @@ export class RepairEffectSystem implements IUpdatable, IRenderable {
     ctx.restore();
   }
 
-  private getRandomRepairColor(): string {
-    const palette = [
-      'rgba(100, 255, 255, 0.8)',
-      'rgba(100, 255, 200, 0.8)',
-      'rgba(150, 255, 240, 0.8)',
-      'rgba(120, 255, 220, 0.8)',
-    ];
+  private getRandomColor(kind: EffectKind): string {
+    const palettes = {
+      repair: [
+        'rgba(100, 255, 255, 0.8)',
+        'rgba(100, 255, 200, 0.8)',
+        'rgba(150, 255, 240, 0.8)',
+        'rgba(120, 255, 220, 0.8)',
+      ],
+      sell: [
+        'rgba(255, 100, 100, 0.8)',
+        'rgba(255, 80, 80, 0.8)',
+        'rgba(255, 120, 120, 0.8)',
+        'rgba(255, 60, 60, 0.8)',
+      ]
+    };
+    const palette = palettes[kind];
     return palette[Math.floor(Math.random() * palette.length)];
   }
 }

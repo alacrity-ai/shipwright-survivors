@@ -52,6 +52,7 @@ import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderControlle
 import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
 import { AsteroidRenderer } from '@/rendering/AsteroidRenderer';
 import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
@@ -80,7 +81,7 @@ import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
-import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
+import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
 import { PlayerResources } from '@/game/player/PlayerResources';
@@ -127,6 +128,7 @@ export class EngineRuntime {
   private cursorRenderer: CursorRenderer;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
   private waveSpawner: WaveSpawner;
+  private incidentOrchestrator: IncidentOrchestrator;
   private asteroidSpawner: AsteroidSpawningSystem;
   private wavesOverlay: WavesOverlay;
   private popupMessageSystem: PopupMessageSystem;
@@ -143,7 +145,7 @@ export class EngineRuntime {
   private shipBuilderController: ShipBuilderController;
   private spaceStationBuilderController: SpaceStationBuilderController;
   private explosionSystem: ExplosionSystem;
-  private repairEffectSystem: RepairEffectSystem;
+  private shipBuilderEffects: ShipBuilderEffectsSystem;
   private screenEffects: ScreenEffectsSystem;
 
   private engineSoundPlaying = false;
@@ -169,9 +171,7 @@ export class EngineRuntime {
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
   
-
     // Lighting System
-    const lightingCanvas = this.canvasManager.getCanvas('lighting');
     const lightingGL = this.canvasManager.getWebGLContext('lighting');
     const lightingRenderer = new LightingRenderer(lightingGL);
     this.lightingOrchestrator = LightingOrchestrator.getInstance(lightingRenderer, this.camera);
@@ -211,7 +211,7 @@ export class EngineRuntime {
     this.aiOrchestrator.registerPlayerShip(this.ship);
 
     // === Construct PickupSystem and PickupSpawner ===
-    this.repairEffectSystem = new RepairEffectSystem(this.canvasManager, this.camera);
+    this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.canvasManager, this.camera);
     this.pickupSystem = new PickupSystem(
       this.canvasManager, 
       this.camera, 
@@ -219,7 +219,7 @@ export class EngineRuntime {
       this.particleManager, 
       this.screenEffects, 
       this.popupMessageSystem,
-      this.repairEffectSystem
+      this.shipBuilderEffects
     );
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
@@ -303,7 +303,7 @@ export class EngineRuntime {
       this.ship, 
       this.shipBuilderMenu, 
       this.camera, 
-      this.repairEffectSystem,
+      this.shipBuilderEffects,
       this.inputManager
     );
     this.shipBuilderMenu.setRepairAllHandler(() => {
@@ -317,11 +317,20 @@ export class EngineRuntime {
       this.spaceStation, 
       this.spaceStationBuilderMenu, 
       this.camera, 
-      this.repairEffectSystem,
+      this.shipBuilderEffects,
       this.inputManager
     );
 
-    // == Enemy Wave Spawning System
+    // == Enemy Wave Spawning System and Incident System
+    this.incidentOrchestrator = new IncidentOrchestrator({
+      canvasManager: this.canvasManager,
+      camera: this.camera,
+      inputManager: this.inputManager,
+      playerShip: this.ship,
+      aiOrchestrator: this.aiOrchestrator,
+      popupMessageSystem: this.popupMessageSystem,
+    });
+
     this.waveSpawner = new WaveSpawner(
       this.mission.waves,
       this.shipRegistry,
@@ -334,7 +343,8 @@ export class EngineRuntime {
       combatService,
       this.explosionSystem,
       this.collisionSystem,
-      this.shipConstructionAnimator
+      this.shipConstructionAnimator,
+      this.incidentOrchestrator
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
     destructionService.onEntityDestroyed((entity, _cause) => {
@@ -534,7 +544,7 @@ export class EngineRuntime {
     }
 
     // Always update these systems regardless of pause state
-    this.repairEffectSystem.update(dt);
+    this.shipBuilderEffects.update(dt);
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);
   };
@@ -554,7 +564,7 @@ export class EngineRuntime {
     this.renderables.forEach(system => system.render(dt));
 
     // Always render the repair effect system
-    this.repairEffectSystem.render();
+    this.shipBuilderEffects.render();
 
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);

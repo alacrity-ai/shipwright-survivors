@@ -7,6 +7,8 @@ import type { PlanetSystem } from '@/game/planets/PlanetSystem';
 
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUniformScaleFactor } from '@/config/view';
+import { GlobalEventBus } from '@/core/EventBus';
+import { MiniMapIcons, IconType } from '@/ui/utils/MiniMapIcons';
 
 import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_CENTER } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
@@ -21,6 +23,9 @@ export class MiniMap {
   private animationTime = 0;
   private scanlineOffset = 0;
   private lastFrameTime = 0;
+
+  private incidentMarkers = new Map<string, { x: number; y: number; icon: string }>();
+  private iconCache = new Map<string, HTMLCanvasElement>();
   
   private unsubscribeResolution: () => void;
 
@@ -64,6 +69,10 @@ export class MiniMap {
 
     this.planetMarker = this.createPlanetDot('#00ffff');
     this.playerMarker = this.createPlayerMarker();
+
+    // Await incident markers being added
+    GlobalEventBus.on('incident:minimap:marker', this.handleIncidentMarkerAdd);
+    GlobalEventBus.on('incident:minimap:clear', this.handleIncidentMarkerClear);
   }
 
   private initializeStaticCache(): void {
@@ -72,6 +81,14 @@ export class MiniMap {
     this.staticCanvas.height = this.height + Math.floor(20 * this.scale);
     this.staticCtx = this.staticCanvas.getContext('2d');
   }
+
+  private handleIncidentMarkerAdd = (marker: { id: string; icon: string; x: number; y: number }) => {
+    this.incidentMarkers.set(marker.id, marker);
+  };
+
+  private handleIncidentMarkerClear = ({ id }: { id: string }) => {
+    this.incidentMarkers.delete(id);
+  };
 
   private resize(newScale: number): void {
     this.scale = newScale;
@@ -114,6 +131,41 @@ export class MiniMap {
     this.drawRadarGrid(ctx, x, y);
 
     this.staticCacheValid = true;
+  }
+
+  private getOrCreateIncidentIcon(icon: string): HTMLCanvasElement {
+    if (this.iconCache.has(icon)) return this.iconCache.get(icon)!;
+
+    const size = Math.floor(18 * this.scale);
+    
+    // Check if it's a valid icon type, fallback to simple circle if not
+    const validIcons: IconType[] = ['caution', 'greenCross', 'skullAndBones'];
+    const iconType = validIcons.includes(icon as IconType) ? icon as IconType : null;
+    
+    let canvas: HTMLCanvasElement;
+    
+    if (iconType) {
+      // Use the new icon system
+      canvas = MiniMapIcons.createIcon(iconType, size);
+    } else {
+      // Fallback for unknown icons - create a simple colored circle
+      canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 6;
+      
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    this.iconCache.set(icon, canvas);
+    console.log('[MiniMap] Created new icon:', icon);
+    return canvas;
   }
 
   render(): void {
@@ -160,6 +212,15 @@ export class MiniMap {
 
     // === Draw ships (simplified) ===
     this.drawShips(ctx, project);
+
+    // === Draw incidents ===
+    for (const { x: worldX, y: worldY, icon } of this.incidentMarkers.values()) {
+      const screen = project({ x: worldX, y: worldY });
+      const image = this.getOrCreateIncidentIcon(icon);
+      const half = Math.floor(image.width / 2);
+      ctx.drawImage(image, screen.x - half, screen.y - half);
+      console.log('[MiniMap] Drawn incident icon:', icon);
+    }
 
     // === Minimal scanlines ===
     this.drawScanlines(ctx, x, y);
@@ -412,5 +473,11 @@ export class MiniMap {
 
   public destroy(): void {
     this.unsubscribeResolution();
+
+    GlobalEventBus.off('incident:minimap:marker', this.handleIncidentMarkerAdd);
+    GlobalEventBus.off('incident:minimap:clear', this.handleIncidentMarkerClear);
+    this.incidentMarkers.clear();
+    this.iconCache.clear();
+
   }
 }

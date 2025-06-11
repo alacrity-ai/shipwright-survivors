@@ -309,6 +309,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
+          inputManager.disableKey('Escape');
           inputManager.disableKey('Tab');
         },
       },

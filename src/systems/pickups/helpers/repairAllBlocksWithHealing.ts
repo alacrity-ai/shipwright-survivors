@@ -1,7 +1,7 @@
 // src/game/helpers/repairAllBlocksWithHealing.ts
 
 import type { Ship } from '@/game/ship/Ship';
-import type { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
+import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
 /**
  * Applies a fixed healing amount to each damaged block on a ship.
@@ -9,12 +9,12 @@ import type { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
  *
  * @param ship - The target ship whose blocks are to be repaired.
  * @param repairAmount - Amount of HP to restore to each damaged block.
- * @param repairEffectSystem - Effect system used to visualize each repair.
+ * @param shipBuilderEffectsSystem - Effect system used to visualize each repair.
  */
 export function repairAllBlocksWithHealing(
   ship: Ship,
   repairAmount: number,
-  repairEffectSystem: RepairEffectSystem
+  shipBuilderEffects: ShipBuilderEffectsSystem
 ): void {
   if (repairAmount <= 0) return;
 
@@ -27,7 +27,7 @@ export function repairAllBlocksWithHealing(
 
     if (heal > 0) {
       block.hp += heal;
-      repairEffectSystem.createRepairEffect(block.position!);
+      shipBuilderEffects.createRepairEffect(block.position!);
     }
   }
 }

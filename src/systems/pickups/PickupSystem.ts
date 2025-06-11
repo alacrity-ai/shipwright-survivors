@@ -13,7 +13,7 @@ import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { repairAllBlocksWithHealing } from '@/systems/pickups/helpers/repairAllBlocksWithHealing';
 
-import type { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
+import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import type { CanvasManager } from '@/core/CanvasManager';
@@ -50,7 +50,7 @@ export class PickupSystem {
   private sparkManager: ParticleManager;
   private screenEffects: ScreenEffectsSystem;
   private popupMessageSystem: PopupMessageSystem;
-  private repairEffectSystem: RepairEffectSystem;
+  private shipBuilderEffects: ShipBuilderEffectsSystem;
 
   constructor(
     canvasManager: CanvasManager,
@@ -59,7 +59,7 @@ export class PickupSystem {
     sparkManager: ParticleManager,
     screenEffects: ScreenEffectsSystem,
     popupMessageSystem: PopupMessageSystem,
-    repairEffectSystem: RepairEffectSystem
+    shipBuilderEffects: ShipBuilderEffectsSystem
   ) {
     this.ctx = canvasManager.getContext('entities');
     this.playerResources = PlayerResources.getInstance();
@@ -67,7 +67,7 @@ export class PickupSystem {
     this.sparkManager = sparkManager
     this.screenEffects = screenEffects;
     this.popupMessageSystem = popupMessageSystem;
-    this.repairEffectSystem = repairEffectSystem;
+    this.shipBuilderEffects = shipBuilderEffects;
   }
 
   spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
@@ -333,7 +333,7 @@ export class PickupSystem {
       const amount = pickup.repairAmount;
       
       // TODO: Implement actual repair logic — heal damaged blocks etc.
-      repairAllBlocksWithHealing(this.playerShip, amount, this.repairEffectSystem);
+      repairAllBlocksWithHealing(this.playerShip, amount, this.shipBuilderEffects);
 
       audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', { maxSimultaneous: 2 }); 
     } else {

@@ -11,9 +11,18 @@ export interface WaveShipEntry {
   affixes?: ShipAffixes;
 }
 
+interface WaveIncidentEntry {
+  spawnChance: number;
+  script: string;
+  options?: Record<string, any>;
+  label?: string;
+}
+
 export interface WaveDefinition {
   id: number;
   type: 'wave' | 'boss' | string;
   mods: string[];
   ships: WaveShipEntry[];
+  incidents?: WaveIncidentEntry[];
+  waveDurationSeconds?: number;
 }

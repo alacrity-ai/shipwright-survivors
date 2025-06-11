@@ -1,7 +1,7 @@
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { getBlockCost } from '@/game/blocks/BlockRegistry';
 import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
-import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
+import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { SpaceStation } from '@/game/entities/SpaceStation';
 // import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
@@ -29,7 +29,7 @@ export class SpaceStationBuilderController {
     private readonly spaceStation: SpaceStation,
     private readonly menu: SpaceStationBuilderMenu,
     private readonly camera: Camera,
-    private readonly repairEffectSystem: RepairEffectSystem,
+    private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly inputManager: InputManager
   ) {}
 
@@ -201,7 +201,7 @@ export class SpaceStationBuilderController {
     if (playerResources.hasEnoughCurrency(repairCost)) {
       playerResources.spendCurrency(repairCost);
       block.hp = block.type.armor;
-      this.repairEffectSystem.createRepairEffect(block.position!);
+      this.shipBuilderEffects.createRepairEffect(block.position!);
     }
   }
 

@@ -12,6 +12,7 @@ import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
+import type { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
@@ -38,12 +39,12 @@ export class WaveSpawner implements IUpdatable {
   private elapsedTime = 0;
   private timeSinceStart = 0;
 
-  private isRunning = false;              // NEW: WaveSpawner must be manually started
+  private isRunning = false;
   private isPaused = false;
-  private hasSpawnedFirstWave = false;    // Tracks if first wave already triggered
+  private hasSpawnedFirstWave = false;
 
   private readonly initialDelay = 10;
-  private readonly waveInterval = 120;
+  private readonly defaultWaveInterval = 120;
   private readonly interWaveDelay = 10;
 
   private interWaveCountdown = -1;
@@ -73,7 +74,8 @@ export class WaveSpawner implements IUpdatable {
     private readonly combatService: CombatService,
     private readonly explosionSystem: ExplosionSystem,
     private readonly collisionSystem: BlockObjectCollisionSystem,
-    private readonly shipConstructionAnimator: ShipConstructionAnimatorService
+    private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
+    private readonly incidentSystem: IncidentOrchestrator
   ) {
     this.shipFactory = new ShipFactory(
       this.grid,
@@ -159,12 +161,14 @@ export class WaveSpawner implements IUpdatable {
 
     // === Proceed with normal wave logic ===
     this.elapsedTime += dt;
-
-    if (this.currentWaveIndex < this.waves.length && this.elapsedTime >= this.waveInterval) {
-      const wave = this.waves[this.currentWaveIndex];
-      this.spawnWave(wave);
-      this.currentWaveIndex++;
-      this.elapsedTime = 0;
+    if (this.currentWaveIndex < this.waves.length) {
+      const nextWave = this.waves[this.currentWaveIndex];
+      const interval = nextWave.waveDurationSeconds ?? this.defaultWaveInterval;
+      if (this.elapsedTime >= interval) {
+        this.spawnWave(nextWave);
+        this.currentWaveIndex++;
+        this.elapsedTime = 0;
+      }
     }
   }
 
@@ -191,6 +195,10 @@ export class WaveSpawner implements IUpdatable {
       ship.destroy();
     }
     this.activeShips.clear();
+
+    if (this.activeWave) {
+      this.incidentSystem.clear(this.activeWave.id);
+    }
   }
 
   private async spawnWave(wave: WaveDefinition): Promise<void> {
@@ -235,6 +243,17 @@ export class WaveSpawner implements IUpdatable {
         this.activeControllers.set(ship, controller);
 
         spawnedShips.push(ship);
+      }
+    }
+
+    // Spawn events after all ships are spawned
+    for (const incident of wave.incidents ?? []) {
+      const roll = Math.random();
+      if (roll <= incident.spawnChance) {
+        console.log(
+          `[WaveSpawner] Triggering incident '${incident.script}' (wave ${wave.id})`
+        );
+        this.incidentSystem.trigger(incident.script, incident.options ?? {}, wave.id);
       }
     }
 
@@ -333,7 +352,9 @@ export class WaveSpawner implements IUpdatable {
     // If mission is complete, don't show countdown
     if (this.shouldCompleteMission()) return -1;
 
-    return Math.max(0, this.waveInterval - this.elapsedTime);
+    const nextWave = this.waves[this.currentWaveIndex];
+    const interval = nextWave?.waveDurationSeconds ?? this.defaultWaveInterval;
+    return Math.max(0, interval - this.elapsedTime);
   }
 
   public isBossWaveActive(): boolean {

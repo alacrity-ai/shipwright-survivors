@@ -42,6 +42,7 @@ export class RollingTextRenderer {
     ctx.save();
     ctx.font = font;
     ctx.fillStyle = color;
+    ctx.textAlign = 'left';
 
     const maxVisibleLines = Math.floor(height / lineHeight) - 1;
     let visibleChars = this.revealedCharCount;

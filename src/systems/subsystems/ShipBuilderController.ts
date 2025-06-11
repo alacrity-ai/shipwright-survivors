@@ -2,7 +2,7 @@ import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { getBlockCost } from '@/game/blocks/BlockRegistry';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { ShipBuilderTool } from '@/ui/menus/types/ShipBuilderTool';
-import { RepairEffectSystem } from '@/systems/fx/RepairEffectSystem';
+import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { Camera } from '@/core/Camera';
@@ -29,7 +29,7 @@ export class ShipBuilderController {
     private readonly ship: Ship,
     private readonly menu: ShipBuilderMenu,
     private readonly camera: Camera,
-    private readonly repairEffectSystem: RepairEffectSystem,
+    private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly inputManager: InputManager
   ) {}
 
@@ -84,7 +84,7 @@ export class ShipBuilderController {
           audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 3 });
           return;
         }
-
+        this.shipBuilderEffects.createSellEffect(block.position!);
         this.ship.removeBlock(coord);
         audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
         const refundCost = Math.round(blockCost / 2);
@@ -99,7 +99,7 @@ export class ShipBuilderController {
           this.ship.placeBlockById(coord, blockId, this.rotation);
           const placedBlock = this.ship.getBlock(coord);
           if (placedBlock?.position) {
-            this.repairEffectSystem.createRepairEffect(placedBlock.position);
+            this.shipBuilderEffects.createRepairEffect(placedBlock.position);
           }
           const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
           audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
@@ -204,7 +204,7 @@ export class ShipBuilderController {
     if (playerResources.hasEnoughCurrency(repairCost)) {
       playerResources.spendCurrency(repairCost);
       block.hp = block.type.armor;
-      this.repairEffectSystem.createRepairEffect(block.position!);
+      this.shipBuilderEffects.createRepairEffect(block.position!);
     }
   }
 
