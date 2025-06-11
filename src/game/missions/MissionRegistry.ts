@@ -17,7 +17,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3'
     },
-    enemyPower: 1,
+    enemyPower: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1
   },

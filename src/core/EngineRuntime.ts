@@ -18,6 +18,8 @@ import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
 import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
+import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
+import { BlockPlacementController } from '@/ui/components/BlockPlacementController';
 import { SettingsMenu } from '@/ui/menus/SettingsMenu';
 import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
@@ -88,6 +90,9 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 
+// Debug
+import { getBlockType } from '@/game/blocks/BlockRegistry';
+
 export class EngineRuntime {
   private gameLoop: GameLoop;
   private readonly boundUpdate = (dt: number) => this.update(dt);
@@ -99,6 +104,7 @@ export class EngineRuntime {
   private shipBuilderMenu: ShipBuilderMenu
   private spaceStationBuilderMenu: SpaceStationBuilderMenu;
   private settingsMenu: SettingsMenu;
+  private blockDropDecisionMenu: BlockDropDecisionMenu;
   private pauseMenu: PauseMenu;
   private hud: HudOverlay;
   private miniMap: MiniMap;
@@ -143,6 +149,7 @@ export class EngineRuntime {
   private energyRechargeSystem: EnergyRechargeSystem;
   private playerController: PlayerControllerSystem;
   private shipBuilderController: ShipBuilderController;
+  private blockPlacementController: BlockPlacementController;
   private spaceStationBuilderController: SpaceStationBuilderController;
   private explosionSystem: ExplosionSystem;
   private shipBuilderEffects: ShipBuilderEffectsSystem;
@@ -205,13 +212,51 @@ export class EngineRuntime {
     // Initialize ExplosionSystem and ScreenEffectsSystem
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
+    this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.canvasManager, this.camera);
     
     // === AI Orchestrator
     this.aiOrchestrator = new AIOrchestratorSystem();
     this.aiOrchestrator.registerPlayerShip(this.ship);
 
+    // Menus
+    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
+    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
+    this.pauseMenu = new PauseMenu(
+      this.inputManager,
+      this.handlePlayerFailure.bind(this),
+      this.menuManager,
+    );
+    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
+    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
+    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
+    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
+    this.shipBuilderController = new ShipBuilderController(
+      this.ship, 
+      this.shipBuilderMenu, 
+      this.camera, 
+      this.shipBuilderEffects,
+      this.inputManager
+    );
+    this.shipBuilderMenu.setRepairAllHandler(() => {
+      this.shipBuilderController.repairAllBlocks();
+    });
+    this.blockDropDecisionMenu = new BlockDropDecisionMenu(
+      this.ship,
+      this.inputManager, 
+      this.shipBuilderController, 
+      this.shipBuilderEffects,
+      this.pause.bind(this), 
+      this.resume.bind(this)
+    );
+    this.blockPlacementController = new BlockPlacementController(
+      this.ship,
+      this.blockDropDecisionMenu,
+      this.camera,
+      this.shipBuilderEffects,
+      this.inputManager
+    );
+
     // === Construct PickupSystem and PickupSpawner ===
-    this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.canvasManager, this.camera);
     this.pickupSystem = new PickupSystem(
       this.canvasManager, 
       this.camera, 
@@ -219,7 +264,8 @@ export class EngineRuntime {
       this.particleManager, 
       this.screenEffects, 
       this.popupMessageSystem,
-      this.shipBuilderEffects
+      this.shipBuilderEffects,
+      this.blockDropDecisionMenu
     );
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
@@ -286,29 +332,6 @@ export class EngineRuntime {
 
     // Player controls
     this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer, this.ship);
-
-    // Menus
-    this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
-    this.pauseMenu = new PauseMenu(
-      this.inputManager,
-      this.handlePlayerFailure.bind(this),
-      this.menuManager,
-    );
-    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
-    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
-    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
-    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
-    this.shipBuilderController = new ShipBuilderController(
-      this.ship, 
-      this.shipBuilderMenu, 
-      this.camera, 
-      this.shipBuilderEffects,
-      this.inputManager
-    );
-    this.shipBuilderMenu.setRepairAllHandler(() => {
-      this.shipBuilderController.repairAllBlocks();
-    });
 
     // Dev Tools
     this.spaceStationBuilderMenu = new SpaceStationBuilderMenu(this.inputManager, this.cursorRenderer);
@@ -466,10 +489,20 @@ export class EngineRuntime {
       shipBuilderMenu: this.shipBuilderMenu,
       pauseMenu: this.pauseMenu,
       settingsMenu: this.settingsMenu,
+      blockDropDecisionMenu: this.blockDropDecisionMenu,
       menuManager: this.menuManager,
     });
 
     // TODO: Move this elsewhere
+    if (this.blockDropDecisionMenu.isOpen()) {
+      this.blockDropDecisionMenu.update(dt);
+      if (this.ship) {
+        this.blockPlacementController.update(this.ship.getTransform());
+      }
+    }
+
+    // this.blockDropDecisionMenu.update(dt);
+
     if (this.pauseMenu.isOpen()) {
       this.pauseMenu.update();
     }
@@ -487,6 +520,11 @@ export class EngineRuntime {
     }
 
     // Debug keys 
+
+    if (this.inputManager.wasKeyJustPressed('Digit1')) {
+      const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
+      this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
+    }
 
     if (this.inputManager.wasKeyJustPressed('Digit0')) {
       PlayerResources.getInstance().addCurrency(1000);
@@ -526,6 +564,7 @@ export class EngineRuntime {
       this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
       this.camera.follow(transform.position);
       this.camera.update(dt);
+
       if (this.shipBuilderMenu.isOpen()) {
           this.shipBuilderController.update(transform);
       }
@@ -569,6 +608,11 @@ export class EngineRuntime {
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);
       this.shipBuilderMenu.render(this.canvasManager.getContext('ui'));
+    }
+
+    if (this.blockDropDecisionMenu.isOpen()) {
+      this.blockDropDecisionMenu.render(this.canvasManager.getContext('ui'));
+      this.blockPlacementController.render(this.canvasManager.getContext('entities'), transform);
     }
 
     if (this.spaceStationBuilderMenu.isOpen()) {

@@ -331,23 +331,27 @@ export class Ship extends CompositeBlockObject {
   }
 
   // === Ship Specific Block Placement & Removal Overrides ===
-
-  placeBlockById(coord: GridCoord, blockId: string, rotation?: number): void {
+  placeBlockById(coord: GridCoord, blockId: string, rotation?: number): boolean {
     const type = getBlockType(blockId);
     if (!type) throw new Error(`Unknown block type: ${blockId}`);
 
-    // Calculate the proper world position immediately
-    const worldPos = this.calculateBlockWorldPosition(coord);  // Use the helper method to calculate world position
-    
+    const key = toKey(coord);
+    if (this.blocks.has(key)) {
+      return false; // Placement failed: cell already occupied
+    }
+
+    const worldPos = this.calculateBlockWorldPosition(coord);
+
     const block: BlockInstance = {
       type,
       hp: type.armor,
-      ownerShipId: this.id,  // Associate the block with this ship's ID
-      position: worldPos,  // Set the calculated world position
-      ...(rotation !== undefined ? { rotation } : {})  // Set the rotation if provided
+      ownerShipId: this.id,
+      position: worldPos,
+      ...(rotation !== undefined ? { rotation } : {})
     };
 
-    this.placeBlock(coord, block);  // Place the block into the grid and the ship
+    this.placeBlock(coord, block);
+    return true;
   }
 
   placeBlock(coord: GridCoord, block: BlockInstance): void {

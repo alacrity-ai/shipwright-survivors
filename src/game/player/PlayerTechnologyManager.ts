@@ -18,7 +18,7 @@ export class PlayerTechnologyManager {
 
   unlock(blockId: string): void {
     this.unlockedBlockIds.add(blockId);
-    missionResultStore.addBlockUnlock(blockId);
+    missionResultStore.addBlockPickup(blockId);
   }
 
   unlockMany(blockIds: string[]): void {

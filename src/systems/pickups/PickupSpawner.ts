@@ -22,7 +22,7 @@ export class PickupSpawner {
         y: block.position?.y ?? 0,
       };
 
-      this.pickupSystem.spawnBlockUnlockPickup(pickupPosition, blockType);
+      this.pickupSystem.spawnBlockPickup(pickupPosition, blockType);
       return;
     }
 

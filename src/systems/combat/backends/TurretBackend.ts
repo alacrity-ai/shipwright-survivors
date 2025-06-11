@@ -23,7 +23,7 @@ export class TurretBackend implements WeaponBackend {
 
   public update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const plan = ship.getFiringPlan().filter(p =>
-      p.block.type.id.startsWith('turret')
+      p.block.type.id.startsWith('turret') || p.block.type.id.startsWith('cockpit')
     );
     if (plan.length === 0) return;
 
@@ -33,7 +33,7 @@ export class TurretBackend implements WeaponBackend {
     const mode = intent?.firingMode ?? FiringMode.Synced;
     this.fireSoundTimer++;
 
-    // Always advance cooldowns regardless of firing
+    // Always advance cooldowns regardless of dfiring
     for (const turret of plan) {
       turret.timeSinceLastShot += dt;
     }

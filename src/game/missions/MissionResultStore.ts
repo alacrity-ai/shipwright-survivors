@@ -55,7 +55,7 @@ class MissionResultStore {
     this.result!.blockPlacedCount += by;
   }
 
-  public addBlockUnlock(blockId: string) {
+  public addBlockPickup(blockId: string) {
     this.ensureInitialized();
     const blocks = this.result!.blocksUnlocked;
     if (!blocks.includes(blockId)) {

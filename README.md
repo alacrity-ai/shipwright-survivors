@@ -143,6 +143,15 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [ ] BlockDropSelectionMenu Remaining Tasks:
+    - [ ] Show little mini spinning preview of next block in queue
+    - [ ] Show in HUD pulsing indicator when you have blocks in queue
+    - [ ] Update tutorial to explain this menu, not the old shipbuilding menu
+    - [ ] Add satisfying animation on placement (in the menu) and on refinement (in the menu)
+    - [ ] Add sound effect for refinement
+  - [ ] Make a cockpit backend, each selectable ship will have their own cockpit weapon.
+    - [ ] Move the default cockpit1 weapon to the cockpit backend
+    - [ ] Make player cockpits specific: cockpitPlayer0, cockpitPlayer1, etc.
   - [ ] Sound effect and visual effect on ship when switching firing modes
     - [ ] Tutorialization of Firing Modes
     - [ ] Switching firing mode should reset timers
