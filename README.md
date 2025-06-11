@@ -143,6 +143,9 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
+  - [ ] Sound effect and visual effect on ship when switching firing modes
+    - [ ] Tutorialization of Firing Modes
+    - [ ] Switching firing mode should reset timers
   - [ ] Screen edge indicators (e.g. showing objectives on the map, minibosses, etc): compliments radar
   - [ ] Clearly give rewards on failure. E.g. Passive points:
       - Unlockables in each mission should be shown in the debriefing, and how close you got to each.

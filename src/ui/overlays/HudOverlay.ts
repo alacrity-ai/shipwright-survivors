@@ -3,6 +3,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
+import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
 import { PlayerResources } from '@/game/player/PlayerResources';
 
 import { getUniformScaleFactor } from '@/config/view';
@@ -127,8 +128,35 @@ export class HudOverlay {
       }
     });
 
+    // === Draw Firing Mode Toggle ===
+    const toggleWidth = Math.floor(120 * scale);
+    const toggleHeight = Math.floor(24 * scale);
+    const toggleX = Math.floor(64 * scale);
+    const toggleY = y - Math.floor(12 * scale);
+    
+drawFiringModeToggle(ctx, {
+  x: toggleX,
+  y: toggleY,
+  mode: this.ship.getFiringMode(),
+  style: {
+    width: toggleWidth,
+    height: toggleHeight,
+    backgroundColor: '#000a00',      // Dark green background like minimap
+    borderColor: '#00ff41',          // Bright CRT green
+    activeColor: '#00ff41',          // Consistent green for active state
+    inactiveColor: '#001a00',        // Darker green for inactive
+    textColor: '#00ff41',            // CRT green text
+    glowColor: '#00ff41',            // Green glow
+    font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
+    glow: true,
+    animated: true,
+    scanlineIntensity: 0.3,          // Slightly more visible scanlines
+    chromaticAberration: false,      // Disabled for cleaner CRT look
+  }
+}, performance.now());
+
     // === Additional Metrics: Mass & Entropium ===
-    let infoY = y - Math.floor(12 * scale);
+    let infoY = toggleY - Math.floor(42 * scale);
     const infoX = Math.floor(64 * scale);
     const lineHeight = Math.floor(16 * scale);
 

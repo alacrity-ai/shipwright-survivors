@@ -190,7 +190,5 @@ export class BackgroundRendererGL {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     this.gl.clearColor(0, 0, 0, 0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-
-    console.log('[BackgroundRendererGL] Destroyed and cleared all GL state.');
   }
 }

@@ -84,7 +84,6 @@ export class PickupSystem {
     });
 
     lightingOrchestrator.registerLight(light);
-    console.log('Registered light for currency pickup:', light.id);
 
     const newPickup: PickupInstance = {
       type: {
@@ -120,7 +119,6 @@ export class PickupSystem {
     });
 
     lightingOrchestrator.registerLight(light);
-    console.log('Registered light for repair pickup:', light.id);
 
     const newPickup: PickupInstance = {
       type: {

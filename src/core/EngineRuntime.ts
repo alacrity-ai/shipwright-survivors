@@ -285,7 +285,7 @@ export class EngineRuntime {
     );
 
     // Player controls
-    this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer);
+    this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer, this.ship);
 
     // Menus
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);

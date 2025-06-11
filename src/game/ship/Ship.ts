@@ -6,6 +6,9 @@ import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTr
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { WeaponFiringPlanEntry } from '@/systems/combat/types/WeaponTypes';
+import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
+import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -19,20 +22,14 @@ import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
-interface WeaponFiringPlanEntry {
-  coord: GridCoord;
-  block: BlockInstance;
-  fireRate: number;
-  fireCooldown: number;
-  timeSinceLastShot: number;
-}
-
 export class Ship extends CompositeBlockObject {
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
   private firingPlan: WeaponFiringPlanEntry[] = [];
   private firingPlanIndex: Map<BlockInstance, number> = new Map();
+  private turretSequenceState: Record<TurretClassId, TurretSequenceState> = {};
+  private firingMode: FiringMode = FiringMode.Synced;
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
@@ -159,6 +156,14 @@ export class Ship extends CompositeBlockObject {
     return this.firingPlan;
   }
 
+  public getFiringMode(): FiringMode {
+    return this.firingMode;
+  }
+
+  public setFiringMode(mode: FiringMode): void {
+    this.firingMode = mode;
+  }
+
   /**
    * Prunes stale turret entries and rebuilds the turret plan index map.
    * Useful as a periodic consistency safeguard.
@@ -244,6 +249,10 @@ export class Ship extends CompositeBlockObject {
 
     this.firingPlan = newPlan;
     this.firingPlanIndex = newIndex;
+  }
+
+  public resetTurretSequenceState(): void {
+    this.turretSequenceState = {};
   }
 
   // === Ship affixes ===

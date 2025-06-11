@@ -164,7 +164,6 @@ export class MiniMap {
     }
 
     this.iconCache.set(icon, canvas);
-    console.log('[MiniMap] Created new icon:', icon);
     return canvas;
   }
 
@@ -219,7 +218,6 @@ export class MiniMap {
       const image = this.getOrCreateIncidentIcon(icon);
       const half = Math.floor(image.width / 2);
       ctx.drawImage(image, screen.x - half, screen.y - half);
-      console.log('[MiniMap] Drawn incident icon:', icon);
     }
 
     // === Minimal scanlines ===

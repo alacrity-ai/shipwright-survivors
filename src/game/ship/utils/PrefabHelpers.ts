@@ -1,4 +1,6 @@
 import { Ship } from '@/game/ship/Ship';
+import { FiringMode } from '@/systems/combat/types/WeaponTypes';
+
 import type { Grid } from '@/systems/physics/Grid';
 
 export function getStarterShip(grid: Grid) {
@@ -21,6 +23,6 @@ export function getStarterShip(grid: Grid) {
       ship.placeBlockById({ x: 1, y: 1 }, 'engine1');
 
       ship.hideAllBlocks();
-
+      ship.setFiringMode(FiringMode.Sequence);
       return ship;
 }

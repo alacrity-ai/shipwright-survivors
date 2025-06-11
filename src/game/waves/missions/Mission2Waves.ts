@@ -36,17 +36,17 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: '/earlygame/ship_miniturret_00', count: 8 },
       { shipId: '/earlygame/ship_rammerspear_00', count: 4, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
     ],
-    incidents: [
-      {
-        spawnChance: 1.0,
-        script: 'BlackHoleIncident',
-        options: {
-          x: 0,
-          y: 0,
-        },
-        label: 'Black Hole',
-      },
-    ],
+    // incidents: [
+    //   {
+    //     spawnChance: 1.0,
+    //     script: 'BlackHoleIncident',
+    //     options: {
+    //       x: 0,
+    //       y: 0,
+    //     },
+    //     label: 'Black Hole',
+    //   },
+    // ],
   },
   {
     id: 2,

@@ -731,10 +731,8 @@ export function initializeGLBlockSpriteCache(gl: WebGLRenderingContext): void {
 
       glSpriteCache.set(block.id, glVariants);
       convertedCount++;
-
-      console.log(`[GLCache] Converted block '${block.id}' into GPU textures`);
     } catch (e) {
-      console.error(`[GLCache] Failed to convert block '${block.id}' to WebGL textures:`, e);
+      console.error(`[GLCache] Failed to convert block sprite to GL texture: ${block.id}`, e);
     }
   }
 
@@ -755,7 +753,6 @@ export function destroyGLBlockSpriteCache(gl: WebGLRenderingContext): void {
   }
 
   glSpriteCache.clear();
-  console.log('[GLCache] All GPU block textures have been deleted and cache cleared.');
 }
 
 
