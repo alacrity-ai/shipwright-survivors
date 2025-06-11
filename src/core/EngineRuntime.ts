@@ -648,6 +648,7 @@ export class EngineRuntime {
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();
     Camera.destroy();
+    MenuManager.getInstance().reset();
 
     // Optional: clear UI menus, overlays
     this.hud.destroy();
@@ -655,6 +656,7 @@ export class EngineRuntime {
     this.lightingOrchestrator.destroy();
     this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
     this.background.destroy();
+    this.missionDialogueManager.destroy();
     destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
 
     // // Clear rendering and update lists

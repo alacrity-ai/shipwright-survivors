@@ -149,7 +149,10 @@ TODOS:
   - [ ] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
     - [x] Pickups added to game
     - [ ] Repair removed
+  - [ ] Make enemy wave spawn notifications more gameified and obvious. Big warning center screen + sounds, blinking countdown, and perhaps notifications when wave spawner is paused, e.g. in an event.
   - [ ] Lots of Random Events things to discover in a run:
+    - [ ] ADD Dialoge PAUSE functionality to the dialoguequeuemanager so that:
+      When an event is triggered, it can show it's own dialogue, and then afterwards, resume the previous dialogue.
     - [ ] Random Events (e.g. Black Hole, Gravitational Anomaly, etc)
     - [ ] Enemy Spawner: When triggered, spawns a bunch of enemies, destroying it gives reward
     - [ ] Healing beacons : destroying it drops a bunch of HP
@@ -215,6 +218,7 @@ BUGS:
   - [ ] Mission result menu does not scale with resolution
   - [ ] Planet Popping in and out of view when it's nearly offscreen but not completely
   - [ ] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
+    - [ ] Reproduced on new game. Dialogue was rolling out aligned right, not aligned left.
   - [x] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
   - [x] Background is different size in different resolutions
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas

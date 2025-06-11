@@ -19,6 +19,9 @@ export function createHubIntroductionScript(ctx: DialogueContext): DialogueScrip
     id: 'hub-introduction-1',
     defaultMode: 'inPerson',
     events: [
+      // TODO : BUG : Why is this dialogue right aligned when rolling out here?
+      // Is it from the previous mission's dialogue manager somehow not cleaning up? OR??
+      // The text is definitely rolling out right aligned or centered, not left aligned.
       // === Marla's dead-eyed introduction to the hub ===
       {
         type: 'pause',

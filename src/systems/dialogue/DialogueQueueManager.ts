@@ -221,4 +221,8 @@ export class DialogueQueueManager {
     this.orchestrator.clear();
     this.asyncManager.clearAll();
   }
+
+  public destroy(): void {
+    this.clear();
+  }
 }
