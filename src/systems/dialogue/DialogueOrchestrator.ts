@@ -22,6 +22,14 @@ export class DialogueOrchestrator {
   private visualsVisible = true;
   private forceRightSide: boolean = false;
 
+  private readonly onMenuOpened = ({ id }: { id: string }) => {
+    if (id === 'blockDropDecisionMenu') this.forceRightSide = true;
+  };
+
+  private readonly onMenuClosed = ({ id }: { id: string }) => {
+    if (id === 'blockDropDecisionMenu') this.forceRightSide = false;
+  };
+
   constructor(
     private readonly portraitRenderer: PortraitRenderer,
     private readonly textboxRenderer: TextboxRenderer,
@@ -29,14 +37,13 @@ export class DialogueOrchestrator {
     private readonly audioSynchronizer: BlipAudioSynchronizer,
     private readonly speakerRegistry: SpeakerVoiceRegistry
   ) {
-    // Subscribe to menu open/close events
-    GlobalEventBus.on('menu:opened', ({ id }) => {
-      if (id === 'blockDropDecisionMenu') this.forceRightSide = true;
-    });
+    GlobalEventBus.on('menu:opened', this.onMenuOpened);
+    GlobalEventBus.on('menu:closed', this.onMenuClosed);
+  }
 
-    GlobalEventBus.on('menu:closed', ({ id }) => {
-      if (id === 'blockDropDecisionMenu') this.forceRightSide = false;
-    });
+  public destroy(): void {
+    GlobalEventBus.off('menu:opened', this.onMenuOpened);
+    GlobalEventBus.off('menu:closed', this.onMenuClosed);
   }
 
   public startDialogue(line: DialogueLine): void {

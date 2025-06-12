@@ -2,15 +2,10 @@
 
 import { GlobalEventBus } from '@/core/EventBus';
 
-export interface IncidentMenuOpenEvent {
-  id: string; // Name or unique identifier of the menu
+export function menuOpened(id: string): void {
+  GlobalEventBus.emit('menu:opened', { id });
 }
 
-export function menuOpened(event: IncidentMenuOpenEvent): void {
-  GlobalEventBus.emit('menu:opened', event);
+export function menuClosed(id: string): void {
+  GlobalEventBus.emit('menu:closed', { id });
 }
-
-export function menuClosed(event: IncidentMenuOpenEvent): void {
-  GlobalEventBus.emit('menu:closed', event);
-}
-

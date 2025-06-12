@@ -155,7 +155,7 @@ export class BlockDropDecisionMenu implements Menu {
     this.preOpenTimer = this.PRE_OPEN_DURATION;
     this.open = true;
 
-    menuOpened({ id: 'blockDropDecisionMenu' });
+    menuOpened('blockDropDecisionMenu');
   }
 
   enqueueBlock(blockType: BlockType): void {
@@ -351,7 +351,7 @@ export class BlockDropDecisionMenu implements Menu {
       this.animationPhase = 'sliding-out';
       const camera = Camera.getInstance();
       camera.animateZoomTo(this.originalZoom);
-      menuClosed({ id: 'blockDropDecisionMenu' });
+      menuClosed('blockDropDecisionMenu');
     }
   }
 
@@ -478,7 +478,7 @@ export class BlockDropDecisionMenu implements Menu {
     this.queue.length = 0;
     this.currentBlockType = null;
     this.nextBlockPreviewRenderer = null;
-    menuClosed({ id: 'blockDropDecisionMenu' });
+    menuClosed('blockDropDecisionMenu');
   }
 
   isBlocking(): boolean {

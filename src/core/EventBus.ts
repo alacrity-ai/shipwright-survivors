@@ -1,24 +1,27 @@
 // src/core/EventBus.ts
 
-type EventHandler<T = any> = (payload: T) => void;
+import type { EventTypes } from '@/core/interfaces/EventTypes';
 
-export class EventBus {
-  private listeners = new Map<string, Set<EventHandler>>();
+type EventHandler<T> = (payload: T) => void;
 
-  on<T = any>(event: string, handler: EventHandler<T>): void {
+export class EventBus<Events extends Record<string, any>> {
+  private listeners = new Map<keyof Events, Set<EventHandler<any>>>();
+
+  on<K extends keyof Events>(event: K, handler: EventHandler<Events[K]>): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)!.add(handler);
   }
 
-  off<T = any>(event: string, handler: EventHandler<T>): void {
+  off<K extends keyof Events>(event: K, handler: EventHandler<Events[K]>): void {
     this.listeners.get(event)?.delete(handler);
   }
 
-  emit<T = any>(event: string, payload: T): void {
+  emit<K extends keyof Events>(event: K, payload: Events[K]): void {
     this.listeners.get(event)?.forEach(handler => handler(payload));
   }
 }
 
-export const GlobalEventBus = new EventBus();
+// Usage:
+export const GlobalEventBus = new EventBus<EventTypes>();

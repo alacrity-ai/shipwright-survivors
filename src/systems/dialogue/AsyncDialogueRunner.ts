@@ -1,10 +1,11 @@
+// src/systems/dialogue/AsyncDialogueRunner.ts
+
 import type { DialogueEvent } from '@/systems/dialogue/interfaces/DialogueEvent';
 import { DialogueOrchestrator } from '@/systems/dialogue/DialogueOrchestrator';
 import { getTextBoxLayout } from '@/systems/dialogue/utils/getTextBoxLayout';
 import { speakerVoiceRegistry } from '@/systems/dialogue/registry/SpeakerVoiceRegistry';
 
 import { GlobalEventBus } from '@/core/EventBus';
-
 
 export class AsyncDialogueRunner {
   private index = 0;
@@ -15,18 +16,27 @@ export class AsyncDialogueRunner {
   private hasVisualFocus = false;
   private forceRightSide = false;
 
+  private readonly onMenuOpened = ({ id }: { id: string }) => {
+    if (id === 'blockDropDecisionMenu') this.forceRightSide = true;
+  };
+
+  private readonly onMenuClosed = ({ id }: { id: string }) => {
+    if (id === 'blockDropDecisionMenu') this.forceRightSide = false;
+  };
+
   constructor(
     private readonly events: DialogueEvent[],
     private readonly orchestrator: DialogueOrchestrator,
     private readonly shouldInterrupt: () => boolean = () => false
   ) {
-    GlobalEventBus.on('menu:opened', ({ id }) => {
-      if (id === 'blockDropDecisionMenu') this.forceRightSide = true;
-    });
+    GlobalEventBus.on('menu:opened', this.onMenuOpened);
+    GlobalEventBus.on('menu:closed', this.onMenuClosed);
+  }
 
-    GlobalEventBus.on('menu:closed', ({ id }) => {
-      if (id === 'blockDropDecisionMenu') this.forceRightSide = false;
-    });
+  public destroy(): void {
+    GlobalEventBus.off('menu:opened', this.onMenuOpened);
+    GlobalEventBus.off('menu:closed', this.onMenuClosed);
+    this.orchestrator.destroy(); // Also clean up orchestrator
   }
 
   update(dt: number): void {

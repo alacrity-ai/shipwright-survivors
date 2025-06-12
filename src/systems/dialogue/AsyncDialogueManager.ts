@@ -1,3 +1,5 @@
+// src/systems/dialogue/AsyncDialogueManager.ts
+
 import { AsyncDialogueRunner } from './AsyncDialogueRunner';
 import { DialogueOrchestrator } from './DialogueOrchestrator';
 import type { DialogueEvent } from './interfaces/DialogueEvent';
@@ -25,12 +27,12 @@ export class AsyncDialogueManager {
     for (const runner of this.allRunners) {
       runner.update(dt);
 
-      // A runner that reaches a line and wants to be visible enters the renderQueue
+      // Runner enters renderQueue when it wants to be visual
       if (runner.wantsVisualFocus() && !this.renderQueue.includes(runner)) {
         this.renderQueue.push(runner);
       }
 
-      // Clean up finished
+      // Cleanup finished runners
       if (runner.isFinished()) {
         this.allRunners.delete(runner);
         if (runner === this.currentRenderer) {
@@ -43,10 +45,13 @@ export class AsyncDialogueManager {
             break;
           }
         }
+
+        // Explicit teardown of completed runner
+        runner.destroy();
       }
     }
 
-    // Promote next renderer if current is done
+    // Promote next renderer
     if (!this.currentRenderer && this.renderQueue.length > 0) {
       this.currentRenderer = this.renderQueue.shift()!;
       this.currentRenderer.grantVisualFocus();
@@ -54,14 +59,22 @@ export class AsyncDialogueManager {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    if (this.currentRenderer) {
-      this.currentRenderer.render(ctx);
-    }
+    this.currentRenderer?.render(ctx);
   }
 
   clearAll(): void {
     for (const runner of this.allRunners) {
       runner.clear();
+    }
+    this.allRunners.clear();
+    this.runnerMap.clear();
+    this.renderQueue.length = 0;
+    this.currentRenderer = null;
+  }
+
+  destroy(): void {
+    for (const runner of this.allRunners) {
+      runner.destroy();
     }
     this.allRunners.clear();
     this.runnerMap.clear();
