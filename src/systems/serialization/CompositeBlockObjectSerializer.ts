@@ -1,7 +1,6 @@
 import type { Grid } from '@/systems/physics/Grid';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
-import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { AsteroidJsonBlueprint } from '@/game/spawners/types/AsteroidJsonBlueprint';
 
@@ -78,6 +77,7 @@ export async function loadAsteroidFromJson(
     if (!type) throw new Error(`Unknown block type: ${b.id}`);
 
     const block: BlockInstance = {
+      id: crypto.randomUUID(),
       type,
       hp: type.armor,
       ownerShipId: asteroid.id,

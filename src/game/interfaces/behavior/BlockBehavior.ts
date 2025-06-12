@@ -1,6 +1,7 @@
 // src/game/interfaces/BlockBehavior.ts
 
 import type { FireBehavior } from '@/game/interfaces/behavior/FireBehavior';
+import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
 
 export interface BlockBehavior {
   canFire?: boolean;
@@ -17,4 +18,5 @@ export interface BlockBehavior {
   harvestRate?: number;
   rammingDamageMultiplier?: number; // NEW
   rammingArmor?: number; // NEW
+  haloBladeProperties?: HaloBladeProperties;
 }

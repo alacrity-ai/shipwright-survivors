@@ -13,6 +13,7 @@ import { renderShieldGenerator } from './blockRenderers/shieldBlockRenderer';
 import { renderHarvester } from './blockRenderers/harvestBlockRenderer';
 import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRenderer';
 import { createTextureFromCanvas } from '@/rendering/gl/glTextureUtils';
+import { renderHaloBladeBlock } from './blockRenderers/haloBladeBlockRenderer';
 
 // --- Damage Level Enum ---
 
@@ -664,6 +665,59 @@ function drawProceduralBlock(typeId: string): void {
           [0, '#e1bee7'],
           [0.5, '#ba68c8'],
           [1, '#8e24aa']
+        ]
+      });
+      break;
+
+    case 'haloBlade0':
+    case 'haloBlade1':
+      renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
+        ringColor: '#FFBF00',
+        coreColor: '#FFEB3B',
+        glowColor: 'rgba(255, 191, 0, 0.4)',
+        casingStops: [
+          [0, '#3A3A3A'],
+          [0.5, '#2A2A2A'],
+          [1, '#101010']
+        ]
+      });
+      break;
+
+    case 'haloBlade2':
+      renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
+        ringColor: '#2CFF05',
+        coreColor: '#B2FF59',
+        glowColor: 'rgba(44, 255, 5, 0.35)',
+        casingStops: [
+          [0, '#1B3C29'],
+          [0.5, '#254D32'],
+          [1, '#122D21']
+        ]
+      });
+      break;
+
+    case 'haloBlade3':
+      renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
+        ringColor: '#00FFFF',
+        coreColor: '#80DEEA',
+        glowColor: 'rgba(0, 255, 255, 0.35)',
+        casingStops: [
+          [0, '#263238'],
+          [0.5, '#37474F'],
+          [1, '#212121']
+        ]
+      });
+      break;
+
+    case 'haloBlade4':
+      renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
+        ringColor: '#7F00FF',
+        coreColor: '#D1C4E9',
+        glowColor: 'rgba(127, 0, 255, 0.4)',
+        casingStops: [
+          [0, '#2E003E'],
+          [0.5, '#1D002A'],
+          [1, '#0A0014']
         ]
       });
       break;

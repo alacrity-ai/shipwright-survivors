@@ -25,7 +25,7 @@ export class CombatService {
     block: BlockInstance,
     coord: GridCoord,
     damage: number,
-    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'scripted' = 'scripted',
+    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'haloBlade' | 'scripted' = 'scripted',
     playerShip: Ship | null = null
   ): boolean {
     if (block.indestructible) return false;

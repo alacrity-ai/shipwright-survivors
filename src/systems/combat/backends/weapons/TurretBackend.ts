@@ -178,4 +178,6 @@ export class TurretBackend implements WeaponBackend {
       'delayed'
     );
   }
+
+  render(dt: number): void {}
 }

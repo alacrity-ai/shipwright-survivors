@@ -20,6 +20,7 @@ export type DestructionCause =
   | 'laser'
   | 'explosiveLance'
   | 'explosiveLanceAoE'
+  | 'haloBlade'
   | 'self'
   | 'scripted';
 

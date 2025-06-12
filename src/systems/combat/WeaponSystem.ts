@@ -7,6 +7,7 @@ import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTr
 // Define the interface for pluggable weapon backends
 export interface WeaponBackend {
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void;
+  render(dt: number): void;
 }
 
 export class WeaponSystem {
@@ -24,6 +25,14 @@ export class WeaponSystem {
   public update(dt: number, ship: Ship, transform: BlockEntityTransform): void {
     for (const backend of this.backends) {
       backend.update(dt, ship, transform, this.currentIntent);
+    }
+  }
+
+  public render(dt: number): void {
+    for (const backend of this.backends) {
+      if (backend.render) {
+        backend.render(dt);
+      }
     }
   }
 }

@@ -95,7 +95,9 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Mines (Potential Different types)
   - [ ] Homing Missles (Seeking Missles)
   - [x] Explosive Lance (Fire a fast lance that hits an enemy block, sticks in, then detonates)
-  - [ ] Orbiting Blade (Blades orbit the player ship, dealing damage on contact to enemies)
+  - [x] Orbiting Blade (Blades orbit the player ship, dealing damage on contact to enemies)
+    - [ ] Refactor the blade image to be webGL.
+    - [ ] Fix issue where inner circles aren't equidistant.. verify that we're not calculating distances every frame.
   - [ ] Arc Conduit Emitter (Chain lightning)
   - [ ] Grappling Hook
   - [ ] Garlic (In vampire Survivors)

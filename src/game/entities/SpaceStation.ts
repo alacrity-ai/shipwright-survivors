@@ -36,6 +36,7 @@ export class SpaceStation extends CompositeBlockObject {
     const worldPos = this.calculateBlockWorldPosition(coord);  // Use the helper method to calculate world position
     
     const block: BlockInstance = {
+      id: crypto.randomUUID(),
       type,
       hp: type.armor,
       ownerShipId: this.id,  // Associate the block with this ship's ID

@@ -843,6 +843,106 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'exploration',
     dropRate: 0.1
   },
+  haloBlade0: {
+    id: 'haloBlade0',
+    name: 'Halo Blade Mk 0',
+    armor: 100,
+    mass: 80,
+    cost: 1000,
+    behavior: {
+      haloBladeProperties: {
+        orbitingRadius: 500,
+        orbitingSpeed: 2,
+        size: 64,
+        damage: 10,
+        color: '#FFBF00'
+      }
+    },
+    sprite: 'haloBlade0',
+    category: 'weapon',
+    subcategory: 'haloBlade',
+    dropRate: 0.05
+  },
+  haloBlade1: {
+    id: 'haloBlade1',
+    name: 'Halo Blade Mk I',
+    armor: 120,
+    mass: 80,
+    cost: 1200,
+    behavior: {
+      haloBladeProperties: {
+        orbitingRadius: 500,
+        orbitingSpeed: 2,
+        size: 64,
+        damage: 10,
+        color: '#FFBF00'
+      }
+    },
+    sprite: 'haloBlade1',
+    category: 'weapon',
+    subcategory: 'haloBlade',
+    dropRate: 0.05
+  },
+  haloBlade2: {
+    id: 'haloBlade2',
+    name: 'Halo Blade Mk II',
+    armor: 140,
+    mass: 80,
+    cost: 1400,
+    behavior: {
+      haloBladeProperties: {
+        orbitingRadius: 700,
+        orbitingSpeed: 2.4,
+        size: 64,
+        damage: 15,
+        color: '#2CFF05'
+      }
+    },
+    sprite: 'haloBlade2',
+    category: 'weapon',
+    subcategory: 'haloBlade',
+    dropRate: 0.05
+  },
+  haloBlade3: {
+    id: 'haloBlade3',
+    name: 'Halo Blade Mk III',
+    armor: 160,
+    mass: 80,
+    cost: 1600,
+    behavior: {
+      haloBladeProperties: {
+        orbitingRadius: 900,
+        orbitingSpeed: 2.8,
+        size: 64,
+        damage: 22,
+        color: '#00FFFF'
+      }
+    },
+    sprite: 'haloBlade3',
+    category: 'weapon',
+    subcategory: 'haloBlade',
+    dropRate: 0.05
+  },
+  haloBlade4: {
+    id: 'haloBlade4',
+    name: 'Halo Blade Mk IV',
+    armor: 180,
+    mass: 80,
+    cost: 1800,
+    behavior: {
+      haloBladeProperties: {
+        orbitingRadius: 1100,
+        orbitingSpeed: 3.2,
+        size: 64,
+        damage: 32,
+        color: '#7F00FF'
+      }
+    },
+    sprite: 'haloBlade4',
+    category: 'weapon',
+    subcategory: 'haloBlade',
+    dropRate: 0.05
+  },
 };
 
 export function getAllBlockTypes(): BlockType[] {

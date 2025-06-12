@@ -266,4 +266,6 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
     this.particleManager.removeParticle(lance.particle);
   }
+
+  render(dt: number): void {}
 }

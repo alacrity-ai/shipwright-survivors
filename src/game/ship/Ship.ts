@@ -8,6 +8,8 @@ import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { WeaponFiringPlanEntry } from '@/systems/combat/types/WeaponTypes';
 import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
+import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
+
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 import { createPointLight } from '@/lighting/lights/createPointLight';
@@ -31,6 +33,7 @@ export class Ship extends CompositeBlockObject {
   private turretSequenceState: Record<TurretClassId, TurretSequenceState> = {};
   private firingMode: FiringMode = FiringMode.Synced;
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
+  private haloBladeBlocks: Map<BlockInstance, HaloBladeProperties> = new Map();
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
   private lightAuraId: string | null = null;
@@ -320,6 +323,10 @@ export class Ship extends CompositeBlockObject {
     };
   }
 
+  public getHaloBladeBlocks(): Map<BlockInstance, HaloBladeProperties> {
+    return this.haloBladeBlocks;
+  }
+
   // === Utility Systems: Harvesting, etc ===
 
   public getTotalHarvestRate(): number {
@@ -328,6 +335,17 @@ export class Ship extends CompositeBlockObject {
       total += rate;
     }
     return total;
+  }
+
+  private rebuildHaloBladeIndex(): void {
+    this.haloBladeBlocks.clear();
+
+    for (const [, block] of this.blocks.entries()) {
+      const halo = block.type.behavior?.haloBladeProperties;
+      if (halo) {
+        this.haloBladeBlocks.set(block, halo);
+      }
+    }
   }
 
   // === Ship Specific Block Placement & Removal Overrides ===
@@ -341,8 +359,10 @@ export class Ship extends CompositeBlockObject {
     }
 
     const worldPos = this.calculateBlockWorldPosition(coord);
+    const uniqueId = crypto.randomUUID();
 
     const block: BlockInstance = {
+      id: uniqueId,
       type,
       hp: type.armor,
       ownerShipId: this.id,
@@ -373,6 +393,11 @@ export class Ship extends CompositeBlockObject {
       this.harvesterBlocks.set(block, harvestRate);
     }
 
+    const halo = block.type.behavior?.haloBladeProperties;
+    if (halo) {
+      this.haloBladeBlocks.set(block, halo);
+    }
+    
     this.invalidateMass();
     this.recomputeEnergyStats();
     this.addWeaponToPlanIfApplicable(coord, block);
@@ -389,6 +414,7 @@ export class Ship extends CompositeBlockObject {
       // Remove from subsystem indices
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
+      this.haloBladeBlocks.delete(block);
       this.removeWeaponFromPlanIfApplicable(block);
 
       // Unregister from block→object index
@@ -439,6 +465,7 @@ export class Ship extends CompositeBlockObject {
     for (const block of blocksToRemove) {
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
+      this.haloBladeBlocks.delete(block);
       BlockToObjectIndex.unregisterBlock(block);
     }
 
@@ -506,6 +533,7 @@ export class Ship extends CompositeBlockObject {
     });
 
     this.validateFiringPlan();
+    this.rebuildHaloBladeIndex();
   }
 
   // What about this?

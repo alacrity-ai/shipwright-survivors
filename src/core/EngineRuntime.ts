@@ -57,10 +57,11 @@ import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 import { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
 import { AsteroidRenderer } from '@/rendering/AsteroidRenderer';
-import { TurretBackend } from '@/systems/combat/backends/TurretBackend';
-import { LaserBackend } from '@/systems/combat/backends/LaserBackend';
-import { ExplosiveLanceBackend } from '@/systems/combat/backends/ExplosiveLanceBackend';
-import { ShieldToggleBackend } from '@/systems/combat/backends/ShieldToggleBackend';
+import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
+import { LaserBackend } from '@/systems/combat/backends/weapons/LaserBackend';
+import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBackend';
+import { ExplosiveLanceBackend } from '@/systems/combat/backends/weapons/ExplosiveLanceBackend';
+import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
 import { CombatService } from '@/systems/combat/CombatService';
 import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
 
@@ -324,6 +325,7 @@ export class EngineRuntime {
       new TurretBackend(this.projectileSystem, this.ship),
       new LaserBackend(this.laserSystem),
       new ExplosiveLanceBackend(combatService, this.particleManager, this.grid, this.explosionSystem, this.ship),
+      new HaloBladeBackend(combatService, this.particleManager, this.grid, this.ship)
     );
     this.utilitySystem = new UtilitySystem(
       new ShieldToggleBackend()
@@ -411,7 +413,7 @@ export class EngineRuntime {
           if (!this.ship) {
             return;
           }
-
+          // Player Ship's update
           const intent: ShipIntent = this.playerController.getIntent();
           this.movement.setIntent(intent.movement);
           this.weaponSystem.setIntent(intent.weapons);
@@ -451,7 +453,8 @@ export class EngineRuntime {
       this.missionDialogueManager,
       this.shipConstructionAnimator,
       this.planetSystem,
-      this.lightingOrchestrator
+      this.lightingOrchestrator,
+      this.weaponSystem // The player's weapon system
     ];
 
     this.registerLoopHandlers();
@@ -522,7 +525,8 @@ export class EngineRuntime {
     // Debug keys 
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
-      const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
+      // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
+      const randomTypes = ['haloBlade0', 'haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 

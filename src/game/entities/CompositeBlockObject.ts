@@ -353,7 +353,9 @@ export abstract class CompositeBlockObject {
         return;
       }
 
+      const uniqueId = crypto.randomUUID();
       const block: BlockInstance = {
+        id: uniqueId,
         type,
         rotation: blockData.rotation ?? 0,
         hp: type.armor,

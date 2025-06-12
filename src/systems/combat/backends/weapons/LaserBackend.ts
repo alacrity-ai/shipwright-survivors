@@ -40,4 +40,6 @@ export class LaserBackend implements WeaponBackend {
 
     this.laserSystem.queueUpdate(ship, transform, intent);
   }
+
+  render(dt: number): void {}
 }

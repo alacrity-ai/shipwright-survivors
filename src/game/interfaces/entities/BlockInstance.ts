@@ -3,6 +3,7 @@
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
 export interface BlockInstance {
+  id: string;             // UUID
   type: BlockType;       // reference to immutable block definition
   hp: number;            // current health
   ownerShipId: string;   // unique ID of the ship this block belongs to
