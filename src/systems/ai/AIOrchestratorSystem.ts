@@ -144,4 +144,17 @@ export class AIOrchestratorSystem implements IUpdatable {
       this.removeController(controller);
     }
   }
+
+  public render(dt: number): void {
+    // TODO : Verify if this is efficient enough
+    for (const [controller, ship] of this.controllerToShipMap) {
+      try {
+        if (typeof controller.render === 'function') {
+          controller.render(dt);
+        }
+      } catch (error) {
+        console.error('Error rendering AI controller:', error);
+      }
+    }
+  }
 }

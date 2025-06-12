@@ -454,7 +454,8 @@ export class EngineRuntime {
       this.shipConstructionAnimator,
       this.planetSystem,
       this.lightingOrchestrator,
-      this.weaponSystem // The player's weapon system
+      this.weaponSystem, // The player's weapon system
+      this.aiOrchestrator
     ];
 
     this.registerLoopHandlers();

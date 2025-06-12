@@ -5,6 +5,8 @@ import type { Menu } from '@/ui/interfaces/Menu';
 import type { MenuManager } from '@/ui/MenuManager';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 
+import { audioManager } from '@/audio/Audio';
+
 type MenuContext = {
   inputManager: InputManager;
   pause: () => void;
@@ -42,6 +44,9 @@ export function handleMenuInput({
         console.log('Called openMenu on blockDropDecisionMenu')
         blockDropDecisionMenu.openMenu();
         return;
+      } else {
+        console.log('No blocks in queue, not opening blockDropDecisionMenu');
+        audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
       }
     }
     console.log('Failed to open blockDropDecisionMenu');

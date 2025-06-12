@@ -8,9 +8,6 @@ import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSy
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { menuOpened, menuClosed } from '@/ui/menus/events/MenuOpenReporter';
-import { BLOCK_PICKUP_LIGHT_TIER_COLORS } from '@/systems/pickups/PickupSystem';
-import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
-import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock';
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';

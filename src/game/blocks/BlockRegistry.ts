@@ -848,7 +848,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Halo Blade Mk 0',
     armor: 100,
     mass: 80,
-    cost: 1000,
+    cost: 400,
     behavior: {
       haloBladeProperties: {
         orbitingRadius: 500,
@@ -868,7 +868,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Halo Blade Mk I',
     armor: 120,
     mass: 80,
-    cost: 1200,
+    cost: 400,
     behavior: {
       haloBladeProperties: {
         orbitingRadius: 500,
@@ -888,7 +888,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Halo Blade Mk II',
     armor: 140,
     mass: 80,
-    cost: 1400,
+    cost: 600,
     behavior: {
       haloBladeProperties: {
         orbitingRadius: 700,
@@ -908,7 +908,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Halo Blade Mk III',
     armor: 160,
     mass: 80,
-    cost: 1600,
+    cost: 900,
     behavior: {
       haloBladeProperties: {
         orbitingRadius: 900,
@@ -928,7 +928,7 @@ const blockTypes: Record<string, BlockType> = {
     name: 'Halo Blade Mk IV',
     armor: 180,
     mass: 80,
-    cost: 1800,
+    cost: 1200,
     behavior: {
       haloBladeProperties: {
         orbitingRadius: 1100,

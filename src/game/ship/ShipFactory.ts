@@ -7,6 +7,7 @@ import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/weapons/LaserBackend';
 import { ExplosiveLanceBackend } from '@/systems/combat/backends/weapons/ExplosiveLanceBackend';
+import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBackend';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
@@ -26,6 +27,7 @@ import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+
 
 export type AuraLightOptions = {
   color: string;
@@ -74,7 +76,8 @@ export class ShipFactory {
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem, this.playerShip),
       new LaserBackend(this.laserSystem),
-      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.playerShip)
+      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.playerShip),
+      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, this.playerShip)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
