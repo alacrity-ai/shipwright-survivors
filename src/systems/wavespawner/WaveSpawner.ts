@@ -15,8 +15,11 @@ import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipCo
 import type { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
+import { audioManager } from '@/audio/Audio';
 import { ShipFactory } from '@/game/ship/ShipFactory';
 import { CombatService } from '@/systems/combat/CombatService';
 
@@ -75,7 +78,8 @@ export class WaveSpawner implements IUpdatable {
     private readonly explosionSystem: ExplosionSystem,
     private readonly collisionSystem: BlockObjectCollisionSystem,
     private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
-    private readonly incidentSystem: IncidentOrchestrator
+    private readonly incidentSystem: IncidentOrchestrator,
+    private readonly popupMessageSystem: PopupMessageSystem
   ) {
     this.shipFactory = new ShipFactory(
       this.grid,
@@ -258,7 +262,25 @@ export class WaveSpawner implements IUpdatable {
     }
 
     if (wave.type === 'boss') {
+      audioManager.playMusic(wave.music ?? { file: 'assets/sounds/music/track_03_boss.mp3' });
+      this.popupMessageSystem.displayMessage('⚠ DANGER ⚠', {
+        color: '#ff5555',
+        duration: 4,
+        glow: true,
+        font: '28px monospace',
+      });
+      if (wave.lightingSettings?.clearColor) {
+        const lightingOrchestrator = LightingOrchestrator.getInstance();
+        lightingOrchestrator.setClearColor(...wave.lightingSettings.clearColor);
+      }
       this.monitorBossWaveCompletion(spawnedShips);
+    } else {
+      this.popupMessageSystem.displayMessage('Wave ' + wave.id, {
+        color: '#00ff00',
+        duration: 3,
+        glow: true,
+        font: '28px monospace',
+      });
     }
   }
 

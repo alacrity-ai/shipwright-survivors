@@ -9,25 +9,31 @@ import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem'
 
 const SEARCH_RADIUS = 20;
 
-export function autoPlaceBlock(ship: Ship, blockType: BlockType, shipBuilderEffects: ShipBuilderEffectsSystem): void {
-  console.log('[autoPlaceBlock]', blockType.name);
-  if (!blockType) return;
+  export function autoPlaceBlock(
+    ship: Ship,
+    blockType: BlockType,
+    shipBuilderEffects: ShipBuilderEffectsSystem
+  ): boolean {
+    console.log('[autoPlaceBlock]', blockType.name);
+    if (!blockType) return false;
 
-  const placement = findOptimalPlacement(ship, blockType);
-  if (!placement) return;
+    const placement = findOptimalPlacement(ship, blockType);
+    if (!placement) return false;
 
-  const success = ship.placeBlockById(placement.coord, blockType.id, placement.rotation);
-  if (!success) return;
+    const success = ship.placeBlockById(placement.coord, blockType.id, placement.rotation);
+    if (!success) return false;
 
-  const placedBlock = ship.getBlock(placement.coord);
-  if (placedBlock?.position) {
-    shipBuilderEffects.createRepairEffect(placedBlock.position);
+    const placedBlock = ship.getBlock(placement.coord);
+    if (placedBlock?.position) {
+      shipBuilderEffects.createRepairEffect(placedBlock.position);
+    }
+
+    const placementSound = blockType.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
+    audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
+
+    return true;
   }
 
-  const placementSound = blockType.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
-  audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
-  missionResultStore.incrementBlockPlacedCount();
-}
 
 // === IMPROVED PLACEMENT SYSTEM ===
 

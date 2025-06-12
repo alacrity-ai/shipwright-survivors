@@ -2,12 +2,15 @@
 
 import type { Menu } from '@/ui/interfaces/Menu';
 import type { InputManager } from '@/core/InputManager';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
+import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { menuOpened, menuClosed } from '@/ui/menus/events/MenuOpenReporter';
+import { BLOCK_PICKUP_LIGHT_TIER_COLORS } from '@/systems/pickups/PickupSystem';
+import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock';
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
@@ -17,8 +20,6 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
-import { drawBlockTile } from '@/ui/primitives/UIBlockTile';
-import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { audioManager } from '@/audio/Audio';
 
@@ -34,6 +35,7 @@ export class BlockDropDecisionMenu implements Menu {
   private currentBlockType: BlockType | null = null;
 
   private blockPreviewRenderer: BlockPreviewRenderer | null = null;
+  private nextBlockPreviewRenderer: BlockPreviewRenderer | null = null;
 
   private animationPhase: Phase = null;
   private slideX = -800;
@@ -64,10 +66,13 @@ export class BlockDropDecisionMenu implements Menu {
   private readonly BASE_BLOCK_PREVIEW_WIDTH = 82;
   private readonly BASE_BLOCK_SPIN_SPEED = 1;
 
+  // Mini preview dimensions for "Next:" block
+  private readonly BASE_MINI_PREVIEW_HEIGHT = 32;
+  private readonly BASE_MINI_PREVIEW_WIDTH = 32;
+
   private refineButton: UIButton = {} as UIButton;
   private autoplaceButton: UIButton = {} as UIButton;
 
-  private shipBuilderController: ShipBuilderController;
   private shipBuilderEffects: ShipBuilderEffectsSystem;
   private pause: () => void;
   private resume: () => void;
@@ -75,12 +80,10 @@ export class BlockDropDecisionMenu implements Menu {
   constructor(
     private readonly ship: Ship,
     private readonly inputManager: InputManager,
-    shipBuilderController: ShipBuilderController,
     shipBuilderEffects: ShipBuilderEffectsSystem,
     pause: () => void,
     resume: () => void
   ) {
-    this.shipBuilderController = shipBuilderController;
     this.shipBuilderEffects = shipBuilderEffects;
     this.pause = pause;
     this.resume = resume;
@@ -154,11 +157,24 @@ export class BlockDropDecisionMenu implements Menu {
     this.animationPhase = 'pre-open';
     this.preOpenTimer = this.PRE_OPEN_DURATION;
     this.open = true;
+
+    menuOpened({ id: 'blockDropDecisionMenu' });
   }
 
   enqueueBlock(blockType: BlockType): void {
     this.queue.push({ blockType });
+    PlayerResources.getInstance().incrementBlockCount(1);
+    PlayerResources.getInstance().setLastGatheredBlock(blockType);
     console.log('[BlockDropDecisionMenu] Enqueued block', blockType.name);
+    this.updateNextBlockPreview();
+  }
+
+  private updateNextBlockPreview(): void {
+    // Update the next block preview renderer based on queue state
+    const nextBlock = this.queue.length > 0 ? this.queue[0]?.blockType : null;
+    this.nextBlockPreviewRenderer = nextBlock
+      ? new BlockPreviewRenderer(nextBlock, 0, 0)
+      : null;
   }
 
   update(dt: number): void {
@@ -170,6 +186,7 @@ export class BlockDropDecisionMenu implements Menu {
     
     // === Animate block preview ===
     this.blockPreviewRenderer?.update(dt);
+    this.nextBlockPreviewRenderer?.update(dt);
 
     // === Pre-open buffering ===
     if (this.animationPhase === 'pre-open') {
@@ -219,6 +236,7 @@ export class BlockDropDecisionMenu implements Menu {
           this.open = false;
           this.currentBlockType = null;
           this.blockPreviewRenderer = null;
+          this.nextBlockPreviewRenderer = null;
           this.resume();
         }
       }
@@ -294,17 +312,31 @@ export class BlockDropDecisionMenu implements Menu {
     this.blockPreviewRenderer = this.currentBlockType
       ? new BlockPreviewRenderer(this.currentBlockType)
       : null;
+    
+    // Update next block preview after shifting current block
+    this.updateNextBlockPreview();
   }
 
   private handleRefine(): void {
     // Give player currency (Entropium) equal to the block cost
     PlayerResources.getInstance().addCurrency(this.currentBlockType?.cost ?? 0);
+    PlayerResources.getInstance().incrementBlockCount(-1);
+    audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
+    missionResultStore.incrementBlockRefinedCount();
     this.advanceQueueOrClose();
   }
 
   private handleAutoplace(): void {
     if (!this.currentBlockType) return;
-    autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects);
+
+    const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects);
+    if (!success) {
+      audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+      return;
+    }
+
+    PlayerResources.getInstance().incrementBlockCount(-1);
+    missionResultStore.incrementBlockPlacedCount();
     this.advanceQueueOrClose();
   }
 
@@ -314,11 +346,15 @@ export class BlockDropDecisionMenu implements Menu {
       ? new BlockPreviewRenderer(this.currentBlockType, this.BASE_BLOCK_SPIN_SPEED, this.BASE_BLOCK_SPIN_SPEED * 2)
       : null;
 
+    // Update next block preview after advancing
+    this.updateNextBlockPreview();
+
     if (!this.currentBlockType) {
       this.isAnimating = true;
       this.animationPhase = 'sliding-out';
       const camera = Camera.getInstance();
       camera.animateZoomTo(this.originalZoom);
+      menuClosed({ id: 'blockDropDecisionMenu' });
     }
   }
 
@@ -333,7 +369,9 @@ export class BlockDropDecisionMenu implements Menu {
     const scaledWindowHeight = this.BASE_WINDOW_HEIGHT * scale;
     const scaledBlockPreviewHeight = this.BASE_BLOCK_PREVIEW_HEIGHT * scale;
     const scaledBlockPreviewWidth = this.BASE_BLOCK_PREVIEW_WIDTH * scale;
-    const scaledLabelFontSize = this.LABEL_FONT_SIZE * scale;
+    const scaledLabelFontSize = Math.floor(this.LABEL_FONT_SIZE * scale);
+    const scaledMiniPreviewHeight = this.BASE_MINI_PREVIEW_HEIGHT * scale;
+    const scaledMiniPreviewWidth = this.BASE_MINI_PREVIEW_WIDTH * scale;
 
     drawWindow({
       ctx,
@@ -359,7 +397,7 @@ export class BlockDropDecisionMenu implements Menu {
     drawLabel(
       ctx,
       scaledWindowX + scaledSlideX + (scaledWindowWidth / 2),
-      scaledWindowY + (32 * scale),
+      scaledWindowY + (42 * scale),
       this.currentBlockType?.name ?? '',
       {
         font: `${scaledLabelFontSize}px monospace`,
@@ -392,6 +430,31 @@ export class BlockDropDecisionMenu implements Menu {
       );
     }
 
+    // "Next:" label and mini preview in top right
+    if (this.queue.length > 0 && this.nextBlockPreviewRenderer) {
+      const nextLabelText = 'Next:';
+      const nextLabelX = scaledWindowX + scaledSlideX + scaledWindowWidth - (16 * scale) - scaledMiniPreviewWidth - (8 * scale);
+      const nextLabelY = scaledWindowY + (16 * scale);
+      
+      // Draw "Next:" label
+      drawLabel(
+        ctx,
+        nextLabelX,
+        nextLabelY,
+        nextLabelText,
+        {
+          font: `${scaledLabelFontSize}px monospace`,
+          align: 'right',
+          glow: false,
+        },
+      );
+
+      // Draw mini block preview to the right of the label
+      const miniPreviewX = scaledWindowX + scaledSlideX + scaledWindowWidth - (16 * scale) - scaledMiniPreviewWidth;
+      const miniPreviewY = scaledWindowY + (8 * scale);
+      this.nextBlockPreviewRenderer.render(ctx, miniPreviewX, miniPreviewY, scaledMiniPreviewWidth, scaledMiniPreviewHeight);
+    }
+
     if (this.currentBlockType) {
       const statsX = scaledWindowX + scaledSlideX + (32 * scale);
       const statsY = scaledWindowY + (128 * scale) + scaledBlockPreviewHeight + (48 * scale);
@@ -417,6 +480,8 @@ export class BlockDropDecisionMenu implements Menu {
     this.open = false;
     this.queue.length = 0;
     this.currentBlockType = null;
+    this.nextBlockPreviewRenderer = null;
+    menuClosed({ id: 'blockDropDecisionMenu' });
   }
 
   isBlocking(): boolean {
@@ -442,5 +507,6 @@ export class BlockDropDecisionMenu implements Menu {
   destroy(): void {
     this.pause = () => {};
     this.resume = () => {};
+    this.nextBlockPreviewRenderer = null;
   }
 }

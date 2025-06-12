@@ -85,6 +85,12 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: ['shielded', 'extra-aggressive'],
     ships: [
       { shipId: 'boss_0_00', count: 1, hunter: true }
-    ]
+    ],
+    music: {
+      file: 'assets/sounds/music/track_03_boss.mp3',
+    },
+    lightingSettings: {
+      clearColor: [0.25, 0.0, 0.0, 0.0]
+    }
   }
 ];

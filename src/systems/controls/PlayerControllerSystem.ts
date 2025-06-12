@@ -9,6 +9,9 @@ import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { Ship } from '@/game/ship/Ship';
 
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { audioManager } from '@/audio/Audio';
+
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 export class PlayerControllerSystem {
@@ -69,6 +72,9 @@ export class PlayerControllerSystem {
     // Switch Firing Mode
     if (this.inputManager.wasKeyJustPressed('KeyX')) {
       this.playerShip.setFiringMode(this.playerShip.getFiringMode() === FiringMode.Synced ? FiringMode.Sequence : FiringMode.Synced);
+      audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+      const playerPos = this.playerShip.getTransform().position;
+      createLightFlash(playerPos.x, playerPos.y, 320, 1, 0.5, '#ffffff');
     }
 
     return {

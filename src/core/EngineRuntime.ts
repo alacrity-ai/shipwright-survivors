@@ -243,7 +243,6 @@ export class EngineRuntime {
     this.blockDropDecisionMenu = new BlockDropDecisionMenu(
       this.ship,
       this.inputManager, 
-      this.shipBuilderController, 
       this.shipBuilderEffects,
       this.pause.bind(this), 
       this.resume.bind(this)
@@ -367,7 +366,8 @@ export class EngineRuntime {
       this.explosionSystem,
       this.collisionSystem,
       this.shipConstructionAnimator,
-      this.incidentOrchestrator
+      this.incidentOrchestrator,
+      this.popupMessageSystem
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
     destructionService.onEntityDestroyed((entity, _cause) => {
@@ -697,7 +697,7 @@ export class EngineRuntime {
     this.shipRegistry.clear();
     this.aiOrchestrator.clear();
     ShieldEffectsSystem.getInstance().clear();
-    PlayerResources.getInstance().destroy();
+    PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();

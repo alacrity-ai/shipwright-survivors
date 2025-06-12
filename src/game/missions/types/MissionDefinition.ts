@@ -24,6 +24,7 @@ export interface MissionDefinition {
   bonusObjectives?: string[];
   passiveReward?: number;
   music?: MusicTrack;
+  bossMusic?: MusicTrack;
   dialogue?: string;
   enemyPower?: number;
   sceneLighting?: SceneLightingRGBA;

@@ -3,6 +3,9 @@ import { DialogueOrchestrator } from '@/systems/dialogue/DialogueOrchestrator';
 import { getTextBoxLayout } from '@/systems/dialogue/utils/getTextBoxLayout';
 import { speakerVoiceRegistry } from '@/systems/dialogue/registry/SpeakerVoiceRegistry';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
+
 export class AsyncDialogueRunner {
   private index = 0;
   private isBlocked = false;
@@ -10,12 +13,21 @@ export class AsyncDialogueRunner {
   private pendingCommand: Promise<void> | null = null;
   private requestedVisualFocus = false;
   private hasVisualFocus = false;
+  private forceRightSide = false;
 
   constructor(
     private readonly events: DialogueEvent[],
     private readonly orchestrator: DialogueOrchestrator,
     private readonly shouldInterrupt: () => boolean = () => false
-  ) {}
+  ) {
+    GlobalEventBus.on('menu:opened', ({ id }) => {
+      if (id === 'blockDropDecisionMenu') this.forceRightSide = true;
+    });
+
+    GlobalEventBus.on('menu:closed', ({ id }) => {
+      if (id === 'blockDropDecisionMenu') this.forceRightSide = false;
+    });
+  }
 
   update(dt: number): void {
     if (this.shouldInterrupt()) {
@@ -44,18 +56,19 @@ export class AsyncDialogueRunner {
       case 'line': {
         this.requestedVisualFocus = true;
 
-        // Wait until granted render rights
         if (!this.hasVisualFocus) {
-          this.index--; // Rollback to reattempt once granted
+          this.index--;
           return;
         }
 
         this.orchestrator.setVisualsVisible(true);
         this.isBlocked = true;
 
+        const requestedSide = event.options?.side ?? 'left';
+        const side = this.forceRightSide ? 'right' : requestedSide;
         const mode = event.options?.mode ?? 'transmission';
-        const side = event.options?.side ?? 'left';
         const fontOverride = event.options?.font;
+
         const { textBoxRect, position, font } = getTextBoxLayout({ mode, side, fontOverride });
 
         this.orchestrator.startDialogue({

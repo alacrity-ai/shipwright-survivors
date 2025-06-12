@@ -6,6 +6,8 @@ import type { BlipTimelineEntry } from '@/systems/dialogue/interfaces/BlipTimeli
 import { generateBlipTimeline } from '@/systems/dialogue/utils/generateBlipTimeline';
 import { getTextBoxLayout } from '@/systems/dialogue/utils/getTextBoxLayout';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 import { PortraitRenderer } from '@/systems/dialogue/renderers/PortraitRenderer';
 import { TextboxRenderer } from '@/systems/dialogue/renderers/TextboxRenderer';
 import { RollingTextRenderer } from '@/systems/dialogue/renderers/RollingTextRenderer';
@@ -18,6 +20,7 @@ export class DialogueOrchestrator {
   private elapsed = 0;
   private finished = false;
   private visualsVisible = true;
+  private forceRightSide: boolean = false;
 
   constructor(
     private readonly portraitRenderer: PortraitRenderer,
@@ -25,7 +28,16 @@ export class DialogueOrchestrator {
     private readonly textRenderer: RollingTextRenderer,
     private readonly audioSynchronizer: BlipAudioSynchronizer,
     private readonly speakerRegistry: SpeakerVoiceRegistry
-  ) {}
+  ) {
+    // Subscribe to menu open/close events
+    GlobalEventBus.on('menu:opened', ({ id }) => {
+      if (id === 'blockDropDecisionMenu') this.forceRightSide = true;
+    });
+
+    GlobalEventBus.on('menu:closed', ({ id }) => {
+      if (id === 'blockDropDecisionMenu') this.forceRightSide = false;
+    });
+  }
 
   public startDialogue(line: DialogueLine): void {
     const speaker = this.speakerRegistry.getProfile(line.speakerId);
@@ -64,7 +76,7 @@ export class DialogueOrchestrator {
 
     const layout = getTextBoxLayout({
       mode: line.mode,
-      side: line.side,
+      side: this.forceRightSide ? 'right' : line.side,
       fontOverride: line.font,
     });
 

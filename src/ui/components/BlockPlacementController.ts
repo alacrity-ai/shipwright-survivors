@@ -84,6 +84,7 @@ export class BlockPlacementController {
         const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
         audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
         missionResultStore.incrementBlockPlacedCount();
+        PlayerResources.getInstance().incrementBlockCount(-1);
         this.menu.advanceQueueOrClose();
       }
     }

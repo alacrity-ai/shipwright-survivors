@@ -1,3 +1,5 @@
+// src/lighting/lights/createPointLight.ts
+
 import type { PointLightInstance } from './types';
 import type { LightFadeMode } from './types';
 

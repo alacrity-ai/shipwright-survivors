@@ -10,6 +10,7 @@ export interface MissionResultData {
   bonusObjectives?: string[];
   timeTakenSeconds?: number;
   blocksLost: number;
+  blockRefinedCount: number;
 }
 
 class MissionResultStore {
@@ -26,6 +27,7 @@ class MissionResultStore {
       bonusObjectives: [],
       timeTakenSeconds: 0,
       blocksLost: 0,
+      blockRefinedCount: 0,
     };
   }
 
@@ -53,6 +55,11 @@ class MissionResultStore {
   public incrementBlockPlacedCount(by = 1) {
     this.ensureInitialized();
     this.result!.blockPlacedCount += by;
+  }
+
+  public incrementBlockRefinedCount(by = 1) {
+    this.ensureInitialized();
+    this.result!.blockRefinedCount += by;
   }
 
   public addBlockPickup(blockId: string) {

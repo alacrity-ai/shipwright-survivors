@@ -1,10 +1,10 @@
 // src/ui/components/BlockPreviewRenderer.ts
 
-import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
-import { getUniformScaleFactor } from '@/config/view';
-
 import type { BlockType } from '@/game/interfaces/types/BlockType';
+
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
+
 
 export class BlockPreviewRenderer {
   private baseAngle = 0;
@@ -28,8 +28,17 @@ export class BlockPreviewRenderer {
     if (this.overlayAngle > Math.PI * 2) this.overlayAngle -= Math.PI * 2;
   }
 
-  render(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
-    const sprite = getBlockSprite(this.blockType.id);
+  render(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    alpha: number = 1.0,
+    BlockOverride: BlockType | null = null
+  ): void {
+    const block = BlockOverride ?? this.blockType;
+    const sprite = getBlockSprite(block.id);
 
     const centerX = x + width / 2;
     const centerY = y + height / 2;
@@ -37,6 +46,7 @@ export class BlockPreviewRenderer {
     // === Draw base sprite with idle spin ===
     ctx.save();
     ctx.translate(centerX, centerY);
+    ctx.globalAlpha *= alpha;
     ctx.rotate(this.baseAngle);
     ctx.drawImage(
       sprite.base,
@@ -51,6 +61,7 @@ export class BlockPreviewRenderer {
     if (sprite.overlay) {
       ctx.save();
       ctx.translate(centerX, centerY);
+      ctx.globalAlpha *= alpha;
       ctx.rotate(this.overlayAngle);
       ctx.drawImage(
         sprite.overlay,

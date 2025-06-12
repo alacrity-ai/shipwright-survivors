@@ -2,6 +2,7 @@
 
 import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { MusicTrack } from '@/audio/AudioManager';
 
 export interface WaveShipEntry {
   shipId: string;
@@ -18,6 +19,10 @@ interface WaveIncidentEntry {
   label?: string;
 }
 
+interface waveLightingSettings {
+  clearColor?: [number, number, number, number];
+}
+
 export interface WaveDefinition {
   id: number;
   type: 'wave' | 'boss' | string;
@@ -25,4 +30,6 @@ export interface WaveDefinition {
   ships: WaveShipEntry[];
   incidents?: WaveIncidentEntry[];
   waveDurationSeconds?: number;
+  music?: MusicTrack;
+  lightingSettings?: waveLightingSettings;
 }

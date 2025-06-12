@@ -1,10 +1,14 @@
 import type { Ship } from '@/game/ship/Ship';
 import type { CanvasManager } from '@/core/CanvasManager';
+
+import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 
 import { getUniformScaleFactor } from '@/config/view';
 
@@ -12,6 +16,11 @@ export class HudOverlay {
   private playerResources: PlayerResources;
   private currency: number = 0;
   private disposer: (() => void) | null = null;
+  private blockPreviewRenderer: BlockPreviewRenderer;
+
+  // Mini block preview dimensions
+  private readonly MINI_BLOCK_SIZE = 16;
+  private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
 
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -23,6 +32,14 @@ export class HudOverlay {
     this.disposer = this.playerResources.onCurrencyChange((newValue) => {
       this.currency = newValue;
     });
+
+    // Initialize mini block preview with hull0
+    const hullBlockType = getBlockType('hull0');
+    this.blockPreviewRenderer = new BlockPreviewRenderer(
+      hullBlockType!, 
+      this.MINI_BLOCK_SPIN_SPEED, 
+      this.MINI_BLOCK_SPIN_SPEED * 1.5
+    );
   }
 
   render(dt: number): void {
@@ -50,6 +67,9 @@ export class HudOverlay {
     const baseX = Math.floor((canvas.width - totalWidth) / 2);
     const y = canvas.height - Math.floor(24 * scale);
 
+    // === Update and render mini block preview ===
+    this.blockPreviewRenderer.update(dt);
+    
     // === Draw Health Bar ===
     drawUIResourceBar(ctx, {
       x: baseX,
@@ -134,34 +154,87 @@ export class HudOverlay {
     const toggleX = Math.floor(64 * scale);
     const toggleY = y - Math.floor(12 * scale);
     
-drawFiringModeToggle(ctx, {
-  x: toggleX,
-  y: toggleY,
-  mode: this.ship.getFiringMode(),
-  style: {
-    width: toggleWidth,
-    height: toggleHeight,
-    backgroundColor: '#000a00',      // Dark green background like minimap
-    borderColor: '#00ff41',          // Bright CRT green
-    activeColor: '#00ff41',          // Consistent green for active state
-    inactiveColor: '#001a00',        // Darker green for inactive
-    textColor: '#00ff41',            // CRT green text
-    glowColor: '#00ff41',            // Green glow
-    font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
-    glow: true,
-    animated: true,
-    scanlineIntensity: 0.3,          // Slightly more visible scanlines
-    chromaticAberration: false,      // Disabled for cleaner CRT look
-  }
-}, performance.now());
+    drawFiringModeToggle(ctx, {
+      x: toggleX,
+      y: toggleY,
+      mode: this.ship.getFiringMode(),
+      style: {
+        width: toggleWidth,
+        height: toggleHeight,
+        backgroundColor: '#000a00',      // Dark green background like minimap
+        borderColor: '#00ff41',          // Bright CRT green
+        activeColor: '#00ff41',          // Consistent green for active state
+        inactiveColor: '#001a00',        // Darker green for inactive
+        textColor: '#00ff41',            // CRT green text
+        glowColor: '#00ff41',            // Green glow
+        font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
+        glow: true,
+        animated: true,
+        scanlineIntensity: 0.3,          // Slightly more visible scanlines
+        chromaticAberration: false,      // Disabled for cleaner CRT look
+      }
+    }, performance.now());
 
     // === Additional Metrics: Mass & Entropium ===
-    let infoY = toggleY - Math.floor(42 * scale);
+    let infoY = toggleY - Math.floor(76 * scale);
     const infoX = Math.floor(64 * scale);
     const lineHeight = Math.floor(16 * scale);
 
     drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale); infoY += lineHeight;
-    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale);
+    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale); infoY += lineHeight;
+
+    // === Draw Mini Block Preview and Block Count ===
+    const miniBlockWindowWidth = Math.floor(64 * scale);
+    const miniBlockWindowHeight = Math.floor(32 * scale);
+    const miniBlockWindowX = infoX - Math.floor(1 * scale);
+    const miniBlockWindowY = y - Math.floor(54 * scale);
+    const miniBlockSize = Math.floor(this.MINI_BLOCK_SIZE * scale);
+    const blockIndicatorX = infoX + Math.floor(7 * scale);
+    const blockIndicatorY = y - Math.floor(46 * scale);
+    const miniBlockLabelX = miniBlockWindowX + miniBlockWindowWidth - Math.floor(12 * scale)
+    const miniBlockLabelY = miniBlockWindowY + Math.floor(miniBlockWindowHeight / 2) - Math.floor(5 * scale); // Center vertically with preview
+
+    // Draw window around mini block preview
+    const lastGatheredBlock = this.playerResources.getLastGatheredBlock();
+    const blockCount = this.playerResources.getBlockCount();
+    const miniBlockAlpha = blockCount > 0 ? 1.0 : 0.3;
+    const miniBlockIndicatorColor = blockCount > 0 ? '#00ff00' : '#003400';
+
+    // Draw window around mini block preview
+    drawWindow({
+      ctx,
+      x: miniBlockWindowX,
+      y: miniBlockWindowY,
+      width: miniBlockWindowWidth,
+      height: miniBlockWindowHeight,
+      options: {
+        alpha: 0.5,
+        borderRadius: 12,
+        borderColor: miniBlockIndicatorColor,
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#002200' },
+            { offset: 1, color: '#001500' }
+          ]
+        }
+      }
+    });
+
+    // Draw mini block preview
+    this.blockPreviewRenderer.render(
+      ctx,
+      blockIndicatorX,
+      blockIndicatorY,
+      miniBlockSize,
+      miniBlockSize,
+      miniBlockAlpha,
+      lastGatheredBlock
+    );
+
+    // Draw block count label next to the preview
+    drawLabel(ctx, miniBlockLabelX, miniBlockLabelY, `: ${blockCount}`, { align: 'right', color: miniBlockIndicatorColor }, scale);
+    ctx.restore();
   }
 
   destroy(): void {

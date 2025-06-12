@@ -143,24 +143,29 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
 TODOS:
-  - [ ] BlockDropSelectionMenu Remaining Tasks:
-    - [ ] Show little mini spinning preview of next block in queue
-    - [ ] Show in HUD pulsing indicator when you have blocks in queue
-    - [ ] Update tutorial to explain this menu, not the old shipbuilding menu
-    - [ ] Add satisfying animation on placement (in the menu) and on refinement (in the menu)
-    - [ ] Add sound effect for refinement
+  - [ ] Create Galaxy Map
+  - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
+  - [x] BlockDropSelectionMenu Remaining Tasks:
+    - [ ] Clicking on the UI indicator for the BlockDropSelectionMenu should open it
+    - [x] Update tutorial to explain this menu, not the old shipbuilding menu
+    - [x] Chat dialogue moves to right when shipbuilder is open
+    - [x] Show little mini spinning preview of next block in queue
+    - [x] If a block can't be autoplaced, play a notification sound, don't progress! (Blocks are getting lost)
+    - [x] Show in HUD pulsing indicator when you have blocks in queue
+    - [x] Add satisfying animation on placement (in the menu) and on refinement (in the menu)
+    - [x] Add sound effect for refinement
   - [ ] Make a cockpit backend, each selectable ship will have their own cockpit weapon.
     - [ ] Move the default cockpit1 weapon to the cockpit backend
     - [ ] Make player cockpits specific: cockpitPlayer0, cockpitPlayer1, etc.
-  - [ ] Sound effect and visual effect on ship when switching firing modes
-    - [ ] Tutorialization of Firing Modes
-    - [ ] Switching firing mode should reset timers
+  - [x] Sound effect and visual effect on ship when switching firing modes
+    - [x] Tutorialization of Firing Modes
+    - [x] Switching firing mode should reset timers
   - [ ] Screen edge indicators (e.g. showing objectives on the map, minibosses, etc): compliments radar
   - [ ] Clearly give rewards on failure. E.g. Passive points:
       - Unlockables in each mission should be shown in the debriefing, and how close you got to each.
-  - [ ] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
+  - [x] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
     - [x] Pickups added to game
-    - [ ] Repair removed
+    - [x] Repair removed
   - [ ] Make enemy wave spawn notifications more gameified and obvious. Big warning center screen + sounds, blinking countdown, and perhaps notifications when wave spawner is paused, e.g. in an event.
   - [ ] Lots of Random Events things to discover in a run:
     - [ ] ADD Dialoge PAUSE functionality to the dialoguequeuemanager so that:
@@ -226,19 +231,23 @@ TODOS:
   - [x] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
   - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
   - [x] AI Patrol State, right now all created enemies just bumrush player
+  - [ ] Improve initial mission tutorial:
+    - [ ] Handle block rotation, refinement, autoplace, and place explicitly (Lock buttons if needed, give blocks if needed)
+    - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
+    - [ ] Make better first boss.
 BUGS:
   - [ ] Mission result menu does not scale with resolution
   - [ ] Planet Popping in and out of view when it's nearly offscreen but not completely
-  - [ ] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
-    - [ ] Reproduced on new game. Dialogue was rolling out aligned right, not aligned left.
+  - [x] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
+    - [x] Reproduced on new game. Dialogue was rolling out aligned right, not aligned left.
   - [x] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
   - [x] Background is different size in different resolutions
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
   - [x] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
       E.g. if I pause on wave 1, wait a minute or so, then unpause, the waves won't spawn properly, in fact, if I pause for several minutes, and unpause, no waves spawn at all
-      - [ ] Test this fix, verify by pausing on map start (after first wave has spawned, and before), waiting like 3 minutes, then unpausing and verifying all waves spawn.
-  - [ ] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play
+      - [x] Test this fix, verify by pausing on map start (after first wave has spawned, and before), waiting like 3 minutes, then unpausing and verifying all waves spawn.
+  - [x] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play
   - [x] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
   - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
        This is potentially inefficient, but more imporantly, it resets your firing cooldown.
@@ -248,15 +257,17 @@ BUGS:
   - [x] Significant performance degradation when damaging a group of blocks with Explosive lance
 
 ### Things to Explore:
-  - [ ] Instead of just being able to build all blocks gated by Entropium.
-    - [ ] What about: Enemies just have a chance to drop blocks. In your ship builder menu, you can only build the blocks you have.  E.g. if you loot 3 green hulls, you can build 3 green hulls, and a 3 will be over that block in the menu.
-    - [ ] You can always build the low tier blocks.  This way, what weapons you get, would be kind of random each round.
-        - [ ] E.g. this allows for lots of different events, treasure goblin rewards, league mechnics in a map,
-        convoys that you ambush, treasure chests, etc, that might contain nice blocks.
-    - [ ] Entropium now becomes a resource you would use for things in the meta game instead, passive unlocks,
-      more upgrades, etc.
+  - [ ] Remove passive points, have Entropium be unlock currency? Or keep passive points and use entropium for everything else?
   - [ ] Add autofire option?
-  - [ ] Add autobuild option?
+  - [ ] Click to move functionality?
+  - [x] Instead of just being able to build all blocks gated by Entropium.
+    - [x] What about: Enemies just have a chance to drop blocks. In your ship builder menu, you can only build the blocks you have.  E.g. if you loot 3 green hulls, you can build 3 green hulls, and a 3 will be over that block in the menu.
+    - [x] You can always build the low tier blocks.  This way, what weapons you get, would be kind of random each round.
+        - [x] E.g. this allows for lots of different events, treasure goblin rewards, league mechnics in a map,
+        convoys that you ambush, treasure chests, etc, that might contain nice blocks.
+    - [x] Entropium now becomes a resource you would use for things in the meta game instead, passive unlocks,
+      more upgrades, etc.
+  - [x] Add autobuild option?
 
 ### Small Things:
   - [x] Turret shots vanish too fast, they should only vanish right at the end

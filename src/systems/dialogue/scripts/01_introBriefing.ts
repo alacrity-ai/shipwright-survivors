@@ -165,6 +165,44 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: "Weapon discharge successful. No signs of sabotage by operator. Unexpected.",
       },
+      // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // Instruct user to press X to toggle between firing modes
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Press X to toggle between firing modes. 'Synced' for sustained fire, 'Sequence' for burst fire.",
+      },
+      // Make sure KeyX is enabled
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableKey('KeyX');
+        },
+      },
+      {
+        type: 'command',
+        run: () => {
+          return new Promise<void>((resolve) => {
+            const waitForInput = () => {
+              if (inputManager.wasKeyJustPressed('KeyX')) {
+                resolve();
+              } else {
+                requestAnimationFrame(waitForInput);
+              }
+            };
+            waitForInput();
+          });
+        },
+      },
+      // Wait 200ms
+      {
+        type: 'pause',
+        durationMs: 200,
+      },
       // Instruct user to use mousewheel or R/T to zoom in and out, instruction should be witty
       {
         type: 'line',
@@ -243,46 +281,31 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: 'Enemy presence reduced. Efficiency confirmed. Continue extraction until Entropium reserves reach acceptable thresholds.',
       },
-      // Wait 2000ms
+      // Wait for PlayerResources.getInstance().getBlockCount() to be greater than 0
+      {
+        type: 'command',
+        run: () => {
+          return awaitCondition(() => playerResources.getBlockCount() >= 1);
+        },
+      },
+      // Notify user that they have gathered a block
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: 'Block acquisition confirmed. Your first salvage target has been neutralized.',
+      },
+      // Wait 300ms
       {
         type: 'pause',
-        durationMs: 2000,
+        durationMs: 300,
       },
-      // Hide UI
-      {
-        type: 'hideUI',
-      },
-      {
-        type: 'command',
-        run: () => {
-          return awaitCondition(() => playerResources.getCurrency() >= 80);
-        },
-      },
-      // Show UI
-      {
-        type: 'showUI',
-      },
+      // Notify the user to press Tab to activity the builder module
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Entropium extraction threshold reached. Your contract remains marginally unbroken.',
-      },  
-      {
-        type: 'command',
-        run: () => {
-          audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx');
-        },
+        text: 'Press Tab to access the shipbuilding module.',
       },
-      // Dialogue prompting user that ship building module has been activated and to press Tab
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Shipbuilding module activated. Press Tab to access the module.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Unlock tab key
+      // Unlock the tab key
       {
         type: 'command',
         run: () => {
@@ -304,102 +327,39 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           });
         },
       },
-      // Prompt the user to place a block on the ship
-      // Lock the tab key so the user can't close the menu early
+      // Lock the Tab key for safety (avoid early exit)
       {
         type: 'command',
         run: () => {
-          inputManager.disableKey('Escape');
           inputManager.disableKey('Tab');
         },
       },
+      // Instruct the user to place a block by clicking on the ship, or to refine it into Entropium
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Place a block on the ship by clicking on the block in the menu and then clicking on the ship.',
+        text: 'Place the block on the ship by clicking on the ship. Alternatively, refine the block into Entropium by clicking on the refine button.',
         options: {
           side: 'right',
         },
       },
+      // Wait for missionResultStore.get().blockRefinedCount to be greater than 0, or missionResultStore.get().blockPlacedCount to be greater than 0
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => missionResultStore.get().blockPlacedCount >= 1);
+          return awaitCondition(() => missionResultStore.get().blockRefinedCount >= 1 || missionResultStore.get().blockPlacedCount >= 1);
         },
       },
+      // Notify the user that they have placed or refined the block
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Block placement confirmed.',
+        text: 'Block placement or refinement confirmed. Your ship\'s structural integrity has been bolstered.',
         options: {
           side: 'right',
         },
       },
-      // Instruct the user to rotate the block by pressing spacebar
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Demonstrate your ability to rotate the block by pressing the Spacebar.',
-        options: {
-          side: 'right',
-        },
-      },
-      {
-        type: 'command',
-        run: () => {
-          return new Promise<void>((resolve) => {
-            const waitForInput = () => {
-              if (inputManager.wasKeyJustPressed('Space')) {
-                resolve();
-              } else {
-                requestAnimationFrame(waitForInput);
-              }
-            };
-            waitForInput();
-          });
-        },
-      },
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Rotation confirmed.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Sarcastic compliment on the user's ability to rotate the block
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'You rotated the block. I am... impressed.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Blocks can also be removed with right click (No check, just instruction)
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Blocks can be removed by right-clicking on them. You will be refunded for half the original cost.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Wait 1500ms
-      {
-        type: 'pause',
-        durationMs: 1500,
-      },
-      // Instruct user to close the shipbuilding menu with Tab or Escape
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Close the shipbuilding menu by pressing Tab or Escape.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Unlock escape and tab keys
+      // Unlock Tab and escape
       {
         type: 'command',
         run: () => {
@@ -408,20 +368,222 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         },
       },
       {
-        type: 'command',
-        run: () => {
-          return new Promise<void>((resolve) => {
-            const waitForInput = () => {
-              if (inputManager.wasKeyJustPressed('Tab') || inputManager.wasKeyJustPressed('Escape')) {
-                resolve();
-              } else {
-                requestAnimationFrame(waitForInput);
-              }
-            };
-            waitForInput();
-          });
+        type: 'line',
+        speakerId: 'carl',
+        text: 'While you have at least one block, press Tab to place more blocks.',
+        options: {
+          side: 'right',
         },
       },
+      // Notify the user that they can sell blocks with right click, and flip block direction with spacebar,
+      // Two lines, first discussing right click and selling, second discussing flipping with spacebar
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: 'TIP: Right-click on any block on your ship to sell. Press Spacebar to rotate a block before placing.',
+        options: {
+          side: 'right',
+        },
+      },
+      // Pause 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // Notify user to gather entropium to meet their quota
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: 'Gather Entropium to meet your quota. Your current target is 300 units.',
+        options: {
+          side: 'right',
+        },
+      },
+      // Hide UI
+      {
+        type: 'hideUI',
+      },
+      {
+        type: 'command',
+        run: () => {
+          return awaitCondition(() => playerResources.getCurrency() >= 300);
+        },
+      },
+      // Show UI
+      {
+        type: 'showUI',
+      },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: 'Entropium extraction threshold reached. Your contract remains marginally unbroken.',
+      },
+      // Notify user that Entropium has many uses, but for now he will not divulge it
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: 'Entropium has many uses. For now, know that it is the lifeblood of Deep Void operations.',
+      },
+      // Wait 1000ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx');
+      //   },
+      // },
+      // // Dialogue prompting user that ship building module has been activated and to press Tab
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Shipbuilding module activated. Press Tab to access the module.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // // Unlock tab key
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     inputManager.enableKey('Tab');
+      //   },
+      // },
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     return new Promise<void>((resolve) => {
+      //       const waitForInput = () => {
+      //         if (inputManager.wasKeyJustPressed('Tab')) {
+      //           resolve();
+      //         } else {
+      //           requestAnimationFrame(waitForInput);
+      //         }
+      //       };
+      //       waitForInput();
+      //     });
+      //   },
+      // },
+      // // Prompt the user to place a block on the ship
+      // // Lock the tab key so the user can't close the menu early
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     inputManager.disableKey('Escape');
+      //     inputManager.disableKey('Tab');
+      //   },
+      // },
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Place a block on the ship by clicking on the block in the menu and then clicking on the ship.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     return awaitCondition(() => missionResultStore.get().blockPlacedCount >= 1);
+      //   },
+      // },
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Block placement confirmed.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // // Instruct the user to rotate the block by pressing spacebar
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Demonstrate your ability to rotate the block by pressing the Spacebar.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     return new Promise<void>((resolve) => {
+      //       const waitForInput = () => {
+      //         if (inputManager.wasKeyJustPressed('Space')) {
+      //           resolve();
+      //         } else {
+      //           requestAnimationFrame(waitForInput);
+      //         }
+      //       };
+      //       waitForInput();
+      //     });
+      //   },
+      // },
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Rotation confirmed.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // // Sarcastic compliment on the user's ability to rotate the block
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'You rotated the block. I am... impressed.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // // Blocks can also be removed with right click (No check, just instruction)
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Blocks can be removed by right-clicking on them. You will be refunded for half the original cost.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // // Wait 1500ms
+      // {
+      //   type: 'pause',
+      //   durationMs: 1500,
+      // },
+      // // Instruct user to close the shipbuilding menu with Tab or Escape
+      // {
+      //   type: 'line',
+      //   speakerId: 'carl',
+      //   text: 'Close the shipbuilding menu by pressing Tab or Escape.',
+      //   options: {
+      //     side: 'right',
+      //   },
+      // },
+      // // Unlock escape and tab keys
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     inputManager.enableKey('Tab');
+      //     inputManager.enableKey('Escape');
+      //   },
+      // },
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     return new Promise<void>((resolve) => {
+      //       const waitForInput = () => {
+      //         if (inputManager.wasKeyJustPressed('Tab') || inputManager.wasKeyJustPressed('Escape')) {
+      //           resolve();
+      //         } else {
+      //           requestAnimationFrame(waitForInput);
+      //         }
+      //       };
+      //       waitForInput();
+      //     });
+      //   },
+      // },
       // Prompt user to defeat all incoming waves in order to receive permission to return to headquarters
       {
         type: 'line',

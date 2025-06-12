@@ -1,7 +1,13 @@
+// src/game/player/PlayerResources.ts
+
+import type { BlockType } from '@/game/interfaces/types/BlockType';
+
 export class PlayerResources {
   private static instance: PlayerResources;
   
   private currency: number = 0;
+  private blockCount: number = 0;
+  private lastGatheredBlock: BlockType | null = null;
 
   private onCurrencyChangeCallbacks: Set<(newValue: number) => void> = new Set();
 
@@ -43,6 +49,27 @@ export class PlayerResources {
     return true;
   }
 
+  public getBlockCount(): number {
+    return this.blockCount;
+  }
+
+  public incrementBlockCount(amount: number): number {
+    this.blockCount = Math.max(0, this.blockCount += amount);
+    return this.blockCount;
+  }
+
+  public setLastGatheredBlock(blockType: BlockType): void {
+    this.lastGatheredBlock = blockType;
+  }
+
+  public getLastGatheredBlock(): BlockType | null {
+    return this.lastGatheredBlock;
+  }
+
+  public hasBlocks(): boolean {
+    return this.blockCount > 0;
+  }
+
   /**
    * Register a callback for currency changes.
    * Returns a disposer to unsubscribe the callback.
@@ -68,6 +95,13 @@ export class PlayerResources {
 
   public destroy(): void {
     this.currency = 0;
+    this.blockCount = 0;
+    this.onCurrencyChangeCallbacks.clear();
+  }
+
+  public postMissionClear(): void {
+    // Retain currency between missions
+    this.blockCount = 0;
     this.onCurrencyChangeCallbacks.clear();
   }
 }

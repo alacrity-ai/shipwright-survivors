@@ -15,7 +15,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       gravity: 0,
     },
     music: {
-      file: 'assets/sounds/music/track_02_mission1.mp3'
+      file: 'assets/sounds/music/track_02_mission1.mp3',
     },
     enemyPower: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
@@ -31,7 +31,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       gravity: 0,
     },
     music: {
-      file: 'assets/sounds/music/track_02_mission1.mp3'
+      file: 'assets/sounds/music/track_02_mission1.mp3',
     },
     enemyPower: 1,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
@@ -52,7 +52,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     ],
     enemyPower: 0.25,
     music: {
-      file: 'assets/sounds/music/track_09_junkyard.mp3'
+      file: 'assets/sounds/music/track_09_junkyard.mp3',
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
