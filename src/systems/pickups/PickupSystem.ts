@@ -38,7 +38,7 @@ const ROTATION_SPEED = {
 };
 
 const SPARK_OPTIONS: ParticleOptions = {
-  colors: ['#0022ff', '#000099', '#0055cc', '#003388'], // deeper blues
+  colors: ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'],
   baseSpeed: 50,
   sizeRange: [1, 2.5],   // further refined
   lifeRange: [1, 2],
@@ -87,7 +87,7 @@ export class PickupSystem {
       x: position.x,
       y: position.y,
       radius: 200, // ~2x BLOCK_SIZE visually
-      color: '#00ccff', // cyan-blue glow
+      color: '#ffcc00', // gold glow
       intensity: 1.0,
       life: 10000,
       expires: true,
@@ -123,7 +123,7 @@ export class PickupSystem {
       x: position.x,
       y: position.y,
       radius: 200,
-      color: '#00ff88', // minty green glow
+      color: '#ff4444', // soft red glow
       intensity: 1.0,
       life: 10000,
       expires: true,
@@ -228,15 +228,6 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       this.ctx.scale(scale, scale);
       this.ctx.drawImage(spriteEntry.base, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
       this.ctx.restore();
-
-      const sparkColors = pickup.type.category === 'repair'
-        ? ['#22ff88', '#00cc66', '#33ffaa']
-        : SPARK_OPTIONS.colors;
-
-      this.sparkManager.emitContinuous(pickup.position, dt, 10, {
-        ...SPARK_OPTIONS,
-        colors: sparkColors,
-      });
     }
 
     // === Phase 2: Draw block pickups ===
@@ -268,19 +259,10 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       this.ctx.scale(scale, scale);
       this.ctx.drawImage(spriteEntry.base, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
       this.ctx.restore();
-
-      const match = pickup.type.blockTypeId!.match(/(\d+)/);
-      const tier = match ? parseInt(match[1], 10) : 0;
-      const sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
-
-      this.sparkManager.emitContinuous(pickup.position, dt, 10, {
-        ...SPARK_OPTIONS,
-        colors: sparkColors,
-      });
     }
   }
 
-  update(): void {
+  update(dt: number): void {
     const shipPosition = this.playerShip.getTransform().position;
 
     const baseAttractionRange = 600;
@@ -290,8 +272,45 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
 
     const pickupRadiusSq = PICKUP_RADIUS * PICKUP_RADIUS;
 
+    const emitParticles = Math.random() < 0.2;
+
     for (const pickup of this.pickups) {
       if (pickup.isPickedUp) continue;
+
+      // Emit Particles 1 in 5 chance:
+      if (emitParticles) {
+        let sparkColors: string[];
+        switch (pickup.type.category) {
+          case 'block': {
+            const blockTypeId = pickup.type.blockTypeId;
+            if (blockTypeId) {
+              const match = blockTypeId.match(/(\d+)/);
+              const tier = match ? parseInt(match[1], 10) : 0;
+              sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
+            } else {
+              sparkColors = ['#0022ff', '#000099', '#0055cc', '#003388'];
+            }
+            break;
+          }
+
+          case 'repair':
+            sparkColors = ['#ff4444', '#cc2222', '#ff0000', '#aa0000'];
+            break;
+
+          case 'currency':
+          default:
+            sparkColors = ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'];
+            break;
+        }
+
+        this.sparkManager.emitParticle(pickup.position, {
+          colors: sparkColors,
+          baseSpeed: 250,
+          sizeRange: [1, 2.5],
+          lifeRange: [1, 2],
+          fadeOut: true,
+        });
+      }
 
       const dx = shipPosition.x - pickup.position.x;
       const dy = shipPosition.y - pickup.position.y;

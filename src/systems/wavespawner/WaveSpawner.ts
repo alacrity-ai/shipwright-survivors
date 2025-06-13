@@ -345,7 +345,6 @@ export class WaveSpawner implements IUpdatable {
           
           if (isFinalWave) {
             // Don't start inter-wave countdown for the final wave
-            console.log('Final boss defeated - mission should complete');
           } else {
             // Start inter-wave delay for non-final boss waves
             this.waitingToSpawnNextWave = true;

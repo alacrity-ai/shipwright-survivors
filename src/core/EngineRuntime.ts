@@ -13,6 +13,7 @@ import type { MissionDefinition } from '@/game/missions/types/MissionDefinition'
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
 import { initializeGLBlockSpriteCache, destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeGLProjectileSpriteCache, destroyGLProjectileSpriteCache } from '@/rendering/cache/ProjectileSpriteCache';
 
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
@@ -34,6 +35,7 @@ import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstru
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { LightingRenderer } from '@/lighting/LightingRenderer';
+import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
@@ -170,7 +172,10 @@ export class EngineRuntime {
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
+
+    // Initialize GL caches
     initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    initializeGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     
     // Resolution fix for electron
     applyViewportResolution(this.canvasManager, this.camera);
@@ -455,7 +460,7 @@ export class EngineRuntime {
       this.shipConstructionAnimator,
       this.planetSystem,
       this.lightingOrchestrator,
-      this.weaponSystem, // The player's weapon system
+      this.weaponSystem,
       this.aiOrchestrator
     ];
 
@@ -529,6 +534,14 @@ export class EngineRuntime {
       // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
       const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4', 'engine4'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyN')) {
+      if (this.waveSpawner.getIsPaused()) {
+        this.waveSpawner.resume();
+      } else {
+        this.waveSpawner.pause();
+      }
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit0')) {
@@ -718,6 +731,7 @@ export class EngineRuntime {
     BlockToObjectIndex.clear();
     Camera.destroy();
     MenuManager.getInstance().reset();
+    SpriteRendererGL.destroyInstance();
 
     // Optional: clear UI menus, overlays
     this.hud.destroy();
@@ -727,6 +741,7 @@ export class EngineRuntime {
     this.background.destroy();
     this.missionDialogueManager.destroy();
     destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    destroyGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
 
     // // Clear rendering and update lists
     this.updatables.length = 0;

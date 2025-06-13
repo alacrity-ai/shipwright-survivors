@@ -6,4 +6,5 @@ export interface HaloBladeProperties {
   size: number;
   damage: number;
   color: string;
+  sprite: string;
 }

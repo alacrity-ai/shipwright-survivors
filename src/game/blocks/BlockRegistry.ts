@@ -855,7 +855,8 @@ const blockTypes: Record<string, BlockType> = {
         orbitingSpeed: 1.2,
         size: 64,
         damage: 1,
-        color: '#FFBF00'
+        color: '#FFBF00',
+        sprite: 'energyRing0'
       }
     },
     sprite: 'haloBlade0',
@@ -875,7 +876,8 @@ const blockTypes: Record<string, BlockType> = {
         orbitingSpeed: 2,
         size: 64,
         damage: 5,
-        color: '#FFBF00'
+        color: '#FFBF00',
+        sprite: 'energyRing1'
       }
     },
     sprite: 'haloBlade1',
@@ -895,7 +897,8 @@ const blockTypes: Record<string, BlockType> = {
         orbitingSpeed: 2.4,
         size: 64,
         damage: 8,
-        color: '#2CFF05'
+        color: '#2CFF05',
+        sprite: 'energyRing2'
       }
     },
     sprite: 'haloBlade2',
@@ -915,7 +918,8 @@ const blockTypes: Record<string, BlockType> = {
         orbitingSpeed: 2.8,
         size: 64,
         damage: 12,
-        color: '#00FFFF'
+        color: '#00FFFF',
+        sprite: 'energyRing3'
       }
     },
     sprite: 'haloBlade3',
@@ -935,7 +939,8 @@ const blockTypes: Record<string, BlockType> = {
         orbitingSpeed: 3.2,
         size: 64,
         damage: 15,
-        color: '#7F00FF'
+        color: '#7F00FF',
+        sprite: 'energyRing4'
       }
     },
     sprite: 'haloBlade4',

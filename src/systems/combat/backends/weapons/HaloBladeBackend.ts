@@ -8,11 +8,14 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Grid } from '@/systems/physics/Grid';
+import type { GLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
 
+import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
+import { getGLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
+import { CanvasManager } from '@/core/CanvasManager';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { Camera } from '@/core/Camera';
 import { findObjectByBlock } from '@/game/entities/utils/universalBlockInterfaceUtils';
-import { drawEnergyRing } from '@/rendering/helpers/drawEnergyRing';
 
 interface OrbitingBlade {
   block: BlockInstance;
@@ -25,14 +28,58 @@ export class HaloBladeBackend implements WeaponBackend {
   private orbiters: OrbitingBlade[] = [];
   private tierPhases: Map<string, number> = new Map(); // Track phase per tier
 
+  private readonly spriteRenderer: SpriteRendererGL;
+  private gl: WebGLRenderingContext;
+  private energyRingSprites: Map<string, GLProjectileSprite> = new Map(); // New
+
   constructor(
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
     private readonly grid: Grid,
     private readonly ship: Ship
-  ) {}
+  ) {
+    this.gl = CanvasManager.getInstance().getWebGLContext('entitygl');
+    this.spriteRenderer = SpriteRendererGL.getInstance(this.gl);
+
+    // New
+    this.energyRingSprites = new Map([
+      ['energyRing0', getGLProjectileSprite('energyRing0')],
+      ['energyRing1', getGLProjectileSprite('energyRing1')],
+      ['energyRing2', getGLProjectileSprite('energyRing2')],
+      ['energyRing3', getGLProjectileSprite('energyRing3')],
+      ['energyRing4', getGLProjectileSprite('energyRing4')],
+    ]);
+  }
+
+  render(dt: number): void {
+    const ship = this.ship;
+    if (!ship) return;
+
+    const bladeMap = ship.getHaloBladeBlocks();
+    const camera = Camera.getInstance();
+    const zoom = camera.getZoom();
+
+    for (const orbiter of this.orbiters) {
+      const props = bladeMap.get(orbiter.block);
+      if (!props) continue;
+
+      // New usage of cached sprites
+      const sprite = this.energyRingSprites.get(props.sprite);
+      if (!sprite) continue;
+
+      this.spriteRenderer.renderTexture(
+        sprite.texture,
+        orbiter.position.x,
+        orbiter.position.y,
+        64,
+        64,
+        1.0
+      ); 
+    }
+  }
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
+    console.log('[HaloBladeBackend] Updating called from: ', new Error().stack);
     const bladeMap = ship.getHaloBladeBlocks();
     const currentBlades = Array.from(bladeMap.keys());
 
@@ -102,6 +149,18 @@ export class HaloBladeBackend implements WeaponBackend {
         // Update world position
         orbiter.position.x = shipCenter.x + Math.cos(angle) * firingModeRadius;
         orbiter.position.y = shipCenter.y + Math.sin(angle) * firingModeRadius;
+
+        // Emit particle from orbiter blade
+        this.particleManager.emitParticle(orbiter.position, {
+          colors: [props.color, '#fff'],
+          baseSpeed: 0,
+          sizeRange: [0.8, 1.2],
+          lifeRange: [0.3, 0.8],
+          fadeOut: true,
+          light: true,
+          lightRadiusScalar: 32,
+          lightIntensity: 0.8,
+        });
       }
     }
 
@@ -149,35 +208,6 @@ export class HaloBladeBackend implements WeaponBackend {
           }
         }
       }
-    }
-  }
-
-  render(dt: number): void {
-    const ship = this.ship;
-    if (!ship) return;
-
-    const bladeMap = ship.getHaloBladeBlocks();
-    const camera = Camera.getInstance();
-    const zoom = camera.getZoom();
-
-    for (const orbiter of this.orbiters) {
-      const props = bladeMap.get(orbiter.block);
-      if (!props) continue;
-
-      const screen = camera.worldToScreen(orbiter.position.x, orbiter.position.y);
-      const screenRadius = props.size * 0.5 * zoom;
-
-      drawEnergyRing(screen.x, screen.y, screenRadius, props.color);
-      this.particleManager.emitParticle(orbiter.position, {
-        colors: [props.color, '#fff'],
-        baseSpeed: 0,
-        sizeRange: [0.8, 1.2],
-        lifeRange: [0.3, 0.8],
-        fadeOut: true,
-        light: true,
-        lightRadiusScalar: 32,
-        lightIntensity: 0.8,
-      });
     }
   }
 }

@@ -17,7 +17,8 @@ const IGNORED_BEHAVIOR_PATHS = new Set([
   'fire.lifetime',
   'fire.projectileSpeed',
   'haloBladeProperties.color',
-  'haloBladeProperties.size'
+  'haloBladeProperties.size',
+  'haloBladeProperties.sprite'
 ]);
 
 function isIgnoredBehaviorPath(path: string): boolean {

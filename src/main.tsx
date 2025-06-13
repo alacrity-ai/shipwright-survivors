@@ -5,10 +5,10 @@
 import './index.css';
 import { bootstrapGlobalGuards } from '@/shared/bootstrap';
 import { initializeBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
-import { initializeProjectileSprites } from '@/rendering/cache/ProjectileSpriteCache';
 import { initializePickupSpriteCache } from '@/rendering/cache/PickupSpriteCache';
 import { initializeAsteroidBlockSpriteCache } from '@/rendering/cache/AsteroidSpriteCache';
 import { initializeGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeProjectileSpriteCache } from './rendering/cache/ProjectileSpriteCache';
 import { audioManager } from '@/audio/Audio'; // Lazy instantiation
 
 import React from 'react';
@@ -16,7 +16,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 bootstrapGlobalGuards();
-initializeProjectileSprites();
+initializeProjectileSpriteCache();
 initializeBlockSpriteCache();
 initializePickupSpriteCache();
 initializeAsteroidBlockSpriteCache();

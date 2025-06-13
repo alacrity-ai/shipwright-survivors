@@ -161,7 +161,6 @@ export class BlockDropDecisionMenu implements Menu {
   enqueueBlock(blockType: BlockType): void {
     this.queue.push({ blockType });
     PlayerResources.getInstance().enqueueBlock(blockType);
-    console.log('[BlockDropDecisionMenu] Enqueued block', blockType.name);
     this.updateNextBlockPreview();
   }
 
@@ -187,10 +186,8 @@ export class BlockDropDecisionMenu implements Menu {
     // === Pre-open buffering ===
     if (this.animationPhase === 'pre-open') {
       
-      console.log('[BlockDropDecisionMenu] Pre-opening timer: ', this.preOpenTimer);
       this.preOpenTimer -= dt * 1000;
       if (this.preOpenTimer <= 0) {
-        console.log('[BlockDropDecisionMenu] Pre-open timer expired, starting slide-in');
         this.beginSlideIn();
       }
       return;
@@ -208,7 +205,6 @@ export class BlockDropDecisionMenu implements Menu {
 
         this.slideX += this.SLIDE_SPEED * dt;
         if (this.slideX >= this.targetX + this.OVERSHOOT_DISTANCE) {
-          console.log('[BlockDropDecisionMenu] Slide-in overshoot, settling');
           this.animationPhase = 'settling';
           this.slideX = this.targetX + this.OVERSHOOT_DISTANCE; // Clamp to exact overshoot
         }
@@ -216,13 +212,11 @@ export class BlockDropDecisionMenu implements Menu {
         // FIX: Use dt to make animation frame-rate independent
         this.slideX -= this.SETTLE_SPEED * dt;
         if (this.slideX <= this.targetX) {
-          console.log('[BlockDropDecisionMenu] Settled, opening');
           this.slideX = this.targetX;
           this.animationPhase = 'open';
           this.isAnimating = false;
         }
       } else if (this.animationPhase === 'sliding-out') {
-        console.log('[BlockDropDecisionMenu] Sliding out');
         // FIX: Use dt to make animation frame-rate independent
         this.slideX -= this.SLIDE_SPEED * dt;
         if (this.slideX <= -this.BASE_WINDOW_WIDTH - 200) {

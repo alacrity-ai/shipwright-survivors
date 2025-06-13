@@ -1,34 +1,19 @@
 // src/rendering/gl/webgl/matrixUtils.ts
 
-export function createModelMatrix(
-  blockX: number,
-  blockY: number,
-  blockRotation: number,
-  shipX: number,
-  shipY: number,
-  shipRotation: number,
-  scale: number
-): Float32Array {
-  // First, rotate the block's position around the ship's center
-  const shipCos = Math.cos(shipRotation);
-  const shipSin = Math.sin(shipRotation);
-  
-  const rotatedBlockX = blockX * shipCos - blockY * shipSin;
-  const rotatedBlockY = blockX * shipSin + blockY * shipCos;
-  
-  // Calculate world position
-  const worldX = shipX + rotatedBlockX;
-  const worldY = shipY + rotatedBlockY;
-  
-  // Total rotation is ship rotation + block rotation
-  const totalRotation = shipRotation + blockRotation;
-  const cos = Math.cos(totalRotation);
-  const sin = Math.sin(totalRotation);
+export function createModelMatrix(x: number, y: number, width: number, height: number): Float32Array {
+  const t = createTranslationMatrix(x, y);
+  const s = createScaleMatrix(width / 2, height / 2);
+  return multiplyMatrices(t, s);
+}
 
+
+// Helper function for scaling (since you don't have createScaleMatrix)
+export function createScaleMatrix(sx: number, sy: number): Float32Array {
   return new Float32Array([
-    cos * scale, -sin * scale, 0,
-    sin * scale,  cos * scale, 0,
-    worldX,       worldY,      1,
+    sx, 0, 0, 0,
+    0, sy, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
   ]);
 }
 

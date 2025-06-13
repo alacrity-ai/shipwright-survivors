@@ -1,56 +1,117 @@
-interface ProjectileSprite {
+// src/rendering/ProjectileSpriteCache.ts
+
+import { drawEnergyRing } from '@/rendering/helpers/drawEnergyRing';
+import { createTextureFromCanvasWithAlpha } from '@/rendering/gl/glTextureUtils';
+
+// --- Sprite Interfaces ---
+
+export interface ProjectileSprite {
   canvas: HTMLCanvasElement;
-  size: number;
 }
 
-const projectileSprites: Map<string, ProjectileSprite> = new Map();
+export interface GLProjectileSprite {
+  texture: WebGLTexture;
+}
 
-export function initializeProjectileSprites() {
-  // Configuration per projectile type
-  const definitions = {
-    bullet: { size: 18, color: '#fff' },
-    missile: { size: 14, color: '#f80' },
-  };
+const CANVAS_SIZE = 128;
+const spriteCache: Map<string, ProjectileSprite> = new Map();
+const glSpriteCache: Map<string, GLProjectileSprite> = new Map();
 
-  for (const [type, def] of Object.entries(definitions)) {
-    const canvas = document.createElement('canvas');
-    canvas.width = def.size;
-    canvas.height = def.size;
-    const ctx = canvas.getContext('2d')!;
+// --- Helpers ---
 
-  if (type === 'bullet') {
-    ctx.fillStyle = def.color;
-    ctx.beginPath();
-    ctx.arc(
-      def.size / 2,         // center x
-      def.size / 2,         // center y
-      def.size / 2.5,       // radius
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  } else if (type === 'missile') {
-      ctx.fillStyle = def.color;
-      ctx.beginPath();
-      ctx.arc(def.size / 2, def.size / 2, def.size / 2.5, 0, Math.PI * 2);
-      ctx.fill();
+function getAllProjectileTypes(): string[] {
+  return [
+    'energyRing0',
+    'energyRing1',
+    'energyRing2',
+    'energyRing3',
+    'energyRing4',
+  ];
+}
+
+function createBlankCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+  const canvas = document.createElement('canvas');
+  canvas.width = CANVAS_SIZE;
+  canvas.height = CANVAS_SIZE;
+
+  // MUST pass options here
+  const ctx = canvas.getContext('2d', { alpha: true })!;
+  return { canvas, ctx };
+}
+
+// --- Drawing ---
+
+function drawProceduralProjectile(typeId: string): void {
+  const { canvas, ctx } = createBlankCanvas();
+  const center = CANVAS_SIZE / 2;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  switch (typeId) {
+    case 'energyRing0':
+    case 'energyRing1':
+      drawEnergyRing(ctx, center, center, 64, '#FFBF00');
+      break;
+    case 'energyRing2':
+      drawEnergyRing(ctx, center, center, 64, '#2CFF05');
+      break;
+    case 'energyRing3':
+      drawEnergyRing(ctx, center, center, 64, '#00FFFF');
+      break;
+    case 'energyRing4':
+      drawEnergyRing(ctx, center, center, 64, '#7F00FF');
+      break;
+    default:
+      console.warn(`[ProjectileSpriteCache] Unknown projectile type: ${typeId}`);
+      break;
+  }
+
+  spriteCache.set(typeId, { canvas });
+}
+
+// --- Initialization ---
+
+export function initializeGLProjectileSpriteCache(gl: WebGLRenderingContext): void {
+  let count = 0;
+  for (const [typeId, sprite] of spriteCache.entries()) {
+    try {
+      const texture = createTextureFromCanvasWithAlpha(gl, sprite.canvas);
+      glSpriteCache.set(typeId, { texture });
+      count++;
+    } catch (e) {
+      console.error(`[GLProjectileCache] Failed to convert ${typeId}`, e);
     }
+  }
+  console.log(`[GLProjectileCache] Initialized ${count} GL projectile textures.`);
+}
 
-    projectileSprites.set(type, {
-      canvas,
-      size: def.size,
-    });
+export function initializeProjectileSpriteCache(): void {
+  for (const id of getAllProjectileTypes()) {
+    drawProceduralProjectile(id);
   }
 }
 
-export function getProjectileSprite(type: string): HTMLCanvasElement {
-  const sprite = projectileSprites.get(type);
-  if (!sprite) throw new Error(`Missing sprite for projectile type: ${type}`);
-  return sprite.canvas;
+// --- Cleanup ---
+
+export function destroyGLProjectileSpriteCache(gl: WebGLRenderingContext): void {
+  for (const { texture } of glSpriteCache.values()) {
+    if (texture && gl.isTexture(texture)) {
+      gl.deleteTexture(texture);
+    }
+  }
+  glSpriteCache.clear();
 }
 
-export function getProjectileSize(type: string): number {
-  const sprite = projectileSprites.get(type);
-  if (!sprite) throw new Error(`Missing size for projectile type: ${type}`);
-  return sprite.size;
+// --- Accessors ---
+
+export function getProjectileSprite(typeId: string): ProjectileSprite {
+  const sprite = spriteCache.get(typeId);
+  if (!sprite) throw new Error(`Projectile sprite not cached: ${typeId}`);
+  return sprite;
+}
+
+export function getGLProjectileSprite(typeId: string): GLProjectileSprite {
+  const sprite = glSpriteCache.get(typeId);
+  if (!sprite) throw new Error(`GL projectile sprite not cached: ${typeId}`);
+  return sprite;
 }

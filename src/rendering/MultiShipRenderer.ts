@@ -39,7 +39,6 @@ export class MultiShipRenderer {
               x: position.x,
               y: position.y,
             });
-            console.log('Updating ship light for ship: ', ship.id);
           } catch (e) {
             console.warn(`[MultiShipRenderer] Failed to update aura light for ship ${ship.id}:`, e);
           }

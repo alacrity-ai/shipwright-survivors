@@ -117,7 +117,7 @@
         "x": 2,
         "y": -2
       },
-      "rotation": 180
+      "rotation": 0
     },
     {
       "id": "engine2",
@@ -125,7 +125,7 @@
         "x": -2,
         "y": -2
       },
-      "rotation": 180
+      "rotation": 0
     },
     {
       "id": "fin2",
