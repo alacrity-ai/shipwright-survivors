@@ -373,7 +373,7 @@
         "x": 0,
         "y": -10
       },
-      "rotation": 180
+      "rotation": 0
     },
     {
       "id": "engine1",
@@ -381,7 +381,7 @@
         "x": 1,
         "y": -10
       },
-      "rotation": 180
+      "rotation": 0
     },
     {
       "id": "engine1",
@@ -389,7 +389,7 @@
         "x": -1,
         "y": -10
       },
-      "rotation": 180
+      "rotation": 0
     },
     {
       "id": "facetplate1",
