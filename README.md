@@ -149,6 +149,8 @@ TODOS:
   - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
   - [x] BlockDropSelectionMenu Remaining Tasks:
     - [ ] Clicking on the UI indicator for the BlockDropSelectionMenu should open it
+    - [ ] Be able to close the BlockDropSelectionMenu with ESC/Tab
+    - [ ] Be able to upgrade block to the next tier by placing it on top of another block of the same type.
     - [x] Update tutorial to explain this menu, not the old shipbuilding menu
     - [x] Chat dialogue moves to right when shipbuilder is open
     - [x] Show little mini spinning preview of next block in queue

@@ -1,7 +1,7 @@
 // src/systems/pickups/PickupSystem.ts
 
 import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
-import { BLOCK_PICKUP_SPARK_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
+import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { PlayerResources } from '@/game/player/PlayerResources';
 // import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
@@ -44,23 +44,6 @@ const SPARK_OPTIONS: ParticleOptions = {
   lifeRange: [1, 2],
   fadeOut: true,
 };
-
-export const BLOCK_PICKUP_LIGHT_TIER_COLORS: Record<number, string> = {
-  0: '#ffffff', // Tier 0 – white (for consistency)
-  1: '#ffffff', // Tier 1 – neutral white
-  2: '#00aa33', // Tier 2 – emerald green
-  3: '#0033cc', // Tier 3 – cobalt blue
-  4: '#6600cc', // Tier 4 – royal purple
-  5: '#ffcc00', // Tier 5 – gold (optional)
-  10: '#ff3366', // Cockpit tier – exotic pink-red (for story-critical parts)
-};
-
-const PICKUP_FLASH_COLORS: Record<string, string> = {
-  currency: '#00ccff', // cyan
-  repair: '#22ff88',   // mint green
-  block: '#cc66ff',    // base purple, tier overrides handled below
-};
-
 
 export class PickupSystem {
   private ctx: CanvasRenderingContext2D;

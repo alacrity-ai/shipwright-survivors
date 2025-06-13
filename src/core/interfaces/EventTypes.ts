@@ -10,4 +10,5 @@ export interface EventTypes {
   'dialogue:resume': undefined;
   'menu:opened': { id: string };
   'menu:closed': { id: string };
+  'camera:shake': { strength: number; duration: number; frequency?: number };
 }

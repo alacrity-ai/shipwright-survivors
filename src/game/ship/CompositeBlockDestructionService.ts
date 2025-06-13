@@ -1,3 +1,5 @@
+// src/game/ship/CompositeBlockDestructionService.ts
+
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
@@ -5,6 +7,7 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
+import { GlobalEventBus } from '@/core/EventBus';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -12,6 +15,7 @@ import { Ship } from '@/game/ship/Ship';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
 import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
+
 
 export type DestructionCause =
   | 'projectile'
@@ -45,6 +49,7 @@ export class CompositeBlockDestructionService {
   public destroyEntity(entity: CompositeBlockObject, cause: DestructionCause = 'scripted'): void {
     const transform = entity.getTransform();
     const blocks = entity.getAllBlocks();
+    const totalMass = entity.getTotalMass();
     const entityId = entity.id;
 
     // === Step 0: Notify destruction observers ===
@@ -62,6 +67,13 @@ export class CompositeBlockDestructionService {
       MovementSystemRegistry.unregister(entity);
       this.aiOrchestrator.removeControllersForShip?.(entityId);
     }
+
+    // Camera shake
+    GlobalEventBus.emit('camera:shake', {
+      strength: Math.floor(6 + (totalMass * 0.01)),
+      duration: 0.2,
+      frequency: 10,
+    });
 
     entity.destroy();
 

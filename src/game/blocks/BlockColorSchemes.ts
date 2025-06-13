@@ -55,4 +55,28 @@ export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
   explosiveLance4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
 };
 
+export const BLOCK_PICKUP_LIGHT_TIER_COLORS: Record<number, string> = {
+  0: '#ffffff', // Tier 0 – white (for consistency)
+  1: '#ffffff', // Tier 1 – neutral white
+  2: '#00aa33', // Tier 2 – emerald green
+  3: '#0033cc', // Tier 3 – cobalt blue
+  4: '#6600cc', // Tier 4 – royal purple
+  5: '#ffcc00', // Tier 5 – gold (optional)
+  10: '#ff3366', // Cockpit tier – exotic pink-red (for story-critical parts)
+};
 
+export const BLOCK_TIER_COLORS: Record<number, string> = {
+  0: '#A9A9A9', // Tier 0 – white (for consistency)
+  1: '#A9A9A9', // Tier 1 – neutral white
+  2: '#00aa33', // Tier 2 – emerald green
+  3: '#0033cc', // Tier 3 – cobalt blue
+  4: '#6600cc', // Tier 4 – royal purple
+  5: '#ffcc00', // Tier 5 – gold (optional)
+  10: '#ff3366', // Cockpit tier – exotic pink-red (for story-critical parts)
+};
+
+export const PICKUP_FLASH_COLORS: Record<string, string> = {
+  currency: '#00ccff', // cyan
+  repair: '#22ff88',   // mint green
+  block: '#cc66ff',    // base purple, tier overrides handled below
+};

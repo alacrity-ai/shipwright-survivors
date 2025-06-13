@@ -1,53 +1,51 @@
-import type { Ship } from '@/game/ship/Ship';
-import type { CanvasManager } from '@/core/CanvasManager';
+// src/ui/hud/HudOverlay.ts
 
-import { drawWindow } from '@/ui/primitives/WindowBox';
-import { drawLabel } from '@/ui/primitives/UILabel';
+import type { CanvasManager } from '@/core/CanvasManager';
+import type { Ship } from '@/game/ship/Ship';
+import type { PlayerResources } from '@/game/player/PlayerResources';
+
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
-import { PlayerResources } from '@/game/player/PlayerResources';
-import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
-import { getBlockType } from '@/game/blocks/BlockRegistry';
-
+import { drawLabel } from '@/ui/primitives/UILabel';
 import { getUniformScaleFactor } from '@/config/view';
 
+import { PlayerResources as PlayerResourcesSingleton } from '@/game/player/PlayerResources';
+import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
+
 export class HudOverlay {
-  private playerResources: PlayerResources;
+  private readonly playerResources: PlayerResources;
+  private readonly blockQueueDisplayManager: BlockQueueDisplayManager;
   private currency: number = 0;
   private disposer: (() => void) | null = null;
-  private blockPreviewRenderer: BlockPreviewRenderer;
-
-  // Mini block preview dimensions
-  private readonly MINI_BLOCK_SIZE = 16;
-  private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
 
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly ship: Ship
   ) {
-    this.playerResources = PlayerResources.getInstance();
+    this.playerResources = PlayerResourcesSingleton.getInstance();
     this.currency = this.playerResources.getCurrency();
 
     this.disposer = this.playerResources.onCurrencyChange((newValue) => {
       this.currency = newValue;
     });
 
-    // Initialize mini block preview with hull0
-    const hullBlockType = getBlockType('hull0');
-    this.blockPreviewRenderer = new BlockPreviewRenderer(
-      hullBlockType!, 
-      this.MINI_BLOCK_SPIN_SPEED, 
-      this.MINI_BLOCK_SPIN_SPEED * 1.5
+    this.blockQueueDisplayManager = new BlockQueueDisplayManager(
+      this.canvasManager,
+      this.playerResources
     );
+  }
+
+  update(dt: number): void {
+    this.blockQueueDisplayManager.update(dt);
   }
 
   render(dt: number): void {
     const scale = getUniformScaleFactor();
-
     const ctx = this.canvasManager.getContext('ui');
-    const { velocity } = this.ship.getTransform();
+    const canvas = ctx.canvas;
 
+    const { velocity } = this.ship.getTransform();
     const blocks = this.ship.getAllBlocks();
     const mass = blocks.reduce((sum, [_, b]) => sum + b.type.mass, 0);
     const currentHp = Math.floor(this.ship.getCockpitHp() ?? 0);
@@ -58,19 +56,14 @@ export class HudOverlay {
     const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
     const maxEnergy = Math.floor(energyComponent?.getMax() ?? 0);
 
-    const canvas = ctx.canvas;
     const barWidth = Math.floor(180 * scale);
     const barHeight = Math.floor(12 * scale);
     const spacing = Math.floor(20 * scale);
     const totalWidth = barWidth * 2 + spacing;
-
     const baseX = Math.floor((canvas.width - totalWidth) / 2);
     const y = canvas.height - Math.floor(24 * scale);
 
-    // === Update and render mini block preview ===
-    this.blockPreviewRenderer.update(dt);
-    
-    // === Draw Health Bar ===
+    // === Health Bar ===
     drawUIResourceBar(ctx, {
       x: baseX,
       y,
@@ -97,7 +90,7 @@ export class HudOverlay {
       }
     }, performance.now());
 
-    // === Draw Energy Bar ===
+    // === Energy Bar ===
     drawUIResourceBar(ctx, {
       x: baseX + barWidth + spacing,
       y,
@@ -124,12 +117,12 @@ export class HudOverlay {
       }
     }, performance.now());
 
-    // === Draw Speed Bar (Vertical) ===
+    // === Speed Bar (Vertical) ===
     const speedBarHeight = Math.floor(120 * scale);
     const speedBarWidth = Math.floor(12 * scale);
     const speedBarX = Math.floor(32 * scale);
     const speedBarY = y - speedBarHeight + Math.floor(14 * scale);
-    
+
     drawUIVerticalResourceBar(ctx, {
       x: speedBarX,
       y: speedBarY,
@@ -138,22 +131,22 @@ export class HudOverlay {
       value: speed,
       maxValue: 2000,
       style: {
-        barColor: '#00ff41',             // Classic green phosphor
-        backgroundColor: '#001100',      // Deep green-black CRT background
-        borderColor: '#00aa33',          // Dimmer border for retro casing feel
+        barColor: '#00ff41',
+        backgroundColor: '#001100',
+        borderColor: '#00aa33',
         glow: true,
-        textColor: '#00ff88',            // Softer green for readouts
+        textColor: '#00ff88',
         showLabel: true,
         unit: 'm/s',
       }
     });
 
-    // === Draw Firing Mode Toggle ===
+    // === Firing Mode Toggle ===
     const toggleWidth = Math.floor(120 * scale);
     const toggleHeight = Math.floor(24 * scale);
     const toggleX = Math.floor(64 * scale);
     const toggleY = y - Math.floor(12 * scale);
-    
+
     drawFiringModeToggle(ctx, {
       x: toggleX,
       y: toggleY,
@@ -161,80 +154,31 @@ export class HudOverlay {
       style: {
         width: toggleWidth,
         height: toggleHeight,
-        backgroundColor: '#000a00',      // Dark green background like minimap
-        borderColor: '#00ff41',          // Bright CRT green
-        activeColor: '#00ff41',          // Consistent green for active state
-        inactiveColor: '#001a00',        // Darker green for inactive
-        textColor: '#00ff41',            // CRT green text
-        glowColor: '#00ff41',            // Green glow
+        backgroundColor: '#000a00',
+        borderColor: '#00ff41',
+        activeColor: '#00ff41',
+        inactiveColor: '#001a00',
+        textColor: '#00ff41',
+        glowColor: '#00ff41',
         font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
         glow: true,
         animated: true,
-        scanlineIntensity: 0.3,          // Slightly more visible scanlines
-        chromaticAberration: false,      // Disabled for cleaner CRT look
+        scanlineIntensity: 0.3,
+        chromaticAberration: false,
       }
     }, performance.now());
 
-    // === Additional Metrics: Mass & Entropium ===
-    let infoY = toggleY - Math.floor(76 * scale);
-    const infoX = Math.floor(64 * scale);
+    // === Additional Metrics ===
+    const infoX = Math.floor(900 * scale);
     const lineHeight = Math.floor(16 * scale);
+    let infoY = toggleY;
 
-    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale); infoY += lineHeight;
-    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale); infoY += lineHeight;
+    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale);
+    infoY += lineHeight;
+    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale);
 
-    // === Draw Mini Block Preview and Block Count ===
-    const miniBlockWindowWidth = Math.floor(64 * scale);
-    const miniBlockWindowHeight = Math.floor(32 * scale);
-    const miniBlockWindowX = infoX - Math.floor(1 * scale);
-    const miniBlockWindowY = y - Math.floor(54 * scale);
-    const miniBlockSize = Math.floor(this.MINI_BLOCK_SIZE * scale);
-    const blockIndicatorX = infoX + Math.floor(7 * scale);
-    const blockIndicatorY = y - Math.floor(46 * scale);
-    const miniBlockLabelX = miniBlockWindowX + miniBlockWindowWidth - Math.floor(12 * scale)
-    const miniBlockLabelY = miniBlockWindowY + Math.floor(miniBlockWindowHeight / 2) - Math.floor(5 * scale); // Center vertically with preview
-
-    // Draw window around mini block preview
-    const lastGatheredBlock = this.playerResources.getLastGatheredBlock();
-    const blockCount = this.playerResources.getBlockCount();
-    const miniBlockAlpha = blockCount > 0 ? 1.0 : 0.3;
-    const miniBlockIndicatorColor = blockCount > 0 ? '#00ff00' : '#003400';
-
-    // Draw window around mini block preview
-    drawWindow({
-      ctx,
-      x: miniBlockWindowX,
-      y: miniBlockWindowY,
-      width: miniBlockWindowWidth,
-      height: miniBlockWindowHeight,
-      options: {
-        alpha: 0.5,
-        borderRadius: 12,
-        borderColor: miniBlockIndicatorColor,
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
-    });
-
-    // Draw mini block preview
-    this.blockPreviewRenderer.render(
-      ctx,
-      blockIndicatorX,
-      blockIndicatorY,
-      miniBlockSize,
-      miniBlockSize,
-      miniBlockAlpha,
-      lastGatheredBlock
-    );
-
-    // Draw block count label next to the preview
-    drawLabel(ctx, miniBlockLabelX, miniBlockLabelY, `: ${blockCount}`, { align: 'right', color: miniBlockIndicatorColor }, scale);
-    ctx.restore();
+    // === Block Queue Display ===
+    this.blockQueueDisplayManager.render();
   }
 
   destroy(): void {

@@ -49,6 +49,7 @@ class MissionResultStore {
 
   public incrementKillCount(by = 1) {
     this.ensureInitialized();
+
     this.result!.enemiesDestroyed += by;
   }
 

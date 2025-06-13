@@ -4,10 +4,9 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 
 export class PlayerResources {
   private static instance: PlayerResources;
-  
+
   private currency: number = 0;
-  private blockCount: number = 0;
-  private lastGatheredBlock: BlockType | null = null;
+  private blockQueue: BlockType[] = [];
 
   private onCurrencyChangeCallbacks: Set<(newValue: number) => void> = new Set();
 
@@ -24,6 +23,7 @@ export class PlayerResources {
     this.currency = startingCurrency;
   }
 
+  // === Currency ===
   public getCurrency(): number {
     return this.currency;
   }
@@ -49,37 +49,9 @@ export class PlayerResources {
     return true;
   }
 
-  public getBlockCount(): number {
-    return this.blockCount;
-  }
-
-  public incrementBlockCount(amount: number): number {
-    this.blockCount = Math.max(0, this.blockCount += amount);
-    return this.blockCount;
-  }
-
-  public setLastGatheredBlock(blockType: BlockType): void {
-    this.lastGatheredBlock = blockType;
-  }
-
-  public getLastGatheredBlock(): BlockType | null {
-    return this.lastGatheredBlock;
-  }
-
-  public hasBlocks(): boolean {
-    return this.blockCount > 0;
-  }
-
-  /**
-   * Register a callback for currency changes.
-   * Returns a disposer to unsubscribe the callback.
-   */
   public onCurrencyChange(callback: (newValue: number) => void): () => void {
     this.onCurrencyChangeCallbacks.add(callback);
-
-    return () => {
-      this.onCurrencyChangeCallbacks.delete(callback);
-    };
+    return () => this.onCurrencyChangeCallbacks.delete(callback);
   }
 
   private notifyCurrencyChange(): void {
@@ -88,20 +60,46 @@ export class PlayerResources {
     }
   }
 
+  // === Block Queue ===
+  public enqueueBlock(blockType: BlockType): void {
+    this.blockQueue.push(blockType);
+  }
+
+  public dequeueBlock(): BlockType | null {
+    return this.blockQueue.shift() ?? null;
+  }
+
+  public getBlockQueue(): BlockType[] {
+    return this.blockQueue;
+  }
+
+  public getBlockCount(): number {
+    return this.blockQueue.length;
+  }
+
+  public hasBlocks(): boolean {
+    return this.blockQueue.length > 0;
+  }
+
+  public getLastGatheredBlock(): BlockType | null {
+    return this.blockQueue.length > 0 ? this.blockQueue[this.blockQueue.length - 1] : null;
+  }
+
+  // === Lifecycle ===
   public reset(): void {
     this.currency = 0;
+    this.blockQueue = [];
     this.notifyCurrencyChange();
   }
 
   public destroy(): void {
     this.currency = 0;
-    this.blockCount = 0;
+    this.blockQueue = [];
     this.onCurrencyChangeCallbacks.clear();
   }
 
   public postMissionClear(): void {
-    // Retain currency between missions
-    this.blockCount = 0;
+    this.blockQueue = [];
     this.onCurrencyChangeCallbacks.clear();
   }
 }

@@ -1,3 +1,5 @@
+// src/systems/combat/backends/HaloBladeBackend.ts
+
 import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
@@ -72,7 +74,7 @@ export class HaloBladeBackend implements WeaponBackend {
       baseAngle += props.orbitingSpeed * dt;
       this.tierPhases.set(tierId, baseAngle);
 
-      // 🔧 FIX: Sort orbiters by stable identifier to ensure consistent ordering
+      // FIX: Sort orbiters by stable identifier to ensure consistent ordering
       group.sort((a, b) => {
         // Use block instance reference as stable identifier
         // This ensures the same block always gets the same relative position
@@ -140,22 +142,6 @@ export class HaloBladeBackend implements WeaponBackend {
       }
     }
   }
-
-
-/*
-export interface ParticleOptions {
-  colors?: string[];
-  baseSpeed?: number;
-  sizeRange?: [number, number];
-  lifeRange?: [number, number];
-  velocity?: { x: number; y: number };
-  fadeOut?: boolean;
-  fadeMode?: FadeMode;
-  light?: boolean;
-  lightRadiusScalar?: number;
-  lightIntensity?: number;
-}
-*/
 
   render(dt: number): void {
     const ship = this.playerShip;

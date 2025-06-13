@@ -160,8 +160,7 @@ export class BlockDropDecisionMenu implements Menu {
 
   enqueueBlock(blockType: BlockType): void {
     this.queue.push({ blockType });
-    PlayerResources.getInstance().incrementBlockCount(1);
-    PlayerResources.getInstance().setLastGatheredBlock(blockType);
+    PlayerResources.getInstance().enqueueBlock(blockType);
     console.log('[BlockDropDecisionMenu] Enqueued block', blockType.name);
     this.updateNextBlockPreview();
   }
@@ -317,7 +316,7 @@ export class BlockDropDecisionMenu implements Menu {
   private handleRefine(): void {
     // Give player currency (Entropium) equal to the block cost
     PlayerResources.getInstance().addCurrency(this.currentBlockType?.cost ?? 0);
-    PlayerResources.getInstance().incrementBlockCount(-1);
+    PlayerResources.getInstance().dequeueBlock();
     audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
     missionResultStore.incrementBlockRefinedCount();
     this.advanceQueueOrClose();
@@ -332,7 +331,7 @@ export class BlockDropDecisionMenu implements Menu {
       return;
     }
 
-    PlayerResources.getInstance().incrementBlockCount(-1);
+    PlayerResources.getInstance().dequeueBlock();
     missionResultStore.incrementBlockPlacedCount();
     this.advanceQueueOrClose();
   }

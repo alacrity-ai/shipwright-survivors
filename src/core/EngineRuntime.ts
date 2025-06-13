@@ -427,6 +427,7 @@ export class EngineRuntime {
           }
         }
       },
+      this.hud,
       this.popupMessageSystem,
       this.background,
       this.shipConstructionAnimator,
@@ -527,7 +528,7 @@ export class EngineRuntime {
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
-      const randomTypes = ['haloBlade0', 'haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
+      const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4', 'engine4'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 
