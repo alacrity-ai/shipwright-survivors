@@ -1,7 +1,7 @@
 // src/systems/physics/Grid.ts
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-
+import type { Faction } from '@/game/interfaces/types/Faction';
 
 export interface RaycastHit {
   block: BlockInstance;
@@ -10,6 +10,7 @@ export interface RaycastHit {
 
 export class Grid {
   private cells: Map<number, Map<number, BlockInstance[]>> = new Map();
+  private factionCells: Map<Faction, Map<number, Map<number, BlockInstance[]>>> = new Map();
   private cellSize: number;
 
   constructor(cellSize: number = 256) {
@@ -20,11 +21,11 @@ export class Grid {
     return [Math.floor(x / this.cellSize), Math.floor(y / this.cellSize)];
   }
 
-  private getOrCreateCell(cellX: number, cellY: number): BlockInstance[] {
-    let row = this.cells.get(cellX);
+  private getOrCreateCell(map: Map<number, Map<number, BlockInstance[]>>, cellX: number, cellY: number): BlockInstance[] {
+    let row = map.get(cellX);
     if (!row) {
       row = new Map();
-      this.cells.set(cellX, row);
+      map.set(cellX, row);
     }
     let cell = row.get(cellY);
     if (!cell) {
@@ -34,74 +35,80 @@ export class Grid {
     return cell;
   }
 
+  private getFactionMap(faction: Faction): Map<number, Map<number, BlockInstance[]>> {
+    let factionMap = this.factionCells.get(faction);
+    if (!factionMap) {
+      factionMap = new Map();
+      this.factionCells.set(faction, factionMap);
+    }
+    return factionMap;
+  }
+
+  private getCellSources(excludeFaction?: Faction): Map<number, Map<number, BlockInstance[]>>[] {
+    if (!excludeFaction) return [this.cells];
+    const result: Map<number, Map<number, BlockInstance[]>>[] = [];
+    for (const [faction, map] of this.factionCells) {
+      if (faction !== excludeFaction) result.push(map);
+    }
+    return result;
+  }
+
   addBlockToCell(block: BlockInstance): void {
     const { x, y } = block.position!;
     const [cellX, cellY] = this.getCellCoords(x, y);
-    const cell = this.getOrCreateCell(cellX, cellY);
-    if (!cell.includes(block)) {
-      cell.push(block);
-    }
+
+    // Add to global map
+    const globalCell = this.getOrCreateCell(this.cells, cellX, cellY);
+    if (!globalCell.includes(block)) globalCell.push(block);
+
+    // Add to faction-specific map
+    const factionMap = this.getFactionMap(block.ownerFaction);
+    const factionCell = this.getOrCreateCell(factionMap, cellX, cellY);
+    if (!factionCell.includes(block)) factionCell.push(block);
   }
 
   removeBlockFromCell(block: BlockInstance): void {
     const { x, y } = block.position!;
     const [cellX, cellY] = this.getCellCoords(x, y);
-    const row = this.cells.get(cellX);
-    const cell = row?.get(cellY);
-    if (cell) {
-      const index = cell.indexOf(block);
-      if (index !== -1) {
-        cell.splice(index, 1);
-      }
+
+    // Remove from global map
+    const globalRow = this.cells.get(cellX);
+    const globalCell = globalRow?.get(cellY);
+    if (globalCell) {
+      const idx = globalCell.indexOf(block);
+      if (idx !== -1) globalCell.splice(idx, 1);
+    }
+
+    // Remove from faction map
+    const factionRow = this.getFactionMap(block.ownerFaction).get(cellX);
+    const factionCell = factionRow?.get(cellY);
+    if (factionCell) {
+      const idx = factionCell.indexOf(block);
+      if (idx !== -1) factionCell.splice(idx, 1);
     }
   }
 
   removeBlocksFromCells(blocks: BlockInstance[]): void {
-    const grouped = new Map<number, Map<number, BlockInstance[]>>();
-
     for (const block of blocks) {
-      const pos = block.position;
-      if (!pos) continue;
-
-      const [cellX, cellY] = this.getCellCoords(pos.x, pos.y);
-
-      let row = grouped.get(cellX);
-      if (!row) {
-        row = new Map();
-        grouped.set(cellX, row);
-      }
-
-      let group = row.get(cellY);
-      if (!group) {
-        group = [];
-        row.set(cellY, group);
-      }
-
-      group.push(block);
-    }
-
-    for (const [cellX, row] of grouped) {
-      const gridRow = this.cells.get(cellX);
-      if (!gridRow) continue;
-
-      for (const [cellY, blocksToRemove] of row) {
-        const cell = gridRow.get(cellY);
-        if (!cell) continue;
-
-        const toRemove = new Set(blocksToRemove);
-        const filtered = cell.filter(block => !toRemove.has(block));
-        gridRow.set(cellY, filtered);
-      }
+      this.removeBlockFromCell(block);
     }
   }
 
-  getBlocksInCell(x: number, y: number): BlockInstance[] {
+  getBlocksInCell(x: number, y: number, excludeFaction?: Faction): BlockInstance[] {
     const [cellX, cellY] = this.getCellCoords(x, y);
-    return this.cells.get(cellX)?.get(cellY) ?? [];
+    return this.getBlocksInCellByCoords(cellX, cellY, excludeFaction);
   }
 
-  getBlocksInCellByCoords(cellX: number, cellY: number): BlockInstance[] {
-    return this.cells.get(cellX)?.get(cellY) ?? [];
+  getBlocksInCellByCoords(cellX: number, cellY: number, excludeFaction?: Faction): BlockInstance[] {
+    const sources = this.getCellSources(excludeFaction);
+    const result: BlockInstance[] = [];
+    for (const map of sources) {
+      const row = map.get(cellX);
+      if (!row) continue;
+      const cell = row.get(cellY);
+      if (cell) result.push(...cell);
+    }
+    return result;
   }
 
   getRelevantCells(pos: { x: number; y: number }): { x: number; y: number }[] {
@@ -117,31 +124,37 @@ export class Grid {
     return cells;
   }
 
-  getAllBlocksInCells(minX: number, minY: number, maxX: number, maxY: number): BlockInstance[] {
+  getAllBlocksInCells(minX: number, minY: number, maxX: number, maxY: number, excludeFaction?: Faction): BlockInstance[] {
     const blocks: BlockInstance[] = [];
+    const sources = this.getCellSources(excludeFaction);
+
     for (let cx = minX; cx <= maxX; cx++) {
-      const row = this.cells.get(cx);
-      if (!row) continue;
       for (let cy = minY; cy <= maxY; cy++) {
-        const cell = row.get(cy);
-        if (cell) blocks.push(...cell);
+        for (const map of sources) {
+          const row = map.get(cx);
+          if (!row) continue;
+          const cell = row.get(cy);
+          if (cell) blocks.push(...cell);
+        }
       }
     }
+
     return blocks;
   }
 
-  getBlocksInArea(minX: number, minY: number, maxX: number, maxY: number): BlockInstance[] {
+  getBlocksInArea(minX: number, minY: number, maxX: number, maxY: number, excludeFaction?: Faction): BlockInstance[] {
     const minCellX = Math.floor(minX / this.cellSize);
     const minCellY = Math.floor(minY / this.cellSize);
     const maxCellX = Math.floor(maxX / this.cellSize);
     const maxCellY = Math.floor(maxY / this.cellSize);
-    return this.getAllBlocksInCells(minCellX, minCellY, maxCellX, maxCellY);
+    return this.getAllBlocksInCells(minCellX, minCellY, maxCellX, maxCellY, excludeFaction);
   }
 
   getBlocksAlongRay(
     start: { x: number; y: number },
     end: { x: number; y: number },
-    beamThickness: number = 0
+    beamThickness: number = 0,
+    excludeFaction?: Faction
   ): BlockInstance[] {
     const blocksHit: Set<BlockInstance> = new Set();
 
@@ -160,36 +173,28 @@ export class Grid {
     const endX = Math.floor(end.x / this.cellSize);
     const endY = Math.floor(end.y / this.cellSize);
 
-    let tMaxX: number;
-    let tMaxY: number;
-
     const xOffset = dx > 0
       ? (x + 1) * this.cellSize - start.x
       : start.x - x * this.cellSize;
-    tMaxX = Math.abs(xOffset / dx);
-
     const yOffset = dy > 0
       ? (y + 1) * this.cellSize - start.y
       : start.y - y * this.cellSize;
-    tMaxY = Math.abs(yOffset / dy);
+
+    let tMaxX = Math.abs(xOffset / dx);
+    let tMaxY = Math.abs(yOffset / dy);
 
     const maxSteps = 500;
-
     let sideOffsets: [number, number][] = [[0, 0]];
 
     if (beamThickness > 0) {
       const radius = beamThickness / 2;
-
       const mag = Math.sqrt(dx * dx + dy * dy);
       const dirX = dx / mag;
       const dirY = dy / mag;
-
       const normalX = -dirY;
       const normalY = dirX;
-
       const cellRadius = Math.ceil(radius / this.cellSize);
       const seen = new Set<number>();
-
       sideOffsets = [];
 
       for (let i = -cellRadius; i <= cellRadius; i++) {
@@ -207,8 +212,7 @@ export class Grid {
       for (const [ox, oy] of sideOffsets) {
         const cx = x + ox;
         const cy = y + oy;
-
-        const blocks = this.getBlocksInCellByCoords(cx, cy);
+        const blocks = this.getBlocksInCellByCoords(cx, cy, excludeFaction);
         for (const block of blocks) {
           blocksHit.add(block);
         }
@@ -228,29 +232,25 @@ export class Grid {
     return Array.from(blocksHit);
   }
 
-  public getFirstBlockAlongRay(
+  getFirstBlockAlongRay(
     origin: { x: number; y: number },
     target: { x: number; y: number },
-    excludeShipId?: string
+    excludeFaction?: Faction
   ): RaycastHit | null {
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
     const mag = Math.sqrt(dx * dx + dy * dy);
-
     if (mag === 0) return null;
 
     const rayDir = { x: dx / mag, y: dy / mag };
-    const blocks = this.getBlocksAlongRay(origin, target);
+    const blocks = this.getBlocksAlongRay(origin, target, 0, excludeFaction);
 
     let closestHit: RaycastHit | null = null;
     let closestT = Infinity;
 
     for (const block of blocks) {
-      if (excludeShipId && block.ownerShipId === excludeShipId) continue;
-
       const pos = block.position!;
       const half = this.cellSize / 2;
-
       const min = { x: pos.x - half, y: pos.y - half };
       const max = { x: pos.x + half, y: pos.y + half };
 
@@ -270,9 +270,9 @@ export class Grid {
     return closestHit;
   }
 
-  // Clears all grid data
   clear(): void {
     this.cells.clear();
+    this.factionCells.clear();
   }
 }
 

@@ -174,6 +174,7 @@ export class TurretBackend implements WeaponBackend {
       fire.lifetime ?? 2,
       fire.accuracy ?? 1,
       ship.id,
+      ship.getFaction(),
       particleColors,
       'delayed'
     );

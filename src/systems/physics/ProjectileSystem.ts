@@ -8,6 +8,7 @@ import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Ship } from '@/game/ship/Ship';
+import type { Faction } from '@/game/interfaces/types/Faction';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
@@ -36,8 +37,9 @@ export class ProjectileSystem {
     lifetime = 2,
     accuracy = 1,
     ownerShipId: string,
+    ownerFaction: Faction,
     particleColors?: string[],
-    fadeMode?: 'linear' | 'delayed'
+    fadeMode?: 'linear' | 'delayed',
   ) {
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
@@ -73,6 +75,7 @@ export class ProjectileSystem {
       damage,
       life: lifetime,
       ownerShipId,
+      ownerFaction,
       particle,
     });
   }
@@ -91,29 +94,38 @@ export class ProjectileSystem {
   private checkCollisions(): void {
     for (const p of this.projectiles) {
       const size = 32; // radius of projectile check area
+
+      // Only retrieve blocks from *opposing* factions
       const blocks = this.grid.getBlocksInArea(
         p.position.x - size,
         p.position.y - size,
         p.position.x + size,
-        p.position.y + size
+        p.position.y + size,
+        p.ownerFaction
       );
 
       for (const block of blocks) {
-        if (block.ownerShipId === p.ownerShipId) continue;
         if (!this.checkCollision(p, block)) continue;
 
-        // fast Map lookup here
         const obj = BlockToObjectIndex.getObject(block);
         if (!obj) continue;
 
         const coord = obj.getBlockCoord(block);
         if (!coord) continue;
 
-        // === Apply damage ===
         const ownerShipInstance = ShipRegistry.getInstance().getById(p.ownerShipId);
         if (!ownerShipInstance) continue;
-        
-        this.combatService.applyDamageToBlock(obj, ownerShipInstance, block, coord, p.damage, 'projectile', this.playerShip);
+
+        this.combatService.applyDamageToBlock(
+          obj,
+          ownerShipInstance,
+          block,
+          coord,
+          p.damage,
+          'projectile',
+          this.playerShip
+        );
+
         this.removeProjectile(p);
         return;
       }

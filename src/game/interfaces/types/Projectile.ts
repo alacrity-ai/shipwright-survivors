@@ -1,5 +1,7 @@
 // src/game/interfaces/Projectile.ts
 
+import type { Faction } from '@/game/interfaces/types/Faction';
+
 export interface Projectile {
   position: { x: number; y: number };
   velocity: { x: number; y: number };
@@ -7,4 +9,5 @@ export interface Projectile {
   damage: number;
   life: number; // in seconds
   ownerShipId: string;  // reference to the ship ID that fired the projectile
+  ownerFaction: Faction;
 }

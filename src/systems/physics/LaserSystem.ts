@@ -114,7 +114,11 @@ export class LaserSystem implements IUpdatable, IRenderable {
         let beamTargetX = targetX;
         let beamTargetY = targetY;
 
-        const hit = this.grid.getFirstBlockAlongRay(origin, { x: targetX, y: targetY }, ship.id);
+        const hit = this.grid.getFirstBlockAlongRay(
+          origin,
+          { x: targetX, y: targetY },
+          ship.getFaction()
+        );
 
         if (hit) {
           beamTargetX = hit.point.x;
@@ -122,6 +126,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
 
           const targetShip = findObjectByBlock(hit.block);
           const hitCoord = targetShip ? findBlockCoordinatesInObject(hit.block, targetShip) : null;
+
           if (targetShip && hitCoord) {
             this.combatService.applyDamageToBlock(
               targetShip,

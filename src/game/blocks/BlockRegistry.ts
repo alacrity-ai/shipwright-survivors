@@ -310,7 +310,7 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireRate: 0.5,
         fireType: 'explosiveLance',
-        fireDamage: 2,
+        fireDamage: 1,
         explosionDamage: 2,
         explosionRadiusBlocks: 3,
         detonationDelayMs: 1500,
@@ -335,7 +335,7 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireRate: 0.5,
         fireType: 'explosiveLance',
-        fireDamage: 10,
+        fireDamage: 1,
         explosionDamage: 20,
         explosionRadiusBlocks: 3,
         detonationDelayMs: 1500,
@@ -360,7 +360,7 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireRate: 0.6,
         fireType: 'explosiveLance',
-        fireDamage: 15,
+        fireDamage: 1,
         explosionDamage: 25,
         explosionRadiusBlocks: 4,
         detonationDelayMs: 1500,
@@ -385,7 +385,7 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireRate: 0.7,
         fireType: 'explosiveLance',
-        fireDamage: 20,
+        fireDamage: 1,
         explosionDamage: 30,
         explosionRadiusBlocks: 5,
         detonationDelayMs: 1500,
@@ -410,7 +410,7 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireRate: 0.8,
         fireType: 'explosiveLance',
-        fireDamage: 25,
+        fireDamage: 1,
         explosionDamage: 40,
         explosionRadiusBlocks: 6,
         detonationDelayMs: 1500,

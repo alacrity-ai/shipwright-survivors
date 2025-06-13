@@ -11,9 +11,15 @@ import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Grid } from '@/systems/physics/Grid';
+
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
+import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { PointLightInstance } from '@/lighting/lights/types';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { GlobalEventBus } from '@/core/EventBus';
 
 interface ActiveExplosiveLance {
   position: { x: number; y: number };
@@ -35,6 +41,7 @@ interface ActiveExplosiveLance {
   emissionAccumulatorTrail: number;
   emissionAccumulatorStuck: number;
   firingBlockId: string;
+  light: PointLightInstance;
 }
 
 export class ExplosiveLanceBackend implements WeaponBackend {
@@ -95,6 +102,28 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         velocity: { x: vx, y: vy },
       });
 
+      // Create pointlight
+      const light = createPointLight({
+        x: worldX,
+        y: worldY,
+        radius: 600,
+        color: colors[0],
+        intensity: 0.9,
+        life: lifetime + 0.4,
+        expires: true,
+      });
+      LightingOrchestrator.getInstance().registerLight(light);
+
+      // Play spatial sfx
+      playSpatialSfx(ship, this.playerShip, {
+        file: 'assets/sounds/sfx/weapons/lance_00.wav',
+        channel: 'sfx',
+        baseVolume: 0.8,
+        pitchRange: [0.8, 1.2],
+        volumeJitter: 0.1,
+        maxSimultaneous: 3,
+      });
+
       this.activeLances.push({
         position: { x: worldX, y: worldY },
         velocity: { x: vx, y: vy },
@@ -114,6 +143,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         emissionAccumulatorTrail: 0,
         emissionAccumulatorStuck: 0,
         firingBlockId: lance.block.type.id,
+        light: light
       });
     }
 
@@ -181,10 +211,12 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
       lance.position.x += lance.velocity.x * dt;
       lance.position.y += lance.velocity.y * dt;
+      lance.light.x = lance.position.x;
+      lance.light.y = lance.position.y;
 
       const cells = this.grid.getRelevantCells(lance.position);
       for (const cell of cells) {
-        const blocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y);
+        const blocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y, ship.getFaction());
         for (const block of blocks) {
           if (block.ownerShipId === lance.ownerShipId) continue;
           if (!block.position) continue;
@@ -216,6 +248,23 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               lance.particle.life = lance.detonationDelay + 0.2;
               lance.particle.size *= 1.25;
 
+              // Play stuck sound effect
+              playSpatialSfx(this.playerShip, ship, {
+                file: 'assets/sounds/sfx/weapons/lance_01.wav',
+                channel: 'sfx',
+                baseVolume: 0.9,
+                pitchRange: [0.8, 1.2],
+                volumeJitter: 0.1,
+                maxSimultaneous: 5,
+              });
+
+              // Shake screen slightly
+              GlobalEventBus.emit('camera:shake', {
+                strength: 6,
+                duration: 0.16,
+                frequency: 10,
+              });
+
               const wasDestroyed = this.combatService.applyDamageToBlock(
                 compositeBlockObject,
                 ship,
@@ -242,6 +291,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship): void {
     if (!lance.targetShip || !lance.coord) return;
+
+    // Cleanup Light
+    LightingOrchestrator.getInstance().removeLight(lance.light.id);
 
     const blocks = lance.targetShip.getBlocksWithinGridDistance(lance.coord, lance.explosionRadius);
     for (const block of blocks) {

@@ -182,9 +182,8 @@ export class HaloBladeBackend implements WeaponBackend {
 
       const cells = this.grid.getRelevantCells({ x, y });
       for (const cell of cells) {
-        const enemyBlocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y);
+        const enemyBlocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y, ship.getFaction());
         for (const block of enemyBlocks) {
-          if (block.ownerShipId === ship.id) continue;
           if (!block.position) continue;
 
           const dx = x - block.position.x;
