@@ -16,6 +16,7 @@ import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 export class PlayerControllerSystem {
   private isEnginePlaying = false;
+  private lastFiringModeSwitchTime: number = -Infinity;
 
   constructor(
     private readonly camera: Camera, 
@@ -69,12 +70,18 @@ export class PlayerControllerSystem {
 
     // === Non Intent Player Input Options ===
 
-    // Switch Firing Mode
-    if (this.inputManager.wasKeyJustPressed('KeyX')) {
-      this.playerShip.setFiringMode(this.playerShip.getFiringMode() === FiringMode.Synced ? FiringMode.Sequence : FiringMode.Synced);
+    // Switch firing mode
+    const now = performance.now();
+    if (this.inputManager.wasKeyJustPressed('KeyX') && now - this.lastFiringModeSwitchTime >= 1000) {
+      this.lastFiringModeSwitchTime = now;
+
+      const newMode = this.playerShip.getFiringMode() === FiringMode.Synced ? FiringMode.Sequence : FiringMode.Synced;
+      this.playerShip.setFiringMode(newMode);
       audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+
       const playerPos = this.playerShip.getTransform().position;
-      createLightFlash(playerPos.x, playerPos.y, 320, 1, 0.5, '#ffffff');
+      const lightColor = newMode === FiringMode.Synced ? '#00ffff' : '#ff0000';
+      createLightFlash(playerPos.x, playerPos.y, 520, 1.2, 0.4, lightColor);
     }
 
     return {

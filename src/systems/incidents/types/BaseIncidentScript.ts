@@ -1,6 +1,6 @@
 // src/systems/incidents/types/BaseIncidentScript.ts
 
-import { reportMinimapMarker, clearMinimapMarker } from '../helpers/IncidentMinimapReporter';
+import { reportMinimapMarker, clearMinimapMarker } from '@/core/interfaces/events/IncidentMinimapReporter';
 import type { IncidentScript } from './IncidentScript';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { IncidentRuntimeContext } from './IncidentRuntimeContext';

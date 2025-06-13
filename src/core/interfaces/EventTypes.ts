@@ -1,6 +1,7 @@
 // src/core/interfaces/EventTypes.ts
 
-import type { IncidentMinimapMarker } from '@/systems/incidents/helpers/IncidentMinimapReporter';
+import type { IncidentMinimapMarker } from '@/core/interfaces/events/IncidentMinimapReporter';
+import type { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 // src/core/EventTypes.ts
 export interface EventTypes {
@@ -11,4 +12,5 @@ export interface EventTypes {
   'menu:opened': { id: string };
   'menu:closed': { id: string };
   'camera:shake': { strength: number; duration: number; frequency?: number };
+  'player:firemode:changed': { mode: FiringMode };
 }

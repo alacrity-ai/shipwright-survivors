@@ -43,10 +43,6 @@ export class ScreenShakeController {
     // Generate smooth oscillating shake
     this.offsetX = Math.sin(this.time * frequencyRadians + this.phaseX) * currentStrength;
     this.offsetY = Math.sin(this.time * frequencyRadians + this.phaseY) * currentStrength;
-    
-    // Optional: Add some randomness for more chaotic feel
-    // this.offsetX += (Math.random() - 0.5) * currentStrength * 0.3;
-    // this.offsetY += (Math.random() - 0.5) * currentStrength * 0.3;
   }
 
   getOffset(): { x: number; y: number } {

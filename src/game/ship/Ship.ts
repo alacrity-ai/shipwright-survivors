@@ -12,6 +12,7 @@ import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladePr
 
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
+import { PlayerStats } from '@/game/player/PlayerStats';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
@@ -165,6 +166,9 @@ export class Ship extends CompositeBlockObject {
 
   public setFiringMode(mode: FiringMode): void {
     this.firingMode = mode;
+    if (this.isPlayerShip) {
+      PlayerStats.getInstance().setFiringMode(mode);
+    }
   }
 
   /**

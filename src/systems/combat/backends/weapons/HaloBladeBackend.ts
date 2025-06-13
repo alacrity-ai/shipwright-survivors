@@ -9,6 +9,7 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Grid } from '@/systems/physics/Grid';
 
+import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { Camera } from '@/core/Camera';
 import { findObjectByBlock } from '@/game/entities/utils/universalBlockInterfaceUtils';
 import { drawEnergyRing } from '@/rendering/helpers/drawEnergyRing';
@@ -69,15 +70,17 @@ export class HaloBladeBackend implements WeaponBackend {
       const props = bladeMap.get(group[0].block);
       if (!props) continue;
 
+      // Determine rotation direction based on firing mode
+      const firingModeIsSequence = ship.getFiringMode() === FiringMode.Sequence;
+      const rotationDirection = firingModeIsSequence ? 1 : -1;
+
       // Initialize or advance the tier's base phase
       let baseAngle = this.tierPhases.get(tierId) ?? Math.random() * Math.PI * 2;
-      baseAngle += props.orbitingSpeed * dt;
+      baseAngle += props.orbitingSpeed * dt * rotationDirection; // Apply direction to base rotation
       this.tierPhases.set(tierId, baseAngle);
 
       // FIX: Sort orbiters by stable identifier to ensure consistent ordering
       group.sort((a, b) => {
-        // Use block instance reference as stable identifier
-        // This ensures the same block always gets the same relative position
         const idA = a.block.id;
         const idB = b.block.id;
         return idA.localeCompare(idB);
@@ -87,13 +90,18 @@ export class HaloBladeBackend implements WeaponBackend {
       const count = group.length;
       for (let i = 0; i < count; i++) {
         const orbiter = group[i];
+        // For distribution, we can keep it simple since base rotation handles direction
         const angle = baseAngle + (i / count) * Math.PI * 2;
+
         orbiter.angle = angle;
         orbiter.radius = props.orbitingRadius;
 
+        // Determine radius based on firing mode
+        const firingModeRadius = firingModeIsSequence ? orbiter.radius : orbiter.radius * 0.5;
+
         // Update world position
-        orbiter.position.x = shipCenter.x + Math.cos(angle) * orbiter.radius;
-        orbiter.position.y = shipCenter.y + Math.sin(angle) * orbiter.radius;
+        orbiter.position.x = shipCenter.x + Math.cos(angle) * firingModeRadius;
+        orbiter.position.y = shipCenter.y + Math.sin(angle) * firingModeRadius;
       }
     }
 

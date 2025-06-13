@@ -7,7 +7,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
-import { menuOpened, menuClosed } from '@/ui/menus/events/MenuOpenReporter';
+import { menuOpened, menuClosed } from '@/core/interfaces/events/MenuOpenReporter';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock';
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';

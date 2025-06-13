@@ -8,6 +8,7 @@ import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTr
 export interface WeaponBackend {
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void;
   render(dt: number): void;
+  destroy?(): void;
 }
 
 export class WeaponSystem {
@@ -32,6 +33,14 @@ export class WeaponSystem {
     for (const backend of this.backends) {
       if (backend.render) {
         backend.render(dt);
+      }
+    }
+  }
+
+  public destroy(): void {
+    for (const backend of this.backends) {
+      if (backend.destroy) {
+        backend.destroy();
       }
     }
   }

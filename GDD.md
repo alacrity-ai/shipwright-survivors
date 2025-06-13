@@ -203,9 +203,11 @@
 
 |Metric|Value|
 |---|---|
-|Entropium Collected|1250|
-|Entropium Spent|900|
-|Incidents Completed|3|
+|Objectives Completed|2/2| --- Show itemized objectives, maybe data cores per?
+|Entropium Collected|1250| --- Gives a small amount of Data Cores
+|Incidents Completed|3| --- Gives a small amount of Data Cores (maybe 1 per incident?)
+|Enemies Destroyed|50|  --- Gives a small amount of Data Cores (maybe minimum 1?)
+|Entropium Spent|900| 
 |Data Cores Earned|4|
 |New Discoveries|Overthruster (Artifact), Cryo Core Frame (Starter Ship)|
 ## 📈 **Planned System Extensions**

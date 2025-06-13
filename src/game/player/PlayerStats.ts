@@ -1,5 +1,7 @@
 // src/game/player/PlayerStats.ts
 
+import { FiringMode } from '@/systems/combat/types/WeaponTypes';
+
 /**
  * Singleton managing real-time player stats such as energy, modifiers, etc.
  */
@@ -9,6 +11,7 @@ export class PlayerStats {
   private energy: number = 100;
   private maxEnergy: number = 100;
   private onEnergyChangeCallbacks: ((newEnergy: number, maxEnergy: number) => void)[] = [];
+  private firingMode: FiringMode = FiringMode.Sequence;
 
   private constructor() {}
 
@@ -22,6 +25,14 @@ export class PlayerStats {
   public initialize(startingEnergy: number = 100): void {
     this.energy = startingEnergy;
     this.maxEnergy = startingEnergy;
+  }
+
+  public getFiringMode(): FiringMode {
+    return this.firingMode;
+  }
+
+  public setFiringMode(mode: FiringMode): void {
+    this.firingMode = mode;
   }
 
   public getEnergy(): number {
