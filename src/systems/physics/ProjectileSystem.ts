@@ -9,6 +9,7 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Ship } from '@/game/ship/Ship';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 
 interface VisualizedProjectile extends Projectile {
@@ -108,7 +109,11 @@ export class ProjectileSystem {
         const coord = obj.getBlockCoord(block);
         if (!coord) continue;
 
-        this.combatService.applyDamageToBlock(obj, block, coord, p.damage, 'projectile', this.playerShip);
+        // === Apply damage ===
+        const ownerShipInstance = ShipRegistry.getInstance().getById(p.ownerShipId);
+        if (!ownerShipInstance) continue;
+        
+        this.combatService.applyDamageToBlock(obj, ownerShipInstance, block, coord, p.damage, 'projectile', this.playerShip);
         this.removeProjectile(p);
         return;
       }

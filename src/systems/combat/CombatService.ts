@@ -21,14 +21,18 @@ export class CombatService {
   ) {}
 
   public applyDamageToBlock(
-    entity: CompositeBlockObject,
-    block: BlockInstance,
+    entity: CompositeBlockObject, // The entity receiving the damage
+    source: CompositeBlockObject, // The entity dealing the damage
+    block: BlockInstance, // The block receiving the damage
     coord: GridCoord,
     damage: number,
     cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'haloBlade' | 'scripted' = 'scripted',
-    playerShip: Ship | null = null
+    playerShip: Ship | null = null // Player ship for reference
   ): boolean {
     if (block.indestructible) return false;
+
+    // === If source and entity are the same faction, ignore ===
+    if (source.getFaction() === entity.getFaction()) return false;
 
     // === Scale damage by mission difficulty ===
     const enemyPower = missionLoader.getEnemyPower();

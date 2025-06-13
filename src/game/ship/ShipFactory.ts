@@ -13,6 +13,7 @@ import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldTog
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
 import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+import { Faction } from '@/game/interfaces/types/Faction';
 
 import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -46,7 +47,7 @@ export class ShipFactory {
     private readonly combatService: CombatService,
     private readonly explosionSystem: ExplosionSystem,
     private readonly collisionSystem: BlockObjectCollisionSystem,
-    private readonly shipConstructionAnimator: ShipConstructionAnimatorService
+    private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
   ) {}
 
   public async createShip(
@@ -55,12 +56,14 @@ export class ShipFactory {
     y: number,
     hunter: boolean = false,
     behaviorProfile: BehaviorProfile = DefaultBehaviorProfile,
-    affixes: ShipAffixes = {}
+    affixes: ShipAffixes = {},
+    faction: Faction = Faction.Enemy
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
     
     // Set ship affixes (modifers like: fire rate, damage, etc.)
     ship.setAffixes(affixes);
+    ship.setFaction(faction);
 
     // If hunter auralight color is red, otherwise yellow
     const auraLightOptions: AuraLightOptions = { color: '#ff0000', radius: 96 };
@@ -77,7 +80,7 @@ export class ShipFactory {
       new TurretBackend(this.projectileSystem, this.playerShip),
       new LaserBackend(this.laserSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.playerShip),
-      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, this.playerShip)
+      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 

@@ -2,11 +2,14 @@
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
+import { Faction } from '@/game/interfaces/types/Faction';
+
 export interface BlockInstance {
   id: string;             // UUID
   type: BlockType;       // reference to immutable block definition
   hp: number;            // current health
   ownerShipId: string;   // unique ID of the ship this block belongs to
+  ownerFaction: Faction;
   indestructible?: boolean; // if true, block cannot be destroyed
   cooldown?: number;     // used for turret/engine action delay
   rotation?: number;     // degrees: 0, 90, 180, 270

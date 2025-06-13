@@ -144,6 +144,13 @@ The game features Newtonian physics with inertia and realistic thruster effects.
   - [ ] Space Stations
   - [ ] "Treasure Goblins" (Ship which flees and has good drops)
 
+MISSION  3:
+Should be 5 waves
+[x] Enemies with blue boosters aren't moving???
+[x] No screen shake for enemy kills
+[x] Enemies shouldn't be able to damage each other
+Add spawn delay time to enemy definitions in wave definition (for staggered hunters)
+
 TODOS:
   - [ ] Create Galaxy Map
   - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
@@ -240,6 +247,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] CRITICAL: While Paused, particles continue to spawn at an alarming rate, causing intense FPS drop
   - [ ] Mission result menu does not scale with resolution
   - [ ] Planet Popping in and out of view when it's nearly offscreen but not completely
   - [x] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 

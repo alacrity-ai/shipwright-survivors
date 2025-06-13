@@ -538,7 +538,9 @@ export class EngineRuntime {
     if (this.inputManager.wasKeyJustPressed('KeyO')) {
       if (this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.closeMenu();
+        this.resume();
       } else {
+        this.pause();
         this.shipBuilderMenu.openMenu();
       }
     }

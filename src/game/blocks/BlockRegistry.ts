@@ -310,11 +310,11 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireRate: 0.5,
         fireType: 'explosiveLance',
-        fireDamage: 5,
-        explosionDamage: 10,
+        fireDamage: 2,
+        explosionDamage: 2,
         explosionRadiusBlocks: 3,
         detonationDelayMs: 1500,
-        projectileSpeed: 1600,
+        projectileSpeed: 1000,
         lifetime: 0.8,
         accuracy: 0.95
       } 
@@ -852,16 +852,16 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       haloBladeProperties: {
         orbitingRadius: 500,
-        orbitingSpeed: 2,
+        orbitingSpeed: 1.2,
         size: 64,
-        damage: 10,
+        damage: 1,
         color: '#FFBF00'
       }
     },
     sprite: 'haloBlade0',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.05
+    dropRate: 0.1
   },
   haloBlade1: {
     id: 'haloBlade1',
@@ -874,14 +874,14 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 500,
         orbitingSpeed: 2,
         size: 64,
-        damage: 10,
+        damage: 5,
         color: '#FFBF00'
       }
     },
     sprite: 'haloBlade1',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.05
+    dropRate: 0.18
   },
   haloBlade2: {
     id: 'haloBlade2',
@@ -894,14 +894,14 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 700,
         orbitingSpeed: 2.4,
         size: 64,
-        damage: 15,
+        damage: 8,
         color: '#2CFF05'
       }
     },
     sprite: 'haloBlade2',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.05
+    dropRate: 0.14
   },
   haloBlade3: {
     id: 'haloBlade3',
@@ -914,14 +914,14 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 900,
         orbitingSpeed: 2.8,
         size: 64,
-        damage: 22,
+        damage: 12,
         color: '#00FFFF'
       }
     },
     sprite: 'haloBlade3',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.05
+    dropRate: 0.12
   },
   haloBlade4: {
     id: 'haloBlade4',
@@ -934,14 +934,14 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 1100,
         orbitingSpeed: 3.2,
         size: 64,
-        damage: 32,
+        damage: 15,
         color: '#7F00FF'
       }
     },
     sprite: 'haloBlade4',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.05
+    dropRate: 0.1
   },
 };
 

@@ -82,6 +82,20 @@ export class GalaxyMapSceneManager {
         style: crtStyle
       },
       {
+        x: 120,
+        y: (520 * uiScale) + (buttonVerticalSpacing * 2),
+        width: 360,
+        height: 40,
+        label: 'Launch "The Miner\'s Dillemma"',
+        isHovered: false,
+        onClick: () => {
+          missionLoader.setMission(missionRegistry['mission_004_00']);
+          this.stop();
+          sceneManager.fadeToScene('mission');
+        },
+        style: crtStyle
+      },
+      {
         x: 20,
         y: 20,
         width: 120,

@@ -7,7 +7,7 @@ import type { AsteroidJsonBlueprint } from '@/game/spawners/types/AsteroidJsonBl
 import { Asteroid } from '@/game/entities/Asteroid';
 import { getAsteroidBlockType } from '@/game/blocks/AsteroidBlockRegistry';
 import { getAssetPath } from '@/shared/assetHelpers';
-
+import { Faction } from '@/game/interfaces/types/Faction';
 
 export interface SerializedBlockObject {
   transform: BlockEntityTransform;
@@ -78,6 +78,7 @@ export async function loadAsteroidFromJson(
 
     const block: BlockInstance = {
       id: crypto.randomUUID(),
+      ownerFaction: Faction.Neutral, // Asteroids are neutral by default
       type,
       hp: type.armor,
       ownerShipId: asteroid.id,

@@ -1,5 +1,7 @@
 // src/game/missions/MissionResultStore.ts
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 export interface MissionResultData {
   outcome: 'victory' | 'defeat';
   enemiesDestroyed: number;
@@ -49,6 +51,15 @@ class MissionResultStore {
 
   public incrementKillCount(by = 1) {
     this.ensureInitialized();
+
+    // Camera shake
+    // TODO:
+    // Putting this here for now, as enemies keep shaking the screen when they kill asteroids
+    GlobalEventBus.emit('camera:shake', {
+      strength: 10,
+      duration: 0.2,
+      frequency: 10,
+    });
 
     this.result!.enemiesDestroyed += by;
   }

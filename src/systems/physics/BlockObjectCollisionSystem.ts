@@ -311,12 +311,12 @@ export class BlockObjectCollisionSystem {
         // Damage to B from A
         const rawToB = baseDamage * damageMultiplierA * inflictMultiplierA;
         const reducedToB = Math.max(0, rawToB - effectiveArmorB);
-        this.combatService.applyDamageToBlock(b, blockB, coordB, reducedToB, 'collision', null);
+        this.combatService.applyDamageToBlock(b, a, blockB, coordB, reducedToB, 'collision', null);
 
         // Damage to A from B
         const rawToA = baseDamage * damageMultiplierB * inflictMultiplierB;
         const reducedToA = Math.max(0, rawToA - effectiveArmorA);
-        this.combatService.applyDamageToBlock(a, blockA, coordA, reducedToA, 'collision', null);
+        this.combatService.applyDamageToBlock(a, b, blockA, coordA, reducedToA, 'collision', null);
       }
     }
   }

@@ -68,13 +68,6 @@ export class CompositeBlockDestructionService {
       this.aiOrchestrator.removeControllersForShip?.(entityId);
     }
 
-    // Camera shake
-    GlobalEventBus.emit('camera:shake', {
-      strength: Math.floor(6 + (totalMass * 0.01)),
-      duration: 0.2,
-      frequency: 10,
-    });
-
     entity.destroy();
 
     // === Step 2: Explosion & pickup animation ===

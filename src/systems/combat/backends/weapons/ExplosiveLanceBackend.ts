@@ -1,3 +1,5 @@
+// src/systems/combat/backends/ExplosiveLanceBackend.ts
+
 import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -115,10 +117,10 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       });
     }
 
-    this.updateLances(dt);
+    this.updateLances(dt, ship);
   }
 
-  private updateLances(dt: number): void {
+  private updateLances(dt: number, ship: Ship): void {
     const exploded = new Set<ActiveExplosiveLance>();
 
     for (const lance of this.activeLances) {
@@ -171,7 +173,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
         lance.elapsed += dt;
         if (lance.elapsed >= lance.detonationDelay) {
-          this.explodeLance(lance);
+          this.explodeLance(lance, ship);
           exploded.add(lance);
         }
         continue;
@@ -216,6 +218,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
               const wasDestroyed = this.combatService.applyDamageToBlock(
                 compositeBlockObject,
+                ship,
                 block,
                 coord,
                 lance.fireDamage,
@@ -223,7 +226,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
                 this.playerShip
               );
               if (wasDestroyed) {
-                this.explodeLance(lance);
+                this.explodeLance(lance, ship);
                 exploded.add(lance);
                 continue;
               }
@@ -237,7 +240,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     this.activeLances = this.activeLances.filter(l => !exploded.has(l));
   }
 
-  private explodeLance(lance: ActiveExplosiveLance): void {
+  private explodeLance(lance: ActiveExplosiveLance, ship: Ship): void {
     if (!lance.targetShip || !lance.coord) return;
 
     const blocks = lance.targetShip.getBlocksWithinGridDistance(lance.coord, lance.explosionRadius);
@@ -255,6 +258,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         );
         this.combatService.applyDamageToBlock(
           lance.targetShip,
+          ship,
           block,
           coord,
           lance.explosionDamage,

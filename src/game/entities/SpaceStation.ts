@@ -4,6 +4,7 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 
+import { Faction } from '@/game/interfaces/types/Faction';
 import { getBlockType } from '../blocks/BlockRegistry';
 import { CompositeBlockObject } from './CompositeBlockObject';
 import { Grid } from '@/systems/physics/Grid';
@@ -36,6 +37,7 @@ export class SpaceStation extends CompositeBlockObject {
     const worldPos = this.calculateBlockWorldPosition(coord);  // Use the helper method to calculate world position
     
     const block: BlockInstance = {
+      ownerFaction: Faction.Neutral,
       id: crypto.randomUUID(),
       type,
       hp: type.armor,

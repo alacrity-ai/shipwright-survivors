@@ -10,6 +10,8 @@ import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { toKey, fromKey, type CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
+import { Faction } from '@/game/interfaces/types/Faction';
+
 export abstract class CompositeBlockObject {
   readonly id: string;
   protected grid: Grid;
@@ -24,15 +26,19 @@ export abstract class CompositeBlockObject {
   protected totalMass: number | null = null;
   protected immoveable: boolean = false;
 
+  protected faction: Faction;
+
   protected collidingUntil: number = 0;
 
   constructor(
     grid: Grid,
     initialBlocks?: [GridCoord, BlockInstance][],
-    initialTransform?: Partial<BlockEntityTransform>
+    initialTransform?: Partial<BlockEntityTransform>,
+    faction?: Faction
   ) {
     this.grid = grid;
     this.id = this.generateId();
+    this.faction = faction ?? Faction.Neutral;
 
     this.transform = {
       position: initialTransform?.position ?? { x: 0, y: 0 },
@@ -56,6 +62,15 @@ export abstract class CompositeBlockObject {
 
   /** Optional: behavior when destroyed */
   public onDestroyed(): void {};
+
+  // Faction System
+  public setFaction(faction: Faction): void {
+    this.faction = faction;
+  }
+
+  public getFaction(): Faction {
+    return this.faction;
+  }
 
   // --- Block Access & Placement ---
 
@@ -355,6 +370,7 @@ export abstract class CompositeBlockObject {
 
       const uniqueId = crypto.randomUUID();
       const block: BlockInstance = {
+        ownerFaction: Faction.Neutral,
         id: uniqueId,
         type,
         rotation: blockData.rotation ?? 0,

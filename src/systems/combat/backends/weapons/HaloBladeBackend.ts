@@ -29,7 +29,7 @@ export class HaloBladeBackend implements WeaponBackend {
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
     private readonly grid: Grid,
-    private readonly playerShip: Ship
+    private readonly ship: Ship
   ) {}
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
@@ -138,11 +138,12 @@ export class HaloBladeBackend implements WeaponBackend {
             if (enemyShip && coord) {
               this.combatService.applyDamageToBlock(
                 enemyShip,
+                ship,
                 block,
                 coord,
                 props.damage,
                 'haloBlade',
-                this.playerShip
+                this.ship
               );
             }
           }
@@ -152,7 +153,7 @@ export class HaloBladeBackend implements WeaponBackend {
   }
 
   render(dt: number): void {
-    const ship = this.playerShip;
+    const ship = this.ship;
     if (!ship) return;
 
     const bladeMap = ship.getHaloBladeBlocks();

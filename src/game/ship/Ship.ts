@@ -23,6 +23,8 @@ import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 
+import { Faction } from '@/game/interfaces/types/Faction';
+
 type ShipDestroyedCallback = (ship: Ship) => void;
 
 export class Ship extends CompositeBlockObject {
@@ -52,13 +54,15 @@ export class Ship extends CompositeBlockObject {
     initialBlocks?: [GridCoord, BlockInstance][],
     initialTransform?: Partial<BlockEntityTransform>,
     isPlayerShip?: boolean,
-    affixes?: ShipAffixes
+    affixes?: ShipAffixes,
+    faction?: Faction
   ) {
     super(grid, initialBlocks, initialTransform);
     this.shieldComponent = new ShieldComponent(this);
     this.validateFiringPlan();
     this.isPlayerShip = isPlayerShip ?? false;
     this.affixes = affixes ?? {};
+    this.faction = faction ?? Faction.Enemy;
   }
 
   public getIsPlayerShip(): boolean {
@@ -366,6 +370,7 @@ export class Ship extends CompositeBlockObject {
     const uniqueId = crypto.randomUUID();
 
     const block: BlockInstance = {
+      ownerFaction: this.faction,
       id: uniqueId,
       type,
       hp: type.armor,

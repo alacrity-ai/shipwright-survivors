@@ -1,10 +1,11 @@
 import { Ship } from '@/game/ship/Ship';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
+import { Faction } from '@/game/interfaces/types/Faction';
 
 import type { Grid } from '@/systems/physics/Grid';
 
 export function getStarterShip(grid: Grid) {
-      const ship = new Ship(grid, undefined, undefined, true);
+      const ship = new Ship(grid, undefined, undefined, true, undefined, Faction.Player);
       ship.setIsPlayerShip(true);
   
       // Initialize ship with blocks

@@ -125,6 +125,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
           if (targetShip && hitCoord) {
             this.combatService.applyDamageToBlock(
               targetShip,
+              ship,
               hit.block,
               hitCoord,
               fire.fireDamage!,
