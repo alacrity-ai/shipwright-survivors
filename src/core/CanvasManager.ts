@@ -6,6 +6,7 @@ export type CanvasLayer =
   | 'background'
   | 'backgroundgl'  // <-- new
   | 'entities'
+  | 'polygon'
   | 'entitygl'
   | 'lighting'
   | 'fx'
@@ -19,6 +20,7 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   backgroundgl: 'backgroundgl-canvas', // <-- new
   entities: 'entity-canvas',
   entitygl: 'entitygl-canvas',
+  polygon: 'polygon-canvas',
   lighting: 'lighting-canvas',
   fx: 'fx-canvas',
   particles: 'particles-canvas',
@@ -26,7 +28,6 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas',
 };
-
 
 export class CanvasManager {
   private static _instance: CanvasManager | null = null;
@@ -57,7 +58,7 @@ export class CanvasManager {
         );
       }
 
-      if (layer !== 'lighting' && layer !== 'entitygl' && layer !== 'backgroundgl') {
+      if (layer !== 'lighting' && layer !== 'entitygl' && layer !== 'backgroundgl' && layer !== 'polygon') {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
@@ -85,13 +86,14 @@ export class CanvasManager {
       case 'background': return 1;
       case 'backgroundgl': return 0;
       case 'entitygl': return 2;
-      case 'entities': return 3;
-      case 'lighting': return 4;
-      case 'fx': return 5;
-      case 'particles': return 6;
-      case 'ui': return 7;
-      case 'overlay': return 8;
-      case 'dialogue': return 9;
+      case 'polygon': return 3;
+      case 'entities': return 4;
+      case 'lighting': return 5;
+      case 'fx': return 6;
+      case 'particles': return 7;
+      case 'ui': return 8;
+      case 'overlay': return 9;
+      case 'dialogue': return 10;
     }
   }
 

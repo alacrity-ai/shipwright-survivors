@@ -146,13 +146,44 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 MISSION  3:
 Should be 5 waves
+[ ] Add area preference for waves, e.g. in a wave definition, for each enemy spawn row, I can specify preference for outer, or inner.  This will allow me to spawn stronger enemies on the fringes, reducing early player deaths that feel bad.
 [x] Enemies with blue boosters aren't moving???
 [x] No screen shake for enemy kills
 [x] Enemies shouldn't be able to damage each other
 Add spawn delay time to enemy definitions in wave definition (for staggered hunters)
 
+TUTORIAL TODOS:
+  - [ ] Start with NO HUD visible
+    - [ ] Introduce Radar
+    - [ ] Introduce Health
+    - [ ] Introduce Shields
+    - [ ] Introduce Energy
+    - [ ] Introduce Weapons
+    - [ ] Introduce Movement
+    - [ ] Introduce Block Placement
+    - [ ] Introduce Block Upgrading
+    - [ ] Introduce Block Refinement
+    - [ ] Introduce Block Removal
+    - [ ] Introduce Block Rotation
+
 TODOS:
   - [ ] Create Galaxy Map
+    - [x] 3D Planets
+    - [x] Unlocked vs Locked
+    - [x] Planet opens mission
+    - [x] Cleanup bugs resolved:
+      - [x] Going into mission, entitiesgl layer is messed up, not showing overlays
+      - [x] Leaving mission and coming back to Galaxy map, rendering is static, messed up
+    - [ ] Completed planets have some kind of indicator/mark
+    - [ ] Basic description when hovered
+    - [ ] Additional Descriptions when Selected
+      - [ ] Boss portrait / mission portrait
+      - [ ] Description box of objectives / Unlockables
+      - [ ] Alternate mission arrows with a (. . . (.) . .) tab selector at bottom.
+        - [ ] Clicking on the side Arrows < > toggles between mission variants for that Location
+    - [ ] Multiple acts / views (change perspective for more planets)
+    - [ ] Better background / CRT effect
+    - [ ] Planet textures
   - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
   - [x] BlockDropSelectionMenu Remaining Tasks:
     - [ ] Clicking on the UI indicator for the BlockDropSelectionMenu should open it

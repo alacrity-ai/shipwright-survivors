@@ -92,6 +92,7 @@ import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
+import { flags } from '@/game/player/PlayerFlagManager';
 
 // Debug
 import { getBlockType } from '@/game/blocks/BlockRegistry';
@@ -530,6 +531,10 @@ export class EngineRuntime {
     }
 
     // Debug keys 
+    if (this.inputManager.wasKeyJustPressed('Digit2')) {
+      flags.unlockAllFlags();
+    }
+
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
       const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4', 'engine4'];

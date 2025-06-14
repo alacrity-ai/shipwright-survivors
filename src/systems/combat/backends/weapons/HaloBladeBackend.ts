@@ -79,7 +79,6 @@ export class HaloBladeBackend implements WeaponBackend {
   }
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
-    console.log('[HaloBladeBackend] Updating called from: ', new Error().stack);
     const bladeMap = ship.getHaloBladeBlocks();
     const currentBlades = Array.from(bladeMap.keys());
 

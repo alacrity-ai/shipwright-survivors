@@ -20,7 +20,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     enemyPower: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
-    passiveReward: 1
+    passiveReward: 1,
+    requiredFlag: 'mission.mission_001.unlocked',
+    missionPortrait: null
   },
   mission_002: {
     id: 'mission_002',
@@ -36,7 +38,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     enemyPower: 1,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
-    passiveReward: 1
+    passiveReward: 1,
+    requiredFlag: 'mission.mission_002.unlocked',
+    missionPortrait: 'assets/characters/bosses/character_boss_wildjoe.png'
   },
   mission_003_00: {
     id: 'mission_003_00',
@@ -57,11 +61,13 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
-    sceneLighting: [0.0, 0.0, 0.0, 0.0]
+    sceneLighting: [0.0, 0.0, 0.0, 0.0],
+    requiredFlag: 'mission.mission_003_00.unlocked',
+    missionPortrait: 'assets/characters/bosses/character_boss_crusher-mae.png'
   },
   mission_004_00: {
     id: 'mission_004_00',
-    name: 'The Miner\s Dillemma',
+    name: 'The Miner\'s Dillemma',
     dialogue: 'mission-generic',
     waves: waveSet3,
     environmentSettings: {
@@ -77,6 +83,52 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
-    sceneLighting: [0.0, 0.0, 0.0, 0.0]
+    sceneLighting: [0.0, 0.0, 0.0, 0.0],
+    requiredFlag: 'mission.mission_004_00.unlocked',
+    missionPortrait: 'assets/characters/bosses/character_boss_executron-9b.png'
+  },
+  mission_005_00: {
+    id: 'mission_005_00',
+    name: 'WIP',
+    dialogue: 'mission-generic',
+    waves: waveSet3,
+    environmentSettings: {
+      backgroundId: 'background_10_00.png',
+      gravity: 0,
+    },
+    planets: [
+      { name: 'Arsea', x: 6000, y: 4000 },
+    ],
+    enemyPower: 0.25,
+    music: {
+      file: 'assets/sounds/music/track_05_mission3.mp3',
+    },
+    bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
+    passiveReward: 1,
+    sceneLighting: [0.0, 0.0, 0.0, 0.0],
+    requiredFlag: 'mission.mission_005_00.unlocked',
+    missionPortrait: 'assets/characters/bosses/character_boss_jackpot-vera.png'
+  },
+  mission_006_00: {
+    id: 'mission_006_00',
+    name: 'WIP',
+    dialogue: 'mission-generic',
+    waves: waveSet3,
+    environmentSettings: {
+      backgroundId: 'background_10_00.png',
+      gravity: 0,
+    },
+    planets: [
+      { name: 'Arsea', x: 6000, y: 4000 },
+    ],
+    enemyPower: 0.25,
+    music: {
+      file: 'assets/sounds/music/track_05_mission3.mp3',
+    },
+    bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
+    passiveReward: 1,
+    sceneLighting: [0.0, 0.0, 0.0, 0.0],
+    requiredFlag: 'mission.mission_006_00.unlocked',
+    missionPortrait: 'assets/characters/bosses/character_boss_admiral-pith.png'
   }
 };

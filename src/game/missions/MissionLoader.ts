@@ -2,6 +2,7 @@
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
 
+import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { audioManager } from '@/audio/Audio';
 
 class MissionLoader {
@@ -17,6 +18,11 @@ class MissionLoader {
   getMission(): MissionDefinition {
     if (!this.currentMission) throw new Error('No mission loaded');
     return this.currentMission;
+  }
+
+  getMissionById(id: string): MissionDefinition | null {
+    const mission = missionRegistry[id];
+    return mission ?? null;
   }
 
   getMissionDialogue(): string | null {

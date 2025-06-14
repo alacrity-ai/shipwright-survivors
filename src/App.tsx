@@ -63,6 +63,7 @@ export default function App() {
       <canvas id="backgroundgl-canvas" />
       <canvas id="entity-canvas" />
       <canvas id="entitygl-canvas" />
+      <canvas id="polygon-canvas" />
       <canvas id="fx-canvas" />
       <canvas id="particles-canvas" />
       <canvas id="lighting-canvas" />

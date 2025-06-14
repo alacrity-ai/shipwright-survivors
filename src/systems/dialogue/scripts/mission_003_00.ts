@@ -274,6 +274,7 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
         type: 'command',
         run: () => {
           flags.set('mission.mission_003_00.complete');
+          flags.set('mission.mission_004_00.unlocked');
         },
       },
       // Show UI

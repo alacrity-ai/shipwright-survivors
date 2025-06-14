@@ -2,6 +2,7 @@
 
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { MusicTrack } from '@/audio/AudioManager';
+import type { FlagKey } from '@/game/player/registry/FlagRegistry';
 
 export type SceneLightingRGBA = [number, number, number, number];
 
@@ -20,7 +21,7 @@ export interface MissionDefinition {
     gravity?: number;
     fogDensity?: number;
   };
-  planets?: PlanetSpawnConfig[]; // NEW
+  planets?: PlanetSpawnConfig[];
   bonusObjectives?: string[];
   passiveReward?: number;
   music?: MusicTrack;
@@ -28,4 +29,6 @@ export interface MissionDefinition {
   dialogue?: string;
   enemyPower?: number;
   sceneLighting?: SceneLightingRGBA;
+  requiredFlag: FlagKey; // Flag required to enter this mission
+  missionPortrait?: string | null;
 }

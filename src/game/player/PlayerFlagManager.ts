@@ -1,29 +1,23 @@
 // src/game/player/PlayerFlagManager.ts
 
-/*
-Use a hierarchical dot-separated format for clarity and queryability:
+import { FlagRegistry } from '@/game/player/registry/FlagRegistry';
 
-"scene.subcontext.intent"
-e.g.
-"breakroom.marlaGreeting.seen"
-"hub.intro.complete"
-"boss.asterion.defeated"
-*/
+import type { FlagKey } from '@/game/player/registry/FlagRegistry';
 
 export class PlayerFlagManager {
-  private flags: Set<string> = new Set();
+  private flags: Set<FlagKey> = new Set();
 
   // === Lifecycle ===
 
-  public set(flag: string): void {
+  public set(flag: FlagKey): void {
     this.flags.add(flag);
   }
 
-  public unset(flag: string): void {
+  public unset(flag: FlagKey): void {
     this.flags.delete(flag);
   }
 
-  public has(flag: string): boolean {
+  public has(flag: FlagKey): boolean {
     return this.flags.has(flag);
   }
 
@@ -41,7 +35,9 @@ export class PlayerFlagManager {
     try {
       const parsed = JSON.parse(json);
       if (Array.isArray(parsed)) {
-        this.flags = new Set(parsed);
+        // Filter to only include known flags
+        const validFlags = parsed.filter((f): f is FlagKey => f in FlagRegistry);
+        this.flags = new Set(validFlags);
       }
     } catch (err) {
       console.warn('Failed to load player flags from JSON:', err);
@@ -50,8 +46,14 @@ export class PlayerFlagManager {
 
   // === Debug / Utility ===
 
-  public getAll(): string[] {
+  public getAll(): FlagKey[] {
     return Array.from(this.flags);
+  }
+
+  public unlockAllFlags(): void {
+    (Object.keys(FlagRegistry) as FlagKey[]).forEach((flag) => {
+      this.flags.add(flag);
+    });
   }
 }
 

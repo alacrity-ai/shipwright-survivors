@@ -681,6 +681,8 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           flags.set('mission.intro-briefing.complete');
+          flags.set('mission.mission_002.unlocked');
+          flags.set('mission.mission_003_00.unlocked');
         },
       },
       // Show UI
