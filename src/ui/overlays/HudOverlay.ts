@@ -3,6 +3,7 @@
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Ship } from '@/game/ship/Ship';
 import type { PlayerResources } from '@/game/player/PlayerResources';
+import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
@@ -16,17 +17,46 @@ import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDis
 export class HudOverlay {
   private readonly playerResources: PlayerResources;
   private readonly blockQueueDisplayManager: BlockQueueDisplayManager;
+
   private currency: number = 0;
+  private previousCurrency: number = 0;
   private disposer: (() => void) | null = null;
 
   constructor(
     private readonly canvasManager: CanvasManager,
-    private readonly ship: Ship
+    private readonly ship: Ship,
+    private readonly floatingTextManager: FloatingTextManager
   ) {
     this.playerResources = PlayerResourcesSingleton.getInstance();
     this.currency = this.playerResources.getCurrency();
 
+    this.previousCurrency = this.currency;
+
     this.disposer = this.playerResources.onCurrencyChange((newValue) => {
+      if (newValue > this.currency) {
+        const ctx = this.canvasManager.getContext('ui');
+        const gained = newValue - this.currency;
+
+        const uiScale = getUniformScaleFactor();
+        const screenX = Math.floor(900 * uiScale) + Math.floor(80 * uiScale);
+        const y = ctx.canvas.height - Math.floor(24 * uiScale);
+        const screenY = y - Math.floor(12 * uiScale);
+
+        this.floatingTextManager.createScreenText(
+          `+${gained}`,
+          screenX,
+          screenY,
+          12,
+          'monospace',
+          1,
+          100,
+          1.0,
+          '#FFD700',
+          { impactScale: 1.5 },
+          'currency'
+        );
+      }
+
       this.currency = newValue;
     });
 
@@ -173,9 +203,9 @@ export class HudOverlay {
     const lineHeight = Math.floor(16 * scale);
     let infoY = toggleY;
 
-    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale);
-    infoY += lineHeight;
     drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale);
+    infoY += lineHeight;
+    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale);
 
     // === Block Queue Display ===
     this.blockQueueDisplayManager.render();

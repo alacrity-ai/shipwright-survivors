@@ -76,7 +76,7 @@ export const BLOCK_TIER_COLORS: Record<number, string> = {
 };
 
 export const PICKUP_FLASH_COLORS: Record<string, string> = {
-  currency: '#00ccff', // cyan
-  repair: '#22ff88',   // mint green
-  block: '#cc66ff',    // base purple, tier overrides handled below
+  currency: '#FFD700', // bright golden yellow (true "gold" pickup flash)
+  repair:   '#FF4444', // bright lively red (more energizing than mint)
+  block:    '#CC66FF', // keep base purple, tier overrides handled elsewhere
 };

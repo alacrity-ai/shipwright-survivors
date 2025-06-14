@@ -3,7 +3,9 @@ import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
+import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
+import { Camera } from '@/core/Camera';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { Ship } from '@/game/ship/Ship';
@@ -18,6 +20,7 @@ export class CombatService {
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
     private readonly destructionService: CompositeBlockDestructionService,
+    private readonly floatingTextManager?: FloatingTextManager
   ) {}
 
   public applyDamageToBlock(
@@ -118,6 +121,24 @@ export class CombatService {
           lightOptions
         );
       }
+
+      const worldX = entity.getTransform().position.x + coord.x;
+      const worldY = entity.getTransform().position.y + coord.y;
+
+      this.floatingTextManager?.createWorldText(
+        `${Math.floor(damage)}`,
+        worldX,
+        worldY,
+        Camera.getInstance(),
+        10,
+        'monospace',
+        0.8,
+        140,
+        1.0,
+        '#FFFFFF',
+        { impactScale: 1.5 }, 
+        block.ownerShipId
+      );      
     }
 
     playSpatialSfx(entity, playerShip, {

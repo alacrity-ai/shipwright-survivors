@@ -36,6 +36,7 @@ import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { LightingRenderer } from '@/lighting/LightingRenderer';
 import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
+import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
@@ -136,6 +137,7 @@ export class EngineRuntime {
   private multiShipRendererGL: MultiShipRendererGL;
   private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
+  private floatingTextManager: FloatingTextManager;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
   private waveSpawner: WaveSpawner;
   private incidentOrchestrator: IncidentOrchestrator;
@@ -283,10 +285,12 @@ export class EngineRuntime {
       this.aiOrchestrator,
     );
 
+    this.floatingTextManager = new FloatingTextManager();
     const combatService = new CombatService(
       this.explosionSystem,
       pickupSpawner,
-      destructionService
+      destructionService,
+      this.floatingTextManager
     );
 
     // Collision System
@@ -397,7 +401,7 @@ export class EngineRuntime {
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
-    this.hud = new HudOverlay(this.canvasManager, this.ship);
+    this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
     // All systems that need to be updated every frame
@@ -438,7 +442,8 @@ export class EngineRuntime {
       this.background,
       this.shipConstructionAnimator,
       this.planetSystem,
-      this.lightingOrchestrator
+      this.lightingOrchestrator,
+      this.floatingTextManager
     ];
 
     // All systems that need to be rendered every frame
@@ -462,7 +467,8 @@ export class EngineRuntime {
       this.planetSystem,
       this.lightingOrchestrator,
       this.weaponSystem,
-      this.aiOrchestrator
+      this.aiOrchestrator,
+      this.floatingTextManager
     ];
 
     this.registerLoopHandlers();

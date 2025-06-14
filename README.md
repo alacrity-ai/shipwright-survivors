@@ -152,6 +152,24 @@ Should be 5 waves
 [x] Enemies shouldn't be able to damage each other
 Add spawn delay time to enemy definitions in wave definition (for staggered hunters)
 
+
+DEMO ROADMAP:
+What's needed to get to Demo:
+- [ ] Mini intro before tutorial, static "Shipwright! Shipwright! Listen ... Trust the robot, he doesn't know it yet.. But"
+- [ ] Tutorial Rewrite
+- [ ] Player death state
+- [ ] Incidents (Make at least 10 or so incidents)
+- [ ] 3 Missions - each tested thoroughly for smooth flow
+  - [ ] Sub objectives in each mission, e.g. in the galaxy select
+- [ ] Starter ships, unlockable, and loadout menu on mission select
+- [ ] Basic breakroom dialogue
+- [ ] Passive system fleshed out a bit, polished, stats actually effect game.  Datacores from Entropium.
+- [ ] Planet merchants, trade blocks for other blocks, entropium, etc. unlockables
+- [ ] Mission Debriefing Screen
+- [ ] Demo End splash (List what's coming)
+- [ ] Titlescreen polish / rework
+- [ ] Laser polish, add heat seeking missles.
+
 TUTORIAL TODOS:
   - [ ] Start with NO HUD visible
     - [ ] Introduce Radar
@@ -184,6 +202,9 @@ TODOS:
     - [ ] Multiple acts / views (change perspective for more planets)
     - [ ] Better background / CRT effect
     - [ ] Planet textures
+  - [ ] Radar Enhancements
+    - [ ] Hover over radar makes it opaque
+    - [ ] Add animated "LOOK HERE!" Arrow indicators that can be triggered via event hub
   - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
   - [x] BlockDropSelectionMenu Remaining Tasks:
     - [ ] Clicking on the UI indicator for the BlockDropSelectionMenu should open it
