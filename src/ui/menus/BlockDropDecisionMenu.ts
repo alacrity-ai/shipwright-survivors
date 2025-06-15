@@ -409,7 +409,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   private handleRoll(): void {
-    if (this.queue.length < 3 || !this.currentBlockType) {
+    // Must have at least 3 total: currentBlockType + 2 in queue
+    if (this.queue.length + 1 < 3 || !this.currentBlockType) {
       audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
       return;
     }
@@ -420,7 +421,7 @@ export class BlockDropDecisionMenu implements Menu {
     const roll = Math.random();
     if (roll < 0.01) {
       finalTier = Math.min(baseTier + 2, 4);
-    } else if (roll < 0.26) {
+    } else if (roll < 0.15) {
       finalTier = Math.min(baseTier + 1, 4);
     }
 
@@ -458,7 +459,7 @@ export class BlockDropDecisionMenu implements Menu {
 
     const soundPath = soundMap[tierDelta] ?? soundMap[0];
 
-    audioManager.play(soundPath, 'sfx');
+    audioManager.play(soundPath, 'sfx', { maxSimultaneous: 5 });
 
     this.advanceQueueOrClose();
     this.clickedButton = 'roll';

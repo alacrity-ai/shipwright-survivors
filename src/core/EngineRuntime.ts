@@ -445,7 +445,6 @@ export class EngineRuntime {
       this.shipConstructionAnimator,
       this.planetSystem,
       this.lightingOrchestrator,
-      this.floatingTextManager
     ];
 
     // All systems that need to be rendered every frame
@@ -470,7 +469,7 @@ export class EngineRuntime {
       this.lightingOrchestrator,
       this.weaponSystem,
       this.aiOrchestrator,
-      this.floatingTextManager
+      this.floatingTextManager,
     ];
 
     this.registerLoopHandlers();
@@ -628,6 +627,7 @@ export class EngineRuntime {
     this.shipBuilderEffects.update(dt);
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);
+    this.floatingTextManager.update(dt);
   };
 
   private render = (dt: number) => {

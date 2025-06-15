@@ -3,9 +3,6 @@
 import { classifyThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
-import { audioManager } from '@/audio/Audio';
-import { createLightFlash } from '@/lighting/helpers/createLightFlash';
-import { GlobalEventBus } from '@/core/EventBus';
 import { Camera } from '@/core/Camera';
 
 import type { Ship } from '@/game/ship/Ship';
@@ -14,7 +11,6 @@ import type { ThrustDirection } from '@/core/intent/interfaces/helpers/movementH
 import type { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 
 const BASE_MASS = 200;
 const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
@@ -22,7 +18,7 @@ const STEERING_ASSIST_STRENGTH = 0.6;   // default 0.5 : higher = more aggressiv
 const ROTATIONAL_ASSIST_STRENGTH = 1.5; // Higher = more snap
 const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
 const ANGULAR_MASS_SCALE_EXPONENT = 0.5; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
-const BRAKING_FORCE_MULTIPLIER = 0.1; // Lower = weaker braking, higher = more aggressive
+const BRAKING_FORCE_MULTIPLIER = 1.0; // Lower = weaker braking, higher = more aggressive
 
 // Engine speed cap and scaling
 const SPEED_PER_THRUST_UNIT = 1; // Tunable: how much each unit of thrustPower contributes to max speed

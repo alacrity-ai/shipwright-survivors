@@ -216,30 +216,32 @@ function isValidfacetplateAttachment(coord: { x: number; y: number }, rotation: 
 
 // === ROTATION LOGIC ===
 
-function getOptimalRotation(blockType: BlockType, coord: { x: number; y: number }, cockpitCoord: { x: number; y: number }): number {
+function getOptimalRotation(
+  blockType: BlockType,
+  coord: { x: number; y: number },
+  cockpitCoord: { x: number; y: number }
+): number {
   // Handle fins with directional rotation
   if (blockType.name.toLowerCase().includes('fin')) {
     return coord.x < cockpitCoord.x ? 0 : 90;
   }
-  
+
   // Handle facetplates - this is now handled in findOptimalPlacement with scoring
   if (blockType.name.toLowerCase().includes('facetplate')) {
     // This shouldn't be called for facetplates anymore, but keep as fallback
     return getOptimalfacetplateRotation(coord, cockpitCoord);
   }
-  
-  // Handle weapons - point toward front
+
+  // Handle all weapons - always face forward ===
   if (blockType.category === 'weapon') {
-    if (coord.y < cockpitCoord.y) return 0; // Front-facing
-    if (coord.y > cockpitCoord.y) return 180; // Rear-facing (turrets)
-    return coord.x < cockpitCoord.x ? 270 : 90; // Side-facing
+    return 0; // Force all weapons to face forward
   }
-  
+
   // Handle engines - always face down (0 rotation)
   if (blockType.category === 'engine') {
-    return 0; // Always face down for proper thrust direction
+    return 0;
   }
-  
+
   return 0; // Default rotation
 }
 
