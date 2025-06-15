@@ -4,6 +4,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { Ship } from '@/game/ship/Ship';
 import type { PlayerResources } from '@/game/player/PlayerResources';
 import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
+import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
@@ -25,7 +26,8 @@ export class HudOverlay {
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly ship: Ship,
-    private readonly floatingTextManager: FloatingTextManager
+    private readonly floatingTextManager: FloatingTextManager,
+    private readonly blockDropDecisionMenu: BlockDropDecisionMenu
   ) {
     this.playerResources = PlayerResourcesSingleton.getInstance();
     this.currency = this.playerResources.getCurrency();
@@ -60,9 +62,11 @@ export class HudOverlay {
       this.currency = newValue;
     });
 
+    // Pass through the blockDropDecisionMenu
     this.blockQueueDisplayManager = new BlockQueueDisplayManager(
       this.canvasManager,
-      this.playerResources
+      this.playerResources,
+      this.blockDropDecisionMenu
     );
   }
 
@@ -93,27 +97,31 @@ export class HudOverlay {
     const baseX = Math.floor((canvas.width - totalWidth) / 2);
     const y = canvas.height - Math.floor(24 * scale);
 
-    // === Health Bar ===
+    // === Afterburner Fuel Bar ===
+    const afterburnerComponent = this.ship.getAfterburnerComponent();
+    const afterburnerValue = afterburnerComponent ? afterburnerComponent.getCurrent() : 0;
+    const afterburnerMax = afterburnerComponent ? afterburnerComponent.getMax() : 1;
+
     drawUIResourceBar(ctx, {
       x: baseX,
       y,
       width: barWidth,
       height: barHeight,
-      value: maxHp > 0 ? currentHp / maxHp : 0,
-      label: `${currentHp} / ${maxHp}`,
+      value: afterburnerValue / afterburnerMax,
+      label: `${Math.floor(afterburnerValue)} / ${afterburnerMax}`,
       style: {
-        barColor: '#c33',
-        borderColor: '#f66',
-        backgroundColor: '#200',
+        barColor: '#ffcc00',
+        borderColor: '#ffee88',
+        backgroundColor: '#221800',
         glow: true,
-        textColor: '#f88',
+        textColor: '#ffffaa',
         font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
         scanlineIntensity: 0.3,
         chromaticAberration: true,
         phosphorDecay: true,
         cornerBevel: true,
-        warningThreshold: 0.3,
-        criticalThreshold: 0.15,
+        warningThreshold: 0.25,
+        criticalThreshold: 0.1,
         warningColor: '#ffaa00',
         criticalColor: '#ff0040',
         animated: true,

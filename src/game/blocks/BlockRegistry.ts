@@ -2,6 +2,8 @@
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
+import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
+
 export const BLOCK_SIZE = 32;
 
 const blockTypes: Record<string, BlockType> = {
@@ -961,4 +963,17 @@ export function getBlockType(id: string): BlockType | undefined {
 export function getBlockCost(id: string): number | undefined {
   const blockType = getBlockType(id);
   return blockType ? blockType.cost : undefined;
+}
+
+export function getAllBlocksInTier(tier: number): BlockType[] {
+  return Object.values(blockTypes).filter(block => getTierFromBlockId(block.id) === tier);
+}
+
+export function getAllBlocksInTierFromBlockType(blockType: BlockType): BlockType[] {
+  const tier = getTierFromBlockId(blockType.id);
+  return Object.values(blockTypes).filter(block => getTierFromBlockId(block.id) === tier);
+}
+
+export function getTierFromBlockType(blockType: BlockType): number {
+  return getTierFromBlockId(blockType.id);
 }

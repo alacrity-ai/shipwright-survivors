@@ -12,6 +12,7 @@ import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladePr
 
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -21,13 +22,16 @@ import { Grid } from '@/systems/physics/Grid';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
+import { AfterburnerComponent } from './components/AfterburnerComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 
 import { Faction } from '@/game/interfaces/types/Faction';
+import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
 export class Ship extends CompositeBlockObject {
+  private afterburnerComponent: AfterburnerComponent | null = null;
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
@@ -59,6 +63,7 @@ export class Ship extends CompositeBlockObject {
   ) {
     super(grid, initialBlocks, initialTransform);
     this.shieldComponent = new ShieldComponent(this);
+    this.afterburnerComponent = new AfterburnerComponent(100, 5);
     this.validateFiringPlan();
     this.isPlayerShip = isPlayerShip ?? false;
     this.affixes = affixes ?? {};
@@ -73,7 +78,7 @@ export class Ship extends CompositeBlockObject {
     this.isPlayerShip = isPlayerShip;
   }
 
-  // Affixes system
+  // == Affixes system
   public getAffixes(): ShipAffixes {
     return this.affixes;
   }
@@ -82,6 +87,26 @@ export class Ship extends CompositeBlockObject {
     this.affixes = affixes;
   }
 
+  // == Afterburner
+  public getAfterburnerComponent(): AfterburnerComponent | null {
+    return this.afterburnerComponent;
+  }
+
+  public triggerAfterburner(): void {
+    if (!this.afterburnerComponent) return;
+    this.afterburnerComponent.setActive(true);
+  }
+
+  public deactivateAfterburner(): void {
+    if (!this.afterburnerComponent) return;
+    this.afterburnerComponent.setActive(false);
+  }
+
+  public isAfterburnerActive(): boolean {
+    return this.afterburnerComponent?.isActive() ?? false;
+  }
+
+  // Light
   public registerAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
     if (!LightingOrchestrator.hasInstance()) return;
 

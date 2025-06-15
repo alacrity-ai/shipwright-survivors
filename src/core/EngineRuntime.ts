@@ -403,7 +403,7 @@ export class EngineRuntime {
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
-    this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager);
+    this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
     // All systems that need to be updated every frame
@@ -434,12 +434,12 @@ export class EngineRuntime {
           try {
             this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
             this.utilitySystem.update(dt, this.ship, this.ship.getTransform());
+            this.ship.getAfterburnerComponent()?.update(dt);
           } catch (error) {
             console.error("Error updating system:", error);
           }
         }
       },
-      this.hud,
       this.popupMessageSystem,
       this.background,
       this.shipConstructionAnimator,
@@ -624,6 +624,7 @@ export class EngineRuntime {
     }
 
     // Always update these systems regardless of pause state
+    this.hud.update(dt);
     this.shipBuilderEffects.update(dt);
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);

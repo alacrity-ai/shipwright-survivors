@@ -3,6 +3,9 @@
 import { classifyThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { audioManager } from '@/audio/Audio';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { GlobalEventBus } from '@/core/EventBus';
 import { Camera } from '@/core/Camera';
 
 import type { Ship } from '@/game/ship/Ship';
@@ -11,6 +14,7 @@ import type { ThrustDirection } from '@/core/intent/interfaces/helpers/movementH
 import type { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
+import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 
 const BASE_MASS = 200;
 const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
@@ -36,7 +40,9 @@ export class MovementSystem {
   private readonly fallbackThrustPower = 10;
   private readonly baseThrust = 5;
   private externalImpulse = { x: 0, y: 0 };
+
   private afterburnerCharge = 0; // 0.0 to 1.0, tracks how "charged up" the afterburner is
+  private wasAfterburnerActiveLastFrame = false; // (declare once at class level)
 
   private currentIntent: MovementIntent = {
     thrustForward: false,
@@ -84,17 +90,36 @@ export class MovementSystem {
     return { x: thrustX, y: thrustY };
   }
 
-  private updateAfterburnerCharge(dt: number): void {
-    const isAfterburning = this.currentIntent.afterburner ?? false;
-    
-    if (isAfterburning) {
-      // Ramp up afterburner charge
-      this.afterburnerCharge = Math.min(1, this.afterburnerCharge + AFTERBURNER_RAMP_UP_RATE * dt);
+  private updateAfterburnerCharge(dt: number): boolean {
+    const afterburner = this.ship.getAfterburnerComponent();
+    const intentActive = this.currentIntent.afterburner ?? false;
+
+    let justActivated = false;
+
+    if (afterburner) {
+      afterburner.setActive(intentActive);
+      afterburner.update(dt);
+
+      const isActiveNow = afterburner.isActive();
+
+      // Rising edge detection for after afterburner was just turned on
+      justActivated = isActiveNow && !this.wasAfterburnerActiveLastFrame;
+
+      this.wasAfterburnerActiveLastFrame = isActiveNow;
+
+      if (isActiveNow) {
+        this.afterburnerCharge = Math.min(1, this.afterburnerCharge + AFTERBURNER_RAMP_UP_RATE * dt);
+      } else {
+        this.afterburnerCharge = Math.max(0, this.afterburnerCharge - AFTERBURNER_RAMP_DOWN_RATE * dt);
+      }
     } else {
-      // Ramp down afterburner charge
-      this.afterburnerCharge = Math.max(0, this.afterburnerCharge - AFTERBURNER_RAMP_DOWN_RATE * dt);
+      this.afterburnerCharge = 0;
+      this.wasAfterburnerActiveLastFrame = false;
     }
+
+    return justActivated;
   }
+
 
   private getAfterburnerMultipliers(): { speed: number; accel: number; turning: number } {
     const charge = this.afterburnerCharge;
@@ -120,7 +145,7 @@ public update(dt: number): void {
   } = this.currentIntent;
 
   // === Update afterburner charge ===
-  this.updateAfterburnerCharge(dt);
+  const justActivatedAfterburner = this.updateAfterburnerCharge(dt);
   const afterburnerMultipliers = this.getAfterburnerMultipliers();
 
   // === Update Ship Movement Flags ===
@@ -199,13 +224,13 @@ public update(dt: number): void {
 
   // === Linear thrust
   if (thrustForward) {
-    this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position, afterburnerMultipliers);
+    this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position, afterburnerMultipliers, justActivatedAfterburner);
   }
   if (strafeLeft) {
-    this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position, afterburnerMultipliers);
+    this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position, afterburnerMultipliers, justActivatedAfterburner);
   }
   if (strafeRight) {
-    this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position, afterburnerMultipliers);
+    this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position, afterburnerMultipliers, justActivatedAfterburner);
   }
 
   // === Inertial dampening
@@ -269,7 +294,8 @@ public update(dt: number): void {
     thrusters: { coord: GridCoord; power: number; rotation: number }[],
     transform: BlockEntityTransform,
     position: { x: number; y: number },
-    afterburnerMultipliers: { speed: number; accel: number; turning: number }
+    afterburnerMultipliers: { speed: number; accel: number; turning: number },
+    flashOnThisFrame: boolean
   ): void {
     let totalThrustX = 0;
     let totalThrustY = 0;
@@ -345,6 +371,8 @@ public update(dt: number): void {
           blockRotation,
           shipRotation: transform.rotation,
           shipPosition: position,
+          afterBurner: this.ship.getAfterburnerComponent()?.isActive() ?? false,
+          afterBurnerJustActivated: flashOnThisFrame
         });
       }
     }

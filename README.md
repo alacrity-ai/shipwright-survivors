@@ -153,6 +153,11 @@ Should be 5 waves
 Add spawn delay time to enemy definitions in wave definition (for staggered hunters)
 
 
+
+STEAM CHECKLIST:
+- [ ] Steamdeck Verified! required.
+
+
 DEMO ROADMAP:
 What's needed to get to Demo:
 - [ ] Mini intro before tutorial, static "Shipwright! Shipwright! Listen ... Trust the robot, he doesn't know it yet.. But"
@@ -191,6 +196,15 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Afterburner:
+    - [ ] Add distinct visual effect to thrusters (change in color maybe?)
+    - [ ] Add initial burst on toggle (light flash, particle emission)
+    - [ ] Add intial burst sound effect
+    - [ ] Add distinct sound effect when active
+    - [ ] Add meter + consumable resource
+  - [ ] Controller Support:
+    - [ ] Menu: Ergonomically abstract button elements to be accessible via controller.
+    - [ ] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
   - [ ] Create Galaxy Map
     - [x] 3D Planets
     - [x] Unlocked vs Locked
