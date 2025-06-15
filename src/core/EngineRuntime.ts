@@ -544,7 +544,7 @@ export class EngineRuntime {
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
-      const randomTypes = ['fin2', 'engine2', 'fin4', 'engine4'];
+      const randomTypes = ['fin2', 'engine2', 'hull2', 'facetplate2', 'turret2', 'harvester2', 'battery2', 'shield2', 'hull1', 'fin1', 'engine1', 'explosiveLance1'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 

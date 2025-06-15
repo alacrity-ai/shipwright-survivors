@@ -11,13 +11,18 @@ import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSy
 // import { blockDropDecisionMenuSpritesDefinition } from '@/rendering/sprites/definitions/spriteDefinitions';
 // import { CanvasManager } from '@/core/CanvasManager';
 
+import { brightenColor } from '@/shared/colorUtils';
+import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { getTierFromBlockType } from '@/game/blocks/BlockRegistry';
 import { getAllBlocksInTier } from '@/game/blocks/BlockRegistry';
-import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { menuOpened, menuClosed } from '@/core/interfaces/events/MenuOpenReporter';
 import { PlayerResources } from '@/game/player/PlayerResources';
-import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock';
+
+// import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock'; // OLD METHOD
+import { autoPlaceBlockWithArchetype as autoPlaceBlock } from '@/systems/autoplacement/autoPlaceAdvanced';
+import { getArchetypeById } from '@/systems/autoplacement/ShipArchetypeSystem';
+
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
 import { drawBlockStatsLabels } from '@/ui/menus/helpers/drawBlockStatsLabels';
 import { drawWindow } from '@/ui/primitives/WindowBox';
@@ -396,7 +401,9 @@ export class BlockDropDecisionMenu implements Menu {
   private handleAutoplace(): void {
     if (!this.currentBlockType) return;
 
-    const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects);
+    const archetype = getArchetypeById('interceptor'); // TODO: Get from player prefs
+    
+    const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects, archetype ?? undefined);
     if (!success) {
       audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
       return;
@@ -415,11 +422,20 @@ export class BlockDropDecisionMenu implements Menu {
       return;
     }
 
-    const baseTier = getTierFromBlockType(this.currentBlockType);
-    let finalTier = baseTier;
+    // === Compute averaged base tier from 3 blocks ===
+    const sacrificeBlocks: BlockType[] = [
+      this.currentBlockType,
+      ...this.queue.slice(0, 2).map(entry => entry.blockType),
+    ];
 
+    const baseTier = Math.floor(
+      sacrificeBlocks.reduce((sum, blockType) => sum + getTierFromBlockType(blockType), 0) / sacrificeBlocks.length
+    );
+
+    // === Determine reward tier with probabilities ===
+    let finalTier = baseTier;
     const roll = Math.random();
-    if (roll < 0.01) {
+    if (roll < 0.02) {
       finalTier = Math.min(baseTier + 2, 4);
     } else if (roll < 0.15) {
       finalTier = Math.min(baseTier + 1, 4);
@@ -521,6 +537,9 @@ export class BlockDropDecisionMenu implements Menu {
     });
 
     // Label centered horizontally, and offset a bit from the top vertically
+    const blockTier = this.currentBlockType ? getTierFromBlockType(this.currentBlockType) : 1;
+    const tierColor = BLOCK_TIER_COLORS[blockTier] ?? '#ffffff';
+
     drawLabel(
       ctx,
       scaledWindowX + scaledSlideX + (scaledWindowWidth / 2),
@@ -529,7 +548,8 @@ export class BlockDropDecisionMenu implements Menu {
       {
         font: `${scaledLabelFontSize}px monospace`,
         align: 'center',
-        glow: true,
+        // glow: true,
+        color: brightenColor(tierColor, 0.5),
       },
     );
 
