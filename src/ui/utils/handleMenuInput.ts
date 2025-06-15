@@ -28,8 +28,8 @@ export function handleMenuInput({
   blockDropDecisionMenu,
   menuManager,
 }: MenuContext): void {
-  const tabPressed = inputManager.wasKeyJustPressed('Tab');
-  const escPressed = inputManager.wasKeyJustPressed('Escape');
+  const tabPressed = inputManager.wasActionJustPressed('openShipBuilder');
+  const escPressed = inputManager.wasActionJustPressed('pause');
 
   const activeMenu = menuManager.getTop();
   const blockDecisionMenuIsTop = activeMenu === blockDropDecisionMenu;

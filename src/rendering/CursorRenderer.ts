@@ -2,6 +2,9 @@
 
 import { CanvasManager } from '@/core/CanvasManager';
 import { getUniformScaleFactor } from '@/config/view';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
+import type { Ship } from '@/game/ship/Ship';
+import { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { 
   getCrosshairCursorSprite, 
@@ -13,29 +16,73 @@ import {
   drawCursor
  } from '@/rendering/cache/CursorSpriteCache';
 
+const AIM_DISTANCE = 800;
+
 export class CursorRenderer {
   private ctx: CanvasRenderingContext2D;
-  private cursorSprite: HTMLCanvasElement | null
+  private cursorSprite: HTMLCanvasElement | null;
+  private camera: Camera;
+
+  private cursorWorldPos = { x: 0, y: 0 };
+  private hasInitializedCursor = false;
 
   constructor(
     canvasManager: CanvasManager,
-    private readonly inputManager: InputManager
+    private readonly inputManager: InputManager,
+    private readonly playerShip?: Ship | null,
   ) {
+    this.camera = Camera.getInstance();
     this.cursorSprite = getCrosshairCursorSprite();
     this.ctx = canvasManager.getContext('overlay');
-    this.inputManager = inputManager;
   }
 
   render(): void {
     if (!this.cursorSprite) return;
-    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height); // If I don't comment this out, I can't see my other UI windows when they open
+    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
-    // Always draw cursor
-    const mouse = this.inputManager.getMousePosition();
-
-    // Adjust size to uniformscale factor
     const scale = getUniformScaleFactor();
-    drawCursor(this.ctx, this.cursorSprite, mouse.x, mouse.y, scale);
+    const lastUsed = InputDeviceTracker.getInstance().getLastUsed();
+
+    if (lastUsed === 'keyboard' || lastUsed === 'mouse') {
+      const mouse = this.inputManager.getMousePosition();
+      drawCursor(this.ctx, this.cursorSprite, mouse.x, mouse.y, scale);
+      return;
+    }
+
+    if (lastUsed === 'gamepad') {
+      const inMenu = false; // stub
+
+      if (inMenu || !this.playerShip) return;
+
+      const aim = this.inputManager.getGamepadAimVector();
+      const hasAim = aim.x !== 0 || aim.y !== 0;
+
+      const shipTransform = this.playerShip.getTransform();
+      const shipPos = shipTransform.position;
+
+      const aimVec = hasAim
+        ? aim
+        : {
+            x: Math.cos(shipTransform.rotation - Math.PI / 2),
+            y: Math.sin(shipTransform.rotation - Math.PI / 2),
+          };
+
+      const targetWorldX = shipPos.x + aimVec.x * AIM_DISTANCE;
+      const targetWorldY = shipPos.y + aimVec.y * AIM_DISTANCE;
+
+      if (!this.hasInitializedCursor) {
+        this.cursorWorldPos.x = targetWorldX;
+        this.cursorWorldPos.y = targetWorldY;
+        this.hasInitializedCursor = true;
+      } else {
+        const SMOOTHING = 0.25; // adjust for more/less inertia
+        this.cursorWorldPos.x += (targetWorldX - this.cursorWorldPos.x) * SMOOTHING;
+        this.cursorWorldPos.y += (targetWorldY - this.cursorWorldPos.y) * SMOOTHING;
+      }
+
+      const screen = this.camera.worldToScreen(this.cursorWorldPos.x, this.cursorWorldPos.y);
+      drawCursor(this.ctx, this.cursorSprite, screen.x, screen.y, scale);
+    }
   }
 
   // Public API

@@ -1,8 +1,14 @@
 // src/core/InputManager.ts
 
 import { toggleBrowserFullscreen } from '@/shared/toggleBrowserFullscreen';
+import { GamePadManager } from '@/core/input/GamePadManager';
+import { DefaultInputMapping } from '@/core/input/DefaultInputMapping';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { isElectron } from '@/shared/isElectron';
 import { Camera } from './Camera';
+
+import type { InputAction } from '@/core/input/interfaces/InputActions';
+import type { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
 
 type KeyState = { pressed: boolean };
 type MouseState = {
@@ -13,6 +19,8 @@ type MouseState = {
 };
 
 export class InputManager {
+  private gamepadManager: GamePadManager = new GamePadManager();
+
   private keyState: Record<string, KeyState> = {};
   private prevKeyState: Record<string, boolean> = {};
   private justPressedKeys: Set<string> = new Set();
@@ -61,6 +69,7 @@ export class InputManager {
 
     if (newX !== this.mouseState.x || newY !== this.mouseState.y) {
       this.mouseMoved = true;
+      InputDeviceTracker.getInstance().updateDevice('mouse');
     }
 
     this.mouseState.x = newX;
@@ -98,6 +107,7 @@ export class InputManager {
 
   // === Input Update ===
   public updateFrame(): void {
+    this.gamepadManager.updateFrame();
     this.mouseMoved = false;
     this.justPressedKeys.clear();
     this.justReleasedKeys.clear();
@@ -267,6 +277,7 @@ export class InputManager {
   // === Handlers (private) ===
   private keyDownHandler = (e: KeyboardEvent) => {
     this.keyState[e.code] = { pressed: true };
+    InputDeviceTracker.getInstance().updateDevice('keyboard');
   };
 
   private keyUpHandler = (e: KeyboardEvent) => {
@@ -276,6 +287,7 @@ export class InputManager {
   private mouseDownHandler = (e: MouseEvent) => {
     if (e.button === 0) this.mouseState.leftDown = true;
     if (e.button === 2) this.mouseState.rightDown = true;
+    InputDeviceTracker.getInstance().updateDevice('mouse');
   };
 
   private mouseUpHandler = (e: MouseEvent) => {
@@ -292,4 +304,44 @@ export class InputManager {
   private contextMenuHandler = (e: MouseEvent) => {
     e.preventDefault();
   };
+
+  public isGamepadConnected(): boolean {
+    return this.gamepadManager.isConnected();
+  }
+
+  // For aiming ship
+  public getGamepadMovementVector(): { x: number; y: number } {
+    return this.gamepadManager.getLeftStick();
+  }
+
+  // For aiming crosshair
+  public getGamepadAimVector(): { x: number; y: number } {
+    return this.gamepadManager.getRightStick();
+  }
+
+  // Abstracted Actions
+
+  public isActionPressed(action: InputAction): boolean {
+    const binding = DefaultInputMapping[action];
+    return (
+      (binding.keys?.some(k => this.isKeyPressed(k)) ?? false) ||
+      (binding.gamepadButtons?.some(b => this.gamepadManager.isActionPressed(b)) ?? false)
+    );
+  }
+
+  public wasActionJustPressed(action: InputAction): boolean {
+    const binding = DefaultInputMapping[action];
+    return (
+      (binding.keys?.some(k => this.wasKeyJustPressed(k)) ?? false) ||
+      (binding.gamepadButtons?.some(b => this.gamepadManager.wasActionJustPressed(b)) ?? false)
+    );
+  }
+
+  public wasActionJustReleased(action: InputAction): boolean {
+    const binding = DefaultInputMapping[action];
+    return (
+      (binding.keys?.some(k => this.wasKeyJustReleased(k)) ?? false) ||
+      (binding.gamepadButtons?.some(b => this.gamepadManager.wasActionJustReleased(b)) ?? false)
+    );
+  }
 }

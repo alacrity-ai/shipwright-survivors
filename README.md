@@ -158,8 +158,14 @@ What's needed to get to Demo:
 - [ ] Mini intro before tutorial, static "Shipwright! Shipwright! Listen ... Trust the robot, he doesn't know it yet.. But"
 - [ ] Tutorial Rewrite
 - [ ] Player death state
+- [ ] Controller Support
+  - [ ] Menus
+  - [ ] Gameplay
+    - [ ] Issue: Figure out, do we want a boost button? Do we want a sharp turn button?
+    - [ ] Issue: Presently, we just turnTo (degrees), we may want to have it so that the 40 degree radius or so in the back of the ship, causes breaking.
+          - This is because, right now, if I'm moving a direction, and I move the stick to the polar opposite of that direction, it's ambiguous if I'll turn left or right.  So instead, make the polar opposite of aiming (maybe a 30 degree wide range) cause breaking instead.
 - [ ] Incidents (Make at least 10 or so incidents)
-- [ ] 3 Missions - each tested thoroughly for smooth flow
+- [ ] 5 Missions - each tested thoroughly for smooth flow
   - [ ] Sub objectives in each mission, e.g. in the galaxy select
 - [ ] Starter ships, unlockable, and loadout menu on mission select
 - [ ] Basic breakroom dialogue

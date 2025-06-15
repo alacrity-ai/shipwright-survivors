@@ -7,4 +7,6 @@ export interface MovementIntent {
   rotateRight: boolean;
   strafeLeft: boolean;
   strafeRight: boolean;
+  turnToAngle?: number; // radians, 0 is "up"
+  afterburner?: boolean; // NEW!
 }

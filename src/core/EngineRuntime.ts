@@ -179,12 +179,11 @@ export class EngineRuntime {
     // Initialize GL caches
     initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
-    
+
     // Resolution fix for electron
     applyViewportResolution(this.canvasManager, this.camera);
 
     // Persistent UI
-    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
   
     // Lighting System
@@ -223,6 +222,9 @@ export class EngineRuntime {
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.canvasManager, this.camera);
     
+    // === Cursor
+    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager, this.ship);
+
     // === AI Orchestrator
     this.aiOrchestrator = new AIOrchestratorSystem();
     this.aiOrchestrator.registerPlayerShip(this.ship);
@@ -543,7 +545,7 @@ export class EngineRuntime {
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
-      const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4', 'engine4'];
+      const randomTypes = ['fin2', 'engine2', 'fin4', 'engine4'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 

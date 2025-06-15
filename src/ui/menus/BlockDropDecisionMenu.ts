@@ -6,6 +6,12 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
+// TODO : Replace this with procedural ergonomic labels on buttons
+// import { AnimatedSpriteOrchestrator } from '@/rendering/sprites/AnimatedSpriteOrchestrator';
+// import { blockDropDecisionMenuSpritesDefinition } from '@/rendering/sprites/definitions/spriteDefinitions';
+// import { CanvasManager } from '@/core/CanvasManager';
+
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { menuOpened, menuClosed } from '@/core/interfaces/events/MenuOpenReporter';
 import { PlayerResources } from '@/game/player/PlayerResources';
@@ -30,6 +36,9 @@ export class BlockDropDecisionMenu implements Menu {
   private open = false;
   private queue: BlockPickupEntry[] = [];
   private currentBlockType: BlockType | null = null;
+
+  // Deprecated
+  // private animatedSpriteOrchestrator: AnimatedSpriteOrchestrator; // ADDED
 
   private blockPreviewRenderer: BlockPreviewRenderer | null = null;
   private nextBlockPreviewRenderer: BlockPreviewRenderer | null = null;
@@ -82,12 +91,20 @@ export class BlockDropDecisionMenu implements Menu {
     resume: () => void
   ) {
     this.shipBuilderEffects = shipBuilderEffects;
+
+    // Deprecated
+    // this.animatedSpriteOrchestrator = new AnimatedSpriteOrchestrator(CanvasManager.getInstance().getContext('ui'));
+    // this.animatedSpriteOrchestrator.setGlobalScale(Math.floor(getUniformScaleFactor() * 2));
+
     this.pause = pause;
     this.resume = resume;
     this.initialize();
   }
 
   private initialize(): void {
+    // Deprecated
+    //this.animatedSpriteOrchestrator.registerSprites(blockDropDecisionMenuSpritesDefinition);
+
     const scaled = getUniformScaleFactor();
     const buttonSpacing = 32 * scaled;
 
@@ -175,6 +192,9 @@ export class BlockDropDecisionMenu implements Menu {
   update(dt: number): void {
     if (!this.open) return;
 
+    // Deprecated
+    //this.animatedSpriteOrchestrator.update(dt);
+
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
     const scale = getUniformScaleFactor();
@@ -252,6 +272,15 @@ export class BlockDropDecisionMenu implements Menu {
         this.autoplaceButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
         this.autoplaceButton.y = buttonRowY;
 
+        // Update animated sprites tooltips
+        const lastUsedDevice = InputDeviceTracker.getInstance().getLastUsed();
+        const refineSpriteKey = lastUsedDevice === 'keyboard' ? 'key_r' : 'b';
+        const autoplaceSpriteKey = lastUsedDevice === 'keyboard' ? 'key_space' : 'a';
+        
+        // Deprecated
+        //this.animatedSpriteOrchestrator.placeSprite(refineSpriteKey, buttonRowX, buttonRowY - scaledButtonHeight);
+        //this.animatedSpriteOrchestrator.placeSprite(autoplaceSpriteKey, buttonRowX + scaledButtonWidth + buttonSpacing, buttonRowY - scaledButtonHeight);
+
         return; // Don't process mouse input during animation
     }
 
@@ -284,6 +313,14 @@ export class BlockDropDecisionMenu implements Menu {
     this.autoplaceButton.isHovered = isMouseOverRect(x, y, autoRect, scale);
 
     if (clicked && this.autoplaceButton.isHovered) {
+      this.autoplaceButton.onClick();
+    }
+
+    // Gamepad Support
+    if (this.inputManager.wasActionJustPressed('cancel')) {
+      this.refineButton.onClick();
+    }
+    if (this.inputManager.wasActionJustPressed('select')) {
       this.autoplaceButton.onClick();
     }
   }
@@ -456,6 +493,9 @@ export class BlockDropDecisionMenu implements Menu {
       drawButton(ctx, this.refineButton, scale);
       drawButton(ctx, this.autoplaceButton, scale);
     }
+
+    // Deprecated
+    // this.animatedSpriteOrchestrator.render();
   }
 
   getCurrentBlockType(): BlockType | null {

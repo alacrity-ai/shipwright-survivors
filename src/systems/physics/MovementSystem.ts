@@ -25,11 +25,18 @@ const SPEED_PER_THRUST_UNIT = 1; // Tunable: how much each unit of thrustPower c
 const DIMINISHING_START = 8;
 const DIMINISHING_RATE = 0.15;
 
+// Afterburner constants
+const AFTERBURNER_SPEED_MULTIPLIER = 1.6; // Max speed multiplier when afterburner is fully active
+const AFTERBURNER_ACCEL_MULTIPLIER = 2.2; // Extra acceleration while afterburning
+const AFTERBURNER_TURNING_MULTIPLIER = 1.8; // Extra turning assist while afterburning
+const AFTERBURNER_RAMP_UP_RATE = 3.5; // How fast afterburner ramps up (per second)
+const AFTERBURNER_RAMP_DOWN_RATE = 1.5; // How fast afterburner ramps down (per second)
+
 export class MovementSystem {
   private readonly fallbackThrustPower = 10;
   private readonly baseThrust = 5;
   private externalImpulse = { x: 0, y: 0 };
-
+  private afterburnerCharge = 0; // 0.0 to 1.0, tracks how "charged up" the afterburner is
 
   private currentIntent: MovementIntent = {
     thrustForward: false,
@@ -55,6 +62,10 @@ export class MovementSystem {
     this.externalImpulse.y += dy;
   }
 
+  public getAfterburnerCharge(): number {
+    return this.afterburnerCharge;
+  }
+
   private rotateVector(x: number, y: number, angleRad: number): { x: number; y: number } {
     const cos = Math.cos(angleRad);
     const sin = Math.sin(angleRad);
@@ -73,6 +84,28 @@ export class MovementSystem {
     return { x: thrustX, y: thrustY };
   }
 
+  private updateAfterburnerCharge(dt: number): void {
+    const isAfterburning = this.currentIntent.afterburner ?? false;
+    
+    if (isAfterburning) {
+      // Ramp up afterburner charge
+      this.afterburnerCharge = Math.min(1, this.afterburnerCharge + AFTERBURNER_RAMP_UP_RATE * dt);
+    } else {
+      // Ramp down afterburner charge
+      this.afterburnerCharge = Math.max(0, this.afterburnerCharge - AFTERBURNER_RAMP_DOWN_RATE * dt);
+    }
+  }
+
+  private getAfterburnerMultipliers(): { speed: number; accel: number; turning: number } {
+    const charge = this.afterburnerCharge;
+    
+    return {
+      speed: 1 + (AFTERBURNER_SPEED_MULTIPLIER - 1) * charge,
+      accel: 1 + (AFTERBURNER_ACCEL_MULTIPLIER - 1) * charge,
+      turning: 1 + (AFTERBURNER_TURNING_MULTIPLIER - 1) * charge
+    };
+  }
+
 public update(dt: number): void {
   const transform = this.ship.getTransform();
   const { position, velocity } = transform;
@@ -85,6 +118,10 @@ public update(dt: number): void {
     strafeLeft,
     strafeRight,
   } = this.currentIntent;
+
+  // === Update afterburner charge ===
+  this.updateAfterburnerCharge(dt);
+  const afterburnerMultipliers = this.getAfterburnerMultipliers();
 
   // === Update Ship Movement Flags ===
   this.ship.setThrusting(thrustForward);
@@ -127,15 +164,34 @@ public update(dt: number): void {
     }
   }
 
-  // === Angular motion with assist ===
+  // === Angular motion with assist (enhanced by afterburner) ===
   const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
-  const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3, 20);
+  const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3 * afterburnerMultipliers.turning, 20);
   let targetAngularVelocity = 0;
-  if (rotateLeft) targetAngularVelocity = -maxAngularSpeed;
-  else if (rotateRight) targetAngularVelocity = maxAngularSpeed;
+
+  if (this.currentIntent.turnToAngle !== undefined) {
+    const { rotation } = transform;
+    const target = this.currentIntent.turnToAngle;
+
+    let delta = target - rotation;
+
+    // Wrap to [-π, π] for shortest rotation direction
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+
+    // Use rotation assist proportional to angle (enhanced by afterburner)
+    targetAngularVelocity = delta * ROTATIONAL_ASSIST_STRENGTH * afterburnerMultipliers.turning;
+    targetAngularVelocity = Math.max(
+      -maxAngularSpeed,
+      Math.min(targetAngularVelocity, maxAngularSpeed)
+    );
+  } else {
+    if (rotateLeft) targetAngularVelocity = -maxAngularSpeed;
+    else if (rotateRight) targetAngularVelocity = maxAngularSpeed;
+  }
 
   const angularDelta = targetAngularVelocity - transform.angularVelocity;
-  transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * dt;
+  transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * afterburnerMultipliers.turning * dt;
   transform.angularVelocity = Math.max(
     -maxAngularSpeed,
     Math.min(transform.angularVelocity, maxAngularSpeed)
@@ -143,13 +199,13 @@ public update(dt: number): void {
 
   // === Linear thrust
   if (thrustForward) {
-    this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position);
+    this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position, afterburnerMultipliers);
   }
   if (strafeLeft) {
-    this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position);
+    this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position, afterburnerMultipliers);
   }
   if (strafeRight) {
-    this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position);
+    this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position, afterburnerMultipliers);
   }
 
   // === Inertial dampening
@@ -212,7 +268,8 @@ public update(dt: number): void {
     thrustDirection: ThrustDirection,
     thrusters: { coord: GridCoord; power: number; rotation: number }[],
     transform: BlockEntityTransform,
-    position: { x: number; y: number }
+    position: { x: number; y: number },
+    afterburnerMultipliers: { speed: number; accel: number; turning: number }
   ): void {
     let totalThrustX = 0;
     let totalThrustY = 0;
@@ -225,7 +282,7 @@ public update(dt: number): void {
     const totalEngineThrust = thrusters.reduce((sum, t) => sum + t.power, 0);
     const totalThrustPower = totalEngineThrust + fallbackPower;
 
-    const maxSpeed = (() => {
+    const baseMaxSpeed = (() => {
       if (engineCount <= DIMINISHING_START) return totalThrustPower * baseUnit;
 
       const basePower = (totalThrustPower / engineCount) * DIMINISHING_START;
@@ -235,6 +292,9 @@ public update(dt: number): void {
       const diminishedExcessPower = excessPowerPerEngine * excessEngines * effectivenessMultiplier;
       return (basePower + diminishedExcessPower) * baseUnit;
     })();
+
+    // Apply afterburner speed multiplier
+    const maxSpeed = baseMaxSpeed * afterburnerMultipliers.speed;
 
     // === Apply fallback thrust in correct direction ===
     const fallbackDirection = (() => {
@@ -289,16 +349,16 @@ public update(dt: number): void {
       }
     }
 
-    // === Apply impulse
+    // === Apply impulse (enhanced by afterburner acceleration) ===
     const mass = this.ship.getTotalMass();
     const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), 0.65));
-    const impulseX = totalThrustX * dt * accelScale;
-    const impulseY = totalThrustY * dt * accelScale;
+    const impulseX = totalThrustX * dt * accelScale * afterburnerMultipliers.accel;
+    const impulseY = totalThrustY * dt * accelScale * afterburnerMultipliers.accel;
 
     transform.velocity.x += impulseX;
     transform.velocity.y += impulseY;
 
-    // === Directional assist
+    // === Directional assist (enhanced by afterburner) ===
     const speed = Math.sqrt(transform.velocity.x ** 2 + transform.velocity.y ** 2);
     if (speed > 0) {
       const vxNorm = transform.velocity.x / speed;
@@ -307,11 +367,12 @@ public update(dt: number): void {
       const steerX = fallbackDirection.x - vxNorm;
       const steerY = fallbackDirection.y - vyNorm;
 
-      transform.velocity.x += steerX * STEERING_ASSIST_STRENGTH * speed * dt;
-      transform.velocity.y += steerY * STEERING_ASSIST_STRENGTH * speed * dt;
+      const steeringAssist = STEERING_ASSIST_STRENGTH * afterburnerMultipliers.turning;
+      transform.velocity.x += steerX * steeringAssist * speed * dt;
+      transform.velocity.y += steerY * steeringAssist * speed * dt;
     }
 
-    // === Soft speed cap (per-directional component limiting)
+    // === Soft speed cap (per-directional component limiting) ===
     const velocityInThrustDir =
       transform.velocity.x * fallbackDirection.x +
       transform.velocity.y * fallbackDirection.y;
