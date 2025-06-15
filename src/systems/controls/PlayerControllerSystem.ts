@@ -14,6 +14,7 @@ import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { audioManager } from '@/audio/Audio';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
+
 export class PlayerControllerSystem {
   private isEnginePlaying = false;
   private lastFiringModeSwitchTime: number = -Infinity;
@@ -44,6 +45,9 @@ export class PlayerControllerSystem {
       }
     }
 
+    const rawAfterburner = this.inputManager.isActionPressed('afterburner');
+    const afterburner = thrustForward && rawAfterburner;
+
     const movementIntent: MovementIntent = {
       thrustForward,
       brake,
@@ -62,7 +66,7 @@ export class PlayerControllerSystem {
       turnToAngle: shouldTurnToStick
         ? Math.atan2(leftStick.y, leftStick.x) + Math.PI / 2
         : undefined,
-      afterburner: this.inputManager.isActionPressed('afterburner'),
+      afterburner,
     };
 
     // === Weapon controls ===

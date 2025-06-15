@@ -21,8 +21,10 @@ const BASE_MASS = 200;
 // const BRAKING_FORCE_MULTIPLIER = 1.0; // Lower = weaker braking, higher = more aggressive
 
 const BASE_TURN_POWER = 2;
+const MAXIMUM_TURN_POWER = 12;
+const MAXIMUM_ROTATION_SPEED = 15;
 const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
-const STEERING_ASSIST_STRENGTH = 1;   // default 0.5 : higher = more aggressive directional realignment
+const STEERING_ASSIST_STRENGTH = 3;   // default 0.5 : higher = more aggressive directional realignment
 const ROTATIONAL_ASSIST_STRENGTH = 2; // Higher = more snap
 const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
 const ANGULAR_MASS_SCALE_EXPONENT = 0.2; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
@@ -127,10 +129,12 @@ export class MovementSystem {
 
   private getAfterburnerMultipliers(): { speed: number; accel: number; turning: number } {
     const charge = this.afterburnerCharge;
-    
+    const speedMulti = this.ship.getAfterburnerSpeedMultiplier() || AFTERBURNER_SPEED_MULTIPLIER;
+    const accelerationMulti = this.ship.getAfterburnerAccelMultiplier() || AFTERBURNER_ACCEL_MULTIPLIER;
+
     return {
-      speed: 1 + (AFTERBURNER_SPEED_MULTIPLIER - 1) * charge,
-      accel: 1 + (AFTERBURNER_ACCEL_MULTIPLIER - 1) * charge,
+      speed: 1 + (speedMulti - 1) * charge,
+      accel: 1 + (accelerationMulti - 1) * charge,
       turning: 1 + (AFTERBURNER_TURNING_MULTIPLIER - 1) * charge
     };
   }
@@ -194,8 +198,12 @@ public update(dt: number): void {
   }
 
   // === Angular motion with assist (enhanced by afterburner) ===
-  const totalTurnPower = Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT);
-  const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3 * afterburnerMultipliers.turning, 20);
+  const totalTurnPower = Math.min(MAXIMUM_TURN_POWER, Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT));
+  // If player ship, log the total turn power
+  if (this.ship.getIsPlayerShip()) {
+    console.log('TOTAL TURN POWER: ', totalTurnPower);
+  }
+  const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3 * afterburnerMultipliers.turning, MAXIMUM_ROTATION_SPEED);
   let targetAngularVelocity = 0;
 
   if (this.currentIntent.turnToAngle !== undefined) {
@@ -340,6 +348,9 @@ public update(dt: number): void {
     // Determine if we're near the player ship (For thruster effects)
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     let emit = false;
+    let pulseJustActivated = false;
+    let isPulsing = false;
+    let superPulseJustActivated = false;
 
     if (playerShip && playerShip !== this.ship) {
       const cameraBounds = Camera.getInstance().getViewportBounds();
@@ -354,8 +365,12 @@ public update(dt: number): void {
       emit = center.x >= minX && center.x <= maxX &&
             center.y >= minY && center.y <= maxY;
     } else {
+      pulseJustActivated = this.ship.getAfterburnerComponent()?.wasPulseJustActivated() ?? false;
+      isPulsing = this.ship.getAfterburnerComponent()?.isPulsing() ?? false;
+      superPulseJustActivated = this.ship.getAfterburnerComponent()?.wasSuperPulseJustActivated() ?? false;
       emit = true; // Always emit if it's the player ship
     }
+
 
     // === Apply thruster force
     for (const { coord, power, rotation: blockRotation } of thrusters) {
@@ -376,7 +391,10 @@ public update(dt: number): void {
           shipRotation: transform.rotation,
           shipPosition: position,
           afterBurner: this.ship.getAfterburnerComponent()?.isActive() ?? false,
-          afterBurnerJustActivated: flashOnThisFrame
+          afterBurnerJustActivated: flashOnThisFrame,
+          isPulsing: isPulsing,
+          pulseJustActivated: pulseJustActivated,
+          superPulseJustActivated: superPulseJustActivated
         });
       }
     }

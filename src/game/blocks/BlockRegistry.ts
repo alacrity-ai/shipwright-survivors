@@ -754,7 +754,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 10,
     cost: 40,
     behavior: {
-      turnPower: 1,
+      turnPower: 0.5,
     },
     sprite: 'fin1',
     category: 'hull',
@@ -768,7 +768,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 10,
     cost: 80,
     behavior: {
-      turnPower: 1.4,
+      turnPower: 1.0,
     },
     sprite: 'fin2',
     category: 'hull',
@@ -782,7 +782,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 10,
     cost: 120,
     behavior: {
-      turnPower: 2,
+      turnPower: 1.5,
     },
     sprite: 'fin3',
     category: 'hull',
@@ -796,7 +796,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 10,
     cost: 200,
     behavior: {
-      turnPower: 2.8,
+      turnPower: 2.0,
     },
     sprite: 'fin4',
     category: 'hull',

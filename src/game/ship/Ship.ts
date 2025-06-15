@@ -106,6 +106,14 @@ export class Ship extends CompositeBlockObject {
     return this.afterburnerComponent?.isActive() ?? false;
   }
 
+  public getAfterburnerSpeedMultiplier(): number {
+    return this.afterburnerComponent?.getSpeedMultiplier() ?? 1;
+  }
+
+  public getAfterburnerAccelMultiplier(): number {
+    return this.afterburnerComponent?.getAccelerationMultiplier() ?? 1;
+  }
+
   // Light
   public registerAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
     if (!LightingOrchestrator.hasInstance()) return;

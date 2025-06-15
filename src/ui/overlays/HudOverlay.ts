@@ -15,6 +15,7 @@ import { getUniformScaleFactor } from '@/config/view';
 import { PlayerResources as PlayerResourcesSingleton } from '@/game/player/PlayerResources';
 import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
 
+
 export class HudOverlay {
   private readonly playerResources: PlayerResources;
   private readonly blockQueueDisplayManager: BlockQueueDisplayManager;

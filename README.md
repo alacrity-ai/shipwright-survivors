@@ -196,6 +196,7 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Evaluate king's bible CPU crunch logic. (HaloBlade)
   - [ ] Afterburner:
     - [ ] Add distinct visual effect to thrusters (change in color maybe?)
     - [ ] Add initial burst on toggle (light flash, particle emission)

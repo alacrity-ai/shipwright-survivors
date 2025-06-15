@@ -22,6 +22,9 @@ export class BlockQueueDisplayManager {
   private readonly floatOffsets: number[] = [];  // per-block animated vertical offsets
   private readonly FLOAT_SPEED = 80;             // pixels per second
   private readonly FLOAT_HEIGHT = 10;            // max Y offset upward
+  private readonly xOffsets: number[] = [];
+  private readonly X_OFFSET_SPEED = 360; // pixels per second
+  private readonly FANOUT_X_OFFSET = 28; // fixed pixel shift per card in roll fan-out
 
   // For pulsing active card animations
   private readonly pulseTimers: number[] = [];
@@ -95,6 +98,31 @@ export class BlockQueueDisplayManager {
     for (let i = 0; i < blockQueue.length; i++) {
       this.pulseTimers[i] += dt * this.PULSE_SPEED;
     }
+  
+    // Resize xOffsets to match block queue
+    while (this.xOffsets.length < blockQueue.length) {
+      this.xOffsets.push(0);
+    }
+    while (this.xOffsets.length > blockQueue.length) {
+      this.xOffsets.pop();
+    }
+
+    const FANOUT_X_OFFSET = this.FANOUT_X_OFFSET * getUniformScaleFactor();
+
+    // Compute target X offset per card
+    for (let i = 0; i < blockQueue.length; i++) {
+      let targetX = 0;
+
+      if (hovered === 'roll' && i >= 0 && i <= 2) {
+        targetX = FANOUT_X_OFFSET * i; // match render logic
+      }
+
+      const current = this.xOffsets[i];
+      const delta = targetX - current;
+      const maxStep = this.X_OFFSET_SPEED * dt;
+      const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
+      this.xOffsets[i] += step;
+    }
   }
 
   render(): void {
@@ -158,12 +186,16 @@ export class BlockQueueDisplayManager {
     if (blockCount > cardColumns) {
       const availableWidth = windowWidth - (windowMarginX * 2);
       const totalNormalWidth = (blockCount * cardWidth) + ((blockCount - 1) * cardMarginX);
-      
+
       if (totalNormalWidth > availableWidth) {
         cardSpacing = (availableWidth - cardWidth) / (blockCount - 1);
         overlapAmount = (cardWidth + cardMarginX) - cardSpacing;
       }
     }
+
+    const isRollHovered = this.blockDropDecisionMenu.getHoveredButton() === 'roll';
+    const FANOUT_X_OFFSET = this.FANOUT_X_OFFSET * scale;
+    const fanBaseX = windowX + windowMarginX;
 
     // === Render each block ===
     for (let i = blockQueue.length - 1; i >= 0; i--) {
@@ -173,6 +205,7 @@ export class BlockQueueDisplayManager {
 
       const floatOffset = this.floatOffsets[i] ?? 0;
       const pulseTime = this.pulseTimers[i] ?? 0;
+      const fanOffsetX = this.xOffsets[i] ?? 0;
 
       let scaleMod = 1.0;
       let color = baseColor;
@@ -190,7 +223,17 @@ export class BlockQueueDisplayManager {
       const scaledCardHeight = Math.floor(cardHeight * scaleMod);
       const scaledPreviewSize = Math.floor(previewSize * scaleMod);
 
-      const cardX = windowX + windowMarginX + i * cardSpacing + (cardWidth - scaledCardWidth) / 2;
+      let cardX: number;
+
+      if (isRollHovered && i >= 0 && i <= 2) {
+        // Fan-out position with smoothly interpolated offset
+        cardX = fanBaseX + fanOffsetX + (cardWidth - scaledCardWidth) / 2;
+      } else {
+        // Standard compressed layout
+        const baseX = windowX + windowMarginX + i * cardSpacing;
+        cardX = baseX + (cardWidth - scaledCardWidth) / 2;
+      }
+
       const cardY = windowY + windowMarginY - floatOffset + (cardHeight - scaledCardHeight) / 2;
 
       drawWindow({
