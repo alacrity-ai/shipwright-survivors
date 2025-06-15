@@ -13,11 +13,19 @@ import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 const BASE_MASS = 200;
+// const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
+// const STEERING_ASSIST_STRENGTH = 0.6;   // default 0.5 : higher = more aggressive directional realignment
+// const ROTATIONAL_ASSIST_STRENGTH = 1.5; // Higher = more snap
+// const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
+// const ANGULAR_MASS_SCALE_EXPONENT = 0.5; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
+// const BRAKING_FORCE_MULTIPLIER = 1.0; // Lower = weaker braking, higher = more aggressive
+
+const BASE_TURN_POWER = 2;
 const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
-const STEERING_ASSIST_STRENGTH = 0.6;   // default 0.5 : higher = more aggressive directional realignment
-const ROTATIONAL_ASSIST_STRENGTH = 1.5; // Higher = more snap
+const STEERING_ASSIST_STRENGTH = 1;   // default 0.5 : higher = more aggressive directional realignment
+const ROTATIONAL_ASSIST_STRENGTH = 2; // Higher = more snap
 const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
-const ANGULAR_MASS_SCALE_EXPONENT = 0.5; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
+const ANGULAR_MASS_SCALE_EXPONENT = 0.2; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
 const BRAKING_FORCE_MULTIPLIER = 1.0; // Lower = weaker braking, higher = more aggressive
 
 // Engine speed cap and scaling
@@ -167,7 +175,7 @@ public update(dt: number): void {
     strafeRight: [],
   };
 
-  let rawTurnPower = 1;
+  let rawTurnPower = BASE_TURN_POWER;
 
   for (const [coord, block] of this.ship.getAllBlocks()) {
     const behavior = block.type.behavior;
