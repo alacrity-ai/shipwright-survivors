@@ -6,9 +6,9 @@ export class AfterburnerComponent {
   private rechargePerSecond: number;
   private consumptionPerSecond: number;
 
-  private speedMultiplier: number = 1.6;
-  private accelerationMultiplier: number = 2.2;
-  private pulseMultiplier: number = 2.4;
+  private speedMultiplier: number = 1.5;
+  private accelerationMultiplier: number = 2.0;
+  private pulseMultiplier: number = 1.5;
 
   private readonly TRIGGER_COOLDOWN = 1.0; // seconds between allowed re-triggers
   private triggerCooldownRemaining: number = 0;

@@ -10,6 +10,7 @@ export interface UIButton {
   label: string;
   onClick: () => void;
   isHovered?: boolean;
+  disabled?: boolean; // NEW
 
   style?: {
     borderRadius?: number;
@@ -41,7 +42,7 @@ export function drawButton(
   uiScale: number = 1.0
 ): void {
   const {
-    x, y, width, height, label, isHovered, style = {}
+    x, y, width, height, label, isHovered, style = {}, disabled = false
   } = button;
 
   const {
@@ -54,7 +55,6 @@ export function drawButton(
     backgroundGradient
   } = style;
 
-  // === Apply scaling only to dimensions, not position or radius ===
   const scaledWidth = width * uiScale;
   const scaledHeight = height * uiScale;
   const scaledFont = textFont.replace(
@@ -62,8 +62,12 @@ export function drawButton(
     (_, size, unit) => `${Math.round(parseInt(size) * uiScale)}${unit}`
   );
 
+  const effectiveAlpha = disabled ? 0.4 : alpha;
+  const effectiveBorderColor = disabled ? '#444' : borderColor;
+  const effectiveTextColor = disabled ? '#888' : textColor;
+
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha = effectiveAlpha;
 
   // === Fill Style ===
   let fillStyle: string | CanvasGradient;
@@ -81,27 +85,34 @@ export function drawButton(
       ? ctx.createLinearGradient(from[0], from[1], to[0], to[1])
       : ctx.createRadialGradient(from[0], from[1], 0, from[0], from[1], gradRadius);
 
-    for (const stop of stops) {
-      gradient.addColorStop(stop.offset, isHovered ? brightenColor(stop.color, 0.1) : stop.color);
+    const effectiveStops = stops.map(stop => ({
+      offset: stop.offset,
+      color: disabled ? '#111' : (isHovered ? brightenColor(stop.color, 0.1) : stop.color)
+    }));
+
+    for (const stop of effectiveStops) {
+      gradient.addColorStop(stop.offset, stop.color);
     }
 
     fillStyle = gradient;
   } else {
-    fillStyle = backgroundColor ?? (isHovered ? '#333' : '#222');
+    fillStyle = disabled
+      ? '#111'
+      : (isHovered ? '#333' : backgroundColor ?? '#222');
   }
 
   // === Draw Background ===
   ctx.fillStyle = fillStyle;
-  ctx.strokeStyle = borderColor;
+  ctx.strokeStyle = effectiveBorderColor;
   ctx.lineWidth = 1 * uiScale;
 
   ctx.beginPath();
-  ctx.roundRect(x, y, scaledWidth, scaledHeight, borderRadius); // radius unscaled
+  ctx.roundRect(x, y, scaledWidth, scaledHeight, borderRadius);
   ctx.fill();
   ctx.stroke();
 
   // === Draw Label ===
-  ctx.fillStyle = textColor;
+  ctx.fillStyle = effectiveTextColor;
   ctx.font = scaledFont;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -127,6 +138,11 @@ export function handleButtonInteraction(
   wasClicked: boolean,
   uiScale: number = 1.0
 ): boolean {
+  if (button.disabled) {
+    button.isHovered = false;
+    return false;
+  }
+
   const scaledWidth = button.width * uiScale;
   const scaledHeight = button.height * uiScale;
 

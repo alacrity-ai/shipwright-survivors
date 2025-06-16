@@ -2,6 +2,7 @@
 
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
+import { missionLoader } from '@/game/missions/MissionLoader';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
@@ -14,9 +15,13 @@ export class PickupSpawner {
 
   spawnPickupOnBlockDestruction(block: BlockInstance): void {
     const blockType = block.type;
-    const { dropRate = 0 } = blockType;
+    const baseDropRate = blockType.dropRate ?? 0;
 
-    if (Math.random() < dropRate) {
+    // === Apply dropMultiplier (only for block drops) ===
+    const dropMultiplier = missionLoader.getDropMultiplier();
+    const effectiveDropRate = Math.min(baseDropRate * dropMultiplier, 1.0);
+
+    if (Math.random() < effectiveDropRate) {
       const pickupPosition = {
         x: block.position?.x ?? 0,
         y: block.position?.y ?? 0,
@@ -26,7 +31,7 @@ export class PickupSpawner {
       return;
     }
 
-    // Fallback drop (currency OR repair)
+    // === Fallback drop (currency OR repair) - not affected by dropMultiplier ===
     if (Math.random() < 0.2) {
       const pickupPosition = {
         x: block.position?.x ?? 0,
@@ -34,7 +39,6 @@ export class PickupSpawner {
       };
 
       if (Math.random() < 0.07) {
-        // 10% of fallback drops are repair pickups
         const repairAmount = this.getRepairAmountForBlock(block);
         this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
       } else {

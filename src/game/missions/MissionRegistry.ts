@@ -11,6 +11,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'Shipwright Second-Class',
     dialogue: 'intro-briefing',
     waves: waveSet1,
+    dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
@@ -29,6 +30,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'Starfield Gauntlet',
     dialogue: 'mission-generic',
     waves: waveSet1,
+    dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
@@ -47,6 +49,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'The Scrapyard Revenant',
     dialogue: 'mission_003_00',
     waves: waveSet2,
+    dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_9_00.png',
       gravity: 0,
@@ -70,6 +73,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'The Miner\'s Dillemma',
     dialogue: 'mission-generic',
     waves: waveSet3,
+    dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_10_00.png',
       gravity: 0,
@@ -92,6 +96,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'WIP',
     dialogue: 'mission-generic',
     waves: waveSet3,
+    dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_10_00.png',
       gravity: 0,
@@ -114,6 +119,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'WIP',
     dialogue: 'mission-generic',
     waves: waveSet3,
+    dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_10_00.png',
       gravity: 0,

@@ -47,6 +47,8 @@ export class BlockDropDecisionMenu implements Menu {
   private blockPreviewRenderer: BlockPreviewRenderer | null = null;
   private nextBlockPreviewRenderer: BlockPreviewRenderer | null = null;
 
+  private isAutoPlacingAll = false;
+
   private animationPhase: Phase = null;
   private slideX = -800;
   private targetX = 0;
@@ -55,8 +57,8 @@ export class BlockDropDecisionMenu implements Menu {
   private originalZoom: number = 0;
 
   // === Interaction State Tracking ===
-  private hoveredButton: 'refine' | 'autoplace' | 'roll' | null = null;
-  private clickedButton: 'refine' | 'autoplace' | 'roll' | null = null;
+  private hoveredButton: 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null = null;
+  private clickedButton: 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null = null;
   private didAdvance: boolean = false;
 
   private readonly SLIDE_SPEED = 1280; // pixels per second
@@ -89,6 +91,7 @@ export class BlockDropDecisionMenu implements Menu {
   private refineButton: UIButton = {} as UIButton;
   private autoplaceButton: UIButton = {} as UIButton;
   private randomRollButton: UIButton = {} as UIButton;
+  private autoPlaceAllButton: UIButton = {} as UIButton;
 
   private shipBuilderEffects: ShipBuilderEffectsSystem;
   private pause: () => void;
@@ -179,6 +182,28 @@ export class BlockDropDecisionMenu implements Menu {
           ]
         },
         textColor: '#aaffff',
+      }
+    };
+
+    this.autoPlaceAllButton = {
+      x: buttonRowX + this.BASE_BUTTON_WIDTH + buttonSpacing + this.slideX * scaled,
+      y: baseY - this.BASE_BUTTON_VERTICAL_GAP * scaled,
+      width: this.BASE_BUTTON_WIDTH,
+      height: this.BASE_BUTTON_HEIGHT,
+      label: 'Attach All',
+      onClick: () => this.autoPlaceAll(),
+      style: {
+        borderRadius: 8,
+        alpha: 0.95,
+        borderColor: '#66ff66',
+        backgroundGradient: {
+          type: 'linear',
+          stops: [
+            { offset: 0, color: '#003300' },
+            { offset: 1, color: '#001a00' }
+          ]
+        },
+        textColor: '#ccffcc',
       }
     };
   }
@@ -299,6 +324,10 @@ export class BlockDropDecisionMenu implements Menu {
         this.autoplaceButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
         this.autoplaceButton.y = buttonRowY;
 
+        // Auto Place All button (above autoplace)
+        this.autoPlaceAllButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
+        this.autoPlaceAllButton.y = buttonRowY - scaledButtonHeight - (this.BASE_BUTTON_VERTICAL_GAP * scale);
+
         // Update random roll button (above refine and autoplace)
         this.randomRollButton.x = buttonRowX;
         this.randomRollButton.y = buttonRowY - scaledButtonHeight - (this.BASE_BUTTON_VERTICAL_GAP * scale);
@@ -310,6 +339,9 @@ export class BlockDropDecisionMenu implements Menu {
     this.hoveredButton = null;
     if (!mouse) return;
     const { x, y } = mouse;
+
+    // == Return if autoplacing all
+    if (this.isAutoPlacingAll) return;
 
     // == Refine Button:
     const rect = {
@@ -339,6 +371,21 @@ export class BlockDropDecisionMenu implements Menu {
 
     if (clicked && this.autoplaceButton.isHovered) {
       this.autoplaceButton.onClick();
+    }
+
+    // == Auto Place All Button:
+    const allRect = {
+      x: this.autoPlaceAllButton.x,
+      y: this.autoPlaceAllButton.y,
+      width: this.autoPlaceAllButton.width,
+      height: this.autoPlaceAllButton.height
+    };
+
+    this.autoPlaceAllButton.isHovered = isMouseOverRect(x, y, allRect, scale);
+    if (this.autoPlaceAllButton.isHovered) this.hoveredButton = 'autoPlaceAll';
+
+    if (clicked && this.autoPlaceAllButton.isHovered) {
+      this.autoPlaceAllButton.onClick();
     }
 
     // == Random Roll Button:
@@ -388,6 +435,27 @@ export class BlockDropDecisionMenu implements Menu {
     this.updateNextBlockPreview();
   }
 
+  // Grey out all buttons
+  disableButton(button: UIButton): void {
+    button.disabled = true;
+  }
+
+  private restoreButtons(): void {
+    this.isAutoPlacingAll = false;
+
+    // Re-enable interaction
+    this.refineButton.disabled = false;
+    this.autoplaceButton.disabled = false;
+    this.randomRollButton.disabled = false;
+    this.autoPlaceAllButton.disabled = false;
+
+    // Restore handlers (if they were nulled)
+    this.refineButton.onClick = () => this.handleRefine();
+    this.autoplaceButton.onClick = () => this.handleAutoplace();
+    this.randomRollButton.onClick = () => this.handleRoll();
+    this.autoPlaceAllButton.onClick = () => this.autoPlaceAll();
+  }
+
   private handleRefine(): void {
     // Give player currency (Entropium) equal to the block cost
     PlayerResources.getInstance().addCurrency(this.currentBlockType?.cost ?? 0);
@@ -413,6 +481,56 @@ export class BlockDropDecisionMenu implements Menu {
     missionResultStore.incrementBlockPlacedCount();
     this.advanceQueueOrClose();
     this.clickedButton = 'autoplace';
+  }
+
+  public async autoPlaceAll(): Promise<void> {
+    if (this.isAutoPlacingAll) return; // Prevent re-entry
+
+    this.isAutoPlacingAll = true;
+
+    // Disable all button interaction
+    this.refineButton.onClick = () => {};
+    this.autoplaceButton.onClick = () => {};
+    this.randomRollButton.onClick = () => {};
+    this.autoPlaceAllButton.onClick = () => {};
+
+    this.disableButton(this.refineButton);
+    this.disableButton(this.autoplaceButton);
+    this.disableButton(this.randomRollButton);
+    this.disableButton(this.autoPlaceAllButton);
+
+    // Execute placement loop
+    const archetype = getArchetypeById('interceptor');
+    const delayBase = 300;
+    const delayMin = 50;
+    const decayRate = 0.85;
+
+    let delay = delayBase;
+
+    while (this.currentBlockType && this.queue.length >= 0) {
+      const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects, archetype ?? undefined);
+      if (!success) {
+        audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+        this.restoreButtons(); // ← critical
+        return;
+      }
+
+      PlayerResources.getInstance().dequeueBlock();
+      missionResultStore.incrementBlockPlacedCount();
+
+      this.advanceQueueOrClose();
+
+      if (!this.currentBlockType) break;
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.max(delay * decayRate, delayMin);
+    }
+
+    if (this.currentBlockType) {
+      this.restoreButtons();
+    }
+
+    this.clickedButton = 'autoPlaceAll';
   }
 
   private handleRoll(): void {
@@ -495,6 +613,7 @@ export class BlockDropDecisionMenu implements Menu {
       this.animationPhase = 'sliding-out';
       const camera = Camera.getInstance();
       camera.animateZoomTo(this.originalZoom);
+      this.isAutoPlacingAll = false;
       menuClosed('blockDropDecisionMenu');
     } else {
       this.didAdvance = true;
@@ -604,7 +723,7 @@ export class BlockDropDecisionMenu implements Menu {
 
     if (this.currentBlockType) {
       const statsX = scaledWindowX + scaledSlideX + (32 * scale);
-      const statsY = scaledWindowY + (128 * scale) + scaledBlockPreviewHeight + (48 * scale);
+      const statsY = scaledWindowY + (128 * scale) + scaledBlockPreviewHeight + (32 * scale);
       const statsWidth = scaledWindowWidth - (64 * scale);
       drawBlockStatsLabels(ctx, this.currentBlockType, statsX, statsY, statsWidth, scale);
     }
@@ -613,10 +732,8 @@ export class BlockDropDecisionMenu implements Menu {
       drawButton(ctx, this.refineButton, scale);
       drawButton(ctx, this.autoplaceButton, scale);
       drawButton(ctx, this.randomRollButton, scale);
+      drawButton(ctx, this.autoPlaceAllButton, scale);
     }
-
-    // Deprecated
-    // this.animatedSpriteOrchestrator.render();
   }
 
   getCurrentBlockType(): BlockType | null {
@@ -640,9 +757,10 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   isPointInBounds(x: number, y: number): boolean {
-    const left = this.BASE_WINDOW_X + this.slideX;
-    const right = left + this.BASE_WINDOW_WIDTH;
-    const bottom = this.BASE_WINDOW_Y + this.BASE_WINDOW_HEIGHT;
+    const scale = getUniformScaleFactor();
+    const left = this.BASE_WINDOW_X + this.slideX * scale;
+    const right = left + this.BASE_WINDOW_WIDTH * scale;
+    const bottom = this.BASE_WINDOW_Y + this.BASE_WINDOW_HEIGHT * scale;
     return x >= left && x <= right && y >= this.BASE_WINDOW_Y && y <= bottom;
   }
 
@@ -655,11 +773,11 @@ export class BlockDropDecisionMenu implements Menu {
     return 0.5 * getUniformScaleFactor();
   }
 
-  public getHoveredButton(): 'refine' | 'autoplace' | 'roll' | null {
+  public getHoveredButton(): 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null {
     return this.hoveredButton;
   }
 
-  public getClickedButton(): 'refine' | 'autoplace' | 'roll' | null {
+  public getClickedButton(): 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null {
     return this.clickedButton;
   }
 

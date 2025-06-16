@@ -666,7 +666,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 30,
     behavior: {
       canThrust: true,
-      thrustPower: 25,
+      thrustPower: 50,
     },
     sprite: 'engine0',
     category: 'system',
@@ -681,7 +681,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 30,
     behavior: {
       canThrust: true,
-      thrustPower: 40,
+      thrustPower: 50,
     },
     sprite: 'engine1',
     category: 'engine',
@@ -696,7 +696,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 30,
     behavior: {
       canThrust: true,
-      thrustPower: 60,
+      thrustPower: 75,
     },
     sprite: 'engine2',
     category: 'engine',
@@ -711,7 +711,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 30,
     behavior: {
       canThrust: true,
-      thrustPower: 80,
+      thrustPower: 90,
     },
     sprite: 'engine3',
     category: 'engine',
@@ -726,7 +726,7 @@ const blockTypes: Record<string, BlockType> = {
     cost: 160,
     behavior: {
       canThrust: true,
-      thrustPower: 100,
+      thrustPower: 115,
     },
     sprite: 'engine4',
     category: 'engine',

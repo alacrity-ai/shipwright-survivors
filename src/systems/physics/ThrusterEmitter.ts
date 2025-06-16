@@ -123,14 +123,14 @@ export class ThrusterEmitter {
         flashRadius = 300;
         flashColor = '#ffcc00';
         burstColors = ['#ffcc00', '#ffaa00', '#ff8800'];
-        burstCount = 24;
+        burstCount = 18;
       }
 
       if (superPulseJustActivated) {
         flashRadius = 300;
         flashColor = '#00ffff';
         burstColors = ['#ccffff', '#88ddff', '#ffffff'];
-        burstCount = 32;
+        burstCount = 24;
       }
 
       createLightFlash(pos.x, pos.y, flashRadius, 1.0, 0.35, flashColor);
@@ -194,16 +194,16 @@ export class ThrusterEmitter {
 
     // === Screen Shake for Player
     if (ownerShip && ownerShip === playerShip) {
-      let strength = 6;
+      let strength = 4;
       let duration = 0.16;
 
       if (wasPulse) {
-        strength = 9;
-        duration = 0.20;
+        strength = 6;
+        duration = 0.18;
       }
       if (wasSuperPulse) {
-        strength = 14;
-        duration = 0.24;
+        strength = 9;
+        duration = 0.20;
       }
 
       GlobalEventBus.emit('camera:shake', {

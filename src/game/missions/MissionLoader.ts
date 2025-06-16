@@ -20,6 +20,11 @@ class MissionLoader {
     return this.currentMission;
   }
 
+  getDropMultiplier(): number {
+    if (!this.currentMission) throw new Error('No mission loaded');
+    return this.currentMission.dropMultiplier ?? 1;
+  }
+
   getMissionById(id: string): MissionDefinition | null {
     const mission = missionRegistry[id];
     return mission ?? null;

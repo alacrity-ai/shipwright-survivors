@@ -72,13 +72,15 @@ export class BlockQueueDisplayManager {
     const shouldRaise = new Set<number>();
 
     if (hovered === 'refine' || hovered === 'autoplace') {
-      // Raise the first block (index 0)
       if (blockQueue.length > 0) {
         shouldRaise.add(0);
       }
     } else if (hovered === 'roll') {
-      // Raise first three blocks
       for (let i = 0; i < 3 && i < blockQueue.length; i++) {
+        shouldRaise.add(i);
+      }
+    } else if (hovered === 'autoPlaceAll') {
+      for (let i = 0; i < blockQueue.length; i++) {
         shouldRaise.add(i);
       }
     }

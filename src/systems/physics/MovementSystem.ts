@@ -12,22 +12,20 @@ import type { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
-const BASE_MASS = 200;
-// const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
-// const STEERING_ASSIST_STRENGTH = 0.6;   // default 0.5 : higher = more aggressive directional realignment
-// const ROTATIONAL_ASSIST_STRENGTH = 1.5; // Higher = more snap
-// const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
-// const ANGULAR_MASS_SCALE_EXPONENT = 0.5; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
-// const BRAKING_FORCE_MULTIPLIER = 1.0; // Lower = weaker braking, higher = more aggressive
+const BASE_MASS = 500;
+const LINEAR_MASS_SCALE_EXPONENT = 0.4; // Controls how strongly mass reduces linear acceleration and top speed
 
 const BASE_TURN_POWER = 2;
 const MAXIMUM_TURN_POWER = 12;
 const MAXIMUM_ROTATION_SPEED = 15;
 const INERTIAL_DAMPENING_FACTOR = 0.5; // 0.50 per second (~2% velocity loss/sec)
 const STEERING_ASSIST_STRENGTH = 3;   // default 0.5 : higher = more aggressive directional realignment
+
 const ROTATIONAL_ASSIST_STRENGTH = 2; // Higher = more snap
 const FIN_DIMINISHING_EXPONENT = 0.94; // 1.0 = linear, <1.0 = diminishing | diminishes returns on fins
-const ANGULAR_MASS_SCALE_EXPONENT = 0.2; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
+const BASE_ROTATION_STRENGTH = 0.6; // Controls base cap on angular speed before multipliers
+const ANGULAR_MASS_SCALE_EXPONENT = 0.6; // Rotation-specific scaling factor derived from mass. Mass slows down rotation.
+
 const BRAKING_FORCE_MULTIPLIER = 1.0; // Lower = weaker braking, higher = more aggressive
 
 // Engine speed cap and scaling
@@ -203,7 +201,10 @@ public update(dt: number): void {
   if (this.ship.getIsPlayerShip()) {
     console.log('TOTAL TURN POWER: ', totalTurnPower);
   }
-  const maxAngularSpeed = Math.min(totalTurnPower * angularScale * 0.3 * afterburnerMultipliers.turning, MAXIMUM_ROTATION_SPEED);
+  const maxAngularSpeed = Math.min(
+    totalTurnPower * angularScale * BASE_ROTATION_STRENGTH * afterburnerMultipliers.turning,
+    MAXIMUM_ROTATION_SPEED
+  );
   let targetAngularVelocity = 0;
 
   if (this.currentIntent.turnToAngle !== undefined) {
@@ -332,7 +333,10 @@ public update(dt: number): void {
     })();
 
     // Apply afterburner speed multiplier
-    const maxSpeed = baseMaxSpeed * afterburnerMultipliers.speed;
+    const mass = this.ship.getTotalMass();
+    const speedScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
+    const maxSpeed = baseMaxSpeed * afterburnerMultipliers.speed * speedScale;
+
 
     // === Apply fallback thrust in correct direction ===
     const fallbackDirection = (() => {
@@ -400,8 +404,7 @@ public update(dt: number): void {
     }
 
     // === Apply impulse (enhanced by afterburner acceleration) ===
-    const mass = this.ship.getTotalMass();
-    const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), 0.65));
+    const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
     const impulseX = totalThrustX * dt * accelScale * afterburnerMultipliers.accel;
     const impulseY = totalThrustY * dt * accelScale * afterburnerMultipliers.accel;
 
