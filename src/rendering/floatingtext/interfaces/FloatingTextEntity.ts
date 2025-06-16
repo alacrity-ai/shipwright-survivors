@@ -1,3 +1,5 @@
+// src/rendering/floatingtext/interfaces/FloatingTextEntity.ts
+
 import type { FloatingTextBehaviorOptions } from '@/rendering/floatingtext/interfaces/FloatingTextBehaviorOptions';
 
 import { getUniformScaleFactor } from '@/config/view';

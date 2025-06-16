@@ -46,6 +46,7 @@ import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
+import { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
@@ -105,6 +106,7 @@ export class EngineRuntime {
 
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager;
+  private coachMarkManager: CoachMarkManager;
   private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
   private spaceStationBuilderMenu: SpaceStationBuilderMenu;
@@ -398,7 +400,14 @@ export class EngineRuntime {
     this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry);
 
     // Dialogue Manager
-    this.missionDialogueManager = new MissionDialogueManager(this.inputManager, this.canvasManager, this.waveSpawner, this.ship);
+    this.coachMarkManager = new CoachMarkManager();
+    this.missionDialogueManager = new MissionDialogueManager(
+      this.inputManager, 
+      this.canvasManager, 
+      this.waveSpawner, 
+      this.ship,
+      this.coachMarkManager
+    );
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
@@ -470,6 +479,7 @@ export class EngineRuntime {
       this.weaponSystem,
       this.aiOrchestrator,
       this.floatingTextManager,
+      this.coachMarkManager,
     ];
 
     this.registerLoopHandlers();
@@ -628,6 +638,7 @@ export class EngineRuntime {
     this.inputManager.updateFrame();
     this.missionDialogueManager.update(dt);
     this.floatingTextManager.update(dt);
+    this.coachMarkManager.update(dt);
   };
 
   private render = (dt: number) => {
@@ -690,14 +701,14 @@ export class EngineRuntime {
   public start() {
     this.gameLoop.start();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
-    this.inputManager.disableInput();
+    this.inputManager.disableAllActions();
     setTimeout(() => {
       if (this.ship) {
         this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#0000FF', radius: 96 });
       }
     }, 1000);
     setTimeout(() => {
-      this.inputManager.enableInput();
+      this.inputManager.enableAllActions();
       this.missionDialogueManager.initialize();
     }, 4200);
   }

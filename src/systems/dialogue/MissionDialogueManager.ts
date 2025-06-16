@@ -9,6 +9,8 @@ import type { Ship } from '@/game/ship/Ship';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { DialogueQueueManagerFactory } from './factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from './registry/DialogueScriptRegistry';
+import { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
+
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
 export class MissionDialogueManager implements IUpdatable, IRenderable {
@@ -19,7 +21,8 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
     private readonly inputManager: InputManager,
     private readonly canvasManager: CanvasManager,
     private readonly waveSpawner: WaveSpawner,
-    private readonly playerShip: Ship
+    private readonly playerShip: Ship,
+    private readonly coachMarkManager: CoachMarkManager
   ) {}
 
   public initialize(): void {
@@ -42,6 +45,7 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
       inputManager: this.inputManager,
       playerShip: this.playerShip,
       waveSpawner: this.waveSpawner,
+      coachMarkManager: this.coachMarkManager,
       // Extend here as more systems are integrated
     };
   }

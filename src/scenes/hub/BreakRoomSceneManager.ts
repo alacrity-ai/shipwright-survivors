@@ -11,7 +11,6 @@ import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/U
 import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
 
-import { flags } from '@/game/player/PlayerFlagManager';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
@@ -78,19 +77,6 @@ export class BreakroomSceneManager {
     if (script) {
       this.dialogueQueueManager.startScript(script);
     }
-
-    // if (!flags.has('breakroom.marla-greeting.complete')) {
-    //   const script = getDialogueScript('marla-greeting', {});
-    //   if (script) {
-    //     this.dialogueQueueManager.startScript(script);
-    //   }
-    // }
-    // if (!flags.has('mission.vlox-attack.complete')) {
-    //   const script = getDialogueScript('vlox-attack', this.inputManager);
-    //   if (script) {
-    //     this.dialogueQueueManager.startScript(script);
-    //   }
-    // }
 
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);

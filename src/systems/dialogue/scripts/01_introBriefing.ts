@@ -8,13 +8,19 @@ import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
-const playerResources = PlayerResources.getInstance();
+import { createOpenBlockMenuCoachMark } from '@/rendering/coachmarks/helpers/createOpenBlockMenuCoachMark';
+import { createToggleFiringModeCoachMark } from '@/rendering/coachmarks/helpers/createToggleFiringModeCoachMark';
+import { createAimCoachMark } from '@/rendering/coachmarks/helpers/createAimCoachMark';
+import { createFirePrimaryCoachMark } from '@/rendering/coachmarks/helpers/createFirePrimaryCoachMark';
+import { createMoveCoachMark } from '@/rendering/coachmarks/helpers/createMoveCoachMark';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 import { audioManager } from '@/audio/Audio';
 
+const playerResources = PlayerResources.getInstance();
+
 export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript {
-  const { inputManager, waveSpawner, playerShip } = ctx;
+  const { inputManager, waveSpawner, playerShip, coachMarkManager } = ctx;
   if (!inputManager) {
     throw new Error('Input manager is required for intro briefing');
   }
@@ -23,6 +29,9 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
   }
   if (!playerShip) {
     throw new Error('Player ship is required for intro briefing');
+  }
+  if (!coachMarkManager) {
+    throw new Error('Coach mark manager is required for intro briefing');
   }
 
   return {
@@ -37,7 +46,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          inputManager.disableInput();
+          inputManager.disableAllActions();
         },
       },
       {
@@ -81,10 +90,17 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          inputManager.enableInput();
-          inputManager.disableKey('MouseLeft');
-          inputManager.disableKey('Tab');
-          inputManager.disableKey('Escape');
+          inputManager.enableAllActions();
+          inputManager.disableAction('firePrimary');
+          inputManager.disableAction('openShipBuilder');
+          inputManager.disableAction('pause');
+        },
+      },
+      // Display W, A, S, D in classic T-layout
+      {
+        type: 'command',
+        run: () => {
+          createMoveCoachMark(coachMarkManager, 200, 400);
         },
       },
       {
@@ -96,7 +112,8 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
                 inputManager.isKeyPressed('KeyW') ||
                 inputManager.isKeyPressed('KeyA') ||
                 inputManager.isKeyPressed('KeyS') ||
-                inputManager.isKeyPressed('KeyD')
+                inputManager.isKeyPressed('KeyD') ||
+                inputManager.isLeftStickMoved()
               ) {
                 resolve();
               } else {
@@ -112,6 +129,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: "Mobility nominal. Unexpectedly, your motor cortex appears to be functional.",
       },
+      // Remove the WASD coachmarks
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
+        },
+      },
       {
         type: 'line',
         speakerId: 'carl',
@@ -120,9 +144,12 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
+          createAimCoachMark(coachMarkManager, 200, 400);
+
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
-              if (inputManager.wasMouseMoved()) {
+              if (inputManager.wasMouseMoved() || inputManager.isRightStickMoved()) {
+                coachMarkManager.clear(); // Clear all active marks
                 resolve();
               } else {
                 requestAnimationFrame(waitForInput);
@@ -130,6 +157,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
             };
             waitForInput();
           });
+        },
+      },
+      // Clear the coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
         },
       },
       {
@@ -137,12 +171,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: "Please Left-click to discharge kinetic discouragement...",
       },
-      // Enable left click
       {
         type: 'command',
         run: () => {
-          inputManager.enableKey('MouseLeft');
-          inputManager.enableKey('Escape');
+          inputManager.enableAction('firePrimary');
+          inputManager.enableAction('pause');
+
+          createFirePrimaryCoachMark(coachMarkManager, 200, 400);
         },
       },
       {
@@ -150,7 +185,8 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
-              if (inputManager.isMouseLeftPressed()) {
+              if (inputManager.isActionPressed('firePrimary')) {
+                coachMarkManager.clear();
                 resolve();
               } else {
                 requestAnimationFrame(waitForInput);
@@ -158,6 +194,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
             };
             waitForInput();
           });
+        },
+      },
+      // Clear the coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
         },
       },
       {
@@ -183,12 +226,19 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           inputManager.enableKey('KeyX');
         },
       },
+      // Show X Key Coachmark
+      {
+        type: 'command',
+        run: () => {
+          createToggleFiringModeCoachMark(coachMarkManager, 200, 400);
+        },
+      },
       {
         type: 'command',
         run: () => {
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
-              if (inputManager.wasKeyJustPressed('KeyX')) {
+              if (inputManager.isActionPressed('switchFiringMode')) {
                 resolve();
               } else {
                 requestAnimationFrame(waitForInput);
@@ -196,6 +246,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
             };
             waitForInput();
           });
+        },
+      },
+      // Clear the coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
         },
       },
       // Wait 200ms
@@ -209,6 +266,26 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: "Use the scroll wheel or R/T to zoom in and out. Don't break it.",
       },
+      // Scrollsheel mouse coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.createScreenCoachMark(
+            '',
+            200, 400,
+            {
+              type: 'mouse',
+              interactionMode: 'scroll',
+              width: 60,
+              height: 90,
+              borderColor: '#00FFFF',
+              fillColor: '#001122',
+              highlightColor: '#00FFFF',
+              duration: Infinity,
+            }
+          );
+        },
+      },  
       {
         type: 'command',
         run: () => {
@@ -218,7 +295,8 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
                 inputManager.wasScrollWheelUp() || 
                 inputManager.wasScrollWheelDown() || 
                 inputManager.isKeyPressed('KeyR') || 
-                inputManager.isKeyPressed('KeyT')
+                inputManager.isKeyPressed('KeyT') ||
+                (inputManager.isLeftTriggerPressed() && inputManager.isRightStickMoved())
               ) {
                 resolve();
               } else {
@@ -227,6 +305,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
             };
             waitForInput();
           });
+        },
+      },
+      // Clear the coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
         },
       },
       // Express affirmation for using the zoom functionality, sarcastically
@@ -305,11 +390,18 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: 'Press Tab to access the shipbuilding module.',
       },
+      // Show Tab Key Coachmark
+      {
+        type: 'command',
+        run: () => {
+          createOpenBlockMenuCoachMark(coachMarkManager, 200, 400);
+        },
+      },
       // Unlock the tab key
       {
         type: 'command',
         run: () => {
-          inputManager.enableKey('Tab');
+          inputManager.enableAction('openShipBuilder');
         },
       },
       {
@@ -317,7 +409,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
-              if (inputManager.wasKeyJustPressed('Tab')) {
+              if (inputManager.wasActionJustPressed('openShipBuilder')) {
                 resolve();
               } else {
                 requestAnimationFrame(waitForInput);
@@ -327,11 +419,18 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           });
         },
       },
+      // Hide the coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
+        },
+      },
       // Lock the Tab key for safety (avoid early exit)
       {
         type: 'command',
         run: () => {
-          inputManager.disableKey('Tab');
+          inputManager.disableAction('openShipBuilder');
         },
       },
       // Instruct the user to place a block by clicking on the ship, or to refine it into Entropium
@@ -363,8 +462,8 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          inputManager.enableKey('Tab');
-          inputManager.enableKey('Escape');
+          inputManager.enableAction('openShipBuilder');
+          inputManager.enableAction('pause');
         },
       },
       {

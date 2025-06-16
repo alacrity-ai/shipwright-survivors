@@ -1,5 +1,6 @@
 // src/ui/primitives/UIButton.ts
 
+import { audioManager } from '@/audio/Audio';
 import { brightenColor } from '@/shared/colorUtils';
 
 export interface UIButton {
@@ -9,7 +10,9 @@ export interface UIButton {
   height: number;
   label: string;
   onClick: () => void;
+  onHover?: () => void;
   isHovered?: boolean;
+  wasHovered?: boolean;
   disabled?: boolean; // NEW
 
   style?: {
@@ -140,19 +143,31 @@ export function handleButtonInteraction(
 ): boolean {
   if (button.disabled) {
     button.isHovered = false;
+    button.wasHovered = false;
     return false;
   }
 
   const scaledWidth = button.width * uiScale;
   const scaledHeight = button.height * uiScale;
 
-  const isHovered =
+  const isHoveredNow =
     mouseX >= button.x && mouseX <= button.x + scaledWidth &&
     mouseY >= button.y && mouseY <= button.y + scaledHeight;
 
-  button.isHovered = isHovered;
+  const justHovered = isHoveredNow && !button.wasHovered;
 
-  if (isHovered && wasClicked) {
+  button.isHovered = isHoveredNow;
+  button.wasHovered = isHoveredNow;
+
+  if (justHovered) {
+    if (button.onHover) {
+      button.onHover();
+    } else {
+      audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 4 });
+    }
+  }
+
+  if (isHoveredNow && wasClicked) {
     button.onClick();
     return true;
   }

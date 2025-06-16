@@ -1,3 +1,5 @@
+// src/rendering/floatingtext/FloatingTextManager.ts
+
 import { FloatingTextEntity, FloatingTextPositionResolver } from '@/rendering/floatingtext/interfaces/FloatingTextEntity';
 import { CanvasManager } from '@/core/CanvasManager';
 import type { FloatingTextBehaviorOptions } from '@/rendering/floatingtext/interfaces/FloatingTextBehaviorOptions';

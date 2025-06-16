@@ -26,7 +26,11 @@ export class InputManager {
   private justPressedKeys: Set<string> = new Set();
   private justReleasedKeys: Set<string> = new Set();
   private disabledKeys: Set<string> = new Set();
+  private disabledGamepadButtons: Set<GamepadButtonAlias> = new Set();
   private inputDisabled = false;
+
+  private leftStickDisabled = false;
+  private rightStickDisabled = false;
 
   private mouseMoved = false;
 
@@ -309,39 +313,153 @@ export class InputManager {
     return this.gamepadManager.isConnected();
   }
 
-  // For aiming ship
+  // Left stick for moving / turning ship
   public getGamepadMovementVector(): { x: number; y: number } {
-    return this.gamepadManager.getLeftStick();
+    return this.leftStickDisabled ? { x: 0, y: 0 } : this.gamepadManager.getLeftStick();
   }
 
-  // For aiming crosshair
+  // Right stick for aiming crosshair
   public getGamepadAimVector(): { x: number; y: number } {
-    return this.gamepadManager.getRightStick();
+    return this.rightStickDisabled ? { x: 0, y: 0 } : this.gamepadManager.getRightStick();
+  }
+
+  // Gamepad
+
+  public disableGamepadButton(alias: GamepadButtonAlias): void {
+    this.disabledGamepadButtons.add(alias);
+  }
+
+  public enableGamepadButton(alias: GamepadButtonAlias): void {
+    this.disabledGamepadButtons.delete(alias);
+  }
+
+  public enableAllGamepadButtons(): void {
+    this.disabledGamepadButtons.clear();
+  }
+
+  public disableLeftStick(): void {
+    this.leftStickDisabled = true;
+  }
+
+  public enableLeftStick(): void {
+    this.leftStickDisabled = false;
+  }
+
+  public disableRightStick(): void {
+    this.rightStickDisabled = true;
+  }
+
+  public enableRightStick(): void {
+    this.rightStickDisabled = false;
+  }
+
+  public enableAllSticks(): void {
+    this.leftStickDisabled = false;
+    this.rightStickDisabled = false;
+  }
+
+  public isLeftStickMoved(): boolean {
+    if (this.leftStickDisabled) return false;
+    const { x, y } = this.gamepadManager.getLeftStick();
+    return Math.abs(x) > 0 || Math.abs(y) > 0;
+  }
+
+  public isRightStickMoved(): boolean {
+    if (this.rightStickDisabled) return false;
+    const { x, y } = this.gamepadManager.getRightStick();
+    return Math.abs(x) > 0 || Math.abs(y) > 0;
+  }
+
+  public isLeftTriggerPressed(): boolean {
+    return !this.disabledGamepadButtons.has('leftTrigger') &&
+          this.gamepadManager.isActionPressed('leftTrigger');
   }
 
   // Abstracted Actions
 
+  public disableAllActions(): void {
+    for (const action in DefaultInputMapping) {
+      const binding = DefaultInputMapping[action as InputAction];
+
+      // Disable all keys
+      binding.keys?.forEach(k => this.disableKey(k));
+
+      // Disable all gamepad buttons
+      binding.gamepadButtons?.forEach(b => this.disableGamepadButton(b));
+
+      // Disable gamepad sticks
+      this.disableLeftStick();
+      this.disableRightStick();
+    }
+  }
+
+  public enableAllActions(): void {
+    for (const action in DefaultInputMapping) {
+      const binding = DefaultInputMapping[action as InputAction];
+
+      // Enable all keys
+      binding.keys?.forEach(k => this.enableKey(k));
+
+      // Enable all gamepad buttons
+      binding.gamepadButtons?.forEach(b => this.enableGamepadButton(b));
+
+      // Enable gamepad sticks
+      this.enableLeftStick();
+      this.enableRightStick();
+    }
+  }
+
+  public disableAction(action: InputAction): void {
+    const binding = DefaultInputMapping[action];
+    binding.keys?.forEach(k => this.disableKey(k));
+    binding.gamepadButtons?.forEach(b => this.disableGamepadButton(b));
+  }
+
+  public enableAction(action: InputAction): void {
+    const binding = DefaultInputMapping[action];
+    binding.keys?.forEach(k => this.enableKey(k));
+    binding.gamepadButtons?.forEach(b => this.enableGamepadButton(b));
+  }
+
   public isActionPressed(action: InputAction): boolean {
     const binding = DefaultInputMapping[action];
-    return (
-      (binding.keys?.some(k => this.isKeyPressed(k)) ?? false) ||
-      (binding.gamepadButtons?.some(b => this.gamepadManager.isActionPressed(b)) ?? false)
-    );
+
+    const keyboardPressed =
+      binding.keys?.some(k => this.isKeyPressed(k)) ?? false;
+
+    const gamepadPressed =
+      binding.gamepadButtons?.some(
+        b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.isActionPressed(b)
+      ) ?? false;
+
+    return keyboardPressed || gamepadPressed;
   }
 
   public wasActionJustPressed(action: InputAction): boolean {
     const binding = DefaultInputMapping[action];
-    return (
-      (binding.keys?.some(k => this.wasKeyJustPressed(k)) ?? false) ||
-      (binding.gamepadButtons?.some(b => this.gamepadManager.wasActionJustPressed(b)) ?? false)
-    );
+
+    const keyboardJustPressed =
+      binding.keys?.some(k => this.wasKeyJustPressed(k)) ?? false;
+
+    const gamepadJustPressed =
+      binding.gamepadButtons?.some(
+        b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.wasActionJustPressed(b)
+      ) ?? false;
+
+    return keyboardJustPressed || gamepadJustPressed;
   }
 
   public wasActionJustReleased(action: InputAction): boolean {
     const binding = DefaultInputMapping[action];
-    return (
-      (binding.keys?.some(k => this.wasKeyJustReleased(k)) ?? false) ||
-      (binding.gamepadButtons?.some(b => this.gamepadManager.wasActionJustReleased(b)) ?? false)
-    );
+
+    const keyboardJustReleased =
+      binding.keys?.some(k => this.wasKeyJustReleased(k)) ?? false;
+
+    const gamepadJustReleased =
+      binding.gamepadButtons?.some(
+        b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.wasActionJustReleased(b)
+      ) ?? false;
+
+    return keyboardJustReleased || gamepadJustReleased;
   }
 }

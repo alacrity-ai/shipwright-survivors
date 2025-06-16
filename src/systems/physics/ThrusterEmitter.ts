@@ -173,11 +173,12 @@ export class ThrusterEmitter {
     const ownerShip = shipRegistry.getById(ownerShipId);
 
     // === Determine SFX based on tier
+    // TODO : Get specific sounds
     let soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
     if (wasSuperPulse) {
-      soundFile = 'assets/sounds/sfx/explosions/afterburner_02.wav';
+      soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
     } else if (wasPulse) {
-      soundFile = 'assets/sounds/sfx/explosions/afterburner_01.wav';
+      soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
     }
 
     // === Spatial SFX
