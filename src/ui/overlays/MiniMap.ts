@@ -444,8 +444,8 @@ export class MiniMap {
     ctx.translate(size / 2, size / 2);
     ctx.rotate(0); // Leave unrotated; rotate at render time if needed
 
-    ctx.fillStyle = '#00ff41';
-    ctx.shadowColor = '#00ff41';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = Math.floor(6 * this.scale);
 
     const markerSize = Math.floor(4 * this.scale);
@@ -459,7 +459,7 @@ export class MiniMap {
     ctx.closePath();
     ctx.fill();
 
-    ctx.strokeStyle = '#00ff41';
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = Math.max(1, Math.floor(1 * this.scale));
     ctx.beginPath();
     ctx.moveTo(0, -markerSize);

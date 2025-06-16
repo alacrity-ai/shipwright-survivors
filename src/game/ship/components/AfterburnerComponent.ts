@@ -6,6 +6,9 @@ export class AfterburnerComponent {
   private rechargePerSecond: number;
   private consumptionPerSecond: number;
 
+  private readonly BASE_MAX_FUEL = 100;
+  private readonly RECHARGE_DURATION_SECONDS = 8; // e.g., full recharge in 20s
+
   private speedMultiplier: number = 1.5;
   private accelerationMultiplier: number = 2.0;
   private pulseMultiplier: number = 1.5;
@@ -30,12 +33,12 @@ export class AfterburnerComponent {
 
   constructor(
     maxFuel: number,
-    rechargePerSecond: number = 5,
+    _rechargePerSecond: number = 5, // No longer used
     consumptionPerSecond: number = 5
   ) {
     this.max = maxFuel;
     this.current = maxFuel;
-    this.rechargePerSecond = rechargePerSecond;
+    this.rechargePerSecond = maxFuel / this.RECHARGE_DURATION_SECONDS;
     this.consumptionPerSecond = consumptionPerSecond;
   }
 
@@ -171,13 +174,15 @@ export class AfterburnerComponent {
   }
 
   setMax(newMax: number): void {
-    this.max = newMax;
-    this.current = Math.min(this.current, newMax);
+    this.max = newMax + this.BASE_MAX_FUEL;
+    this.current = Math.min(this.current, this.max);
+    this.rechargePerSecond = this.max / this.RECHARGE_DURATION_SECONDS;
   }
 
-  setRechargeRate(rate: number): void {
-    this.rechargePerSecond = rate;
-  }
+  // Deprecated
+  // setRechargeRate(rate: number): void {
+  //   this.rechargePerSecond = rate;
+  // }
 
   getConsumptionRatePerSecond(): number {
     return this.consumptionPerSecond;

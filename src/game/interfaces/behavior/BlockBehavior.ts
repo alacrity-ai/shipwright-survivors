@@ -19,4 +19,5 @@ export interface BlockBehavior {
   rammingDamageMultiplier?: number; // NEW
   rammingArmor?: number; // NEW
   haloBladeProperties?: HaloBladeProperties;
+  fuelCapacityIncrease?: number;
 }

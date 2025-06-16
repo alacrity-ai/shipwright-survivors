@@ -950,6 +950,76 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'haloBlade',
     dropRate: 0.1
   },
+  fuelTank0: {
+    id: 'fuelTank0',
+    name: 'Fuel Tank Mk 0',
+    armor: 50,
+    cost: 50,
+    mass: 25,
+    behavior: {
+      fuelCapacityIncrease: 20,
+    },
+    sprite: 'fuelTank0',
+    category: 'system',
+    subcategory: 'system',
+    dropRate: 0.08
+  },
+  fuelTank1: {
+    id: 'fuelTank1',
+    name: 'Fuel Tank Mk I',
+    armor: 60,
+    cost: 50,
+    mass: 25,
+    behavior: {
+      fuelCapacityIncrease: 25,
+    },
+    sprite: 'fuelTank1',
+    category: 'utility',
+    subcategory: 'fuel',
+    dropRate: 0.08
+  },
+  fuelTank2: {
+    id: 'fuelTank2',
+    name: 'Fuel Tank Mk II',
+    armor: 70,
+    cost: 50,
+    mass: 30,
+    behavior: {
+      fuelCapacityIncrease: 35,
+    },
+    sprite: 'fuelTank2',
+    category: 'utility',
+    subcategory: 'fuel',
+    dropRate: 0.08
+  },
+  fuelTank3: {
+    id: 'fuelTank3',
+    name: 'Fuel Tank Mk III',
+    armor: 80,
+    cost: 50,
+    mass: 35,
+    behavior: {
+      fuelCapacityIncrease: 50,
+    },
+    sprite: 'fuelTank3',
+    category: 'utility',
+    subcategory: 'fuel',
+    dropRate: 0.08
+  },
+  fuelTank4: {
+    id: 'fuelTank4',
+    name: 'Fuel Tank Mk IV',
+    armor: 90,
+    cost: 50,
+    mass: 40,
+    behavior: {
+      fuelCapacityIncrease: 75,
+    },
+    sprite: 'fuelTank4',
+    category: 'utility',
+    subcategory: 'fuel',
+    dropRate: 0.07
+  }
 };
 
 export function getAllBlockTypes(): BlockType[] {

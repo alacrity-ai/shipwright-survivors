@@ -4,6 +4,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { PlayerResources } from '@/game/player/PlayerResources';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 
+import { drawBlockCard } from '@/ui/primitives/BlockCard';
 import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { brightenColor } from '@/shared/colorUtils';
@@ -196,7 +197,6 @@ export class BlockQueueDisplayManager {
     }
 
     const isRollHovered = this.blockDropDecisionMenu.getHoveredButton() === 'roll';
-    const FANOUT_X_OFFSET = this.FANOUT_X_OFFSET * scale;
     const fanBaseX = windowX + windowMarginX;
 
     // === Render each block ===
@@ -238,18 +238,16 @@ export class BlockQueueDisplayManager {
 
       const cardY = windowY + windowMarginY - floatOffset + (cardHeight - scaledCardHeight) / 2;
 
-      drawWindow({
+      drawBlockCard({
         ctx,
         x: cardX,
         y: cardY,
         width: scaledCardWidth,
         height: scaledCardHeight,
-        options: {
-          alpha: 1.0,
-          borderRadius: 12,
-          borderColor: brightenColor(color, 0.3),
-          backgroundColor: color,
-        }
+        borderRadius: 12,
+        backgroundColor: color,
+        borderColor: brightenColor(color, 0.3),
+        alpha: 1.0,
       });
 
       const previewX = cardX + cardMarginX;

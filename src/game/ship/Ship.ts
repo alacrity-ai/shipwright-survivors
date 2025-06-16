@@ -35,6 +35,7 @@ export class Ship extends CompositeBlockObject {
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
+  private fuelTankBlocks: Set<BlockInstance> = new Set();
   private firingPlan: WeaponFiringPlanEntry[] = [];
   private firingPlanIndex: Map<BlockInstance, number> = new Map();
   private turretSequenceState: Record<TurretClassId, TurretSequenceState> = {};
@@ -301,6 +302,27 @@ export class Ship extends CompositeBlockObject {
 
   // === Ship affixes ===
 
+  // === Fuel Tanks
+
+  public getFuelTankBlocks(): Iterable<BlockInstance> {
+    return this.fuelTankBlocks;
+  }
+
+  public updateFuelCapacity(): void {
+    let totalCapacity = 0;
+
+    for (const block of this.fuelTankBlocks) {
+      const behavior = block.type.behavior;
+      if (behavior?.fuelCapacityIncrease) {
+        totalCapacity += behavior.fuelCapacityIncrease;
+      }
+    }
+
+    if (this.afterburnerComponent) {
+      this.afterburnerComponent.setMax(totalCapacity);
+    }
+  }
+
   // === Energy & Shield ===
 
   public getEnergyComponent(): EnergyComponent | null {
@@ -430,16 +452,24 @@ export class Ship extends CompositeBlockObject {
       this.shieldBlocks.add(block);
     }
 
+    // Harvest Blocks
     const harvestRate = block.type.behavior?.harvestRate;
     if (harvestRate) {
       this.harvesterBlocks.set(block, harvestRate);
     }
 
+    // Haloblades
     const halo = block.type.behavior?.haloBladeProperties;
     if (halo) {
       this.haloBladeBlocks.set(block, halo);
     }
-    
+
+    // Fuel Tanks
+    if (block.type.id.startsWith('fuelTank')) {
+      this.fuelTankBlocks.add(block);
+    }
+
+    this.updateFuelCapacity();
     this.invalidateMass();
     this.recomputeEnergyStats();
     this.addWeaponToPlanIfApplicable(coord, block);
@@ -457,6 +487,7 @@ export class Ship extends CompositeBlockObject {
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
       this.haloBladeBlocks.delete(block);
+      this.fuelTankBlocks.delete(block);
       this.removeWeaponFromPlanIfApplicable(block);
 
       // Unregister from block→object index
@@ -464,6 +495,7 @@ export class Ship extends CompositeBlockObject {
     }
 
     this.blocks.delete(key);
+    this.updateFuelCapacity();
     this.invalidateMass();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
@@ -508,12 +540,14 @@ export class Ship extends CompositeBlockObject {
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
       this.haloBladeBlocks.delete(block);
+      this.fuelTankBlocks.delete(block);
       BlockToObjectIndex.unregisterBlock(block);
     }
 
     this.removeWeaponsFromPlan(blocksToRemove);
 
     // Step 4: Recompute affected state only once
+    this.updateFuelCapacity();
     this.invalidateMass();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
@@ -574,6 +608,7 @@ export class Ship extends CompositeBlockObject {
       this.placeBlockById(coord, id, rotation);
     });
 
+    this.updateFuelCapacity();
     this.validateFiringPlan();
     this.rebuildHaloBladeIndex();
   }

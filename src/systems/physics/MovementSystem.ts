@@ -36,7 +36,7 @@ const DIMINISHING_RATE = 0.15;
 // Afterburner constants
 const AFTERBURNER_SPEED_MULTIPLIER = 1.6; // Max speed multiplier when afterburner is fully active
 const AFTERBURNER_ACCEL_MULTIPLIER = 2.2; // Extra acceleration while afterburning
-const AFTERBURNER_TURNING_MULTIPLIER = 1.8; // Extra turning assist while afterburning
+const AFTERBURNER_TURNING_MULTIPLIER = 1.4; // Extra turning assist while afterburning
 const AFTERBURNER_RAMP_UP_RATE = 3.5; // How fast afterburner ramps up (per second)
 const AFTERBURNER_RAMP_DOWN_RATE = 1.5; // How fast afterburner ramps down (per second)
 
@@ -197,10 +197,7 @@ public update(dt: number): void {
 
   // === Angular motion with assist (enhanced by afterburner) ===
   const totalTurnPower = Math.min(MAXIMUM_TURN_POWER, Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT));
-  // If player ship, log the total turn power
-  if (this.ship.getIsPlayerShip()) {
-    console.log('TOTAL TURN POWER: ', totalTurnPower);
-  }
+
   const maxAngularSpeed = Math.min(
     totalTurnPower * angularScale * BASE_ROTATION_STRENGTH * afterburnerMultipliers.turning,
     MAXIMUM_ROTATION_SPEED

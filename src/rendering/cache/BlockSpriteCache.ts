@@ -14,6 +14,7 @@ import { renderHarvester } from './blockRenderers/harvestBlockRenderer';
 import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRenderer';
 import { createTextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 import { renderHaloBladeBlock } from './blockRenderers/haloBladeBlockRenderer';
+import { renderFuelTankBlock } from './blockRenderers/fuelTankBlockRenderer';
 
 // --- Damage Level Enum ---
 
@@ -251,6 +252,64 @@ function drawProceduralBlock(typeId: string): void {
         [0.7, '#7B1FA2'],
         [1, '#4A148C'],
       ]);
+      break;
+
+    case 'fuelTank0':
+    case 'fuelTank1':
+      renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
+        casingStops: [
+          [0, '#C0C0C0'],  // Light metallic silver
+          [0.3, '#A0A0A0'],
+          [0.6, '#808080'],
+          [1, '#606060'],
+        ],
+        coreColor: '#FFF176',              // Pale yellow glow
+        stripeColor: '#999',
+        terminalHighlightColor: '#F0F4C3',
+      });
+      break;
+
+    case 'fuelTank2':
+      renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
+        casingStops: [
+          [0, '#66FF66'],   // Bright neon green
+          [0.2, '#4CAF50'],
+          [0.6, '#388E3C'],
+          [1, '#1B5E20'],
+        ],
+        coreColor: '#B2FF59',              // Luminous lime fuel
+        stripeColor: '#33691E',
+        terminalHighlightColor: '#DCEDC8',
+      });
+      break;
+
+    case 'fuelTank3':
+      renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
+        casingStops: [
+          [0, '#64B5F6'],
+          [0.2, '#2196F3'],
+          [0.6, '#1976D2'],
+          [1, '#0D47A1'],
+        ],
+        coreColor: '#81D4FA',              // Electric blue glow
+        stripeColor: '#1565C0',
+        terminalHighlightColor: '#E3F2FD',
+      });
+      break;
+
+    case 'fuelTank4':
+      renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
+        casingStops: [
+          [0, '#E1BEE7'],
+          [0.15, '#BA68C8'],
+          [0.4, '#9C27B0'],
+          [0.7, '#7B1FA2'],
+          [1, '#4A148C'],
+        ],
+        coreColor: '#CE93D8',              // Magenta-lavender fuel
+        stripeColor: '#8E24AA',
+        terminalHighlightColor: '#F3E5F5',
+      });
       break;
 
     case 'turret0':
