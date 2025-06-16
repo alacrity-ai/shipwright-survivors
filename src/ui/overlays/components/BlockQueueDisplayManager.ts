@@ -48,9 +48,18 @@ export class BlockQueueDisplayManager {
   }
 
   update(dt: number): void {
+    const blockQueue = this.playerResources.getBlockQueue();
+    
+    // Early exit if no blocks
+    if (blockQueue.length === 0) {
+      this.floatOffsets.length = 0;
+      this.pulseTimers.length = 0;
+      this.xOffsets.length = 0;
+      return;
+    }
+
     this.blockPreviewRenderer.update(dt);
 
-    const blockQueue = this.playerResources.getBlockQueue();
     const hovered = this.blockDropDecisionMenu.getHoveredButton();
 
     // Resize floatOffsets array to match queue size
@@ -80,11 +89,15 @@ export class BlockQueueDisplayManager {
       for (let i = 0; i < 3 && i < blockQueue.length; i++) {
         shouldRaise.add(i);
       }
-    } else if (hovered === 'autoPlaceAll') {
-      for (let i = 0; i < blockQueue.length; i++) {
-        shouldRaise.add(i);
-      }
     }
+    // } else if (hovered === 'autoPlaceAll') {
+    //   // ISSUE HERE: <------
+    //   // Causing memory leak?
+    //   // When autoPlaceAll runs with this line of code active, our  framerate drops to 30fps, and stays there, even after the menu has closed
+    //   // for (let i = 0; i < blockQueue.length; i++) {
+    //   //   shouldRaise.add(i);
+    //   // }
+    // }
 
     // Interpolate each offset
     for (let i = 0; i < blockQueue.length; i++) {
@@ -133,9 +146,6 @@ export class BlockQueueDisplayManager {
     const canvas = ctx.canvas;
     const scale = getUniformScaleFactor();
 
-    const blockQueue = this.playerResources.getBlockQueue();
-    const blockCount = blockQueue.length;
-
     const distanceFromBottom = Math.floor(80 * scale);
     const centerScreenX = Math.floor(canvas.width / 2);
 
@@ -154,7 +164,51 @@ export class BlockQueueDisplayManager {
     const windowX = centerScreenX - windowWidth / 2;
     const windowY = canvas.height - distanceFromBottom;
 
-    const borderColor = blockCount > 0 ? '#00ff00' : '#003400';
+    const hovered = this.blockDropDecisionMenu.getHoveredButton();
+    const blockQueue = this.playerResources.getBlockQueue();
+    const blockCount = blockQueue.length;
+
+    let borderColor = blockCount > 0 ? '#00ff00' : '#003400';
+    let labelText = `Blocks: ${blockCount}`;
+    let borderAlpha = 0.5;
+
+    if (hovered && blockCount > 0) {
+      switch (hovered) {
+        case 'refine': {
+          const blockName = blockQueue[0]?.name ?? 'Block';
+          labelText = `Refine "${blockName}"`;
+          borderColor = '#ffcc00';
+          borderAlpha = 0.85;
+          break;
+        }
+        case 'roll': {
+          labelText = '3-1 Reroll';
+          borderColor = '#cc66ff';
+          borderAlpha = 0.85;
+          break;
+        }
+        case 'autoplace': {
+          const blockName = blockQueue[0]?.name ?? 'Block';
+          labelText = `Attach "${blockName}"`;
+          borderColor = '#00ccff';
+          borderAlpha = 0.85;
+          break;
+        }
+        case 'autoPlaceAll': {
+          labelText = `Attach ${blockCount} Blocks`;
+          borderColor = '#66ff66';
+          borderAlpha = 0.85;
+          break;
+        }
+      }
+    }
+
+    const borderOptions = {
+      alpha: borderAlpha,
+      borderRadius: 12,
+      borderColor,
+      backgroundColor: '#00000000',
+    };
 
     drawWindow({
       ctx,
@@ -162,20 +216,18 @@ export class BlockQueueDisplayManager {
       y: windowY,
       width: windowWidth,
       height: windowHeight,
-      options: {
-        alpha: 0.5,
-        borderRadius: 12,
-        borderColor,
-        backgroundColor: '#00000000',
-      }
+      options: borderOptions,
     });
 
     drawLabel(
       ctx,
       windowX,
       windowY - (14 * scale),
-      `Blocks: ${blockCount}`,
-      { align: 'left', color: borderColor },
+      labelText,
+      {
+        align: 'left',
+        color: borderColor,
+      },
       scale
     );
 
@@ -196,7 +248,7 @@ export class BlockQueueDisplayManager {
       }
     }
 
-    const isRollHovered = this.blockDropDecisionMenu.getHoveredButton() === 'roll';
+    const isRollHovered = hovered === 'roll';
     const fanBaseX = windowX + windowMarginX;
 
     // === Render each block ===

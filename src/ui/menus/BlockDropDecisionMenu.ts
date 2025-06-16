@@ -27,7 +27,7 @@ import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
 import { drawBlockStatsLabels } from '@/ui/menus/helpers/drawBlockStatsLabels';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
-import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
+import { drawButton, handleButtonInteraction, type UIButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
 import { Camera } from '@/core/Camera';
@@ -36,6 +36,8 @@ import { audioManager } from '@/audio/Audio';
 interface BlockPickupEntry {
   blockType: BlockType;
 }
+
+type ButtonId = 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll';
 
 type Phase = 'pre-open' | 'sliding-in' | 'settling' | 'open' | 'sliding-out' | null;
 
@@ -57,8 +59,9 @@ export class BlockDropDecisionMenu implements Menu {
   private originalZoom: number = 0;
 
   // === Interaction State Tracking ===
-  private hoveredButton: 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null = null;
-  private clickedButton: 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null = null;
+  private hoveredButton: ButtonId | null = null;
+  private clickedButton: ButtonId | null = null;
+
   private didAdvance: boolean = false;
 
   private readonly SLIDE_SPEED = 1280; // pixels per second
@@ -247,14 +250,13 @@ export class BlockDropDecisionMenu implements Menu {
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
     const scale = getUniformScaleFactor();
-    
+
     // === Animate block preview ===
     this.blockPreviewRenderer?.update(dt);
     this.nextBlockPreviewRenderer?.update(dt);
 
     // === Pre-open buffering ===
     if (this.animationPhase === 'pre-open') {
-      
       this.preOpenTimer -= dt * 1000;
       if (this.preOpenTimer <= 0) {
         this.beginSlideIn();
@@ -265,20 +267,14 @@ export class BlockDropDecisionMenu implements Menu {
     // === Handle slide animations ===
     if (this.isAnimating) {
       if (this.animationPhase === 'sliding-in') {
-        // Pause game
         this.pause();
-
-        // Zoom in camera for ease of block placement
-        const cam = Camera.getInstance();
-        cam.animateZoomTo(this.getMenuTargetZoom());
-
+        Camera.getInstance().animateZoomTo(this.getMenuTargetZoom());
         this.slideX += this.SLIDE_SPEED * dt;
         if (this.slideX >= this.targetX + this.OVERSHOOT_DISTANCE) {
           this.animationPhase = 'settling';
-          this.slideX = this.targetX + this.OVERSHOOT_DISTANCE; // Clamp to exact overshoot
+          this.slideX = this.targetX + this.OVERSHOOT_DISTANCE;
         }
       } else if (this.animationPhase === 'settling') {
-        // FIX: Use dt to make animation frame-rate independent
         this.slideX -= this.SETTLE_SPEED * dt;
         if (this.slideX <= this.targetX) {
           this.slideX = this.targetX;
@@ -286,7 +282,6 @@ export class BlockDropDecisionMenu implements Menu {
           this.isAnimating = false;
         }
       } else if (this.animationPhase === 'sliding-out') {
-        // FIX: Use dt to make animation frame-rate independent
         this.slideX -= this.SLIDE_SPEED * dt;
         if (this.slideX <= -this.BASE_WINDOW_WIDTH - 200) {
           this.slideX = -this.BASE_WINDOW_WIDTH - 320;
@@ -302,118 +297,69 @@ export class BlockDropDecisionMenu implements Menu {
           this.resume();
         }
       }
-        const scaledSlideX = this.slideX * scale;
-        const scaledWindowX = this.BASE_WINDOW_X * scale;
-        const scaledWindowY = this.BASE_WINDOW_Y * scale;
-        const scaledWindowWidth = this.BASE_WINDOW_WIDTH * scale;
-        const scaledWindowHeight = this.BASE_WINDOW_HEIGHT * scale;
-        const scaledButtonWidth = this.BASE_BUTTON_WIDTH * scale;
-        const scaledButtonHeight = this.BASE_BUTTON_HEIGHT * scale;
-        const buttonSpacing = 32 * scale;
 
-        // Compute button row starting X (centered pair)
-        const totalButtonWidth = scaledButtonWidth * 2 + buttonSpacing;
-        const buttonRowX = scaledWindowX + scaledSlideX + (scaledWindowWidth - totalButtonWidth) / 2;
-        const buttonRowY = scaledWindowY + scaledWindowHeight - (scaledButtonHeight + 32);
+      const scaledSlideX = this.slideX * scale;
+      const scaledWindowX = this.BASE_WINDOW_X * scale;
+      const scaledWindowY = this.BASE_WINDOW_Y * scale;
+      const scaledWindowWidth = this.BASE_WINDOW_WIDTH * scale;
+      const scaledWindowHeight = this.BASE_WINDOW_HEIGHT * scale;
+      const scaledButtonWidth = this.BASE_BUTTON_WIDTH * scale;
+      const scaledButtonHeight = this.BASE_BUTTON_HEIGHT * scale;
+      const buttonSpacing = 32 * scale;
 
-        // Update refine button
-        this.refineButton.x = buttonRowX;
-        this.refineButton.y = buttonRowY;
+      const totalButtonWidth = scaledButtonWidth * 2 + buttonSpacing;
+      const buttonRowX = scaledWindowX + scaledSlideX + (scaledWindowWidth - totalButtonWidth) / 2;
+      const buttonRowY = scaledWindowY + scaledWindowHeight - (scaledButtonHeight + 32);
 
-        // Update autoplace button (to the right of refine)
-        this.autoplaceButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
-        this.autoplaceButton.y = buttonRowY;
+      this.refineButton.x = buttonRowX;
+      this.refineButton.y = buttonRowY;
 
-        // Auto Place All button (above autoplace)
-        this.autoPlaceAllButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
-        this.autoPlaceAllButton.y = buttonRowY - scaledButtonHeight - (this.BASE_BUTTON_VERTICAL_GAP * scale);
+      this.autoplaceButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
+      this.autoplaceButton.y = buttonRowY;
 
-        // Update random roll button (above refine and autoplace)
-        this.randomRollButton.x = buttonRowX;
-        this.randomRollButton.y = buttonRowY - scaledButtonHeight - (this.BASE_BUTTON_VERTICAL_GAP * scale);
+      this.autoPlaceAllButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
+      this.autoPlaceAllButton.y = buttonRowY - scaledButtonHeight - (this.BASE_BUTTON_VERTICAL_GAP * scale);
 
-        return; // Don't process mouse input during animation
+      this.randomRollButton.x = buttonRowX;
+      this.randomRollButton.y = buttonRowY - scaledButtonHeight - (this.BASE_BUTTON_VERTICAL_GAP * scale);
+
+      return;
     }
 
     // === Open phase: handle interaction ===
-    this.hoveredButton = null;
     if (!mouse) return;
     const { x, y } = mouse;
 
-    // == Return if autoplacing all
     if (this.isAutoPlacingAll) return;
 
-    // == Refine Button:
-    const rect = {
-      x: this.refineButton.x,
-      y: this.refineButton.y,
-      width: this.refineButton.width,
-      height: this.refineButton.height
-    };
-
-    this.refineButton.isHovered = isMouseOverRect(x, y, rect, scale);
-    if (this.refineButton.isHovered) this.hoveredButton = 'refine';
-
-    if (clicked && this.refineButton.isHovered) {
-      this.refineButton.onClick();
-    }
-
-    // == Autoplace Button:
-    const autoRect = {
-      x: this.autoplaceButton.x,
-      y: this.autoplaceButton.y,
-      width: this.autoplaceButton.width,
-      height: this.autoplaceButton.height
-    };
-
-    this.autoplaceButton.isHovered = isMouseOverRect(x, y, autoRect, scale);
-    if (this.autoplaceButton.isHovered) this.hoveredButton = 'autoplace';
-
-    if (clicked && this.autoplaceButton.isHovered) {
-      this.autoplaceButton.onClick();
-    }
-
-    // == Auto Place All Button:
-    const allRect = {
-      x: this.autoPlaceAllButton.x,
-      y: this.autoPlaceAllButton.y,
-      width: this.autoPlaceAllButton.width,
-      height: this.autoPlaceAllButton.height
-    };
-
-    this.autoPlaceAllButton.isHovered = isMouseOverRect(x, y, allRect, scale);
-    if (this.autoPlaceAllButton.isHovered) this.hoveredButton = 'autoPlaceAll';
-
-    if (clicked && this.autoPlaceAllButton.isHovered) {
-      this.autoPlaceAllButton.onClick();
-    }
-
-    // == Random Roll Button:
-    const rollRect = {
-      x: this.randomRollButton.x,
-      y: this.randomRollButton.y,
-      width: this.randomRollButton.width,
-      height: this.randomRollButton.height
-    };
-
-    this.randomRollButton.isHovered = isMouseOverRect(x, y, rollRect, scale);
-    if (this.randomRollButton.isHovered) this.hoveredButton = 'roll';
-
-    if (clicked && this.randomRollButton.isHovered) {
-      this.randomRollButton.onClick();
-    }
-
-    // Gamepad Support
-    if (this.inputManager.wasActionJustPressed('cancel')) {
-      this.refineButton.onClick();
-    }
-    if (this.inputManager.wasActionJustPressed('select')) {
-      this.autoplaceButton.onClick();
-    }
-
-    // === Reset one-frame state
+    this.hoveredButton = null;
     this.clickedButton = null;
     this.didAdvance = false;
+
+    // === Interaction loop for buttons ===
+    const buttonMap: [UIButton, ButtonId, () => void][] = [
+      [this.refineButton, 'refine', () => { this.clickedButton = 'refine'; }],
+      [this.autoplaceButton, 'autoplace', () => { this.clickedButton = 'autoplace'; }],
+      [this.randomRollButton, 'roll', () => { this.clickedButton = 'roll'; }],
+      [this.autoPlaceAllButton, 'autoPlaceAll', () => { this.clickedButton = 'autoPlaceAll'; }],
+    ];
+
+    for (const [button, id, onClickSet] of buttonMap) {
+      const wasClicked = handleButtonInteraction(button, x, y, clicked, scale);
+      if (button.isHovered) this.hoveredButton = id;
+      if (wasClicked) onClickSet();
+    }
+
+    // === Gamepad support ===
+    if (this.inputManager.wasActionJustPressed('cancel')) {
+      this.refineButton.onClick();
+      this.clickedButton = 'refine';
+    }
+
+    if (this.inputManager.wasActionJustPressed('select')) {
+      this.autoplaceButton.onClick();
+      this.clickedButton = 'autoplace';
+    }
   }
 
   private beginSlideIn(): void {

@@ -4,7 +4,7 @@ import { getViewportWidth, getViewportHeight } from '@/config/view';
 
 export type CanvasLayer =
   | 'background'
-  | 'backgroundgl'  // <-- new
+  | 'backgroundgl'
   | 'entities'
   | 'polygon'
   | 'entitygl'
@@ -17,7 +17,7 @@ export type CanvasLayer =
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
-  backgroundgl: 'backgroundgl-canvas', // <-- new
+  backgroundgl: 'backgroundgl-canvas',
   entities: 'entity-canvas',
   entitygl: 'entitygl-canvas',
   polygon: 'polygon-canvas',
@@ -36,8 +36,11 @@ export class CanvasManager {
   private contexts: Record<CanvasLayer, CanvasRenderingContext2D> = {} as any;
 
   private constructor() {
+    performance.mark('canvasManager-init-start');
     this.initializeCanvases();
     this.setFixedSize();
+    performance.mark('canvasManager-init-end');
+    performance.measure('CanvasManager Initialization', 'canvasManager-init-start', 'canvasManager-init-end');
   }
 
   public static getInstance(): CanvasManager {
@@ -58,8 +61,13 @@ export class CanvasManager {
         );
       }
 
-      if (layer !== 'lighting' && layer !== 'entitygl' && layer !== 'backgroundgl' && layer !== 'polygon') {
-        const ctx = canvas.getContext('2d');
+      // === 2D Context Initialization ===
+      if (!['lighting', 'entitygl', 'backgroundgl', 'polygon'].includes(layer)) {
+        performance.mark(`ctx-get-${layer}-start`);
+        const ctx = canvas.getContext('2d', { willReadFrequently: false });
+        performance.mark(`ctx-get-${layer}-end`);
+        performance.measure(`Context acquisition: ${layer}`, `ctx-get-${layer}-start`, `ctx-get-${layer}-end`);
+
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
       }
@@ -73,11 +81,14 @@ export class CanvasManager {
   }
 
   private setFixedSize() {
-    for (const canvas of Object.values(this.canvases)) {
-      canvas.width = getViewportWidth();
-      canvas.height = getViewportHeight();
-      canvas.style.width = `${getViewportWidth()}px`;
-      canvas.style.height = `${getViewportHeight()}px`;
+    const width = getViewportWidth();
+    const height = getViewportHeight();
+
+    for (const [layer, canvas] of Object.entries(this.canvases) as [CanvasLayer, HTMLCanvasElement][]) {
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
     }
   }
 
@@ -97,22 +108,22 @@ export class CanvasManager {
     }
   }
 
-  getCanvas(layer: CanvasLayer): HTMLCanvasElement {
+  public getCanvas(layer: CanvasLayer): HTMLCanvasElement {
     return this.canvases[layer];
   }
 
-  getContext(layer: CanvasLayer): CanvasRenderingContext2D {
+  public getContext(layer: CanvasLayer): CanvasRenderingContext2D {
     return this.contexts[layer];
   }
 
-  getWebGLContext(layer: CanvasLayer): WebGLRenderingContext {
+  public getWebGLContext(layer: CanvasLayer): WebGLRenderingContext {
     const canvas = this.getCanvas(layer);
     const gl = canvas.getContext('webgl');
     if (!gl) throw new Error(`WebGL context not supported for "${layer}"`);
     return gl;
   }
 
-  clearLayer(layer: CanvasLayer): void {
+  public clearLayer(layer: CanvasLayer): void {
     if (layer === 'lighting') {
       this.clearWebGLLayer(layer);
     } else {
@@ -121,7 +132,7 @@ export class CanvasManager {
     }
   }
 
-  clearWebGLLayer(layer: CanvasLayer, color: [number, number, number, number] = [0, 0, 0, 1]): void {
+  public clearWebGLLayer(layer: CanvasLayer, color: [number, number, number, number] = [0, 0, 0, 1]): void {
     const canvas = this.getCanvas(layer);
     const gl = canvas.getContext('webgl');
     if (!gl) {
@@ -133,33 +144,39 @@ export class CanvasManager {
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
-  clearAll() {
+  public clearAll() {
     for (const layer of Object.keys(this.contexts) as CanvasLayer[]) {
       this.clearLayer(layer);
     }
   }
 
-  getWidth(): number {
+  public getWidth(): number {
     return getViewportWidth();
   }
 
-  getHeight(): number {
+  public getHeight(): number {
     return getViewportHeight();
   }
 
-  getDimensions(): { width: number; height: number } {
-    return { width: getViewportWidth(), height: getViewportHeight() };
+  public getDimensions(): { width: number; height: number } {
+    return {
+      width: getViewportWidth(),
+      height: getViewportHeight()
+    };
   }
 
   public resize(): void {
+    performance.mark('canvasManager-resize-start');
     const width = getViewportWidth();
     const height = getViewportHeight();
 
-    for (const canvas of Object.values(this.canvases)) {
+    for (const [layer, canvas] of Object.entries(this.canvases) as [CanvasLayer, HTMLCanvasElement][]) {
       canvas.width = width;
       canvas.height = height;
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
     }
+    performance.mark('canvasManager-resize-end');
+    performance.measure('CanvasManager Resize', 'canvasManager-resize-start', 'canvasManager-resize-end');
   }
 }
