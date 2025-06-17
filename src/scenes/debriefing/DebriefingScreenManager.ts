@@ -5,11 +5,9 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { drawCRTButton, UICRTButton } from '@/ui/primitives/CRTButton';
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
-import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { InputManager } from '@/core/InputManager';
-import { drawCRTBox } from '@/ui/primitives/CRTBox'; // assumes existence
+import { drawCRTBox } from '@/ui/primitives/CRTBox';
 import { getUniformScaleFactor } from '@/config/view';
-import { scale } from '@/systems/galaxymap/webgl/matrixUtils';
 
 export class DebriefingScreenManager {
   private canvasManager: CanvasManager;
