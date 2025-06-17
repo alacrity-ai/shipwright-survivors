@@ -14,7 +14,7 @@ uniform float uBlockRotation;
 uniform vec2 uBlockScale;
 
 out vec2 vUV;
-out vec2 vScreenUV; // ✅ NEW
+out vec2 vScreenUV;
 
 void main() {
   vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
@@ -35,6 +35,6 @@ void main() {
   vec4 viewPos = uViewMatrix * worldPos;
   gl_Position = uProjectionMatrix * viewPos;
 
-  // ✅ NEW — derive screen UV from clip-space coordinates
+  // derive screen UV from clip-space coordinates
   vScreenUV = gl_Position.xy / gl_Position.w * 0.5 + 0.5;
 }

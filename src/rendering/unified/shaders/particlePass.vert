@@ -9,8 +9,10 @@ layout(location = 2) in float aSize;
 layout(location = 3) in float aLifeRatio;
 layout(location = 4) in vec3 aColor;
 
-uniform mat4 uProjectionMatrix;
-uniform mat4 uViewMatrix;
+layout(std140) uniform CameraMatrices {
+  mat4 uProjectionMatrix;
+  mat4 uViewMatrix;
+};
 
 out float vAlpha;
 out vec3 vColor;

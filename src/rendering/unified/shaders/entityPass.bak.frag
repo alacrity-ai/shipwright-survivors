@@ -2,7 +2,7 @@
 precision mediump float;
 
 in vec2 vUV;
-in vec2 vScreenUV; // ✅ Newly passed from vertex shader
+in vec2 vScreenUV; // passed from vertex shader
 out vec4 outColor;
 
 uniform sampler2D uTexture;
@@ -15,14 +15,16 @@ uniform vec3 uChargeColor;
 uniform float uSheenStrength;
 uniform vec3 uCollisionColor;
 uniform bool uUseCollisionColor;
+uniform vec3 uAmbientLight;
 
 void main() {
   vec4 base = texture(uTexture, vUV);
   if (base.a < 0.01) discard;
 
   // === Lightmap Sampling ===
-  vec3 lightSample = texture(uLightMap, vScreenUV).rgb; // ✅ CORRECTED: screen-space lighting
-  base.rgb *= lightSample;
+  vec3 lightSample = texture(uLightMap, vScreenUV).rgb;
+  vec3 effectiveLight = max(lightSample, uAmbientLight); // clamp floor
+  base.rgb *= effectiveLight;
 
   // === Radial Charge Bloom ===
   vec2 centeredUV = vUV - 0.5;

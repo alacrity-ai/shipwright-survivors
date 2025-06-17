@@ -93,8 +93,13 @@ export class LightingPass {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
     gl.viewport(0, 0, this.framebufferWidth, this.framebufferHeight);
     gl.clearColor(...this.clearColor);
+    
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    
+    // This was used to prevent crazily bright lights
+    // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.blendFunc(gl.ONE, gl.ONE);
+
     gl.enable(gl.BLEND);
 
     gl.bindVertexArray(this.vao);

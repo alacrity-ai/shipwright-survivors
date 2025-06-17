@@ -28,7 +28,7 @@ export interface ParticleOptions {
 const PARTICLE_SCALE = 3;
 
 export class ParticleManager {
-  private renderer: ParticleRendererGL;
+  // private renderer: ParticleRendererGL;
 
   private activeParticles: Particle[] = [];
   private particlePool: Particle[] = [];
@@ -37,11 +37,11 @@ export class ParticleManager {
   private emissionAccumulator = 0;
 
   constructor(
-    gl: WebGLRenderingContext,
-    private readonly camera: Camera,
+    // gl: WebGLRenderingContext,
+    // private readonly camera: Camera,
     private readonly lightingOrchestrator: LightingOrchestrator
   ) {
-    this.renderer = new ParticleRendererGL(gl);
+    // this.renderer = new ParticleRendererGL(gl);
   }
 
 private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
@@ -172,9 +172,13 @@ private _createAndRegisterParticle(origin: { x: number; y: number }, options: Pa
     });
   }
 
-  render(): void {
-    if (!PlayerSettingsManager.getInstance().isParticlesEnabled()) return;
-    this.renderer.render(this.activeParticles, this.camera);
+  // render(): void {
+  //   if (!PlayerSettingsManager.getInstance().isParticlesEnabled()) return;
+  //   this.renderer.render(this.activeParticles, this.camera);
+  // }
+
+  public getActiveParticles(): Particle[] {
+    return this.activeParticles;
   }
 
   private getParticle(): Particle {

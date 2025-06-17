@@ -40,10 +40,16 @@ function generateLightId(): string {
   return `point-light-${idCounter++}`;
 }
 
+const INTENSITY_FACTOR = 0.25;
+
 /**
  * Creates a PointLightInstance with flexible parameters.
  */
 export function createPointLight(config: PointLightConfig): PointLightInstance {
+
+  // Mutate config intesity with INTENSITY_FACTOR
+  config.intensity = config.intensity ? config.intensity * INTENSITY_FACTOR : INTENSITY_FACTOR;
+
   const {
     x,
     y,

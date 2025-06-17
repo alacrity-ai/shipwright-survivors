@@ -9,6 +9,9 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { GLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
+import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
+
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
 import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { getGLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
@@ -22,6 +25,7 @@ interface OrbitingBlade {
   angle: number;
   radius: number;
   position: { x: number; y: number };
+  sprite: GLProjectileSprite; // ADDED
 }
 
 export class HaloBladeBackend implements WeaponBackend {
@@ -51,35 +55,12 @@ export class HaloBladeBackend implements WeaponBackend {
     ]);
   }
 
-  render(dt: number): void {
-    const ship = this.ship;
-    if (!ship) return;
-
-    const bladeMap = ship.getHaloBladeBlocks();
-    const camera = Camera.getInstance();
-    const zoom = camera.getZoom();
-
-    for (const orbiter of this.orbiters) {
-      const props = bladeMap.get(orbiter.block);
-      if (!props) continue;
-
-      // New usage of cached sprites
-      const sprite = this.energyRingSprites.get(props.sprite);
-      if (!sprite) continue;
-
-      this.spriteRenderer.renderTexture(
-        sprite.texture,
-        orbiter.position.x,
-        orbiter.position.y,
-        64,
-        64,
-        1.0
-      ); 
-    }
-  }
+  // REMOVED ENTIRELY, never used
+  render(dt: number): void {}
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
-    const bladeMap = ship.getHaloBladeBlocks();
+    const bladeMap = this.ship.getHaloBladeBlocks();
+
     const currentBlades = Array.from(bladeMap.keys());
 
     // === Prune removed orbiters ===
@@ -94,7 +75,8 @@ export class HaloBladeBackend implements WeaponBackend {
           block,
           angle: 0, // will be set by tier logic
           radius: props.orbitingRadius,
-          position: { x: 0, y: 0 }
+          position: { x: 0, y: 0 },
+          sprite: this.energyRingSprites.get(props.sprite)!
         });
       }
     }
@@ -149,6 +131,16 @@ export class HaloBladeBackend implements WeaponBackend {
         orbiter.position.x = shipCenter.x + Math.cos(angle) * firingModeRadius;
         orbiter.position.y = shipCenter.y + Math.sin(angle) * firingModeRadius;
 
+        // Send SpriteRenderRequests through singleton bus
+        GlobalSpriteRequestBus.add({
+          texture: orbiter.sprite.texture,
+          worldX: orbiter.position.x,
+          worldY: orbiter.position.y,
+          widthPx: 64,
+          heightPx: 64,
+          alpha: 1.0,
+        });
+        
         // Emit particle from orbiter blade
         this.particleManager.emitParticle(orbiter.position, {
           colors: [props.color, '#fff'],

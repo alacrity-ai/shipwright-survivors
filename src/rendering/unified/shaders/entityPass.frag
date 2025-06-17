@@ -24,7 +24,18 @@ void main() {
   // === Lightmap Sampling ===
   vec3 lightSample = texture(uLightMap, vScreenUV).rgb;
   vec3 effectiveLight = max(lightSample, uAmbientLight); // clamp floor
-  base.rgb *= effectiveLight;
+  
+  // Darken base by ambient light floor
+  vec3 ambiented = base.rgb * uAmbientLight;
+
+  // Modulate with light texture
+  vec3 modulated = base.rgb * lightSample;
+
+  // Additive bloom-style wrap lighting
+  vec3 additive = lightSample * 0.7;
+
+  // Final mix: ambient base + modulated + additive bloom
+  base.rgb = ambiented + modulated * 0.6 + additive * 0.4;
 
   // === Radial Charge Bloom ===
   vec2 centeredUV = vUV - 0.5;

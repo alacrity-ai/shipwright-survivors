@@ -2,7 +2,6 @@
 
 import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { Camera } from '@/core/Camera';
-import { createOrthographicMatrix, createTranslationMatrix } from '@/rendering/gl/matrixUtils';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 
@@ -24,10 +23,7 @@ export class ParticlePass {
   private readonly quadBuffer: WebGLBuffer;
   private readonly instanceBuffer: WebGLBuffer;
 
-  private readonly uProjectionMatrix: WebGLUniformLocation;
-  private readonly uViewMatrix: WebGLUniformLocation;
-
-  constructor(gl: WebGL2RenderingContext, _cameraUBO: WebGLBuffer) {
+  constructor(gl: WebGL2RenderingContext, cameraUBO: WebGLBuffer) {
     this.gl = gl;
 
     this.program = createProgramFromSources(gl, particleVertSrc, particleFragSrc);
@@ -37,43 +33,42 @@ export class ParticlePass {
 
     gl.bindVertexArray(this.vao);
 
-    // === Static quad vertex attribute ===
+    // Static quad geometry (layout(location = 0))
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-    gl.enableVertexAttribArray(0); // aPosition
+    gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    gl.vertexAttribDivisor(0, 0); // not instanced
+    gl.vertexAttribDivisor(0, 0);
 
-    // === Instance attributes (buffer will be updated per frame) ===
+    // Instance buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    const stride = 7 * 4; // 7 floats per instance, 4 bytes each
+    const stride = 7 * 4;
 
-    // aParticlePos: vec2
-    gl.enableVertexAttribArray(1);
+    gl.enableVertexAttribArray(1); // aParticlePos
     gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, 0);
     gl.vertexAttribDivisor(1, 1);
 
-    // aSize: float
-    gl.enableVertexAttribArray(2);
+    gl.enableVertexAttribArray(2); // aSize
     gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, 8);
     gl.vertexAttribDivisor(2, 1);
 
-    // aLifeRatio: float
-    gl.enableVertexAttribArray(3);
+    gl.enableVertexAttribArray(3); // aLifeRatio
     gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 12);
     gl.vertexAttribDivisor(3, 1);
 
-    // aColor: vec3
-    gl.enableVertexAttribArray(4);
+    gl.enableVertexAttribArray(4); // aColor
     gl.vertexAttribPointer(4, 3, gl.FLOAT, false, stride, 16);
     gl.vertexAttribDivisor(4, 1);
 
     gl.bindVertexArray(null);
 
-    this.uProjectionMatrix = gl.getUniformLocation(this.program, 'uProjectionMatrix')!;
-    this.uViewMatrix = gl.getUniformLocation(this.program, 'uViewMatrix')!;
+    // === Bind camera UBO to binding point 0 ===
+    const cameraBlockIndex = gl.getUniformBlockIndex(this.program, 'CameraMatrices');
+    if (cameraBlockIndex !== gl.INVALID_INDEX) {
+      gl.uniformBlockBinding(this.program, cameraBlockIndex, 0);
+    }
   }
 
-  render(particles: Particle[], camera: Camera): void {
+  render(particles: Particle[], _camera: Camera): void {
     const gl = this.gl;
     if (particles.length === 0) return;
 
@@ -83,32 +78,13 @@ export class ParticlePass {
       const p = particles[i];
       const base = i * stride;
       const [r, g, b] = hexToRgb(p.color);
-
-      data[base + 0] = p.x;
-      data[base + 1] = p.y;
-      data[base + 2] = p.size;
-      data[base + 3] = p.renderAlpha ?? 1.0;
-      data[base + 4] = r;
-      data[base + 5] = g;
-      data[base + 6] = b;
+      data.set([p.x, p.y, p.size, p.renderAlpha ?? 1.0, r, g, b], base);
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
 
-    const zoom = camera.getZoom();
-    const proj = createOrthographicMatrix(
-      -camera.getViewportWidth() / (2 * zoom),
-       camera.getViewportWidth() / (2 * zoom),
-       camera.getViewportHeight() / (2 * zoom),
-      -camera.getViewportHeight() / (2 * zoom)
-    );
-    const view = createTranslationMatrix(-camera.getPosition().x, -camera.getPosition().y);
-
     gl.useProgram(this.program);
-    gl.uniformMatrix4fv(this.uProjectionMatrix, false, proj);
-    gl.uniformMatrix4fv(this.uViewMatrix, false, view);
-
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
