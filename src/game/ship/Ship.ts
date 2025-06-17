@@ -635,7 +635,6 @@ export class Ship extends CompositeBlockObject {
     this.destroyedListeners.length = 0;
   }
 
-
   // What about this?
   public onDestroyedCallback(callback: ShipDestroyedCallback): void {
     if (this.destroyed) {

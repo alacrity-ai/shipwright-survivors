@@ -722,7 +722,7 @@ export class EngineRuntime {
     setTimeout(() => {
       missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
       this.destroy();
-      sceneManager.setScene('debriefing');
+      sceneManager.fadeToScene('debriefing');
     }, timeoutMs);
   }
 
@@ -730,7 +730,7 @@ export class EngineRuntime {
     console.log("Player defeated — transitioning to debriefing screen.");
     missionResultStore.finalize('defeat', this.gameLoop.getElapsedSeconds());
     this.destroy();
-    sceneManager.setScene('debriefing');
+    sceneManager.fadeToScene('debriefing');
   }
 
   /**
@@ -767,7 +767,7 @@ export class EngineRuntime {
     this.background.destroy();
     this.missionDialogueManager.destroy();
     this.blockDropDecisionMenu.destroy();
-    destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    // destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
 
     // // Clear rendering and update lists

@@ -176,7 +176,7 @@ What's needed to get to Demo:
 - [ ] Basic breakroom dialogue
 - [ ] Passive system fleshed out a bit, polished, stats actually effect game.  Datacores from Entropium.
 - [ ] Planet merchants, trade blocks for other blocks, entropium, etc. unlockables
-- [ ] Mission Debriefing Screen
+- [x] Mission Debriefing Screen
 - [ ] Demo End splash (List what's coming)
 - [ ] Titlescreen polish / rework
 - [ ] Laser polish, add heat seeking missles.
@@ -196,13 +196,13 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
-  - [ ] Evaluate king's bible CPU crunch logic. (HaloBlade)
-  - [ ] Afterburner:
-    - [ ] Add distinct visual effect to thrusters (change in color maybe?)
-    - [ ] Add initial burst on toggle (light flash, particle emission)
-    - [ ] Add intial burst sound effect
-    - [ ] Add distinct sound effect when active
-    - [ ] Add meter + consumable resource
+  - [ ] Evaluate king's bible CPU crunch logic. (HaloBlade). Causing a decent amount of frameloss.
+  - [x] Afterburner:
+    - [x] Add distinct visual effect to thrusters (change in color maybe?)
+    - [x] Add initial burst on toggle (light flash, particle emission)
+    - [x] Add intial burst sound effect
+    - [x] Add distinct sound effect when active
+    - [x] Add meter + consumable resource
   - [ ] Controller Support:
     - [ ] Menu: Ergonomically abstract button elements to be accessible via controller.
     - [ ] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
@@ -216,7 +216,7 @@ TODOS:
     - [ ] Completed planets have some kind of indicator/mark
     - [ ] Basic description when hovered
     - [ ] Additional Descriptions when Selected
-      - [ ] Boss portrait / mission portrait
+      - [x] Boss portrait / mission portrait
       - [ ] Description box of objectives / Unlockables
       - [ ] Alternate mission arrows with a (. . . (.) . .) tab selector at bottom.
         - [ ] Clicking on the side Arrows < > toggles between mission variants for that Location
@@ -226,6 +226,7 @@ TODOS:
   - [ ] Radar Enhancements
     - [ ] Hover over radar makes it opaque
     - [ ] Add animated "LOOK HERE!" Arrow indicators that can be triggered via event hub
+    - [ ] Player ship brighter, or blinking? Either way it's transparent and shouldn't be.
   - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
   - [x] BlockDropSelectionMenu Remaining Tasks:
     - [ ] Clicking on the UI indicator for the BlockDropSelectionMenu should open it
@@ -281,8 +282,8 @@ TODOS:
     - [ ] Asteroids
     - [ ] ExplosionSystem
   - [x] More UI Scaling fixes for resolution support/scaling support
-  - [ ] Explore gating hull size, and having max hull size increasable via the passive tree
-    - [ ] Starter ships could have implicit max hull sizes
+  - [x] Explore gating hull size, and having max hull size increasable via the passive tree
+    - [x] Starter ships could have implicit max hull sizes
   - [ ] Add the concept of a selectable startship
     - [ ] Upon returning to base, you are given 2 additional starter ships
     - [ ] Starter ships will have implicit bonuses per ship, e.g.
@@ -303,7 +304,7 @@ TODOS:
   - [x] Allow pause menu parameterization wherein the abandon mission button is greyed out during the first tutorial mission
       - [ ] Also allow Quitting directly from this menu if we're in electron
   - [x] Clicking Resume on the pause menu does not free up input
-  - [ ] Correct positioning of inPerson conversations
+  - [x] Correct positioning of inPerson conversations
   - [x] Add resolution select to settings menu
   - [ ] Spending a passive point should have SATISFYING auditory and visual feedback
   - [ ] Player death state
@@ -322,7 +323,7 @@ TODOS:
 BUGS:
   - [ ] Enemy lights seem to "persist" beyond enemy death, seems to be caused by going away from window and coming back?
   - [x] CRITICAL: While Paused, particles continue to spawn at an alarming rate, causing intense FPS drop
-  - [ ] Mission result menu does not scale with resolution
+  - [x] Mission result menu does not scale with resolution
   - [ ] Planet Popping in and out of view when it's nearly offscreen but not completely
   - [x] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
     - [x] Reproduced on new game. Dialogue was rolling out aligned right, not aligned left.
@@ -343,7 +344,7 @@ BUGS:
   - [x] Significant performance degradation when damaging a group of blocks with Explosive lance
 
 ### Things to Explore:
-  - [ ] Remove passive points, have Entropium be unlock currency? Or keep passive points and use entropium for everything else?
+  - [x] Remove passive points, have Entropium be unlock currency? Or keep passive points and use entropium for everything else?
   - [ ] Add autofire option?
   - [ ] Click to move functionality?
   - [x] Instead of just being able to build all blocks gated by Entropium.

@@ -6,9 +6,17 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
+import { AnimatedLabel } from '@/ui/components/AnimatedLabel';
 import { calculateCoresEarnedDetailed, calculateCoresEarned } from '@/scenes/debriefing/helpers/calculateCores';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
+
+import { destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { getAssetPath } from '@/shared/assetHelpers';
+import { createPreviewShip } from '@/game/ship/factories/previewShipFactory';
+import { PreviewShipRendererGL } from '@/rendering/PreviewShipRenderer';
+import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
+import type { PreviewShip } from '@/game/ship/PreviewShip';
 
 import { FlyInBox } from './entities/FlyInBox';
 import { FlyInLabel } from './entities/FlyInLabel';
@@ -65,7 +73,17 @@ export class DebriefingSceneManager {
   private currentDecrement = 1;
   private decrementAcceleration = 1.2;
 
+  private previewShip?: PreviewShip;
+  private previewRenderer?: PreviewShipRendererGL;
+  private shipJsonLoaded = false;
+
+  private headerLabel!: AnimatedLabel;
+  private subtitleLabel!: AnimatedLabel;
+
   private missionResult: string | null = null;
+
+  private initialBlackoutTimer: number = 1.2;
+  private introDelayTimer: number = 1.20; // seconds
 
   constructor(
     canvasManager: CanvasManager,
@@ -91,7 +109,7 @@ export class DebriefingSceneManager {
       audioManager.play('assets/sounds/sfx/debriefing/debriefing_failed_00.wav', 'sfx');
       audioManager.playMusic({ file: 'assets/sounds/music/track_06_mission4.mp3'});
     }
-
+    
     const scale = getUniformScaleFactor();
     const screenW = getViewportWidth();
     const screenH = getViewportHeight();
@@ -133,6 +151,33 @@ export class DebriefingSceneManager {
       }
     ];
 
+    const headerText = 'Mission Debriefing';
+    const subtitleText = this.missionResult?.toUpperCase() ?? 'ERROR';
+
+    this.headerLabel = new AnimatedLabel(
+      headerText,
+      screenW / 2,
+      40 * scale,
+      {
+        align: 'center',
+        font: `${Math.round(36)}px monospace`,
+        color: '#00ff00',
+        glow: true
+      }
+    );
+
+    this.subtitleLabel = new AnimatedLabel(
+      subtitleText,
+      screenW / 2,
+      80 * scale,
+      {
+        align: 'center',
+        font: `${Math.round(24)}px monospace`,
+        color: this.missionResult === 'victory' ? '#00ff00' : '#ff0000',
+        glow: true
+      }
+    );
+
     // === Fly-in labels ===
     const baseY = ROW_BASE_Y;
     const spacing = ROW_SPACING_Y;
@@ -166,22 +211,73 @@ export class DebriefingSceneManager {
     this.summaryBox = new FlyInBox(boxX, boxY, BOX_WIDTH, BOX_HEIGHT);
   }
 
-  start() {
-    this.gameLoop.onUpdate(this.update);
-    this.gameLoop.onRender(this.render);
-    this.gameLoop.start();
-  }
+start() {
+  this.gameLoop.onUpdate(this.update);
+  this.gameLoop.onRender(this.render);
+  this.gameLoop.start();
+
+  // === Step 3: Now load the preview ship and renderer
+  const path = getAssetPath('assets/ships/player/ship_00.json');
+
+  fetch(path)
+    .then(res => res.json())
+    .then((data: SerializedShip) => {
+      // Example of putting it in the middle right corner, notice that X and Y are inverted.
+      // const scale = getUniformScaleFactor();
+      // const shipX = -160 * scale;
+      // const shipY = 130 * scale;
+      // const shipScale = 0.75 * scale;
+
+      // this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
+      // this.previewRenderer = new PreviewShipRendererGL();
+      // this.shipJsonLoaded = true;
+      // this.previewShip.getTransform().position.x = shipX;
+      // this.previewShip.getTransform().position.y = shipY;
+
+      const scale = getUniformScaleFactor();
+      const shipX = 0;
+      const shipY = 0;
+      const shipScale = scale;
+
+      this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
+      this.previewRenderer = new PreviewShipRendererGL();
+      this.shipJsonLoaded = true;
+      this.previewShip.getTransform().position.x = shipX;
+      this.previewShip.getTransform().position.y = shipY;
+    })
+    .catch(err => {
+      console.error('[DebriefingSceneManager] Failed to load preview ship JSON:', err);
+    });
+}
 
   stop() {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();
+    this.previewRenderer?.destroy();
+    destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
   }
 
   private update = () => {
     const dt = this.gameLoop.getDeltaTime();
-    const scale = getUniformScaleFactor();
 
+    // === Initial blackout ===
+    if (this.initialBlackoutTimer > 0) {
+      this.initialBlackoutTimer -= dt;
+      return;
+    }
+
+    // === Initial delay before showing anything ===
+    if (this.introDelayTimer > 0) {
+      this.introDelayTimer -= dt;
+      if (this.introDelayTimer <= 0) {
+        this.headerLabel.trigger();
+        this.subtitleLabel.trigger();
+      }
+      return;
+    }
+
+    const scale = getUniformScaleFactor();
     this.inputManager.updateFrame();
 
     const { x, y } = this.inputManager.getMousePosition();
@@ -195,8 +291,17 @@ export class DebriefingSceneManager {
       this.updateTally(dt);
     }
 
+    this.headerLabel.update(dt);
+    this.subtitleLabel.update(dt);
+
     for (const label of this.flyInLabels) label.update(dt);
     this.summaryBox?.update(dt);
+
+    // === Preview ship spin ===
+    if (this.previewShip && this.previewRenderer && this.hasHeaderFinished()) {
+      const transform = this.previewShip.getTransform();
+      transform.rotation += dt * 0.25;
+    }
   };
 
   private updateReveal(dt: number) {
@@ -285,38 +390,23 @@ export class DebriefingSceneManager {
   }
 
   private render = () => {
+    // Blackout: draw absolutely nothing
+    if (this.initialBlackoutTimer > 0) return;
+
     this.canvasManager.clearAll();
 
     const uiCtx = this.canvasManager.getContext('ui');
     const scale = getUniformScaleFactor();
-    const screenW = getViewportWidth();
+    // const screenW = getViewportWidth();
 
-    drawLabel(
-      uiCtx,
-      screenW / 2,
-      40 * scale,
-      'Mission Debriefing',
-      {
-        align: 'center',
-        font: `${Math.round(36 * scale)}px monospace`,
-        color: '#00ff00',
-        glow: true
-      }
-    );
+    this.headerLabel.render(uiCtx, scale);
+    this.subtitleLabel.render(uiCtx, scale);
 
-    // drawSubtitle label "Victory" or "Defeat"
-    drawLabel(
-      uiCtx,
-      screenW / 2,
-      80 * scale,
-      this.missionResult?.toUpperCase() ?? 'ERROR',
-      {
-        align: 'center',
-        font: `${Math.round(24 * scale)}px monospace`,
-        color: this.missionResult === 'victory' ? '#00ff00' : '#ff0000',
-        glow: true
-      }
-    );
+    if (this.hasHeaderFinished() && this.shipJsonLoaded && this.previewRenderer && this.previewShip) {
+      this.previewRenderer.render(this.previewShip, this.gameLoop.getDeltaTime());
+    }
+
+    if (!this.hasHeaderFinished()) return;
 
     for (const label of this.flyInLabels) {
       label.render(uiCtx);
@@ -330,6 +420,10 @@ export class DebriefingSceneManager {
 
     this.cursorRenderer.render();
   };
+
+  private hasHeaderFinished(): boolean {
+    return this.headerLabel.hasCompleted() && this.subtitleLabel.hasCompleted();
+  }
 
   private skipToDone(): void {
     // Force all fly-in labels to appear immediately

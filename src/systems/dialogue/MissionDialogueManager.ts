@@ -77,5 +77,7 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   public destroy(): void {
     this.dialogueQueueManager.clear();
     this.dialogueQueueManager.destroy();
+    const ctx = this.canvasManager.getContext('dialogue');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   }
 }

@@ -5,4 +5,5 @@ export interface BlockEntityTransform {
   velocity: { x: number; y: number };
   rotation: number;
   angularVelocity: number;
+  scale?: number | { x: number; y: number }; // Optional uniform or XY scale
 }
