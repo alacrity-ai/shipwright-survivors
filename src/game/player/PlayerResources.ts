@@ -62,14 +62,17 @@ export class PlayerResources {
 
   // === Block Queue ===
   public enqueueBlock(blockType: BlockType): void {
+    console.log('[PlayerResources] Queue Size: ', this.blockQueue.length);
     this.blockQueue.push(blockType);
   }
 
   enqueueBlockToFront(blockType: BlockType): void {
+    console.log('[PlayerResources] Queue Size: ', this.blockQueue.length);
     this.blockQueue.unshift(blockType);
   }
 
   public dequeueBlock(): BlockType | null {
+    console.log('[PlayerResources] Queue size: ', this.blockQueue.length);
     return this.blockQueue.shift() ?? null;
   }
 
@@ -83,6 +86,11 @@ export class PlayerResources {
 
   public hasBlocks(): boolean {
     return this.blockQueue.length > 0;
+  }
+
+  public queueSize(): number {
+
+    return this.blockQueue.length;
   }
 
   public getLastGatheredBlock(): BlockType | null {

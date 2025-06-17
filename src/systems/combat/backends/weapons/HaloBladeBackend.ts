@@ -9,7 +9,6 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { GLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
-import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
 
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
@@ -17,7 +16,6 @@ import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { getGLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
 import { CanvasManager } from '@/core/CanvasManager';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
-import { Camera } from '@/core/Camera';
 import { findObjectByBlock } from '@/game/entities/utils/universalBlockInterfaceUtils';
 
 interface OrbitingBlade {
@@ -25,7 +23,7 @@ interface OrbitingBlade {
   angle: number;
   radius: number;
   position: { x: number; y: number };
-  sprite: GLProjectileSprite; // ADDED
+  sprite: GLProjectileSprite;
 }
 
 export class HaloBladeBackend implements WeaponBackend {
@@ -34,7 +32,7 @@ export class HaloBladeBackend implements WeaponBackend {
 
   private readonly spriteRenderer: SpriteRendererGL;
   private gl: WebGLRenderingContext;
-  private energyRingSprites: Map<string, GLProjectileSprite> = new Map(); // New
+  private energyRingSprites: Map<string, GLProjectileSprite> = new Map();
 
   constructor(
     private readonly combatService: CombatService,
@@ -150,7 +148,7 @@ export class HaloBladeBackend implements WeaponBackend {
           fadeOut: true,
           light: true,
           lightRadiusScalar: 32,
-          lightIntensity: 0.8,
+          lightIntensity: 0.7,
         });
       }
     }
