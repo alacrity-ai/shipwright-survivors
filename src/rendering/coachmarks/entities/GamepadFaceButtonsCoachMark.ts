@@ -41,7 +41,7 @@ export class GamepadFaceButtonsCoachMark extends CoachMarkEntity {
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * scale;
 
     // === Draw circular base ===
     ctx.beginPath();

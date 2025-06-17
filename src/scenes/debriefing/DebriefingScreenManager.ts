@@ -8,6 +8,8 @@ import { getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { InputManager } from '@/core/InputManager';
 import { drawCRTBox } from '@/ui/primitives/CRTBox'; // assumes existence
+import { getUniformScaleFactor } from '@/config/view';
+import { scale } from '@/systems/galaxymap/webgl/matrixUtils';
 
 export class DebriefingScreenManager {
   private canvasManager: CanvasManager;
@@ -19,12 +21,13 @@ export class DebriefingScreenManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+    const scale = getUniformScaleFactor();
 
     this.returnButton = {
-      x: 240 - 100,
-      y: 520,
-      width: 200,
-      height: 40,
+      x: (240 - 100) * scale,
+      y: 520 * scale,
+      width: 200 * scale,
+      height: 40 * scale,
       label: 'Return to Hub',
       isHovered: false,
       onClick: () => {
@@ -73,15 +76,16 @@ export class DebriefingScreenManager {
   private render = () => {
     this.canvasManager.clearAll();
 
+    const scale = getUniformScaleFactor();
     const ctx = this.canvasManager.getContext('ui');
     const mouse = this.inputManager.getMousePosition();
 
     // === Background scanline box ===
     drawCRTBox(ctx, {
-      x: 40,
-      y: 40,
-      width: 400,
-      height: 460,
+      x: 40 * scale,
+      y: 40 * scale,
+      width: 400 * scale,
+      height: 460 * scale,
       style: {
         borderColor: '#00ff41',
         backgroundColor: '#0a0a0a',
@@ -104,27 +108,27 @@ export class DebriefingScreenManager {
     }
 
     const result = missionResultStore.get();
-    let y = 80;
+    let y = 80 * scale;
 
     const line = (text: string, color = '#6ef') => {
-      drawCRTText(ctx, 60, y, text, {
-        font: '14px "Courier New", monospace',
+      drawCRTText(ctx, 60 * scale, y * scale, text, {
+        font: `${Math.round(14 * scale)}px "Courier New", monospace`,
         color,
         glow: true,
         chromaticAberration: true,
       });
-      y += 20;
+      y += 20 * scale;
     };
 
     // === Title ===
-    drawCRTText(ctx, 240, y, 'MISSION DEBRIEFING', {
-      font: '22px "Courier New", monospace',
+    drawCRTText(ctx, 240 * scale, y * scale, 'MISSION DEBRIEFING', {
+      font: `${Math.round(22 * scale)}px "Courier New", monospace`,
       align: 'center',
       glow: true,
       chromaticAberration: true,
       color: '#00ff41'
     });
-    y += 40;
+    y += 40 * scale;
 
     line(`> Outcome: ${result.outcome.toUpperCase()}`, result.outcome === 'victory' ? '#00ff41' : '#ff0040');
     line(`> Enemies Destroyed: ${result.enemiesDestroyed}`);
@@ -132,14 +136,6 @@ export class DebriefingScreenManager {
     line(`> Blocks Placed: ${result.blockPlacedCount}`);
     line(`> Passive Points Earned: ${result.passivePointsEarned}`);
     line(`> Mission Duration: ${result.timeTakenSeconds?.toFixed(1)}s`);
-
-    if (result.blocksUnlocked.length > 0) {
-      line('');
-      line('> New Blocks Unlocked:', '#ffaa00');
-      for (const blockId of result.blocksUnlocked) {
-        line(`    • ${getBlockType(blockId)?.name}`, '#ffaa00');
-      }
-    }
 
     // === Return button ===
     drawCRTButton(ctx, this.returnButton);

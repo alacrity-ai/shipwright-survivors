@@ -5,6 +5,10 @@ import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisi
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { Camera } from '@/core/Camera';
 
+import { GlobalEventBus } from '@/core/EventBus';
+import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { ThrustDirection } from '@/core/intent/interfaces/helpers/movementHelpers';
@@ -349,6 +353,7 @@ public update(dt: number): void {
     // Determine if we're near the player ship (For thruster effects)
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     let emit = false;
+    let afterburnerJustActivated = false;
     let pulseJustActivated = false;
     let isPulsing = false;
     let superPulseJustActivated = false;
@@ -366,12 +371,23 @@ public update(dt: number): void {
       emit = center.x >= minX && center.x <= maxX &&
             center.y >= minY && center.y <= maxY;
     } else {
+      afterburnerJustActivated = this.ship.getAfterburnerComponent()?.wasAfterburnerJustActivated() ?? false;
       pulseJustActivated = this.ship.getAfterburnerComponent()?.wasPulseJustActivated() ?? false;
       isPulsing = this.ship.getAfterburnerComponent()?.isPulsing() ?? false;
       superPulseJustActivated = this.ship.getAfterburnerComponent()?.wasSuperPulseJustActivated() ?? false;
       emit = true; // Always emit if it's the player ship
     }
 
+    // Sound effects and screen shake for afterburner/pulse use
+    if (this.ship.getIsPlayerShip()) {
+      if (pulseJustActivated || superPulseJustActivated || afterburnerJustActivated) {
+        this.emitPulseSoundAndShake(this.ship.id, pulseJustActivated, superPulseJustActivated);
+      }
+      // Special light effect on ship for super pulse
+      if (superPulseJustActivated) {
+        createLightFlash(this.ship.getTransform().position.x, this.ship.getTransform().position.y, 300, 1.5, 0.5, '#ffffff');
+      }
+    }
 
     // === Apply thruster force
     for (const { coord, power, rotation: blockRotation } of thrusters) {
@@ -437,6 +453,69 @@ public update(dt: number): void {
       // Subtract excess along the thrust direction vector
       transform.velocity.x -= fallbackDirection.x * excessVelocity;
       transform.velocity.y -= fallbackDirection.y * excessVelocity;
+    }
+  }
+
+  private emitPulseSoundAndShake(
+    ownerShipId: string,
+    wasPulse: boolean = false,
+    wasSuperPulse: boolean = false
+  ): void {
+    const shipRegistry = ShipRegistry.getInstance();
+    const playerShip = shipRegistry.getPlayerShip();
+    const ownerShip = shipRegistry.getById(ownerShipId);
+
+    // === Determine SFX based on tier
+    // TODO : Get specific sounds
+    let soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
+    if (wasSuperPulse) {
+      soundFile = 'assets/sounds/sfx/ui/sub_00.wav';
+    } else if (wasPulse) {
+      soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
+    }
+
+    // === Spatial SFX
+    if (ownerShip) {
+      playSpatialSfx(ownerShip, playerShip, {
+        file: soundFile,
+        channel: 'sfx',
+        baseVolume: 1,
+        pitchRange: [1.0, 1.3],
+        volumeJitter: 0.15,
+        maxSimultaneous: 5,
+      });
+
+      if (wasSuperPulse) {
+        playSpatialSfx(ownerShip, playerShip, {
+          file: 'assets/sounds/sfx/explosions/superpulse_00.wav',
+          channel: 'sfx',
+          baseVolume: 1,
+          pitchRange: [1.1, 1.4],
+          volumeJitter: 0.1,
+          maxSimultaneous: 5,
+        });
+      }
+    }
+
+    // === Screen Shake for Player
+    if (ownerShip && ownerShip === playerShip) {
+      let strength = 4;
+      let duration = 0.16;
+
+      if (wasPulse) {
+        strength = 6;
+        duration = 0.18;
+      }
+      if (wasSuperPulse) {
+        strength = 9;
+        duration = 0.20;
+      }
+
+      GlobalEventBus.emit('camera:shake', {
+        strength,
+        duration,
+        frequency: 10,
+      });
     }
   }
 }

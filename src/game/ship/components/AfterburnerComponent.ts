@@ -12,6 +12,7 @@ export class AfterburnerComponent {
   private speedMultiplier: number = 1.5;
   private accelerationMultiplier: number = 2.0;
   private pulseMultiplier: number = 1.5;
+  private superPulseBonusMultiplier: number = 0.5;
 
   private readonly TRIGGER_COOLDOWN = 1.0; // seconds between allowed re-triggers
   private triggerCooldownRemaining: number = 0;
@@ -25,6 +26,9 @@ export class AfterburnerComponent {
 
   private pulseDurationRemaining: number = 0;
   private pulseCooldownRemaining: number = 0;
+  private superPulseDurationRemaining: number = 0;
+
+  private afterburnerJustActivated: boolean = false;
   private pulseJustActivated: boolean = false;
   private superPulseJustActivated: boolean = false;
 
@@ -71,6 +75,14 @@ export class AfterburnerComponent {
       this.pulseDurationRemaining -= dt;
       if (this.pulseDurationRemaining <= 0) {
         this.pulseDurationRemaining = 0;
+      }
+    }
+
+    // === Super Pulse duration decrement ===
+    if (this.superPulseDurationRemaining > 0) {
+      this.superPulseDurationRemaining -= dt;
+      if (this.superPulseDurationRemaining <= 0) {
+        this.superPulseDurationRemaining = 0;
       }
     }
 
@@ -138,11 +150,13 @@ export class AfterburnerComponent {
               this.max
             );
             this.superPulseJustActivated = true;
+            this.superPulseDurationRemaining = this.PULSE_DURATION;
           }
         }
 
         this.active = true;
-        this.triggerCooldownRemaining = this.TRIGGER_COOLDOWN; // Arm cooldown
+        this.triggerCooldownRemaining = this.TRIGGER_COOLDOWN;
+        this.afterburnerJustActivated = true;
         return true;
       }
 
@@ -193,11 +207,19 @@ export class AfterburnerComponent {
   }
 
   getSpeedMultiplier(): number {
-    return this.speedMultiplier + this.pulseMultiplier * this.getPulseDecayFactor();
+    const pulseFactor = this.getPulseDecayFactor();
+    const superPulseFactor = this.getSuperPulseDecayFactor();
+    return this.speedMultiplier +
+      this.pulseMultiplier * pulseFactor +
+      this.superPulseBonusMultiplier * superPulseFactor;
   }
 
   getAccelerationMultiplier(): number {
-    return this.accelerationMultiplier + this.pulseMultiplier * this.getPulseDecayFactor();
+    const pulseFactor = this.getPulseDecayFactor();
+    const superPulseFactor = this.getSuperPulseDecayFactor();
+    return this.accelerationMultiplier +
+      this.pulseMultiplier * pulseFactor +
+      this.superPulseBonusMultiplier * superPulseFactor;
   }
 
   getPulseMultiplier(): number {
@@ -208,6 +230,12 @@ export class AfterburnerComponent {
     return this.pulseDurationRemaining > 0
       ? this.pulseDurationRemaining / this.PULSE_DURATION
       : 0;
+  }
+
+  wasAfterburnerJustActivated(): boolean {
+    const was = this.afterburnerJustActivated;
+    this.afterburnerJustActivated = false;
+    return was;
   }
 
   wasPulseJustActivated(): boolean {
@@ -264,5 +292,11 @@ export class AfterburnerComponent {
 
     if (elapsed < superPulseStart || elapsed > this.PULSE_WINDOW) return 0;
     return Math.max(0, this.PULSE_WINDOW - elapsed);
+  }
+
+  private getSuperPulseDecayFactor(): number {
+    return this.superPulseDurationRemaining > 0
+      ? this.superPulseDurationRemaining / this.PULSE_DURATION
+      : 0;
   }
 }

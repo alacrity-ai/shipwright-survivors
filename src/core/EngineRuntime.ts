@@ -553,8 +553,8 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
-      // const randomTypes = ['engine1', 'engine2', 'hull1', 'laser1', 'facetplate1', 'facetplate2', 'turret1', 'harvester1', 'battery1', 'shield1', 'turret2', 'hull2', 'fin1', 'fin2'];
-      const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
+      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
+      // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 
@@ -759,12 +759,14 @@ export class EngineRuntime {
     SpriteRendererGL.destroyInstance();
 
     // Optional: clear UI menus, overlays
+    this.cursorRenderer.destroy();
     this.hud.destroy();
     this.miniMap.destroy();
     this.lightingOrchestrator.destroy();
     this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
     this.background.destroy();
     this.missionDialogueManager.destroy();
+    this.blockDropDecisionMenu.destroy();
     destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
 

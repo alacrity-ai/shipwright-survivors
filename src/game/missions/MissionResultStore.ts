@@ -13,6 +13,10 @@ export interface MissionResultData {
   timeTakenSeconds?: number;
   blocksLost: number;
   blockRefinedCount: number;
+  blocksCollected: number;
+  wavesCleared: number;
+  incidentsCompleted: number;
+  massAchieved: number;
 }
 
 class MissionResultStore {
@@ -30,6 +34,10 @@ class MissionResultStore {
       timeTakenSeconds: 0,
       blocksLost: 0,
       blockRefinedCount: 0,
+      blocksCollected: 0,
+      wavesCleared: 0,
+      incidentsCompleted: 0,
+      massAchieved: 0,
     };
   }
 
@@ -62,6 +70,29 @@ class MissionResultStore {
     });
 
     this.result!.enemiesDestroyed += by;
+  }
+
+  public incrementBlockCollectedCount(by = 1) {
+    this.ensureInitialized();
+    this.result!.blocksCollected += by;
+  }
+
+  public incrementWavesCleared(by = 1) {
+    this.ensureInitialized();
+    this.result!.wavesCleared += by;
+  }
+
+  public incrementIncidentsCompleted(by = 1) {
+    this.ensureInitialized();
+    this.result!.incidentsCompleted += by;
+  }
+
+  public incrementMassAchieved(totalMass: number) {
+    // If mass passed in is higher than the current mass achieved, update it, otherwise do nothing
+    this.ensureInitialized();
+    if (totalMass > this.result!.massAchieved) {
+      this.result!.massAchieved = totalMass;
+    }
   }
 
   public incrementBlockPlacedCount(by = 1) {

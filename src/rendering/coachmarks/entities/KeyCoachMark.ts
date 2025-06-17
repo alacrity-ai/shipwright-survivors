@@ -53,7 +53,7 @@ export class KeyCoachMark extends CoachMarkEntity {
     // Draw key background
     ctx.fillStyle = fillColor;
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * scale;
     ctx.beginPath();
     ctx.roundRect(x - boxWidth / 2, y - height / 2, boxWidth, height, 6);
     ctx.fill();

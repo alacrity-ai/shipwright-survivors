@@ -54,13 +54,13 @@ export class AudioManager {
     }
   }
 
-  public async play(file: string, channel: AudioChannel, options?: PlayOptions): Promise<void> {
+  public async play(file: string, channel: AudioChannel, options?: PlayOptions): Promise<boolean> {
     const maxSimultaneous = options?.maxSimultaneous ?? 1;
     const volume = Math.max(0, Math.min(1, options?.volume ?? 1.0));
     const pan = Math.max(-1, Math.min(1, options?.pan ?? 0));
 
     const currentCount = this.currentlyPlaying.get(file) ?? 0;
-    if (currentCount >= maxSimultaneous) return;
+    if (currentCount >= maxSimultaneous) return false;
 
     let buffer = this.bufferCache.get(file);
     if (!buffer) {
@@ -71,7 +71,7 @@ export class AudioManager {
         this.bufferCache.set(file, buffer);
       } catch (err) {
         console.warn(`Failed to load audio file: ${file}`, err);
-        return;
+        return false;
       }
     }
 
@@ -103,6 +103,7 @@ export class AudioManager {
     };
 
     source.start(0);
+    return true;
   }
 
   public async startLoop(file: string, channel: AudioChannel, options?: PlayOptions): Promise<void> {

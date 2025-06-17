@@ -1,6 +1,8 @@
 // src/systems/incidents/types/BaseIncidentScript.ts
 
 import { reportMinimapMarker, clearMinimapMarker } from '@/core/interfaces/events/IncidentMinimapReporter';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
+
 import type { IncidentScript } from './IncidentScript';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { IncidentRuntimeContext } from './IncidentRuntimeContext';
@@ -96,6 +98,7 @@ export abstract class BaseIncidentScript implements IncidentScript {
       clearMinimapMarker(this.id);
       this.minimapRegistered = false;
     }
+    missionResultStore.incrementIncidentsCompleted();
   }
 
   /**

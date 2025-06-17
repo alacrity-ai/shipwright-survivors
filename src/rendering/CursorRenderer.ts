@@ -6,39 +6,54 @@ import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import type { Ship } from '@/game/ship/Ship';
 import { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
-import { 
-  getCrosshairCursorSprite, 
-  getHoveredCursorSprite, 
-  getArrowCursorSprite, 
+
+import {
+  getCrosshairCursorSprite,
+  getHoveredCursorSprite,
+  getArrowCursorSprite,
   getWrenchCursorSprite,
   getSmallCircleCursorSprite,
   getTargetCrosshairSprite,
   drawCursor
- } from '@/rendering/cache/CursorSpriteCache';
+} from '@/rendering/cache/CursorSpriteCache';
+
+import { GlobalEventBus } from '@/core/EventBus';
+import type { CursorChangeType } from '@/core/interfaces/EventTypes';
 
 const AIM_DISTANCE = 800;
 
 export class CursorRenderer {
   private ctx: CanvasRenderingContext2D;
   private cursorSprite: HTMLCanvasElement | null;
-  private camera: Camera;
+  private camera: Camera | null;
 
   private cursorWorldPos = { x: 0, y: 0 };
   private hasInitializedCursor = false;
+
+  // Track listeners for removal
+  private cursorChangeHandler = (payload: { type: CursorChangeType }) =>
+    this.setCursorFromType(payload.type);
+
+  private cursorRestoreHandler = () => this.setDefaultCursor();
 
   constructor(
     canvasManager: CanvasManager,
     private readonly inputManager: InputManager,
     private readonly playerShip?: Ship | null,
   ) {
-    this.camera = Camera.getInstance();
+    // Don't instantiate camera if we don't have a player ship
+    this.camera = playerShip ? Camera.getInstance() : null;
     this.cursorSprite = getCrosshairCursorSprite();
     this.ctx = canvasManager.getContext('overlay');
+
+    // Subscribe to cursor events
+    GlobalEventBus.on('cursor:change', this.cursorChangeHandler);
+    GlobalEventBus.on('cursor:restore', this.cursorRestoreHandler);
   }
 
   render(): void {
     if (!this.cursorSprite) return;
-    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    // this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
     const scale = getUniformScaleFactor();
     const lastUsed = InputDeviceTracker.getInstance().getLastUsed();
@@ -75,17 +90,33 @@ export class CursorRenderer {
         this.cursorWorldPos.y = targetWorldY;
         this.hasInitializedCursor = true;
       } else {
-        const SMOOTHING = 0.25; // adjust for more/less inertia
+        const SMOOTHING = 0.25;
         this.cursorWorldPos.x += (targetWorldX - this.cursorWorldPos.x) * SMOOTHING;
         this.cursorWorldPos.y += (targetWorldY - this.cursorWorldPos.y) * SMOOTHING;
       }
 
+      if (!this.camera) return;
       const screen = this.camera.worldToScreen(this.cursorWorldPos.x, this.cursorWorldPos.y);
       drawCursor(this.ctx, this.cursorSprite, screen.x, screen.y, scale);
     }
   }
 
-  // Public API
+  // === Cursor Switching ===
+  private setCursorFromType(type: CursorChangeType): void {
+    switch (type) {
+      case 'crosshair': this.setCrosshairCursor(); break;
+      case 'target': this.setTargetCrosshairCursor(); break;
+      case 'hovered': this.setHoveredCursor(); break;
+      case 'wrench': this.setWrenchCursor(); break;
+      case 'up': this.setUpCursor(); break;
+      case 'right': this.setRightCursor(); break;
+      case 'down': this.setDownCursor(); break;
+      case 'left': this.setLeftCursor(); break;
+      case 'small-circle': this.setSmallCircleCursor(); break;
+    }
+  }
+
+  // === Public API ===
   setCursorSprite(sprite: HTMLCanvasElement) {
     this.cursorSprite = sprite;
   }
@@ -132,5 +163,10 @@ export class CursorRenderer {
 
   setSmallCircleCursor() {
     this.setCursorSprite(getSmallCircleCursorSprite());
+  }
+
+  destroy(): void {
+    GlobalEventBus.off('cursor:change', this.cursorChangeHandler);
+    GlobalEventBus.off('cursor:restore', this.cursorRestoreHandler);
   }
 }

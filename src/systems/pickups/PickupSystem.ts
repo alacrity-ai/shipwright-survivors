@@ -1,7 +1,7 @@
 // src/systems/pickups/PickupSystem.ts
 
 import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
-import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS } from '@/game/blocks/BlockColorSchemes';
+import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { PlayerResources } from '@/game/player/PlayerResources';
 // import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
@@ -14,6 +14,7 @@ import { audioManager } from '@/audio/Audio';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { repairAllBlocksWithHealing } from '@/systems/pickups/helpers/repairAllBlocksWithHealing';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
@@ -59,6 +60,18 @@ export class PickupSystem {
   private popupMessageSystem: PopupMessageSystem;
   private shipBuilderEffects: ShipBuilderEffectsSystem;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
+
+  // === Pitch progression tuning ===
+  private static readonly BASE_PICKUP_PITCH = 0.8;
+  private static readonly PICKUP_PITCH_INCREMENT = 0.05;
+  private static readonly MAX_PICKUP_PITCH = 2.2;
+  private static readonly PITCH_RESET_DELAY = 3.2; // seconds
+
+  private currencyPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
+  private blockPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
+  private timeSinceLastCurrencyPickup: number = 0;
+  private timeSinceLastBlockPickup: number = 0;
+
 
   constructor(
     canvasManager: CanvasManager,
@@ -263,6 +276,16 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
   }
 
   update(dt: number): void {
+    this.timeSinceLastCurrencyPickup += dt;
+    this.timeSinceLastBlockPickup += dt;
+
+    if (this.timeSinceLastCurrencyPickup >= PickupSystem.PITCH_RESET_DELAY) {
+      this.currencyPickupPitch = PickupSystem.BASE_PICKUP_PITCH;
+    }
+    if (this.timeSinceLastBlockPickup >= PickupSystem.PITCH_RESET_DELAY) {
+      this.blockPickupPitch = PickupSystem.BASE_PICKUP_PITCH;
+    }
+    
     const shipPosition = this.playerShip.getTransform().position;
 
     const baseAttractionRange = 600;
@@ -344,7 +367,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     }
   }
 
-  private collectPickup(pickup: PickupInstance): void {
+  private async collectPickup(pickup: PickupInstance): Promise<void> {
     pickup.isPickedUp = true;
 
     // === Remove associated light if it exists ===
@@ -389,24 +412,48 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     });
 
     lightingOrchestrator.registerLight(pickupFlash);
+    let playedSound = false;
 
     // === Handle pickup effects by category ===
     if (pickup.type.category === 'currency') {
       const amount = pickup.currencyAmount;
       this.playerResources.addCurrency(amount);
       missionResultStore.addCurrency(amount);
-      audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', { maxSimultaneous: 3 });
 
+      playedSound = await audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', {
+        volume: 1.25,
+        pitch: this.currencyPickupPitch + 0.25,
+        maxSimultaneous: 8,
+      });
+      if (playedSound) {
+        this.timeSinceLastCurrencyPickup = 0;
+
+        this.currencyPickupPitch = Math.min(
+          this.currencyPickupPitch + PickupSystem.PICKUP_PITCH_INCREMENT,
+          PickupSystem.MAX_PICKUP_PITCH
+        );
+      }
     } else if (pickup.type.category === 'block' && pickup.type.blockTypeId) {
-      audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', { maxSimultaneous: 2 });
+      // Increment mission results
+      missionResultStore.incrementBlockCollectedCount();
 
-      // Screen flash based on block tier
-      const match = pickup.type.blockTypeId.match(/(\d+)/);
-      const tier = match ? parseInt(match[1], 10) : 0;
-      const palette = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? ['#fff'];
-      const flashColor = palette[0];
+      playedSound = await audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', {
+        volume: 0.8,
+        pitch: this.blockPickupPitch,
+        maxSimultaneous: 8,
+      });
+      if (playedSound) {
+        this.timeSinceLastBlockPickup = 0;
+        this.blockPickupPitch = Math.min(
+          this.blockPickupPitch + PickupSystem.PICKUP_PITCH_INCREMENT,
+          PickupSystem.MAX_PICKUP_PITCH
+        );
+      }
 
-      this.screenEffects.createFlash(flashColor, 0.4, 0.4);
+      // Flash ship based on block tier
+      const tier = getTierFromBlockId(pickup.type.blockTypeId);
+      const flashColor = BLOCK_TIER_COLORS[tier] ?? ['#fff'];
+      createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, flashColor);
 
       // Enqueue into drop decision menu
       const blockType = getBlockType(pickup.type.blockTypeId)!;
@@ -416,7 +463,9 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       const amount = pickup.repairAmount;
       repairAllBlocksWithHealing(this.playerShip, amount, this.shipBuilderEffects);
 
-      audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', { maxSimultaneous: 2 });
+      audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', {
+        maxSimultaneous: 3,
+      });
 
     } else {
       console.warn('Unhandled pickup category or malformed pickup:', pickup);

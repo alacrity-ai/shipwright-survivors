@@ -1,5 +1,3 @@
-// src/scenes/hub/BreakRoomSceneManager.ts
-
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
@@ -8,12 +6,13 @@ import { audioManager } from '@/audio/Audio';
 
 import { getUniformScaleFactor } from '@/config/view';
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
-import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { loadImage } from '@/shared/imageCache';
 
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
+
+import { CursorRenderer } from '@/rendering/CursorRenderer';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_break-room.png';
 
@@ -21,6 +20,7 @@ export class BreakroomSceneManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
+  private cursorRenderer: CursorRenderer;
   private backgroundImage: HTMLImageElement | null = null;
 
   private buttons: UIButton[];
@@ -34,6 +34,8 @@ export class BreakroomSceneManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+
+    this.cursorRenderer = new CursorRenderer(canvasManager, inputManager, null);
 
     const crtStyle = {
       borderRadius: 10,
@@ -86,6 +88,7 @@ export class BreakroomSceneManager {
   stop() {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
+    this.cursorRenderer.destroy();
   }
 
   private update = () => {
@@ -96,15 +99,13 @@ export class BreakroomSceneManager {
 
     // Dialogue Handling
     if (this.dialogueQueueManager?.isRunning()) {
-      // Skip all interaction and button logic if a dialogue is active
       this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
 
-      // Allow skipping dialogue with click
       if (clicked) {
         this.dialogueQueueManager.skipOrAdvance();
       }
 
-      return; // Prevent other interactions
+      return;
     }
 
     handleButtonInteraction(this.buttons[0], x, y, clicked, getUniformScaleFactor());
@@ -115,9 +116,7 @@ export class BreakroomSceneManager {
 
     const bgCtx = this.canvasManager.getContext('background');
     const uiCtx = this.canvasManager.getContext('ui');
-    const overlayCtx = this.canvasManager.getContext('overlay'); // Use overlay layer for dialogue
-
-    const { x, y } = this.inputManager.getMousePosition();
+    const overlayCtx = this.canvasManager.getContext('overlay');
 
     if (this.backgroundImage) {
       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
@@ -133,7 +132,6 @@ export class BreakroomSceneManager {
       this.dialogueQueueManager.render(overlayCtx);
     }
 
-    const cursor = getCrosshairCursorSprite();
-    drawCursor(uiCtx, cursor, x, y, getUniformScaleFactor());
+    this.cursorRenderer.render();
   };
 }

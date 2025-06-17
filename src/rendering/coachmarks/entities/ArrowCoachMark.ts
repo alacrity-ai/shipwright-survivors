@@ -29,7 +29,7 @@ export class ArrowCoachMark extends CoachMarkEntity {
 
     ctx.save();
     ctx.strokeStyle = this.behavior.arrowColor ?? '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * scale;
     ctx.beginPath();
     ctx.moveTo(endX, endY);
     ctx.lineTo(pos.x * scale, pos.y * scale);

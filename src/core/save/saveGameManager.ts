@@ -2,12 +2,14 @@ import { flags } from '@/game/player/PlayerFlagManager';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
+import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 
 export interface SaveGameData {
   flags: string[];
   unlockedBlockIds: string[];
   settings?: string; // JSON stringified settings blob
   passives?: any;
+  metaCurrency?: any;
   version?: number;
 }
 
@@ -61,6 +63,7 @@ export class SaveGameManager {
       unlockedBlockIds: JSON.parse(PlayerTechnologyManager.getInstance().toJSON()),
       settings: PlayerSettingsManager.getInstance().toJSON(),
       passives: JSON.parse(PlayerPassiveManager.getInstance().toJSON()),
+      metaCurrency: JSON.parse(PlayerMetaCurrencyManager.getInstance().toJSON()),
       version: 1
     };
 
@@ -79,6 +82,9 @@ export class SaveGameManager {
     }
     if (data.passives) {
       PlayerPassiveManager.getInstance().fromJSON(JSON.stringify(data.passives));
+    }
+    if (data.metaCurrency) {
+      PlayerMetaCurrencyManager.getInstance().fromJSON(JSON.stringify(data.metaCurrency));
     }
   }
 
@@ -154,6 +160,12 @@ export class SaveGameManager {
     this.writeData(data);
   }
 
+  public saveMetaCurrency(): void {
+    const data = this.loadData();
+    data.metaCurrency = JSON.parse(PlayerMetaCurrencyManager.getInstance().toJSON());
+    this.writeData(data);
+  }
+
   // === LOAD METHODS ===
 
   public loadFlags(): void {
@@ -177,6 +189,13 @@ export class SaveGameManager {
     const data = this.loadData();
     if (data.passives) {
       PlayerPassiveManager.getInstance().fromJSON(JSON.stringify(data.passives));
+    }
+  }
+
+  public loadMetaCurrency(): void {
+    const data = this.loadData();
+    if (data.metaCurrency) {
+      PlayerMetaCurrencyManager.getInstance().fromJSON(JSON.stringify(data.metaCurrency));
     }
   }
 }

@@ -28,7 +28,6 @@ import { drawBlockStatsLabels } from '@/ui/menus/helpers/drawBlockStatsLabels';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton, handleButtonInteraction, type UIButton } from '@/ui/primitives/UIButton';
-import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
 import { Camera } from '@/core/Camera';
 import { audioManager } from '@/audio/Audio';
@@ -284,6 +283,9 @@ export class BlockDropDecisionMenu implements Menu {
       } else if (this.animationPhase === 'sliding-out') {
         this.slideX -= this.SLIDE_SPEED * dt;
         if (this.slideX <= -this.BASE_WINDOW_WIDTH - 200) {
+          const totalMass = this.ship.getTotalMass();
+          missionResultStore.incrementMassAchieved(totalMass);
+          
           this.slideX = -this.BASE_WINDOW_WIDTH - 320;
           this.animationPhase = null;
           this.isAnimating = false;
@@ -406,7 +408,7 @@ export class BlockDropDecisionMenu implements Menu {
     // Give player currency (Entropium) equal to the block cost
     PlayerResources.getInstance().addCurrency(this.currentBlockType?.cost ?? 0);
     PlayerResources.getInstance().dequeueBlock();
-    audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
+    audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
     missionResultStore.incrementBlockRefinedCount();
     this.advanceQueueOrClose();
     this.clickedButton = 'refine';

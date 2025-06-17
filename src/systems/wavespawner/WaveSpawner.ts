@@ -169,6 +169,7 @@ export class WaveSpawner implements IUpdatable {
       const nextWave = this.waves[this.currentWaveIndex];
       const interval = nextWave.waveDurationSeconds ?? this.defaultWaveInterval;
       if (this.elapsedTime >= interval) {
+        missionResultStore.incrementWavesCleared();
         this.spawnWave(nextWave);
         this.currentWaveIndex++;
         this.elapsedTime = 0;

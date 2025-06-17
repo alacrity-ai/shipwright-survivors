@@ -239,9 +239,6 @@ export class TitleScreenManager {
             this.stop();
             sceneManager.fadeToScene('hub');
           } else {
-            PlayerTechnologyManager.getInstance().unlockMany([
-              'hull1', 'engine1', 'turret1', 'fin1', 'facetplate1'
-            ]);
             missionLoader.setMission(missionRegistry['mission_001']);
             this.stop();
             sceneManager.fadeToScene('mission');

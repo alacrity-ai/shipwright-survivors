@@ -1,5 +1,7 @@
 // src/game/player/PlayerPassiveManager.ts
 
+import { PlayerMetaCurrencyManager } from './PlayerMetaCurrencyManager';
+
 export type PassiveId =
   | 'harvester-range'
   | 'laser-damage'
@@ -36,7 +38,7 @@ interface SerializablePassiveData {
 export class PlayerPassiveManager {
   private static instance: PlayerPassiveManager;
   private passives: Map<PassiveId, PassiveTier> = new Map();
-  private passivePoints: number = 0;
+  private passivePoints: number = 0; // Deprecated but retained for serialization
 
   private constructor() {}
 
@@ -50,11 +52,11 @@ export class PlayerPassiveManager {
   // === Point Management ===
 
   public addPassivePoints(amount: number): void {
-    this.passivePoints += amount;
+    PlayerMetaCurrencyManager.getInstance().addMetaCurrency(amount);
   }
 
   public getAvailablePoints(): number {
-    return this.passivePoints;
+    return PlayerMetaCurrencyManager.getInstance().getMetaCurrency();
   }
 
   public getUpgradeCost(nextTier: PassiveTier, currentTier: PassiveTier | null = null): number {
@@ -62,9 +64,9 @@ export class PlayerPassiveManager {
 
     const tierCost = (tier: number): number => {
       switch (tier) {
-        case 1: return 1;
-        case 2: return 2;
-        case 3: return 3;
+        case 1: return 5;
+        case 2: return 10;
+        case 3: return 15;
         default: return 0;
       }
     };
@@ -78,7 +80,7 @@ export class PlayerPassiveManager {
   }
 
   public canAfford(tier: PassiveTier): boolean {
-    return this.passivePoints >= tier;
+    return PlayerMetaCurrencyManager.getInstance().canAfford(tier);
   }
 
   // === Passive Tier Assignment ===
@@ -88,9 +90,9 @@ export class PlayerPassiveManager {
     const cost = this.getUpgradeCost(tier, current);
 
     if (cost < 0) return false; // disallow downgrade
-    if (this.passivePoints < cost) return false;
+    if (!PlayerMetaCurrencyManager.getInstance().canAfford(cost)) return false;
 
-    this.passivePoints -= cost;
+    PlayerMetaCurrencyManager.getInstance().subtractMetaCurrency(cost);
     this.passives.set(id, tier);
     return true;
   }
@@ -110,17 +112,7 @@ export class PlayerPassiveManager {
   public getTotalPassivesSpent(): number {
     let total = 0;
     for (const tier of this.passives.values()) {
-      switch (tier) {
-        case 1:
-          total += 1;
-          break;
-        case 2:
-          total += 2;
-          break;
-        case 3:
-          total += 3;
-          break;
-      }
+      total += tier;
     }
     return total;
   }
@@ -132,22 +124,24 @@ export class PlayerPassiveManager {
   // === Refund & Reset ===
 
   public refundAll(): void {
+    let totalRefund = 0;
     for (const tier of this.passives.values()) {
-      this.passivePoints += tier;
+      totalRefund += tier;
     }
+    PlayerMetaCurrencyManager.getInstance().addMetaCurrency(totalRefund);
     this.passives.clear();
   }
 
   public clear(): void {
     this.passives.clear();
-    this.passivePoints = 0;
+    this.passivePoints = 0; // preserved for legacy serialization
   }
 
   // === Serialization ===
 
   public toJSON(): string {
     const result: SerializablePassiveData = {
-      passivePoints: this.passivePoints,
+      passivePoints: this.passivePoints, // not used at runtime anymore
       passives: {} as Record<PassiveId, PassiveTier>,
     };
     for (const [id, tier] of this.passives.entries()) {
@@ -163,7 +157,7 @@ export class PlayerPassiveManager {
     try {
       const parsed: Partial<SerializablePassiveData> = JSON.parse(json);
       if (typeof parsed.passivePoints === 'number') {
-        this.passivePoints = parsed.passivePoints;
+        this.passivePoints = parsed.passivePoints; // ignored at runtime
       }
 
       if (parsed.passives && typeof parsed.passives === 'object') {

@@ -10,6 +10,7 @@ import { DebriefingScreenManager } from '@/scenes/debriefing/DebriefingScreenMan
 import { GalaxyMapSceneManager } from '@/scenes/hub/GalaxyMapSceneManager';
 import { PassivesMenuSceneManager } from '@/scenes/hub/PassivesMenuSceneManager';
 import { BreakroomSceneManager } from '@/scenes/hub/BreakRoomSceneManager';
+import { DebriefingSceneManager } from '@/scenes/debriefing/DebriefingSceneManager';
 
 import { audioManager } from '@/audio/Audio';
 
@@ -150,7 +151,7 @@ class SceneManager {
       }
 
       case 'debriefing': {
-        const mgr = new DebriefingScreenManager(
+        const mgr = new DebriefingSceneManager(
           this.ensureCanvasManager(),
           this.gameLoop,
           this.ensureInputManager()

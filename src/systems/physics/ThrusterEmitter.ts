@@ -143,8 +143,6 @@ export class ThrusterEmitter {
         lifeRange: [0.25, 0.65],
         fadeOut: true,
       });
-
-      this.emitPulseSoundAndShake(block.ownerShipId, pulseJustActivated, superPulseJustActivated);
     }
 
     // === Lighting ===
@@ -160,58 +158,6 @@ export class ThrusterEmitter {
       });
 
       this.lightingOrchestrator.registerLight(light);
-    }
-  }
-
-  private emitPulseSoundAndShake(
-    ownerShipId: string,
-    wasPulse: boolean = false,
-    wasSuperPulse: boolean = false
-  ): void {
-    const shipRegistry = ShipRegistry.getInstance();
-    const playerShip = shipRegistry.getPlayerShip();
-    const ownerShip = shipRegistry.getById(ownerShipId);
-
-    // === Determine SFX based on tier
-    // TODO : Get specific sounds
-    let soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
-    if (wasSuperPulse) {
-      soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
-    } else if (wasPulse) {
-      soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
-    }
-
-    // === Spatial SFX
-    if (ownerShip) {
-      playSpatialSfx(ownerShip, playerShip, {
-        file: soundFile,
-        channel: 'sfx',
-        baseVolume: 1,
-        pitchRange: [0.9, 1.1],
-        volumeJitter: 0.15,
-        maxSimultaneous: 5,
-      });
-    }
-
-    // === Screen Shake for Player
-    if (ownerShip && ownerShip === playerShip) {
-      let strength = 4;
-      let duration = 0.16;
-
-      if (wasPulse) {
-        strength = 6;
-        duration = 0.18;
-      }
-      if (wasSuperPulse) {
-        strength = 9;
-        duration = 0.20;
-      }
-
-      GlobalEventBus.emit('camera:shake', {
-        strength,
-        duration,
-        frequency: 10,
-      });
     }
   }
 }

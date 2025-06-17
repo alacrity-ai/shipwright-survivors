@@ -18,6 +18,7 @@ export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
+  private readonly BLOCK_CULLING_THRESHOLD = 20;
   
   // For floating active card animations
   private readonly floatOffsets: number[] = [];  // per-block animated vertical offsets
@@ -90,14 +91,6 @@ export class BlockQueueDisplayManager {
         shouldRaise.add(i);
       }
     }
-    // } else if (hovered === 'autoPlaceAll') {
-    //   // ISSUE HERE: <------
-    //   // Causing memory leak?
-    //   // When autoPlaceAll runs with this line of code active, our  framerate drops to 30fps, and stays there, even after the menu has closed
-    //   // for (let i = 0; i < blockQueue.length; i++) {
-    //   //   shouldRaise.add(i);
-    //   // }
-    // }
 
     // Interpolate each offset
     for (let i = 0; i < blockQueue.length; i++) {
@@ -305,16 +298,17 @@ export class BlockQueueDisplayManager {
       const previewX = cardX + cardMarginX;
       const previewY = cardY + cardMarginY;
       const alpha = blockCount > 0 ? 1.0 : 0.3;
-
-      this.blockPreviewRenderer.render(
-        ctx,
-        previewX,
-        previewY,
-        scaledPreviewSize,
-        scaledPreviewSize,
-        alpha,
-        blockType
-      );
+      if (i < this.BLOCK_CULLING_THRESHOLD) {
+        this.blockPreviewRenderer.render(
+          ctx,
+          previewX,
+          previewY,
+          scaledPreviewSize,
+          scaledPreviewSize,
+          alpha,
+          blockType,
+        );
+      }
     }
   }
 }

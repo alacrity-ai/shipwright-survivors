@@ -35,7 +35,7 @@ export class BlockPreviewRenderer {
     width: number,
     height: number,
     alpha: number = 1.0,
-    BlockOverride: BlockType | null = null
+    BlockOverride: BlockType | null = null,
   ): void {
     const block = BlockOverride ?? this.blockType;
     const sprite = getBlockSprite(block.id);
