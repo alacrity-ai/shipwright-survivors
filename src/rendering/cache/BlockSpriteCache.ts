@@ -919,6 +919,22 @@ export function destroyGLBlockSpriteCache(gl: WebGLRenderingContext): void {
   glSpriteCache.clear();
 }
 
+export function destroyGL2BlockSpriteCache(gl: WebGL2RenderingContext): void {
+  for (const [typeId, damagedVariants] of gl2SpriteCache.entries()) {
+    for (const level of Object.values(DamageLevel)) {
+      const sprite = damagedVariants[level];
+      if (sprite.base && gl.isTexture(sprite.base)) {
+        gl.deleteTexture(sprite.base);
+      }
+      if (sprite.overlay && gl.isTexture(sprite.overlay)) {
+        gl.deleteTexture(sprite.overlay);
+      }
+    }
+  }
+
+  gl2SpriteCache.clear();
+}
+
 
 export function getDamageLevel(currentHp: number, maxHp: number): DamageLevel {
   const ratio = Math.max(0, currentHp / maxHp);

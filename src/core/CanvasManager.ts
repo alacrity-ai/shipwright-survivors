@@ -139,11 +139,23 @@ export class CanvasManager {
     }
   }
 
-  public clearWebGLLayer(layer: CanvasLayer, color: [number, number, number, number] = [0, 0, 0, 1]): void {
+  public clearWebGLLayer(layer: CanvasLayer, color: [number, number, number, number] = [0, 0, 0, 0]): void {
     const canvas = this.getCanvas(layer);
     const gl = canvas.getContext('webgl');
     if (!gl) {
       throw new Error(`Cannot clear WebGL layer '${layer}': no WebGL context available`);
+    }
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(...color);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  public clearWebGL2Layer(layer: CanvasLayer, color: [number, number, number, number] = [0, 0, 0, 0]): void {
+    const canvas = this.getCanvas(layer);
+    const gl = canvas.getContext('webgl2');
+    if (!gl) {
+      throw new Error(`Cannot clear WebGL2 layer '${layer}': no WebGL2 context available`);
     }
 
     gl.viewport(0, 0, canvas.width, canvas.height);

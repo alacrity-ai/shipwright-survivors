@@ -11,7 +11,7 @@ import { calculateCoresEarnedDetailed, calculateCoresEarned } from '@/scenes/deb
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 
-import { destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { destroyGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { createPreviewShip } from '@/game/ship/factories/previewShipFactory';
 import { PreviewShipRendererGL } from '@/rendering/PreviewShipRenderer';
@@ -144,6 +144,8 @@ export class DebriefingSceneManager {
             return;
           }
 
+          destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+          CanvasManager.getInstance().clearWebGL2Layer('unifiedgl2');
           this.stop();
           sceneManager.fadeToScene('hub');
         },
@@ -255,7 +257,6 @@ start() {
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();
     this.previewRenderer?.destroy();
-    destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
   }
 
   private update = () => {
