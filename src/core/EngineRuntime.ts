@@ -12,7 +12,7 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
-import { initializeGLBlockSpriteCache, destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeGLBlockSpriteCache, initializeGL2BlockSpriteCache, destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { initializeGLProjectileSpriteCache, destroyGLProjectileSpriteCache } from '@/rendering/cache/ProjectileSpriteCache';
 
 import { MenuManager } from '@/ui/MenuManager';
@@ -29,8 +29,9 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
+import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import { BackgroundRendererGL as BackgroundRenderer } from '@/rendering/BackgroundRendererGL';
-import { MultiShipRendererGL } from '@/rendering/MultiShipRendererGL';
+// import { MultiShipRendererGL } from '@/rendering/MultiShipRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -136,7 +137,8 @@ export class EngineRuntime {
   private pickupSystem: PickupSystem;
   private particleManager: ParticleManager;
   private background: BackgroundRenderer;
-  private multiShipRendererGL: MultiShipRendererGL;
+  private unifiedSceneRenderer: UnifiedSceneRendererGL;
+  // private multiShipRendererGL: MultiShipRendererGL;
   private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
@@ -181,6 +183,7 @@ export class EngineRuntime {
     // Initialize GL caches
     initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     // Resolution fix for electron
     applyViewportResolution(this.canvasManager, this.camera);
@@ -191,9 +194,11 @@ export class EngineRuntime {
     // Lighting System
     const lightingGL = this.canvasManager.getWebGLContext('lighting');
     const lightingRenderer = new LightingRenderer(lightingGL);
-    this.lightingOrchestrator = LightingOrchestrator.getInstance(lightingRenderer, this.camera);
-    const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
-    this.lightingOrchestrator.setClearColor(...sceneLighting);
+    this.lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    // Old, may need to add new clear color to the unified renderer
+    // const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
+    // this.lightingOrchestrator.setClearColor(...sceneLighting);
 
     // Particle System
     this.particleManager = new ParticleManager(this.canvasManager.getWebGLContext('entitygl'), this.camera, this.lightingOrchestrator);
@@ -324,9 +329,10 @@ export class EngineRuntime {
 
     // Renderers
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
-    this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
+    // this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
     this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
+    this.unifiedSceneRenderer = new UnifiedSceneRendererGL(this.camera, this.inputManager);
 
     // Additional Update Systems
     this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
@@ -462,7 +468,7 @@ export class EngineRuntime {
       this.laserSystem,
       this.pickupSystem,
       this.particleManager,
-      this.multiShipRendererGL,
+      // this.multiShipRendererGL,
       this.asteroidRenderer,
       this.hud,
       this.miniMap,
@@ -475,7 +481,6 @@ export class EngineRuntime {
       this.missionDialogueManager,
       this.shipConstructionAnimator,
       this.planetSystem,
-      this.lightingOrchestrator,
       this.weaponSystem,
       this.aiOrchestrator,
       this.floatingTextManager,
@@ -654,6 +659,11 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('dialogue');
 
     this.renderables.forEach(system => system.render(dt));
+    if (this.camera) {
+        const visibleShips = this.shipCulling.getVisibleShips();
+        const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
+        this.unifiedSceneRenderer.render(this.camera, visibleShips, visibleLights, []);
+    }
 
     // Always render the repair effect system
     this.shipBuilderEffects.render();
@@ -763,7 +773,7 @@ export class EngineRuntime {
     this.hud.destroy();
     this.miniMap.destroy();
     this.lightingOrchestrator.destroy();
-    this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
+    // this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
     this.background.destroy();
     this.missionDialogueManager.destroy();
     this.blockDropDecisionMenu.destroy();

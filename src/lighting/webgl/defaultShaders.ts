@@ -60,33 +60,6 @@ export const FRAG_SHADER_SRC = `
   }
 `;
 
-// // Point Light Fragment Shader - REMOVED individual brightness capping
-// export const FRAG_SHADER_SRC = `
-//   precision mediump float;
-
-//   uniform mediump vec2 uLightPosition;
-//   uniform mediump float uRadius;
-//   uniform mediump vec4 uColor;
-//   uniform mediump float uIntensity;
-//   uniform mediump float uFalloff;
-
-//   varying vec2 vScreenPos;
-
-//   void main() {
-//     float dist = distance(vScreenPos, uLightPosition);
-//     float normDist = clamp(dist / uRadius, 0.0, 1.0);
-
-//     // Smooth radial falloff
-//     float falloff = pow(1.0 - normDist, 2.0);
-//     falloff *= uFalloff;
-
-//     // Simple color calculation - no individual brightness capping
-//     vec3 color = uColor.rgb * falloff * uIntensity;
-    
-//     gl_FragColor = vec4(color, uColor.a * falloff * uIntensity);
-//   }
-// `;
-
 // Post-processing Vertex Shader - unchanged
 export const POST_VERT_SHADER_SRC = `
   attribute vec2 position;

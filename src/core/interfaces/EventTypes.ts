@@ -17,19 +17,29 @@ export type CursorChangeType =
 
 // Updated EventTypes
 export interface EventTypes {
+  // Incident events
   'incident:minimap:marker': IncidentMinimapMarker;
   'incident:minimap:clear': { id: string };
 
+  // Dialogue events
   'dialogue:pause': undefined;
   'dialogue:resume': undefined;
 
+  // Menu events
   'menu:opened': { id: string };
   'menu:closed': { id: string };
 
+  // Camera events
   'camera:shake': { strength: number; duration: number; frequency?: number };
+
+  // Player events
   'player:firemode:changed': { mode: FiringMode };
 
-  // New cursor events
+  // Cursor events
   'cursor:change': { type: CursorChangeType };
   'cursor:restore': undefined;
+
+  // Resolution
+  'resolution:changed': { width: number; height: number };
+
 }

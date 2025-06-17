@@ -13,7 +13,8 @@ export type CanvasLayer =
   | 'particles'
   | 'ui'
   | 'overlay'
-  | 'dialogue';
+  | 'dialogue'
+  | 'unifiedgl2'; // <-- NEW
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
@@ -27,7 +28,9 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   ui: 'ui-canvas',
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas',
+  unifiedgl2: 'unifiedgl2-canvas', // <-- NEW
 };
+
 
 export class CanvasManager {
   private static _instance: CanvasManager | null = null;
@@ -62,12 +65,8 @@ export class CanvasManager {
       }
 
       // === 2D Context Initialization ===
-      if (!['lighting', 'entitygl', 'backgroundgl', 'polygon'].includes(layer)) {
-        performance.mark(`ctx-get-${layer}-start`);
+      if (!['lighting', 'entitygl', 'backgroundgl', 'polygon', 'unifiedgl2'].includes(layer)) {
         const ctx = canvas.getContext('2d', { willReadFrequently: false });
-        performance.mark(`ctx-get-${layer}-end`);
-        performance.measure(`Context acquisition: ${layer}`, `ctx-get-${layer}-start`, `ctx-get-${layer}-end`);
-
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
       }
@@ -100,11 +99,12 @@ export class CanvasManager {
       case 'polygon': return 3;
       case 'entities': return 4;
       case 'lighting': return 5;
-      case 'fx': return 6;
-      case 'particles': return 7;
-      case 'ui': return 8;
-      case 'overlay': return 9;
-      case 'dialogue': return 10;
+      case 'unifiedgl2': return 6;
+      case 'fx': return 7;
+      case 'particles': return 8;
+      case 'ui': return 9;
+      case 'overlay': return 10;
+      case 'dialogue': return 11;
     }
   }
 
@@ -120,6 +120,13 @@ export class CanvasManager {
     const canvas = this.getCanvas(layer);
     const gl = canvas.getContext('webgl');
     if (!gl) throw new Error(`WebGL context not supported for "${layer}"`);
+    return gl;
+  }
+
+  public getWebGL2Context(layer: CanvasLayer): WebGL2RenderingContext {
+    const canvas = this.getCanvas(layer);
+    const gl = canvas.getContext('webgl2');
+    if (!gl) throw new Error(`WebGL2 context not supported for layer "${layer}"`);
     return gl;
   }
 
