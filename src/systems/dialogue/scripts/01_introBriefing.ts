@@ -8,6 +8,7 @@ import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
+import { createAfterBurnerCoachMark } from '@/rendering/coachmarks/helpers/createAfterBurnerCoachMark';
 import { createOpenBlockMenuCoachMark } from '@/rendering/coachmarks/helpers/createOpenBlockMenuCoachMark';
 import { createToggleFiringModeCoachMark } from '@/rendering/coachmarks/helpers/createToggleFiringModeCoachMark';
 import { createAimCoachMark } from '@/rendering/coachmarks/helpers/createAimCoachMark';
@@ -135,6 +136,44 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           coachMarkManager.clear();
         },
+      },
+      // Teach afterburner (Shift / LB)
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Now engage your Afterburner with Left Shift. Or Left Bumper, if you're using a thumb-calibrated stick.",
+      },
+      {
+        type: 'command',
+        run: () => {
+          createAfterBurnerCoachMark(coachMarkManager, 200, 400);
+        },
+      },
+      {
+        type: 'command',
+        run: () => {
+          return new Promise<void>((resolve) => {
+            const waitForInput = () => {
+              if (inputManager.isActionPressed('afterburner')) {
+                coachMarkManager.clear();
+                resolve();
+              } else {
+                requestAnimationFrame(waitForInput);
+              }
+            };
+            waitForInput();
+          });
+        },
+      },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Acceleration spike detected. Try not to hit anything valuable—like me.",
+      },
+      // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
       },
       {
         type: 'line',
