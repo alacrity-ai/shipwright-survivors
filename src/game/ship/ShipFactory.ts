@@ -70,8 +70,6 @@ export class ShipFactory {
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
-    console.log('JSON behaviorType:', behaviorType);
-
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
     }
@@ -102,18 +100,12 @@ export class ShipFactory {
         : undefined) ??
       DefaultBehaviorProfile;
 
-    console.log('Effective profile attack:', effectiveProfile.attack);
-    console.log('Effective profile seek:', effectiveProfile.seek);
-
     const controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
 
     if (effectiveProfile.initialStateFactory) {
       const initialState = effectiveProfile.initialStateFactory(controller);
-      console.log('Initial state:', initialState.constructor.name);
       controller.setInitialState(initialState);
-    } else {
-      console.log('Initial state: none');
-    }
+    } 
 
     controller.setHunter(hunter);
     this.orchestrator.addController(controller);

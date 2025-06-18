@@ -28,6 +28,7 @@ export class DebugOverlay {
 
     const shipCount = this.shipRegistry.count();
     const aiControllerCount = this.aiOrchestrator.getControllerCount();
+    const hunterControllerCount = this.aiOrchestrator.getHunterControllerCount();
 
     // === Aggregate shielded block count and shieldEfficiency
     let totalShieldedBlocks = 0;
@@ -51,6 +52,7 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
     drawLabel(ctx, x, y, `Ships: ${shipCount}`); y += lineHeight;
     drawLabel(ctx, x, y, `AI Controllers: ${aiControllerCount}`); y += lineHeight;
+    drawLabel(ctx, x, y, `AI Hunter Controllers: ${hunterControllerCount}`); y += lineHeight;
     drawLabel(ctx, x, y, `Shielded Blocks: ${totalShieldedBlocks}`); y += lineHeight;
     drawLabel(ctx, x, y, `Total Shield Efficiency: ${totalShieldEfficiency.toFixed(2)}`);
     y += lineHeight;

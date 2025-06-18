@@ -2,6 +2,7 @@ import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
 import { BaseAIState } from './BaseAIState';
 import { approachTarget } from '@/systems/ai/steering/SteeringHelper';
@@ -72,13 +73,17 @@ export class PatrolState extends BaseAIState {
   }
 
   transitionIfNeeded(): BaseAIState | null {
-    const nearestTarget = findNearestTarget(this.ship, this.wakeRadius);
-    if (!nearestTarget) return null;
-
     // === Hunter override: always seek if a target is visible ===
     if (this.controller.isHunter()) {
-      return new SeekTargetState(this.controller, this.ship, nearestTarget);
+      const playerShip = ShipRegistry.getInstance().getPlayerShip();
+      if (playerShip) {
+        this.controller.setInitialState(new SeekTargetState(this.controller, this.ship, playerShip));
+        return new SeekTargetState(this.controller, this.ship, playerShip);
+      }
     }
+
+    const nearestTarget = findNearestTarget(this.ship, this.wakeRadius);
+    if (!nearestTarget) return null;
 
     // === Normal behavior: only seek if within range ===
     const targetPos = nearestTarget.getTransform().position;

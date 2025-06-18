@@ -76,6 +76,10 @@ export class AIOrchestratorSystem implements IUpdatable {
     return this.controllerToShipMap.size;
   }
 
+  public getHunterControllerCount(): number {
+    return this.hunterControllers.size;
+  }
+
   public clear(): void {
     this.controllerToShipMap.clear();
   }

@@ -314,7 +314,6 @@ export function autoPlaceBlockWithArchetype(
   shipBuilderEffects: any, // ShipBuilderEffectsSystem
   archetype?: ShipArchetypeProfile
 ): boolean {
-  console.log('[autoPlaceBlockWithArchetype]', blockType.name, archetype?.id);
   if (!blockType) return false;
 
   const placement = findOptimalPlacementWithArchetype(ship, blockType, archetype);
