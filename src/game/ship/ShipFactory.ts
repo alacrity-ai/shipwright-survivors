@@ -33,6 +33,7 @@ import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 export type AuraLightOptions = {
   color: string;
   radius: number;
+  intensity: number;
 };
 
 export class ShipFactory {
@@ -66,7 +67,7 @@ export class ShipFactory {
     ship.setFaction(faction);
 
     // If hunter auralight color is red, otherwise yellow
-    const auraLightOptions: AuraLightOptions = { color: '#ff0000', radius: 96 };
+    const auraLightOptions: AuraLightOptions = { color: '#ff0000', radius: 96, intensity: 0.8 };
 
     const transform = ship.getTransform();
     transform.position.x = x;

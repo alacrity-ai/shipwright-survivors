@@ -5,34 +5,27 @@ import type {
   AnyLightInstance,
   PointLightInstance,
 } from './lights/types';
-import { LightingRenderer } from './LightingRenderer';
-import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 let nextLightId = 0;
 let _instance: LightingOrchestrator | null = null;
 
 /**
  * Central controller for active light instances.
- * Handles registration, lifecycle management, spatial culling, and render delegation.
+ * Handles registration, lifecycle management, spatial culling, and pooling.
  */
 export class LightingOrchestrator {
   private lights = new Map<string, AnyLightInstance>();
-  private readonly renderer: LightingRenderer;
-  private readonly camera: Camera;
-
   private lightPool: PointLightInstance[] = [];
 
-  constructor(renderer: LightingRenderer, camera: Camera) {
-    this.renderer = renderer;
-    this.camera = camera;
-  }
+  private cachedVisibleLights: AnyLightInstance[] = [];
+  private lastCameraBounds: { x: number; y: number; width: number; height: number } | null = null;
+  private lightsDirty = true;
 
-  public static getInstance(renderer?: LightingRenderer, camera?: Camera): LightingOrchestrator {
+  private constructor() {}
+
+  public static getInstance(): LightingOrchestrator {
     if (!_instance) {
-      if (!renderer || !camera) {
-        throw new Error('[LightingOrchestrator] Must supply renderer and camera on first call to getInstance().');
-      }
-      _instance = new LightingOrchestrator(renderer, camera);
+      _instance = new LightingOrchestrator();
     }
     return _instance;
   }
@@ -44,16 +37,14 @@ export class LightingOrchestrator {
   registerLight(light: AnyLightInstance): void {
     if (!light.id) light.id = `light_${nextLightId++}`;
     this.lights.set(light.id, light);
+    this.lightsDirty = true;
   }
 
   removeLight(id: string): void {
     const light = this.lights.get(id);
     if (light) this.recycleLight(light);
     this.lights.delete(id);
-  }
-
-  public resizeLighting(): void {
-    this.renderer.resize();
+    this.lightsDirty = true;
   }
 
   clear(): void {
@@ -61,6 +52,7 @@ export class LightingOrchestrator {
       this.recycleLight(light);
     }
     this.lights.clear();
+    this.lightsDirty = true;
   }
 
   update(dt: number): void {
@@ -70,48 +62,53 @@ export class LightingOrchestrator {
         if (light.expires && light.life <= 0) {
           this.recycleLight(light);
           this.lights.delete(id);
+          this.lightsDirty = true;
           continue;
         }
 
         const ratio = Math.max(0, light.life / light.maxLife);
-
         if (light.fadeMode === 'delayed') {
           const fadeThreshold = 0.10;
           light.animationPhase = ratio >= fadeThreshold
             ? 1.0
             : ratio / fadeThreshold;
         } else {
-          light.animationPhase = ratio; // linear
+          light.animationPhase = ratio;
         }
       }
 
-      // Additional per-frame animation logic could go here
+      // Optional: insert per-frame animation logic here
     }
   }
 
-  render(): void {
-    if (!PlayerSettingsManager.getInstance().isLightingEnabled()) return;
+  /**
+   * Computes or returns memoized list of visible lights within the camera viewport.
+   */
+  collectVisibleLights(camera: Camera): AnyLightInstance[] {
+    const bounds = camera.getViewportBounds();
 
-    const visibleLights = this.getVisibleLights();
-    this.renderer.render(visibleLights, this.camera);
-  }
+    const boundsChanged =
+      !this.lastCameraBounds ||
+      bounds.x !== this.lastCameraBounds.x ||
+      bounds.y !== this.lastCameraBounds.y ||
+      bounds.width !== this.lastCameraBounds.width ||
+      bounds.height !== this.lastCameraBounds.height;
 
-  private getVisibleLights(): AnyLightInstance[] {
-    const bounds = this.camera.getViewportBounds(); // { x, y, width, height }
+    if (!this.lightsDirty && !boundsChanged) {
+      return this.cachedVisibleLights;
+    }
+
     const left = bounds.x;
     const right = bounds.x + bounds.width;
     const top = bounds.y;
     const bottom = bounds.y + bounds.height;
 
-    return Array.from(this.lights.values()).filter(light => {
+    this.cachedVisibleLights = Array.from(this.lights.values()).filter(light => {
       switch (light.type) {
         case 'directional':
-          // Always included — global effect
           return true;
-
         case 'point':
-        case 'spot':
-          // Perform axis-aligned bounding circle test
+        case 'spot': {
           const { x, y, radius } = light;
           return (
             x + radius > left &&
@@ -119,11 +116,16 @@ export class LightingOrchestrator {
             y + radius > top &&
             y - radius < bottom
           );
-
+        }
         default:
-          return true; // Fail open
+          return true;
       }
     });
+
+    this.lastCameraBounds = bounds;
+    this.lightsDirty = false;
+
+    return this.cachedVisibleLights;
   }
 
   getLightCount(): number {
@@ -138,7 +140,7 @@ export class LightingOrchestrator {
     return this.lights.get(id);
   }
 
-  public getPooledLight(): PointLightInstance {
+  getPooledLight(): PointLightInstance {
     const light = this.lightPool.pop() ?? {
       id: '',
       x: 0,
@@ -149,6 +151,17 @@ export class LightingOrchestrator {
       type: 'point',
     };
     return light;
+  }
+
+  updateLight(
+    id: string,
+    updates: Partial<Omit<PointLightInstance, 'id' | 'type'>>
+  ): void {
+    const light = this.lights.get(id);
+    if (!light || light.type !== 'point') return;
+
+    Object.assign(light, updates);
+    this.lightsDirty = true;
   }
 
   private recycleLight(light: AnyLightInstance): void {
@@ -165,32 +178,13 @@ export class LightingOrchestrator {
     return light.type === 'point';
   }
 
-  public updateLight(
-    id: string,
-    updates: Partial<Omit<PointLightInstance, 'id' | 'type'>>
-  ): void {
-    const light = this.lights.get(id);
-    if (!light || light.type !== 'point') return;
-
-    Object.assign(light, updates);
-  }
-
-  /**
-   * Sets the ambient light of the scene.
-   * Example: this.lightingOrchestrator.setClearColor(0.1, 0.0, 0.2, 0.1);
-   * Sets the ambient light to a dark violet.
-   */
-  public setClearColor(r: number, g: number, b: number, a: number): void {
-    this.renderer.setClearColor(r, g, b, a);
-  }
-
-  public destroy(): void {
+  destroy(): void {
     if (_instance !== this) return;
 
     this.clear();
     this.lightPool.length = 0;
-    this.renderer.destroy();
-
+    this.cachedVisibleLights.length = 0;
+    this.lastCameraBounds = null;
     _instance = null;
     nextLightId = 0;
   }

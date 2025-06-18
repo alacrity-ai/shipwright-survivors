@@ -126,6 +126,7 @@ export class MultiShipRendererGL {
     gl.uniform1f(this.uniforms.uTime, time);
 
     for (const ship of visibleShips) {
+      if (ship.getIsPlayerShip()) continue;
       const { position, rotation } = ship.getTransform();
 
       // Handle lighting
@@ -145,15 +146,6 @@ export class MultiShipRendererGL {
         createRotationMatrix(rotation),
         createTranslationMatrix(position.x, position.y)
       );
-
-      // DEBUG: TODO: Remove in prod
-      // const isColliding = ship.isColliding?.() ?? false;
-      // if (isColliding) {
-      //   gl.uniform1i(this.uniforms.uUseCollisionColor, 1);
-      //   gl.uniform3f(this.uniforms.uCollisionColor, 1.0, 0.1, 0.1); // Red
-      // } else {
-      //   gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
-      // }
 
       for (const [coord, block] of ship.getAllBlocks()) {
         if (block.hidden) continue;

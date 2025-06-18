@@ -2,6 +2,8 @@
 
 import { audioManager } from '@/audio/Audio';
 
+import { reportResolutionChange } from '@/core/interfaces/events/ResolutionChangeReporter';
+
 export class PlayerSettingsManager {
   private static instance: PlayerSettingsManager;
 
@@ -63,11 +65,13 @@ export class PlayerSettingsManager {
   setViewportWidth(w: number): void {
     this.viewportWidth = Math.max(640, w);
     this.notifyResolutionChange();
+    reportResolutionChange(this.viewportWidth, this.viewportHeight);
   }
 
   setViewportHeight(h: number): void {
     this.viewportHeight = Math.max(480, h);
     this.notifyResolutionChange();
+    reportResolutionChange(this.viewportWidth, this.viewportHeight);
   }
 
   getViewportWidth(): number {

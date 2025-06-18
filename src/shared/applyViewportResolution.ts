@@ -65,11 +65,12 @@ export function applyViewportResolution(
     root.style.overflow = 'hidden';
   }
 
-  if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-    if (LightingOrchestrator.hasInstance()) {
-      LightingOrchestrator.getInstance().resizeLighting();
-    }
-  }
+  // TODO: Deprecated
+  // if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
+  //   if (LightingOrchestrator.hasInstance()) {
+  //     LightingOrchestrator.getInstance().resizeLighting();
+  //   }
+  // }
 
   // Invoke callback after all resizing and zoom application
   if (onComplete) {

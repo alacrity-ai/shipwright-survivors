@@ -271,8 +271,9 @@ export class WaveSpawner implements IUpdatable {
         font: '28px monospace',
       });
       if (wave.lightingSettings?.clearColor) {
-        const lightingOrchestrator = LightingOrchestrator.getInstance();
-        lightingOrchestrator.setClearColor(...wave.lightingSettings.clearColor);
+        // TODO : This needs to be updated to our new GL unified renderer
+        // const lightingOrchestrator = LightingOrchestrator.getInstance();
+        // lightingOrchestrator.setClearColor(...wave.lightingSettings.clearColor);
       }
       this.monitorBossWaveCompletion(spawnedShips);
     } else {

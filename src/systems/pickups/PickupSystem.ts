@@ -176,7 +176,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       y: position.y,
       radius: 300,
       color,
-      intensity: 1.0,
+      intensity: 0.75,
       life: 10000,
       expires: true,
     });

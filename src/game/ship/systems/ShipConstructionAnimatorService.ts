@@ -145,7 +145,7 @@ export class ShipConstructionAnimatorService {
 
           // Turn on the auralight
           if (state.auraLightOptions) {
-            state.ship.registerAuraLight(state.auraLightOptions.color, state.auraLightOptions.radius);
+            state.ship.registerAuraLight(state.auraLightOptions.color, state.auraLightOptions.radius, state.auraLightOptions.intensity);
           }
         }
       } else if (state.phase === 'shockwave') {

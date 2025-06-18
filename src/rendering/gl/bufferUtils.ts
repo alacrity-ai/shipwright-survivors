@@ -44,3 +44,4 @@ export function createQuadBuffer2(gl: WebGLRenderingContext): WebGLBuffer {
   gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
   return buffer;
 }
+

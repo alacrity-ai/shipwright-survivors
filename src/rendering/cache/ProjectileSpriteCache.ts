@@ -1,7 +1,7 @@
-// src/rendering/ProjectileSpriteCache.ts
+// src/rendering/cache/ProjectileSpriteCache.ts
 
 import { drawEnergyRing } from '@/rendering/helpers/drawEnergyRing';
-import { createTextureFromCanvasWithAlpha } from '@/rendering/gl/glTextureUtils';
+import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 
 // --- Sprite Interfaces ---
 
@@ -17,7 +17,7 @@ const CANVAS_SIZE = 128;
 const spriteCache: Map<string, ProjectileSprite> = new Map();
 const glSpriteCache: Map<string, GLProjectileSprite> = new Map();
 
-// --- Helpers ---
+// --- Sprite ID Registry ---
 
 function getAllProjectileTypes(): string[] {
   return [
@@ -29,17 +29,17 @@ function getAllProjectileTypes(): string[] {
   ];
 }
 
+// --- Canvas Setup ---
+
 function createBlankCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
-
-  // MUST pass options here
   const ctx = canvas.getContext('2d', { alpha: true })!;
   return { canvas, ctx };
 }
 
-// --- Drawing ---
+// --- Drawing Logic ---
 
 function drawProceduralProjectile(typeId: string): void {
   const { canvas, ctx } = createBlankCanvas();
@@ -71,29 +71,29 @@ function drawProceduralProjectile(typeId: string): void {
 
 // --- Initialization ---
 
-export function initializeGLProjectileSpriteCache(gl: WebGLRenderingContext): void {
-  let count = 0;
-  for (const [typeId, sprite] of spriteCache.entries()) {
-    try {
-      const texture = createTextureFromCanvasWithAlpha(gl, sprite.canvas);
-      glSpriteCache.set(typeId, { texture });
-      count++;
-    } catch (e) {
-      console.error(`[GLProjectileCache] Failed to convert ${typeId}`, e);
-    }
-  }
-  console.log(`[GLProjectileCache] Initialized ${count} GL projectile textures.`);
-}
-
 export function initializeProjectileSpriteCache(): void {
   for (const id of getAllProjectileTypes()) {
     drawProceduralProjectile(id);
   }
 }
 
+export function initializeGLProjectileSpriteCache(gl: WebGL2RenderingContext): void {
+  let count = 0;
+  for (const [typeId, sprite] of spriteCache.entries()) {
+    try {
+      const texture = createGL2TextureFromCanvas(gl, sprite.canvas);
+      glSpriteCache.set(typeId, { texture });
+      count++;
+    } catch (e) {
+      console.error(`[GLProjectileSpriteCache] Failed to create texture for ${typeId}:`, e);
+    }
+  }
+  console.log(`[GLProjectileSpriteCache] Initialized ${count} GL2 projectile textures.`);
+}
+
 // --- Cleanup ---
 
-export function destroyGLProjectileSpriteCache(gl: WebGLRenderingContext): void {
+export function destroyGLProjectileSpriteCache(gl: WebGL2RenderingContext): void {
   for (const { texture } of glSpriteCache.values()) {
     if (texture && gl.isTexture(texture)) {
       gl.deleteTexture(texture);

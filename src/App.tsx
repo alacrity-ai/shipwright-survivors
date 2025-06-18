@@ -67,6 +67,7 @@ export default function App() {
       <canvas id="fx-canvas" />
       <canvas id="particles-canvas" />
       <canvas id="lighting-canvas" />
+      <canvas id="unifiedgl2-canvas" />
       <canvas id="ui-canvas" />
       <canvas id="overlay-canvas" />
       <canvas id="dialogue-canvas" />

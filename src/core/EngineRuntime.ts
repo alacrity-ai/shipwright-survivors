@@ -12,8 +12,9 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
-import { initializeGLBlockSpriteCache, destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { initializeGLProjectileSpriteCache, destroyGLProjectileSpriteCache } from '@/rendering/cache/ProjectileSpriteCache';
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
@@ -29,8 +30,8 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
+import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import { BackgroundRendererGL as BackgroundRenderer } from '@/rendering/BackgroundRendererGL';
-import { MultiShipRendererGL } from '@/rendering/MultiShipRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -136,7 +137,7 @@ export class EngineRuntime {
   private pickupSystem: PickupSystem;
   private particleManager: ParticleManager;
   private background: BackgroundRenderer;
-  private multiShipRendererGL: MultiShipRendererGL;
+  private unifiedSceneRenderer: UnifiedSceneRendererGL;
   private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
@@ -179,8 +180,9 @@ export class EngineRuntime {
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
 
     // Initialize GL caches
-    initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
-    initializeGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    // initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     // Resolution fix for electron
     applyViewportResolution(this.canvasManager, this.camera);
@@ -189,14 +191,14 @@ export class EngineRuntime {
     this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
   
     // Lighting System
-    const lightingGL = this.canvasManager.getWebGLContext('lighting');
-    const lightingRenderer = new LightingRenderer(lightingGL);
-    this.lightingOrchestrator = LightingOrchestrator.getInstance(lightingRenderer, this.camera);
-    const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
-    this.lightingOrchestrator.setClearColor(...sceneLighting);
+    this.lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    // Old, may need to add new clear color to the unified renderer
+    // const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
+    // this.lightingOrchestrator.setClearColor(...sceneLighting);
 
     // Particle System
-    this.particleManager = new ParticleManager(this.canvasManager.getWebGLContext('entitygl'), this.camera, this.lightingOrchestrator);
+    this.particleManager = new ParticleManager(this.lightingOrchestrator);
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
     this.mission = missionLoader.getMission();
@@ -324,9 +326,11 @@ export class EngineRuntime {
 
     // Renderers
     this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
-    this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
+    // this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
     this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
+    this.unifiedSceneRenderer = new UnifiedSceneRendererGL(this.camera, this.inputManager);
+    this.unifiedSceneRenderer.setAmbientLight([0.4, 0.4, 0.4]);
 
     // Additional Update Systems
     this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
@@ -461,8 +465,6 @@ export class EngineRuntime {
       this.background,
       this.laserSystem,
       this.pickupSystem,
-      this.particleManager,
-      this.multiShipRendererGL,
       this.asteroidRenderer,
       this.hud,
       this.miniMap,
@@ -475,8 +477,7 @@ export class EngineRuntime {
       this.missionDialogueManager,
       this.shipConstructionAnimator,
       this.planetSystem,
-      this.lightingOrchestrator,
-      this.weaponSystem,
+      // this.weaponSystem,
       this.aiOrchestrator,
       this.floatingTextManager,
       this.coachMarkManager,
@@ -553,8 +554,10 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
-      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
+      // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
+      // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
+      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 
@@ -654,6 +657,13 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('dialogue');
 
     this.renderables.forEach(system => system.render(dt));
+    if (this.camera) {
+        const visibleShips = this.shipCulling.getVisibleShips();
+        const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
+        const activeParticles = this.particleManager.getActiveParticles();
+        const spriteRequests = GlobalSpriteRequestBus.getAndClear();
+        this.unifiedSceneRenderer.render(this.camera, visibleShips, visibleLights, spriteRequests, activeParticles);
+    }
 
     // Always render the repair effect system
     this.shipBuilderEffects.render();
@@ -704,7 +714,8 @@ export class EngineRuntime {
     this.inputManager.disableAllActions();
     setTimeout(() => {
       if (this.ship) {
-        this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#0000FF', radius: 96 });
+        this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 96, intensity: 1.25 });
+        // this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 3024, intensity: 0.5 });
       }
     }, 1000);
     setTimeout(() => {
@@ -763,12 +774,13 @@ export class EngineRuntime {
     this.hud.destroy();
     this.miniMap.destroy();
     this.lightingOrchestrator.destroy();
-    this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
+    // this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
     this.background.destroy();
     this.missionDialogueManager.destroy();
     this.blockDropDecisionMenu.destroy();
+    // TODO : Destroy GL2 blocksprite cache??
     // destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
-    destroyGLProjectileSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     // // Clear rendering and update lists
     this.updatables.length = 0;

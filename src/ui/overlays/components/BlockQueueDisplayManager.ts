@@ -14,6 +14,17 @@ import { drawWindow } from '@/ui/primitives/WindowBox';
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 
+function getStyleIdFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' {
+  switch (tier) {
+    case 0: return 'gray';
+    case 1: return 'gray';
+    case 2: return 'green';
+    case 3: return 'blue';
+    case 4: return 'purple';
+    default: return 'gray';
+  }
+}
+
 export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
   private readonly MINI_BLOCK_SIZE = 16;
@@ -248,22 +259,19 @@ export class BlockQueueDisplayManager {
     for (let i = blockQueue.length - 1; i >= 0; i--) {
       const blockType = blockQueue[i];
       const tier = getTierFromBlockId(blockType.id);
-      const baseColor = BLOCK_TIER_COLORS[tier] ?? '#ffffff';
+      const styleId = getStyleIdFromTier(tier); // implement this helper
 
       const floatOffset = this.floatOffsets[i] ?? 0;
       const pulseTime = this.pulseTimers[i] ?? 0;
       const fanOffsetX = this.xOffsets[i] ?? 0;
 
       let scaleMod = 1.0;
-      let color = baseColor;
+      let brightenAmount = 0;
 
       if (floatOffset > 0.5) {
         const pulse = (Math.sin(pulseTime) + 1) / 2;
-        const scalePulse = 1 + pulse * this.PULSE_SCALE_AMPLITUDE;
-        const brightnessPulse = pulse * this.PULSE_BRIGHTNESS_AMPLITUDE;
-
-        scaleMod = scalePulse;
-        color = brightenColor(baseColor, brightnessPulse);
+        scaleMod = 1 + pulse * this.PULSE_SCALE_AMPLITUDE;
+        brightenAmount = pulse * this.PULSE_BRIGHTNESS_AMPLITUDE;
       }
 
       const scaledCardWidth = Math.floor(cardWidth * scaleMod);
@@ -273,10 +281,8 @@ export class BlockQueueDisplayManager {
       let cardX: number;
 
       if (isRollHovered && i >= 0 && i <= 2) {
-        // Fan-out position with smoothly interpolated offset
         cardX = fanBaseX + fanOffsetX + (cardWidth - scaledCardWidth) / 2;
       } else {
-        // Standard compressed layout
         const baseX = windowX + windowMarginX + i * cardSpacing;
         cardX = baseX + (cardWidth - scaledCardWidth) / 2;
       }
@@ -290,9 +296,10 @@ export class BlockQueueDisplayManager {
         width: scaledCardWidth,
         height: scaledCardHeight,
         borderRadius: 12,
-        backgroundColor: color,
-        borderColor: brightenColor(color, 0.3),
+        baseStyleId: styleId,
         alpha: 1.0,
+        scale: 1.0, // or keep as scaleMod if you're not using ctx.scale
+        brighten: brightenAmount,
       });
 
       const previewX = cardX + cardMarginX;

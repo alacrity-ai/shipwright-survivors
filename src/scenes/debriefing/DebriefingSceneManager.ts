@@ -11,7 +11,7 @@ import { calculateCoresEarnedDetailed, calculateCoresEarned } from '@/scenes/deb
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 
-import { destroyGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { destroyGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { createPreviewShip } from '@/game/ship/factories/previewShipFactory';
 import { PreviewShipRendererGL } from '@/rendering/PreviewShipRenderer';
@@ -144,6 +144,8 @@ export class DebriefingSceneManager {
             return;
           }
 
+          destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+          CanvasManager.getInstance().clearWebGL2Layer('unifiedgl2');
           this.stop();
           sceneManager.fadeToScene('hub');
         },
@@ -216,38 +218,38 @@ start() {
   this.gameLoop.onRender(this.render);
   this.gameLoop.start();
 
-  // === Step 3: Now load the preview ship and renderer
-  const path = getAssetPath('assets/ships/player/ship_00.json');
+  // // === Step 3: Now load the preview ship and renderer
+  // const path = getAssetPath('assets/ships/player/ship_00.json');
 
-  fetch(path)
-    .then(res => res.json())
-    .then((data: SerializedShip) => {
-      // Example of putting it in the middle right corner, notice that X and Y are inverted.
-      // const scale = getUniformScaleFactor();
-      // const shipX = -160 * scale;
-      // const shipY = 130 * scale;
-      // const shipScale = 0.75 * scale;
+  // fetch(path)
+  //   .then(res => res.json())
+  //   .then((data: SerializedShip) => {
+  //     // Example of putting it in the middle right corner, notice that X and Y are inverted.
+  //     // const scale = getUniformScaleFactor();
+  //     // const shipX = -160 * scale;
+  //     // const shipY = 130 * scale;
+  //     // const shipScale = 0.75 * scale;
 
-      // this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
-      // this.previewRenderer = new PreviewShipRendererGL();
-      // this.shipJsonLoaded = true;
-      // this.previewShip.getTransform().position.x = shipX;
-      // this.previewShip.getTransform().position.y = shipY;
+  //     // this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
+  //     // this.previewRenderer = new PreviewShipRendererGL();
+  //     // this.shipJsonLoaded = true;
+  //     // this.previewShip.getTransform().position.x = shipX;
+  //     // this.previewShip.getTransform().position.y = shipY;
 
-      const scale = getUniformScaleFactor();
-      const shipX = 0;
-      const shipY = 0;
-      const shipScale = scale;
+  //     const scale = getUniformScaleFactor();
+  //     const shipX = 0;
+  //     const shipY = 0;
+  //     const shipScale = scale;
 
-      this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
-      this.previewRenderer = new PreviewShipRendererGL();
-      this.shipJsonLoaded = true;
-      this.previewShip.getTransform().position.x = shipX;
-      this.previewShip.getTransform().position.y = shipY;
-    })
-    .catch(err => {
-      console.error('[DebriefingSceneManager] Failed to load preview ship JSON:', err);
-    });
+  //     this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
+  //     this.previewRenderer = new PreviewShipRendererGL();
+  //     this.shipJsonLoaded = true;
+  //     this.previewShip.getTransform().position.x = shipX;
+  //     this.previewShip.getTransform().position.y = shipY;
+  //   })
+  //   .catch(err => {
+  //     console.error('[DebriefingSceneManager] Failed to load preview ship JSON:', err);
+  //   });
 }
 
   stop() {
@@ -255,7 +257,6 @@ start() {
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();
     this.previewRenderer?.destroy();
-    destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
   }
 
   private update = () => {
@@ -298,10 +299,10 @@ start() {
     this.summaryBox?.update(dt);
 
     // === Preview ship spin ===
-    if (this.previewShip && this.previewRenderer && this.hasHeaderFinished()) {
-      const transform = this.previewShip.getTransform();
-      transform.rotation += dt * 0.25;
-    }
+    // if (this.previewShip && this.previewRenderer && this.hasHeaderFinished()) {
+    //   const transform = this.previewShip.getTransform();
+    //   transform.rotation += dt * 0.25;
+    // }
   };
 
   private updateReveal(dt: number) {
@@ -402,9 +403,9 @@ start() {
     this.headerLabel.render(uiCtx, scale);
     this.subtitleLabel.render(uiCtx, scale);
 
-    if (this.hasHeaderFinished() && this.shipJsonLoaded && this.previewRenderer && this.previewShip) {
-      this.previewRenderer.render(this.previewShip, this.gameLoop.getDeltaTime());
-    }
+    // if (this.hasHeaderFinished() && this.shipJsonLoaded && this.previewRenderer && this.previewShip) {
+    //   this.previewRenderer.render(this.previewShip, this.gameLoop.getDeltaTime());
+    // }
 
     if (!this.hasHeaderFinished()) return;
 
