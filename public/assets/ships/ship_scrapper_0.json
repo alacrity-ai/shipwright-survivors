@@ -71,5 +71,8 @@
       },
       "rotation": 90
     }
-  ]
+  ],
+  "behavior": {
+    "type": "default"
+  }
 }

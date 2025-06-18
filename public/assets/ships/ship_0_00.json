@@ -39,5 +39,8 @@
       },
       "rotation": 0
     }
-  ]
+  ],
+  "behavior": {
+    "type": "spaceStation"
+  }
 }

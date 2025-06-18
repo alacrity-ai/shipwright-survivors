@@ -223,29 +223,29 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Anomalous mass detected. Vessel constructed from repurposed hulls. Efficiency through cannibalism—commendable.",
+        text: "Detecting massive kinetic disturbance. Signature: industrial-grade excavation unit... with delusions of grandeur.",
       },
       // Wait 1000ms
       {
         type: 'pause',
         durationMs: 1000,
       },
-      // Snarky remark about survival probability being near 0
+      // Executron introduction
       {
         type: 'line',
-        speakerId: 'crazy-moe',
-        text: "WELL WHADDYA KNOW! A flyin' lunchbox full'a alloys!",
+        speakerId: 'executron',
+        text: "I WAS BUILT TO DIG. THEN THEY GAVE ME LEGS. BIG MISTAKE.",
       },
       // Wait 1000ms
       {
         type: 'pause',
         durationMs: 1000,
       },
-      // Crazy moe says: "I'ma gonna strip you for parts!"
+      // Executron boasts
       {
         type: 'line',
-        speakerId: 'crazy-moe',
-        text: "Heh—I'ma pop yer cockpit like a soda tab and sniff the coolant fumes!",
+        speakerId: 'executron',
+        text: "YOUR SHIP LOOKS LIKE A LOW-YIELD ASTEROID. PREPARE FOR AUTOMATED EXTRACTION.",
       },
       // Wait 1000ms
       {
@@ -266,13 +266,6 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
       {
         type: 'command',
         run: () => {
-          console.log('Added passive point!')
-          PlayerPassiveManager.getInstance().addPassivePoints(1);
-        },
-      },
-      {
-        type: 'command',
-        run: () => {
           flags.set('mission.mission_003_00.complete');
           flags.set('mission.mission_004_00.unlocked');
         },
@@ -281,16 +274,17 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
       {
         type: 'showUI',
       },
+      // Executron death line
       {
         type: 'line',
-        speakerId: 'crazy-moe',
-        text: "Y'got me! Sweet entropy, I see the light—*AND SHE'S MADE OF REBAR AND RADIATION!*",
+        speakerId: 'executron',
+        text: "SYSTEM FAILURE. CORE MELTDOWN IMMINENT. I REGRET NOTHING... EXCEPT THE LEGS.",
       },
-      // Wait 1000ms
+      // Wait 2000ms
       {
         type: 'pause',
         durationMs: 2000,
-      },
+      }
     ],
   };
 }

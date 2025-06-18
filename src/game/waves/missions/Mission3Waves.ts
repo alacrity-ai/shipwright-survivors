@@ -97,12 +97,12 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: 'mission_03/haloblade_minicruiser_00', count: 4 },
       { shipId: 'mission_03/haloblade_cruiser_00', count: 6},
-      { shipId: 'mission_03/horrorhunter_00', count: 4 },
+      { shipId: 'mission_03/horrorhunter_00', count: 10 },
       { shipId: 'mission_03/horror_station_00', count: 2 },
-      { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true },
-      { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true },
-      { shipId: 'mission_03/speedhunter_00', count: 4 },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 2, hunter: true },
+      { shipId: 'mission_03/horrorhunter_01', count: 4, hunter: true },
+      { shipId: 'mission_03/horrorhunter_02', count: 4, hunter: true },
+      { shipId: 'mission_03/speedhunter_00', count: 8 },
+      { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true },
     ]
   },
   {
@@ -112,15 +112,16 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: 'mission_03/haloblade_pod_00', count: 6},
       { shipId: 'mission_03/haloblade_pod_01', count: 4},
-      { shipId: 'mission_03/haloblade_pod_mini_00', count: 6, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/haloblade_speeder_00', count: 6, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/haloblade_beetle_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_03/haloblade_pod_mini_00', count: 9, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_03/haloblade_speeder_00', count: 10, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_03/haloblade_beetle_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'mission_03/lance_miner_00', count: 4, hunter: true },
-      { shipId: 'mission_03/lance_miner_station_00', count: 2 },
-      { shipId: 'mission_03/lance_miner_station_01', count: 2 },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/haloblade_minicruiser_00', count: 4, hunter: true },
-      { shipId: 'mission_03/haloblade_minicruiser_00', count: 6 },
+      { shipId: 'mission_03/lance_miner_station_00', count: 6 },
+      { shipId: 'mission_03/lance_miner_station_01', count: 6 },
+      { shipId: 'mission_03/haloblade_cruiser_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_03/haloblade_minicruiser_00', count: 14, hunter: true },
+      { shipId: 'mission_03/haloblade_minicruiser_00', count: 16 },
+      { shipId: 'mission_03/boss_03', count: 6 }
     ]
   },
   {
@@ -128,7 +129,7 @@ export const waveDefinitions: WaveDefinition[] = [
     type: 'boss',
     mods: ['shielded', 'extra-aggressive'],
     ships: [
-      { shipId: 'boss_0_00', count: 1, hunter: true }
+      { shipId: 'mission_03/boss_03', count: 1, hunter: true }
     ],
     music: {
       file: 'assets/sounds/music/track_03_boss.mp3',

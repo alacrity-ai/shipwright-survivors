@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Block Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: white;
+            flex: 1;
+            margin-bottom: 20px;
+        }
+        
+        .file-input-container {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    
+    <div class="file-input-container">
+        <input type="file" id="fileInput" accept=".json" />
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('fileInput');
+        
+        const GRID_SIZE = 20; // Size of each grid square in pixels
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function drawGrid(blocks) {
+            clearCanvas();
+            
+            // Find the bounds of the blocks to center the view
+            let minX = 0, maxX = 0, minY = 0, maxY = 0;
+            blocks.forEach(block => {
+                minX = Math.min(minX, block.coord.x);
+                maxX = Math.max(maxX, block.coord.x);
+                minY = Math.min(minY, block.coord.y);
+                maxY = Math.max(maxY, block.coord.y);
+            });
+            
+            // Center the grid in the canvas
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const offsetX = centerX - ((maxX + minX) * GRID_SIZE) / 2;
+            const offsetY = centerY - ((maxY + minY) * GRID_SIZE) / 2;
+            
+            // Draw each block
+            blocks.forEach(block => {
+                const x = offsetX + block.coord.x * GRID_SIZE;
+                const y = offsetY + block.coord.y * GRID_SIZE;
+                
+                // Determine color based on block type
+                let color = 'black'; // Default color
+                if (block.id.startsWith('cockpit')) {
+                    color = 'blue';
+                }
+                
+                // Draw the square
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                
+                // Draw border
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+            });
+        }
+        
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    if (jsonData.blocks && Array.isArray(jsonData.blocks)) {
+                        drawGrid(jsonData.blocks);
+                    } else {
+                        alert('Invalid JSON structure. Expected "blocks" array.');
+                    }
+                } catch (error) {
+                    alert('Error parsing JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>

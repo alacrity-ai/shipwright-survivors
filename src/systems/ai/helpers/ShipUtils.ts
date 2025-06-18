@@ -4,6 +4,8 @@ import { getDistance, subtract, normalize, dot } from './VectorUtils';
 import type { Vec2 } from './VectorUtils';
 import type { Ship } from '@/game/ship/Ship';
 import { getNetThrustDirection } from './ThrustUtils';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 
 export function isWithinRange(a: Vec2, b: Vec2, range: number): boolean {
   return getDistance(a, b) <= range;
@@ -24,3 +26,34 @@ export function isThrustFacingTarget(ship: Ship, targetPos: Vec2, thresholdRad =
 }
 
 
+/**
+ * Returns the nearest ship within `range` that is not of the same faction.
+ * Does not perform LOS checks.
+ */
+export function findNearestTarget(originShip: Ship, range: number): Ship | null {
+  const originFaction = originShip.getFaction();
+  const originPos = originShip.getTransform().position;
+
+  let nearest: Ship | null = null;
+  let nearestDist = Infinity;
+  
+  // TODO : Replace this with getAllNotInFaction, will be faster if ship keeps maps of ships by faction
+  // const allShips = ShipRegistry.getInstance().getAll(); // Assumes this returns all active ships
+  const playerShip = ShipRegistry.getInstance().getPlayerShip();
+  if (!playerShip) return null;
+
+  for (const candidate of [playerShip]) {
+    if (candidate === originShip) continue;
+    if (candidate.getFaction() === originFaction) continue;
+
+    const candidatePos = candidate.getTransform().position;
+    const dist = getDistance(originPos, candidatePos);
+
+    if (dist <= range && dist < nearestDist) {
+      nearest = candidate;
+      nearestDist = dist;
+    }
+  }
+
+  return nearest;
+}

@@ -16,6 +16,9 @@ export interface SerializedBlockObject {
     coord: { x: number; y: number };
     rotation?: number;
   }>;
+  behavior: {
+    type: string;
+  };
 }
 
 export function serializeCompositeBlockObject(
@@ -43,6 +46,7 @@ export function serializeCompositeBlockObject(
   return {
     transform: serializedTransform,
     blocks: serializedBlocks,
+    behavior: { type: 'default' },
   };
 }
 

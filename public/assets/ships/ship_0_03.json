@@ -135,5 +135,8 @@
       },
       "rotation": 0
     }
-  ]
+  ],
+  "behavior": {
+    "type": "default"
+  }
 }

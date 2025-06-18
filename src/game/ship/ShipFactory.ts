@@ -12,7 +12,7 @@ import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
-import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+import { DefaultBehaviorProfile, SpaceStationBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { Faction } from '@/game/interfaces/types/Faction';
 
 import type { Grid } from '@/systems/physics/Grid';
@@ -28,6 +28,9 @@ import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+import type { BehaviorTypeKey } from '@/systems/ai/types/BehaviorProfileRegistry';
+
+import { BehaviorProfileRegistry } from '@/systems/ai/types/BehaviorProfileRegistry';
 
 
 export type AuraLightOptions = {
@@ -36,12 +39,17 @@ export type AuraLightOptions = {
   intensity: number;
 };
 
+// Utility type guard to validate behaviorType
+function isBehaviorTypeKey(value: string): value is BehaviorTypeKey {
+  return value in BehaviorProfileRegistry;
+}
+
 export class ShipFactory {
   public constructor(
     private readonly grid: Grid,
     private readonly registry: ShipRegistry,
     private readonly orchestrator: AIOrchestratorSystem,
-    private readonly playerShip: Ship, // So the enemy ships can target it on spawn in
+    private readonly playerShip: Ship,
     private readonly particleManager: ParticleManager,
     private readonly projectileSystem: ProjectileSystem,
     private readonly laserSystem: LaserSystem,
@@ -56,18 +64,20 @@ export class ShipFactory {
     x: number,
     y: number,
     hunter: boolean = false,
-    behaviorProfile: BehaviorProfile = DefaultBehaviorProfile,
+    behaviorProfile?: BehaviorProfile,
     affixes: ShipAffixes = {},
     faction: Faction = Faction.Enemy
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
-    const ship = await loadShipFromJson(`${jsonName}.json`, this.grid);
-    
-    // Set ship affixes (modifers like: fire rate, damage, etc.)
+    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid);
+
+    console.log('JSON behaviorType:', behaviorType);
+
+    if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
+      console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
+    }
+
     ship.setAffixes(affixes);
     ship.setFaction(faction);
-
-    // If hunter auralight color is red, otherwise yellow
-    const auraLightOptions: AuraLightOptions = { color: '#ff0000', radius: 96, intensity: 0.8 };
 
     const transform = ship.getTransform();
     transform.position.x = x;
@@ -85,14 +95,37 @@ export class ShipFactory {
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
-    const controller = new AIControllerSystem(ship, movement, weapons, utility, behaviorProfile);
-    controller['currentState'] = new SeekTargetState(controller, ship, this.playerShip);
-    controller.setHunter(hunter);
+    const effectiveProfile =
+      behaviorProfile ??
+      (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
+        ? BehaviorProfileRegistry[behaviorType]
+        : undefined) ??
+      DefaultBehaviorProfile;
 
+    console.log('Effective profile attack:', effectiveProfile.attack);
+    console.log('Effective profile seek:', effectiveProfile.seek);
+
+    const controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
+
+    if (effectiveProfile.initialStateFactory) {
+      const initialState = effectiveProfile.initialStateFactory(controller);
+      console.log('Initial state:', initialState.constructor.name);
+      controller.setInitialState(initialState);
+    } else {
+      console.log('Initial state: none');
+    }
+
+    controller.setHunter(hunter);
     this.orchestrator.addController(controller);
 
     ship.hideAllBlocks();
     ship.updateBlockPositions();
+
+    const auraLightOptions: AuraLightOptions = {
+      color: '#ff0000',
+      radius: 96,
+      intensity: 0.8
+    };
     this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 
     return { ship, controller };

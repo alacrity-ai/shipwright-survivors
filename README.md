@@ -196,7 +196,10 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
-  - [ ] Evaluate king's bible CPU crunch logic. (HaloBlade). Causing a decent amount of frameloss.
+  - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
+    - [ ] Move planets and background rendering to new unifiedgl2 layer. 
+    - [ ] Cleanup all unused canvases/layers.
+  - [x] Evaluate king's bible CPU crunch logic. (HaloBlade). Causing a decent amount of frameloss.
   - [x] Afterburner:
     - [x] Add distinct visual effect to thrusters (change in color maybe?)
     - [x] Add initial burst on toggle (light flash, particle emission)
@@ -321,6 +324,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] Hunters are not seeking the player from across the map. They seem to just be patrolling.
   - [ ] Enemy lights seem to "persist" beyond enemy death, seems to be caused by going away from window and coming back?
   - [x] CRITICAL: While Paused, particles continue to spawn at an alarming rate, causing intense FPS drop
   - [x] Mission result menu does not scale with resolution

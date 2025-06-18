@@ -65,6 +65,15 @@ export class SpeakerVoiceRegistry {
       textSpeed: 0.05,
       pitchVariance: 0.5,
     });
+
+    this.register({
+      id: 'executron',
+      portrait: this.loadImage('assets/characters/bosses/character_boss_executron-9b.png'),
+      blipAudioFile: 'assets/sounds/bleeps/man_ah.wav',
+      basePitch: 0.9,
+      textSpeed: 0.05,
+      pitchVariance: 0.5,
+    });
   }
 
   private loadImage(path: string): HTMLImageElement {

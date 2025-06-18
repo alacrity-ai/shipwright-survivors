@@ -16,6 +16,9 @@ export class AIControllerSystem {
   private readonly weaponSystem: WeaponSystem;
   private readonly utilitySystem: UtilitySystem;
   private readonly behaviorProfile: BehaviorProfile;
+  private initialState: BaseAIState | null = null;
+
+
   private currentState: BaseAIState;
   private hunter: boolean = false; // Hunter controllers always run, regardless of distance from player
 
@@ -32,7 +35,7 @@ export class AIControllerSystem {
     this.utilitySystem = utilitySystem;
     this.behaviorProfile = behaviorProfile;
 
-    // Initial state
+    // Temporary fallback to IdleState to satisfy type safety
     this.currentState = new IdleState(this, ship);
   }
 
@@ -92,5 +95,14 @@ export class AIControllerSystem {
 
   public isHunter(): boolean {
     return this.hunter;
+  }
+
+  public setInitialState(state: BaseAIState): void {
+    this.initialState = state;
+    this.currentState = state;
+  }
+
+  public getInitialState(): BaseAIState | null {
+    return this.initialState;
   }
 }

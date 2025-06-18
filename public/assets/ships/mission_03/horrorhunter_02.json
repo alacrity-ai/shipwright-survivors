@@ -223,5 +223,8 @@
       },
       "rotation": 270
     }
-  ]
+  ],
+  "behavior": {
+    "type": "default"
+  }
 }
