@@ -50,7 +50,7 @@ export class WaveSpawner implements IUpdatable {
   private hasSpawnedFirstWave = false;
 
   private readonly initialDelay = 10;
-  private readonly defaultWaveInterval = 120;
+  private readonly defaultWaveInterval = 10;
   private readonly interWaveDelay = 10;
 
   private interWaveCountdown = -1;

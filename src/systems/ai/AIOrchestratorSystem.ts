@@ -154,7 +154,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
     const relevantControllers = new Set<AIControllerSystem>();
 
-    // ✅ Optimization #3 — Prune dead uncullables
+    // Prune dead uncullables
     for (const controller of this.uncullableControllers) {
       const ship = controller.getShip();
       if (ship.isDestroyed()) {
@@ -164,7 +164,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       relevantControllers.add(controller);
     }
 
-    // ✅ Optimization #2 — Deduplicate owner IDs first
+    // Deduplicate owner IDs first
     const nearbyShipIds = new Set<string>();
     for (const block of this.cachedRelevantBlocks) {
       if (block.ownerShipId) {

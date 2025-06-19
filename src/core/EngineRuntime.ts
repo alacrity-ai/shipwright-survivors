@@ -567,11 +567,14 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
-      // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
+      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
       // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
-      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
-      this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
+      // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
+      for (let i = 0; i < 20; i++) {
+        this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
+      }
+      // this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyN')) {

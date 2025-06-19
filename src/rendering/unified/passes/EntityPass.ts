@@ -121,19 +121,6 @@ export class EntityPass {
     for (const entity of entities) {
       const { position, rotation } = entity.getTransform();
 
-      if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-        if (entity instanceof Ship) {
-          const auraId = entity.getLightAuraId?.();
-          if (auraId) {
-            try {
-              LightingOrchestrator.getInstance().updateLight(auraId, position);
-            } catch (e) {
-              console.warn(`[EntityPass] Light update failed for ship ${entity.id}`, e);
-            }
-          }
-        }
-      }
-
       this.shipModelMatrix = multiplyMatrices(
         createRotationMatrix(rotation),
         createTranslationMatrix(position.x, position.y)

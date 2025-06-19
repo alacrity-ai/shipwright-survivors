@@ -136,6 +136,10 @@ export class LightingOrchestrator {
     return Array.from(this.lights.values());
   }
 
+  getActiveLightEntries(): [string, AnyLightInstance][] {
+    return Array.from(this.lights.entries());
+  }
+
   getLightById(id: string): AnyLightInstance | undefined {
     return this.lights.get(id);
   }

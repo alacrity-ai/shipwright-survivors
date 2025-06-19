@@ -5,8 +5,11 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
-const DEBUG_MODE = false;
+import { Camera } from '@/core/Camera';
+
+const DEBUG_MODE = true;
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
@@ -36,6 +39,14 @@ export class DebugOverlay {
 
     if (!DEBUG_MODE) return;
 
+    const lightingOrch = LightingOrchestrator.getInstance();
+    const allLights = lightingOrch.getActiveLights();
+    const visibleLights = lightingOrch.collectVisibleLights(Camera.getInstance());
+    const orphanedLights = functionfindOrphanedAuraLights(lightingOrch, this.shipRegistry, false);
+
+    const auraLightCount = allLights.filter(l => l.id?.startsWith('aura-')).length;
+    const visibleAuraLights = visibleLights.filter(l => l.id?.startsWith('aura-')).length;
+
     const shipCount = this.shipRegistry.count();
     const enemyPower = missionLoader.getEnemyPower();
     const controllerEntries = Array.from(this.aiOrchestrator.getAllControllers());
@@ -58,15 +69,48 @@ export class DebugOverlay {
       stateCounts[stateName] = (stateCounts[stateName] ?? 0) + 1;
     }
 
+    // === Render Metrics ===
     drawLabel(ctx, x, y, `Ships: ${shipCount}`); y += lineHeight;
     drawLabel(ctx, x, y, `Enemy Power: ${enemyPower}`); y += lineHeight;
     drawLabel(ctx, x, y, `Formation: ${inFormation} (Leaders: ${formationLeaders}, Followers: ${formationFollowers})`); y += lineHeight;
+    drawLabel(ctx, x, y, `Aura Lights: ${auraLightCount}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Visible Aura Lights: ${visibleAuraLights}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Orphaned Aura Lights: ${orphanedLights.length}`); y += lineHeight;
 
-    // === State Breakdown ===
-    for (const [state, count] of Object.entries(stateCounts)) {
-      drawLabel(ctx, x, y, `${state}: ${count}`);
-      y += lineHeight;
+    // // === State Breakdown ===
+    // for (const [state, count] of Object.entries(stateCounts)) {
+    //   drawLabel(ctx, x, y, `${state}: ${count}`);
+    //   y += lineHeight;
+    // }
+  }
+
+}
+
+/**
+ * Diagnostic method to find and optionally clean up orphaned aura lights
+ */
+export function functionfindOrphanedAuraLights(
+  lightingOrchestrator: LightingOrchestrator,
+  shipRegistry: ShipRegistry,
+  cleanup: boolean = false
+): string[] {
+  const orphanedLightIds: string[] = [];
+
+  for (const [id, light] of lightingOrchestrator.getActiveLightEntries()) {
+    if (!id.startsWith('aura-')) continue;
+
+    const shipId = id.substring(5);
+    const shipExists = shipRegistry.getById(shipId) !== undefined;
+
+    if (!shipExists) {
+      orphanedLightIds.push(id);
+
+      if (cleanup) {
+        lightingOrchestrator.removeLight(id);
+        console.log(`[LightingOrchestrator] Removed orphaned aura light: ${id}`);
+      }
     }
   }
 
+  return orphanedLightIds;
 }
