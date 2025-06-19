@@ -14,6 +14,7 @@ import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCo
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import type { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 
+import { ShipFormationFactory } from '@/game/ship/factories/ShipFormationFactory';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
@@ -37,6 +38,7 @@ const STARTING_WAVE_INDEX = 0;
 
 export class WaveSpawner implements IUpdatable {
   private readonly shipFactory: ShipFactory;
+  private readonly shipFormationFactory: ShipFormationFactory;
 
   private currentWaveIndex = STARTING_WAVE_INDEX;
   private elapsedTime = 0;
@@ -79,7 +81,7 @@ export class WaveSpawner implements IUpdatable {
     private readonly collisionSystem: BlockObjectCollisionSystem,
     private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
     private readonly incidentSystem: IncidentOrchestrator,
-    private readonly popupMessageSystem: PopupMessageSystem
+    private readonly popupMessageSystem: PopupMessageSystem,
   ) {
     this.shipFactory = new ShipFactory(
       this.grid,
@@ -92,8 +94,9 @@ export class WaveSpawner implements IUpdatable {
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
-      this.shipConstructionAnimator
+      this.shipConstructionAnimator,
     );
+    this.shipFormationFactory = new ShipFormationFactory(this.shipFactory);
   }
 
   public start(): void {
@@ -221,6 +224,28 @@ export class WaveSpawner implements IUpdatable {
 
     const spawnedShips: Ship[] = [];
 
+    // === Spawn Formations (if any) ===
+    if (wave.formations?.length) {
+      const originX = wave.type === 'boss'
+        ? (Math.random() - 0.5) * 200
+        : Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
+
+      const originY = wave.type === 'boss'
+        ? (Math.random() - 0.5) * 200
+        : Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
+
+      const formationMap = await this.shipFormationFactory.spawnFormations(wave.formations, originX, originY);
+
+      for (const [ship, controller] of formationMap) {
+        this.applyModifiers(ship, wave.mods);
+        this.activeShips.add(ship);
+        this.activeControllers.set(ship, controller);
+        spawnedShips.push(ship);
+      }
+    }
+
+    // === Spawn ships ===
+
     for (const entry of wave.ships) {
       for (let i = 0; i < entry.count; i++) {
         const posX = wave.type === 'boss'
@@ -269,9 +294,6 @@ export class WaveSpawner implements IUpdatable {
         font: '28px monospace',
       });
       if (wave.lightingSettings?.clearColor) {
-        // TODO : This needs to be updated to our new GL unified renderer
-        // const lightingOrchestrator = LightingOrchestrator.getInstance();
-        // lightingOrchestrator.setClearColor(...wave.lightingSettings.clearColor);
       }
       this.monitorBossWaveCompletion(spawnedShips);
     } else {

@@ -66,7 +66,8 @@ export class ShipFactory {
     hunter: boolean = false,
     behaviorProfile?: BehaviorProfile,
     affixes: ShipAffixes = {},
-    faction: Faction = Faction.Enemy
+    faction: Faction = Faction.Enemy,
+    registerController: boolean = true
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
@@ -108,7 +109,9 @@ export class ShipFactory {
     } 
 
     controller.setHunter(hunter);
-    this.orchestrator.addController(controller);
+    if (registerController) {
+      this.orchestrator.addController(controller);
+    }
 
     ship.hideAllBlocks();
     ship.updateBlockPositions();
@@ -121,5 +124,9 @@ export class ShipFactory {
     this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 
     return { ship, controller };
+  }
+
+  public getOrchestrator(): AIOrchestratorSystem {
+    return this.orchestrator;
   }
 }

@@ -6,6 +6,8 @@ import type { Ship } from '@/game/ship/Ship';
 import type { Grid } from '@/systems/physics/Grid';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
+import { FormationRegistry } from './formations/FormationRegistry';
+
 const SCAN_RADIUS = 5000;
 
 /**
@@ -18,6 +20,8 @@ export class AIOrchestratorSystem implements IUpdatable {
   private playerShip: Ship | null = null;
   private grid: Grid | null = null;
   private readonly controllerToShipMap = new Map<AIControllerSystem, Ship>();
+
+  private readonly formationRegistry = new FormationRegistry();
 
   private cachedRelevantBlocks: BlockInstance[] = [];
   private frameCounter: number = 0;
@@ -37,18 +41,50 @@ export class AIOrchestratorSystem implements IUpdatable {
     this.grid = ship.getGrid(); // All ships share the same spatial grid
   }
 
-  addController(controller: AIControllerSystem): void {
+  public addController(controller: AIControllerSystem): void {
     const ship = controller.getShip();
     if (ship) {
       ship.updateBlockPositions(); // Ensure correct spatial index
       this.controllerToShipMap.set(controller, ship);
+
+      // Formation detection and context assignment
+      const formation = this.formationRegistry.getFormationByShipId(ship.id);
+      if (formation) {
+        console.log('[AIOrchestratorSystem] Assigning formation context to ship:', ship.id);
+        if (formation.leaderId === ship.id) {
+          console.log('[AIOrchestratorSystem] Ship is formation leader:', ship.id);
+          controller.setFormationContext(formation.formationId, 'leader');
+        } else {
+          // === Find the leader controller ===
+          console.log('[AIOrchestratorSystem] Ship is formation follower, attempting to find leader:', ship.id);
+          let leaderController: AIControllerSystem | null = null;
+          for (const [candidate, candidateShip] of this.controllerToShipMap.entries()) {
+            if (candidateShip.id === formation.leaderId) {
+              console.log('[AIOrchestratorSystem] Found leader controller for follower:', ship.id);
+              leaderController = candidate;
+              break;
+            }
+          }
+
+          if (leaderController) {
+            console.log('[AIOrchestratorSystem] Setting formation context for follower:', ship.id);
+            controller.setFormationContext(
+              formation.formationId,
+              'follower',
+              this.formationRegistry,
+              leaderController
+            );
+          }
+        }
+      }
+
       if (controller.isHunter()) {
         this.hunterControllers.add(controller);
       }
     }
   }
 
-  removeController(controller: AIControllerSystem): void {
+  public removeController(controller: AIControllerSystem): void {
     this.controllerToShipMap.delete(controller);
     this.hunterControllers.delete(controller);
   }
@@ -74,6 +110,10 @@ export class AIOrchestratorSystem implements IUpdatable {
 
   public getControllerCount(): number {
     return this.controllerToShipMap.size;
+  }
+
+  public getFormationRegistry(): FormationRegistry {
+    return this.formationRegistry;
   }
 
   public getHunterControllerCount(): number {

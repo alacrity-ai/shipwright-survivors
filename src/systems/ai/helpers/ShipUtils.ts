@@ -3,6 +3,7 @@
 import { getDistance, subtract, normalize, dot } from './VectorUtils';
 import type { Vec2 } from './VectorUtils';
 import type { Ship } from '@/game/ship/Ship';
+import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import { getNetThrustDirection } from './ThrustUtils';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
@@ -56,4 +57,16 @@ export function findNearestTarget(originShip: Ship, range: number): Ship | null 
   }
 
   return nearest;
+}
+
+export function getWorldPositionFromShipOffset(
+  transform: BlockEntityTransform,
+  offset: { x: number; y: number }
+): { x: number; y: number } {
+  const cos = Math.cos(transform.rotation);
+  const sin = Math.sin(transform.rotation);
+  return {
+    x: transform.position.x + offset.x * cos - offset.y * sin,
+    y: transform.position.y + offset.x * sin + offset.y * cos,
+  };
 }

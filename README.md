@@ -196,6 +196,8 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
+  - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
     - [ ] Move planets and background rendering to new unifiedgl2 layer. 
     - [ ] Cleanup all unused canvases/layers.
@@ -324,6 +326,9 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] Skipping briefing menu doesn't countdown all items and give you the cores?
+  - [ ] Explosions from lances and blocks need to go to webgl2
+  - [ ] Ship building effects (blocks being added), and placement preview need to go to webgl2
   - [ ] Post processing layer not properly invalidating on Resolution change
   - [ ] Fix setTimeout in CompositeBlockDestructionService: src/game/ship/CompositeBlockDestructionService.ts
         Because it's using set Timeout, it continues to run even after the map is over.  Need to use update loop.

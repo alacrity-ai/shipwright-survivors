@@ -8,29 +8,11 @@ export const waveDefinitions: WaveDefinition[] = [
     type: 'wave',
     mods: [],
     ships: [
-      // { shipId: 'wave_0_00', count: 1 }
-      // { shipId: 'wave_0_00', count: 40 },
-      // { shipId: 'wave_0_01', count: 40 },
-      // { shipId: 'wave_0_02', count: 32, hunter: true },
-      // { shipId: 'wave_0_03', count: 24, hunter: true },
-      // { shipId: 'wave_0_04', count: 12, hunter: true },
-    ],
-    formations: [
-      {
-        formationId: 'wedge',
-        layout: [
-          { x: -1000, y: -1000 }, // Left and forward relative to leader
-          { x: 1000, y: -1000 },  // Right and forward
-          { x: 0, y: -1000 }      // Center front
-        ],
-        leader: { shipId: 'ship_0_03' },
-        followers: [
-          { shipId: 'ship_0_02' },
-          { shipId: 'ship_0_02' },
-          { shipId: 'ship_0_02' }
-        ],
-        count: 1
-      }
+      { shipId: 'wave_0_00', count: 40 },
+      { shipId: 'wave_0_01', count: 40 },
+      { shipId: 'wave_0_02', count: 32, hunter: true },
+      { shipId: 'wave_0_03', count: 24, hunter: true },
+      { shipId: 'wave_0_04', count: 12, hunter: true },
     ]
   },
   {

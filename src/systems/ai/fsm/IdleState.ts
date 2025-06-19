@@ -1,6 +1,8 @@
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { AIControllerSystem } from '../AIControllerSystem';
 
+import { FormationState } from './FormationState';
+
 import { BaseAIState } from './BaseAIState';
 import { SpaceStationBehaviorProfile } from '../types/BehaviorProfile';
 import { isWithinRange } from '../helpers/ShipUtils';
@@ -36,13 +38,25 @@ export class IdleState extends BaseAIState {
     const behaviorProfile = this.controller.getBehaviorProfile();
     const nearestTarget = findNearestTarget(this.ship, this.wakeRadius);
 
-    if (!nearestTarget) return null;
+    if (!nearestTarget) {
+      // ⬅️ Patch: Rejoin formation if we're a follower and not in combat
+      if (this.controller.isFormationFollower()) {
+        const registry = this.controller.getFormationRegistry();
+        const leader = this.controller.getFormationLeaderController();
+        const formationId = this.controller.getFormationId();
+
+        if (registry && leader && formationId) {
+          return new FormationState(this.controller, this.ship);
+        }
+      }
+
+      return null;
+    }
 
     const selfPos = this.ship.getTransform().position;
     const targetPos = nearestTarget.getTransform().position;
 
     const inWakeRange = isWithinRange(selfPos, targetPos, this.wakeRadius);
-
     if (!inWakeRange) return null;
 
     console.log('[AI] Behavior profile: ', behaviorProfile);
@@ -51,7 +65,6 @@ export class IdleState extends BaseAIState {
       return new SpaceStationAttackState(this.controller, this.ship, nearestTarget);
     }
 
-    // Default AI profiles transition to SeekTargetState
     return new SeekTargetState(this.controller, this.ship, nearestTarget);
   }
 }

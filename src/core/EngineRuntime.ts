@@ -382,7 +382,7 @@ export class EngineRuntime {
       this.collisionSystem,
       this.shipConstructionAnimator,
       this.incidentOrchestrator,
-      this.popupMessageSystem
+      this.popupMessageSystem,
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
     destructionService.onEntityDestroyed((entity, _cause) => {
@@ -410,7 +410,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry);
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
     this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
@@ -756,7 +756,7 @@ export class EngineRuntime {
     setTimeout(() => {
       clearPostProcessEffects();
       addPostProcessEffect('sepia');
-    }, timeoutMs - 1)
+    }, timeoutMs - 5)
 
     // Optional: trigger victory effects here (e.g. music, overlay)
     // victoryEffectManager.play(); // hypothetical example

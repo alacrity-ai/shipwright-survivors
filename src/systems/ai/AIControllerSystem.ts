@@ -8,6 +8,8 @@ import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { BehaviorProfile } from './types/BehaviorProfile';
 import type { BaseAIState } from './fsm/BaseAIState';
 
+import { FormationRegistry } from './formations/FormationRegistry';
+
 import { IdleState } from './fsm/IdleState';
 
 export class AIControllerSystem {
@@ -18,6 +20,11 @@ export class AIControllerSystem {
   private readonly behaviorProfile: BehaviorProfile;
   private initialState: BaseAIState | null = null;
 
+  private formationId: string | null = null;
+  private formationRole: 'leader' | 'follower' | null = null;
+
+  private formationRegistry: FormationRegistry | null = null;
+  private leaderController: AIControllerSystem | null = null;
 
   private currentState: BaseAIState;
   private hunter: boolean = false; // Hunter controllers always run, regardless of distance from player
@@ -57,6 +64,7 @@ export class AIControllerSystem {
 
       const nextState = this.currentState.transitionIfNeeded();
       if (nextState) {
+        console.log('[AIControllerSystem] Ship with ID: ', this.ship.id, 'transitioning to new state:', nextState.constructor.name, 'From: ', this.currentState.constructor.name);
         this.currentState = nextState;
       }
     } catch (error) {
@@ -93,9 +101,58 @@ export class AIControllerSystem {
     this.hunter = hunter;
   }
 
+  // Hunter system
+
   public isHunter(): boolean {
     return this.hunter;
   }
+
+  // Formation System
+
+  public setFormationContext(
+    formationId: string,
+    role: 'leader' | 'follower',
+    registry?: FormationRegistry,
+    leaderController?: AIControllerSystem
+  ): void {
+    this.formationId = formationId;
+    this.formationRole = role;
+    if (role === 'follower' && registry && leaderController) {
+      this.formationRegistry = registry;
+      this.leaderController = leaderController;
+    }
+  }
+
+  public getFormationRegistry(): FormationRegistry | null {
+    return this.formationRegistry;
+  }
+
+  public getFormationLeaderController(): AIControllerSystem | null {
+    return this.leaderController;
+  }
+
+  public clearFormationContext(): void {
+    this.formationId = null;
+    this.formationRole = null;
+  }
+
+  public getFormationId(): string | null {
+    return this.formationId;
+  }
+
+  public isInFormation(): boolean {
+    return this.formationId !== null;
+  }
+
+  public isFormationLeader(): boolean {
+    return this.formationRole === 'leader';
+  }
+
+  public isFormationFollower(): boolean {
+    return this.formationRole === 'follower';
+  }
+
+  // State system 
 
   public setInitialState(state: BaseAIState): void {
     this.initialState = state;
