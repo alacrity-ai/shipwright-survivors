@@ -28,6 +28,7 @@ export class HaloBladeBackend implements WeaponBackend {
   private orbiters: OrbitingBlade[] = [];
   private tierPhases: Map<string, number> = new Map(); // Track phase per tier
   private energyRingSprites: Map<string, GLProjectileSprite> = new Map();
+  private static readonly MAX_DAMAGE_APPLICATIONS_PER_FRAME = 1;
 
   constructor(
     private readonly combatService: CombatService,
@@ -155,6 +156,8 @@ export class HaloBladeBackend implements WeaponBackend {
     }
 
     // === Collision and damage pass ===
+    let damageApplications = 0;
+
     for (const orbiter of this.orbiters) {
       const props = bladeMap.get(orbiter.block);
       if (!props) continue;
@@ -166,6 +169,8 @@ export class HaloBladeBackend implements WeaponBackend {
       for (const cell of cells) {
         const enemyBlocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y, ship.getFaction());
         for (const block of enemyBlocks) {
+          if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
+
           if (!block.position) continue;
 
           const dx = x - block.position.x;
@@ -175,6 +180,9 @@ export class HaloBladeBackend implements WeaponBackend {
           if (dist < props.size / 2 + 16) {
             const enemyShip = findObjectByBlock(block);
             const coord = enemyShip?.getBlockCoord(block);
+
+            const chanceOfLightFlash = Math.random() < 0.2;
+
             if (enemyShip && coord) {
               this.combatService.applyDamageToBlock(
                 enemyShip,
@@ -183,12 +191,16 @@ export class HaloBladeBackend implements WeaponBackend {
                 coord,
                 props.damage,
                 'haloBlade',
-                this.ship
+                this.ship,
+                chanceOfLightFlash
               );
+              damageApplications++;
             }
           }
         }
+        if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
       }
+      if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
     }
   }
 }

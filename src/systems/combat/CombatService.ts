@@ -30,7 +30,8 @@ export class CombatService {
     coord: GridCoord,
     damage: number,
     cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'haloBlade' | 'scripted' = 'scripted',
-    playerShip: Ship | null = null // Player ship for reference
+    playerShip: Ship | null = null, // Player ship for reference
+    lightFlash: boolean = true
   ): boolean {
     if (block.indestructible) return false;
 
@@ -95,7 +96,7 @@ export class CombatService {
 
     // Configure light effect based on cause
     const lightOptions =
-      PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
+      PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision' && lightFlash
         ? {
             lightRadiusScalar: 12,
             lightIntensity: 1,
