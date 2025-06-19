@@ -15,7 +15,8 @@ export class PatrolState extends BaseAIState {
   private dwellTime = 0;
   private readonly dwellDuration = 4; // seconds
   private readonly patrolRadius = 6000;
-  private readonly wakeRadius = 3600;
+  // private readonly wakeRadius = 3600;
+  private readonly wakeRadius = 3400;
 
   constructor(controller: AIControllerSystem, ship: Ship) {
     super(controller, ship);

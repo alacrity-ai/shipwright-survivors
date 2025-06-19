@@ -1,5 +1,3 @@
-// src/systems/ai/fsm/AttackState.ts
-
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
@@ -8,6 +6,8 @@ import { BaseAIState } from './BaseAIState';
 import { orbitTarget, approachTarget, leadTarget } from '@/systems/ai/steering/SteeringHelper';
 import { isWithinRange } from '@/systems/ai/helpers/ShipUtils';
 import { SeekTargetState } from './SeekTargetState';
+import { FormationState } from './FormationState';
+import { PatrolState } from './PatrolState';
 
 enum AttackPhase {
   Ramming,
@@ -23,12 +23,15 @@ export class AttackState extends BaseAIState {
   private phase: AttackPhase = AttackPhase.Ramming;
   private phaseTimer: number = 0;
 
-  private readonly ramDuration = 10;     // seconds
-  private readonly orbitDuration = 10;   // seconds
+  private readonly orbitDuration = 10;
 
   constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
     super(controller, ship);
     this.target = target;
+  }
+
+  public override onEnter(): void {
+    this.controller.makeUncullable();
   }
 
   update(dt: number): ShipIntent {
@@ -38,13 +41,11 @@ export class AttackState extends BaseAIState {
 
     if (behavior === 'ram') {
       if (this.phase === AttackPhase.Ramming) {
-        // Transition to orbit if a collision just occurred
         if (this.ship.isColliding()) {
           this.phase = AttackPhase.Orbiting;
           this.phaseTimer = 0;
         }
       } else if (this.phase === AttackPhase.Orbiting) {
-        // Return to ramming after orbit duration expires
         this.phaseTimer += dt;
         if (this.phaseTimer >= this.orbitDuration) {
           this.phase = AttackPhase.Ramming;
@@ -54,68 +55,41 @@ export class AttackState extends BaseAIState {
 
       if (this.phase === AttackPhase.Ramming) {
         return {
-          movement: approachTarget(
-            this.ship,
-            targetTransform.position,
-            selfTransform.velocity
-          ),
+          movement: approachTarget(this.ship, targetTransform.position, selfTransform.velocity),
           weapons: {
             firePrimary: false,
             fireSecondary: false,
             aimAt: targetTransform.position,
           },
-          utility: {
-            toggleShields: true,
-          },
+          utility: { toggleShields: true },
         };
       }
 
       if (this.phase === AttackPhase.Orbiting) {
         return {
-          movement: orbitTarget(
-            this.ship,
-            selfTransform.velocity,
-            targetTransform.position,
-            this.orbitRadius
-          ),
+          movement: orbitTarget(this.ship, selfTransform.velocity, targetTransform.position, this.orbitRadius),
           weapons: {
             firePrimary: false,
             fireSecondary: false,
             aimAt: targetTransform.position,
           },
-          utility: {
-            toggleShields: false,
-          },
+          utility: { toggleShields: false },
         };
       }
     }
 
-    // === Default 'orbit' behavior ===
     if (behavior === 'orbit') {
       return {
-        movement: orbitTarget(
-          this.ship,
-          selfTransform.velocity,
-          targetTransform.position,
-          this.orbitRadius
-        ),
+        movement: orbitTarget(this.ship, selfTransform.velocity, targetTransform.position, this.orbitRadius),
         weapons: {
           firePrimary: true,
           fireSecondary: false,
-          aimAt: leadTarget(
-            selfTransform.position,
-            targetTransform.position,
-            targetTransform.velocity,
-            this.projectileSpeed
-          ),
+          aimAt: leadTarget(selfTransform.position, targetTransform.position, targetTransform.velocity, this.projectileSpeed),
         },
-        utility: {
-          toggleShields: false,
-        },
+        utility: { toggleShields: false },
       };
     }
 
-    // === Fallback behavior ===
     return {
       movement: {
         thrustForward: false,
@@ -130,9 +104,7 @@ export class AttackState extends BaseAIState {
         fireSecondary: false,
         aimAt: targetTransform.position,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: { toggleShields: false },
     };
   }
 
@@ -140,10 +112,30 @@ export class AttackState extends BaseAIState {
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
 
+    // === Formation Leader Death Recovery ===
+    const formationId = this.controller.getFormationId();
+    const registry = this.controller.getFormationRegistry();
+    const leader = this.controller.getFormationLeaderController();
+
+    if (formationId && registry) {
+      if (!leader || leader.getShip().isDestroyed()) {
+        if (registry.getOffsetForShip(this.ship.id)) {
+          return new FormationState(this.controller, this.ship);
+        } else {
+          return new PatrolState(this.controller, this.ship);
+        }
+      }
+    }
+
+    // === Disengagement to Seek ===
     if (!isWithinRange(selfTransform.position, targetTransform.position, this.disengageRange)) {
       return new SeekTargetState(this.controller, this.ship, this.target);
     }
 
     return null;
+  }
+
+  public getTarget(): Ship {
+    return this.target;
   }
 }

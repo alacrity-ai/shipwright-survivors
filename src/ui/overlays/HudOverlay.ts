@@ -5,6 +5,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { PlayerResources } from '@/game/player/PlayerResources';
 import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
+import type { InputManager } from '@/core/InputManager';
 
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
@@ -28,11 +29,12 @@ export class HudOverlay {
     private readonly canvasManager: CanvasManager,
     private readonly ship: Ship,
     private readonly floatingTextManager: FloatingTextManager,
-    private readonly blockDropDecisionMenu: BlockDropDecisionMenu
+    private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
+    private readonly inputManager: InputManager
   ) {
+    this.inputManager = inputManager;
     this.playerResources = PlayerResourcesSingleton.getInstance();
     this.currency = this.playerResources.getCurrency();
-
     this.previousCurrency = this.currency;
 
     this.disposer = this.playerResources.onCurrencyChange((newValue) => {
@@ -67,7 +69,8 @@ export class HudOverlay {
     this.blockQueueDisplayManager = new BlockQueueDisplayManager(
       this.canvasManager,
       this.playerResources,
-      this.blockDropDecisionMenu
+      this.blockDropDecisionMenu,
+      this.inputManager
     );
   }
 

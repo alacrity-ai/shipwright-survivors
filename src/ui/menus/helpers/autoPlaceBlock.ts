@@ -14,7 +14,6 @@ const SEARCH_RADIUS = 20;
     blockType: BlockType,
     shipBuilderEffects: ShipBuilderEffectsSystem
   ): boolean {
-    console.log('[autoPlaceBlock]', blockType.name);
     if (!blockType) return false;
 
     const placement = findOptimalPlacement(ship, blockType);

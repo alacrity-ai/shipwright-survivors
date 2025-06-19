@@ -7,6 +7,9 @@ import type { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { BehaviorProfile } from './types/BehaviorProfile';
 import type { BaseAIState } from './fsm/BaseAIState';
+import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
+
+import { FormationRegistry } from './formations/FormationRegistry';
 
 import { IdleState } from './fsm/IdleState';
 
@@ -18,6 +21,13 @@ export class AIControllerSystem {
   private readonly behaviorProfile: BehaviorProfile;
   private initialState: BaseAIState | null = null;
 
+  private cullabilityDelegate: CullabilityDelegate | null = null;
+
+  private formationId: string | null = null;
+  private formationRole: 'leader' | 'follower' | null = null;
+
+  private formationRegistry: FormationRegistry | null = null;
+  private leaderController: AIControllerSystem | null = null;
 
   private currentState: BaseAIState;
   private hunter: boolean = false; // Hunter controllers always run, regardless of distance from player
@@ -57,11 +67,16 @@ export class AIControllerSystem {
 
       const nextState = this.currentState.transitionIfNeeded();
       if (nextState) {
-        this.currentState = nextState;
+        this.setState(nextState);
       }
     } catch (error) {
       console.error("Error in AIControllerSystem update:", error);
     }
+  }
+
+  private setState(next: BaseAIState): void {
+    this.currentState = next;
+    next.onEnter();
   }
 
   public render(dt: number): void {
@@ -93,13 +108,75 @@ export class AIControllerSystem {
     this.hunter = hunter;
   }
 
+  public setCullabilityDelegate(delegate: CullabilityDelegate): void {
+    this.cullabilityDelegate = delegate;
+  }
+
+  public makeUncullable(): void {
+    this.cullabilityDelegate?.setUncullable(this, true);
+  }
+
+  public makeCullable(): void {
+    this.cullabilityDelegate?.setCullable(this);
+  }
+
+  // Hunter system
+
   public isHunter(): boolean {
     return this.hunter;
   }
 
+  // Formation System
+
+  public setFormationContext(
+    formationId: string,
+    role: 'leader' | 'follower',
+    registry?: FormationRegistry,
+    leaderController?: AIControllerSystem
+  ): void {
+    this.formationId = formationId;
+    this.formationRole = role;
+    if (role === 'follower' && registry && leaderController) {
+      this.formationRegistry = registry;
+      this.leaderController = leaderController;
+    }
+  }
+
+  public getFormationRegistry(): FormationRegistry | null {
+    return this.formationRegistry;
+  }
+
+  public getFormationLeaderController(): AIControllerSystem | null {
+    return this.leaderController;
+  }
+
+  public clearFormationContext(): void {
+    this.formationId = null;
+    this.formationRole = null;
+    this.formationRegistry = null;
+    this.leaderController = null;
+  }
+
+  public getFormationId(): string | null {
+    return this.formationId;
+  }
+
+  public isInFormation(): boolean {
+    return this.formationId !== null;
+  }
+
+  public isFormationLeader(): boolean {
+    return this.formationRole === 'leader';
+  }
+
+  public isFormationFollower(): boolean {
+    return this.formationRole === 'follower';
+  }
+
+  // State system 
   public setInitialState(state: BaseAIState): void {
     this.initialState = state;
-    this.currentState = state;
+    this.setState(state);
   }
 
   public getInitialState(): BaseAIState | null {

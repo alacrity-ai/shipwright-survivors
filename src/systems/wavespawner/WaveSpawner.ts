@@ -13,7 +13,9 @@ import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import type { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import type { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
+import type { ShipFormationWaveEntry } from '@/game/ship/factories/ShipFormationFactory';
 
+import { ShipFormationFactory } from '@/game/ship/factories/ShipFormationFactory';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
@@ -37,6 +39,7 @@ const STARTING_WAVE_INDEX = 0;
 
 export class WaveSpawner implements IUpdatable {
   private readonly shipFactory: ShipFactory;
+  private readonly shipFormationFactory: ShipFormationFactory;
 
   private currentWaveIndex = STARTING_WAVE_INDEX;
   private elapsedTime = 0;
@@ -79,7 +82,7 @@ export class WaveSpawner implements IUpdatable {
     private readonly collisionSystem: BlockObjectCollisionSystem,
     private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
     private readonly incidentSystem: IncidentOrchestrator,
-    private readonly popupMessageSystem: PopupMessageSystem
+    private readonly popupMessageSystem: PopupMessageSystem,
   ) {
     this.shipFactory = new ShipFactory(
       this.grid,
@@ -92,8 +95,9 @@ export class WaveSpawner implements IUpdatable {
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
-      this.shipConstructionAnimator
+      this.shipConstructionAnimator,
     );
+    this.shipFormationFactory = new ShipFormationFactory(this.shipFactory);
   }
 
   public start(): void {
@@ -219,17 +223,34 @@ export class WaveSpawner implements IUpdatable {
       this.clearCurrentWave();
     }
 
+    const enforceForbiddenZone = this.currentWaveIndex === 1 && wave.type !== 'boss';
+
     const spawnedShips: Ship[] = [];
+
+    // === Spawn Formations (if any) ===
+    if (wave.formations?.length) {
+      for (const formationEntry of wave.formations) {
+        const count = formationEntry.count ?? 1;
+
+        for (let i = 0; i < count; i++) {
+          const { x: originX, y: originY } = this.getSpawnCoordinates(wave.type, enforceForbiddenZone);
+          const formationMap = await this.shipFormationFactory.spawnFormation(formationEntry, originX, originY);
+
+          for (const [ship, controller] of formationMap) {
+            this.applyModifiers(ship, wave.mods);
+            this.activeShips.add(ship);
+            this.activeControllers.set(ship, controller);
+            spawnedShips.push(ship);
+          }
+        }
+      }
+    }
+
+    // === Spawn ships ===
 
     for (const entry of wave.ships) {
       for (let i = 0; i < entry.count; i++) {
-        const posX = wave.type === 'boss'
-          ? (Math.random() - 0.5) * 200
-          : Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
-
-        const posY = wave.type === 'boss'
-          ? (Math.random() - 0.5) * 200
-          : Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
+        const { x: posX, y: posY } = this.getSpawnCoordinates(wave.type, enforceForbiddenZone);
 
         const { ship, controller } = await this.shipFactory.createShip(
           entry.shipId,
@@ -269,9 +290,6 @@ export class WaveSpawner implements IUpdatable {
         font: '28px monospace',
       });
       if (wave.lightingSettings?.clearColor) {
-        // TODO : This needs to be updated to our new GL unified renderer
-        // const lightingOrchestrator = LightingOrchestrator.getInstance();
-        // lightingOrchestrator.setClearColor(...wave.lightingSettings.clearColor);
       }
       this.monitorBossWaveCompletion(spawnedShips);
     } else {
@@ -282,6 +300,53 @@ export class WaveSpawner implements IUpdatable {
         font: '28px monospace',
       });
     }
+  }
+
+  private getSpawnCoordinates(
+    waveType: WaveDefinition['type'],
+    enforceForbiddenZone: boolean = false
+  ): { x: number, y: number } {
+    const forbidden = {
+      xMin: -1200,
+      xMax: 1200,
+      yMin: -1200,
+      yMax: 1200,
+    };
+
+    const maxAttempts = 10;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const x = waveType === 'boss'
+        ? (Math.random() - 0.5) * 200
+        : Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
+
+      const y = waveType === 'boss'
+        ? (Math.random() - 0.5) * 200
+        : Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
+
+      if (!enforceForbiddenZone) {
+        return { x, y };
+      }
+
+      const outsideForbidden =
+        x < forbidden.xMin || x > forbidden.xMax ||
+        y < forbidden.yMin || y > forbidden.yMax;
+
+      if (outsideForbidden || waveType === 'boss') {
+        return { x, y };
+      }
+    }
+
+    // === Fallback: force outside forbidden zone ===
+    const x = Math.random() < 0.5
+      ? forbidden.xMin - 200 - Math.random() * 200
+      : forbidden.xMax + 200 + Math.random() * 200;
+
+    const y = Math.random() < 0.5
+      ? forbidden.yMin - 200 - Math.random() * 200
+      : forbidden.yMax + 200 + Math.random() * 200;
+
+    return { x, y };
   }
 
   public skipToNextWave(): void {

@@ -12,6 +12,7 @@ import { TextCoachMark } from '@/rendering/coachmarks/entities/TextCoachMark';
 import { KeyCoachMark } from '@/rendering/coachmarks/entities/KeyCoachMark';
 import { MouseCoachMark } from '@/rendering/coachmarks/entities/MouseCoachMark';
 import { GamepadFaceButtonsCoachMark } from '@/rendering/coachmarks/entities/GamepadFaceButtonsCoachMark';
+import { GamePadFaceButtonCoachMark } from '@/rendering/coachmarks/entities/GamepadFaceButtonCoachMark';
 import { GamepadSticksCoachMark } from '@/rendering/coachmarks/entities/GamepadSticksCoachMark';
 import { GamepadShoulderButtonsCoachMark } from '@/rendering/coachmarks/entities/GamepadShoulderButtonsCoachMark';
 
@@ -25,16 +26,30 @@ import type {
   MouseCoachMarkBehavior,
   GamepadFaceButtonsCoachMarkBehavior,
   GamepadSticksCoachMarkBehavior,
-  GamepadShoulderButtonsCoachMarkBehavior
+  GamepadShoulderButtonsCoachMarkBehavior,
+  GamepadFaceButtonCoachMarkBehavior
 } from '@/rendering/coachmarks/interfaces/CoachMarkBehaviorOptions';
 
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 
 export class CoachMarkManager {
+  private static instance: CoachMarkManager;
+
+  public static getInstance(): CoachMarkManager {
+    if (!CoachMarkManager.instance) {
+      CoachMarkManager.instance = new CoachMarkManager();
+    }
+    return CoachMarkManager.instance;
+  }
+
   private coachMarks: CoachMarkEntity[] = [];
   private readonly canvasManager = CanvasManager.getInstance();
-  private readonly ctx = this.canvasManager.getContext('ui');
+  private readonly ctx = this.canvasManager.getContext('overlay');
+
+  private constructor() {
+    // Private to prevent direct instantiation
+  }
 
   public update(dt: number): void {
     for (const mark of this.coachMarks) mark.update(dt);
@@ -98,6 +113,9 @@ export class CoachMarkManager {
         break;
       case 'gamepadFaceButtons':
         entity = new GamepadFaceButtonsCoachMark(resolver, behavior as GamepadFaceButtonsCoachMarkBehavior);
+        break;
+      case 'gamepadFaceButton':
+        entity = new GamePadFaceButtonCoachMark(resolver, behavior as GamepadFaceButtonCoachMarkBehavior);
         break;
       case 'gamepadSticks':
         entity = new GamepadSticksCoachMark(resolver, behavior as GamepadSticksCoachMarkBehavior);

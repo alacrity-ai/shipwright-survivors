@@ -262,6 +262,8 @@ export abstract class CompositeBlockObject {
       block.position = this.calculateBlockWorldPosition(coord);
       this.grid.addBlockToCell(block);
     }
+    // Fix auaralight (as the cockpit block which previously had the auraLight may no longer)
+    // TODO : This is causing stray auralights to linger on the map, without a cockpit, and never be cleaned up
   }
 
   // --- Mass ---

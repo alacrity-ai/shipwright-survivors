@@ -382,7 +382,7 @@ export class EngineRuntime {
       this.collisionSystem,
       this.shipConstructionAnimator,
       this.incidentOrchestrator,
-      this.popupMessageSystem
+      this.popupMessageSystem,
     );
     this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
     destructionService.onEntityDestroyed((entity, _cause) => {
@@ -399,7 +399,7 @@ export class EngineRuntime {
     this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry);
 
     // Dialogue Manager
-    this.coachMarkManager = new CoachMarkManager();
+    this.coachMarkManager = CoachMarkManager.getInstance();
     this.missionDialogueManager = new MissionDialogueManager(
       this.inputManager, 
       this.canvasManager, 
@@ -410,8 +410,8 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry);
-    this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu);
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
+    this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
     // All systems that need to be updated every frame
@@ -756,7 +756,7 @@ export class EngineRuntime {
     setTimeout(() => {
       clearPostProcessEffects();
       addPostProcessEffect('sepia');
-    }, timeoutMs - 1)
+    }, timeoutMs - 5)
 
     // Optional: trigger victory effects here (e.g. music, overlay)
     // victoryEffectManager.play(); // hypothetical example
@@ -800,6 +800,7 @@ export class EngineRuntime {
     BlockToObjectIndex.clear();
     Camera.destroy();
     MenuManager.getInstance().reset();
+    CoachMarkManager.getInstance().clear();
     SpriteRendererGL.destroyInstance();
 
     // Optional: clear UI menus, overlays
