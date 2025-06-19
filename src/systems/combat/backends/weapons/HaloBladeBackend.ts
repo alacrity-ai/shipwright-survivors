@@ -12,9 +12,7 @@ import type { GLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache
 
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
-import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { getGLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
-import { CanvasManager } from '@/core/CanvasManager';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { findObjectByBlock } from '@/game/entities/utils/universalBlockInterfaceUtils';
 
@@ -29,9 +27,6 @@ interface OrbitingBlade {
 export class HaloBladeBackend implements WeaponBackend {
   private orbiters: OrbitingBlade[] = [];
   private tierPhases: Map<string, number> = new Map(); // Track phase per tier
-
-  private readonly spriteRenderer: SpriteRendererGL;
-  private gl: WebGLRenderingContext;
   private energyRingSprites: Map<string, GLProjectileSprite> = new Map();
 
   constructor(
@@ -40,8 +35,6 @@ export class HaloBladeBackend implements WeaponBackend {
     private readonly grid: Grid,
     private readonly ship: Ship
   ) {
-    this.gl = CanvasManager.getInstance().getWebGLContext('entitygl');
-    this.spriteRenderer = SpriteRendererGL.getInstance(this.gl);
 
     // New
     this.energyRingSprites = new Map([

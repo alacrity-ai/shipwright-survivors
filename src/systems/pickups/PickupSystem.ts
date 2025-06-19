@@ -1,6 +1,5 @@
 // src/systems/pickups/PickupSystem.ts
 
-import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { PlayerResources } from '@/game/player/PlayerResources';
@@ -9,34 +8,42 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { getTier1BlockIfTier0, getTierFromBlockId } from './helpers/getTierFromBlockId';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
-import { getBlockSprite, DamageLevel } from '@/rendering/cache/BlockSpriteCache';
+import { DamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { audioManager } from '@/audio/Audio';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { repairAllBlocksWithHealing } from '@/systems/pickups/helpers/repairAllBlocksWithHealing';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
+import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
+import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
+
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { ParticleOptions } from '@/systems/fx/ParticleManager';
-import type { CanvasManager } from '@/core/CanvasManager';
 import type { ScreenEffectsSystem } from '../fx/ScreenEffectsSystem';
 import type { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import type { Camera } from '@/core/Camera';
 import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
 
+
+const BASE_PICKUP_SCALE = 1;
+const BASE_BLOCK_PICKUP_SCALE = 3.2
+
 const PICKUP_RADIUS = 16;
 const PICKUP_RANGE_PER_HARVEST_UNIT = 48;
 const ATTRACTION_SPEED = 10;
 const PICKUP_ATTRACTION_EXPONENT = 2.0;
-const CULL_PADDING = 128;
 const ROTATION_SPEED = {
-  currency: 0.1,
-  block: 0.05,
-  repair: 0.1,
+  currency: 1,
+  block: 1,
+  repair: 1,
 };
+
+const CULL_PADDING = 128;
 
 const SPARK_OPTIONS: ParticleOptions = {
   colors: ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'],
@@ -47,8 +54,6 @@ const SPARK_OPTIONS: ParticleOptions = {
 };
 
 export class PickupSystem {
-  private ctx: CanvasRenderingContext2D;
-
   private pickups: PickupInstance[] = [];
   private blockPickups: PickupInstance[] = [];
   private resourcePickups: PickupInstance[] = [];
@@ -74,7 +79,6 @@ export class PickupSystem {
 
 
   constructor(
-    canvasManager: CanvasManager,
     private readonly camera: Camera,
     playerShip: Ship,
     sparkManager: ParticleManager,
@@ -83,7 +87,6 @@ export class PickupSystem {
     shipBuilderEffects: ShipBuilderEffectsSystem,
     blockDropDecisionMenu: BlockDropDecisionMenu
   ) {
-    this.ctx = canvasManager.getContext('entities');
     this.playerResources = PlayerResources.getInstance();
     this.playerShip = playerShip;
     this.sparkManager = sparkManager
@@ -205,75 +208,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     this.blockPickups.push(newPickup);
   }
 
-  render(dt: number): void {
-    const viewport = this.camera.getViewportBounds();
-    const minX = viewport.x - CULL_PADDING;
-    const minY = viewport.y - CULL_PADDING;
-    const maxX = viewport.x + viewport.width + CULL_PADDING;
-    const maxY = viewport.y + viewport.height + CULL_PADDING;
-
-    const drawSize = BLOCK_SIZE;
-
-    // === Phase 1: Draw currency and repair pickups ===
-    for (const pickup of this.resourcePickups) {
-      const { x, y } = pickup.position;
-      if (x < minX || x > maxX || y < minY || y > maxY) continue;
-
-      const spriteEntry = getPickupSprite(pickup.type.id);
-      if (!spriteEntry?.base) {
-        console.error('Missing sprite for pickup:', pickup.type.id);
-        continue;
-      }
-
-      const screenPos = this.camera.worldToScreen(x, y);
-      pickup.rotation += ROTATION_SPEED[pickup.type.category] ?? 0.5;
-
-      let scale = this.camera.getZoom();
-      if (pickup.type.category === 'currency') {
-        scale *= 0.5 + Math.log2(pickup.currencyAmount + 1) / 5;
-      } else if (pickup.type.category === 'repair') {
-        scale *= 0.5 + Math.log2(pickup.repairAmount + 1) / 5;
-      }
-
-      this.ctx.save();
-      this.ctx.translate(screenPos.x, screenPos.y);
-      this.ctx.rotate(pickup.rotation);
-      this.ctx.scale(scale, scale);
-      this.ctx.drawImage(spriteEntry.base, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
-      this.ctx.restore();
-    }
-
-    // === Phase 2: Draw block pickups ===
-    for (const pickup of this.blockPickups) {
-      const { x, y } = pickup.position;
-      if (x < minX || x > maxX || y < minY || y > maxY) continue;
-
-      let spriteEntry;
-      try {
-        spriteEntry = getBlockSprite(pickup.type.blockTypeId!, DamageLevel.NONE);
-      } catch (e) {
-        console.error(`Failed to resolve block sprite for pickup: ${pickup.type.blockTypeId}`, e);
-        continue;
-      }
-
-      if (!spriteEntry?.base) {
-        console.error('No sprite found for block pickup:', pickup.type.blockTypeId);
-        continue;
-      }
-
-      const screenPos = this.camera.worldToScreen(x, y);
-      pickup.rotation += ROTATION_SPEED.block;
-
-      const scale = this.camera.getZoom() * 2.0;
-
-      this.ctx.save();
-      this.ctx.translate(screenPos.x, screenPos.y);
-      this.ctx.rotate(pickup.rotation);
-      this.ctx.scale(scale, scale);
-      this.ctx.drawImage(spriteEntry.base, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
-      this.ctx.restore();
-    }
-  }
+  render(dt: number): void {}
 
   update(dt: number): void {
     this.timeSinceLastCurrencyPickup += dt;
@@ -297,21 +232,36 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
 
     const emitParticles = Math.random() < 0.2;
 
+    // Viewport calcs for culling
+    const viewport = this.camera.getViewportBounds();
+    const minX = viewport.x - CULL_PADDING;
+    const minY = viewport.y - CULL_PADDING;
+    const maxX = viewport.x + viewport.width + CULL_PADDING;
+    const maxY = viewport.y + viewport.height + CULL_PADDING;
+
     for (const pickup of this.pickups) {
       if (pickup.isPickedUp) continue;
+
+      // Frustrum culling
+      const px = pickup.position.x;
+      const py = pickup.position.y;
+      if (px < minX || px > maxX || py < minY || py > maxY) continue;
+
+      pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
 
       // Emit Particles 1 in 5 chance:
       if (emitParticles) {
         let sparkColors: string[];
+
         switch (pickup.type.category) {
           case 'block': {
             const blockTypeId = pickup.type.blockTypeId;
             if (blockTypeId) {
-              const match = blockTypeId.match(/(\d+)/);
-              const tier = match ? parseInt(match[1], 10) : 0;
+              console.log('[Pickup] Block type ID:', blockTypeId);
+              const tier = getTierFromBlockId(blockTypeId);
               sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
             } else {
-              sparkColors = ['#0022ff', '#000099', '#0055cc', '#003388'];
+              sparkColors = ['#00ffff']; // Unknown block type
             }
             break;
           }
@@ -326,6 +276,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
             break;
         }
 
+        console.log('Passing spark colors: ', sparkColors);
         this.sparkManager.emitParticle(pickup.position, {
           colors: sparkColors,
           baseSpeed: 250,
@@ -338,6 +289,62 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       const dx = shipPosition.x - pickup.position.x;
       const dy = shipPosition.y - pickup.position.y;
       const distSq = dx * dx + dy * dy;
+
+      const textureEntry = (() => {
+        switch (pickup.type.category) {
+          case 'currency':
+          case 'repair':
+            try {
+              return getGLPickupSprite(pickup.type.id).texture;
+            } catch (e) {
+              console.error(`[PickupSystem] Missing GL sprite for pickup: ${pickup.type.id}`, e);
+              return null;
+            }
+
+          case 'block': {
+            try {
+              const sprite = getGL2BlockSprite(pickup.type.blockTypeId!, DamageLevel.NONE);
+              return sprite?.base ?? null;
+            } catch (e) {
+              console.error(`[PickupSystem] Failed to load block sprite for pickup: ${pickup.type.blockTypeId}`, e);
+              return null;
+            }
+          }
+
+          default:
+            console.warn(`[PickupSystem] Unhandled pickup category: ${pickup.type.category}`);
+            return null;
+        }
+      })();
+
+      if (textureEntry) {
+        let alpha = 1.0;
+        let width = BLOCK_SIZE;
+        let height = BLOCK_SIZE;
+
+        if (pickup.type.category === 'currency') {
+          const scale = BASE_PICKUP_SCALE + Math.log2(pickup.currencyAmount + 1) / 5;
+          width *= scale;
+          height *= scale;
+        } else if (pickup.type.category === 'repair') {
+          const scale = BASE_PICKUP_SCALE + Math.log2(pickup.repairAmount + 1) / 5;
+          width *= scale;
+          height *= scale;
+        } else if (pickup.type.category === 'block') {
+          width *= BASE_BLOCK_PICKUP_SCALE;
+          height *= BASE_BLOCK_PICKUP_SCALE;
+        }
+
+        GlobalSpriteRequestBus.add({
+          texture: textureEntry,
+          worldX: pickup.position.x,
+          worldY: pickup.position.y,
+          widthPx: width,
+          heightPx: height,
+          alpha: alpha,
+          rotation: pickup.rotation,
+        });
+      }
 
       if (distSq > attractionRangeSq) continue;
 

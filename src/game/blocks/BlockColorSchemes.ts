@@ -1,8 +1,8 @@
 // src/game/blocks/BlockColorSchemes.ts
 
 export const BLOCK_PICKUP_SPARK_COLOR_PALETTES: Array<string[]> = [
-  ['#fff', '#f90', '#ff0'],           // 
-  ['#fff', '#f90', '#ff0'],           // same as 0
+  ['#ffffff', '#ffffff', '#dddddd'],
+  ['#ffffff', '#ffffff', '#dddddd'],
   ['#66ff66', '#33cc33', '#99ff99'],  // green
   ['#66ccff', '#3399ff', '#99ddff'],  // blue
   ['#cc88ff', '#9933ff', '#ddaaff'],  // purple

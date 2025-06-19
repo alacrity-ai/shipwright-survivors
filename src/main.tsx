@@ -7,7 +7,6 @@ import { bootstrapGlobalGuards } from '@/shared/bootstrap';
 import { initializeBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { initializePickupSpriteCache } from '@/rendering/cache/PickupSpriteCache';
 import { initializeAsteroidBlockSpriteCache } from '@/rendering/cache/AsteroidSpriteCache';
-import { initializeGLBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { initializeProjectileSpriteCache } from './rendering/cache/ProjectileSpriteCache';
 import { audioManager } from '@/audio/Audio'; // Lazy instantiation
 

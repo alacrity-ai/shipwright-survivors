@@ -324,6 +324,8 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] Fix setTimeout in CompositeBlockDestructionService: src/game/ship/CompositeBlockDestructionService.ts
+        Because it's using set Timeout, it continues to run even after the map is over.  Need to use update loop.
   - [ ] Hunters are not seeking the player from across the map. They seem to just be patrolling.
   - [ ] Enemy lights seem to "persist" beyond enemy death, seems to be caused by going away from window and coming back?
   - [x] CRITICAL: While Paused, particles continue to spawn at an alarming rate, causing intense FPS drop

@@ -4,8 +4,6 @@ import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { MusicTrack } from '@/audio/AudioManager';
 import type { FlagKey } from '@/game/player/registry/FlagRegistry';
 
-export type SceneLightingRGBA = [number, number, number, number];
-
 export type PlanetSpawnConfig = {
   name: string;
   x: number;
@@ -33,3 +31,5 @@ export interface MissionDefinition {
   requiredFlag: FlagKey; // Flag required to enter this mission
   missionPortrait?: string | null;
 }
+
+export type SceneLightingRGBA = [number, number, number, number];

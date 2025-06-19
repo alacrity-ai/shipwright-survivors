@@ -121,7 +121,6 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'mission_03/haloblade_cruiser_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'mission_03/haloblade_minicruiser_00', count: 14, hunter: true },
       { shipId: 'mission_03/haloblade_minicruiser_00', count: 16 },
-      { shipId: 'mission_03/boss_03', count: 6 }
     ]
   },
   {

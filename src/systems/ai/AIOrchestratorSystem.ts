@@ -161,4 +161,10 @@ export class AIOrchestratorSystem implements IUpdatable {
       }
     }
   }
+
+  // Debug
+
+  public getHunterControllerStates(): string[] {
+    return Array.from(this.hunterControllers).map(controller => controller.getCurrentStateString());
+  }
 }

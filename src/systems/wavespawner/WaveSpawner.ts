@@ -245,9 +245,6 @@ export class WaveSpawner implements IUpdatable {
         this.activeShips.add(ship);
         this.activeControllers.set(ship, controller);
 
-        console.log('Ship created with Behavior: ', controller.getBehaviorProfile());
-        console.log('Initial state: ', controller.getCurrentStateString());
-
         spawnedShips.push(ship);
       }
     }

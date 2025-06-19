@@ -1,65 +1,113 @@
-const PICKUP_SIZE = 8; // 8x8 pixel size
+// src/rendering/cache/PickupSpriteCache.ts
+
+import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 
 export interface PickupSprite {
-  base: HTMLCanvasElement;
+  canvas: HTMLCanvasElement;
 }
 
-const spriteCache: Map<string, PickupSprite> = new Map();
+export interface GLPickupSprite {
+  texture: WebGLTexture;
+}
 
-function createBlankCanvas(): HTMLCanvasElement {
+const PICKUP_SIZE = 32;
+
+const spriteCache: Map<string, PickupSprite> = new Map();
+const glSpriteCache: Map<string, GLPickupSprite> = new Map();
+
+// --- Sprite ID Registry ---
+
+function getAllPickupTypes(): string[] {
+  return ['currency', 'repair'];
+}
+
+// --- Canvas Setup ---
+
+function createBlankCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
   canvas.width = PICKUP_SIZE;
   canvas.height = PICKUP_SIZE;
-  return canvas;
+  const ctx = canvas.getContext('2d', { alpha: true })!;
+  return { canvas, ctx };
 }
 
-function drawCurrencyPickup(): HTMLCanvasElement {
-  const baseCanvas = createBlankCanvas();
-  const ctx = baseCanvas.getContext('2d')!;
+// --- Drawing Logic ---
 
-  const gradient = ctx.createRadialGradient(
-    PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0,
-    PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2
-  );
-  // Farther on the color wheel: #0500FF
-  gradient.addColorStop(0.0, '#ffcc00'); // Bright gold center
-  gradient.addColorStop(0.6, '#ffaa00'); // Amber midtone
-  gradient.addColorStop(1.0, '#cc6600'); // Deep orange-gold edge
+function drawProceduralPickup(typeId: string): void {
+  const { canvas, ctx } = createBlankCanvas();
+  const center = PICKUP_SIZE / 2;
+
+  ctx.clearRect(0, 0, PICKUP_SIZE, PICKUP_SIZE);
+
+  const gradient = ctx.createRadialGradient(center, center, 0, center, center, center);
+
+  switch (typeId) {
+    case 'currency':
+      gradient.addColorStop(0.0, '#ffcc00');
+      gradient.addColorStop(0.6, '#ffaa00');
+      gradient.addColorStop(1.0, '#cc6600');
+      break;
+    case 'repair':
+      gradient.addColorStop(0.0, '#ff6666');
+      gradient.addColorStop(0.7, '#cc2222');
+      gradient.addColorStop(1.0, '#880000');
+      break;
+    default:
+      console.warn(`[PickupSpriteCache] Unknown pickup type: ${typeId}`);
+      break;
+  }
 
   ctx.fillStyle = gradient;
   ctx.beginPath();
-  ctx.arc(PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0, Math.PI * 2);
+  ctx.arc(center, center, center, 0, Math.PI * 2);
   ctx.fill();
 
-  return baseCanvas;
+  spriteCache.set(typeId, { canvas });
 }
 
-function drawRepairPickup(): HTMLCanvasElement {
-  const baseCanvas = createBlankCanvas();
-  const ctx = baseCanvas.getContext('2d')!;
-
-  const gradient = ctx.createRadialGradient(
-    PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0,
-    PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2
-  );
-  // Farther on the color wheel: #00FF05
-  gradient.addColorStop(0.0, '#ff6666'); // Bright core (health red)
-  gradient.addColorStop(0.7, '#cc2222'); // Midrange red (warm, visceral)
-  gradient.addColorStop(1.0, '#880000'); // Outer edge (deep crimson)
-
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(PICKUP_SIZE / 2, PICKUP_SIZE / 2, PICKUP_SIZE / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  return baseCanvas;
-}
+// --- Initialization ---
 
 export function initializePickupSpriteCache(): void {
-  spriteCache.set('currency', { base: drawCurrencyPickup() });
-  spriteCache.set('repair', { base: drawRepairPickup() });
+  for (const id of getAllPickupTypes()) {
+    drawProceduralPickup(id);
+  }
 }
 
-export function getPickupSprite(typeId: string): PickupSprite | undefined {
-  return spriteCache.get(typeId);
+export function initializeGLPickupSpriteCache(gl: WebGL2RenderingContext): void {
+  let count = 0;
+  for (const [typeId, sprite] of spriteCache.entries()) {
+    try {
+      const texture = createGL2TextureFromCanvas(gl, sprite.canvas);
+      glSpriteCache.set(typeId, { texture });
+      count++;
+    } catch (e) {
+      console.error(`[GLPickupSpriteCache] Failed to create texture for ${typeId}:`, e);
+    }
+  }
+  console.log(`[GLPickupSpriteCache] Initialized ${count} GL2 pickup textures.`);
+}
+
+// --- Cleanup ---
+
+export function destroyGLPickupSpriteCache(gl: WebGL2RenderingContext): void {
+  for (const { texture } of glSpriteCache.values()) {
+    if (texture && gl.isTexture(texture)) {
+      gl.deleteTexture(texture);
+    }
+  }
+  glSpriteCache.clear();
+}
+
+// --- Accessors ---
+
+export function getPickupSprite(typeId: string): PickupSprite {
+  const sprite = spriteCache.get(typeId);
+  if (!sprite) throw new Error(`Pickup sprite not cached: ${typeId}`);
+  return sprite;
+}
+
+export function getGLPickupSprite(typeId: string): GLPickupSprite {
+  const sprite = glSpriteCache.get(typeId);
+  if (!sprite) throw new Error(`GL pickup sprite not cached: ${typeId}`);
+  return sprite;
 }

@@ -18,24 +18,8 @@
     {
       "id": "hull1",
       "coord": {
-        "x": 1,
-        "y": -4
-      },
-      "rotation": 180
-    },
-    {
-      "id": "hull1",
-      "coord": {
         "x": -1,
-        "y": -4
-      },
-      "rotation": 180
-    },
-    {
-      "id": "hull1",
-      "coord": {
-        "x": -1,
-        "y": -3
+        "y": 4
       },
       "rotation": 0
     },
@@ -43,7 +27,7 @@
       "id": "hull1",
       "coord": {
         "x": 1,
-        "y": -3
+        "y": 4
       },
       "rotation": 0
     },
@@ -51,7 +35,7 @@
       "id": "hull1",
       "coord": {
         "x": 1,
-        "y": -2
+        "y": 3
       },
       "rotation": 180
     },
@@ -59,7 +43,7 @@
       "id": "hull1",
       "coord": {
         "x": -1,
-        "y": -2
+        "y": 3
       },
       "rotation": 180
     },
@@ -67,7 +51,7 @@
       "id": "hull1",
       "coord": {
         "x": -1,
-        "y": -1
+        "y": 2
       },
       "rotation": 0
     },
@@ -75,31 +59,7 @@
       "id": "hull1",
       "coord": {
         "x": 1,
-        "y": -1
-      },
-      "rotation": 0
-    },
-    {
-      "id": "hull1",
-      "coord": {
-        "x": 1,
-        "y": 0
-      },
-      "rotation": 180
-    },
-    {
-      "id": "hull1",
-      "coord": {
-        "x": -1,
-        "y": 0
-      },
-      "rotation": 180
-    },
-    {
-      "id": "hull1",
-      "coord": {
-        "x": -1,
-        "y": 1
+        "y": 2
       },
       "rotation": 0
     },
@@ -109,37 +69,69 @@
         "x": 1,
         "y": 1
       },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
       "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 180
     },
     {
       "id": "explosiveLance0",
       "coord": {
         "x": 0,
-        "y": 1
+        "y": -1
       },
-      "rotation": 0
+      "rotation": 180
     },
     {
       "id": "fin1",
       "coord": {
-        "x": -1,
-        "y": 2
+        "x": 1,
+        "y": -2
       },
-      "rotation": 270
+      "rotation": 90
     },
     {
       "id": "hull1",
       "coord": {
         "x": 0,
-        "y": 2
-      },
-      "rotation": 0
-    },
-    {
-      "id": "fin1",
-      "coord": {
-        "x": 2,
-        "y": 0
+        "y": -2
       },
       "rotation": 180
     },
@@ -149,13 +141,13 @@
         "x": -2,
         "y": 0
       },
-      "rotation": 270
+      "rotation": 0
     },
     {
       "id": "fin1",
       "coord": {
         "x": 2,
-        "y": 1
+        "y": 0
       },
       "rotation": 90
     },
@@ -163,23 +155,23 @@
       "id": "fin1",
       "coord": {
         "x": -2,
-        "y": 1
+        "y": -1
       },
-      "rotation": 0
+      "rotation": 270
     },
     {
       "id": "fin1",
       "coord": {
-        "x": 1,
-        "y": 2
+        "x": 2,
+        "y": -1
       },
       "rotation": 180
     },
     {
-      "id": "engine1",
+      "id": "fin1",
       "coord": {
-        "x": 2,
-        "y": -1
+        "x": -1,
+        "y": -2
       },
       "rotation": 0
     },
@@ -187,7 +179,15 @@
       "id": "engine1",
       "coord": {
         "x": -2,
-        "y": -1
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 2,
+        "y": 1
       },
       "rotation": 0
     },
@@ -195,7 +195,7 @@
       "id": "engine1",
       "coord": {
         "x": 0,
-        "y": -3
+        "y": 3
       },
       "rotation": 0
     },
@@ -203,33 +203,33 @@
       "id": "harvester1",
       "coord": {
         "x": 0,
-        "y": -2
+        "y": 2
       },
-      "rotation": 0
+      "rotation": 180
     },
     {
       "id": "harvester1",
       "coord": {
         "x": 0,
-        "y": -1
+        "y": 1
       },
-      "rotation": 0
-    },
-    {
-      "id": "facetplate1",
-      "coord": {
-        "x": 1,
-        "y": -5
-      },
-      "rotation": 0
+      "rotation": 180
     },
     {
       "id": "facetplate1",
       "coord": {
         "x": -1,
-        "y": -5
+        "y": 5
       },
-      "rotation": 0
+      "rotation": 180
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 1,
+        "y": 5
+      },
+      "rotation": 180
     }
   ],
   "behavior": {

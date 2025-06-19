@@ -12,18 +12,13 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 
 import { destroyGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
-import { getAssetPath } from '@/shared/assetHelpers';
-import { createPreviewShip } from '@/game/ship/factories/previewShipFactory';
-import { PreviewShipRendererGL } from '@/rendering/PreviewShipRenderer';
-import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
-import type { PreviewShip } from '@/game/ship/PreviewShip';
 
 import { FlyInBox } from './entities/FlyInBox';
 import { FlyInLabel } from './entities/FlyInLabel';
 import { getUniformScaleFactor, getViewportHeight, getViewportWidth } from '@/config/view';
-import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
+import { addPostProcessEffect, removePostProcessEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
 const BUTTON_WIDTH = 200;
 const BUTTON_HEIGHT = 50;
@@ -72,10 +67,6 @@ export class DebriefingSceneManager {
   private coresAdded: number = 0;
   private currentDecrement = 1;
   private decrementAcceleration = 1.2;
-
-  private previewShip?: PreviewShip;
-  private previewRenderer?: PreviewShipRendererGL;
-  private shipJsonLoaded = false;
 
   private headerLabel!: AnimatedLabel;
   private subtitleLabel!: AnimatedLabel;
@@ -213,50 +204,16 @@ export class DebriefingSceneManager {
     this.summaryBox = new FlyInBox(boxX, boxY, BOX_WIDTH, BOX_HEIGHT);
   }
 
-start() {
-  this.gameLoop.onUpdate(this.update);
-  this.gameLoop.onRender(this.render);
-  this.gameLoop.start();
-
-  // // === Step 3: Now load the preview ship and renderer
-  // const path = getAssetPath('assets/ships/player/ship_00.json');
-
-  // fetch(path)
-  //   .then(res => res.json())
-  //   .then((data: SerializedShip) => {
-  //     // Example of putting it in the middle right corner, notice that X and Y are inverted.
-  //     // const scale = getUniformScaleFactor();
-  //     // const shipX = -160 * scale;
-  //     // const shipY = 130 * scale;
-  //     // const shipScale = 0.75 * scale;
-
-  //     // this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
-  //     // this.previewRenderer = new PreviewShipRendererGL();
-  //     // this.shipJsonLoaded = true;
-  //     // this.previewShip.getTransform().position.x = shipX;
-  //     // this.previewShip.getTransform().position.y = shipY;
-
-  //     const scale = getUniformScaleFactor();
-  //     const shipX = 0;
-  //     const shipY = 0;
-  //     const shipScale = scale;
-
-  //     this.previewShip = createPreviewShip(data, shipX, shipY, shipScale); // No matter what X,Y I pass in, it's always in the same spot
-  //     this.previewRenderer = new PreviewShipRendererGL();
-  //     this.shipJsonLoaded = true;
-  //     this.previewShip.getTransform().position.x = shipX;
-  //     this.previewShip.getTransform().position.y = shipY;
-  //   })
-  //   .catch(err => {
-  //     console.error('[DebriefingSceneManager] Failed to load preview ship JSON:', err);
-  //   });
-}
+  start() {
+    this.gameLoop.onUpdate(this.update);
+    this.gameLoop.onRender(this.render);
+    this.gameLoop.start();
+  }
 
   stop() {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();
-    this.previewRenderer?.destroy();
   }
 
   private update = () => {
@@ -297,12 +254,6 @@ start() {
 
     for (const label of this.flyInLabels) label.update(dt);
     this.summaryBox?.update(dt);
-
-    // === Preview ship spin ===
-    // if (this.previewShip && this.previewRenderer && this.hasHeaderFinished()) {
-    //   const transform = this.previewShip.getTransform();
-    //   transform.rotation += dt * 0.25;
-    // }
   };
 
   private updateReveal(dt: number) {
@@ -398,14 +349,9 @@ start() {
 
     const uiCtx = this.canvasManager.getContext('ui');
     const scale = getUniformScaleFactor();
-    // const screenW = getViewportWidth();
 
     this.headerLabel.render(uiCtx, scale);
     this.subtitleLabel.render(uiCtx, scale);
-
-    // if (this.hasHeaderFinished() && this.shipJsonLoaded && this.previewRenderer && this.previewShip) {
-    //   this.previewRenderer.render(this.previewShip, this.gameLoop.getDeltaTime());
-    // }
 
     if (!this.hasHeaderFinished()) return;
 

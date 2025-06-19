@@ -1,12 +1,14 @@
 // src/rendering/unified/passes/EntityPass.ts
 
-import type { Ship } from '@/game/ship/Ship';
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { getDamageLevel, getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { getGL2BlockOrAsteroidSprite } from '@/rendering/unified/helpers/GLSpriteResolver';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { Ship } from '@/game/ship/Ship';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
 import entityFragSrc from '../shaders/entityPass.frag?raw';
@@ -92,9 +94,11 @@ export class EntityPass {
     };
   }
 
-  render(ships: Ship[], lightTexture: WebGLTexture, camera: Camera): void {
+  render(entities: CompositeBlockObject[], lightTexture: WebGLTexture, camera: Camera): void {
     const { gl } = this;
     const time = performance.now() / 1000;
+    
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
@@ -114,16 +118,18 @@ export class EntityPass {
       mouseWorld = camera.screenToWorld(mouse.x, mouse.y);
     }
 
-    for (const ship of ships) {
-      const { position, rotation } = ship.getTransform();
+    for (const entity of entities) {
+      const { position, rotation } = entity.getTransform();
 
       if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-        const auraId = ship.getLightAuraId?.();
-        if (auraId) {
-          try {
-            LightingOrchestrator.getInstance().updateLight(auraId, position);
-          } catch (e) {
-            console.warn(`[EntityPass] Light update failed for ship ${ship.id}`, e);
+        if (entity instanceof Ship) {
+          const auraId = entity.getLightAuraId?.();
+          if (auraId) {
+            try {
+              LightingOrchestrator.getInstance().updateLight(auraId, position);
+            } catch (e) {
+              console.warn(`[EntityPass] Light update failed for ship ${entity.id}`, e);
+            }
           }
         }
       }
@@ -136,12 +142,12 @@ export class EntityPass {
       gl.uniformMatrix4fv(this.uniforms.uModelMatrix, false, this.shipModelMatrix);
       gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
 
-      for (const [coord, block] of ship.getAllBlocks()) {
+      for (const [coord, block] of entity.getAllBlocks()) {
         if (block.hidden) continue;
 
         const maxHp = block.type.armor ?? 1;
         const damageLevel = getDamageLevel(block.hp, maxHp);
-        const sprite = getGL2BlockSprite(block.type.id, damageLevel);
+        const sprite = getGL2BlockOrAsteroidSprite(block.type.id, damageLevel);
 
         const blockLocalX = coord.x * BLOCK_SIZE;
         const blockLocalY = coord.y * BLOCK_SIZE;

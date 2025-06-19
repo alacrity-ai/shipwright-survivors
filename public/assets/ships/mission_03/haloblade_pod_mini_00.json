@@ -18,46 +18,6 @@
     {
       "id": "fin2",
       "coord": {
-        "x": -1,
-        "y": 1
-      },
-      "rotation": 270
-    },
-    {
-      "id": "fin2",
-      "coord": {
-        "x": 1,
-        "y": 1
-      },
-      "rotation": 180
-    },
-    {
-      "id": "engine2",
-      "coord": {
-        "x": 0,
-        "y": -1
-      },
-      "rotation": 0
-    },
-    {
-      "id": "engine2",
-      "coord": {
-        "x": 1,
-        "y": 0
-      },
-      "rotation": 0
-    },
-    {
-      "id": "engine2",
-      "coord": {
-        "x": -1,
-        "y": 0
-      },
-      "rotation": 0
-    },
-    {
-      "id": "fin2",
-      "coord": {
         "x": 1,
         "y": -1
       },
@@ -72,7 +32,7 @@
       "rotation": 0
     },
     {
-      "id": "haloBlade0",
+      "id": "engine2",
       "coord": {
         "x": 0,
         "y": 1
@@ -80,12 +40,52 @@
       "rotation": 0
     },
     {
+      "id": "engine2",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "haloBlade0",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 180
+    },
+    {
       "id": "facetplate2",
       "coord": {
         "x": 0,
-        "y": 2
+        "y": -2
       },
-      "rotation": 180
+      "rotation": 0
     }
   ],
   "behavior": {

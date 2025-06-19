@@ -18,24 +18,16 @@
     {
       "id": "hull1",
       "coord": {
-        "x": -1,
-        "y": 0
-      },
-      "rotation": 0
-    },
-    {
-      "id": "hull1",
-      "coord": {
         "x": 1,
         "y": 0
       },
-      "rotation": 0
+      "rotation": 180
     },
     {
       "id": "hull1",
       "coord": {
         "x": -1,
-        "y": -1
+        "y": 0
       },
       "rotation": 180
     },
@@ -43,31 +35,15 @@
       "id": "hull1",
       "coord": {
         "x": 1,
-        "y": -1
-      },
-      "rotation": 180
-    },
-    {
-      "id": "hull1",
-      "coord": {
-        "x": 2,
-        "y": 0
+        "y": 1
       },
       "rotation": 0
     },
     {
       "id": "hull1",
       "coord": {
-        "x": 2,
-        "y": -1
-      },
-      "rotation": 180
-    },
-    {
-      "id": "hull1",
-      "coord": {
-        "x": -2,
-        "y": 0
+        "x": -1,
+        "y": 1
       },
       "rotation": 0
     },
@@ -75,15 +51,31 @@
       "id": "hull1",
       "coord": {
         "x": -2,
-        "y": -1
+        "y": 0
       },
       "rotation": 180
     },
     {
-      "id": "haloBlade0",
+      "id": "hull1",
       "coord": {
-        "x": 3,
+        "x": -2,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 2,
         "y": 0
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 2,
+        "y": 1
       },
       "rotation": 0
     },
@@ -93,21 +85,37 @@
         "x": -3,
         "y": 0
       },
-      "rotation": 0
+      "rotation": 180
     },
     {
-      "id": "fin1",
+      "id": "haloBlade0",
       "coord": {
         "x": 3,
-        "y": -1
+        "y": 0
       },
-      "rotation": 90
+      "rotation": 180
     },
     {
       "id": "fin1",
       "coord": {
         "x": -3,
-        "y": -1
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 3,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "engine2",
+      "coord": {
+        "x": -2,
+        "y": 2
       },
       "rotation": 0
     },
@@ -115,23 +123,7 @@
       "id": "engine2",
       "coord": {
         "x": 2,
-        "y": -2
-      },
-      "rotation": 0
-    },
-    {
-      "id": "engine2",
-      "coord": {
-        "x": -2,
-        "y": -2
-      },
-      "rotation": 0
-    },
-    {
-      "id": "fin2",
-      "coord": {
-        "x": 1,
-        "y": -2
+        "y": 2
       },
       "rotation": 0
     },
@@ -139,41 +131,49 @@
       "id": "fin2",
       "coord": {
         "x": -1,
-        "y": -2
+        "y": 2
       },
-      "rotation": 90
+      "rotation": 180
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 1,
+        "y": 2
+      },
+      "rotation": 270
     },
     {
       "id": "facetplate2",
       "coord": {
         "x": 0,
-        "y": -1
+        "y": 1
       },
-      "rotation": 0
+      "rotation": 180
     },
     {
       "id": "hull2",
       "coord": {
         "x": 0,
-        "y": 1
+        "y": -1
       },
-      "rotation": 180
-    },
-    {
-      "id": "fin2",
-      "coord": {
-        "x": 1,
-        "y": 1
-      },
-      "rotation": 180
+      "rotation": 0
     },
     {
       "id": "fin2",
       "coord": {
         "x": -1,
-        "y": 1
+        "y": -1
       },
-      "rotation": 270
+      "rotation": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 90
     }
   ],
   "behavior": {
