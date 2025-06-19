@@ -749,7 +749,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin1: {
     id: 'fin1',
-    name: 'Fin Mk II',
+    name: 'Fin Mk I',
     armor: 50,
     mass: 10,
     cost: 40,
@@ -763,7 +763,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin2: {
     id: 'fin2',
-    name: 'Fin Mk III',
+    name: 'Fin Mk II',
     armor: 75,
     mass: 10,
     cost: 80,
@@ -777,7 +777,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin3: {
     id: 'fin3',
-    name: 'Fin Mk IV',
+    name: 'Fin Mk III',
     armor: 90,
     mass: 10,
     cost: 120,

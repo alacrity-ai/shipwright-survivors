@@ -4,33 +4,26 @@ import { getViewportWidth, getViewportHeight } from '@/config/view';
 
 export type CanvasLayer =
   | 'background'
-  | 'backgroundgl'
   | 'entities'
   | 'polygon'
-  | 'entitygl'
-  | 'lighting'
   | 'fx'
   | 'particles'
   | 'ui'
   | 'overlay'
   | 'dialogue'
-  | 'unifiedgl2'; // <-- NEW
+  | 'unifiedgl2';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
-  backgroundgl: 'backgroundgl-canvas',
   entities: 'entity-canvas',
-  entitygl: 'entitygl-canvas',
   polygon: 'polygon-canvas',
-  lighting: 'lighting-canvas',
   fx: 'fx-canvas',
   particles: 'particles-canvas',
   ui: 'ui-canvas',
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas',
-  unifiedgl2: 'unifiedgl2-canvas', // <-- NEW
+  unifiedgl2: 'unifiedgl2-canvas',
 };
-
 
 export class CanvasManager {
   private static _instance: CanvasManager | null = null;
@@ -65,7 +58,7 @@ export class CanvasManager {
       }
 
       // === 2D Context Initialization ===
-      if (!['lighting', 'entitygl', 'backgroundgl', 'polygon', 'unifiedgl2'].includes(layer)) {
+      if (!['polygon', 'unifiedgl2'].includes(layer)) {
         const ctx = canvas.getContext('2d', { willReadFrequently: false });
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
@@ -94,11 +87,8 @@ export class CanvasManager {
   private getZIndexForLayer(layer: CanvasLayer): number {
     switch (layer) {
       case 'background': return 1;
-      case 'backgroundgl': return 0;
-      case 'entitygl': return 2;
       case 'polygon': return 3;
       case 'entities': return 4;
-      case 'lighting': return 5;
       case 'unifiedgl2': return 6;
       case 'fx': return 7;
       case 'particles': return 8;
@@ -131,7 +121,9 @@ export class CanvasManager {
   }
 
   public clearLayer(layer: CanvasLayer): void {
-    if (layer === 'lighting') {
+    if (layer === 'unifiedgl2') {
+      this.clearWebGL2Layer(layer);
+    } else if (layer === 'polygon') {
       this.clearWebGLLayer(layer);
     } else {
       const ctx = this.getContext(layer);

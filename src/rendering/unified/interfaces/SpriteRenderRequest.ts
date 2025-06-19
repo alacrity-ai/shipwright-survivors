@@ -7,4 +7,5 @@ export interface SpriteRenderRequest {
   widthPx: number;
   heightPx: number;
   alpha?: number;
+  rotation?: number;
 }

@@ -1,4 +1,5 @@
 // src/core/EngineRuntime.ts
+
 import { Camera } from './Camera';
 import { getViewportWidth, getViewportHeight, getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from './CanvasManager';
@@ -13,7 +14,9 @@ import type { MissionDefinition } from '@/game/missions/types/MissionDefinition'
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { sceneManager } from './SceneManager';
 import { initializeGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeGLPickupSpriteCache, destroyGLPickupSpriteCache } from '@/rendering/cache/PickupSpriteCache';
 import { initializeGLProjectileSpriteCache, destroyGLProjectileSpriteCache } from '@/rendering/cache/ProjectileSpriteCache';
+import { initializeGL2AsteroidBlockSpriteCache, destroyGL2AsteroidBlockSpriteCache } from '@/rendering/cache/AsteroidSpriteCache';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
 import { MenuManager } from '@/ui/MenuManager';
@@ -30,12 +33,11 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
+import { addPostProcessEffect, clearPostProcessEffects, applyWarmCinematicEffect, applyCoolCinematicEffect, applyVintageFilmEffect, applyLightCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
-import { BackgroundRendererGL as BackgroundRenderer } from '@/rendering/BackgroundRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-import { LightingRenderer } from '@/lighting/LightingRenderer';
 import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
@@ -61,7 +63,6 @@ import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
 import { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
-import { AsteroidRenderer } from '@/rendering/AsteroidRenderer';
 import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/weapons/LaserBackend';
 import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBackend';
@@ -85,6 +86,7 @@ import { Grid } from '@/systems/physics/Grid';
 import { Ship } from '@/game/ship/Ship';
 import { SpaceStation } from '@/game/entities/SpaceStation';
 
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
@@ -136,9 +138,7 @@ export class EngineRuntime {
   private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
   private particleManager: ParticleManager;
-  private background: BackgroundRenderer;
   private unifiedSceneRenderer: UnifiedSceneRendererGL;
-  private asteroidRenderer: AsteroidRenderer;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
@@ -180,9 +180,10 @@ export class EngineRuntime {
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
 
     // Initialize GL caches
-    // initializeGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
     initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    initializeGLPickupSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    initializeGL2AsteroidBlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2')); // Just added this
 
     // Resolution fix for electron
     applyViewportResolution(this.canvasManager, this.camera);
@@ -192,10 +193,6 @@ export class EngineRuntime {
   
     // Lighting System
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
-
-    // Old, may need to add new clear color to the unified renderer
-    // const sceneLighting = missionLoader.getMission().sceneLighting ?? [0, 0, 0, 0];
-    // this.lightingOrchestrator.setClearColor(...sceneLighting);
 
     // Particle System
     this.particleManager = new ParticleManager(this.lightingOrchestrator);
@@ -272,7 +269,6 @@ export class EngineRuntime {
 
     // === Construct PickupSystem and PickupSpawner ===
     this.pickupSystem = new PickupSystem(
-      this.canvasManager, 
       this.camera, 
       this.ship, 
       this.particleManager, 
@@ -325,12 +321,11 @@ export class EngineRuntime {
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
 
     // Renderers
-    this.background = new BackgroundRenderer(this.canvasManager, this.camera, this.mission.environmentSettings?.backgroundId);
-    // this.multiShipRendererGL = new MultiShipRendererGL(this.canvasManager, this.camera, this.shipCulling, this.inputManager);
-    this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
+    // this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
     this.unifiedSceneRenderer = new UnifiedSceneRendererGL(this.camera, this.inputManager);
     this.unifiedSceneRenderer.setAmbientLight([0.4, 0.4, 0.4]);
+    this.unifiedSceneRenderer.setBackgroundImage(this.mission.environmentSettings?.backgroundId ?? null);
 
     // Additional Update Systems
     this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
@@ -397,7 +392,7 @@ export class EngineRuntime {
     });
 
     // Planet System
-    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveSpawner);
+    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveSpawner, this.unifiedSceneRenderer);
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // AsteroidSpawner
@@ -415,7 +410,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry);
     this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
@@ -454,7 +449,6 @@ export class EngineRuntime {
         }
       },
       this.popupMessageSystem,
-      this.background,
       this.shipConstructionAnimator,
       this.planetSystem,
       this.lightingOrchestrator,
@@ -462,10 +456,7 @@ export class EngineRuntime {
 
     // All systems that need to be rendered every frame
     this.renderables = [
-      this.background,
       this.laserSystem,
-      this.pickupSystem,
-      this.asteroidRenderer,
       this.hud,
       this.miniMap,
       this.explosionSystem,
@@ -477,7 +468,6 @@ export class EngineRuntime {
       this.missionDialogueManager,
       this.shipConstructionAnimator,
       this.planetSystem,
-      // this.weaponSystem,
       this.aiOrchestrator,
       this.floatingTextManager,
       this.coachMarkManager,
@@ -530,8 +520,6 @@ export class EngineRuntime {
       }
     }
 
-    // this.blockDropDecisionMenu.update(dt);
-
     if (this.pauseMenu.isOpen()) {
       this.pauseMenu.update();
     }
@@ -551,6 +539,31 @@ export class EngineRuntime {
     // Debug keys 
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
       flags.unlockAllFlags();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyG')) {
+      addPostProcessEffect('bloom');
+      addPostProcessEffect('chromaticAberration');
+    }
+
+    if (this.inputManager.wasKeyJustPressed('Digit4')) {
+      applyWarmCinematicEffect();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('Digit5')) {
+      applyCoolCinematicEffect();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('Digit6')) {
+      applyVintageFilmEffect();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('Digit7')) {
+      applyLightCinematicEffect();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyH')) {
+      clearPostProcessEffects();
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
@@ -648,8 +661,6 @@ export class EngineRuntime {
     if (!this.ship || this.isDestroyed) return;
     const transform = this.ship.getTransform();
 
-    // this.canvasManager.clearLayer('background');
-    this.canvasManager.clearLayer('entities');
     this.canvasManager.clearLayer('fx');
     this.canvasManager.clearLayer('particles');
     this.canvasManager.clearLayer('ui');
@@ -658,11 +669,25 @@ export class EngineRuntime {
 
     this.renderables.forEach(system => system.render(dt));
     if (this.camera) {
-        const visibleShips = this.shipCulling.getVisibleShips();
-        const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
-        const activeParticles = this.particleManager.getActiveParticles();
-        const spriteRequests = GlobalSpriteRequestBus.getAndClear();
-        this.unifiedSceneRenderer.render(this.camera, visibleShips, visibleLights, spriteRequests, activeParticles);
+      const visibleShips = this.shipCulling.getVisibleShips();
+      const visibleAsteroids = this.blockObjectCulling.getVisibleObjects();
+
+      const visibleObjects: CompositeBlockObject[] = [
+        ...visibleShips,
+        ...visibleAsteroids,
+      ];
+
+      const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
+      const activeParticles = this.particleManager.getActiveParticles();
+      const spriteRequests = GlobalSpriteRequestBus.getAndClear();
+
+      this.unifiedSceneRenderer.render(
+        this.camera,
+        visibleObjects,
+        visibleLights,
+        spriteRequests,
+        activeParticles
+      );
     }
 
     // Always render the repair effect system
@@ -699,7 +724,8 @@ export class EngineRuntime {
   public async load(): Promise<void> {
     // Delegate to each subsystem that loads images
     await Promise.all([
-      this.background?.load?.(),           // BackgroundRenderer
+      // TODO: Do we need to call setBackgroundImageId on the unified scene renderer?
+      // this.background?.load?.(),           // BackgroundRenderer
       // this.planetSystem?.load?.(),         // PlanetSystem (loads spritePath)
       // etc...
     ]);
@@ -712,10 +738,12 @@ export class EngineRuntime {
     this.gameLoop.start();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
+    // TODO : Put this in options
+    addPostProcessEffect('bloom');
+    addPostProcessEffect('chromaticAberration');
     setTimeout(() => {
       if (this.ship) {
         this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 96, intensity: 1.25 });
-        // this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 3024, intensity: 0.5 });
       }
     }, 1000);
     setTimeout(() => {
@@ -726,6 +754,10 @@ export class EngineRuntime {
 
   public handlePlayerVictory(timeoutMs: number = 10_000): void {
     console.log("Player victorious — debriefing will begin in 10 seconds...");
+    setTimeout(() => {
+      clearPostProcessEffects();
+      addPostProcessEffect('sepia');
+    }, timeoutMs - 1)
 
     // Optional: trigger victory effects here (e.g. music, overlay)
     // victoryEffectManager.play(); // hypothetical example
@@ -733,15 +765,17 @@ export class EngineRuntime {
     setTimeout(() => {
       missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
       this.destroy();
-      sceneManager.fadeToScene('debriefing');
+      sceneManager.setScene('debriefing');
     }, timeoutMs);
   }
 
   public handlePlayerFailure(): void {
+    clearPostProcessEffects();
+    addPostProcessEffect('sepia');
     console.log("Player defeated — transitioning to debriefing screen.");
     missionResultStore.finalize('defeat', this.gameLoop.getElapsedSeconds());
     this.destroy();
-    sceneManager.fadeToScene('debriefing');
+    sceneManager.setScene('debriefing');
   }
 
   /**
@@ -774,13 +808,12 @@ export class EngineRuntime {
     this.hud.destroy();
     this.miniMap.destroy();
     this.lightingOrchestrator.destroy();
-    // this.multiShipRendererGL.destroy(); // Optional: destroy the renderer if it's not persistent
-    this.background.destroy();
     this.missionDialogueManager.destroy();
     this.blockDropDecisionMenu.destroy();
-    // TODO : Destroy GL2 blocksprite cache??
-    // destroyGLBlockSpriteCache(this.canvasManager.getWebGLContext('entitygl'));
+    // TODO : Destroy GL2 blocksprite cache?? Leaving undestroyed for use by Debriefing Scene
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    destroyGLPickupSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    destroyGL2AsteroidBlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     // // Clear rendering and update lists
     this.updatables.length = 0;

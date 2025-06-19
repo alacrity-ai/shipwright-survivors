@@ -206,9 +206,7 @@ export class WaveSpawner implements IUpdatable {
     }
   }
 
-  private async spawnWave(wave: WaveDefinition): Promise<void> {
-    console.log(`Spawning wave ${wave.id} (type: ${wave.type})`);
-    
+  private async spawnWave(wave: WaveDefinition): Promise<void> {    
     this.activeWave = {
       id: wave.id,
       type: wave.type,

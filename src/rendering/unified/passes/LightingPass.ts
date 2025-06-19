@@ -38,6 +38,9 @@ export class LightingPass {
   private framebufferHeight = 0;
   private framebufferDirty = true;
 
+  private compositeFramebuffer: WebGLFramebuffer;
+  private compositeTexture: WebGLTexture;
+
   private readonly resolutionScale = 0.2;
   private readonly clearColor: [number, number, number, number] = [0, 0, 0, 0];
   private readonly maxBrightness = 1.0;
@@ -73,6 +76,10 @@ export class LightingPass {
     this.framebuffer = gl.createFramebuffer()!;
 
     this.initializeFramebuffer();
+
+    this.compositeTexture = gl.createTexture()!;
+    this.compositeFramebuffer = gl.createFramebuffer()!;
+    this.initializeCompositeFramebuffer();
   }
 
   private initializeFramebuffer(): void {
@@ -95,6 +102,22 @@ export class LightingPass {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, null);
+  }
+
+  private initializeCompositeFramebuffer(): void {
+    const gl = this.gl;
+
+    gl.bindTexture(gl.TEXTURE_2D, this.compositeTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.framebufferWidth, this.framebufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.compositeFramebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.compositeTexture, 0);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   public generateLightBuffer(lights: AnyLightInstance[], camera: Camera): WebGLTexture {
@@ -185,10 +208,12 @@ export class LightingPass {
     return this.colorTexture;
   }
 
-  public compositeLightingOverScene(): void {
+  public compositeLightingOverTarget(targetFramebuffer: WebGLFramebuffer): void {
     const gl = this.gl;
 
+    gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
     gl.useProgram(this.postProgram);
     gl.bindVertexArray(this.vao);
 
@@ -197,10 +222,12 @@ export class LightingPass {
     gl.uniform1i(gl.getUniformLocation(this.postProgram, 'uTexture'), 0);
     gl.uniform1f(gl.getUniformLocation(this.postProgram, 'uMaxBrightness'), this.maxBrightness);
 
-    gl.blendFunc(gl.ONE, gl.ONE);
     gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.disable(gl.BLEND);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   public setAmbientLight(value: [number, number, number]): void {
@@ -225,6 +252,8 @@ export class LightingPass {
     gl.deleteTexture(this.colorTexture);
     gl.deleteVertexArray(this.vao);
     gl.deleteBuffer(this.lightUBO);
+    gl.deleteFramebuffer(this.compositeFramebuffer);
+    gl.deleteTexture(this.compositeTexture);
   }
 
   private hexToRgbaVec4(hex: string): [number, number, number, number] {

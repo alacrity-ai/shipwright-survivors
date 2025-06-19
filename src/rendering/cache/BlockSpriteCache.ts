@@ -13,7 +13,6 @@ import { renderBatteryModule } from './blockRenderers/batteryBlockRenderer';
 import { renderShieldGenerator } from './blockRenderers/shieldBlockRenderer';
 import { renderHarvester } from './blockRenderers/harvestBlockRenderer';
 import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRenderer';
-import { createTextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 import { renderHaloBladeBlock } from './blockRenderers/haloBladeBlockRenderer';
 import { renderFuelTankBlock } from './blockRenderers/fuelTankBlockRenderer';
 
@@ -56,7 +55,7 @@ export interface GLDamagedBlockSprite {
   [DamageLevel.HEAVY]: GLBlockSprite;
 }
 
-const glSpriteCache: Map<string, GLDamagedBlockSprite> = new Map();
+// const glSpriteCache: Map<string, GLDamagedBlockSprite> = new Map();
 const gl2SpriteCache: Map<string, GLDamagedBlockSprite> = new Map();    // ← for GL2
 
 // --- Canvas Helpers ---
@@ -854,71 +853,6 @@ export function initializeGL2BlockSpriteCache(gl: WebGL2RenderingContext): void 
   console.log(`[GL2Cache] Total GL2 textures initialized: ${convertedCount}`);
 }
 
-
-export function initializeGLBlockSpriteCache(gl: WebGLRenderingContext): void {
-  let convertedCount = 0;
-
-  for (const block of getAllBlockTypes()) {
-    const raster = spriteCache.get(block.id);
-    if (!raster) {
-      console.warn(`[GLCache] No raster sprite found for block: ${block.id}`);
-      continue;
-    }
-
-    try {
-      const glVariants: GLDamagedBlockSprite = {
-        [DamageLevel.NONE]: {
-          base: createTextureFromCanvas(gl, raster[DamageLevel.NONE].base),
-          overlay: raster[DamageLevel.NONE].overlay
-            ? createTextureFromCanvas(gl, raster[DamageLevel.NONE].overlay!)
-            : undefined,
-        },
-        [DamageLevel.LIGHT]: {
-          base: createTextureFromCanvas(gl, raster[DamageLevel.LIGHT].base),
-          overlay: raster[DamageLevel.LIGHT].overlay
-            ? createTextureFromCanvas(gl, raster[DamageLevel.LIGHT].overlay!)
-            : undefined,
-        },
-        [DamageLevel.MODERATE]: {
-          base: createTextureFromCanvas(gl, raster[DamageLevel.MODERATE].base),
-          overlay: raster[DamageLevel.MODERATE].overlay
-            ? createTextureFromCanvas(gl, raster[DamageLevel.MODERATE].overlay!)
-            : undefined,
-        },
-        [DamageLevel.HEAVY]: {
-          base: createTextureFromCanvas(gl, raster[DamageLevel.HEAVY].base),
-          overlay: raster[DamageLevel.HEAVY].overlay
-            ? createTextureFromCanvas(gl, raster[DamageLevel.HEAVY].overlay!)
-            : undefined,
-        },
-      };
-
-      glSpriteCache.set(block.id, glVariants);
-      convertedCount++;
-    } catch (e) {
-      console.error(`[GLCache] Failed to convert block sprite to GL texture: ${block.id}`, e);
-    }
-  }
-
-  console.log(`[GLCache] Total GL textures initialized: ${convertedCount}`);
-}
-
-export function destroyGLBlockSpriteCache(gl: WebGLRenderingContext): void {
-  for (const [typeId, damagedVariants] of glSpriteCache.entries()) {
-    for (const level of Object.values(DamageLevel)) {
-      const sprite = damagedVariants[level];
-      if (sprite.base && gl.isTexture(sprite.base)) {
-        gl.deleteTexture(sprite.base);
-      }
-      if (sprite.overlay && gl.isTexture(sprite.overlay)) {
-        gl.deleteTexture(sprite.overlay);
-      }
-    }
-  }
-
-  glSpriteCache.clear();
-}
-
 export function destroyGL2BlockSpriteCache(gl: WebGL2RenderingContext): void {
   for (const [typeId, damagedVariants] of gl2SpriteCache.entries()) {
     for (const level of Object.values(DamageLevel)) {
@@ -947,12 +881,6 @@ export function getDamageLevel(currentHp: number, maxHp: number): DamageLevel {
 export function getBlockSprite(typeId: string, level: DamageLevel = DamageLevel.NONE): BlockSprite {
   const entry = spriteCache.get(typeId);
   if (!entry) throw new Error(`Block sprite not cached: ${typeId}`);
-  return entry[level];
-}
-
-export function getGLBlockSprite(typeId: string, level: DamageLevel = DamageLevel.NONE): GLBlockSprite {
-  const entry = glSpriteCache.get(typeId);
-  if (!entry) throw new Error(`GL block sprite not cached: ${typeId}`);
   return entry[level];
 }
 

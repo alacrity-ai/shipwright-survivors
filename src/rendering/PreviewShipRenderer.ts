@@ -1,8 +1,10 @@
 // src/rendering/PreviewShipRendererGL.ts
 
+// TODO : This needs to be migrated to GL2
+
 import type { PreviewShip } from '@/game/ship/PreviewShip';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
-import { getDamageLevel, getGLBlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { getDamageLevel, getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import {
   createOrthographicMatrix,
   createTranslationMatrix,
@@ -16,7 +18,7 @@ import { VERT_SHADER_SRC, FRAG_SHADER_SRC } from '@/rendering/gl/shaders/shipSpr
 import { CanvasManager } from '@/core/CanvasManager';
 
 export class PreviewShipRendererGL {
-  private readonly gl: WebGLRenderingContext;
+  private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;
   private readonly quadBuffer: WebGLBuffer;
 
@@ -30,7 +32,9 @@ export class PreviewShipRendererGL {
   private spinAngle: number = 0;
 
   constructor() {
-    this.gl = CanvasManager.getInstance().getWebGLContext('entitygl');
+    this.gl = CanvasManager.getInstance().getWebGL2Context('unifiedgl2');
+
+    // TODO : Still using old shaders
     this.program = createProgramFromSources(this.gl, VERT_SHADER_SRC, FRAG_SHADER_SRC);
     this.quadBuffer = createQuadBuffer(this.gl);
 
@@ -113,7 +117,7 @@ export class PreviewShipRendererGL {
 
       const maxHp = block.type.armor ?? 1;
       const damageLevel = getDamageLevel(block.hp, maxHp);
-      const sprite = getGLBlockSprite(block.type.id, damageLevel);
+      const sprite = getGL2BlockSprite(block.type.id, damageLevel);
 
       const localX = coord.x * BLOCK_SIZE;
       const localY = coord.y * BLOCK_SIZE;
@@ -149,6 +153,7 @@ export class PreviewShipRendererGL {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.useProgram(null);
   }
+  
   destroy(): void {
     const { gl } = this;
     if (!gl.isProgram(this.program)) return;

@@ -76,6 +76,10 @@ export class AIOrchestratorSystem implements IUpdatable {
     return this.controllerToShipMap.size;
   }
 
+  public getHunterControllerCount(): number {
+    return this.hunterControllers.size;
+  }
+
   public clear(): void {
     this.controllerToShipMap.clear();
   }
@@ -156,5 +160,11 @@ export class AIOrchestratorSystem implements IUpdatable {
         console.error('Error rendering AI controller:', error);
       }
     }
+  }
+
+  // Debug
+
+  public getHunterControllerStates(): string[] {
+    return Array.from(this.hunterControllers).map(controller => controller.getCurrentStateString());
   }
 }

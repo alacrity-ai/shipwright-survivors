@@ -185,7 +185,7 @@ export class Camera {
   }
 
   getViewBounds(canvasManager: CanvasManager): { left: number; right: number; top: number; bottom: number } {
-    const canvas = canvasManager.getCanvas('entitygl');
+    const canvas = canvasManager.getCanvas('unifiedgl2');
     const width = canvas.width / this.zoom;
     const height = canvas.height / this.zoom;
 

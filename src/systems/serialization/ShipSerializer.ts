@@ -15,6 +15,9 @@ export interface SerializedShip {
     coord: { x: number; y: number };
     rotation?: number;
   }>;
+  behavior: {
+    type: 'default' | 'spaceStation' | 'rammer' | string;
+  };
 }
 
 /**
@@ -47,6 +50,7 @@ export function serializeShip(ship: Ship, grid: Grid): SerializedShip {
   return {
     transform: serializedTransform,
     blocks: serializedBlocks,
+    behavior: { type: 'default' }
   };
 }
 
@@ -65,12 +69,18 @@ export function deserializeShip(data: SerializedShip, grid: Grid): Ship {
   return ship;
 }
 
-export function loadShipFromJson(fileName: string, grid: Grid): Promise<Ship> {
+export function loadShipFromJson(
+  fileName: string,
+  grid: Grid
+): Promise<{ ship: Ship; behaviorType?: string }> {
   return fetch(getAssetPath(`/assets/ships/${fileName}`))
     .then(response => response.json())
     .then(data => {
-      const ship = new Ship(grid);  // Pass the grid to the ship constructor
+      const ship = new Ship(grid);
       ship.loadFromJson(data);
-      return ship;
+      return {
+        ship,
+        behaviorType: data.behavior?.type
+      };
     });
 }

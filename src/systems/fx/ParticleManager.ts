@@ -44,67 +44,67 @@ export class ParticleManager {
     // this.renderer = new ParticleRendererGL(gl);
   }
 
-private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
-  const {
-    colors = ['#00f', '#009', '#00a9f4', '#1e90ff'],
-    sizeRange = [1, 4],
-    lifeRange = [1, 2],
-  } = options;
+  private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
+    const {
+      colors = ['#00f', '#009', '#00a9f4', '#1e90ff'],
+      sizeRange = [1, 4],
+      lifeRange = [1, 2],
+    } = options;
 
-  let vx: number, vy: number;
+    let vx: number, vy: number;
 
-  if (options.randomDirection) {
-    const angle = randomAngle();
-    const minSpeed = options.speedRange?.[0] ?? 0;
-    const maxSpeed = options.speedRange?.[1] ?? options.baseSpeed ?? 1;
-    const speed = randomInRange(minSpeed, maxSpeed);
+    if (options.randomDirection) {
+      const angle = randomAngle();
+      const minSpeed = options.speedRange?.[0] ?? 0;
+      const maxSpeed = options.speedRange?.[1] ?? options.baseSpeed ?? 1;
+      const speed = randomInRange(minSpeed, maxSpeed);
 
-    vx = Math.cos(angle) * speed;
-    vy = Math.sin(angle) * speed;
-  } else if (options.velocity) {
-    vx = options.velocity.x;
-    vy = options.velocity.y;
-  } else {
-    // Legacy fallback — random angle with baseSpeed
-    const angle = randomAngle();
-    const speed = randomInRange(0, options.baseSpeed ?? 1);
+      vx = Math.cos(angle) * speed;
+      vy = Math.sin(angle) * speed;
+    } else if (options.velocity) {
+      vx = options.velocity.x;
+      vy = options.velocity.y;
+    } else {
+      // Legacy fallback — random angle with baseSpeed
+      const angle = randomAngle();
+      const speed = randomInRange(0, options.baseSpeed ?? 1);
 
-    vx = Math.cos(angle) * speed;
-    vy = Math.sin(angle) * speed;
+      vx = Math.cos(angle) * speed;
+      vy = Math.sin(angle) * speed;
+    }
+
+    const particle = this.getParticle();
+    particle.x = origin.x;
+    particle.y = origin.y;
+    particle.vx = vx;
+    particle.vy = vy;
+    particle.size = randomInRange(sizeRange[0], sizeRange[1]) * PARTICLE_SCALE;
+    particle.life = randomInRange(lifeRange[0], lifeRange[1]);
+    particle.initialLife = particle.life;
+    particle.fadeOut = options.fadeOut ?? false;
+    particle.fadeMode = options.fadeMode ?? 'linear';
+    particle.renderAlpha = 1.0;
+    particle.color = colors[randomIntInclusive(0, colors.length - 1)];
+
+    if (this.lightingOrchestrator && options.light) {
+      const light = createPointLight({
+        x: particle.x,
+        y: particle.y,
+        radius: particle.size * (options.lightRadiusScalar ?? 3),
+        color: particle.color,
+        intensity: options.lightIntensity ?? 1.0,
+        life: particle.life,
+        expires: true,
+        fadeMode: options.fadeMode ?? 'linear',
+      });
+
+      this.lightingOrchestrator.registerLight(light);
+      particle.lightId = light.id;
+    }
+
+    this.activeParticles.push(particle);
+    return particle;
   }
-
-  const particle = this.getParticle();
-  particle.x = origin.x;
-  particle.y = origin.y;
-  particle.vx = vx;
-  particle.vy = vy;
-  particle.size = randomInRange(sizeRange[0], sizeRange[1]) * PARTICLE_SCALE;
-  particle.life = randomInRange(lifeRange[0], lifeRange[1]);
-  particle.initialLife = particle.life;
-  particle.fadeOut = options.fadeOut ?? false;
-  particle.fadeMode = options.fadeMode ?? 'linear';
-  particle.renderAlpha = 1.0;
-  particle.color = colors[randomIntInclusive(0, colors.length - 1)];
-
-  if (this.lightingOrchestrator && options.light) {
-    const light = createPointLight({
-      x: particle.x,
-      y: particle.y,
-      radius: particle.size * (options.lightRadiusScalar ?? 3),
-      color: particle.color,
-      intensity: options.lightIntensity ?? 1.0,
-      life: particle.life,
-      expires: true,
-      fadeMode: options.fadeMode ?? 'linear',
-    });
-
-    this.lightingOrchestrator.registerLight(light);
-    particle.lightId = light.id;
-  }
-
-  this.activeParticles.push(particle);
-  return particle;
-}
 
 
   emitBurst(origin: { x: number; y: number }, count: number, options: ParticleOptions = {}): void {

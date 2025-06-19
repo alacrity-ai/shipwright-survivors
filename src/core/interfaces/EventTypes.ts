@@ -2,6 +2,7 @@
 
 import type { IncidentMinimapMarker } from '@/core/interfaces/events/IncidentMinimapReporter';
 import type { FiringMode } from '@/systems/combat/types/WeaponTypes';
+import type { PostEffectName, CinematicGradingParams } from '@/rendering/unified/passes/PostProcessPass';
 
 // New: CursorChangeType definition
 export type CursorChangeType =
@@ -42,4 +43,16 @@ export interface EventTypes {
   // Resolution
   'resolution:changed': { width: number; height: number };
 
+  // Rendering
+  'postprocess:effect:set': {
+    effectChain: { effect: PostEffectName; params?: CinematicGradingParams }[];
+  };
+
+  'postprocess:effect:add': {
+    effect: PostEffectName;
+    params?: CinematicGradingParams;
+  };
+
+  'postprocess:effect:remove': { effect: PostEffectName };
+  'postprocess:effect:clear': undefined;
 }

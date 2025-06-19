@@ -583,5 +583,8 @@
       },
       "rotation": 90
     }
-  ]
+  ],
+  "behavior": {
+    "type": "spaceStation"
+  }
 }

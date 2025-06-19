@@ -1,6 +1,6 @@
 // src/game/planets/PlanetController.ts
 
-import { PlanetRenderer } from './PlanetRenderer';
+import { PlanetOverlayRenderer } from '@/game/planets/PlanetOverlayRenderer';
 
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
@@ -16,7 +16,7 @@ import type { Camera } from '@/core/Camera';
 
 
 export class PlanetController {
-  private readonly renderer: PlanetRenderer;
+  private readonly renderer: PlanetOverlayRenderer;
   private readonly dialogueQueueManager: DialogueQueueManager
 
   private isInteracting = false;
@@ -30,8 +30,8 @@ export class PlanetController {
     private readonly definition: PlanetDefinition,
     private readonly waveSpawner: WaveSpawner
   ) {
-    const gl = CanvasManager.getInstance().getWebGLContext('backgroundgl');
-    this.renderer = new PlanetRenderer(gl, definition.imagePath, definition.scale, definition.name);
+    // Initialize renderer (Only now renders overlay information)
+    this.renderer = new PlanetOverlayRenderer(definition.name);
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
   }
 
@@ -99,6 +99,9 @@ export class PlanetController {
     ctx: CanvasRenderingContext2D, 
     overlayCtx: CanvasRenderingContext2D, 
     dialogueCtx: CanvasRenderingContext2D): void {
+
+    // NOTE: Actual planet rendering occurs in the PlanetPass of the UnifiedSceneRendererGL  
+
     const {
       inDrawingRange,
       inTransmissionRange,
@@ -110,8 +113,6 @@ export class PlanetController {
     if (inDrawingRange) {
       this.renderer.render(
         overlayCtx,
-        this.x,
-        this.y,
         this.camera,
         inInteractionRange,
         this.isInteracting

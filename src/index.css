@@ -28,21 +28,3 @@ canvas {
   left: 0;
   display: block;
 }
-
-/* Main content, e.g. entities, background, etc. */
-/* .content-layers {
-  isolation: isolate;
-} */
-
-/* Lighting layer (WebGL) visual blending */
-#lighting-canvas {
-  mix-blend-mode: screen; /* or overlay/multiply depending on aesthetic */
-}
-
-/* 🔹 New: entitygl canvas styling */
-#entitygl-canvas {
-  z-index: 2;               /* Should match CanvasManager z-index logic */
-  pointer-events: none;     /* Prevent mouse capture */
-  image-rendering: crisp-edges; /* Optional: preserve crisp scaling for raster sprites */
-  mix-blend-mode: normal;   /* Prevent interference with other layers */
-}

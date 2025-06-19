@@ -5,6 +5,7 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
+import { addPostProcessEffect, removePostProcessEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 import { flags } from '@/game/player/PlayerFlagManager';
 
 import type { MenuManager } from '@/ui/MenuManager';
@@ -190,10 +191,12 @@ export class PauseMenu implements Menu {
   openMenu(): void {
     this.initialize();
     this.open = true;
+    addPostProcessEffect('blackwhite');
   }
 
   closeMenu(): void {
     this.open = false;
+    removePostProcessEffect('blackwhite');
   }
 
   isBlocking(): boolean {

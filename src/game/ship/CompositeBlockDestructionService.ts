@@ -116,6 +116,7 @@ export class CompositeBlockDestructionService {
       const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
       const serialize = (c: GridCoord) => `${c.x},${c.y}`;
 
+      // TODO : This can't be setTimeout, because if the map ends this persists
       for (const [coord, block] of blocks) {
         if (!connectedSet.has(serialize(coord))) {
           setTimeout(() => {

@@ -1,7 +1,6 @@
 // src/shared/applyViewportResolution.ts
 
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
@@ -21,12 +20,9 @@ export function applyViewportResolution(
 
   const canvasIds = [
     'background-canvas',
-    'backgroundgl-canvas',
-    'entitygl-canvas',
     'entity-canvas',
     'fx-canvas',
     'particles-canvas',
-    'lighting-canvas',
     'ui-canvas',
     'overlay-canvas',
     'dialogue-canvas',
