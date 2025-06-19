@@ -9,7 +9,7 @@ import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 import { Camera } from '@/core/Camera';
 
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
