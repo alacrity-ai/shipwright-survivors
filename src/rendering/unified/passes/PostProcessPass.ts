@@ -114,9 +114,9 @@ export class PostProcessPass {
       // === Effect-specific uniforms ===
       if (effect === 'bloom') {
         gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.width, this.height);
-        gl.uniform1f(gl.getUniformLocation(program, 'uThreshold'), 0.7);
-        gl.uniform1f(gl.getUniformLocation(program, 'uIntensity'), 0.8);
-        gl.uniform1f(gl.getUniformLocation(program, 'uBlurSize'), 5.0);
+        gl.uniform1f(gl.getUniformLocation(program, 'uThreshold'), 0.92);
+        gl.uniform1f(gl.getUniformLocation(program, 'uIntensity'), 1.2);
+        gl.uniform1f(gl.getUniformLocation(program, 'uBlurSize'), 8.0);
       } else if (effect === 'chromaticAberration') {
         gl.uniform1f(gl.getUniformLocation(program, 'uStrength'), 0.003);
         gl.uniform1f(gl.getUniformLocation(program, 'uFalloff'), 1.8);
