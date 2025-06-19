@@ -28,17 +28,23 @@ export function clearPostProcessEffects(): void {
 export function applyWarmCinematicEffect(): void {
   GlobalEventBus.emit('postprocess:effect:set', {
     effectChain: [
+      // {
+      //   effect: 'bloom',
+      // },
+      {
+        effect: 'chromaticAberration',
+      },
       {
         effect: 'cinematicGrading',
         params: {
-          exposure: 1.9,
+          exposure: 2.0,
           contrast: 1.0,
-          saturation: 1.15,
-          temperature: 0.25,
+          saturation: 1.4,
+          temperature: 0.85,
           tint: -0.05,
-          vignetteStrength: 0.25,
+          vignetteStrength: 1.45,
           filmGrainStrength: 0.08,
-          shadowsLift: -0.01,
+          shadowsLift: 0.01,
           highlightsGain: 0.4,
           cinematicIntensity: 0.002,
         },
@@ -48,28 +54,29 @@ export function applyWarmCinematicEffect(): void {
 }
 
 
-// BEST YET
+// // BEST YET
 // export function applyWarmCinematicEffect(): void {
 //   GlobalEventBus.emit('postprocess:effect:set', {
 //     effectChain: [
 //       {
 //         effect: 'cinematicGrading',
 //         params: {
-//           exposure: 1.9,
+//           exposure: 2.0,
 //           contrast: 1.0,
-//           saturation: 1.15,
-//           temperature: 0.45,
+//           saturation: 1.2,
+//           temperature: 0.25,
 //           tint: -0.05,
-//           vignetteStrength: 0.25,
+//           vignetteStrength: 1.45,
 //           filmGrainStrength: 0.08,
-//           shadowsLift: -0.01,
+//           shadowsLift: 0.01,
 //           highlightsGain: 0.4,
-//           cinematicIntensity: 0.014,
+//           cinematicIntensity: 0.002,
 //         },
 //       },
 //     ],
 //   });
 // }
+
 
 
 export function applyCoolCinematicEffect(): void {

@@ -739,8 +739,7 @@ export class EngineRuntime {
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
     // TODO : Put this in options
-    // addPostProcessEffect('bloom');
-    // addPostProcessEffect('chromaticAberration');
+    applyWarmCinematicEffect();
     setTimeout(() => {
       if (this.ship) {
         this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 96, intensity: 1.25 });
