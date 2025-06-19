@@ -208,12 +208,18 @@ export class LightingPass {
     return this.colorTexture;
   }
 
-  public compositeLightingOverTarget(targetFramebuffer: WebGLFramebuffer): void {
+  public compositeLightingOverTarget(targetFramebuffer: WebGLFramebuffer | null): void {
     const gl = this.gl;
 
+    // === Bind target framebuffer (null = default screen) ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
+    // === Set up additive blending for halo overlay ===
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE); // Additive blend mode
+
+    // === Draw fullscreen quad using lighting texture ===
     gl.useProgram(this.postProgram);
     gl.bindVertexArray(this.vao);
 
@@ -222,13 +228,13 @@ export class LightingPass {
     gl.uniform1i(gl.getUniformLocation(this.postProgram, 'uTexture'), 0);
     gl.uniform1f(gl.getUniformLocation(this.postProgram, 'uMaxBrightness'), this.maxBrightness);
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.disable(gl.BLEND);
 
+    // === Clean up ===
+    gl.disable(gl.BLEND);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
+
 
   public setAmbientLight(value: [number, number, number]): void {
     this.ambientLight = value;
