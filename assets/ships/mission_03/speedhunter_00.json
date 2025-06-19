@@ -19,7 +19,7 @@
       "id": "engine3",
       "coord": {
         "x": 0,
-        "y": -1
+        "y": 1
       },
       "rotation": 0
     },
@@ -27,14 +27,6 @@
       "id": "turret1",
       "coord": {
         "x": 0,
-        "y": 1
-      },
-      "rotation": 0
-    },
-    {
-      "id": "fin3",
-      "coord": {
-        "x": 1,
         "y": -1
       },
       "rotation": 180
@@ -43,17 +35,28 @@
       "id": "fin3",
       "coord": {
         "x": -1,
-        "y": -1
+        "y": 1
       },
-      "rotation": 270
+      "rotation": 0
+    },
+    {
+      "id": "fin3",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 90
     },
     {
       "id": "facetplate1",
       "coord": {
         "x": 0,
-        "y": 2
+        "y": -2
       },
-      "rotation": 180
+      "rotation": 0
     }
-  ]
+  ],
+  "behavior": {
+    "type": "default"
+  }
 }

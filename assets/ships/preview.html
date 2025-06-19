@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ship Block Editor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+    
+    canvas {
+      border: 2px solid #333;
+      background-color: white;
+      display: block;
+      margin: 20px auto;
+      cursor: crosshair;
+    }
+    
+    .controls {
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .controls > * {
+      margin: 0 10px;
+      padding: 10px 15px;
+      font-size: 16px;
+    }
+    
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #0056b3;
+    }
+    
+    input[type="file"] {
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+
+  <div class="controls">
+    <input type="file" id="fileInput" accept=".json" />
+    <button id="rotateButton">Rotate Ship 90°</button>
+    <button id="downloadButton">Download JSON</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('fileInput');
+    const rotateButton = document.getElementById('rotateButton');
+    const downloadButton = document.getElementById('downloadButton');
+
+    const GRID_SIZE = 20;
+
+    let originalBlocks = [];
+    let fullJson = null;
+    let rotationSteps = 0;
+    let inputFileName = '';
+    let blockPositions = []; // Store block positions for click detection
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function rotateCoord(x, y, steps) {
+      for (let i = 0; i < steps % 4; i++) {
+        [x, y] = [-y, x];
+      }
+      return { x, y };
+    }
+
+    function rotateBlockRotation(rotation, steps) {
+      return (rotation + steps * 90) % 360;
+    }
+
+    function getRotatedBlocks() {
+      return originalBlocks.map(block => {
+        const rotatedCoord = rotateCoord(block.coord.x, block.coord.y, rotationSteps);
+        const rotatedRotation = rotateBlockRotation(block.rotation, rotationSteps);
+        return {
+          ...block,
+          coord: rotatedCoord,
+          rotation: rotatedRotation
+        };
+      });
+    }
+
+    function drawArrow(x, y, rotation) {
+      const centerX = x + GRID_SIZE / 2;
+      const centerY = y + GRID_SIZE / 2;
+      const arrowSize = GRID_SIZE * 0.3;
+      
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate((rotation * Math.PI) / 180);
+      
+      // Draw arrow pointing up (will be rotated based on block rotation)
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -arrowSize);
+      ctx.lineTo(-arrowSize/2, 0);
+      ctx.moveTo(0, -arrowSize);
+      ctx.lineTo(arrowSize/2, 0);
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+
+    function drawGrid(blocks) {
+      clearCanvas();
+      blockPositions = []; // Reset block positions
+
+      const rotatedBlocks = getRotatedBlocks();
+
+      let minX = 0, maxX = 0, minY = 0, maxY = 0;
+      rotatedBlocks.forEach(block => {
+        minX = Math.min(minX, block.coord.x);
+        maxX = Math.max(maxX, block.coord.x);
+        minY = Math.min(minY, block.coord.y);
+        maxY = Math.max(maxY, block.coord.y);
+      });
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const offsetX = centerX - ((maxX + minX + 1) * GRID_SIZE) / 2;
+      const offsetY = centerY - ((maxY + minY + 1) * GRID_SIZE) / 2;
+
+      rotatedBlocks.forEach((block, index) => {
+        const x = offsetX + block.coord.x * GRID_SIZE;
+        const y = offsetY + block.coord.y * GRID_SIZE;
+
+        // Store block position for click detection - this is the key fix
+        blockPositions.push({
+          x: x,
+          y: y,
+          width: GRID_SIZE,
+          height: GRID_SIZE,
+          originalBlockIndex: index // Track the original block index for rotation
+        });
+
+        let color = 'black';
+        if (block.id.startsWith('cockpit')) color = 'blue';
+        else if (block.id.startsWith('fin')) color = 'gray';
+        else if (block.id.startsWith('turret')) color = 'red';
+        else if (block.id.startsWith('engine')) color = 'orange';
+        else if (block.id.startsWith('hull')) color = 'black';
+        else if (block.id.startsWith('laser')) color = 'red';
+        else if (block.id.startsWith('explosiveLance')) color = 'red';
+        else if (block.id.startsWith('haloBlade')) color = 'red';
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+
+        // Draw rotation arrow
+        drawArrow(x, y, block.rotation);
+      });
+    }
+
+    function getClickedBlock(mouseX, mouseY) {
+      for (let i = 0; i < blockPositions.length; i++) {
+        const pos = blockPositions[i];
+        if (mouseX >= pos.x && mouseX < pos.x + pos.width &&
+            mouseY >= pos.y && mouseY < pos.y + pos.height) {
+          return pos.originalBlockIndex;
+        }
+      }
+      return -1;
+    }
+
+    canvas.addEventListener('click', (event) => {
+      if (!originalBlocks.length) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      console.log(`Mouse click at: ${mouseX}, ${mouseY}`); // Debug logging
+
+      const clickedBlockIndex = getClickedBlock(mouseX, mouseY);
+      console.log(`Clicked block index: ${clickedBlockIndex}`); // Debug logging
+      
+      if (clickedBlockIndex !== -1) {
+        // Rotate the clicked block by 90 degrees
+        originalBlocks[clickedBlockIndex].rotation = (originalBlocks[clickedBlockIndex].rotation + 90) % 360;
+        console.log(`Rotated block ${clickedBlockIndex} to ${originalBlocks[clickedBlockIndex].rotation}°`); // Debug logging
+        drawGrid(originalBlocks);
+      }
+    });
+
+    fileInput.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Store the input filename (without extension)
+      inputFileName = file.name.replace(/\.[^/.]+$/, "");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          if (jsonData.blocks && Array.isArray(jsonData.blocks)) {
+            originalBlocks = jsonData.blocks;
+            fullJson = jsonData;
+            rotationSteps = 0;
+            drawGrid(originalBlocks);
+          } else {
+            alert('Invalid JSON structure. Expected "blocks" array.');
+          }
+        } catch (error) {
+          alert('Error parsing JSON file: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    rotateButton.addEventListener('click', () => {
+      if (!originalBlocks.length) return;
+      rotationSteps = (rotationSteps + 1) % 4;
+      drawGrid(originalBlocks);
+    });
+
+    downloadButton.addEventListener('click', () => {
+      if (!fullJson) return;
+      const rotatedBlocks = getRotatedBlocks();
+
+      const exportJson = {
+        ...fullJson,
+        blocks: rotatedBlocks
+      };
+
+      const blob = new Blob([JSON.stringify(exportJson, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      // Use original filename if available, otherwise default name
+      a.download = inputFileName ? `${inputFileName}.json` : 'rotated_ship.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

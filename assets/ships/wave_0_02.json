@@ -111,5 +111,8 @@
       },
       "rotation": 180
     }
-  ]
+  ],
+  "behavior": {
+    "type": "spaceStation"
+  }
 }
