@@ -856,7 +856,7 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 500,
         orbitingSpeed: 1.2,
         size: 64,
-        damage: 1,
+        damage: 5,
         color: '#FFBF00',
         sprite: 'energyRing0'
       }
