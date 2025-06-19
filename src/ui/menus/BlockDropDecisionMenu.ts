@@ -488,8 +488,8 @@ export type InputAction =
     // Execute placement loop
     const archetype = getArchetypeById('interceptor');
     const delayBase = 300;
-    const delayMin = 50;
-    const decayRate = 0.85;
+    const delayMin = 10;
+    const decayRate = 0.9;
 
     let delay = delayBase;
 

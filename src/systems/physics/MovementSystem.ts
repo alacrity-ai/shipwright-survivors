@@ -8,6 +8,7 @@ import { Camera } from '@/core/Camera';
 import { GlobalEventBus } from '@/core/EventBus';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
@@ -298,6 +299,16 @@ public update(dt: number): void {
   position.x += velocity.x * dt * thrustPowerMulti;
   position.y += velocity.y * dt * thrustPowerMulti;
 
+  // === Update Aura Light Position ===
+  const auraId = this.ship.getLightAuraId?.();
+  if (auraId) {
+    try {
+      LightingOrchestrator.getInstance().updateLight(auraId, position);
+    } catch (e) {
+      console.warn(`[MovementSystem] Aura light update failed for ship ${this.ship.id}`, e);
+    }
+  }
+  
   // === Step 3: Update world-space block positions
   this.ship.updateBlockPositions();
 }

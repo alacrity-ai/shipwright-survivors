@@ -29,6 +29,11 @@ export class ShipRegistry {
   }
 
   remove(ship: Ship): void {
+    // NEW: Cleanup ship auralight explicitly
+    ship.cleanupAuraLight();
+    // NEW: Call destroy on ship explicitly
+    ship.destroy();
+
     this.ships.delete(ship);
     this.shipIdMap.delete(ship.id);
     if (this.playerShip === ship) {

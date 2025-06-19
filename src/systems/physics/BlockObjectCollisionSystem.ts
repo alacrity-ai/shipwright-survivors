@@ -2,7 +2,7 @@
 
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { CombatService } from '@/systems/combat/CombatService';
-
+import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { getAffixesSafe } from '@/game/ship/utils/getAffixesSafe';
 
 import { getWorldPositionFromObjectCoord } from '@/game/entities/utils/universalBlockInterfaceUtils';
@@ -22,11 +22,17 @@ export class BlockObjectCollisionSystem {
   private static readonly PENETRATION_CORRECTION_RATIO = 0.4; // percent of MSV to resolve per frame
   private static readonly RESTITUTION = 0.2; // 0 = inelastic, 1 = elastic
   private static readonly IMPULSE_EPSILON = 0.05; // minimum impulse magnitude to apply
+  private static readonly MAX_OVERLAP_PAIRS = 10;
+
+  private _blockCache = new Map<CompositeBlockObject, [coord: { x: number; y: number }, block: BlockInstance][]>();
+
 
   constructor(private readonly combatService: CombatService) {}
 
   public resolveCollisions(movingObject: CompositeBlockObject): void {
     if (!PlayerSettingsManager.getInstance().isCollisionsEnabled()) return;
+
+    this._blockCache.clear(); // Critical to ensure per-frame freshness
 
     const nearbyObjects = this.getNearbyObjects(movingObject);
     for (const otherObject of nearbyObjects) {
@@ -36,17 +42,22 @@ export class BlockObjectCollisionSystem {
       otherObject.setColliding(true);
 
       this.applyCollisionDamage(movingObject, otherObject);
+
       const msv = this.computeMinimumSeparationVector(movingObject, otherObject);
       if (!msv) continue;
 
       this.resolvePenetration(movingObject, otherObject, msv);
       this.resolveImpulse(movingObject, otherObject, msv);
     }
+  }
 
-    // Removed this:
-    // if (!isColliding) {
-    //   movingObject.setColliding(false);
-    // }
+  private getCachedBlocks(obj: CompositeBlockObject): [coord: { x: number; y: number }, block: BlockInstance][] {
+    const cached = this._blockCache.get(obj);
+    if (cached) return cached;
+
+    const blocks = Array.from(obj.getAllBlocks());
+    this._blockCache.set(obj, blocks);
+    return blocks;
   }
 
   private getNearbyObjects(target: CompositeBlockObject): CompositeBlockObject[] {
@@ -86,7 +97,7 @@ export class BlockObjectCollisionSystem {
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
-    for (const [coord] of obj.getAllBlocks()) {
+    for (const [coord] of this.getCachedBlocks(obj)) {
       const world = getWorldPositionFromObjectCoord(obj.getTransform(), coord);
       minX = Math.min(minX, world.x);
       maxX = Math.max(maxX, world.x);
@@ -108,14 +119,20 @@ export class BlockObjectCollisionSystem {
   ): { x: number; y: number } | null {
     const overlapPairs: { a: { x: number; y: number }, b: { x: number; y: number } }[] = [];
 
-    for (const [coordA] of a.getAllBlocks()) {
-      const posA = getWorldPositionFromObjectCoord(a.getTransform(), coordA);
+    const transformA = a.getTransform();
+    const transformB = b.getTransform();
 
-      for (const [coordB] of b.getAllBlocks()) {
-        const posB = getWorldPositionFromObjectCoord(b.getTransform(), coordB);
+    outer: for (const [coordA] of this.getCachedBlocks(a)) {
+      const posA = getWorldPositionFromObjectCoord(transformA, coordA);
+
+      for (const [coordB] of this.getCachedBlocks(b)) {
+        const posB = getWorldPositionFromObjectCoord(transformB, coordB);
 
         if (this.blocksOverlap(posA, posB)) {
           overlapPairs.push({ a: posA, b: posB });
+          if (overlapPairs.length >= BlockObjectCollisionSystem.MAX_OVERLAP_PAIRS) {
+            break outer;
+          }
         }
       }
     }
@@ -275,10 +292,13 @@ export class BlockObjectCollisionSystem {
     const curveExponent = 1.35;
     const baseDamage = Math.pow(normalized, curveExponent) * maxDamage;
 
-    for (const [coordA, blockA] of a.getAllBlocks()) {
+    let blocksDamaged = 0;
+    const MAX_BLOCK_DAMAGE = 10;
+
+    outer: for (const [coordA, blockA] of this.getCachedBlocks(a)) {
       const posA = getWorldPositionFromObjectCoord(a.getTransform(), coordA);
 
-      for (const [coordB, blockB] of b.getAllBlocks()) {
+      for (const [coordB, blockB] of this.getCachedBlocks(b)) {
         const posB = getWorldPositionFromObjectCoord(b.getTransform(), coordB);
 
         if (!this.blocksOverlap(posA, posB)) continue;
@@ -312,11 +332,15 @@ export class BlockObjectCollisionSystem {
         const rawToB = baseDamage * damageMultiplierA * inflictMultiplierA;
         const reducedToB = Math.max(0, rawToB - effectiveArmorB);
         this.combatService.applyDamageToBlock(b, a, blockB, coordB, reducedToB, 'collision', null);
+        blocksDamaged++;
+        if (blocksDamaged >= MAX_BLOCK_DAMAGE) break outer;
 
         // Damage to A from B
         const rawToA = baseDamage * damageMultiplierB * inflictMultiplierB;
         const reducedToA = Math.max(0, rawToA - effectiveArmorA);
         this.combatService.applyDamageToBlock(a, b, blockA, coordA, reducedToA, 'collision', null);
+        blocksDamaged++;
+        if (blocksDamaged >= MAX_BLOCK_DAMAGE) break outer;
       }
     }
   }
