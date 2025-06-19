@@ -5,21 +5,20 @@ import type { IUpdatable } from '@/core/interfaces/types';
 import type { Ship } from '@/game/ship/Ship';
 import type { Grid } from '@/systems/physics/Grid';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
+import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
 
 import { FormationRegistry } from './formations/FormationRegistry';
 
 const SCAN_RADIUS = 5000;
 
-/**
- * Central coordinator for AI update scheduling.
- * Filters AIControllerSystems based on spatial proximity to the player.
- */
-export class AIOrchestratorSystem implements IUpdatable {
+export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
   private static instance: AIOrchestratorSystem | null = null;
 
   private playerShip: Ship | null = null;
   private grid: Grid | null = null;
+
   private readonly controllerToShipMap = new Map<AIControllerSystem, Ship>();
+  private readonly shipIdToControllerMap = new Map<string, AIControllerSystem>();
 
   private readonly formationRegistry = new FormationRegistry();
 
@@ -27,69 +26,56 @@ export class AIOrchestratorSystem implements IUpdatable {
   private frameCounter: number = 0;
   private readonly REEVALUATE_FRAMES = 60;
 
-  private readonly hunterControllers = new Set<AIControllerSystem>();
+  private readonly uncullableControllers = new Set<AIControllerSystem>();
 
   constructor() {
     AIOrchestratorSystem.instance = this;
   }
-  
-  // Efficient accessor for controllers:
-
 
   public registerPlayerShip(ship: Ship): void {
     this.playerShip = ship;
-    this.grid = ship.getGrid(); // All ships share the same spatial grid
+    this.grid = ship.getGrid();
   }
 
-  public addController(controller: AIControllerSystem): void {
+  public addController(controller: AIControllerSystem, unCullable: boolean = false): void {
     const ship = controller.getShip();
-    if (ship) {
-      ship.updateBlockPositions(); // Ensure correct spatial index
-      this.controllerToShipMap.set(controller, ship);
+    if (!ship) return;
 
-      // Formation detection and context assignment
-      const formation = this.formationRegistry.getFormationByShipId(ship.id);
-      if (formation) {
-        console.log('[AIOrchestratorSystem] Assigning formation context to ship:', ship.id);
-        if (formation.leaderId === ship.id) {
-          console.log('[AIOrchestratorSystem] Ship is formation leader:', ship.id);
-          controller.setFormationContext(formation.formationId, 'leader');
-        } else {
-          // === Find the leader controller ===
-          console.log('[AIOrchestratorSystem] Ship is formation follower, attempting to find leader:', ship.id);
-          let leaderController: AIControllerSystem | null = null;
-          for (const [candidate, candidateShip] of this.controllerToShipMap.entries()) {
-            if (candidateShip.id === formation.leaderId) {
-              console.log('[AIOrchestratorSystem] Found leader controller for follower:', ship.id);
-              leaderController = candidate;
-              break;
-            }
-          }
+    ship.updateBlockPositions();
+    this.controllerToShipMap.set(controller, ship);
+    this.shipIdToControllerMap.set(ship.id, controller);
 
-          if (leaderController) {
-            console.log('[AIOrchestratorSystem] Setting formation context for follower:', ship.id);
-            controller.setFormationContext(
-              formation.formationId,
-              'follower',
-              this.formationRegistry,
-              leaderController
-            );
-          }
+    this.setUncullable(controller, unCullable || controller.isHunter());
+    controller.setCullabilityDelegate(this);
+    
+    const formation = this.formationRegistry.getFormationByShipId(ship.id);
+    if (formation) {
+      if (formation.leaderId === ship.id) {
+        controller.setFormationContext(formation.formationId, 'leader');
+      } else {
+        const leaderController = this.shipIdToControllerMap.get(formation.leaderId) ?? null;
+        if (leaderController) {
+          controller.setFormationContext(
+            formation.formationId,
+            'follower',
+            this.formationRegistry,
+            leaderController
+          );
         }
-      }
-
-      if (controller.isHunter()) {
-        this.hunterControllers.add(controller);
       }
     }
   }
 
   public removeController(controller: AIControllerSystem): void {
+    const ship = this.controllerToShipMap.get(controller);
+    if (ship) {
+      this.shipIdToControllerMap.delete(ship.id);
+    }
+
     this.controllerToShipMap.delete(controller);
-    this.hunterControllers.delete(controller);
+    this.uncullableControllers.delete(controller);
   }
 
-  /** Returns all active AI controllers */
   public getAllControllers(): IterableIterator<[AIControllerSystem, Ship]> {
     return this.controllerToShipMap.entries();
   }
@@ -116,18 +102,45 @@ export class AIOrchestratorSystem implements IUpdatable {
     return this.formationRegistry;
   }
 
-  public getHunterControllerCount(): number {
-    return this.hunterControllers.size;
+  public getUncullableControllerCount(): number {
+    return this.uncullableControllers.size;
+  }
+
+  public setUncullable(controller: AIControllerSystem, uncullable: boolean): void {
+    if (!this.controllerToShipMap.has(controller)) {
+      console.warn('[AIOrchestrator] Attempted to set uncullable status for unregistered controller.');
+      return;
+    }
+
+    const isCurrentlyUncullable = this.uncullableControllers.has(controller);
+
+    if (uncullable && !isCurrentlyUncullable) {
+      this.uncullableControllers.add(controller);
+    } else if (!uncullable && isCurrentlyUncullable) {
+      this.uncullableControllers.delete(controller);
+    }
+  }
+
+  public setCullable(controller: AIControllerSystem): void {
+    if (!this.controllerToShipMap.has(controller)) {
+      console.warn('[AIOrchestrator] Attempted to set cullable status for unregistered controller.');
+      return;
+    }
+
+    if (this.uncullableControllers.has(controller)) {
+      this.uncullableControllers.delete(controller);
+    }
   }
 
   public clear(): void {
     this.controllerToShipMap.clear();
+    this.shipIdToControllerMap.clear();
+    this.uncullableControllers.clear();
   }
 
   public update(dt: number): void {
     if (!this.playerShip || !this.grid) return;
 
-    // Recalculate visible area every N frames
     if (this.frameCounter++ % this.REEVALUATE_FRAMES === 0) {
       const playerPos = this.playerShip.getTransform().position;
 
@@ -139,35 +152,33 @@ export class AIOrchestratorSystem implements IUpdatable {
       this.cachedRelevantBlocks = this.grid.getBlocksInArea(minX, minY, maxX, maxY);
     }
 
-    // Build fast lookup from shipId → controller
-    const shipIdToController = new Map<string, AIControllerSystem>();
-    for (const [controller, ship] of this.controllerToShipMap) {
-      shipIdToController.set(ship.id, controller);
-    }
-
-    // Identify relevant controllers from nearby block owners
     const relevantControllers = new Set<AIControllerSystem>();
 
-    // Add hunter controllers unconditionally
-    for (const controller of this.hunterControllers) {
+    // ✅ Optimization #3 — Prune dead uncullables
+    for (const controller of this.uncullableControllers) {
+      const ship = controller.getShip();
+      if (ship.isDestroyed()) {
+        this.removeController(controller);
+        continue;
+      }
       relevantControllers.add(controller);
     }
 
-    // Add spatially-local controllers from nearby blocks
+    // ✅ Optimization #2 — Deduplicate owner IDs first
+    const nearbyShipIds = new Set<string>();
     for (const block of this.cachedRelevantBlocks) {
-      const owner = block.ownerShipId;
-      if (!owner) {
-        console.warn("Block in spatial query missing ownerShipId!", block);
-        continue;
-      }
-
-      const controller = shipIdToController.get(owner);
-      if (controller) {
-        relevantControllers.add(controller); // idempotent
+      if (block.ownerShipId) {
+        nearbyShipIds.add(block.ownerShipId);
       }
     }
 
-    // === Update relevant controllers ===
+    for (const shipId of nearbyShipIds) {
+      const controller = this.shipIdToControllerMap.get(shipId);
+      if (controller) {
+        relevantControllers.add(controller);
+      }
+    }
+
     const controllersToRemove: AIControllerSystem[] = [];
 
     for (const controller of relevantControllers) {
@@ -190,8 +201,7 @@ export class AIOrchestratorSystem implements IUpdatable {
   }
 
   public render(dt: number): void {
-    // TODO : Verify if this is efficient enough
-    for (const [controller, ship] of this.controllerToShipMap) {
+    for (const [controller] of this.controllerToShipMap) {
       try {
         if (typeof controller.render === 'function') {
           controller.render(dt);
@@ -202,9 +212,9 @@ export class AIOrchestratorSystem implements IUpdatable {
     }
   }
 
-  // Debug
-
-  public getHunterControllerStates(): string[] {
-    return Array.from(this.hunterControllers).map(controller => controller.getCurrentStateString());
+  public getUncullableControllerStates(): string[] {
+    return Array.from(this.uncullableControllers).map(controller =>
+      controller.getCurrentStateString()
+    );
   }
 }

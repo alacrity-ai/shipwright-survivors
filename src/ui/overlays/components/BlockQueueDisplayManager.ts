@@ -3,6 +3,9 @@
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { PlayerResources } from '@/game/player/PlayerResources';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
+import type { InputManager } from '@/core/InputManager';
+
+import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
 
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
 import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
@@ -30,39 +33,76 @@ export class BlockQueueDisplayManager {
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
   private readonly BLOCK_CULLING_THRESHOLD = 20;
-  
-  // For floating active card animations
-  private readonly floatOffsets: number[] = [];  // per-block animated vertical offsets
-  private readonly FLOAT_SPEED = 80;             // pixels per second
-  private readonly FLOAT_HEIGHT = 10;            // max Y offset upward
-  private readonly xOffsets: number[] = [];
-  private readonly X_OFFSET_SPEED = 360; // pixels per second
-  private readonly FANOUT_X_OFFSET = 28; // fixed pixel shift per card in roll fan-out
 
-  // For pulsing active card animations
+  private readonly floatOffsets: number[] = [];
+  private readonly xOffsets: number[] = [];
   private readonly pulseTimers: number[] = [];
-  private readonly PULSE_SPEED = 4; // radians per second
-  private readonly PULSE_SCALE_AMPLITUDE = 0.06; // ~6% enlargement
-  private readonly PULSE_BRIGHTNESS_AMPLITUDE = 0.25; // added to brightenColor factor
+
+  private readonly FLOAT_SPEED = 120;
+  private readonly FLOAT_HEIGHT = 10;
+  private readonly MOUSE_HOVER_HEIGHT = 72;
+  private readonly MOUSE_HOVER_SPEED = 320;
+  private readonly X_OFFSET_SPEED = 360;
+  private readonly FANOUT_X_OFFSET = 28;
+  private readonly PULSE_SPEED = 4;
+  private readonly PULSE_SCALE_AMPLITUDE = 0.06;
+  private readonly PULSE_BRIGHTNESS_AMPLITUDE = 0.25;
+
+  // Cached layout variables (computed by resize)
+  private cardWidth: number = 0;
+  private cardHeight: number = 0;
+  private cardMarginX: number = 0;
+  private cardColumns: number = 6;
+  private windowMarginX: number = 0;
+  private windowMarginY: number = 0;
+  private windowWidth: number = 0;
+  private windowX: number = 0;
+  private windowY: number = 0;
+  private cardSpacing: number = 0;
+  private fanBaseX: number = 0;
+  private scale: number = 1;
 
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly playerResources: PlayerResources,
-    private readonly blockDropDecisionMenu: BlockDropDecisionMenu // Added this
+    private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
+    private readonly inputManager: InputManager
   ) {
-    // Initialize preview renderer with fallback block type
     const defaultBlockType = getBlockType('hull0')!;
     this.blockPreviewRenderer = new BlockPreviewRenderer(
       defaultBlockType,
       this.MINI_BLOCK_SPIN_SPEED,
       this.MINI_BLOCK_SPIN_SPEED * 1.5
     );
+    this.resize(); // Precompute layout
   }
 
-  update(dt: number): void {
+  /** Call this on resolution change or scale change */
+  public resize(): void {
+    this.scale = getUniformScaleFactor();
+    const canvas = this.canvasManager.getContext('ui').canvas;
+
+    this.cardWidth = Math.floor(32 * this.scale);
+    this.cardHeight = Math.floor(32 * this.scale);
+    this.cardMarginX = Math.floor(8 * this.scale);
+    this.windowMarginX = Math.floor(6 * this.scale);
+    this.windowMarginY = Math.floor(6 * this.scale);
+    const distanceFromBottom = Math.floor(80 * this.scale);
+
+    this.windowWidth = Math.floor(
+      (this.cardWidth * this.cardColumns) +
+      (this.windowMarginX * 2) +
+      (this.cardMarginX * (this.cardColumns - 1))
+    );
+    this.windowX = Math.floor(canvas.width / 2) - this.windowWidth / 2;
+    this.windowY = canvas.height - distanceFromBottom;
+
+    this.cardSpacing = this.cardWidth + this.cardMarginX;
+    this.fanBaseX = this.windowX + this.windowMarginX;
+  }
+
+  public update(dt: number): void {
     const blockQueue = this.playerResources.getBlockQueue();
-    
-    // Early exit if no blocks
     if (blockQueue.length === 0) {
       this.floatOffsets.length = 0;
       this.pulseTimers.length = 0;
@@ -71,70 +111,97 @@ export class BlockQueueDisplayManager {
     }
 
     this.blockPreviewRenderer.update(dt);
-
     const hovered = this.blockDropDecisionMenu.getHoveredButton();
 
-    // Resize floatOffsets array to match queue size
-    while (this.floatOffsets.length < blockQueue.length) {
-      this.floatOffsets.push(0);
-    }
-    while (this.floatOffsets.length > blockQueue.length) {
-      this.floatOffsets.pop();
+    while (this.floatOffsets.length < blockQueue.length) this.floatOffsets.push(0);
+    while (this.floatOffsets.length > blockQueue.length) this.floatOffsets.pop();
+    while (this.pulseTimers.length < blockQueue.length) this.pulseTimers.push(0);
+    while (this.pulseTimers.length > blockQueue.length) this.pulseTimers.pop();
+    while (this.xOffsets.length < blockQueue.length) this.xOffsets.push(0);
+    while (this.xOffsets.length > blockQueue.length) this.xOffsets.pop();
+
+    const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
+    const isRollHovered = hovered === 'roll';
+
+    // Adjust card spacing for overflow
+    if (blockQueue.length > this.cardColumns) {
+      const availableWidth = this.windowWidth - (this.windowMarginX * 2);
+      this.cardSpacing = (availableWidth - this.cardWidth) / (blockQueue.length - 1);
+    } else {
+      this.cardSpacing = this.cardWidth + this.cardMarginX;
     }
 
-    // Resize pulseTimers array to match queue size
-    while (this.pulseTimers.length < blockQueue.length) {
-      this.pulseTimers.push(0);
-    }
-    while (this.pulseTimers.length > blockQueue.length) {
-      this.pulseTimers.pop();
-    }
-
-    // Determine which blocks should be raised
-    const shouldRaise = new Set<number>();
-
-    if (hovered === 'refine' || hovered === 'autoplace') {
-      if (blockQueue.length > 0) {
-        shouldRaise.add(0);
+    // === Mouse Hover Detection (single block) ===
+    let mouseHoverIndex: number | null = null;
+    for (let i = blockQueue.length - 1; i >= 0; i--) {
+      let cardX: number;
+      if (isRollHovered && i <= 2) {
+        const fanOffsetX = this.xOffsets[i] ?? 0;
+        cardX = this.fanBaseX + fanOffsetX;
+      } else {
+        cardX = this.windowX + this.windowMarginX + i * this.cardSpacing;
       }
+      const cardY = this.windowY + this.windowMarginY;
+
+      if (
+        mouseX >= cardX &&
+        mouseX <= cardX + this.cardWidth &&
+        mouseY >= cardY &&
+        mouseY <= cardY + this.cardHeight
+      ) {
+        mouseHoverIndex = i;
+        break;
+      }
+    }
+
+    // === UI Hover Sources ===
+    const uiHoverIndices = new Set<number>();
+    if (hovered === 'refine' || hovered === 'autoplace') {
+      if (blockQueue.length > 0) uiHoverIndices.add(0);
     } else if (hovered === 'roll') {
       for (let i = 0; i < 3 && i < blockQueue.length; i++) {
-        shouldRaise.add(i);
+        uiHoverIndices.add(i);
       }
     }
 
-    // Interpolate each offset
+    // === Interpolate Float Offsets ===
     for (let i = 0; i < blockQueue.length; i++) {
-      const target = shouldRaise.has(i) ? this.FLOAT_HEIGHT : 0;
+      let target = 0;
+      let maxStep = this.FLOAT_SPEED * dt;
+
+      if (i === mouseHoverIndex) {
+        target = this.MOUSE_HOVER_HEIGHT;
+        maxStep = this.MOUSE_HOVER_SPEED * dt;
+      } else if (uiHoverIndices.has(i)) {
+        target = this.FLOAT_HEIGHT;
+      }
+
       const current = this.floatOffsets[i];
       const delta = target - current;
-
-      const maxStep = this.FLOAT_SPEED * dt;
       const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
       this.floatOffsets[i] += step;
     }
 
-    // Update pulse timers
+    // === Update Pulse Timers ===
     for (let i = 0; i < blockQueue.length; i++) {
       this.pulseTimers[i] += dt * this.PULSE_SPEED;
     }
-  
-    // Resize xOffsets to match block queue
-    while (this.xOffsets.length < blockQueue.length) {
-      this.xOffsets.push(0);
-    }
-    while (this.xOffsets.length > blockQueue.length) {
-      this.xOffsets.pop();
-    }
 
-    const FANOUT_X_OFFSET = this.FANOUT_X_OFFSET * getUniformScaleFactor();
+    // === Animate Fanout X Offsets ===
+    const fanout = this.FANOUT_X_OFFSET * this.scale;
+    const sortedRaised = Array.from(uiHoverIndices).sort((a, b) => a - b);
 
-    // Compute target X offset per card
     for (let i = 0; i < blockQueue.length; i++) {
       let targetX = 0;
 
-      if (hovered === 'roll' && i >= 0 && i <= 2) {
-        targetX = FANOUT_X_OFFSET * i; // match render logic
+      if (hovered === 'roll' && i <= 2) {
+        targetX = fanout * i;
+      } else if (uiHoverIndices.has(i) && uiHoverIndices.size <= 3 && hovered !== 'roll') {
+        const hoverIndex = sortedRaised.indexOf(i);
+        if (hoverIndex !== -1) {
+          const centerOffset = Math.floor(sortedRaised.length / 2);
+          targetX = fanout * (hoverIndex - centerOffset);
+        }
       }
 
       const current = this.xOffsets[i];
@@ -167,6 +234,13 @@ export class BlockQueueDisplayManager {
     const windowHeight = Math.floor(44 * scale);
     const windowX = centerScreenX - windowWidth / 2;
     const windowY = canvas.height - distanceFromBottom;
+
+    const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
+    const isMouseOverWindow =
+      mouseX >= windowX &&
+      mouseX <= windowX + windowWidth &&
+      mouseY >= windowY &&
+      mouseY <= windowY + windowHeight;
 
     const hovered = this.blockDropDecisionMenu.getHoveredButton();
     const blockQueue = this.playerResources.getBlockQueue();
@@ -205,6 +279,14 @@ export class BlockQueueDisplayManager {
           break;
         }
       }
+    }
+
+    if (isMouseOverWindow) {
+      borderAlpha = Math.min(1.0, borderAlpha + 0.3);
+      borderColor = brightenColor(borderColor, 0.2);
+      setCursor('hovered');
+    } else {
+      restoreCursor();
     }
 
     const borderOptions = {

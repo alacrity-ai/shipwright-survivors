@@ -624,7 +624,7 @@
       "rotation": 90
     },
     {
-      "id": "engine0",
+      "id": "hull0",
       "coord": {
         "x": -2,
         "y": 13
@@ -632,7 +632,7 @@
       "rotation": 0
     },
     {
-      "id": "engine0",
+      "id": "hull0",
       "coord": {
         "x": 2,
         "y": 13
@@ -640,7 +640,7 @@
       "rotation": 0
     },
     {
-      "id": "engine0",
+      "id": "hull0",
       "coord": {
         "x": 0,
         "y": 13
@@ -865,6 +865,6 @@
     }
   ],
   "behavior": {
-    "type": "default"
+    "type": "spaceStation"
   }
 }

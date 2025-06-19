@@ -6,6 +6,8 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
+const DEBUG_MODE = false;
+
 export class DebugOverlay {
   private smoothedFps: number = 60;
 
@@ -23,6 +25,16 @@ export class DebugOverlay {
     const instantaneousFps = 1 / dt;
     const smoothingFactor = 0.05;
     this.smoothedFps += (instantaneousFps - this.smoothedFps) * smoothingFactor;
+
+    // === Label layout
+    const x = canvas.width - 300;
+    let y = 12;
+    const lineHeight = 18;
+
+    if (DEBUG_MODE) drawLabel(ctx, x, y, `DEBUG`); y += lineHeight;
+    drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
+
+    if (!DEBUG_MODE) return;
 
     const shipCount = this.shipRegistry.count();
     const enemyPower = missionLoader.getEnemyPower();
@@ -46,13 +58,6 @@ export class DebugOverlay {
       stateCounts[stateName] = (stateCounts[stateName] ?? 0) + 1;
     }
 
-    // === Label layout
-    const x = canvas.width - 300;
-    let y = 12;
-    const lineHeight = 18;
-
-    drawLabel(ctx, x, y, `DEBUG`); y += lineHeight;
-    drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
     drawLabel(ctx, x, y, `Ships: ${shipCount}`); y += lineHeight;
     drawLabel(ctx, x, y, `Enemy Power: ${enemyPower}`); y += lineHeight;
     drawLabel(ctx, x, y, `Formation: ${inFormation} (Leaders: ${formationLeaders}, Followers: ${formationFollowers})`); y += lineHeight;

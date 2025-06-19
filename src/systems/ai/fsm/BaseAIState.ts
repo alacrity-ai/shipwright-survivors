@@ -14,6 +14,14 @@ export abstract class BaseAIState {
   }
 
   /**
+   * Called once upon entering this state.
+   * Default implementation is a no-op. Override as needed.
+   */
+  public onEnter(): void {
+    // NOOP by default
+  }
+
+  /**
    * Emit a ShipIntent for this frame.
    */
   abstract update(dt: number): ShipIntent;

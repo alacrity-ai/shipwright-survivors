@@ -15,7 +15,6 @@ export class FormationRegistry {
   private readonly formations = new Map<string, Formation>();
 
   public registerFormation(formation: Formation): void {
-    console.log('[FormationRegistry] Registering formation:', formation);
     this.formations.set(formation.formationId, formation);
   }
 

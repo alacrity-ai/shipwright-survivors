@@ -23,12 +23,15 @@ export class AttackState extends BaseAIState {
   private phase: AttackPhase = AttackPhase.Ramming;
   private phaseTimer: number = 0;
 
-  private readonly ramDuration = 10;
   private readonly orbitDuration = 10;
 
   constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
     super(controller, ship);
     this.target = target;
+  }
+
+  public override onEnter(): void {
+    this.controller.makeUncullable();
   }
 
   update(dt: number): ShipIntent {

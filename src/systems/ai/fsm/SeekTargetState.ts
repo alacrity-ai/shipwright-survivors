@@ -21,6 +21,10 @@ export class SeekTargetState extends BaseAIState {
     this.target = target;
   }
 
+  public override onEnter(): void {
+    this.controller.makeUncullable();
+  }
+
   update(): ShipIntent {
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
@@ -74,7 +78,7 @@ export class SeekTargetState extends BaseAIState {
       const player = ShipRegistry.getInstance().getPlayerShip();
       if (player) {
         const distanceToPlayer = getDistance(selfTransform.position, player.getTransform().position);
-        if (distanceToPlayer > 4000) {
+        if (distanceToPlayer > this.disengagementRange) {
           const initial = this.controller.getInitialState();
           if (initial) return initial;
         }

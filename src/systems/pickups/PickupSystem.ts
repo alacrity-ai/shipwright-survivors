@@ -257,7 +257,6 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
           case 'block': {
             const blockTypeId = pickup.type.blockTypeId;
             if (blockTypeId) {
-              console.log('[Pickup] Block type ID:', blockTypeId);
               const tier = getTierFromBlockId(blockTypeId);
               sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
             } else {
@@ -276,7 +275,6 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
             break;
         }
 
-        console.log('Passing spark colors: ', sparkColors);
         this.sparkManager.emitParticle(pickup.position, {
           colors: sparkColors,
           baseSpeed: 250,

@@ -7,6 +7,7 @@ import type { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { BehaviorProfile } from './types/BehaviorProfile';
 import type { BaseAIState } from './fsm/BaseAIState';
+import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
 
 import { FormationRegistry } from './formations/FormationRegistry';
 
@@ -19,6 +20,8 @@ export class AIControllerSystem {
   private readonly utilitySystem: UtilitySystem;
   private readonly behaviorProfile: BehaviorProfile;
   private initialState: BaseAIState | null = null;
+
+  private cullabilityDelegate: CullabilityDelegate | null = null;
 
   private formationId: string | null = null;
   private formationRole: 'leader' | 'follower' | null = null;
@@ -64,12 +67,16 @@ export class AIControllerSystem {
 
       const nextState = this.currentState.transitionIfNeeded();
       if (nextState) {
-        console.log('[AIControllerSystem] Ship with ID: ', this.ship.id, 'transitioning to new state:', nextState.constructor.name, 'From: ', this.currentState.constructor.name);
-        this.currentState = nextState;
+        this.setState(nextState);
       }
     } catch (error) {
       console.error("Error in AIControllerSystem update:", error);
     }
+  }
+
+  private setState(next: BaseAIState): void {
+    this.currentState = next;
+    next.onEnter();
   }
 
   public render(dt: number): void {
@@ -99,6 +106,18 @@ export class AIControllerSystem {
 
   public setHunter(hunter: boolean): void {
     this.hunter = hunter;
+  }
+
+  public setCullabilityDelegate(delegate: CullabilityDelegate): void {
+    this.cullabilityDelegate = delegate;
+  }
+
+  public makeUncullable(): void {
+    this.cullabilityDelegate?.setUncullable(this, true);
+  }
+
+  public makeCullable(): void {
+    this.cullabilityDelegate?.setCullable(this);
   }
 
   // Hunter system
@@ -134,6 +153,8 @@ export class AIControllerSystem {
   public clearFormationContext(): void {
     this.formationId = null;
     this.formationRole = null;
+    this.formationRegistry = null;
+    this.leaderController = null;
   }
 
   public getFormationId(): string | null {
@@ -153,10 +174,9 @@ export class AIControllerSystem {
   }
 
   // State system 
-
   public setInitialState(state: BaseAIState): void {
     this.initialState = state;
-    this.currentState = state;
+    this.setState(state);
   }
 
   public getInitialState(): BaseAIState | null {

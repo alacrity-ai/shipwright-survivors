@@ -57,13 +57,11 @@ export class PlanetPass {
   addPlanet(config: PlanetSpawnConfig, scale: number, imagePath: string): void {
     this.planets.add({ ...config, scale, imagePath });
     this.ensureTextureLoaded(imagePath);
-    console.log('[PlanetPass] Added planet:', config);
   }
 
   private async ensureTextureLoaded(name: string): Promise<void> {
     if (this.textureCache.has(name)) return;
 
-    console.log('[PlanetPass] Loading planet texture:', name);
     const path = getAssetPath(name);
     const img = new Image();
     img.src = path;

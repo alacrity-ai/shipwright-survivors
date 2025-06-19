@@ -6,10 +6,8 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
-// TODO : Replace this with procedural ergonomic labels on buttons
-// import { AnimatedSpriteOrchestrator } from '@/rendering/sprites/AnimatedSpriteOrchestrator';
-// import { blockDropDecisionMenuSpritesDefinition } from '@/rendering/sprites/definitions/spriteDefinitions';
-// import { CanvasManager } from '@/core/CanvasManager';
+import { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
+import { createBlockDropDecisionMenuCoachMark } from '@/rendering/coachmarks/helpers/createBlockDropDecisionMenuCoachMark';
 
 import { brightenColor } from '@/shared/colorUtils';
 import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
@@ -89,6 +87,11 @@ export class BlockDropDecisionMenu implements Menu {
   // Mini preview dimensions for "Next:" block
   private readonly BASE_MINI_PREVIEW_HEIGHT = 32;
   private readonly BASE_MINI_PREVIEW_WIDTH = 32;
+
+  // Coachmark Positions
+  private coachMarksVisible: boolean = false;
+  private readonly COACHMARK_BASE_X = 122;
+  private readonly COACHMARK_BASE_Y = 452;
 
   private refineButton: UIButton = {} as UIButton;
   private autoplaceButton: UIButton = {} as UIButton;
@@ -279,6 +282,8 @@ export class BlockDropDecisionMenu implements Menu {
           this.slideX = this.targetX;
           this.animationPhase = 'open';
           this.isAnimating = false;
+          createBlockDropDecisionMenuCoachMark(CoachMarkManager.getInstance(), this.COACHMARK_BASE_X, this.COACHMARK_BASE_Y);
+          this.coachMarksVisible = true;
         }
       } else if (this.animationPhase === 'sliding-out') {
         this.slideX -= this.SLIDE_SPEED * dt;
@@ -352,15 +357,48 @@ export class BlockDropDecisionMenu implements Menu {
       if (wasClicked) onClickSet();
     }
 
+/*
+export type InputAction =
+  | 'thrustForward'
+  | 'afterburner'
+  | 'brake'
+  | 'rotateLeft'
+  | 'rotateRight'
+  | 'strafeLeft' // To be deprecated
+  | 'strafeRight'// To be deprecated
+  | 'powerSlide' // New
+  | 'firePrimary'
+  | 'fireSecondary'
+  | 'fireTertiary'
+  | 'fireQuaternary'
+  | 'switchFiringMode'
+  | 'openShipBuilder'
+  | 'openMenu'
+  | 'select'
+  | 'cancel'
+  | 'pause';
+
+*/
+
     // === Gamepad support ===
-    if (this.inputManager.wasActionJustPressed('cancel')) {
+    if (this.inputManager.wasActionJustPressed('switchFiringMode') || this.inputManager.wasKeyJustPressed('KeyA')) {
       this.refineButton.onClick();
       this.clickedButton = 'refine';
     }
 
-    if (this.inputManager.wasActionJustPressed('select')) {
+    if (this.inputManager.wasActionJustPressed('select') || this.inputManager.wasKeyJustPressed('KeyS')) {
       this.autoplaceButton.onClick();
       this.clickedButton = 'autoplace';
+    }
+
+    if (this.inputManager.wasActionJustPressed('openShipBuilder') || this.inputManager.wasKeyJustPressed('KeyW')) {
+      this.randomRollButton.onClick();
+      this.clickedButton = 'roll';
+    }
+
+    if (this.inputManager.wasActionJustPressed('cancel') || this.inputManager.wasKeyJustPressed('KeyD')) {
+      this.autoPlaceAllButton.onClick();
+      this.clickedButton = 'autoPlaceAll';
     }
   }
 
@@ -557,6 +595,8 @@ export class BlockDropDecisionMenu implements Menu {
     this.updateNextBlockPreview();
 
     if (!this.currentBlockType) {
+      this.coachMarksVisible = false;
+      CoachMarkManager.getInstance().clear();
       this.isAnimating = true;
       this.animationPhase = 'sliding-out';
       const camera = Camera.getInstance();
@@ -692,7 +732,10 @@ export class BlockDropDecisionMenu implements Menu {
     return this.open;
   }
 
+  // Not called anywhere yet
   closeMenu(): void {
+    this.coachMarksVisible = false;
+    CoachMarkManager.getInstance().clear();
     this.open = false;
     this.queue.length = 0;
     this.currentBlockType = null;

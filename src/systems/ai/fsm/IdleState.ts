@@ -59,8 +59,6 @@ export class IdleState extends BaseAIState {
     const inWakeRange = isWithinRange(selfPos, targetPos, this.wakeRadius);
     if (!inWakeRange) return null;
 
-    console.log('[AI] Behavior profile: ', behaviorProfile);
-
     if (behaviorProfile === SpaceStationBehaviorProfile) {
       return new SpaceStationAttackState(this.controller, this.ship, nearestTarget);
     }

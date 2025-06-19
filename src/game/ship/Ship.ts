@@ -119,6 +119,7 @@ export class Ship extends CompositeBlockObject {
   public registerAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
     if (!LightingOrchestrator.hasInstance()) return;
 
+    if (this.lightAuraId) return;
     const orchestrator = LightingOrchestrator.getInstance();
     this.lightAuraId = `aura-${this.id}`;
 

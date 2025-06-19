@@ -29,6 +29,8 @@ export interface ShipFormationEntry {
   leader: FormationShipSpec;
   followers: FormationShipSpec[];
   count?: number;
+  leaderIsHunter?: boolean;
+  unCullable?: boolean;
 }
 
 export interface FormationShipSpec {
@@ -36,6 +38,7 @@ export interface FormationShipSpec {
   hunter?: boolean;
   behaviorProfile?: string; // Optional override
   offset?: { x: number; y: number }; // Optional override if not using layout index
+  affixes?: ShipAffixes; // Optional ship affixes override
 }
 
 export type FormationLayout = { x: number; y: number }[]; // Index-aligned to followers[]

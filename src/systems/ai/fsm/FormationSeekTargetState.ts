@@ -1,40 +1,45 @@
-// src/systems/ai/states/FormationState.ts
+// src/systems/ai/fsm/FormationSeekTargetState.ts
 
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from '@/systems/ai/fsm/BaseAIState';
+import { isWithinRange } from '@/systems/ai/helpers/ShipUtils';
 import { approachTarget } from '@/systems/ai/steering/SteeringHelper';
-import { FormationSeekTargetState } from '@/systems/ai/fsm/FormationSeekTargetState';
-import { FormationAttackState } from '@/systems/ai/fsm/FormationAttackState';
-import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
-import { AttackState } from '@/systems/ai/fsm/AttackState';
-
 import { getWorldPositionFromShipOffset } from '@/systems/ai/helpers/ShipUtils';
+import { FormationAttackState } from '@/systems/ai/fsm/FormationAttackState';
 import { handleFormationLeaderDeath } from '@/systems/ai/helpers/FormationHelpers';
 
-export class FormationState extends BaseAIState {
-  constructor(controller: AIControllerSystem, ship: Ship) {
+export class FormationSeekTargetState extends BaseAIState {
+  private readonly target: Ship;
+  private readonly engagementRange = 1200;
+
+  constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
     super(controller, ship);
+    this.target = target;
   }
 
-  update(dt: number): ShipIntent {
+  public override onEnter(): void {
+    this.controller.makeUncullable();
+  }
+
+  update(): ShipIntent {
     const registry = this.controller.getFormationRegistry();
-    const leader = this.controller.getFormationLeaderController();
+    const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
 
-    if (!registry || !leader || !formationId) {
+    if (!registry || !leaderController || !formationId) {
       return this.idleIntent();
+    }
+
+    const leaderShip = leaderController.getShip();
+    if (leaderShip.isDestroyed()) {
+      return this.idleIntent(); // Avoid transition here; it's handled in transitionIfNeeded
     }
 
     const offset = registry.getOffsetForShip(this.ship.id);
     if (!offset) return this.idleIntent();
-
-    const leaderShip = leader.getShip();
-    if (leaderShip.isDestroyed()) {
-      return this.idleIntent(); // No transition here; handled in transitionIfNeeded
-    }
 
     const leaderTransform = leaderShip.getTransform();
     const targetPos = getWorldPositionFromShipOffset(leaderTransform, offset);
@@ -44,7 +49,7 @@ export class FormationState extends BaseAIState {
       weapons: {
         firePrimary: false,
         fireSecondary: false,
-        aimAt: leaderTransform.position,
+        aimAt: this.target.getTransform().position,
       },
       utility: {
         toggleShields: false,
@@ -66,17 +71,18 @@ export class FormationState extends BaseAIState {
       return handleFormationLeaderDeath(this.controller, this.ship);
     }
 
-    const leaderState = leaderController.getCurrentState();
+    const selfTransform = this.ship.getTransform();
+    const targetTransform = this.target.getTransform();
 
-    if (leaderState instanceof SeekTargetState) {
-      return new FormationSeekTargetState(this.controller, this.ship, leaderState.getTarget());
-    }
-
-    if (leaderState instanceof AttackState) {
-      return new FormationAttackState(this.controller, this.ship, leaderState.getTarget());
+    if (isWithinRange(selfTransform.position, targetTransform.position, this.engagementRange)) {
+      return new FormationAttackState(this.controller, this.ship, this.target);
     }
 
     return null;
+  }
+
+  public getTarget(): Ship {
+    return this.target;
   }
 
   private idleIntent(): ShipIntent {

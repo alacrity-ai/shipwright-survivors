@@ -41,7 +41,7 @@ This document outlines the complete system enabling **formation-based AI coordin
 |||Provides: `getOffsetForShip()`, `getFormationByShipId()`, `getLeaderId()`|
 |2|`AIOrchestratorSystem`|Owns the registry. Calls `setFormationContext()` on controllers post-creation.|
 |3|`AIControllerSystem`|Stores formation ID, role (leader/follower), and registry ref. Provides leader access.|
-|4|`FormationState`|Follows leader using offset tracking. Transitions to combat if leader engages target.|
+|4|`FormationState`|Follows leader using offset tracking. Transitions to parallel combat states (`FormationSeekTargetState`, `FormationAttackState`) if leader engages target.|
 ||`SeekTargetState` / `AttackState`|Expose `.getTarget()` cleanly for followers to consume.|
 |6|`ShipFormationFactory`|Declaratively spawns groups using formation layouts. Returns ship+controller mappings.|
 ||`WaveSpawner`|Calls `spawnFormations()` per wave and tracks all spawned members internally.|

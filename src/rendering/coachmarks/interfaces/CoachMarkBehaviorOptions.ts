@@ -1,7 +1,16 @@
 // src/rendering/coachmarks/interfaces/CoachMarkBehaviorOptions.ts
 
 export type CoachMarkType = 
-'arrow' | 'box' | 'image' | 'text' | 'key' | 'mouse' | 'gamepadFaceButtons' | 'gamepadSticks' | 'gamepadShoulders';
+  'arrow' |
+  'box' |
+  'image' |
+  'text' |
+  'key' |
+  'mouse' |
+  'gamepadFaceButtons' |
+  'gamepadFaceButton' |
+  'gamepadSticks' |
+  'gamepadShoulders';
 
 interface BaseCoachMarkBehaviorOptions {
   duration?: number;
@@ -77,6 +86,17 @@ export interface GamepadFaceButtonsCoachMarkBehavior extends BaseCoachMarkBehavi
   fontSize?: number;
 }
 
+export interface GamepadFaceButtonCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
+  type: 'gamepadFaceButton';
+  label: GamepadFaceButton; // 'A' | 'B' | 'X' | 'Y'
+  radius?: number;
+  fontSize?: number;
+  borderColor?: string;
+  fillColor?: string;
+  highlightColor?: string;
+  textColor?: string;
+}
+
 export type GamepadStickSide = 'left' | 'right';
 
 export interface GamepadSticksCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
@@ -112,5 +132,7 @@ export type CoachMarkBehaviorOptions =
   | MouseCoachMarkBehavior
   | KeyCoachMarkBehavior
   | GamepadFaceButtonsCoachMarkBehavior
+  | GamepadFaceButtonCoachMarkBehavior
   | GamepadSticksCoachMarkBehavior
   | GamepadShoulderButtonsCoachMarkBehavior;
+

@@ -67,7 +67,8 @@ export class ShipFactory {
     behaviorProfile?: BehaviorProfile,
     affixes: ShipAffixes = {},
     faction: Faction = Faction.Enemy,
-    registerController: boolean = true
+    registerController: boolean = true,
+    unCullable: boolean = false
   ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
     const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid);
 
@@ -110,7 +111,7 @@ export class ShipFactory {
 
     controller.setHunter(hunter);
     if (registerController) {
-      this.orchestrator.addController(controller);
+      this.orchestrator.addController(controller, unCullable);
     }
 
     ship.hideAllBlocks();
