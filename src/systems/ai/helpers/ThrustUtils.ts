@@ -34,11 +34,8 @@ export function getNetThrustDirection(ship: Ship): Vec2 {
   let sumY = 0;
 
   const shipRotation = ship.getTransform().rotation;
-
-  for (const [_, block] of ship.getAllBlocks()) {
-    if (!block.type.behavior?.canThrust) continue;
-
-    const power = block.type.behavior.thrustPower ?? 5;
+  for (const block of ship.getEngineBlocks()) {
+    const power = block.type.behavior!.thrustPower ?? 5;
     const local = getBlockThrustDirection(block.rotation ?? 0);
     const world = rotateVector(local, shipRotation);
 

@@ -16,7 +16,8 @@ export abstract class CompositeBlockObject {
   readonly id: string;
   protected grid: Grid;
 
-  protected blocks: Map<CoordKey, BlockInstance> = new Map();
+  private cachedBlockList: [GridCoord, BlockInstance][] | null = null;
+  protected blocks: Map<CoordKey, { coord: GridCoord; block: BlockInstance }> = new Map();
   protected blockToCoordMap: Map<BlockInstance, GridCoord> = new Map();
 
   protected transform: BlockEntityTransform;
@@ -29,6 +30,10 @@ export abstract class CompositeBlockObject {
   protected faction: Faction;
 
   protected collidingUntil: number = 0;
+
+  private _lastTransformCheckX: number = NaN;
+  private _lastTransformCheckY: number = NaN;
+  private _lastTransformCheckRot: number = NaN; // optional
 
   constructor(
     grid: Grid,
@@ -49,7 +54,7 @@ export abstract class CompositeBlockObject {
 
     if (initialBlocks) {
       for (const [coord, block] of initialBlocks) {
-        this.blocks.set(toKey(coord), block);
+        this.blocks.set(toKey(coord), { coord, block });
         this.grid.addBlockToCell(block);
         this.blockToCoordMap.set(block, coord);
         BlockToObjectIndex.registerBlock(block, this);
@@ -76,16 +81,16 @@ export abstract class CompositeBlockObject {
 
   public placeBlock(coord: GridCoord, block: BlockInstance): void {
     const key = toKey(coord);
-    this.blocks.set(key, block);
+    this.blocks.set(key, { coord, block });
     this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
     BlockToObjectIndex.registerBlock(block, this);
-
+    this.invalidateBlockCache();
     this.invalidateMass();
   }
 
   public getBlock(coord: GridCoord): BlockInstance | undefined {
-    return this.blocks.get(toKey(coord));
+    return this.blocks.get(toKey(coord))?.block;
   }
 
   public hasBlockAt(coord: GridCoord): boolean {
@@ -93,11 +98,22 @@ export abstract class CompositeBlockObject {
   }
 
   public getBlockMap(): Map<string, BlockInstance> {
-    return this.blocks;
+    const result = new Map<string, BlockInstance>();
+    for (const [key, entry] of this.blocks.entries()) {
+      result.set(key, entry.block);
+    }
+    return result;
   }
 
   public getAllBlocks(): [GridCoord, BlockInstance][] {
-    return Array.from(this.blocks.entries()).map(([key, block]) => [fromKey(key), block]);
+    if (this.cachedBlockList === null) {
+      this.cachedBlockList = Array.from(this.blocks.values()).map(({ coord, block }) => [coord, block]);
+    }
+    return this.cachedBlockList;
+  }
+
+  public invalidateBlockCache(): void {
+    this.cachedBlockList = null;
   }
 
   public getBlockCount(): number {
@@ -105,7 +121,7 @@ export abstract class CompositeBlockObject {
   }
 
   public getCenterBlock(): BlockInstance | undefined {
-    return this.blocks.get('0,0');
+    return this.blocks.get('0,0')?.block;
   }
 
   // Do we need both this and findBlockCoord?
@@ -134,13 +150,13 @@ export abstract class CompositeBlockObject {
   }
 
   public hideAllBlocks(): void {
-    for (const block of this.blocks.values()) {
+    for (const { block } of this.blocks.values()) {
       block.hidden = true;
     }
   }
 
   public showAllBlocks(): void {
-    for (const block of this.blocks.values()) {
+    for (const { block } of this.blocks.values()) {
       block.hidden = false;
     }
   }
@@ -150,9 +166,9 @@ export abstract class CompositeBlockObject {
    * Returns null if the block is not found or no longer exists.
    */
   public findBlockCoord(block: BlockInstance): GridCoord | null {
-    for (const [key, stored] of this.blocks.entries()) {
+    for (const { coord, block: stored } of this.blocks.values()) {
       if (stored === block) {
-        return fromKey(key);
+        return coord;
       }
     }
     return null;
@@ -160,13 +176,16 @@ export abstract class CompositeBlockObject {
 
   public removeBlock(coord: GridCoord): void {
     const key = toKey(coord);
-    const block = this.blocks.get(key);
-    if (!block) return;
+    const entry = this.blocks.get(key);
+    if (!entry) return;
+
+    const { block } = entry;
 
     BlockToObjectIndex.unregisterBlock(block);
     this.grid.removeBlockFromCell(block);
     this.blocks.delete(key);
     this.blockToCoordMap.delete(block);
+    this.invalidateBlockCache();
     this.invalidateMass();
   }
 
@@ -176,9 +195,10 @@ export abstract class CompositeBlockObject {
     if (!preResolved) {
       for (const coord of coords) {
         const key = toKey(coord);
-        const block = this.blocks.get(key);
-        if (!block) continue;
+        const entry = this.blocks.get(key);
+        if (!entry) continue;
 
+        const { block } = entry;
         toRemove.push(block);
         this.blocks.delete(key);
         this.blockToCoordMap.delete(block);
@@ -186,8 +206,10 @@ export abstract class CompositeBlockObject {
     } else {
       for (const block of preResolved) {
         const coord = this.blockToCoordMap.get(block);
-        if (coord) this.blocks.delete(toKey(coord));
-        this.blockToCoordMap.delete(block);
+        if (coord) {
+          this.blocks.delete(toKey(coord));
+          this.blockToCoordMap.delete(block);
+        }
       }
     }
 
@@ -196,6 +218,7 @@ export abstract class CompositeBlockObject {
     }
 
     this.grid.removeBlocksFromCells(toRemove);
+    this.invalidateBlockCache();
     this.invalidateMass();
   }
 
@@ -223,6 +246,27 @@ export abstract class CompositeBlockObject {
   }
 
   // State // Movement // Positional States
+
+  public hasMovedSinceLastUpdate(): boolean {
+    const transform = this.getTransform();
+    const x = transform.position.x;
+    const y = transform.position.y;
+    const rot = transform.rotation ?? 0;
+
+    const moved =
+      x !== this._lastTransformCheckX ||
+      y !== this._lastTransformCheckY ||
+      rot !== this._lastTransformCheckRot;
+
+    return moved;
+  }
+
+  public markTransformChecked(): void {
+    const transform = this.getTransform();
+    this._lastTransformCheckX = transform.position.x;
+    this._lastTransformCheckY = transform.position.y;
+    this._lastTransformCheckRot = transform.rotation ?? 0;
+  }
 
   public setColliding(active: boolean, durationMs: number = 100): void {
     if (active) {
@@ -256,14 +300,22 @@ export abstract class CompositeBlockObject {
   }
 
   public updateBlockPositions(): void {
-    for (const [coordKey, block] of this.blocks.entries()) {
-      const coord = fromKey(coordKey);
+    const { position, rotation } = this.transform;
+    const { x: px, y: py } = position;
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
+
+    for (const { coord, block } of this.blocks.values()) {
+      const { x: cx, y: cy } = coord;
+
+      // Fast inlined position calc
+      const worldX = px + cx * 32 * cos - cy * 32 * sin;
+      const worldY = py + cx * 32 * sin + cy * 32 * cos;
+
       this.grid.removeBlockFromCell(block);
-      block.position = this.calculateBlockWorldPosition(coord);
+      block.position = { x: worldX, y: worldY };
       this.grid.addBlockToCell(block);
     }
-    // Fix auaralight (as the cockpit block which previously had the auraLight may no longer)
-    // TODO : This is causing stray auralights to linger on the map, without a cockpit, and never be cleaned up
   }
 
   // --- Mass ---
@@ -271,7 +323,7 @@ export abstract class CompositeBlockObject {
   public getTotalMass(): number {
     if (this.totalMass == null) {
       let total = 0;
-      for (const block of this.blocks.values()) {
+      for (const { block } of this.blocks.values()) {
         total += block.type.mass;
       }
       this.totalMass = total;
@@ -290,7 +342,7 @@ export abstract class CompositeBlockObject {
     this.destroyed = true;
     this.deathTimestamp = performance.now();
 
-    for (const block of this.blocks.values()) {
+    for (const { block } of this.blocks.values()) {
       this.grid.removeBlockFromCell(block);
     }
 
@@ -382,12 +434,13 @@ export abstract class CompositeBlockObject {
       };
 
       const coordKey = toKey(blockData.coord);
-      this.blocks.set(coordKey, block);
+      this.blocks.set(coordKey, { coord: blockData.coord, block });
       this.blockToCoordMap.set(block, blockData.coord);
       this.grid.addBlockToCell(block);
     });
 
     this.invalidateMass();
+    this.invalidateBlockCache();
     this.updateBlockPositions();
   }
 

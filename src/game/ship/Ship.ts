@@ -35,6 +35,8 @@ export class Ship extends CompositeBlockObject {
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
   private shieldBlocks: Set<BlockInstance> = new Set();
+  private engineBlocks: Set<BlockInstance> = new Set();
+  private finBlocks: Set<BlockInstance> = new Set();
   private fuelTankBlocks: Set<BlockInstance> = new Set();
   private firingPlan: WeaponFiringPlanEntry[] = [];
   private firingPlanIndex: Map<BlockInstance, number> = new Map();
@@ -174,7 +176,7 @@ export class Ship extends CompositeBlockObject {
   // === Cockpit ===
 
   getCockpit(): BlockInstance | undefined {
-    return this.blocks.get(toKey({ x: 0, y: 0 }));
+    return this.blocks.get(toKey({ x: 0, y: 0 }))?.block;
   }
 
   public getCockpitHp(): number | null {
@@ -219,9 +221,8 @@ export class Ship extends CompositeBlockObject {
     const newIndex = new Map<BlockInstance, number>();
 
     for (const entry of this.firingPlan) {
-      const isStillPresent =
-        this.blocks.has(toKey(entry.coord)) &&
-        this.blocks.get(toKey(entry.coord)) === entry.block;
+      const existing = this.blocks.get(toKey(entry.coord));
+      const isStillPresent = existing?.block === entry.block;
 
       if (isStillPresent) {
         const newIndexValue = valid.length;
@@ -233,6 +234,7 @@ export class Ship extends CompositeBlockObject {
     this.firingPlan = valid;
     this.firingPlanIndex = newIndex;
   }
+
 
   /**
    * Adds a weapon to the firing plan if the block qualifies.
@@ -368,10 +370,9 @@ export class Ship extends CompositeBlockObject {
     let totalMax = 0;
     let totalRegen = 0;
 
-    for (const [, block] of this.blocks.entries()) {
+    for (const { block } of this.blocks.values()) {
       const behavior = block.type.behavior;
 
-      // Any energy-contributing block declares it explicitly
       if (behavior?.energyMaxIncrease) {
         totalMax += behavior.energyMaxIncrease;
       }
@@ -391,6 +392,14 @@ export class Ship extends CompositeBlockObject {
     return this.haloBladeBlocks;
   }
 
+  public getEngineBlocks(): Iterable<BlockInstance> {
+    return this.engineBlocks;
+  }
+
+  public getFinBlocks(): Iterable<BlockInstance> {
+    return this.finBlocks;
+  }
+
   // === Utility Systems: Harvesting, etc ===
 
   public getTotalHarvestRate(): number {
@@ -404,10 +413,30 @@ export class Ship extends CompositeBlockObject {
   private rebuildHaloBladeIndex(): void {
     this.haloBladeBlocks.clear();
 
-    for (const [, block] of this.blocks.entries()) {
+    for (const { block } of this.blocks.values()) {
       const halo = block.type.behavior?.haloBladeProperties;
       if (halo) {
         this.haloBladeBlocks.set(block, halo);
+      }
+    }
+  }
+
+  private rebuildEngineBlockIndex(): void {
+    this.engineBlocks.clear();
+
+    for (const { block } of this.blocks.values()) {
+      if (block.type.behavior?.canThrust) {
+        this.engineBlocks.add(block);
+      }
+    }
+  }
+
+  private rebuildFinBlockIndex(): void {
+    this.finBlocks.clear();
+
+    for (const { block } of this.blocks.values()) {
+      if (block.type.id.startsWith('fin')) {
+        this.finBlocks.add(block);
       }
     }
   }
@@ -441,8 +470,8 @@ export class Ship extends CompositeBlockObject {
 
   placeBlock(coord: GridCoord, block: BlockInstance): void {
     const key = toKey(coord);
-    this.blocks.set(key, block);
-    this.grid.addBlockToCell(block); // Block is added to grid
+    this.blocks.set(key, { coord, block });
+    this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
 
     // Register block-to-object index
@@ -451,6 +480,16 @@ export class Ship extends CompositeBlockObject {
     // Track if it's a shield block
     if (block.type.behavior?.shieldRadius) {
       this.shieldBlocks.add(block);
+    }
+
+    // Engine blocks
+    if (block.type.id.startsWith('engine')) {
+      this.engineBlocks.add(block);
+    }
+
+    // Fins
+    if (block.type.id.startsWith('fin')) {
+      this.finBlocks.add(block);
     }
 
     // Harvest Blocks
@@ -472,32 +511,43 @@ export class Ship extends CompositeBlockObject {
 
     this.updateFuelCapacity();
     this.invalidateMass();
+    this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.addWeaponToPlanIfApplicable(coord, block);
     this.shieldComponent.recalculateCoverage();
   }
 
-  removeBlock(coord: GridCoord): void {
+  public removeBlock(coord: GridCoord): void {
     const key = toKey(coord);
-    const block = this.blocks.get(key);
-    if (block) {
-      this.grid.removeBlockFromCell(block);
-      this.blockToCoordMap.delete(block);
+    const entry = this.blocks.get(key);
+    if (!entry) return;
 
-      // Remove from subsystem indices
-      this.harvesterBlocks.delete(block);
-      this.shieldBlocks.delete(block);
-      this.haloBladeBlocks.delete(block);
-      this.fuelTankBlocks.delete(block);
-      this.removeWeaponFromPlanIfApplicable(block);
+    const { block } = entry;
 
-      // Unregister from block→object index
-      BlockToObjectIndex.unregisterBlock(block);
-    }
+    // Remove from spatial partitioning grid
+    this.grid.removeBlockFromCell(block);
 
+    // Remove from tracking maps
+    this.blockToCoordMap.delete(block);
     this.blocks.delete(key);
+
+    // Remove from subsystem indices
+    this.engineBlocks.delete(block);
+    this.finBlocks.delete(block);
+    this.harvesterBlocks.delete(block);
+    this.shieldBlocks.delete(block);
+    this.haloBladeBlocks.delete(block);
+    this.fuelTankBlocks.delete(block);
+
+    this.removeWeaponFromPlanIfApplicable(block);
+
+    // Unregister from global index
+    BlockToObjectIndex.unregisterBlock(block);
+
+    // Recompute ship state
     this.updateFuelCapacity();
     this.invalidateMass();
+    this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
   }
@@ -505,15 +555,15 @@ export class Ship extends CompositeBlockObject {
   public removeBlocks(coords: GridCoord[], preResolvedBlocks?: BlockInstance[]): void {
     if (coords.length === 0) return;
 
-    // Step 1: Collect all blocks to remove and remove from spatial maps
     const blocksToRemove: BlockInstance[] = preResolvedBlocks ?? [];
 
     if (!preResolvedBlocks) {
       for (const coord of coords) {
         const key = toKey(coord);
-        const block = this.blocks.get(key);
-        if (!block) continue;
+        const entry = this.blocks.get(key);
+        if (!entry) continue;
 
+        const { block } = entry;
         blocksToRemove.push(block);
         this.blocks.delete(key);
         this.blockToCoordMap.delete(block);
@@ -529,15 +579,15 @@ export class Ship extends CompositeBlockObject {
       }
     }
 
-    if (blocksToRemove.length === 0) {
-      return;
-    }
+    if (blocksToRemove.length === 0) return;
 
     // Step 2: Remove from grid in batch
     this.grid.removeBlocksFromCells(blocksToRemove);
 
     // Step 3: Bulk-remove from subsystems
     for (const block of blocksToRemove) {
+      this.engineBlocks.delete(block);
+      this.finBlocks.delete(block);
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
       this.haloBladeBlocks.delete(block);
@@ -550,6 +600,7 @@ export class Ship extends CompositeBlockObject {
     // Step 4: Recompute affected state only once
     this.updateFuelCapacity();
     this.invalidateMass();
+    this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
   }
@@ -565,7 +616,7 @@ export class Ship extends CompositeBlockObject {
 
     // Find cockpit or fallback to first block
     const rootKey = [...remaining.entries()]
-      .find(([, b]) => b.type.id.startsWith('cockpit'))?.[0]
+      .find(([, entry]) => entry.block.type.id.startsWith('cockpit'))?.[0]
       ?? [...remaining.keys()][0];
 
     if (!rootKey) return true; // Nothing left, safe to remove
@@ -612,6 +663,8 @@ export class Ship extends CompositeBlockObject {
     this.updateFuelCapacity();
     this.validateFiringPlan();
     this.rebuildHaloBladeIndex();
+    this.rebuildEngineBlockIndex();
+    this.rebuildFinBlockIndex();
   }
 
   // What about this?
@@ -621,7 +674,7 @@ export class Ship extends CompositeBlockObject {
     this.destroyed = true;
     this.deathTimestamp = performance.now() - 10000;
 
-    for (const block of this.blocks.values()) {
+    for (const { block } of this.blocks.values()) {
       this.grid.removeBlockFromCell(block);
     }
     this.blocks.clear();

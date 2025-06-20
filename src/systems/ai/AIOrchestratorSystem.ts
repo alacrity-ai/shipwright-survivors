@@ -7,6 +7,7 @@ import type { Grid } from '@/systems/physics/Grid';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
 
+import { ShipGrid } from './ShipGrid';
 import { FormationRegistry } from './formations/FormationRegistry';
 
 const SCAN_RADIUS = 5000;
@@ -16,9 +17,13 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
   private playerShip: Ship | null = null;
   private grid: Grid | null = null;
+  private readonly shipGrid = new ShipGrid(1000); // Or tuned based on average ship size
+
 
   private readonly controllerToShipMap = new Map<AIControllerSystem, Ship>();
   private readonly shipIdToControllerMap = new Map<string, AIControllerSystem>();
+
+  private readonly relevantControllers = new Set<AIControllerSystem>();
 
   private readonly formationRegistry = new FormationRegistry();
 
@@ -48,6 +53,8 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     this.setUncullable(controller, unCullable || controller.isHunter());
     controller.setCullabilityDelegate(this);
     
+    this.shipGrid.addShip(ship);
+
     const formation = this.formationRegistry.getFormationByShipId(ship.id);
     if (formation) {
       if (formation.leaderId === ship.id) {
@@ -70,6 +77,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     const ship = this.controllerToShipMap.get(controller);
     if (ship) {
       this.shipIdToControllerMap.delete(ship.id);
+      this.shipGrid.removeShip(ship);
     }
 
     this.controllerToShipMap.delete(controller);
@@ -81,15 +89,8 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
   }
 
   public removeControllersForShip(shipId: string): void {
-    const controllersToRemove: AIControllerSystem[] = [];
-
-    for (const [controller, ship] of this.controllerToShipMap.entries()) {
-      if (ship.id === shipId) {
-        controllersToRemove.push(controller);
-      }
-    }
-
-    for (const controller of controllersToRemove) {
+    const controller = this.shipIdToControllerMap.get(shipId);
+    if (controller) {
       this.removeController(controller);
     }
   }
@@ -136,25 +137,21 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     this.controllerToShipMap.clear();
     this.shipIdToControllerMap.clear();
     this.uncullableControllers.clear();
+    this.shipGrid.clear();
   }
 
   public update(dt: number): void {
-    if (!this.playerShip || !this.grid) return;
+    if (!this.playerShip) return;
 
-    if (this.frameCounter++ % this.REEVALUATE_FRAMES === 0) {
-      const playerPos = this.playerShip.getTransform().position;
+    this.relevantControllers.clear();
+    const relevantControllers = this.relevantControllers;
 
-      const minX = playerPos.x - SCAN_RADIUS;
-      const maxX = playerPos.x + SCAN_RADIUS;
-      const minY = playerPos.y - SCAN_RADIUS;
-      const maxY = playerPos.y + SCAN_RADIUS;
-
-      this.cachedRelevantBlocks = this.grid.getBlocksInArea(minX, minY, maxX, maxY);
+    // 1. Update grid cell occupancy (ships may have moved)
+    for (const [controller, ship] of this.controllerToShipMap) {
+      this.shipGrid.updateShipPosition(ship);
     }
 
-    const relevantControllers = new Set<AIControllerSystem>();
-
-    // Prune dead uncullables
+    // 2. Always retain uncullables (unless destroyed)
     for (const controller of this.uncullableControllers) {
       const ship = controller.getShip();
       if (ship.isDestroyed()) {
@@ -164,27 +161,31 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       relevantControllers.add(controller);
     }
 
-    // Deduplicate owner IDs first
-    const nearbyShipIds = new Set<string>();
-    for (const block of this.cachedRelevantBlocks) {
-      if (block.ownerShipId) {
-        nearbyShipIds.add(block.ownerShipId);
+    // 3. Spatial query: ships near player (only every N frames)
+    if (this.frameCounter++ % this.REEVALUATE_FRAMES === 0) {
+      const playerPos = this.playerShip.getTransform().position;
+
+      const nearbyShips = this.shipGrid.getShipsInRadius(
+        playerPos.x,
+        playerPos.y,
+        SCAN_RADIUS
+      );
+
+      for (const ship of nearbyShips) {
+        const controller = this.shipIdToControllerMap.get(ship.id);
+        if (controller) {
+          relevantControllers.add(controller);
+        }
       }
     }
 
-    for (const shipId of nearbyShipIds) {
-      const controller = this.shipIdToControllerMap.get(shipId);
-      if (controller) {
-        relevantControllers.add(controller);
-      }
-    }
-
+    // 4. Update all relevant controllers (with error handling)
     const controllersToRemove: AIControllerSystem[] = [];
 
     for (const controller of relevantControllers) {
       try {
         const ship = controller.getShip();
-        if (!ship || typeof ship.getAllBlocks !== 'function') {
+        if (!ship?.getAllBlocks) {
           controllersToRemove.push(controller);
           continue;
         }
@@ -213,8 +214,10 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
   }
 
   public getUncullableControllerStates(): string[] {
-    return Array.from(this.uncullableControllers).map(controller =>
-      controller.getCurrentStateString()
-    );
+    const result: string[] = [];
+    for (const controller of this.uncullableControllers) {
+      result.push(controller.getCurrentStateString());
+    }
+    return result;
   }
 }

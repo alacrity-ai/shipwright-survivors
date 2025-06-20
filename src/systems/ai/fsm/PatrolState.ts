@@ -1,3 +1,5 @@
+// src/systems/ai/fsm/PatrolState.ts
+
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
@@ -6,16 +8,28 @@ import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
 import { BaseAIState } from './BaseAIState';
 import { approachTarget } from '@/systems/ai/steering/SteeringHelper';
-import { isWithinRange } from '@/systems/ai/helpers/ShipUtils';
 import { findNearestTarget } from '@/systems/ai/helpers/ShipUtils';
 import { SeekTargetState } from './SeekTargetState';
+
+// === Preallocated idle intent structures ===
+const IDLE_MOVEMENT = {
+  thrustForward: false,
+  brake: true,
+  rotateLeft: false,
+  rotateRight: false,
+  strafeLeft: false,
+  strafeRight: false,
+} as const;
+
+const IDLE_UTILITY = {
+  toggleShields: false,
+} as const;
 
 export class PatrolState extends BaseAIState {
   private patrolTarget: { x: number; y: number };
   private dwellTime = 0;
-  private readonly dwellDuration = 4; // seconds
+  private readonly dwellDuration = 4;
   private readonly patrolRadius = 6000;
-  // private readonly wakeRadius = 3600;
   private readonly wakeRadius = 3400;
 
   constructor(controller: AIControllerSystem, ship: Ship) {
@@ -23,13 +37,16 @@ export class PatrolState extends BaseAIState {
     this.patrolTarget = this.chooseNewPatrolTarget();
   }
 
-  update(dt: number): ShipIntent {
-    const selfPos = this.ship.getTransform().position;
-    const velocity = this.ship.getTransform().velocity;
+  public update(dt: number): ShipIntent {
+    const transform = this.ship.getTransform();
+    const selfPos = transform.position;
+    const velocity = transform.velocity;
 
-    // Are we near our patrol target?
-    const closeEnough = isWithinRange(selfPos, this.patrolTarget, 100);
+    const dx = selfPos.x - this.patrolTarget.x;
+    const dy = selfPos.y - this.patrolTarget.y;
+    const distSq = dx * dx + dy * dy;
 
+    const closeEnough = distSq <= 100 * 100;
     if (closeEnough) {
       this.dwellTime += dt;
       if (this.dwellTime >= this.dwellDuration) {
@@ -37,24 +54,14 @@ export class PatrolState extends BaseAIState {
         this.dwellTime = 0;
       }
 
-      // Idle for now
       return {
-        movement: {
-          thrustForward: false,
-          brake: true,
-          rotateLeft: false,
-          rotateRight: false,
-          strafeLeft: false,
-          strafeRight: false,
-        },
+        movement: IDLE_MOVEMENT,
         weapons: {
           firePrimary: false,
           fireSecondary: false,
           aimAt: this.patrolTarget,
         },
-        utility: {
-          toggleShields: false,
-        },
+        utility: IDLE_UTILITY,
       };
     }
 
@@ -67,58 +74,52 @@ export class PatrolState extends BaseAIState {
         fireSecondary: false,
         aimAt: this.patrolTarget,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: IDLE_UTILITY,
     };
   }
 
-  transitionIfNeeded(): BaseAIState | null {
-    // === Hunter override: always seek if a target is visible ===
+  public transitionIfNeeded(): BaseAIState | null {
+    // === Hunter override: always seek if player is visible ===
     if (this.controller.isHunter()) {
       const playerShip = ShipRegistry.getInstance().getPlayerShip();
       if (playerShip) {
-        this.controller.setInitialState(new SeekTargetState(this.controller, this.ship, playerShip));
-        return new SeekTargetState(this.controller, this.ship, playerShip);
+        const seek = new SeekTargetState(this.controller, this.ship, playerShip);
+        this.controller.setInitialState(seek);
+        return seek;
       }
     }
 
     const nearestTarget = findNearestTarget(this.ship, this.wakeRadius);
     if (!nearestTarget) return null;
 
-    // === Normal behavior: only seek if within range ===
     const targetPos = nearestTarget.getTransform().position;
     const selfPos = this.ship.getTransform().position;
 
-    const inRange = isWithinRange(selfPos, targetPos, this.wakeRadius);
-    return inRange
+    const dx = selfPos.x - targetPos.x;
+    const dy = selfPos.y - targetPos.y;
+    const distSq = dx * dx + dy * dy;
+
+    return distSq <= this.wakeRadius * this.wakeRadius
       ? new SeekTargetState(this.controller, this.ship, nearestTarget)
       : null;
   }
 
   private chooseNewPatrolTarget(): { x: number; y: number } {
-    const selfPos = this.ship.getTransform().position;
+    const { x: px, y: py } = this.ship.getTransform().position;
 
-    // Generate a random offset within the patrol radius
     const angle = Math.random() * 2 * Math.PI;
     const radius = Math.random() * this.patrolRadius;
 
-    const rawX = selfPos.x + Math.cos(angle) * radius;
-    const rawY = selfPos.y + Math.sin(angle) * radius;
+    const rawX = px + Math.cos(angle) * radius;
+    const rawY = py + Math.sin(angle) * radius;
 
-    // Enforce a 1000-unit margin from world borders
     const halfWidth = WORLD_WIDTH / 2;
     const halfHeight = WORLD_HEIGHT / 2;
-    const borderMargin = 1000;
-
-    const minX = -halfWidth + borderMargin;
-    const maxX = +halfWidth - borderMargin;
-    const minY = -halfHeight + borderMargin;
-    const maxY = +halfHeight - borderMargin;
+    const margin = 1000;
 
     return {
-      x: Math.max(minX, Math.min(maxX, rawX)),
-      y: Math.max(minY, Math.min(maxY, rawY)),
+      x: Math.max(-halfWidth + margin, Math.min(halfWidth - margin, rawX)),
+      y: Math.max(-halfHeight + margin, Math.min(halfHeight - margin, rawY)),
     };
   }
 }

@@ -51,19 +51,18 @@ export class AIControllerSystem {
 
   public update(dt: number): void {
     // Check if ship is still valid
-    if (!this.ship || !this.ship.getTransform) {
-      return;
-    }
-    
+    const transform = this.ship.getTransform();
+
     try {
       const intent: ShipIntent = this.currentState.update(dt);
 
-      this.movementSystem.setIntent(intent.movement);
-      this.weaponSystem.setIntent(intent.weapons);
+      const { movement, weapons, utility } = intent;
+      this.movementSystem.setIntent(movement);
+      this.weaponSystem.setIntent(weapons);
+      this.utilitySystem.setIntent(utility);
       this.movementSystem.update(dt);
-      this.utilitySystem.setIntent(intent.utility);
-      this.utilitySystem.update(dt, this.ship, this.ship.getTransform());
-      this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
+      this.utilitySystem.update(dt, this.ship, transform);
+      this.weaponSystem.update(dt, this.ship, transform);
 
       const nextState = this.currentState.transitionIfNeeded();
       if (nextState) {

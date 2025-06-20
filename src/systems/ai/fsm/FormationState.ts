@@ -1,4 +1,4 @@
-// src/systems/ai/states/FormationState.ts
+// src/systems/ai/fsm/FormationState.ts
 
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
@@ -14,45 +14,60 @@ import { AttackState } from '@/systems/ai/fsm/AttackState';
 import { getWorldPositionFromShipOffset } from '@/systems/ai/helpers/ShipUtils';
 import { handleFormationLeaderDeath } from '@/systems/ai/helpers/FormationHelpers';
 
+// === Preallocated reusable constants ===
+const IDLE_MOVEMENT = {
+  thrustForward: false,
+  brake: true,
+  rotateLeft: false,
+  rotateRight: false,
+  strafeLeft: false,
+  strafeRight: false,
+} as const;
+
+const IDLE_UTILITY = {
+  toggleShields: false,
+} as const;
+
 export class FormationState extends BaseAIState {
   constructor(controller: AIControllerSystem, ship: Ship) {
     super(controller, ship);
   }
 
-  update(dt: number): ShipIntent {
+  public update(): ShipIntent {
     const registry = this.controller.getFormationRegistry();
-    const leader = this.controller.getFormationLeaderController();
+    const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
 
-    if (!registry || !leader || !formationId) {
+    if (!registry || !leaderController || !formationId) {
       return this.idleIntent();
     }
 
     const offset = registry.getOffsetForShip(this.ship.id);
     if (!offset) return this.idleIntent();
 
-    const leaderShip = leader.getShip();
+    const leaderShip = leaderController.getShip();
     if (leaderShip.isDestroyed()) {
-      return this.idleIntent(); // No transition here; handled in transitionIfNeeded
+      return this.idleIntent(); // Don't transition here — handled below
     }
 
     const leaderTransform = leaderShip.getTransform();
     const targetPos = getWorldPositionFromShipOffset(leaderTransform, offset);
 
+    const selfTransform = this.ship.getTransform();
+    const selfVel = selfTransform.velocity;
+
     return {
-      movement: approachTarget(this.ship, targetPos, this.ship.getTransform().velocity),
+      movement: approachTarget(this.ship, targetPos, selfVel),
       weapons: {
         firePrimary: false,
         fireSecondary: false,
         aimAt: leaderTransform.position,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: IDLE_UTILITY,
     };
   }
 
-  transitionIfNeeded(): BaseAIState | null {
+  public transitionIfNeeded(): BaseAIState | null {
     const registry = this.controller.getFormationRegistry();
     const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
@@ -80,23 +95,15 @@ export class FormationState extends BaseAIState {
   }
 
   private idleIntent(): ShipIntent {
+    const shipPos = this.ship.getTransform().position;
     return {
-      movement: {
-        thrustForward: false,
-        brake: true,
-        rotateLeft: false,
-        rotateRight: false,
-        strafeLeft: false,
-        strafeRight: false,
-      },
+      movement: IDLE_MOVEMENT,
       weapons: {
         firePrimary: false,
         fireSecondary: false,
-        aimAt: this.ship.getTransform().position,
+        aimAt: shipPos,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: IDLE_UTILITY,
     };
   }
 }

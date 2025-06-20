@@ -50,7 +50,7 @@ export interface WaveDefinition {
   ships: WaveShipEntry[];
   incidents?: WaveIncidentEntry[];
   formations?: ShipFormationEntry[];
-  waveDurationSeconds?: number;
   music?: MusicTrack;
   lightingSettings?: waveLightingSettings;
+  duration?: number; // NEW!
 }

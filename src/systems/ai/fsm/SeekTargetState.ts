@@ -26,21 +26,24 @@ export class SeekTargetState extends BaseAIState {
   }
 
   update(): ShipIntent {
+    if (this.target.isDestroyed?.()) {
+      return {
+        movement: { thrustForward: false, brake: true, rotateLeft: false, rotateRight: false, strafeLeft: false, strafeRight: false },
+        weapons: { firePrimary: false, fireSecondary: false, aimAt: { x: 0, y: 0 } },
+        utility: { toggleShields: false },
+      };
+    }
+
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
-
-    const movement = approachTarget(
-      this.ship,
-      targetTransform.position,
-      selfTransform.velocity
-    );
+    const movement = approachTarget(this.ship, targetTransform.position, selfTransform.velocity);
 
     return {
       movement,
       weapons: {
         firePrimary: false,
         fireSecondary: false,
-        aimAt: targetTransform.position
+        aimAt: targetTransform.position,
       },
       utility: {
         toggleShields: false,
@@ -49,38 +52,43 @@ export class SeekTargetState extends BaseAIState {
   }
 
   transitionIfNeeded(): BaseAIState | null {
+    if (this.target.isDestroyed?.()) {
+      return this.controller.getInitialState() ?? null;
+    }
+
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
+    const selfPos = selfTransform.position;
+    const targetPos = targetTransform.position;
 
-    // === Leader Death Check (Formation Fallback) ===
+    // === Formation fallback ===
     const formationId = this.controller.getFormationId();
     const registry = this.controller.getFormationRegistry();
     const leader = this.controller.getFormationLeaderController();
-
-    if (formationId && registry) {
-      if (!leader || leader.getShip().isDestroyed()) {
-        // If the ship still has a valid formation entry, return to it
-        if (registry.getOffsetForShip(this.ship.id)) {
-          return new FormationState(this.controller, this.ship);
-        } else {
-          return new PatrolState(this.controller, this.ship);
-        }
-      }
+    if (formationId && registry && (!leader || leader.getShip().isDestroyed())) {
+      return registry.getOffsetForShip(this.ship.id)
+        ? new FormationState(this.controller, this.ship)
+        : new PatrolState(this.controller, this.ship);
     }
 
-    // === Engagement transition ===
-    if (isWithinRange(selfTransform.position, targetTransform.position, this.engagementRange)) {
+    // === Engagement ===
+    const dx = selfPos.x - targetPos.x;
+    const dy = selfPos.y - targetPos.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= this.engagementRange * this.engagementRange) {
       return new AttackState(this.controller, this.ship, this.target);
     }
 
-    // === Disengage and revert for non-hunters ===
+    // === Disengagement for non-hunters ===
     if (!this.controller.isHunter()) {
       const player = ShipRegistry.getInstance().getPlayerShip();
       if (player) {
-        const distanceToPlayer = getDistance(selfTransform.position, player.getTransform().position);
-        if (distanceToPlayer > this.disengagementRange) {
-          const initial = this.controller.getInitialState();
-          if (initial) return initial;
+        const playerPos = player.getTransform().position;
+        const pdx = selfPos.x - playerPos.x;
+        const pdy = selfPos.y - playerPos.y;
+        const distToPlayerSq = pdx * pdx + pdy * pdy;
+        if (distToPlayerSq > this.disengagementRange * this.disengagementRange) {
+          return this.controller.getInitialState();
         }
       }
     }

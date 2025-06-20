@@ -28,7 +28,7 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'wave_0_02', count: 34 },
       { shipId: 'wave_0_03', count: 22 },
       { shipId: 'wave_0_04', count: 32 },
-      { shipId: '/earlygame/ship_rammerspear_00', count: 4, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      { shipId: 'mission_02/ship_rammerspear_00', count: 4, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
       { shipId: 'mission_03/haloblade_pod_00', count: 12},
       { shipId: 'mission_03/haloblade_pod_01', count: 8},
       { shipId: 'mission_03/haloblade_pod_mini_00', count: 10 },

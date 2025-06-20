@@ -171,7 +171,7 @@ export class WaveSpawner implements IUpdatable {
     this.elapsedTime += dt;
     if (this.currentWaveIndex < this.waves.length) {
       const nextWave = this.waves[this.currentWaveIndex];
-      const interval = nextWave.waveDurationSeconds ?? this.defaultWaveInterval;
+      const interval = nextWave.duration ?? this.defaultWaveInterval;
       if (this.elapsedTime >= interval) {
         missionResultStore.incrementWavesCleared();
         this.spawnWave(nextWave);
@@ -438,8 +438,10 @@ export class WaveSpawner implements IUpdatable {
     // If mission is complete, don't show countdown
     if (this.shouldCompleteMission()) return -1;
 
-    const nextWave = this.waves[this.currentWaveIndex];
-    const interval = nextWave?.waveDurationSeconds ?? this.defaultWaveInterval;
+    // Fix: Use the currently active wave's duration, not the next wave's duration
+    const currentActiveWaveIndex = Math.max(0, this.currentWaveIndex - 1);
+    const currentWave = this.waves[currentActiveWaveIndex];
+    const interval = currentWave?.duration ?? this.defaultWaveInterval;
     return Math.max(0, interval - this.elapsedTime);
   }
 

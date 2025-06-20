@@ -39,7 +39,7 @@ export class IdleState extends BaseAIState {
     const nearestTarget = findNearestTarget(this.ship, this.wakeRadius);
 
     if (!nearestTarget) {
-      // ⬅️ Patch: Rejoin formation if we're a follower and not in combat
+      // ⬅Patch: Rejoin formation if we're a follower and not in combat
       if (this.controller.isFormationFollower()) {
         const registry = this.controller.getFormationRegistry();
         const leader = this.controller.getFormationLeaderController();

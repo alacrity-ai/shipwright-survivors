@@ -5,11 +5,24 @@ import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from '@/systems/ai/fsm/BaseAIState';
-import { isWithinRange } from '@/systems/ai/helpers/ShipUtils';
 import { approachTarget } from '@/systems/ai/steering/SteeringHelper';
 import { getWorldPositionFromShipOffset } from '@/systems/ai/helpers/ShipUtils';
 import { FormationAttackState } from '@/systems/ai/fsm/FormationAttackState';
 import { handleFormationLeaderDeath } from '@/systems/ai/helpers/FormationHelpers';
+
+// === Preallocated constants ===
+const IDLE_MOVEMENT = {
+  thrustForward: false,
+  brake: true,
+  rotateLeft: false,
+  rotateRight: false,
+  strafeLeft: false,
+  strafeRight: false,
+} as const;
+
+const IDLE_UTILITY = {
+  toggleShields: false,
+} as const;
 
 export class FormationSeekTargetState extends BaseAIState {
   private readonly target: Ship;
@@ -24,7 +37,9 @@ export class FormationSeekTargetState extends BaseAIState {
     this.controller.makeUncullable();
   }
 
-  update(): ShipIntent {
+  public update(): ShipIntent {
+    if (this.target.isDestroyed?.()) return this.idleIntent();
+
     const registry = this.controller.getFormationRegistry();
     const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
@@ -35,7 +50,7 @@ export class FormationSeekTargetState extends BaseAIState {
 
     const leaderShip = leaderController.getShip();
     if (leaderShip.isDestroyed()) {
-      return this.idleIntent(); // Avoid transition here; it's handled in transitionIfNeeded
+      return this.idleIntent();
     }
 
     const offset = registry.getOffsetForShip(this.ship.id);
@@ -44,20 +59,25 @@ export class FormationSeekTargetState extends BaseAIState {
     const leaderTransform = leaderShip.getTransform();
     const targetPos = getWorldPositionFromShipOffset(leaderTransform, offset);
 
+    const shipTransform = this.ship.getTransform();
+    const shipVel = shipTransform.velocity;
+
     return {
-      movement: approachTarget(this.ship, targetPos, this.ship.getTransform().velocity),
+      movement: approachTarget(this.ship, targetPos, shipVel),
       weapons: {
         firePrimary: false,
         fireSecondary: false,
         aimAt: this.target.getTransform().position,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: IDLE_UTILITY,
     };
   }
 
-  transitionIfNeeded(): BaseAIState | null {
+  public transitionIfNeeded(): BaseAIState | null {
+    if (this.target.isDestroyed?.()) {
+      return handleFormationLeaderDeath(this.controller, this.ship);
+    }
+
     const registry = this.controller.getFormationRegistry();
     const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
@@ -71,10 +91,13 @@ export class FormationSeekTargetState extends BaseAIState {
       return handleFormationLeaderDeath(this.controller, this.ship);
     }
 
-    const selfTransform = this.ship.getTransform();
-    const targetTransform = this.target.getTransform();
+    const selfPos = this.ship.getTransform().position;
+    const targetPos = this.target.getTransform().position;
 
-    if (isWithinRange(selfTransform.position, targetTransform.position, this.engagementRange)) {
+    const dx = selfPos.x - targetPos.x;
+    const dy = selfPos.y - targetPos.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= this.engagementRange * this.engagementRange) {
       return new FormationAttackState(this.controller, this.ship, this.target);
     }
 
@@ -86,23 +109,15 @@ export class FormationSeekTargetState extends BaseAIState {
   }
 
   private idleIntent(): ShipIntent {
+    const shipPos = this.ship.getTransform().position;
     return {
-      movement: {
-        thrustForward: false,
-        brake: true,
-        rotateLeft: false,
-        rotateRight: false,
-        strafeLeft: false,
-        strafeRight: false,
-      },
+      movement: IDLE_MOVEMENT,
       weapons: {
         firePrimary: false,
         fireSecondary: false,
-        aimAt: this.ship.getTransform().position,
+        aimAt: shipPos,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: IDLE_UTILITY,
     };
   }
 }

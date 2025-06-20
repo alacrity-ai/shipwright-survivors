@@ -8,6 +8,7 @@ export interface PickupInstance {
   isPickedUp: boolean;
   currencyAmount: number;
   repairAmount: number;      // NEW: health to restore to blocks
+  spawnTime: number;
   ttl?: number;
   rotation: number;
   lightId?: string;

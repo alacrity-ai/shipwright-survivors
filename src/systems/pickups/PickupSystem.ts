@@ -126,6 +126,8 @@ export class PickupSystem {
       currencyAmount: amount,
       rotation: 0,
       lightId: light.id,
+      spawnTime: performance.now() / 1000,
+      ttl: 30,
     };
 
     this.pickups.push(newPickup);
@@ -162,6 +164,8 @@ export class PickupSystem {
       repairAmount: amount,
       rotation: 0,
       lightId: light.id,
+      spawnTime: performance.now() / 1000,
+      ttl: 30,
     };
 
     this.pickups.push(newPickup);
@@ -202,6 +206,8 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       currencyAmount: 0,
       rotation: 0,
       lightId: light.id,
+      spawnTime: performance.now() / 1000,
+      ttl: 30,
     };
 
     this.pickups.push(newPickup);
@@ -220,39 +226,47 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     if (this.timeSinceLastBlockPickup >= PickupSystem.PITCH_RESET_DELAY) {
       this.blockPickupPitch = PickupSystem.BASE_PICKUP_PITCH;
     }
-    
-    const shipPosition = this.playerShip.getTransform().position;
 
+    const shipPosition = this.playerShip.getTransform().position;
     const baseAttractionRange = 600;
     const bonusRange = this.playerShip.getTotalHarvestRate() * PICKUP_RANGE_PER_HARVEST_UNIT;
     const attractionRange = baseAttractionRange + bonusRange;
     const attractionRangeSq = attractionRange * attractionRange;
-
     const pickupRadiusSq = PICKUP_RADIUS * PICKUP_RADIUS;
-
     const emitParticles = Math.random() < 0.2;
 
-    // Viewport calcs for culling
     const viewport = this.camera.getViewportBounds();
     const minX = viewport.x - CULL_PADDING;
     const minY = viewport.y - CULL_PADDING;
     const maxX = viewport.x + viewport.width + CULL_PADDING;
     const maxY = viewport.y + viewport.height + CULL_PADDING;
 
-    for (const pickup of this.pickups) {
+    const now = performance.now() / 1000;
+
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      const pickup = this.pickups[i];
       if (pickup.isPickedUp) continue;
 
-      // Frustrum culling
+      // === TTL Expiry Check ===
+      if (pickup.ttl !== undefined && now - pickup.spawnTime >= pickup.ttl) {
+        if (pickup.lightId) {
+          LightingOrchestrator.getInstance().removeLight(pickup.lightId);
+        }
+
+        this.pickups.splice(i, 1);
+        this.blockPickups = this.blockPickups.filter(p => p !== pickup);
+        this.resourcePickups = this.resourcePickups.filter(p => p !== pickup);
+        continue;
+      }
+
       const px = pickup.position.x;
       const py = pickup.position.y;
       if (px < minX || px > maxX || py < minY || py > maxY) continue;
 
       pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
 
-      // Emit Particles 1 in 5 chance:
       if (emitParticles) {
         let sparkColors: string[];
-
         switch (pickup.type.category) {
           case 'block': {
             const blockTypeId = pickup.type.blockTypeId;
@@ -260,15 +274,13 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
               const tier = getTierFromBlockId(blockTypeId);
               sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
             } else {
-              sparkColors = ['#00ffff']; // Unknown block type
+              sparkColors = ['#00ffff'];
             }
             break;
           }
-
           case 'repair':
             sparkColors = ['#ff4444', '#cc2222', '#ff0000', '#aa0000'];
             break;
-
           case 'currency':
           default:
             sparkColors = ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'];
@@ -299,7 +311,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
               return null;
             }
 
-          case 'block': {
+          case 'block':
             try {
               const sprite = getGL2BlockSprite(pickup.type.blockTypeId!, DamageLevel.NONE);
               return sprite?.base ?? null;
@@ -307,7 +319,6 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
               console.error(`[PickupSystem] Failed to load block sprite for pickup: ${pickup.type.blockTypeId}`, e);
               return null;
             }
-          }
 
           default:
             console.warn(`[PickupSystem] Unhandled pickup category: ${pickup.type.category}`);

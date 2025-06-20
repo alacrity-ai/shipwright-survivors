@@ -84,8 +84,8 @@ export class HudOverlay {
     const canvas = ctx.canvas;
 
     const { velocity } = this.ship.getTransform();
-    const blocks = this.ship.getAllBlocks();
-    const mass = blocks.reduce((sum, [_, b]) => sum + b.type.mass, 0);
+    // const blocks = this.ship.getAllBlocks();
+    const mass = this.ship.getTotalMass();
     const currentHp = Math.floor(this.ship.getCockpitHp() ?? 0);
     const maxHp = Math.floor(this.ship.getCockpit()?.type.armor ?? 1);
     const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);

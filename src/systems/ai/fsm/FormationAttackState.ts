@@ -6,10 +6,23 @@ import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from '@/systems/ai/fsm/BaseAIState';
 import { approachTarget, leadTarget } from '@/systems/ai/steering/SteeringHelper';
-import { getWorldPositionFromShipOffset } from '@/systems/ai/helpers/ShipUtils';
+import { getWorldPositionFromShipOffset, isWithinRange } from '@/systems/ai/helpers/ShipUtils';
 import { FormationSeekTargetState } from '@/systems/ai/fsm/FormationSeekTargetState';
-import { isWithinRange } from '@/systems/ai/helpers/ShipUtils';
 import { handleFormationLeaderDeath } from '@/systems/ai/helpers/FormationHelpers';
+
+// === Predefined Intents ===
+const IDLE_MOVEMENT = {
+  thrustForward: false,
+  brake: true,
+  rotateLeft: false,
+  rotateRight: false,
+  strafeLeft: false,
+  strafeRight: false,
+} as const;
+
+const IDLE_UTILITY = {
+  toggleShields: false,
+} as const;
 
 export class FormationAttackState extends BaseAIState {
   private readonly target: Ship;
@@ -25,7 +38,11 @@ export class FormationAttackState extends BaseAIState {
     this.controller.makeUncullable();
   }
 
-  update(): ShipIntent {
+  public update(): ShipIntent {
+    if (this.target.isDestroyed?.()) {
+      return this.idleIntent();
+    }
+
     const registry = this.controller.getFormationRegistry();
     const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
@@ -36,7 +53,7 @@ export class FormationAttackState extends BaseAIState {
 
     const leaderShip = leaderController.getShip();
     if (leaderShip.isDestroyed()) {
-      return this.idleIntent(); // Transition handled in transitionIfNeeded
+      return this.idleIntent();
     }
 
     const offset = registry.getOffsetForShip(this.ship.id);
@@ -45,17 +62,20 @@ export class FormationAttackState extends BaseAIState {
     const leaderTransform = leaderShip.getTransform();
     const targetPos = getWorldPositionFromShipOffset(leaderTransform, offset);
 
+    const shipTransform = this.ship.getTransform();
+    const shipPos = shipTransform.position;
+    const shipVel = shipTransform.velocity;
+
+    const targetTransform = this.target.getTransform();
+    const targetShipPos = targetTransform.position;
+    const targetShipVel = targetTransform.velocity;
+
     return {
-      movement: approachTarget(this.ship, targetPos, this.ship.getTransform().velocity),
+      movement: approachTarget(this.ship, targetPos, shipVel),
       weapons: {
         firePrimary: true,
         fireSecondary: false,
-        aimAt: leadTarget(
-          this.ship.getTransform().position,
-          this.target.getTransform().position,
-          this.target.getTransform().velocity,
-          this.projectileSpeed
-        ),
+        aimAt: leadTarget(shipPos, targetShipPos, targetShipVel, this.projectileSpeed),
       },
       utility: {
         toggleShields: true,
@@ -63,7 +83,11 @@ export class FormationAttackState extends BaseAIState {
     };
   }
 
-  transitionIfNeeded(): BaseAIState | null {
+  public transitionIfNeeded(): BaseAIState | null {
+    if (this.target.isDestroyed?.()) {
+      return handleFormationLeaderDeath(this.controller, this.ship);
+    }
+
     const registry = this.controller.getFormationRegistry();
     const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
@@ -77,10 +101,13 @@ export class FormationAttackState extends BaseAIState {
       return handleFormationLeaderDeath(this.controller, this.ship);
     }
 
-    const selfTransform = this.ship.getTransform();
-    const targetTransform = this.target.getTransform();
+    const selfPos = this.ship.getTransform().position;
+    const targetPos = this.target.getTransform().position;
 
-    if (!isWithinRange(selfTransform.position, targetTransform.position, this.disengageRange)) {
+    const dx = selfPos.x - targetPos.x;
+    const dy = selfPos.y - targetPos.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq > this.disengageRange * this.disengageRange) {
       return new FormationSeekTargetState(this.controller, this.ship, this.target);
     }
 
@@ -92,23 +119,15 @@ export class FormationAttackState extends BaseAIState {
   }
 
   private idleIntent(): ShipIntent {
+    const shipPos = this.ship.getTransform().position;
     return {
-      movement: {
-        thrustForward: false,
-        brake: true,
-        rotateLeft: false,
-        rotateRight: false,
-        strafeLeft: false,
-        strafeRight: false,
-      },
+      movement: IDLE_MOVEMENT,
       weapons: {
         firePrimary: false,
         fireSecondary: false,
-        aimAt: this.ship.getTransform().position,
+        aimAt: shipPos,
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: IDLE_UTILITY,
     };
   }
 }
