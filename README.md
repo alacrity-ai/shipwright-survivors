@@ -2,6 +2,10 @@
 
 A block-based space survival game where you build ships, collect resources, and battle waves of enemies.
 
+## Try it now!
+
+[Play Shipwright Survivors](https://alacrity-ai.github.io/shipwright-survivors/)
+
 ![Gameplay](gameplay.png)
 
 ## 🎮 Game Overview
@@ -89,74 +93,21 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 ## 🔮 Planned Features
 
-- [ ] Multiple weapon types
-  - [x] Turret
-  - [x] Laser
-  - [ ] Mines (Potential Different types)
-  - [ ] Homing Missles (Seeking Missles)
-  - [x] Explosive Lance (Fire a fast lance that hits an enemy block, sticks in, then detonates)
-  - [x] Orbiting Blade (Blades orbit the player ship, dealing damage on contact to enemies)
-    - [ ] Refactor the blade image to be webGL.
-    - [ ] Fix issue where inner circles aren't equidistant.. verify that we're not calculating distances every frame.
-  - [ ] Arc Conduit Emitter (Chain lightning)
-  - [ ] Grappling Hook
-  - [ ] Garlic (In vampire Survivors)
-  - [ ] Rail Lance (Long cooldown, pierces many blocks)
-  - [ ] Suppressor Gas (Supresses engines and firepower)
-  - [ ] Reflector Array (Reflects projectiles like bullets and lasers)
-  - [ ] Parasite Pods (DOT damage)
-- [ ] More Block types
-  - [x] Shields
-  - [x] Battery (Increases max energy)
-  - [ ] Radar Array (Wider zoom out, wider radar range)
-  - [ ] Deflecting Plating (Maybe facetplate does this % chance to deflect a projectile)
-  - [ ] Auto-repair Node (Heals adjacent blocks slowly over time, consumes energy?)
-  - [x] Tractor Node (Longer range pickup rate)
-  - [ ] Drone Hanger Bay (Introduces minion playstyle)
-- [ ] Progression system
-  - [x] Technology Tree System (Block Type Unlocks)
-    - [x] Way of unlocking blocks through gameplay
-  - [ ] Passive Tree (Passive bonuses, e.g. Fins 10% more effective)
-    - [ ] Way of unlocking passive tree through gameplay
-- [ ] Overworld / Level select
-  - [x] Basic Implemetation
-  - [ ] Galaxy Map with Unlockable Nodes and good visual style
-- [ ] Title screen (Save files, New game etc)
-  - [x] Basic Implementation
-  - [x] New game
-    - [x] 3 Save Files
-    - [ ] Pilot name selection
-  - [x] Load Game
-  - [ ] Credits
-- [ ] Story/dialogue/characters
-  - [x] Basic Implementation of Dialogue in Hub
-  - [x] Basic Implementation of Dialogue in Mission
-  - [x] First mission tutorial
-  - [ ] In Hub, have characters slide-in from the left, and slide back out after dialogue
-  - [ ] Full script / Stories / Sound
-- [x] Boss encounters
-- [ ] Environmental Events
-  - [x] Asteroids
-  - [ ] Nebulae
-  - [ ] Wormholes
-  - [x] Planets
-    - [ ] Planet interactions (Quests, vendors, salvage, etc)
-  - [ ] Space Stations
-  - [ ] "Treasure Goblins" (Ship which flees and has good drops)
-
 MISSION  3:
 Should be 5 waves
-[ ] Add area preference for waves, e.g. in a wave definition, for each enemy spawn row, I can specify preference for outer, or inner.  This will allow me to spawn stronger enemies on the fringes, reducing early player deaths that feel bad.
+[x] Add area preference for waves, e.g. in a wave definition, for each enemy spawn row, I can specify preference for outer, or inner.  This will allow me to spawn stronger enemies on the fringes, reducing early player deaths that feel bad.
 [x] Enemies with blue boosters aren't moving???
 [x] No screen shake for enemy kills
 [x] Enemies shouldn't be able to damage each other
 Add spawn delay time to enemy definitions in wave definition (for staggered hunters)
 
-
-
 STEAM CHECKLIST:
 - [ ] Steamdeck Verified! required.
-
+- [ ] Steampage
+- [ ] Steam SDK integrated
+- [ ] Steam achievements
+- [ ] Demo Prepared and ready to launch
+- [ ] Trailer created
 
 DEMO ROADMAP:
 What's needed to get to Demo:
@@ -164,10 +115,10 @@ What's needed to get to Demo:
 - [ ] Tutorial Rewrite
 - [ ] Player death state
 - [ ] Controller Support
-  - [ ] Menus
-  - [ ] Gameplay
-    - [ ] Issue: Figure out, do we want a boost button? Do we want a sharp turn button?
-    - [ ] Issue: Presently, we just turnTo (degrees), we may want to have it so that the 40 degree radius or so in the back of the ship, causes breaking.
+  - [ ] Menus (Need navtree)
+  - [x] Gameplay
+    - [x] Issue: Figure out, do we want a boost button? Do we want a sharp turn button?
+    - [x] Issue: Presently, we just turnTo (degrees), we may want to have it so that the 40 degree radius or so in the back of the ship, causes breaking.
           - This is because, right now, if I'm moving a direction, and I move the stick to the polar opposite of that direction, it's ambiguous if I'll turn left or right.  So instead, make the polar opposite of aiming (maybe a 30 degree wide range) cause breaking instead.
 - [ ] Incidents (Make at least 10 or so incidents)
 - [ ] 5 Missions - each tested thoroughly for smooth flow
@@ -183,13 +134,14 @@ What's needed to get to Demo:
 
 TUTORIAL TODOS:
   - [ ] Start with NO HUD visible
+    - [ ] Refine messages to not mention direct keyboard commands as we now have coachmarks.
     - [ ] Introduce Radar
     - [ ] Introduce Health
-    - [ ] Introduce Shields
-    - [ ] Introduce Energy
-    - [ ] Introduce Weapons
-    - [ ] Introduce Movement
-    - [ ] Introduce Block Placement
+    - [ ] Introduce Energy?? (Maybe hide this until you get an energy block then do a mini tutorial)
+    - [ ] Introduce Afterburner
+    - [x] Introduce Weapons
+    - [x] Introduce Movement/Afterburner
+    - [x] Introduce Block Placement
     - [ ] Introduce Block Upgrading
     - [ ] Introduce Block Refinement
     - [ ] Introduce Block Removal
@@ -199,7 +151,9 @@ TODOS:
   - [ ] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
   - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
-    - [ ] Move planets and background rendering to new unifiedgl2 layer. 
+    - [x] Move planets and background rendering to new unifiedgl2 layer. 
+    - [ ] Move explosions (block explosion) to gl2
+    - [ ] Move block placement animations to gl2
     - [ ] Cleanup all unused canvases/layers.
   - [x] Evaluate king's bible CPU crunch logic. (HaloBlade). Causing a decent amount of frameloss.
   - [x] Afterburner:
@@ -208,7 +162,7 @@ TODOS:
     - [x] Add intial burst sound effect
     - [x] Add distinct sound effect when active
     - [x] Add meter + consumable resource
-  - [ ] Controller Support:
+  - [ ] Controller Support: Make buttons work with D-Pad on joystick using Navlinks controlling the virtualMouse position.
     - [ ] Menu: Ergonomically abstract button elements to be accessible via controller.
     - [ ] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
   - [ ] Create Galaxy Map
@@ -251,7 +205,7 @@ TODOS:
     - [x] Tutorialization of Firing Modes
     - [x] Switching firing mode should reset timers
   - [ ] Screen edge indicators (e.g. showing objectives on the map, minibosses, etc): compliments radar
-  - [ ] Clearly give rewards on failure. E.g. Passive points:
+  - [x] Clearly give rewards on failure. E.g. Passive points:
       - Unlockables in each mission should be shown in the debriefing, and how close you got to each.
   - [x] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
     - [x] Pickups added to game
@@ -284,7 +238,7 @@ TODOS:
     - [x] Planets
     - [x] Background
     - [x] Particles
-    - [ ] Asteroids
+    - [x] Asteroids
     - [ ] ExplosionSystem
   - [x] More UI Scaling fixes for resolution support/scaling support
   - [x] Explore gating hull size, and having max hull size increasable via the passive tree
@@ -327,16 +281,14 @@ TODOS:
     - [ ] Make better first boss.
 BUGS:
   - [ ] Skipping briefing menu doesn't countdown all items and give you the cores?
-  - [ ] Explosions from lances and blocks need to go to webgl2
-  - [ ] Ship building effects (blocks being added), and placement preview need to go to webgl2
-  - [ ] Post processing layer not properly invalidating on Resolution change
+  - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
   - [ ] Fix setTimeout in CompositeBlockDestructionService: src/game/ship/CompositeBlockDestructionService.ts
         Because it's using set Timeout, it continues to run even after the map is over.  Need to use update loop.
-  - [ ] Hunters are not seeking the player from across the map. They seem to just be patrolling.
-  - [ ] Enemy lights seem to "persist" beyond enemy death, seems to be caused by going away from window and coming back?
+  - [x] Hunters are not seeking the player from across the map. They seem to just be patrolling.
+  - [x] Enemy lights seem to "persist" beyond enemy death, seems to be caused by going away from window and coming back?
   - [x] CRITICAL: While Paused, particles continue to spawn at an alarming rate, causing intense FPS drop
   - [x] Mission result menu does not scale with resolution
-  - [ ] Planet Popping in and out of view when it's nearly offscreen but not completely
+  - [x] Planet Popping in and out of view when it's nearly offscreen but not completely
   - [x] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
     - [x] Reproduced on new game. Dialogue was rolling out aligned right, not aligned left.
   - [x] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
@@ -356,9 +308,9 @@ BUGS:
   - [x] Significant performance degradation when damaging a group of blocks with Explosive lance
 
 ### Things to Explore:
+  - [ ] "Town Portal" - Back to the planet? 
   - [x] Remove passive points, have Entropium be unlock currency? Or keep passive points and use entropium for everything else?
   - [ ] Add autofire option?
-  - [ ] Click to move functionality?
   - [x] Instead of just being able to build all blocks gated by Entropium.
     - [x] What about: Enemies just have a chance to drop blocks. In your ship builder menu, you can only build the blocks you have.  E.g. if you loot 3 green hulls, you can build 3 green hulls, and a 3 will be over that block in the menu.
     - [x] You can always build the low tier blocks.  This way, what weapons you get, would be kind of random each round.
