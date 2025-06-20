@@ -14,7 +14,6 @@ import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { audioManager } from '@/audio/Audio';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
-
 export class PlayerControllerSystem {
   private isEnginePlaying = false;
   private lastFiringModeSwitchTime: number = -Infinity;
@@ -31,7 +30,19 @@ export class PlayerControllerSystem {
     const leftStick = this.inputManager.getGamepadMovementVector();
     const leftStickMag = Math.hypot(leftStick.x, leftStick.y);
 
-    const usingGamepad = InputDeviceTracker.getInstance().getLastUsed() === 'gamepad';
+    // Determine gamepad usage by direct inspection of stick state or last input
+    const tracker = InputDeviceTracker.getInstance();
+    const usingGamepad =
+      tracker.getLastUsed() === 'gamepad' ||
+      leftStickMag > 0.1 ||
+      this.inputManager.getGamepadAimVector().x !== 0 ||
+      this.inputManager.getGamepadAimVector().y !== 0;
+
+    // Reinforce gamepad as active device
+    if (usingGamepad) {
+      tracker.updateDevice('gamepad');
+    }
+
     const shouldTurnToStick = usingGamepad && !shift && leftStickMag > 0.1;
 
     const brake = this.inputManager.isActionPressed('brake');
@@ -105,7 +116,9 @@ export class PlayerControllerSystem {
       firingMode: this.playerShip.getFiringMode(),
     };
 
-    if (firePrimary || fireSecondary) {
+    // === Cursor logic ===
+    const anyFire = firePrimary || fireSecondary;
+    if (anyFire || hasGamepadAim) {
       this.cursorRenderer.setTargetCrosshairCursor();
     } else {
       this.cursorRenderer.setDefaultCursor();

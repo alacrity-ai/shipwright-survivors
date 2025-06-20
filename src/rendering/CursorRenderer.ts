@@ -41,22 +41,22 @@ export class CursorRenderer {
     private readonly inputManager: InputManager,
     private readonly playerShip?: Ship | null,
   ) {
-    // Don't instantiate camera if we don't have a player ship
     this.camera = playerShip ? Camera.getInstance() : null;
     this.cursorSprite = getCrosshairCursorSprite();
     this.ctx = canvasManager.getContext('overlay');
 
-    // Subscribe to cursor events
     GlobalEventBus.on('cursor:change', this.cursorChangeHandler);
     GlobalEventBus.on('cursor:restore', this.cursorRestoreHandler);
   }
 
   render(): void {
     if (!this.cursorSprite) return;
-    // this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
     const scale = getUniformScaleFactor();
     const lastUsed = InputDeviceTracker.getInstance().getLastUsed();
+
+    const isWorldScene = !!this.playerShip;
+    const isMenuScene = !isWorldScene;
 
     if (lastUsed === 'keyboard' || lastUsed === 'mouse') {
       const mouse = this.inputManager.getMousePosition();
@@ -65,9 +65,13 @@ export class CursorRenderer {
     }
 
     if (lastUsed === 'gamepad') {
-      const inMenu = false; // stub
+      if (isMenuScene) {
+        const mouse = this.inputManager.getMousePosition(); // virtual mouse
+        drawCursor(this.ctx, this.cursorSprite, mouse.x, mouse.y, scale);
+        return;
+      }
 
-      if (inMenu || !this.playerShip) return;
+      if (!this.playerShip || !this.camera) return;
 
       const aim = this.inputManager.getGamepadAimVector();
       const hasAim = aim.x !== 0 || aim.y !== 0;
@@ -95,7 +99,6 @@ export class CursorRenderer {
         this.cursorWorldPos.y += (targetWorldY - this.cursorWorldPos.y) * SMOOTHING;
       }
 
-      if (!this.camera) return;
       const screen = this.camera.worldToScreen(this.cursorWorldPos.x, this.cursorWorldPos.y);
       drawCursor(this.ctx, this.cursorSprite, screen.x, screen.y, scale);
     }

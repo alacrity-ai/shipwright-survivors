@@ -7,8 +7,6 @@ import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { isElectron } from '@/shared/isElectron';
 import { Camera } from './Camera';
 
-
-
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import type { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
 
@@ -30,6 +28,9 @@ export class InputManager {
   private disabledKeys: Set<string> = new Set();
   private disabledGamepadButtons: Set<GamepadButtonAlias> = new Set();
   private inputDisabled = false;
+
+  private virtualMouse: { x: number; y: number } = { x: 0, y: 0 };
+  private readonly VIRTUAL_MOUSE_SPEED = 900; // pixels/sec at full stick deflection
 
   private leftStickDisabled = false;
   private rightStickDisabled = false;
@@ -60,27 +61,45 @@ export class InputManager {
   }
 
   public getMousePosition(): { x: number; y: number } {
+    const deviceTracker = InputDeviceTracker.getInstance();
+    const usingGamepad = deviceTracker.getLastUsed() === 'gamepad';
+
+    if (usingGamepad) {
+      return { x: this.virtualMouse.x, y: this.virtualMouse.y };
+    }
+
     return { x: this.mouseState.x, y: this.mouseState.y };
   }
 
-  private mouseMoveHandler = (e: MouseEvent) => {
-    const target = e.target as HTMLCanvasElement;
-    const rect = target.getBoundingClientRect();
+private mouseMoveHandler = (e: MouseEvent) => {
+  const target = e.target as HTMLCanvasElement;
+  const rect = target.getBoundingClientRect();
 
-    const scaleX = target.width / rect.width;
-    const scaleY = target.height / rect.height;
+  const scaleX = target.width / rect.width;
+  const scaleY = target.height / rect.height;
 
-    const newX = (e.clientX - rect.left) * scaleX;
-    const newY = (e.clientY - rect.top) * scaleY;
+  const newX = (e.clientX - rect.left) * scaleX;
+  const newY = (e.clientY - rect.top) * scaleY;
 
-    if (newX !== this.mouseState.x || newY !== this.mouseState.y) {
-      this.mouseMoved = true;
-      InputDeviceTracker.getInstance().updateDevice('mouse');
+  const moved = newX !== this.mouseState.x || newY !== this.mouseState.y;
+  if (moved) {
+    this.mouseMoved = true;
+
+    const deviceTracker = InputDeviceTracker.getInstance();
+    const lastUsed = deviceTracker.getLastUsed();
+
+    // 🧠 If not already in mouse mode, switch to mouse AND adopt real coordinates
+    if (lastUsed !== 'mouse') {
+      deviceTracker.updateDevice('mouse');
+      this.virtualMouse.x = newX;
+      this.virtualMouse.y = newY;
     }
+  }
 
-    this.mouseState.x = newX;
-    this.mouseState.y = newY;
-  };
+  this.mouseState.x = newX;
+  this.mouseState.y = newY;
+};
+
 
   // === Lifecycle ===
   public initialize(): void {
@@ -119,6 +138,28 @@ export class InputManager {
     this.justReleasedKeys.clear();
     this.scrollUpDetected = false;
     this.scrollDownDetected = false;
+
+    // === Gamepad Mousemocking
+    const deviceTracker = InputDeviceTracker.getInstance();
+    const usingGamepad = deviceTracker.getLastUsed() === 'gamepad';
+
+    if (usingGamepad) {
+      const dt = 1 / 60; // OR pass in `dt` from your game loop if available
+      const { x: dx, y: dy } = this.getGamepadMovementVector();
+      const mag = Math.hypot(dx, dy);
+
+      if (mag > 1e-3) {
+        this.virtualMouse.x += dx * this.VIRTUAL_MOUSE_SPEED * dt;
+        this.virtualMouse.y += dy * this.VIRTUAL_MOUSE_SPEED * dt;
+
+        // Clamp to canvas bounds
+        const canvasWidth = this.canvasElement.width;
+        const canvasHeight = this.canvasElement.height;
+
+        this.virtualMouse.x = Math.max(0, Math.min(canvasWidth, this.virtualMouse.x));
+        this.virtualMouse.y = Math.max(0, Math.min(canvasHeight, this.virtualMouse.y));
+      }
+    }
 
     // === Mouse buttons ===
     if (!this.prevKeyState['MouseLeft'] && this.mouseState.leftDown) {
@@ -201,12 +242,12 @@ export class InputManager {
 
   public wasMouseClicked(): boolean {
     if (this.inputDisabled) return false;
-    return this.wasKeyJustPressed('MouseLeft');
+    return this.wasKeyJustPressed('MouseLeft') || this.wasActionJustPressed('select');
   }
 
   public wasLeftClicked(): boolean {
     if (this.inputDisabled) return false;
-    return this.wasKeyJustPressed('MouseLeft');
+    return this.wasKeyJustPressed('MouseLeft') || this.wasActionJustPressed('select');
   }
 
   public wasRightClicked(): boolean {
@@ -253,11 +294,11 @@ export class InputManager {
   }
 
   public isMouseLeftPressed(): boolean {
-    return this.isKeyPressed('MouseLeft');
+    return this.isKeyPressed('MouseLeft') || this.isActionPressed('select');
   }
 
   public isMouseRightPressed(): boolean {
-    return this.isKeyPressed('MouseRight');
+    return this.isKeyPressed('MouseRight') || this.isActionPressed('cancel');
   }
 
   public isTabPressed(): boolean {
@@ -293,8 +334,16 @@ export class InputManager {
   private mouseDownHandler = (e: MouseEvent) => {
     if (e.button === 0) this.mouseState.leftDown = true;
     if (e.button === 2) this.mouseState.rightDown = true;
-    InputDeviceTracker.getInstance().updateDevice('mouse');
+
+    const deviceTracker = InputDeviceTracker.getInstance();
+    const lastUsed = deviceTracker.getLastUsed();
+
+    // Ignore if gamepad is last used and no real mouse motion has occurred
+    if (lastUsed !== 'gamepad') {
+      deviceTracker.updateDevice('mouse');
+    }
   };
+
 
   private mouseUpHandler = (e: MouseEvent) => {
     if (e.button === 0) this.mouseState.leftDown = false;
