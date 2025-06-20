@@ -3,6 +3,7 @@ import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject'
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { AsteroidJsonBlueprint } from '@/game/spawners/types/AsteroidJsonBlueprint';
+import type { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
 
 import { Asteroid } from '@/game/entities/Asteroid';
 import { getAsteroidBlockType } from '@/game/blocks/AsteroidBlockRegistry';
@@ -65,11 +66,12 @@ export async function loadAsteroidPrefab(fileName: string): Promise<AsteroidJson
 
 export async function loadAsteroidFromJson(
   fileName: string,
-  grid: Grid
+  grid: Grid,
+  objectGrid?: CompositeBlockObjectGrid<CompositeBlockObject>
 ): Promise<Asteroid> {
   const json = await loadAsteroidPrefab(fileName);
 
-  const asteroid = new Asteroid(grid, [], {
+  const asteroid = new Asteroid(grid, objectGrid, [], {
     position: json.transform.position,
     rotation: json.transform.rotation,
     velocity: { x: 0, y: 0 },

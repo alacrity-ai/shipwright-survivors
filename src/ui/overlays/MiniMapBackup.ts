@@ -10,7 +10,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUIScale } from '@/ui/menus/helpers/getUIScale';
 import { getUniformScaleFactor } from '@/config/view';
 
-import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_CENTER } from '@/config/world';
+import { getWorldWidth, getWorldHeight, getWorldCenter } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
 
 export class MiniMap {
@@ -161,6 +161,10 @@ render(): void {
   if (this.staticCanvas) {
     ctx.drawImage(this.staticCanvas, x, y);
   }
+
+  const WORLD_WIDTH = getWorldWidth();
+  const WORLD_HEIGHT = getWorldHeight();
+  const WORLD_CENTER = getWorldCenter();
 
   // === Coordinate projection helper ===
   const scaleX = this.width / WORLD_WIDTH;
@@ -405,7 +409,7 @@ render(): void {
 
     const paddingX = 4 * scale;
     const paddingY = 4 * scale;
-    const scaleText = '1:' + Math.floor(WORLD_WIDTH / this.width);
+    const scaleText = '1:' + Math.floor(getWorldWidth() / this.width);
 
     ctx.fillText(scaleText, x + this.width - paddingX, y + this.height - paddingY);
   }

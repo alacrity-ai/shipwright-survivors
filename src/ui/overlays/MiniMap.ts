@@ -10,7 +10,7 @@ import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
 import { MiniMapIcons, IconType } from '@/ui/utils/MiniMapIcons';
 
-import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_CENTER } from '@/config/world';
+import { getWorldWidth, getWorldHeight, getWorldCenter } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
 
 export class MiniMap {
@@ -194,6 +194,9 @@ export class MiniMap {
     }
 
     // === Coordinate projection helper ===
+    const WORLD_WIDTH = getWorldWidth();
+    const WORLD_HEIGHT = getWorldHeight();
+    const WORLD_CENTER = getWorldCenter();
     const scaleX = (this.width - Math.floor(20 * this.scale)) / WORLD_WIDTH;
     const scaleY = (this.height - Math.floor(20 * this.scale)) / WORLD_HEIGHT;
 
@@ -406,7 +409,7 @@ export class MiniMap {
     ctx.textBaseline = 'bottom';
     ctx.shadowBlur = 0;
     
-    const scaleText = '1:' + Math.floor(WORLD_WIDTH / this.width);
+    const scaleText = '1:' + Math.floor(getWorldWidth() / this.width);
     const textOffset = Math.floor(4 * this.scale);
     ctx.fillText(scaleText, x + this.width - textOffset, y + this.height - textOffset);
   }

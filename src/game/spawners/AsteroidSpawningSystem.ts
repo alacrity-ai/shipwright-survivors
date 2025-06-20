@@ -4,20 +4,22 @@ import type { Grid } from '@/systems/physics/Grid';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 
+import { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
 import { AsteroidFactory } from '@/game/entities/factories/AsteroidFactory';
 import { getAsteroidFieldDefinition } from '@/game/spawners/registries/asteroidFieldRegistry';
 import type { AsteroidFieldDefinition } from '@/game/spawners/types/AsteroidFieldDefinition';
 
-import { WORLD_CENTER, WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
+import { getWorldCenter, getWorldWidth, getWorldHeight } from '@/config/world';
 
 export class AsteroidSpawningSystem {
   private readonly factory: AsteroidFactory;
 
   constructor(
     grid: Grid,
-    registry: CompositeBlockObjectRegistry<CompositeBlockObject>
+    registry: CompositeBlockObjectRegistry<CompositeBlockObject>,
+    objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
   ) {
-    this.factory = new AsteroidFactory(grid, registry);
+    this.factory = new AsteroidFactory(grid, registry, objectGrid);
   }
 
   /**
@@ -37,10 +39,10 @@ export class AsteroidSpawningSystem {
    */
   private spawnField(def: AsteroidFieldDefinition): void {
     const bounds = def.bounds ?? {
-      x: WORLD_CENTER.x - WORLD_WIDTH / 2,
-      y: WORLD_CENTER.y - WORLD_HEIGHT / 2,
-      width: WORLD_WIDTH,
-      height: WORLD_HEIGHT,
+      x: getWorldCenter().x - getWorldWidth() / 2,
+      y: getWorldCenter().y - getWorldHeight() / 2,
+      width: getWorldWidth(),
+      height: getWorldHeight(),
     };
 
     for (const config of def.asteroids) {

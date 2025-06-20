@@ -2,6 +2,7 @@
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
 
+import { WorldSettingsManager } from '@/config/world';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { audioManager } from '@/audio/Audio';
 
@@ -10,6 +11,8 @@ class MissionLoader {
 
   setMission(mission: MissionDefinition) {
     this.currentMission = mission;
+    WorldSettingsManager.setWorldWidth(mission.environmentSettings?.worldWidth ?? 32000);
+    WorldSettingsManager.setWorldHeight(mission.environmentSettings?.worldHeight ?? 32000);
     if (mission.music) {
       audioManager.playMusic(mission.music);
     }

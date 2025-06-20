@@ -1,6 +1,6 @@
 // src/systems/wavespawner/WaveSpawner.ts
 
-import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
+import { getWorldWidth, getWorldHeight } from '@/config/world';
 import type { IUpdatable } from '@/core/interfaces/types';
 import type { Grid } from '@/systems/physics/Grid';
 import type { Ship } from '@/game/ship/Ship';
@@ -318,11 +318,11 @@ export class WaveSpawner implements IUpdatable {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const x = waveType === 'boss'
         ? (Math.random() - 0.5) * 200
-        : Math.random() * WORLD_WIDTH - WORLD_WIDTH / 2;
+        : Math.random() * getWorldWidth() - getWorldWidth() / 2;
 
       const y = waveType === 'boss'
         ? (Math.random() - 0.5) * 200
-        : Math.random() * WORLD_HEIGHT - WORLD_HEIGHT / 2;
+        : Math.random() * getWorldHeight() - getWorldHeight() / 2;
 
       if (!enforceForbiddenZone) {
         return { x, y };

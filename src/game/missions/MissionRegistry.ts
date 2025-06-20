@@ -15,6 +15,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
+      worldWidth: 24000,
+      worldHeight: 24000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
@@ -23,7 +25,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
     requiredFlag: 'mission.mission_001.unlocked',
-    missionPortrait: null
+    missionPortrait: null,
   },
   mission_002: {
     id: 'mission_002',
@@ -34,6 +36,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
+      worldWidth: 24000,
+      worldHeight: 24000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
@@ -53,6 +57,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_9_00.png',
       gravity: 0,
+      worldWidth: 9000,
+      worldHeight: 9000,
     },
     planets: [
       { name: 'Ferrust', x: -3000, y: 4000 },
@@ -77,6 +83,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_10_00.png',
       gravity: 0,
+      worldWidth: 28000,
+      worldHeight: 28000,
     },
     planets: [
       { name: 'Arsea', x: 6000, y: 4000 },
@@ -98,8 +106,10 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet3,
     dropMultiplier: 1.5,
     environmentSettings: {
-      backgroundId: 'background_10_00.png',
+      backgroundId: 'background_11_00.png',
       gravity: 0,
+      worldWidth: 28000,
+      worldHeight: 28000,
     },
     planets: [
       { name: 'Arsea', x: 6000, y: 4000 },
@@ -121,11 +131,13 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet3,
     dropMultiplier: 1.5,
     environmentSettings: {
-      backgroundId: 'background_10_00.png',
+      backgroundId: 'background_5_00.png',
       gravity: 0,
+      worldWidth: 28000,
+      worldHeight: 28000,
     },
     planets: [
-      { name: 'Arsea', x: 6000, y: 4000 },
+      { name: 'LargeSun', x: 3000, y: 2000 },
     ],
     enemyPower: 0.25,
     music: {

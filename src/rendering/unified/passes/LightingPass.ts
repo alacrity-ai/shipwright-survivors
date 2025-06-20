@@ -262,12 +262,23 @@ export class LightingPass {
     gl.deleteTexture(this.compositeTexture);
   }
 
+  private readonly colorCache = new Map<string, [number, number, number, number]>();
+
   private hexToRgbaVec4(hex: string): [number, number, number, number] {
-    if (hex.startsWith('#')) hex = hex.slice(1);
-    const r = parseInt(hex.slice(0, 2), 16) / 255;
-    const g = parseInt(hex.slice(2, 4), 16) / 255;
-    const b = parseInt(hex.slice(4, 6), 16) / 255;
-    const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
-    return [r, g, b, a];
+    if (this.colorCache.has(hex)) {
+      return this.colorCache.get(hex)!;
+    }
+
+    let h = hex;
+    if (h.startsWith('#')) h = h.slice(1);
+
+    const r = parseInt(h.slice(0, 2), 16) / 255;
+    const g = parseInt(h.slice(2, 4), 16) / 255;
+    const b = parseInt(h.slice(4, 6), 16) / 255;
+    const a = h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1;
+
+    const rgba: [number, number, number, number] = [r, g, b, a];
+    this.colorCache.set(hex, rgba);
+    return rgba;
   }
 }

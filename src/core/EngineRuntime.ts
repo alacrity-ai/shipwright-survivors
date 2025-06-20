@@ -76,6 +76,8 @@ import { handleMenuInput } from '@/ui/utils/handleMenuInput';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
+import { ShipGrid } from '@/game/ship/ShipGrid';
+import { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/CompositeBlockObjectCullingSystem';
@@ -132,6 +134,8 @@ export class EngineRuntime {
 
   private grid: Grid | null = null;
   private ship: Ship | null = null;
+  private shipGrid: ShipGrid | null = null;
+  private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
   private spaceStation: SpaceStation | null = null;
 
   private projectileSystem: ProjectileSystem;
@@ -178,6 +182,8 @@ export class EngineRuntime {
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
+    this.shipGrid = new ShipGrid(1000);
+    this.objectGrid = new CompositeBlockObjectGrid(1000);
 
     // Initialize GL caches
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -215,8 +221,8 @@ export class EngineRuntime {
     this.shipRegistry.setPlayerShip(this.ship);
 
     // Register culling systems
-    this.shipCulling = new ShipCullingSystem(this.grid, this.camera);
-    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.grid, this.camera);
+    this.shipCulling = new ShipCullingSystem(this.shipGrid);
+    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid);
 
     // Initialize ExplosionSystem and ScreenEffectsSystem
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
@@ -227,7 +233,7 @@ export class EngineRuntime {
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager, this.ship);
 
     // === AI Orchestrator
-    this.aiOrchestrator = new AIOrchestratorSystem();
+    this.aiOrchestrator = new AIOrchestratorSystem(this.shipGrid);
     this.aiOrchestrator.registerPlayerShip(this.ship);
 
     // Menus
@@ -396,7 +402,7 @@ export class EngineRuntime {
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // AsteroidSpawner
-    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry);
+    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry, this.objectGrid);
 
     // Dialogue Manager
     this.coachMarkManager = CoachMarkManager.getInstance();
@@ -410,7 +416,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator);
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid);
     this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
@@ -567,10 +573,11 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
-      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
+      // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
       // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
+      const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
       for (let i = 0; i < 20; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -671,18 +678,16 @@ export class EngineRuntime {
     this.canvasManager.clearLayer('dialogue');
 
     this.renderables.forEach(system => system.render(dt));
+
+    // Render all graphics through Unified Rendering Pipeline
     if (this.camera) {
+      const visibleBlockObjects = this.blockObjectCulling.getVisibleObjects();
       const visibleShips = this.shipCulling.getVisibleShips();
-      const visibleAsteroids = this.blockObjectCulling.getVisibleObjects();
-
-      const visibleObjects: CompositeBlockObject[] = [
-        ...visibleShips,
-        ...visibleAsteroids,
-      ];
-
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
       const activeParticles = this.particleManager.getActiveParticles();
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
+
+      const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
 
       this.unifiedSceneRenderer.render(
         this.camera,

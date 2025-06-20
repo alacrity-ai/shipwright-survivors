@@ -4,6 +4,8 @@ import type { Camera } from '@/core/Camera';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { AuraLightOptions } from '@/game/ship/ShipFactory';
 
+import { constructionFrameBudgetMs } from '@/config/graphicsConfig';
+
 import { Ship } from '@/game/ship/Ship';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
@@ -29,7 +31,7 @@ interface ConstructingShipState {
 }
 
 export class ShipConstructionAnimatorService {
-  private readonly activeShips: ConstructingShipState[] = [];
+  private activeShips: ConstructingShipState[] = [];
 
   private readonly animationDuration = 500;
   private readonly startBlockRevealInterval = 200; // ms
@@ -43,6 +45,9 @@ export class ShipConstructionAnimatorService {
   private readonly playerShip: Ship;
   private readonly camera: Camera;
   private readonly ctx: CanvasRenderingContext2D;
+
+  private frameBudgetMs: number = constructionFrameBudgetMs;
+  private lastShipIndex: number = 0;
 
   constructor(playerShip: Ship, camera: Camera, canvasManager: CanvasManager) {
     this.playerShip = playerShip;
@@ -74,12 +79,22 @@ export class ShipConstructionAnimatorService {
 
   public update(dt: number): void {
     const ms = dt * 1000;
+    const now = performance.now();
+    const deadline = now + this.frameBudgetMs;
 
-    for (let i = this.activeShips.length - 1; i >= 0; i--) {
-      const state = this.activeShips[i];
+    const total = this.activeShips.length;
+    if (total === 0) return;
+
+    let index = this.lastShipIndex % total;
+    let processed = 0;
+
+    const shipsToRemove = new Set<ConstructingShipState>();
+
+    for (; processed < total; processed++) {
+      const state = this.activeShips[index];
+      if (!state) break;
+
       state.timeSinceLastReveal += ms;
-
-      let revealsThisFrame = 0;
 
       while (
         state.timeSinceLastReveal >= state.blockRevealInterval &&
@@ -91,34 +106,35 @@ export class ShipConstructionAnimatorService {
         state.revealed.add(key);
         state.animationTimers.set(key, this.animationDuration);
         state.timeSinceLastReveal -= state.blockRevealInterval;
-        revealsThisFrame++;
 
-        // === Play sound with increasing pitch ===
-        const pitch = Math.min(this.basePitch + state.blocksRevealed * this.pitchIncrement, this.maxPitch);
+        const pitch = Math.min(
+          this.basePitch + state.blocksRevealed * this.pitchIncrement,
+          this.maxPitch
+        );
 
         playSpatialSfx(state.ship, this.playerShip, {
           file: 'assets/sounds/sfx/ship/gather_00.wav',
           channel: 'sfx',
           baseVolume: 1,
-          pitchRange: [pitch, pitch], // static pitch
+          pitchRange: [pitch, pitch],
           volumeJitter: 0.2,
           maxSimultaneous: 5,
         });
 
-        // === Deterministic linear interval decay ===
-        const initial = this.startBlockRevealInterval; // 400ms
-        const decrement = this.decrementPerBlock;
-        const minInterval = this.finalBlockRevealInterval; // 10ms
-
         state.blockRevealInterval = Math.max(
-          minInterval,
-          initial - decrement * state.blocksRevealed
+          this.finalBlockRevealInterval,
+          this.startBlockRevealInterval - this.decrementPerBlock * state.blocksRevealed
         );
 
-        state.blocksRevealed++; // <-- increment after use
+        state.blocksRevealed++;
+
+        if (performance.now() > deadline) {
+          this.lastShipIndex = (index + 1) % total;
+          this.activeShips = this.activeShips.filter(s => !shipsToRemove.has(s));
+          return;
+        }
       }
 
-      // Decrement animation timers
       for (const [key, time] of state.animationTimers.entries()) {
         const newTime = time - ms;
         if (newTime <= 0) {
@@ -126,9 +142,14 @@ export class ShipConstructionAnimatorService {
         } else {
           state.animationTimers.set(key, newTime);
         }
+
+        if (performance.now() > deadline) {
+          this.lastShipIndex = (index + 1) % total;
+          this.activeShips = this.activeShips.filter(s => !shipsToRemove.has(s));
+          return;
+        }
       }
 
-      // Remove completed ship
       if (state.phase === 'building') {
         if (state.revealed.size === state.ship.getBlockCount()) {
           state.phase = 'shockwave';
@@ -143,18 +164,26 @@ export class ShipConstructionAnimatorService {
             maxSimultaneous: 3,
           });
 
-          // Turn on the auralight
           if (state.auraLightOptions) {
-            state.ship.registerAuraLight(state.auraLightOptions.color, state.auraLightOptions.radius, state.auraLightOptions.intensity);
+            state.ship.registerAuraLight(
+              state.auraLightOptions.color,
+              state.auraLightOptions.radius,
+              state.auraLightOptions.intensity
+            );
           }
         }
       } else if (state.phase === 'shockwave') {
         state.shockwaveTimer -= ms;
         if (state.shockwaveTimer <= 0) {
-          this.activeShips.splice(i, 1);
+          shipsToRemove.add(state);
         }
       }
+
+      index = (index + 1) % total;
     }
+
+    this.lastShipIndex = 0;
+    this.activeShips = this.activeShips.filter(s => !shipsToRemove.has(s));
   }
 
   public render(dt: number): void {

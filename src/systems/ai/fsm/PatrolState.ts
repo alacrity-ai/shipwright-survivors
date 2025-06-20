@@ -5,7 +5,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
-import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/world';
+import { getWorldWidth, getWorldHeight } from '@/config/world';
 import { BaseAIState } from './BaseAIState';
 import { approachTarget } from '@/systems/ai/steering/SteeringHelper';
 import { findNearestTarget } from '@/systems/ai/helpers/ShipUtils';
@@ -113,8 +113,8 @@ export class PatrolState extends BaseAIState {
     const rawX = px + Math.cos(angle) * radius;
     const rawY = py + Math.sin(angle) * radius;
 
-    const halfWidth = WORLD_WIDTH / 2;
-    const halfHeight = WORLD_HEIGHT / 2;
+    const halfWidth = getWorldWidth() / 2;
+    const halfHeight = getWorldHeight() / 2;
     const margin = 1000;
 
     return {

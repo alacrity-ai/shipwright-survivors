@@ -7,6 +7,8 @@ import { createPointLight } from '@/lighting/lights/createPointLight';
 import { ensureHexColor } from '@/shared/colorUtils';
 import { randomFromArray } from '@/shared/arrayUtils';
 
+import { explosionSystemFrameBudgetMs } from '@/config/graphicsConfig';
+
 import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
@@ -29,6 +31,9 @@ interface LightExplosionOptions {
 export class ExplosionSystem {
   private explosions: Explosion[] = [];
   private ctx: CanvasRenderingContext2D;
+
+  private frameBudgetMs: number = explosionSystemFrameBudgetMs;
+  private lastExplosionIndex: number = 0;
 
   constructor(
     canvasManager: CanvasManager,
@@ -133,23 +138,46 @@ export class ExplosionSystem {
   }
 
   update(dt: number): void {
-    for (const explosion of this.explosions) {
-      // Update life
+    const now = performance.now();
+    const deadline = now + this.frameBudgetMs;
+
+    const total = this.explosions.length;
+    if (total === 0) return;
+
+    let index = this.lastExplosionIndex % total;
+    const updatedExplosions: Explosion[] = [];
+
+    for (let processed = 0; processed < total; processed++) {
+      const explosion = this.explosions[index];
+
+      // === Update life ===
       explosion.life -= dt;
-      
-      // Grow the explosion until it reaches max size
+
       const progress = 1 - (explosion.life / explosion.maxLife);
       if (progress < 0.5) {
-        // Grow phase (0-50% of life)
         explosion.size = explosion.maxSize * (progress * 2);
       } else {
-        // Shrink phase (50-100% of life)
         explosion.size = explosion.maxSize * (1 - (progress - 0.5) * 2);
       }
+
+      if (explosion.life > 0) {
+        updatedExplosions.push(explosion);
+      }
+
+      if (performance.now() > deadline) {
+        this.lastExplosionIndex = (index + 1) % total;
+        this.explosions = updatedExplosions.concat(
+          this.explosions.slice((index + 1) % total)
+        );
+        return;
+      }
+
+      index = (index + 1) % total;
     }
-    
-    // Remove dead explosions
-    this.explosions = this.explosions.filter(e => e.life > 0);
+
+    // Completed all updates; reset state
+    this.lastExplosionIndex = 0;
+    this.explosions = updatedExplosions;
   }
 
   render(): void {

@@ -4,11 +4,10 @@ import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject'
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
-import { getDamageLevel, getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { getGL2BlockOrAsteroidSprite } from '@/rendering/unified/helpers/GLSpriteResolver';
-import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { Ship } from '@/game/ship/Ship';
+
+import { entityFrameBudgetMs } from '@/config/graphicsConfig';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
 import entityFragSrc from '../shaders/entityPass.frag?raw';
@@ -32,6 +31,10 @@ export class EntityPass {
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
   private readonly quadBuffer: WebGLBuffer;
+
+  private frameBudgetMs: number = entityFrameBudgetMs;
+  private lastEntityIndex = 0;
+  private lastBlockIndices = new WeakMap<CompositeBlockObject, number>();
 
   private ambientLight: [number, number, number] = [0.2, 0.2, 0.25];
 
@@ -94,10 +97,19 @@ export class EntityPass {
     };
   }
 
+  setFrameBudget(ms: number): void {
+    this.frameBudgetMs = ms;
+  }
+
   render(entities: CompositeBlockObject[], lightTexture: WebGLTexture, camera: Camera): void {
     const { gl } = this;
-    const time = performance.now() / 1000;
-    
+    const now = performance.now();
+    const deadline = now + this.frameBudgetMs;
+    const time = now / 1000;
+
+    if (entities.length === 0) return;
+    const startIndex = this.lastEntityIndex % entities.length;
+
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.useProgram(this.program);
@@ -118,7 +130,11 @@ export class EntityPass {
       mouseWorld = camera.screenToWorld(mouse.x, mouse.y);
     }
 
-    for (const entity of entities) {
+    let i = startIndex;
+    let processedAny = false;
+
+    for (let looped = 0; looped < entities.length; looped++) {
+      const entity = entities[i];
       const { position, rotation } = entity.getTransform();
 
       this.shipModelMatrix = multiplyMatrices(
@@ -129,7 +145,11 @@ export class EntityPass {
       gl.uniformMatrix4fv(this.uniforms.uModelMatrix, false, this.shipModelMatrix);
       gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
 
-      for (const [coord, block] of entity.getAllBlocks()) {
+      const blocks = Array.from(entity.getAllBlocks());
+      let blockIndex = this.lastBlockIndices.get(entity) ?? 0;
+
+      for (; blockIndex < blocks.length; blockIndex++) {
+        const [coord, block] = blocks[blockIndex];
         if (block.hidden) continue;
 
         const maxHp = block.type.armor ?? 1;
@@ -175,8 +195,26 @@ export class EntityPass {
 
           gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
         }
+
+        processedAny = true;
+        if (performance.now() > deadline) {
+          this.lastEntityIndex = i;
+          this.lastBlockIndices.set(entity, blockIndex);
+          gl.disable(gl.BLEND);
+          gl.bindVertexArray(null);
+          gl.useProgram(null);
+          return;
+        }
       }
+
+      // Finished this entity
+      this.lastBlockIndices.delete(entity);
+      i = (i + 1) % entities.length;
     }
+
+    // If we completed the full loop, reset pointers
+    this.lastEntityIndex = i;
+    this.lastBlockIndices = new WeakMap();
 
     gl.disable(gl.BLEND);
     gl.bindVertexArray(null);

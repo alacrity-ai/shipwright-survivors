@@ -19,6 +19,8 @@ export interface MissionDefinition {
     backgroundId?: string;
     gravity?: number;
     fogDensity?: number;
+    worldWidth?: number;
+    worldHeight?: number;
   };
   planets?: PlanetSpawnConfig[];
   bonusObjectives?: string[];

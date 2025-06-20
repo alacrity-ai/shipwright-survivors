@@ -3,11 +3,12 @@
 import type { AIControllerSystem } from './AIControllerSystem';
 import type { IUpdatable } from '@/core/interfaces/types';
 import type { Ship } from '@/game/ship/Ship';
-import type { Grid } from '@/systems/physics/Grid';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
 
-import { ShipGrid } from './ShipGrid';
+import { aiSystemFrameBudgetMs } from '@/config/graphicsConfig';
+
+import { ShipGrid } from '@/game/ship/ShipGrid';
 import { FormationRegistry } from './formations/FormationRegistry';
 
 const SCAN_RADIUS = 5000;
@@ -16,9 +17,6 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
   private static instance: AIOrchestratorSystem | null = null;
 
   private playerShip: Ship | null = null;
-  private grid: Grid | null = null;
-  private readonly shipGrid = new ShipGrid(1000); // Or tuned based on average ship size
-
 
   private readonly controllerToShipMap = new Map<AIControllerSystem, Ship>();
   private readonly shipIdToControllerMap = new Map<string, AIControllerSystem>();
@@ -27,19 +25,22 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
   private readonly formationRegistry = new FormationRegistry();
 
-  private cachedRelevantBlocks: BlockInstance[] = [];
   private frameCounter: number = 0;
   private readonly REEVALUATE_FRAMES = 60;
 
   private readonly uncullableControllers = new Set<AIControllerSystem>();
 
-  constructor() {
+  private frameBudgetMs: number = aiSystemFrameBudgetMs;
+  private lastControllerIndex: number = 0;
+  private readonly tempControllerList: AIControllerSystem[] = [];
+
+  constructor(private shipGrid: ShipGrid) {
     AIOrchestratorSystem.instance = this;
+    this.shipGrid = shipGrid;
   }
 
   public registerPlayerShip(ship: Ship): void {
     this.playerShip = ship;
-    this.grid = ship.getGrid();
   }
 
   public addController(controller: AIControllerSystem, unCullable: boolean = false): void {
@@ -143,25 +144,28 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
   public update(dt: number): void {
     if (!this.playerShip) return;
 
+    const now = performance.now();
+    const deadline = now + this.frameBudgetMs;
+
     this.relevantControllers.clear();
     const relevantControllers = this.relevantControllers;
 
-    // 1. Update grid cell occupancy (ships may have moved)
+    // === 1. Update ship grid occupancy ===
     for (const [controller, ship] of this.controllerToShipMap) {
       this.shipGrid.updateShipPosition(ship);
     }
 
-    // 2. Always retain uncullables (unless destroyed)
+    // === 2. Always include uncullables (if not destroyed) ===
     for (const controller of this.uncullableControllers) {
       const ship = controller.getShip();
-      if (ship.isDestroyed()) {
+      if (!ship || ship.isDestroyed()) {
         this.removeController(controller);
-        continue;
+      } else {
+        relevantControllers.add(controller);
       }
-      relevantControllers.add(controller);
     }
 
-    // 3. Spatial query: ships near player (only every N frames)
+    // === 3. Include spatially relevant controllers ===
     if (this.frameCounter++ % this.REEVALUATE_FRAMES === 0) {
       const playerPos = this.playerShip.getTransform().position;
 
@@ -179,25 +183,51 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       }
     }
 
-    // 4. Update all relevant controllers (with error handling)
+    // === 4. Fair update with frame budget ===
     const controllersToRemove: AIControllerSystem[] = [];
 
-    for (const controller of relevantControllers) {
+    // Take a stable snapshot to avoid mutation during iteration
+    this.tempControllerList.length = 0;
+    for (const c of relevantControllers) {
+      this.tempControllerList.push(c);
+    }
+
+    if (this.tempControllerList.length === 0) return;
+
+    const total = this.tempControllerList.length;
+    let index = this.lastControllerIndex % total;
+
+    for (let processed = 0; processed < total; processed++) {
+      const controller = this.tempControllerList[index];
+
       try {
         const ship = controller.getShip();
         if (!ship?.getAllBlocks) {
           controllersToRemove.push(controller);
-          continue;
+        } else {
+          controller.update(dt);
         }
-        controller.update(dt);
-      } catch (error) {
-        console.error("Error updating AI controller:", error);
+      } catch (err) {
+        console.error('Error updating AI controller:', err);
         controllersToRemove.push(controller);
       }
+
+      if (performance.now() > deadline) {
+        this.lastControllerIndex = (index + 1) % total;
+        break;
+      }
+
+      index = (index + 1) % total;
     }
 
-    for (const controller of controllersToRemove) {
-      this.removeController(controller);
+    // === 5. Remove invalidated controllers ===
+    for (const c of controllersToRemove) {
+      this.removeController(c);
+    }
+
+    // If we completed a full loop, reset the cursor
+    if (index === this.lastControllerIndex) {
+      this.lastControllerIndex = 0;
     }
   }
 

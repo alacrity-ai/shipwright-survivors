@@ -1,9 +1,8 @@
-// src/systems/ai/ShipGrid.ts
-
-// src/systems/physics/ShipGrid.ts
+// src/game/ship/ShipGrid.ts
 
 import type { Ship } from '@/game/ship/Ship';
 import type { Faction } from '@/game/interfaces/types/Faction';
+import { Camera } from '@/core/Camera';
 
 export class ShipGrid {
   private cells: Map<number, Map<number, Ship[]>> = new Map();
@@ -153,6 +152,17 @@ export class ShipGrid {
       const dy = transform.position.y - centerY;
       return (dx * dx + dy * dy) <= radiusSquared;
     });
+  }
+
+  getShipsInCameraView(margin: number = 0, excludeFaction?: Faction): Ship[] {
+    const bounds = Camera.getInstance().getViewportBounds();
+
+    const minX = bounds.x - margin;
+    const minY = bounds.y - margin;
+    const maxX = bounds.x + bounds.width + margin;
+    const maxY = bounds.y + bounds.height + margin;
+
+    return this.getShipsInArea(minX, minY, maxX, maxY, excludeFaction);
   }
 
   getAllShips(excludeFaction?: Faction): Ship[] {

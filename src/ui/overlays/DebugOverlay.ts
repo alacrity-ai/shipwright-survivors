@@ -6,10 +6,11 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { ShipGrid } from '@/game/ship/ShipGrid';
 
 import { Camera } from '@/core/Camera';
 
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
@@ -18,6 +19,7 @@ export class DebugOverlay {
     private readonly canvasManager: CanvasManager,
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
+    private readonly shipGrid: ShipGrid
   ) {}
 
   render(dt: number): void {
@@ -48,6 +50,9 @@ export class DebugOverlay {
     const visibleAuraLights = visibleLights.filter(l => l.id?.startsWith('aura-')).length;
 
     const shipCount = this.shipRegistry.count();
+    const visibleShips = this.shipGrid.getShipsInCameraView(0).length;
+    const activeAIShips = this.shipGrid.getShipsInCameraView(2000).length;
+
     const enemyPower = missionLoader.getEnemyPower();
     const controllerEntries = Array.from(this.aiOrchestrator.getAllControllers());
 
@@ -71,6 +76,8 @@ export class DebugOverlay {
 
     // === Render Metrics ===
     drawLabel(ctx, x, y, `Ships: ${shipCount}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Visible Ships: ${visibleShips}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Active AI Ships (2000): ${activeAIShips}`); y += lineHeight;
     drawLabel(ctx, x, y, `Enemy Power: ${enemyPower}`); y += lineHeight;
     drawLabel(ctx, x, y, `Formation: ${inFormation} (Leaders: ${formationLeaders}, Followers: ${formationFollowers})`); y += lineHeight;
     drawLabel(ctx, x, y, `Aura Lights: ${auraLightCount}`); y += lineHeight;
@@ -83,7 +90,6 @@ export class DebugOverlay {
     //   y += lineHeight;
     // }
   }
-
 }
 
 /**

@@ -4,6 +4,7 @@ import type { PlanetDefinition } from './interfaces/PlanetDefinition';
 import { FerrustPlanet } from '@/game/planets/definitions/planet_Ferrust';
 import { GilipePlanet } from '@/game/planets/definitions/planet_Gilipe';
 import { ArseaPlanet } from '@/game/planets/definitions/planet_Arsea';
+import { SmallSun, MediumSun, LargeSun, HugeSun } from '@/game/planets/definitions/planet_Suns';
 
 const planetMap: Map<string, PlanetDefinition> = new Map();
 
@@ -18,6 +19,10 @@ function registerPlanet(def: PlanetDefinition): void {
 registerPlanet(FerrustPlanet);
 registerPlanet(GilipePlanet);
 registerPlanet(ArseaPlanet);
+registerPlanet(SmallSun);
+registerPlanet(MediumSun);
+registerPlanet(LargeSun);
+registerPlanet(HugeSun);
 
 export const PlanetRegistry = {
   getPlanetByName(name: string): PlanetDefinition {

@@ -12,8 +12,8 @@ import { RammingBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 const RAMMER_SPEAR_AFFIXES: ShipAffixes = {
   rammingDamageInflictMultiplier: 2.0,
-  thrustPowerMulti: 2.0,
-  turnPowerMulti: 2.0,
+  thrustPowerMulti: 2.8,
+  turnPowerMulti: 2.8,
 };
 
 const SPEED_DEMON_AFFIXES: ShipAffixes = {
@@ -72,7 +72,7 @@ const killCrewFormation = createSmallWedgeFormation(
   FAST_AFFIXES,
   FAST_AFFIXES,
   700,
-  5,
+  3,
   true,
   true
 );
@@ -123,7 +123,6 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: 'wave_0_03', count: 12 },
       { shipId: 'wave_0_04', count: 14 },
-      { shipId: 'mission_02/ship_miniturret_00', count: 4 },
     ],
     formations: [mediumWedgeFormation],
   },
@@ -132,48 +131,67 @@ export const waveDefinitions: WaveDefinition[] = [
     id: 4,
     type: 'wave',
     duration: 40,
-    ships: [
-      { shipId: 'mission_02/spacestation_00', count: 4 },
-    ],
+    ships: [],
     formations: [killCrewFormation, smallWedgeFormation],
   },
   {
     mods: [],
     id: 5,
     type: 'wave',
-    duration: 40,
+    duration: 10,
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 6, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
-      { shipId: 'mission_02/ship_rammerhead_00', count: 2, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
-      { shipId: 'wave_0_03', count: 8, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
     ],
-    formations: [speedHuntersFormation, smallWedgeFormation],
   },
   {
+    mods: [],
     id: 6,
     type: 'wave',
-    duration: 30,
-    mods: ['extra-aggressive'],
+    duration: 10,
     ships: [
-      { shipId: 'mission_02/ship_lanceturret_00', count: 4 },
-      { shipId: 'mission_02/ship_sentry_00', count: 6 },
+      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
     ],
-    formations: [cruiserLargeWedgeFormation, smallWedgeFormation, smallWedgeFormation],
   },
   {
     mods: [],
     id: 7,
     type: 'wave',
-    duration: 25,
+    duration: 10,
     ships: [
-      { shipId: 'mission_02/ship_minifly_00', count: 8, hunter: true },
-      { shipId: 'mission_02/ship_dragonfly_00', count: 6, hunter: true },
-      { shipId: 'wave_0_04', count: 6, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
     ],
-    formations: [mediumWedgeFormation],
   },
   {
+    mods: [],
     id: 8,
+    type: 'wave',
+    duration: 40,
+    ships: [
+      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      { shipId: 'mission_02/ship_rammerhead_00', count: 4, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+    ],
+    formations: [speedHuntersFormation],
+  },
+  {
+    id: 9,
+    type: 'wave',
+    duration: 30,
+    mods: ['extra-aggressive'],
+    ships: [],
+    formations: [cruiserLargeWedgeFormation, smallWedgeFormation, mediumWedgeFormation],
+  },
+  {
+    mods: [],
+    id: 10,
+    type: 'wave',
+    duration: 25,
+    ships: [
+      { shipId: 'mission_02/ship_minifly_00', count: 8, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/ship_dragonfly_00', count: 20, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+    ],
+  },
+  {
+    id: 11,
     type: 'wave',
     duration: 25,
     mods: ['extra-aggressive'],
@@ -184,7 +202,7 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [killCrewFormation],
   },
   {
-    id: 9,
+    id: 12,
     type: 'wave',
     duration: 25,
     mods: ['shielded'],
@@ -195,7 +213,7 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [cruiserLargeWedgeFormation, smallWedgeFormation],
   },
   {
-    id: 10,
+    id: 13,
     type: 'wave',
     duration: 20,
     mods: ['shielded', 'extra-aggressive'],
@@ -204,10 +222,10 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true },
       { shipId: 'mission_02/wave_5_03', count: 4 },
     ],
-    formations: [killCrewFormation, killCrewFormation],
+    formations: [killCrewFormation],
   },
   {
-    id: 11,
+    id: 14,
     type: 'boss',
     mods: ['shielded', 'extra-aggressive'],
     ships: [
