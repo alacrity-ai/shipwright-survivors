@@ -1,4 +1,4 @@
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 
 /**
  * Renders a shaded, asymmetrical rock block.

@@ -7,7 +7,7 @@ import type { AuraLightOptions } from '@/game/ship/ShipFactory';
 import { constructionFrameBudgetMs } from '@/config/graphicsConfig';
 
 import { Ship } from '@/game/ship/Ship';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { drawBlockHighlightWithMask } from '@/rendering/primitives/HighlightUtils';

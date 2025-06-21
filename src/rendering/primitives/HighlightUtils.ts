@@ -1,6 +1,6 @@
 // src/rendering/primitives/HighlightUtils.ts
 
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 
 const highlightCache = new Map<string, HTMLCanvasElement>();

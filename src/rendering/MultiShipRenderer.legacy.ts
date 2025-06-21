@@ -2,7 +2,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 import type { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
 import type { InputManager } from '@/core/InputManager';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';

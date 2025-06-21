@@ -38,8 +38,6 @@ import {
   clearPostProcessEffects, 
   applyWarmCinematicEffect, 
   applyCoolCinematicEffect, 
-  applyVintageFilmEffect, 
-  applyLightCinematicEffect,
   applyUnderwaterEffect,
 } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
@@ -562,19 +560,15 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
-      applyWarmCinematicEffect();
+      applyUnderwaterEffect(true);
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit5')) {
       applyCoolCinematicEffect();
     }
 
-    if (this.inputManager.wasKeyJustPressed('Digit6')) {
-      applyVintageFilmEffect();
-    }
-
-    if (this.inputManager.wasKeyJustPressed('Digit7')) {
-      applyLightCinematicEffect();
+    if (this.inputManager.wasKeyJustPressed('Digit8')) {
+      this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyH')) {
@@ -696,7 +690,12 @@ export class EngineRuntime {
       const activeParticles = this.particleManager.getActiveParticles();
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
 
+      // const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship]; // Commented out for rasterization testing
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
+
+      if (this.ship) {
+        this.ship.enqueueRenderRequest();
+      }
 
       this.unifiedSceneRenderer.render(
         this.camera,
@@ -752,11 +751,13 @@ export class EngineRuntime {
    * Starts the game loop and initializes the mission.
   **/
   public start() {
+    // TODO testing rasterization
+    this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
+
     this.gameLoop.start();
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
     // TODO : Put this in options
-    applyUnderwaterEffect();
     applyWarmCinematicEffect();
     setTimeout(() => {
       if (this.ship) {
@@ -774,7 +775,7 @@ export class EngineRuntime {
     setTimeout(() => {
       clearPostProcessEffects();
       addPostProcessEffect('sepia');
-    }, timeoutMs - 5)
+    }, timeoutMs - 100)
 
     // Optional: trigger victory effects here (e.g. music, overlay)
     // victoryEffectManager.play(); // hypothetical example

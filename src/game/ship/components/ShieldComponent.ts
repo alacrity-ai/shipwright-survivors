@@ -2,7 +2,7 @@
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { Ship } from '@/game/ship/Ship';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
 import { SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 

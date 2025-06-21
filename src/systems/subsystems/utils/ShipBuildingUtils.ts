@@ -1,5 +1,5 @@
 import type { Camera } from '@/core/Camera';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import type { Ship } from '@/game/ship/Ship';
 
 /**

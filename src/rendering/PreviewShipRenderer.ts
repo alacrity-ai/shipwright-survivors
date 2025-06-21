@@ -3,7 +3,7 @@
 // TODO : This needs to be migrated to GL2
 
 import type { PreviewShip } from '@/game/ship/PreviewShip';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getDamageLevel, getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import {
   createOrthographicMatrix,

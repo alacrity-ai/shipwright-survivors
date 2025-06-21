@@ -1,7 +1,7 @@
 // src/systems/pickups/PickupSystem.ts
 
 import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { PlayerResources } from '@/game/player/PlayerResources';
 // import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
@@ -30,8 +30,8 @@ import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
 
 
-const BASE_PICKUP_SCALE = 1;
-const BASE_BLOCK_PICKUP_SCALE = 3.2
+const BASE_PICKUP_SCALE = 0.5;
+const BASE_BLOCK_PICKUP_SCALE = 2.0
 
 const PICKUP_RADIUS = 16;
 const PICKUP_RANGE_PER_HARVEST_UNIT = 48;

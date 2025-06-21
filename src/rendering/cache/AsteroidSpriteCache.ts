@@ -1,6 +1,6 @@
 // src/rendering/cache/AsteroidSpriteCache.ts
 
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getAllAsteroidBlockTypes } from '@/game/blocks/AsteroidBlockRegistry';
 
 import { drawRoundedRock } from '@/rendering/cache/asteroidBlockRenderers/roundedRockBlockRenderer';

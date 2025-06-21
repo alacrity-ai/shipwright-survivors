@@ -2,6 +2,9 @@
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from './virtualResolution';
 
+export const BLOCK_SIZE = 32;
+export const PIXELS_PER_WORLD_UNIT = BLOCK_SIZE / 16;
+
 export function getViewportWidth(): number {
   return PlayerSettingsManager.getInstance().getViewportWidth();
 }

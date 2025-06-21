@@ -97,11 +97,12 @@ export class PostProcessPass {
   }
 
   /**
-   * Applies a chain of post-process effects and composites the final texture to screen.
+   * Applies a chain of post-process effects and composites the final texture to the specified target.
    */
   public run(
     inputTexture: WebGLTexture,
-    effectChain: { effect: PostEffectName; params?: CinematicGradingParams | UnderwaterParams }[]
+    effectChain: { effect: PostEffectName; params?: CinematicGradingParams | UnderwaterParams }[],
+    outputFramebuffer: WebGLFramebuffer | null = null
   ): void {
     const gl = this.gl;
     let readTex = inputTexture;
@@ -167,9 +168,15 @@ export class PostProcessPass {
       writeIndex = 1 - writeIndex;
     }
 
-    // === Final composite to screen ===
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    // === Final composite to specified target ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, outputFramebuffer); // KEY CHANGE: Use parameter instead of hardcoded null
+    
+    // Use appropriate viewport based on target
+    if (outputFramebuffer === null) {
+      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    } else {
+      gl.viewport(0, 0, this.width, this.height);
+    }
 
     const program = this.programs['passthrough'];
     gl.useProgram(program);

@@ -2,15 +2,11 @@ import { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { ENGINE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
-import { rotate } from '@/game/ship/utils/shipBlockUtils';
-import { audioManager } from '@/audio/Audio';
+import { BLOCK_SIZE } from '@/config/view';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
-import { GlobalEventBus } from '@/core/EventBus';
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
-import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 interface ThrusterDefinition {
   coord: GridCoord;
@@ -26,16 +22,15 @@ interface ThrusterDefinition {
 }
 
 const DEFAULT_FLAME_COLORS = ['#fff', '#f90', '#ff0'];
-const BLOCK_SIZE = 32;
 const NOZZLE_OFFSET_Y = 16;
 const EXHAUST_SPEED = 100;
-const JITTER_RANGE = 10;
+// const JITTER_RANGE = 10;
 const LIGHT_CHANCE = 0.1;
 
-// Pre-allocate reusable objects
-const tempVec = { x: 0, y: 0 };
-const tempOffset = { x: 0, y: 0 };
-const tempDir = { x: 0, y: 0 };
+// // Pre-allocate reusable objects
+// const tempVec = { x: 0, y: 0 };
+// const tempOffset = { x: 0, y: 0 };
+// const tempDir = { x: 0, y: 0 };
 
 export class ThrusterEmitter {
   private readonly playerSettings: PlayerSettingsManager;

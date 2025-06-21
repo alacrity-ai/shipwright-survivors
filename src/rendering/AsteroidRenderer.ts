@@ -7,7 +7,7 @@ import type { InputManager } from '@/core/InputManager';
 
 import { Asteroid } from '@/game/entities/Asteroid';
 import { Ship } from '@/game/ship/Ship';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getAsteroidBlockSprite, AsteroidDamageLevel } from '@/rendering/cache/AsteroidSpriteCache';
 import { getBlockSprite, getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 

@@ -8,7 +8,7 @@ import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
 import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
 import { audioManager } from '@/audio/Audio';

@@ -11,8 +11,6 @@ import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/
 import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
 
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
-
-import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -24,9 +22,15 @@ import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { AfterburnerComponent } from './components/AfterburnerComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
+import { BLOCK_SIZE } from '@/config/view';
 
 import { Faction } from '@/game/interfaces/types/Faction';
-import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
+
+import { getUniformScaleFactor } from '@/config/view';
+import { ShipRasterizationService } from '@/rendering/services/ShipRasterizationService';
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
+import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
+import { CanvasManager } from '@/core/CanvasManager';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
@@ -51,6 +55,12 @@ export class Ship extends CompositeBlockObject {
   private strafingLeft: boolean = false;
   private strafingRight: boolean = false;
   private affixes: ShipAffixes = {};
+
+  // === Rasterization Cache ===
+  private rasterizedTexture: WebGLTexture | null = null;
+  private rasterizedTextureOffset: { x: number; y: number } = { x: 0, y: 0 };
+  private rasterizedTextureSize: { width: number; height: number } = { width: 0, height: 0 };
+  private rasterDirty: boolean = true; // true means "must rerasterize"
 
   protected override generateId(): string {
     return 'ship-' + Math.random().toString(36).slice(2, 9);
@@ -147,6 +157,69 @@ export class Ship extends CompositeBlockObject {
     return this.lightAuraId;
   }
 
+  // Rasterization
+
+  public markRasterDirty(): void {
+    this.rasterDirty = true;
+  }
+
+  public getRasterizedTexture(): WebGLTexture | null {
+    return this.rasterizedTexture;
+  }
+
+  public getRasterizedTextureOffset(): { x: number; y: number } {
+    return this.rasterizedTextureOffset;
+  }
+
+  public getRasterizedTextureSize(): { width: number; height: number } {
+    return this.rasterizedTextureSize;
+  }
+
+  public rerasterizeIfDirty(gl: WebGL2RenderingContext): void {
+    if (!this.rasterDirty) return;
+    this.rerasterize(gl);
+    this.rasterDirty = false;
+  }
+
+  public rerasterize(gl: WebGL2RenderingContext): void {
+    if (this.rasterizedTexture && gl.isTexture(this.rasterizedTexture)) {
+      gl.deleteTexture(this.rasterizedTexture);
+    }
+
+    const rasterizer = new ShipRasterizationService(gl);
+    const result = rasterizer.rasterize(this);
+
+    if (!result) {
+      this.rasterizedTexture = null;
+      this.rasterizedTextureSize = { width: 0, height: 0 };
+      return;
+    }
+
+    this.rasterizedTexture = result.texture;
+    this.rasterizedTextureSize = result.size;
+  }
+
+  public enqueueRenderRequest(): void {
+    if (!this.rasterizedTexture) return;
+
+    const transform = this.getTransform();
+    const pos = transform.position;
+    const rot = transform.rotation;
+    const size = this.rasterizedTextureSize;
+
+    const request: SpriteRenderRequest = {
+      texture: this.rasterizedTexture,
+      worldX: pos.x,
+      worldY: pos.y,
+      widthPx: size.width,
+      heightPx: size.height,
+      alpha: 1.0,
+      rotation: rot,
+    };
+
+    GlobalSpriteRequestBus.add(request);
+  }
+
   // Ship movement / State
 
   public isThrusting(): boolean {
@@ -234,7 +307,6 @@ export class Ship extends CompositeBlockObject {
     this.firingPlan = valid;
     this.firingPlanIndex = newIndex;
   }
-
 
   /**
    * Adds a weapon to the firing plan if the block qualifies.
@@ -515,6 +587,7 @@ export class Ship extends CompositeBlockObject {
     this.recomputeEnergyStats();
     this.addWeaponToPlanIfApplicable(coord, block);
     this.shieldComponent.recalculateCoverage();
+    this.markRasterDirty();
   }
 
   public removeBlock(coord: GridCoord): void {
@@ -550,6 +623,7 @@ export class Ship extends CompositeBlockObject {
     this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
+    this.markRasterDirty();
   }
 
   public removeBlocks(coords: GridCoord[], preResolvedBlocks?: BlockInstance[]): void {
@@ -603,6 +677,7 @@ export class Ship extends CompositeBlockObject {
     this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.shieldComponent.recalculateCoverage();
+    this.markRasterDirty();
   }
 
   /** Returns true if removing the given block would not disconnect other blocks */
@@ -665,6 +740,7 @@ export class Ship extends CompositeBlockObject {
     this.rebuildHaloBladeIndex();
     this.rebuildEngineBlockIndex();
     this.rebuildFinBlockIndex();
+    this.markRasterDirty();
   }
 
   // What about this?
@@ -687,6 +763,7 @@ export class Ship extends CompositeBlockObject {
       callback(this);
     }
     this.destroyedListeners.length = 0;
+    this.markRasterDirty();
   }
 
   // What about this?
@@ -701,6 +778,14 @@ export class Ship extends CompositeBlockObject {
 
   public onDestroyed(): void {
     this.cleanupAuraLight();
+
+    const gl = CanvasManager.getInstance().getWebGL2Context('unifiedgl2');
+
+    // --- Clean up GPU texture ---
+    if (this.rasterizedTexture && gl.isTexture(this.rasterizedTexture)) {
+      gl.deleteTexture(this.rasterizedTexture);
+      this.rasterizedTexture = null;
+    }
 
     for (const cb of this.destroyedListeners) {
       cb(this);

@@ -6,7 +6,7 @@ import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTr
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { toKey } from '@/game/ship/utils/shipBlockUtils';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { Faction } from '@/game/interfaces/types/Faction';
 
 export class PreviewShip {

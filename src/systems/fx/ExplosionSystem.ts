@@ -8,6 +8,7 @@ import { ensureHexColor } from '@/shared/colorUtils';
 import { randomFromArray } from '@/shared/arrayUtils';
 
 import { explosionSystemFrameBudgetMs } from '@/config/graphicsConfig';
+import { BLOCK_SIZE } from '@/config/view';
 
 import type { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
@@ -97,7 +98,6 @@ export class ExplosionSystem {
     sparkPalette?: string[],
     lightOptions?: LightExplosionOptions
   ): void {
-    const BLOCK_SIZE = 32;
     
     // Calculate block position in local ship space
     const localX = blockCoord.x * BLOCK_SIZE;

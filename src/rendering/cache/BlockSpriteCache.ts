@@ -1,6 +1,8 @@
 // src/rendering/BlockSpriteCache.ts
 
-import { BLOCK_SIZE, getAllBlockTypes } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
+
+import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 import { renderLaserWeapon } from './blockRenderers/laserBlockRenderer';
 import { renderHullBlock } from './blockRenderers/hullBlockRenderer';

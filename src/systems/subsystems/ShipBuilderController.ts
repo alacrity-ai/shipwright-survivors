@@ -10,7 +10,7 @@ import type { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
 import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
 import { PlayerResources } from '@/game/player/PlayerResources';

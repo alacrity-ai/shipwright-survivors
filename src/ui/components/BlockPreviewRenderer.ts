@@ -2,7 +2,7 @@
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 
 

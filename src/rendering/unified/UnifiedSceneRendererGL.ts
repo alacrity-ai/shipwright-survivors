@@ -40,6 +40,7 @@ export class UnifiedSceneRendererGL {
   private readonly spritePass: SpritePass;
   private readonly particlePass: ParticlePass;
   private readonly postProcessPass: PostProcessPass;
+  private readonly backgroundPostProcessPass: PostProcessPass;
 
   private readonly cameraUBO: WebGLBuffer;
 
@@ -47,11 +48,15 @@ export class UnifiedSceneRendererGL {
   private readonly clearedTextures: WebGLTexture[] = [];
 
   private readonly postProcessEffects: Map<PostEffectName, EffectParams> = new Map();
+  private readonly backgroundPostProcessEffects: Map<PostEffectName, EffectParams> = new Map();
 
   private backgroundImageId: string | null = null;
 
   private sceneFramebuffer: WebGLFramebuffer;
   private sceneTexture: WebGLTexture;
+  
+  private backgroundFramebuffer: WebGLFramebuffer;
+  private backgroundTexture: WebGLTexture;
 
   constructor(camera: Camera, private readonly inputManager: InputManager) {
     const canvasManager = CanvasManager.getInstance();
@@ -67,24 +72,34 @@ export class UnifiedSceneRendererGL {
     this.spritePass = new SpritePass(this.gl, this.cameraUBO);
     this.particlePass = new ParticlePass(this.gl, this.cameraUBO);
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
+    this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
 
     this.sceneFramebuffer = this.gl.createFramebuffer()!;
     this.sceneTexture = this.gl.createTexture()!;
-    this.initializeSceneFramebuffer();
+    this.backgroundFramebuffer = this.gl.createFramebuffer()!;
+    this.backgroundTexture = this.gl.createTexture()!;
+    
+    this.initializeFramebuffers();
 
     GlobalEventBus.on('resolution:changed', this.onResolutionChanged);
     GlobalEventBus.on('postprocess:effect:set', this.onPostProcessEffectsSet);
     GlobalEventBus.on('postprocess:effect:add', this.onPostProcessEffectAdd);
     GlobalEventBus.on('postprocess:effect:remove', this.onPostProcessEffectRemove);
     GlobalEventBus.on('postprocess:effect:clear', this.onPostProcessEffectClear);
+    
+    // Background post-process events
+    GlobalEventBus.on('postprocess:background:effect:set', this.onBackgroundPostProcessEffectsSet);
+    GlobalEventBus.on('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
+    GlobalEventBus.on('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
+    GlobalEventBus.on('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
   }
 
   private readonly onResolutionChanged = (): void => {
-    this.initializeSceneFramebuffer();
+    this.initializeFramebuffers();
     this.lightingPass.resize();
   };
 
-  // REFACTORED: Accepts effect chain with params
+  // Main post-process event handlers
   private readonly onPostProcessEffectsSet = (payload: {
     effectChain: { effect: PostEffectName; params?: EffectParams }[];
   }): void => {
@@ -110,12 +125,38 @@ export class UnifiedSceneRendererGL {
     this.clearPostProcessEffects();
   };
 
-  private initializeSceneFramebuffer(): void {
-    const gl = this.gl;
+  // Background post-process event handlers
+  private readonly onBackgroundPostProcessEffectsSet = (payload: {
+    effectChain: { effect: PostEffectName; params?: EffectParams }[];
+  }): void => {
+    if (Array.isArray(payload.effectChain)) {
+      this.setBackgroundPostProcessEffects(payload.effectChain);
+    } else {
+      console.warn('[Renderer] Ignoring malformed background postprocess effectChain payload:', payload);
+    }
+  };
 
+  private readonly onBackgroundPostProcessEffectAdd = (payload: {
+    effect: PostEffectName;
+    params?: EffectParams;
+  }): void => {
+    this.addBackgroundPostProcessEffect(payload.effect, payload.params);
+  };
+
+  private readonly onBackgroundPostProcessEffectRemove = (payload: { effect: PostEffectName }): void => {
+    this.removeBackgroundPostProcessEffect(payload.effect);
+  };
+
+  private readonly onBackgroundPostProcessEffectClear = (): void => {
+    this.clearBackgroundPostProcessEffects();
+  };
+
+  private initializeFramebuffers(): void {
+    const gl = this.gl;
     const width = gl.drawingBufferWidth;
     const height = gl.drawingBufferHeight;
 
+    // Initialize scene framebuffer
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -125,6 +166,17 @@ export class UnifiedSceneRendererGL {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sceneTexture, 0);
+
+    // Initialize background framebuffer
+    gl.bindTexture(gl.TEXTURE_2D, this.backgroundTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.backgroundFramebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.backgroundTexture, 0);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
@@ -141,28 +193,48 @@ export class UnifiedSceneRendererGL {
     // === Step 1: Update camera matrices ===
     updateCameraUBO(gl, this.cameraUBO, camera);
 
-    // === Step 2: Bind scene framebuffer and clear ===
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    // === Step 2: Render background to background framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.backgroundFramebuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // === Step 3: Render background and Planets ===
+    
     this.backgroundPass.render(camera.getOffset());
-    this.planetPass.renderAll();
+    // this.planetPass.renderAll(); // If here, then background post process effects
 
-    // === Step 4: Generate light buffer (offscreen) ===
-    const lightTexture = this.lightingPass.generateLightBuffer(lights, camera);
+    // === Step 3: Apply background post-processing ===
+    const backgroundEffectChain = Array.from(this.backgroundPostProcessEffects.entries()).map(
+      ([effect, params]) => ({ effect, params })
+    );
 
-    // === Step 5: Re-bind scene framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    this.backgroundPostProcessPass.run(
+      this.backgroundTexture,
+      backgroundEffectChain,
+      this.sceneFramebuffer
+    );
+
+    // === Step 4: Continue with scene rendering on top of processed background ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
 
-    // === Step 6: Render entities ===
+    // === Step 4.5: Render planets
+    this.planetPass.renderAll();
+
+    // === Step 5: Generate light buffer (offscreen) ===
+    const lightTexture = this.lightingPass.generateLightBuffer(lights, camera);
+
+    // === Step 6: Re-bind scene framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+
+    // === Step 7: Render entities ===
     const ambientLight = this.lightingPass.getAmbientLight();
     this.entityPass.setAmbientLight(ambientLight);
     this.entityPass.render(ships, lightTexture, camera);
 
-    // === Step 7: Render sprites ===
+    // === Step 8: Render sprites ===
     for (const group of this.spriteGroups.values()) {
       group.length = 0;
     }
@@ -191,22 +263,22 @@ export class UnifiedSceneRendererGL {
       }
     }
 
-    // === Step 8: Render particles ===
+    // === Step 9: Render particles ===
     this.particlePass.render(particles, camera);
 
-    // === Step 9: Post-process to default framebuffer ===
+    // === Step 10: Apply main post-processing to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const effectChain = Array.from(this.postProcessEffects.entries()).map(
       ([effect, params]) => ({ effect, params })
     );
     this.postProcessPass.run(this.sceneTexture, effectChain);
 
-    // === Step 10: Composite light halos directly over final framebuffer ===
+    // === Step 11: Composite light halos directly over final framebuffer ===
     this.lightingPass.compositeLightingOverTarget(null); // <- Target = screen
   }
 
   resize(): void {
-    this.initializeSceneFramebuffer();
+    this.initializeFramebuffers();
     this.lightingPass.resize();
   }
 
@@ -215,6 +287,8 @@ export class UnifiedSceneRendererGL {
     gl.deleteBuffer(this.cameraUBO);
     gl.deleteFramebuffer(this.sceneFramebuffer);
     gl.deleteTexture(this.sceneTexture);
+    gl.deleteFramebuffer(this.backgroundFramebuffer);
+    gl.deleteTexture(this.backgroundTexture);
 
     this.backgroundPass.destroy();
     this.lightingPass.destroy();
@@ -222,16 +296,20 @@ export class UnifiedSceneRendererGL {
     this.spritePass.destroy();
     this.particlePass.destroy();
     this.postProcessPass.destroy();
+    this.backgroundPostProcessPass.destroy();
 
     GlobalEventBus.off('resolution:changed', this.onResolutionChanged);
     GlobalEventBus.off('postprocess:effect:set', this.onPostProcessEffectsSet);
     GlobalEventBus.off('postprocess:effect:add', this.onPostProcessEffectAdd);
     GlobalEventBus.off('postprocess:effect:remove', this.onPostProcessEffectRemove);
     GlobalEventBus.off('postprocess:effect:clear', this.onPostProcessEffectClear);
+    GlobalEventBus.off('postprocess:background:effect:set', this.onBackgroundPostProcessEffectsSet);
+    GlobalEventBus.off('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
+    GlobalEventBus.off('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
+    GlobalEventBus.off('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
   }
 
-  // === Postprocessing API ===
-
+  // === Main Postprocessing API ===
   public setPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[]): void {
     this.postProcessEffects.clear();
     for (const { effect, params } of effects) {
@@ -251,6 +329,27 @@ export class UnifiedSceneRendererGL {
     this.postProcessEffects.clear();
   }
 
+  // === Background Postprocessing API ===
+  public setBackgroundPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[]): void {
+    this.backgroundPostProcessEffects.clear();
+    for (const { effect, params } of effects) {
+      this.backgroundPostProcessEffects.set(effect, params);
+    }
+  }
+
+  public addBackgroundPostProcessEffect(effect: PostEffectName, params?: EffectParams): void {
+    this.backgroundPostProcessEffects.set(effect, params);
+  }
+
+  public removeBackgroundPostProcessEffect(effect: PostEffectName): void {
+    this.backgroundPostProcessEffects.delete(effect);
+  }
+
+  public clearBackgroundPostProcessEffects(): void {
+    this.backgroundPostProcessEffects.clear();
+  }
+
+  // === Other API methods ===
   public setBackgroundImage(imageId: string | null): void {
     this.backgroundImageId = imageId;
     this.backgroundPass.loadImage(imageId ?? '');
@@ -283,5 +382,9 @@ export class UnifiedSceneRendererGL {
 
   public getPostProcessPass(): PostProcessPass {
     return this.postProcessPass;
+  }
+
+  public getBackgroundPostProcessPass(): PostProcessPass {
+    return this.backgroundPostProcessPass;
   }
 }

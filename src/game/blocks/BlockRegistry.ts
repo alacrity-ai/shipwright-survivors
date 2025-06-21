@@ -4,8 +4,6 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 
-export const BLOCK_SIZE = 32;
-
 const blockTypes: Record<string, BlockType> = {
   cockpit0: {
     id: 'cockpit0',

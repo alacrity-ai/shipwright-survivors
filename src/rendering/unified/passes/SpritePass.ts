@@ -1,10 +1,11 @@
 // src/rendering/unified/passes/SpritePass.ts
 
-import { getUniformScaleFactor } from '@/config/view';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import spriteVertSrc from '@/rendering/unified/shaders/spritePass.vert?raw';
 import spriteFragSrc from '@/rendering/unified/shaders/spritePass.frag?raw';
+
+import { PIXELS_PER_WORLD_UNIT } from '@/config/view';
 
 export interface SpriteInstance {
   worldX: number;
@@ -24,7 +25,7 @@ export class SpritePass {
 
   private readonly uTexture: WebGLUniformLocation;
 
-  private static readonly INSTANCE_FLOATS = 6; // Changed from 5 to 6
+  private static readonly INSTANCE_FLOATS = 6;
   private instanceData: Float32Array;
   private instanceCapacity: number;
 
@@ -65,7 +66,7 @@ export class SpritePass {
     gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 16);
     gl.vertexAttribDivisor(3, 1);
 
-    // aInstanceRotation (location = 4) - NEW
+    // aInstanceRotation (location = 4)
     gl.enableVertexAttribArray(4);
     gl.vertexAttribPointer(4, 1, gl.FLOAT, false, stride, 20);
     gl.vertexAttribDivisor(4, 1);
@@ -88,8 +89,9 @@ export class SpritePass {
     if (sprites.length === 0) return;
 
     const gl = this.gl;
-    const uiScale = getUniformScaleFactor();
-    const pixelToWorld = 1 / uiScale;
+    
+    // Use constant pixel-to-world conversion
+    const pixelToWorld = 1.0 / PIXELS_PER_WORLD_UNIT;
 
     // === Expand instance buffer if needed ===
     if (sprites.length > this.instanceCapacity) {
@@ -112,7 +114,7 @@ export class SpritePass {
       this.instanceData[base + 2] = worldWidth;
       this.instanceData[base + 3] = worldHeight;
       this.instanceData[base + 4] = sprite.alpha;
-      this.instanceData[base + 5] = sprite.rotation; // NEW
+      this.instanceData[base + 5] = sprite.rotation;
     }
 
     // === Upload buffer ===

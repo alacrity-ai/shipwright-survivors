@@ -3,7 +3,7 @@
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { getGL2BlockOrAsteroidSprite } from '@/rendering/unified/helpers/GLSpriteResolver';
 

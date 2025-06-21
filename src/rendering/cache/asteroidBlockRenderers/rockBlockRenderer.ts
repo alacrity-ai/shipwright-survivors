@@ -1,6 +1,6 @@
 // src/rendering/cache/asteroidBlockRenderers/rockBlockRenderer.ts
 
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 
 /**
  * Renders a square-shaped rock block with natural rocky appearance.

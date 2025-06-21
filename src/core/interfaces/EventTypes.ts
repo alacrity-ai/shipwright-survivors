@@ -45,16 +45,25 @@ export interface EventTypes {
   // Resolution
   'resolution:changed': { width: number; height: number };
 
-  // Rendering
+  // Rendering – main postprocessing
   'postprocess:effect:set': {
     effectChain: { effect: PostEffectName; params?: EffectParams }[];
   };
-
   'postprocess:effect:add': {
     effect: PostEffectName;
     params?: EffectParams;
   };
-
   'postprocess:effect:remove': { effect: PostEffectName };
   'postprocess:effect:clear': undefined;
+
+  // Rendering – background postprocessing
+  'postprocess:background:effect:set': {
+    effectChain: { effect: PostEffectName; params?: EffectParams }[];
+  };
+  'postprocess:background:effect:add': {
+    effect: PostEffectName;
+    params?: EffectParams;
+  };
+  'postprocess:background:effect:remove': { effect: PostEffectName };
+  'postprocess:background:effect:clear': undefined;
 }

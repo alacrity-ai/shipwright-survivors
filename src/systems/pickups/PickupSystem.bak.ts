@@ -2,7 +2,7 @@
 
 // import { getPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 // import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
-// import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+// import { BLOCK_SIZE } from '@/config/view';
 // import { PlayerResources } from '@/game/player/PlayerResources';
 // // import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 // import { getBlockType } from '@/game/blocks/BlockRegistry';

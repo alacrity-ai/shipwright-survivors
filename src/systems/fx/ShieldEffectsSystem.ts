@@ -4,7 +4,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import { CanvasManager } from '@/core/CanvasManager';
 import { Camera } from '@/core/Camera';
 import { drawBlockHighlightWithMask } from '@/rendering/primitives/HighlightUtils';
-import { BLOCK_SIZE } from '@/game/blocks/BlockRegistry';
+import { BLOCK_SIZE } from '@/config/view';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { SHIELD_COLOR_PALETTES, SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 
