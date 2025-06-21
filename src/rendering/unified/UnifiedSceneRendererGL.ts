@@ -13,6 +13,7 @@ import { GlobalEventBus } from '@/core/EventBus';
 
 import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
 import type { SpriteInstance } from '@/rendering/unified/passes/SpritePass';
+import { createCameraUBO, updateCameraUBO } from '@/rendering/unified/CameraUBO';
 
 import { BackgroundPass } from '@/rendering/unified/passes/BackgroundPass';
 import { PlanetPass } from '@/rendering/unified/passes/PlanetPass';
@@ -20,8 +21,14 @@ import { LightingPass } from '@/rendering/unified/passes/LightingPass';
 import { EntityPass } from '@/rendering/unified/passes/EntityPass';
 import { ParticlePass } from '@/rendering/unified/passes/ParticlePass';
 import { SpritePass } from '@/rendering/unified/passes/SpritePass';
-import { PostProcessPass, type PostEffectName, type CinematicGradingParams } from '@/rendering/unified/passes/PostProcessPass';
-import { createCameraUBO, updateCameraUBO } from '@/rendering/unified/CameraUBO';
+import {
+  PostProcessPass,
+  type PostEffectName,
+  type CinematicGradingParams,
+  type UnderwaterParams
+} from '@/rendering/unified/passes/PostProcessPass';
+
+type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
 
 export class UnifiedSceneRendererGL {
   private readonly gl: WebGL2RenderingContext;
@@ -39,8 +46,7 @@ export class UnifiedSceneRendererGL {
   private readonly spriteGroups: Map<WebGLTexture, SpriteInstance[]> = new Map();
   private readonly clearedTextures: WebGLTexture[] = [];
 
-  // REFACTORED: Now stores both effect name and optional params
-  private readonly postProcessEffects: Map<PostEffectName, CinematicGradingParams | undefined> = new Map();
+  private readonly postProcessEffects: Map<PostEffectName, EffectParams> = new Map();
 
   private backgroundImageId: string | null = null;
 
@@ -80,7 +86,7 @@ export class UnifiedSceneRendererGL {
 
   // REFACTORED: Accepts effect chain with params
   private readonly onPostProcessEffectsSet = (payload: {
-    effectChain: { effect: PostEffectName; params?: CinematicGradingParams }[];
+    effectChain: { effect: PostEffectName; params?: EffectParams }[];
   }): void => {
     if (Array.isArray(payload.effectChain)) {
       this.setPostProcessEffects(payload.effectChain);
@@ -91,7 +97,7 @@ export class UnifiedSceneRendererGL {
 
   private readonly onPostProcessEffectAdd = (payload: {
     effect: PostEffectName;
-    params?: CinematicGradingParams;
+    params?: EffectParams;
   }): void => {
     this.addPostProcessEffect(payload.effect, payload.params);
   };
@@ -123,82 +129,81 @@ export class UnifiedSceneRendererGL {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-render(
-  camera: Camera,
-  ships: CompositeBlockObject[],
-  lights: AnyLightInstance[],
-  sprites: SpriteRenderRequest[],
-  particles: Particle[]
-): void {
-  const gl = this.gl;
+  render(
+    camera: Camera,
+    ships: CompositeBlockObject[],
+    lights: AnyLightInstance[],
+    sprites: SpriteRenderRequest[],
+    particles: Particle[]
+  ): void {
+    const gl = this.gl;
 
-  // === Step 1: Update camera matrices ===
-  updateCameraUBO(gl, this.cameraUBO, camera);
+    // === Step 1: Update camera matrices ===
+    updateCameraUBO(gl, this.cameraUBO, camera);
 
-  // === Step 2: Bind scene framebuffer and clear ===
-  gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
-  gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // === Step 2: Bind scene framebuffer and clear ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  // === Step 3: Render background and Planets ===
-  this.backgroundPass.render(camera.getOffset());
-  this.planetPass.renderAll();
+    // === Step 3: Render background and Planets ===
+    this.backgroundPass.render(camera.getOffset());
+    this.planetPass.renderAll();
 
-  // === Step 4: Generate light buffer (offscreen) ===
-  const lightTexture = this.lightingPass.generateLightBuffer(lights, camera);
+    // === Step 4: Generate light buffer (offscreen) ===
+    const lightTexture = this.lightingPass.generateLightBuffer(lights, camera);
 
-  // === Step 5: Re-bind scene framebuffer ===
-  gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    // === Step 5: Re-bind scene framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
 
-  // === Step 6: Render entities ===
-  const ambientLight = this.lightingPass.getAmbientLight();
-  this.entityPass.setAmbientLight(ambientLight);
-  this.entityPass.render(ships, lightTexture, camera);
+    // === Step 6: Render entities ===
+    const ambientLight = this.lightingPass.getAmbientLight();
+    this.entityPass.setAmbientLight(ambientLight);
+    this.entityPass.render(ships, lightTexture, camera);
 
-  // === Step 7: Render sprites ===
-  for (const group of this.spriteGroups.values()) {
-    group.length = 0;
-  }
-  this.clearedTextures.length = 0;
-
-  for (const sprite of sprites) {
-    const texture = sprite.texture;
-    let group = this.spriteGroups.get(texture);
-    if (!group) {
-      group = [];
-      this.spriteGroups.set(texture, group);
+    // === Step 7: Render sprites ===
+    for (const group of this.spriteGroups.values()) {
+      group.length = 0;
     }
-    group.push({
-      worldX: sprite.worldX,
-      worldY: sprite.worldY,
-      widthPx: sprite.widthPx,
-      heightPx: sprite.heightPx,
-      alpha: sprite.alpha ?? 1.0,
-      rotation: sprite.rotation ?? 0,
-    });
-  }
+    this.clearedTextures.length = 0;
 
-  for (const [texture, group] of this.spriteGroups) {
-    if (group.length > 0) {
-      this.spritePass.renderBatch(texture, group);
+    for (const sprite of sprites) {
+      const texture = sprite.texture;
+      let group = this.spriteGroups.get(texture);
+      if (!group) {
+        group = [];
+        this.spriteGroups.set(texture, group);
+      }
+      group.push({
+        worldX: sprite.worldX,
+        worldY: sprite.worldY,
+        widthPx: sprite.widthPx,
+        heightPx: sprite.heightPx,
+        alpha: sprite.alpha ?? 1.0,
+        rotation: sprite.rotation ?? 0,
+      });
     }
+
+    for (const [texture, group] of this.spriteGroups) {
+      if (group.length > 0) {
+        this.spritePass.renderBatch(texture, group);
+      }
+    }
+
+    // === Step 8: Render particles ===
+    this.particlePass.render(particles, camera);
+
+    // === Step 9: Post-process to default framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    const effectChain = Array.from(this.postProcessEffects.entries()).map(
+      ([effect, params]) => ({ effect, params })
+    );
+    this.postProcessPass.run(this.sceneTexture, effectChain);
+
+    // === Step 10: Composite light halos directly over final framebuffer ===
+    this.lightingPass.compositeLightingOverTarget(null); // <- Target = screen
   }
-
-  // === Step 8: Render particles ===
-  this.particlePass.render(particles, camera);
-
-  // === Step 9: Post-process to default framebuffer ===
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  const effectChain = Array.from(this.postProcessEffects.entries()).map(
-    ([effect, params]) => ({ effect, params })
-  );
-  this.postProcessPass.run(this.sceneTexture, effectChain);
-
-  // === Step 10: Composite light halos directly over final framebuffer ===
-  this.lightingPass.compositeLightingOverTarget(null); // <- Target = screen
-}
-
 
   resize(): void {
     this.initializeSceneFramebuffer();
@@ -227,14 +232,14 @@ render(
 
   // === Postprocessing API ===
 
-  public setPostProcessEffects(effects: { effect: PostEffectName; params?: CinematicGradingParams }[]): void {
+  public setPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[]): void {
     this.postProcessEffects.clear();
     for (const { effect, params } of effects) {
       this.postProcessEffects.set(effect, params);
     }
   }
 
-  public addPostProcessEffect(effect: PostEffectName, params?: CinematicGradingParams): void {
+  public addPostProcessEffect(effect: PostEffectName, params?: EffectParams): void {
     this.postProcessEffects.set(effect, params);
   }
 

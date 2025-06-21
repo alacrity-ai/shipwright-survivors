@@ -14,7 +14,7 @@ import { CompositeBlockObject } from '../CompositeBlockObject';
 export class AsteroidFactory {
   public constructor(
     private readonly grid: Grid,
-    private readonly registry: CompositeBlockObjectRegistry<Asteroid>,
+    private readonly registry: CompositeBlockObjectRegistry<CompositeBlockObject>,
     private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
   ) {}
 

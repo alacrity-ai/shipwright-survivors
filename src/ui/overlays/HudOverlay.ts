@@ -16,7 +16,6 @@ import { getUniformScaleFactor } from '@/config/view';
 import { PlayerResources as PlayerResourcesSingleton } from '@/game/player/PlayerResources';
 import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
 
-
 export class HudOverlay {
   private readonly playerResources: PlayerResources;
   private readonly blockQueueDisplayManager: BlockQueueDisplayManager;
@@ -30,7 +29,7 @@ export class HudOverlay {
     private readonly ship: Ship,
     private readonly floatingTextManager: FloatingTextManager,
     private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
-    private readonly inputManager: InputManager
+    private readonly inputManager: InputManager,
   ) {
     this.inputManager = inputManager;
     this.playerResources = PlayerResourcesSingleton.getInstance();

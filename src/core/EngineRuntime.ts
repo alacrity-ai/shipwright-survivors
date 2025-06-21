@@ -33,7 +33,16 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 
-import { addPostProcessEffect, clearPostProcessEffects, applyWarmCinematicEffect, applyCoolCinematicEffect, applyVintageFilmEffect, applyLightCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
+import { 
+  addPostProcessEffect, 
+  clearPostProcessEffects, 
+  applyWarmCinematicEffect, 
+  applyCoolCinematicEffect, 
+  applyVintageFilmEffect, 
+  applyLightCinematicEffect,
+  applyUnderwaterEffect,
+} from '@/core/interfaces/events/PostProcessingEffectReporter';
+
 import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
@@ -182,8 +191,8 @@ export class EngineRuntime {
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
-    this.shipGrid = new ShipGrid(1000);
-    this.objectGrid = new CompositeBlockObjectGrid(1000);
+    this.shipGrid = new ShipGrid(3000);
+    this.objectGrid = new CompositeBlockObjectGrid(3000);
 
     // Initialize GL caches
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -416,7 +425,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid);
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid, this.objectGrid);
     this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
 
@@ -747,6 +756,7 @@ export class EngineRuntime {
     this.asteroidSpawner.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
     // TODO : Put this in options
+    applyUnderwaterEffect();
     applyWarmCinematicEffect();
     setTimeout(() => {
       if (this.ship) {

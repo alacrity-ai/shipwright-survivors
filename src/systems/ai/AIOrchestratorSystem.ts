@@ -3,7 +3,6 @@
 import type { AIControllerSystem } from './AIControllerSystem';
 import type { IUpdatable } from '@/core/interfaces/types';
 import type { Ship } from '@/game/ship/Ship';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
 
 import { aiSystemFrameBudgetMs } from '@/config/graphicsConfig';
@@ -147,28 +146,29 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     const now = performance.now();
     const deadline = now + this.frameBudgetMs;
 
-    this.relevantControllers.clear();
-    const relevantControllers = this.relevantControllers;
-
-    // === 1. Update ship grid occupancy ===
+    // === 1. Update ship grid occupancy (every frame) ===
     for (const [controller, ship] of this.controllerToShipMap) {
       this.shipGrid.updateShipPosition(ship);
     }
 
-    // === 2. Always include uncullables (if not destroyed) ===
-    for (const controller of this.uncullableControllers) {
-      const ship = controller.getShip();
-      if (!ship || ship.isDestroyed()) {
-        this.removeController(controller);
-      } else {
-        relevantControllers.add(controller);
-      }
-    }
-
-    // === 3. Include spatially relevant controllers ===
+    // === 2. Manage relevant controllers set ===
+    // Only rebuild the entire set every REEVALUATE_FRAMES to avoid expensive spatial queries
     if (this.frameCounter++ % this.REEVALUATE_FRAMES === 0) {
+      // Full rebuild: clear and repopulate from scratch
+      this.relevantControllers.clear();
+      
+      // Always include uncullables (if not destroyed)
+      for (const controller of this.uncullableControllers) {
+        const ship = controller.getShip();
+        if (!ship || ship.isDestroyed()) {
+          this.removeController(controller);
+        } else {
+          this.relevantControllers.add(controller);
+        }
+      }
+      
+      // Include spatially relevant controllers near player
       const playerPos = this.playerShip.getTransform().position;
-
       const nearbyShips = this.shipGrid.getShipsInRadius(
         playerPos.x,
         playerPos.y,
@@ -178,33 +178,47 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       for (const ship of nearbyShips) {
         const controller = this.shipIdToControllerMap.get(ship.id);
         if (controller) {
-          relevantControllers.add(controller);
+          this.relevantControllers.add(controller);
+        }
+      }
+    } else {
+      // Non-reevaluation frames: just clean up destroyed uncullables
+      // (spatial controllers persist until next reevaluation)
+      for (const controller of this.uncullableControllers) {
+        const ship = controller.getShip();
+        if (!ship || ship.isDestroyed()) {
+          this.removeController(controller);
         }
       }
     }
 
-    // === 4. Fair update with frame budget ===
+    // === 3. Fair update with frame budget ===
     const controllersToRemove: AIControllerSystem[] = [];
 
     // Take a stable snapshot to avoid mutation during iteration
     this.tempControllerList.length = 0;
-    for (const c of relevantControllers) {
+    for (const c of this.relevantControllers) {
       this.tempControllerList.push(c);
     }
 
+    // Early exit if no controllers to update
     if (this.tempControllerList.length === 0) return;
 
     const total = this.tempControllerList.length;
     let index = this.lastControllerIndex % total;
+    let processed = 0;
 
-    for (let processed = 0; processed < total; processed++) {
+    // Process controllers starting from where we left off last frame
+    for (processed = 0; processed < total; processed++) {
       const controller = this.tempControllerList[index];
 
       try {
         const ship = controller.getShip();
         if (!ship?.getAllBlocks) {
+          // Ship is invalid, mark for removal
           controllersToRemove.push(controller);
         } else {
+          // Update the AI controller
           controller.update(dt);
         }
       } catch (err) {
@@ -212,21 +226,24 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
         controllersToRemove.push(controller);
       }
 
+      // Advance to next controller
+      index = (index + 1) % total;
+      
+      // Check if we've exceeded our frame time budget
       if (performance.now() > deadline) {
-        this.lastControllerIndex = (index + 1) % total;
+        // Save where to continue next frame (current index points to next unprocessed)
+        this.lastControllerIndex = index;
         break;
       }
-
-      index = (index + 1) % total;
     }
 
-    // === 5. Remove invalidated controllers ===
+    // === 4. Remove invalidated controllers ===
     for (const c of controllersToRemove) {
       this.removeController(c);
     }
 
-    // If we completed a full loop, reset the cursor
-    if (index === this.lastControllerIndex) {
+    // If we completed the full loop without hitting deadline, reset cursor for next frame
+    if (processed === total) {
       this.lastControllerIndex = 0;
     }
   }

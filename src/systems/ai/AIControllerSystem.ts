@@ -79,12 +79,13 @@ export class AIControllerSystem {
   }
 
   public render(dt: number): void {
-    try {
-      this.weaponSystem.render(dt);
-      // TODO : May need to add utility system render as well
-    } catch (error) {
-      console.error("Error in AIControllerSystem render:", error);
-    }
+    // TODO: Deprecated. Weaponsystems don't need render. NOOP
+    // try {
+    //   this.weaponSystem.render(dt);
+    //   // TODO : May need to add utility system render as well
+    // } catch (error) {
+    //   console.error("Error in AIControllerSystem render:", error);
+    // }
   }
 
   public getShip(): Ship {

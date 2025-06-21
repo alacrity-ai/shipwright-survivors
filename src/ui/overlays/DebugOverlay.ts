@@ -8,9 +8,12 @@ import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
+import type { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
+
 import { Camera } from '@/core/Camera';
 
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
@@ -19,7 +22,8 @@ export class DebugOverlay {
     private readonly canvasManager: CanvasManager,
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
-    private readonly shipGrid: ShipGrid
+    private readonly shipGrid: ShipGrid,
+    private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
   ) {}
 
   render(dt: number): void {
@@ -53,6 +57,8 @@ export class DebugOverlay {
     const visibleShips = this.shipGrid.getShipsInCameraView(0).length;
     const activeAIShips = this.shipGrid.getShipsInCameraView(2000).length;
 
+    const compositeBlockObjectsInGrid = this.objectGrid.getAllObjects();
+
     const enemyPower = missionLoader.getEnemyPower();
     const controllerEntries = Array.from(this.aiOrchestrator.getAllControllers());
 
@@ -83,12 +89,13 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Aura Lights: ${auraLightCount}`); y += lineHeight;
     drawLabel(ctx, x, y, `Visible Aura Lights: ${visibleAuraLights}`); y += lineHeight;
     drawLabel(ctx, x, y, `Orphaned Aura Lights: ${orphanedLights.length}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Composite Block Objects: ${compositeBlockObjectsInGrid.length}`); y += lineHeight;
 
-    // // === State Breakdown ===
-    // for (const [state, count] of Object.entries(stateCounts)) {
-    //   drawLabel(ctx, x, y, `${state}: ${count}`);
-    //   y += lineHeight;
-    // }
+    // === State Breakdown ===
+    for (const [state, count] of Object.entries(stateCounts)) {
+      drawLabel(ctx, x, y, `${state}: ${count}`);
+      y += lineHeight;
+    }
   }
 }
 

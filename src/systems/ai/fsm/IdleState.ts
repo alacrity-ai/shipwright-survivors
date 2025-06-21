@@ -14,6 +14,7 @@ export class IdleState extends BaseAIState {
   private readonly wakeRadius = 1600; // Shared for both mobile and station AI
 
   update(): ShipIntent {
+    console.log('[IdleState] ShipID ' + this.ship.id + ' Updating in IdleState');
     return {
       movement: {
         thrustForward: false,

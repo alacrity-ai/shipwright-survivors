@@ -4,6 +4,7 @@ import type { MissionDefinition } from '@/game/missions/types/MissionDefinition'
 import { waveDefinitions as waveSet1 } from '@/game/waves/missions/Mission1Waves';
 import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves';
 import { waveDefinitions as waveSet3 } from '@/game/waves/missions/Mission3Waves';
+import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves';
 
 export const missionRegistry: Record<string, MissionDefinition> = {
   mission_001: {
@@ -103,13 +104,13 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     id: 'mission_005_00',
     name: 'WIP',
     dialogue: 'mission-generic',
-    waves: waveSet3,
+    waves: waveSet4,
     dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_11_00.png',
       gravity: 0,
-      worldWidth: 28000,
-      worldHeight: 28000,
+      worldWidth: 14000,
+      worldHeight: 14000,
     },
     planets: [
       { name: 'Arsea', x: 6000, y: 4000 },

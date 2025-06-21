@@ -10,6 +10,7 @@ import { getAsteroidFieldDefinition } from '@/game/spawners/registries/asteroidF
 import type { AsteroidFieldDefinition } from '@/game/spawners/types/AsteroidFieldDefinition';
 
 import { getWorldCenter, getWorldWidth, getWorldHeight } from '@/config/world';
+import { Asteroid } from '../entities/Asteroid';
 
 export class AsteroidSpawningSystem {
   private readonly factory: AsteroidFactory;

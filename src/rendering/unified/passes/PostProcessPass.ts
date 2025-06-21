@@ -5,6 +5,7 @@ import sepiaFragSrc from '@/rendering/unified/shaders/postprocess/sepia.frag?raw
 import passthroughFragSrc from '@/rendering/unified/shaders/postprocess/passthrough.frag?raw';
 import chromaticAberrationFragSrc from '@/rendering/unified/shaders/postprocess/chromaticAberration.frag?raw';
 import cinematicGradingFragSrc from '@/rendering/unified/shaders/postprocess/cinematicGrading.frag?raw';
+import underwaterFragSrc from '@/rendering/unified/shaders/postprocess/underwater.frag?raw';
 
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createQuadBuffer2 } from '@/rendering/unified/utils/bufferUtils';
@@ -15,7 +16,8 @@ export type PostEffectName =
   | 'sepia'
   | 'bloom'
   | 'chromaticAberration'
-  | 'cinematicGrading';
+  | 'cinematicGrading'
+  | 'underwater';
 
 export interface CinematicGradingParams {
   exposure?: number;           // Default: 1.0
@@ -28,6 +30,15 @@ export interface CinematicGradingParams {
   shadowsLift?: number;        // Default: 0.0
   highlightsGain?: number;     // Default: 1.0
   cinematicIntensity?: number; // Default: 1.0
+}
+
+export interface UnderwaterParams {
+  waveIntensity?: number;     // Default: 0.015
+  waveSpeed?: number;         // Default: 1.0
+  causticIntensity?: number;  // Default: 0.3
+  depthTint?: number;         // Default: 0.6
+  bubbleIntensity?: number;   // Default: 0.1
+  distortionAmount?: number;  // Default: 0.008
 }
 
 export class PostProcessPass {
@@ -56,6 +67,7 @@ export class PostProcessPass {
       bloom: createProgramFromSources(gl, postVertSrc, bloomFragSrc),
       chromaticAberration: createProgramFromSources(gl, postVertSrc, chromaticAberrationFragSrc),
       cinematicGrading: createProgramFromSources(gl, postVertSrc, cinematicGradingFragSrc),
+      underwater: createProgramFromSources(gl, postVertSrc, underwaterFragSrc),
     };
 
     this.quadBuffer = createQuadBuffer2(gl);
@@ -89,7 +101,7 @@ export class PostProcessPass {
    */
   public run(
     inputTexture: WebGLTexture,
-    effectChain: { effect: PostEffectName; params?: CinematicGradingParams }[]
+    effectChain: { effect: PostEffectName; params?: CinematicGradingParams | UnderwaterParams }[]
   ): void {
     const gl = this.gl;
     let readTex = inputTexture;
@@ -121,7 +133,7 @@ export class PostProcessPass {
         gl.uniform1f(gl.getUniformLocation(program, 'uStrength'), 0.003);
         gl.uniform1f(gl.getUniformLocation(program, 'uFalloff'), 1.8);
       } else if (effect === 'cinematicGrading') {
-        const p = params ?? {};
+        const p = params as CinematicGradingParams ?? {};
         gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.width, this.height);
         gl.uniform1f(gl.getUniformLocation(program, 'uTime'), (Date.now() - this.startTime) / 1000.0);
         gl.uniform1f(gl.getUniformLocation(program, 'uExposure'), p.exposure ?? 1.0);
@@ -134,6 +146,16 @@ export class PostProcessPass {
         gl.uniform1f(gl.getUniformLocation(program, 'uShadowsLift'), p.shadowsLift ?? 0.0);
         gl.uniform1f(gl.getUniformLocation(program, 'uHighlightsGain'), p.highlightsGain ?? 1.0);
         gl.uniform1f(gl.getUniformLocation(program, 'uCinematicIntensity'), p.cinematicIntensity ?? 1.0);
+      } else if (effect === 'underwater') {
+        const p = params as UnderwaterParams ?? {};
+        gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.width, this.height);
+        gl.uniform1f(gl.getUniformLocation(program, 'uTime'), (Date.now() - this.startTime) / 1000.0);
+        gl.uniform1f(gl.getUniformLocation(program, 'uWaveIntensity'), p.waveIntensity ?? 0.015);
+        gl.uniform1f(gl.getUniformLocation(program, 'uWaveSpeed'), p.waveSpeed ?? 1.0);
+        gl.uniform1f(gl.getUniformLocation(program, 'uCausticIntensity'), p.causticIntensity ?? 0.3);
+        gl.uniform1f(gl.getUniformLocation(program, 'uDepthTint'), p.depthTint ?? 0.6);
+        gl.uniform1f(gl.getUniformLocation(program, 'uBubbleIntensity'), p.bubbleIntensity ?? 0.1);
+        gl.uniform1f(gl.getUniformLocation(program, 'uDistortionAmount'), p.distortionAmount ?? 0.008);
       }
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

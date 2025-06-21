@@ -1,17 +1,24 @@
 // src/core/interfaces/events/PostProcessingEffectReporter.ts
 
 import { GlobalEventBus } from '@/core/EventBus';
-import type { PostEffectName, CinematicGradingParams } from '@/rendering/unified/passes/PostProcessPass';
+import type {
+  PostEffectName,
+  CinematicGradingParams,
+  UnderwaterParams
+} from '@/rendering/unified/passes/PostProcessPass';
+
+// === Shared param type ===
+type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
 
 export function setPostProcessEffect(
-  effectChain: { effect: PostEffectName; params?: CinematicGradingParams }[]
+  effectChain: { effect: PostEffectName; params?: EffectParams }[]
 ): void {
   GlobalEventBus.emit('postprocess:effect:set', { effectChain });
 }
 
 export function addPostProcessEffect(
   effect: PostEffectName,
-  params?: CinematicGradingParams
+  params?: EffectParams
 ): void {
   GlobalEventBus.emit('postprocess:effect:add', { effect, params });
 }
@@ -53,32 +60,6 @@ export function applyWarmCinematicEffect(): void {
   });
 }
 
-
-// // BEST YET
-// export function applyWarmCinematicEffect(): void {
-//   GlobalEventBus.emit('postprocess:effect:set', {
-//     effectChain: [
-//       {
-//         effect: 'cinematicGrading',
-//         params: {
-//           exposure: 2.0,
-//           contrast: 1.0,
-//           saturation: 1.2,
-//           temperature: 0.25,
-//           tint: -0.05,
-//           vignetteStrength: 1.45,
-//           filmGrainStrength: 0.08,
-//           shadowsLift: 0.01,
-//           highlightsGain: 0.4,
-//           cinematicIntensity: 0.002,
-//         },
-//       },
-//     ],
-//   });
-// }
-
-
-
 export function applyCoolCinematicEffect(): void {
   GlobalEventBus.emit('postprocess:effect:set', {
     effectChain: [
@@ -99,6 +80,22 @@ export function applyCoolCinematicEffect(): void {
       },
     ],
   });
+}
+
+export function applyUnderwaterEffect(): void {
+  setPostProcessEffect([
+    {
+      effect: 'underwater',
+      params: {
+        waveIntensity: 0.018,
+        waveSpeed: 1.2,
+        causticIntensity: 0.35,
+        depthTint: 0.7,
+        bubbleIntensity: 0.15,
+        distortionAmount: 0.01,
+      },
+    },
+  ]);
 }
 
 export function applyVintageFilmEffect(): void {

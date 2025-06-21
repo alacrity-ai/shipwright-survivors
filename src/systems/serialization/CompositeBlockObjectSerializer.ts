@@ -67,7 +67,7 @@ export async function loadAsteroidPrefab(fileName: string): Promise<AsteroidJson
 export async function loadAsteroidFromJson(
   fileName: string,
   grid: Grid,
-  objectGrid?: CompositeBlockObjectGrid<CompositeBlockObject>
+  objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
 ): Promise<Asteroid> {
   const json = await loadAsteroidPrefab(fileName);
 

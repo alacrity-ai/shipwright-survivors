@@ -21,6 +21,8 @@ export class SpaceStationAttackState extends BaseAIState {
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
 
+    console.log('[SpaceStationAttackState] ShipID: ' + this.ship.id + ' Updating in SpaceStationAttackState');
+
     return {
       movement: {
         thrustForward: false,

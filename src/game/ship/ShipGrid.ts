@@ -7,15 +7,16 @@ import { Camera } from '@/core/Camera';
 export class ShipGrid {
   private cells: Map<number, Map<number, Ship[]>> = new Map();
   private factionCells: Map<Faction, Map<number, Map<number, Ship[]>>> = new Map();
-  private cellSize: number;
   private shipToCellMap: Map<string, [number, number]> = new Map();
+  private cellSize: number;
 
-  constructor(cellSize: number = 1000) { // Larger cells for ships
+  constructor(cellSize: number = 1000) {
     this.cellSize = cellSize;
   }
 
+  /** Use Math.round to avoid spatial jitter around cell boundaries, especially in negative space. */
   private getCellCoords(x: number, y: number): [number, number] {
-    return [Math.floor(x / this.cellSize), Math.floor(y / this.cellSize)];
+    return [Math.round(x / this.cellSize), Math.round(y / this.cellSize)];
   }
 
   private getOrCreateCell(map: Map<number, Map<number, Ship[]>>, cellX: number, cellY: number): Ship[] {
@@ -50,7 +51,7 @@ export class ShipGrid {
     return result;
   }
 
-  addShip(ship: Ship): void {
+  public addShip(ship: Ship): void {
     const transform = ship.getTransform();
     if (!transform) return;
 
@@ -70,10 +71,11 @@ export class ShipGrid {
     factionCell.push(ship);
 
     // Track ship's current cell
+    console.log('[ShipGrid] Adding ship to cell', [cellX, cellY], 'ship id:', ship.id);
     this.shipToCellMap.set(ship.id, [cellX, cellY]);
   }
 
-  removeShip(ship: Ship): void {
+  public removeShip(ship: Ship): void {
     const currentCell = this.shipToCellMap.get(ship.id);
     if (!currentCell) return;
 
@@ -98,7 +100,8 @@ export class ShipGrid {
     this.shipToCellMap.delete(ship.id);
   }
 
-  updateShipPosition(ship: Ship): void {
+  /** Update ship's cell if it has crossed a cell boundary. */
+  public updateShipPosition(ship: Ship): void {
     const transform = ship.getTransform();
     if (!transform) return;
 
@@ -106,17 +109,28 @@ export class ShipGrid {
     const [newCellX, newCellY] = this.getCellCoords(x, y);
     const currentCell = this.shipToCellMap.get(ship.id);
 
-    // Only update if ship moved to a different cell
-    if (!currentCell || currentCell[0] !== newCellX || currentCell[1] !== newCellY) {
-      this.addShip(ship); // This will remove from old cell and add to new
+    if (!currentCell) {
+      // Ship not yet tracked
+      this.addShip(ship);
+      return;
     }
+
+    const [oldCellX, oldCellY] = currentCell;
+    if (oldCellX === newCellX && oldCellY === newCellY) {
+      return; // No cell change, skip
+    }
+
+    console.log('[ShipGrid] Updating ship position', ship.id, 'from', currentCell, 'to', [newCellX, newCellY]);
+    
+
+    this.addShip(ship); // Re-add in new cell
   }
 
-  getShipsInArea(minX: number, minY: number, maxX: number, maxY: number, excludeFaction?: Faction): Ship[] {
-    const minCellX = Math.floor(minX / this.cellSize);
-    const minCellY = Math.floor(minY / this.cellSize);
-    const maxCellX = Math.floor(maxX / this.cellSize);
-    const maxCellY = Math.floor(maxY / this.cellSize);
+  public getShipsInArea(minX: number, minY: number, maxX: number, maxY: number, excludeFaction?: Faction): Ship[] {
+    const minCellX = Math.round(minX / this.cellSize);
+    const minCellY = Math.round(minY / this.cellSize);
+    const maxCellX = Math.round(maxX / this.cellSize);
+    const maxCellY = Math.round(maxY / this.cellSize);
 
     const ships: Ship[] = [];
     const sources = this.getCellSources(excludeFaction);
@@ -135,7 +149,7 @@ export class ShipGrid {
     return ships;
   }
 
-  getShipsInRadius(centerX: number, centerY: number, radius: number, excludeFaction?: Faction): Ship[] {
+  public getShipsInRadius(centerX: number, centerY: number, radius: number, excludeFaction?: Faction): Ship[] {
     const minX = centerX - radius;
     const minY = centerY - radius;
     const maxX = centerX + radius;
@@ -154,7 +168,7 @@ export class ShipGrid {
     });
   }
 
-  getShipsInCameraView(margin: number = 0, excludeFaction?: Faction): Ship[] {
+  public getShipsInCameraView(margin: number = 0, excludeFaction?: Faction): Ship[] {
     const bounds = Camera.getInstance().getViewportBounds();
 
     const minX = bounds.x - margin;
@@ -165,7 +179,7 @@ export class ShipGrid {
     return this.getShipsInArea(minX, minY, maxX, maxY, excludeFaction);
   }
 
-  getAllShips(excludeFaction?: Faction): Ship[] {
+  public getAllShips(excludeFaction?: Faction): Ship[] {
     const ships: Ship[] = [];
     const sources = this.getCellSources(excludeFaction);
 
@@ -180,7 +194,7 @@ export class ShipGrid {
     return ships;
   }
 
-  getShipCount(excludeFaction?: Faction): number {
+  public getShipCount(excludeFaction?: Faction): number {
     let count = 0;
     const sources = this.getCellSources(excludeFaction);
 
@@ -195,14 +209,20 @@ export class ShipGrid {
     return count;
   }
 
-  clear(): void {
+  /** Removes all ships and clears the grid. */
+  public clear(): void {
     this.cells.clear();
     this.factionCells.clear();
     this.shipToCellMap.clear();
   }
 
-  // Debug method to visualize ship distribution
-  getDebugInfo(): { totalShips: number; cellsUsed: number; avgShipsPerCell: number } {
+  /** Returns whether a ship is currently tracked in the grid. */
+  public hasShip(ship: Ship): boolean {
+    return this.shipToCellMap.has(ship.id);
+  }
+
+  /** Debug method to visualize ship distribution. */
+  public getDebugInfo(): { totalShips: number; cellsUsed: number; avgShipsPerCell: number } {
     let totalShips = 0;
     let cellsUsed = 0;
 

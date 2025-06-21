@@ -1,10 +1,11 @@
-// src/core/interfaces/EventTypes.ts
-
 import type { IncidentMinimapMarker } from '@/core/interfaces/events/IncidentMinimapReporter';
 import type { FiringMode } from '@/systems/combat/types/WeaponTypes';
-import type { PostEffectName, CinematicGradingParams } from '@/rendering/unified/passes/PostProcessPass';
+import type {
+  PostEffectName,
+  CinematicGradingParams,
+  UnderwaterParams
+} from '@/rendering/unified/passes/PostProcessPass';
 
-// New: CursorChangeType definition
 export type CursorChangeType =
   | 'crosshair'
   | 'target'
@@ -16,7 +17,8 @@ export type CursorChangeType =
   | 'right'
   | 'small-circle';
 
-// Updated EventTypes
+type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
+
 export interface EventTypes {
   // Incident events
   'incident:minimap:marker': IncidentMinimapMarker;
@@ -45,12 +47,12 @@ export interface EventTypes {
 
   // Rendering
   'postprocess:effect:set': {
-    effectChain: { effect: PostEffectName; params?: CinematicGradingParams }[];
+    effectChain: { effect: PostEffectName; params?: EffectParams }[];
   };
 
   'postprocess:effect:add': {
     effect: PostEffectName;
-    params?: CinematicGradingParams;
+    params?: EffectParams;
   };
 
   'postprocess:effect:remove': { effect: PostEffectName };
