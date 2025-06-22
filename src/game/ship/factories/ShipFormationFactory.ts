@@ -1,6 +1,6 @@
 // src/game/ship/factories/ShipFormationFactory.ts
 
-import type { ShipFactory } from '@/game/ship/ShipFactory';
+import type { ShipFactory } from '@/game/ship/factories/ShipFactory';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';

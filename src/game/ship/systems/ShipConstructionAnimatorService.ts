@@ -2,7 +2,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Camera } from '@/core/Camera';
 import type { CanvasManager } from '@/core/CanvasManager';
-import type { AuraLightOptions } from '@/game/ship/ShipFactory';
+import type { AuraLightOptions } from '@/game/ship/factories/ShipFactory';
 
 import { constructionFrameBudgetMs } from '@/config/graphicsConfig';
 

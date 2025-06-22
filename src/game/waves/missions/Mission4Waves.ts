@@ -27,17 +27,17 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'station_mini', count: 16 },
       { shipId: 'wave_5_00', count: 12 },
     ],
-    // incidents: [
-    //   {
-    //     spawnChance: 1.0,
-    //     script: 'BlackHoleIncident',
-    //     options: {
-    //       x: 0,
-    //       y: 0,
-    //     },
-    //     label: 'Black Hole',
-    //   },
-    // ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'BlackHoleIncident',
+        options: {
+          x: 0,
+          y: 0,
+        },
+        label: 'Black Hole',
+      },
+    ],
   },
   {
     id: 2,

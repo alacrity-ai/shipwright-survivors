@@ -52,5 +52,5 @@ export interface WaveDefinition {
   formations?: ShipFormationEntry[];
   music?: MusicTrack;
   lightingSettings?: waveLightingSettings;
-  duration?: number; // NEW!
+  duration?: number;
 }
