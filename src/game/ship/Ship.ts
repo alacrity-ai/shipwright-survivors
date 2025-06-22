@@ -766,10 +766,9 @@ export class Ship extends CompositeBlockObject {
     this.markRasterDirty();
   }
 
-  // What about this?
+  // What about this? <----
   public onDestroyedCallback(callback: ShipDestroyedCallback): void {
     if (this.destroyed) {
-      // If already destroyed, fire callback immediately
       callback(this);
       return;
     }

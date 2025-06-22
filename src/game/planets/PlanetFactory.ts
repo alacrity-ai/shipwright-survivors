@@ -2,7 +2,7 @@
 import type { Ship } from '@/game/ship/Ship';
 import type { InputManager } from '@/core/InputManager';
 import type { Camera } from '@/core/Camera';
-import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 
 import { PlanetController } from './PlanetController';
 import { PlanetRegistry } from './PlanetRegistry';
@@ -15,9 +15,9 @@ export const PlanetFactory = {
     playerShip: Ship,
     inputManager: InputManager,
     camera: Camera,
-    waveSpawner: WaveSpawner
+    waveOrchestrator: WaveOrchestrator
   ): PlanetController {
     const def = PlanetRegistry.getPlanetByName(name);
-    return new PlanetController(x, y, playerShip, inputManager, camera, def, waveSpawner);
+    return new PlanetController(x, y, playerShip, inputManager, camera, def, waveOrchestrator);
   }
 };

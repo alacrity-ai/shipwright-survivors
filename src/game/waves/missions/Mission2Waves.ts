@@ -90,12 +90,10 @@ const speedHuntersFormation = createSmallWedgeFormation(
 );
 
 export const waveDefinitions: WaveDefinition[] = [
-
   {
+    spawnDistribution: 'aroundPlayer',
+    duration: 30,
     mods: [],
-    id: 1,
-    type: 'wave',
-    duration: 40,
     ships: [
       { shipId: 'wave_0_00', count: 4 },
       { shipId: 'wave_0_01', count: 4 },
@@ -104,10 +102,9 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [smallWedgeFormation],
   },
   {
+    spawnDistribution: 'aroundPlayer',
+    duration: 30,
     mods: [],
-    id: 2,
-    type: 'wave',
-    duration: 40,
     ships: [
       { shipId: 'wave_0_01', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'wave_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
@@ -116,10 +113,9 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [mediumWedgeFormation],
   },
   {
+    spawnDistribution: 'aroundPlayer',
+    duration: 30,
     mods: [],
-    id: 3,
-    type: 'wave',
-    duration: 40,
     ships: [
       { shipId: 'wave_0_03', count: 12 },
       { shipId: 'wave_0_04', count: 14 },
@@ -127,85 +123,116 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [mediumWedgeFormation],
   },
   {
+    spawnDistribution: 'aroundPlayer',
+    duration: 30,
     mods: [],
-    id: 4,
-    type: 'wave',
-    duration: 40,
     ships: [],
     formations: [killCrewFormation, smallWedgeFormation],
   },
   {
-    mods: [],
-    id: 5,
-    type: 'wave',
+    spawnDistribution: 'aroundPlayer',
     duration: 10,
+    mods: [],
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      {
+        shipId: 'mission_02/ship_rammerspear_00',
+        count: 12,
+        hunter: true,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
     ],
   },
   {
-    mods: [],
-    id: 6,
-    type: 'wave',
+    spawnDistribution: 'aroundPlayer',
     duration: 10,
+    mods: [],
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      {
+        shipId: 'mission_02/ship_rammerspear_00',
+        count: 12,
+        hunter: true,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
     ],
   },
   {
-    mods: [],
-    id: 7,
-    type: 'wave',
+    spawnDistribution: 'aroundPlayer',
     duration: 10,
+    mods: [],
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      {
+        shipId: 'mission_02/ship_rammerspear_00',
+        count: 12,
+        hunter: true,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
     ],
   },
   {
+    spawnDistribution: 'aroundPlayer',
+    duration: 30,
     mods: [],
-    id: 8,
-    type: 'wave',
-    duration: 40,
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
-      { shipId: 'mission_02/ship_rammerhead_00', count: 4, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      {
+        shipId: 'mission_02/ship_rammerspear_00',
+        count: 12,
+        hunter: true,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
+      {
+        shipId: 'mission_02/ship_rammerhead_00',
+        count: 4,
+        hunter: true,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
     ],
     formations: [speedHuntersFormation],
   },
   {
-    id: 9,
-    type: 'wave',
+    spawnDistribution: 'aroundPlayer',
     duration: 30,
-    mods: ['extra-aggressive'],
+    mods: [],
     ships: [],
     formations: [cruiserLargeWedgeFormation, smallWedgeFormation, mediumWedgeFormation],
   },
   {
+    spawnDistribution: 'aroundPlayer',
+    duration: 20,
     mods: [],
-    id: 10,
-    type: 'wave',
-    duration: 25,
     ships: [
       { shipId: 'mission_02/ship_minifly_00', count: 8, hunter: true, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'mission_02/ship_dragonfly_00', count: 20, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
   },
   {
-    id: 11,
-    type: 'wave',
-    duration: 25,
-    mods: ['extra-aggressive'],
+    spawnDistribution: 'aroundPlayer',
+    duration: 20,
+    mods: [],
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 12, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
-      { shipId: 'mission_02/ship_rammerhead_00', count: 2, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      {
+        shipId: 'mission_02/ship_rammerspear_00',
+        count: 12,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
+      {
+        shipId: 'mission_02/ship_rammerhead_00',
+        count: 2,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
     ],
     formations: [killCrewFormation],
   },
   {
-    id: 12,
-    type: 'wave',
-    duration: 25,
-    mods: ['shielded'],
+    spawnDistribution: 'aroundPlayer',
+    duration: 20,
+    mods: [],
     ships: [
       { shipId: 'mission_02/spacestation_00', count: 4 },
       { shipId: 'mission_02/wave_5_03', count: 4 },
@@ -213,29 +240,33 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [cruiserLargeWedgeFormation, smallWedgeFormation],
   },
   {
-    id: 13,
-    type: 'wave',
+    spawnDistribution: 'aroundPlayer',
     duration: 20,
-    mods: ['shielded', 'extra-aggressive'],
+    mods: [],
     ships: [
-      { shipId: 'mission_02/ship_rammerspear_00', count: 12, hunter: true, behaviorProfile: RammingBehaviorProfile, affixes: RAMMER_SPEAR_AFFIXES },
+      {
+        shipId: 'mission_02/ship_rammerspear_00',
+        count: 12,
+        hunter: true,
+        behaviorProfile: RammingBehaviorProfile,
+        affixes: RAMMER_SPEAR_AFFIXES,
+      },
       { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true },
       { shipId: 'mission_02/wave_5_03', count: 4 },
     ],
     formations: [killCrewFormation],
   },
   {
-    id: 14,
-    type: 'boss',
-    mods: ['shielded', 'extra-aggressive'],
-    ships: [
-      { shipId: 'boss_0_00', count: 1, hunter: true }
-    ],
+    spawnDistribution: 'center',
+    duration: Infinity,
+    mods: [],
+    ships: [{ shipId: 'boss_0_00', count: 1, hunter: true }],
     music: {
       file: 'assets/sounds/music/track_03_boss.mp3',
     },
     lightingSettings: {
-      clearColor: [0.25, 0.0, 0.0, 0.0]
-    }
-  }
+      clearColor: [0.25, 0.0, 0.0, 0.0],
+    },
+    isBoss: true,
+  },
 ];

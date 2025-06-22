@@ -3,6 +3,8 @@
 import type { DialogueScript } from '@/systems/dialogue/interfaces/DialogueScript';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
+import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
+
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
@@ -21,12 +23,12 @@ import { audioManager } from '@/audio/Audio';
 const playerResources = PlayerResources.getInstance();
 
 export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript {
-  const { inputManager, waveSpawner, playerShip, coachMarkManager } = ctx;
+  const { inputManager, waveOrchestrator, playerShip, coachMarkManager } = ctx;
   if (!inputManager) {
     throw new Error('Input manager is required for intro briefing');
   }
-  if (!waveSpawner) {
-    throw new Error('Wave spawner is required for intro briefing');
+  if (!waveOrchestrator) {
+    throw new Error('Wave orchestrator is required for intro briefing');
   }
   if (!playerShip) {
     throw new Error('Player ship is required for intro briefing');
@@ -362,7 +364,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          waveSpawner.start();
+          waveOrchestrator.start();
         },
       },
       {
@@ -747,7 +749,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveSpawner.isBossWaveActive());
+          return awaitCondition(() => waveOrchestrator.isBossWaveActive());
         },
       },
       // Show UI
@@ -805,7 +807,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveSpawner.shouldCompleteMission());
+          return awaitCondition(() => waveOrchestrator.areAllWavesCompleted());
         },
       },
       {
@@ -831,7 +833,19 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'line',
         speakerId: 'crazy-moe',
         text: "Y'got me! Sweet entropy, I see the light—*AND SHE'S MADE OF REBAR AND RADIATION!*",
-      }
+      },
+      // Wait 2000ms
+      {
+        type: 'pause',
+        durationMs: 2000,
+      },
+      // End the mission
+      {
+        type: 'command',
+        run: () => {
+          emitPlayerVictory();
+        },
+      },
     ],
   };
 }

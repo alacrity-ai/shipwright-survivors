@@ -7,12 +7,12 @@ import { audioManager } from '@/audio/Audio';
 // import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 
 export function createPlanetGenericScript(ctx: DialogueContext): DialogueScript {
-  const { inputManager, waveSpawner, playerShip } = ctx;
+  const { inputManager, waveOrchestrator, playerShip } = ctx;
   if (!inputManager) {
     throw new Error('Input manager is required for generic planet dialogue');
   }
-  if (!waveSpawner) {
-    throw new Error('Wave spawner is required for generic planet dialogue');
+  if (!waveOrchestrator) {
+    throw new Error('Wave orchestrator is required for generic planet dialogue');
   }
   if (!playerShip) {
     throw new Error('Player ship is required for generic planet dialogue');

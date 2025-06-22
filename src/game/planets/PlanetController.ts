@@ -4,11 +4,10 @@ import { PlanetOverlayRenderer } from '@/game/planets/PlanetOverlayRenderer';
 
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
-import { CanvasManager } from '@/core/CanvasManager';
 
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
-import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { PlanetDefinition } from './interfaces/PlanetDefinition';
 import type { Ship } from '@/game/ship/Ship';
 import type { InputManager } from '@/core/InputManager';
@@ -28,7 +27,7 @@ export class PlanetController {
     private readonly inputManager: InputManager,
     private readonly camera: Camera,
     private readonly definition: PlanetDefinition,
-    private readonly waveSpawner: WaveSpawner
+    private readonly waveOrchestrator: WaveOrchestrator
   ) {
     // Initialize renderer (Only now renders overlay information)
     this.renderer = new PlanetOverlayRenderer(definition.name);
@@ -80,7 +79,7 @@ export class PlanetController {
       const script = getDialogueScript(this.definition.interactionDialogueId, { 
         inputManager: this.inputManager, 
         playerShip: this.playerShip, 
-        waveSpawner: this.waveSpawner });
+        waveOrchestrator: this.waveOrchestrator });
       if (script) {
         this.dialogueQueueManager.startScript(script);
       }

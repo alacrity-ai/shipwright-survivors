@@ -2,23 +2,23 @@
 
 import type { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
-import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 
 import { getUniformScaleFactor } from '@/config/view';
 
 export class WavesOverlay {
   constructor(
     private readonly canvasManager: CanvasManager,
-    private readonly waveSpawner: WaveSpawner
+    private readonly waveOrchestrator: WaveOrchestrator
   ) {}
 
   render(): void {
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
-    const wave = this.waveSpawner.getCurrentWaveNumber();
-    const countdown = this.waveSpawner.getTimeUntilNextWave();
-    const isBoss = this.waveSpawner.isBossWaveActive();
+    const wave = this.waveOrchestrator.getCurrentWaveNumber();
+    const countdown = this.waveOrchestrator.getTimeUntilNextWave();
+    const isBoss = this.waveOrchestrator.isBossWaveActive();
 
     const scale = getUniformScaleFactor();
 

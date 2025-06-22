@@ -94,8 +94,7 @@ const speedHuntersFormation = createSmallWedgeFormation(
 
 export const waveDefinitions: WaveDefinition[] = [
   {
-    id: 1,
-    type: 'wave',
+    spawnDistribution: 'outer',
     mods: [],
     ships: [
       { shipId: 'wave_0_00', count: 32 },
@@ -110,9 +109,8 @@ export const waveDefinitions: WaveDefinition[] = [
     ]
   },
   {
-    id: 2,
-    type: 'wave',
-    mods: ['extra-aggressive'],
+    spawnDistribution: 'outer',
+    mods: [],
     ships: [
       { shipId: 'ship_0_00', count: 20 },
       { shipId: 'ship_0_01', count: 18 },
@@ -127,9 +125,8 @@ export const waveDefinitions: WaveDefinition[] = [
     ]
   },
   {
-    id: 3,
-    type: 'wave',
-    mods: ['shielded'],
+    spawnDistribution: 'outer',    
+    mods: [],
     ships: [
       { shipId: 'ship_scrapper_0', count: 12, hunter: true },
       { shipId: 'ship_scrapper_1', count: 10 },
@@ -148,9 +145,9 @@ export const waveDefinitions: WaveDefinition[] = [
     ]
   },
   {
-    id: 4,
-    type: 'boss',
-    mods: ['shielded', 'extra-aggressive'],
+    spawnDistribution: 'center',
+    duration: Infinity,    
+    mods: [],
     ships: [
       { shipId: 'boss_0_00', count: 1, hunter: true }
     ],
@@ -159,6 +156,7 @@ export const waveDefinitions: WaveDefinition[] = [
     },
     lightingSettings: {
       clearColor: [0.25, 0.0, 0.0, 0.0]
-    }
+    },
+    isBoss: true,
   }
 ];

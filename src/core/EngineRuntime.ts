@@ -6,6 +6,7 @@ import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
+import { GlobalEventBus } from './EventBus';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -67,7 +68,8 @@ import { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import { ShipBuilderController } from '@/systems/subsystems/ShipBuilderController';
 import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
-import { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import { WaveOrchestratorFactory } from '@/game/waves/WaveOrchestratorFactory';
+import { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
 import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
@@ -153,7 +155,7 @@ export class EngineRuntime {
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
-  private waveSpawner: WaveSpawner;
+  private waveOrchestrator: WaveOrchestrator;
   private incidentOrchestrator: IncidentOrchestrator;
   private asteroidSpawner: AsteroidSpawningSystem;
   private wavesOverlay: WavesOverlay;
@@ -191,6 +193,9 @@ export class EngineRuntime {
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = new ShipGrid(3000);
     this.objectGrid = new CompositeBlockObjectGrid(3000);
+
+    GlobalEventBus.on('player:victory', () => this.handlePlayerVictory());
+    GlobalEventBus.on('player:defeat', () => this.handlePlayerFailure());
 
     // Initialize GL caches
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -381,31 +386,49 @@ export class EngineRuntime {
       popupMessageSystem: this.popupMessageSystem,
     });
 
-    this.waveSpawner = new WaveSpawner(
+    // OLD
+    // this.waveSpawner = new WaveSpawner(
+    //   this.mission.waves,
+    //   this.shipRegistry,
+    //   this.aiOrchestrator,
+    //   this.ship,
+    //   this.projectileSystem,
+    //   this.laserSystem,
+    //   this.particleManager,
+    //   this.grid,
+    //   combatService,
+    //   this.explosionSystem,
+    //   this.collisionSystem,
+    //   this.shipConstructionAnimator,
+    //   this.incidentOrchestrator,
+    //   this.popupMessageSystem,
+    // );
+
+    this.waveOrchestrator = WaveOrchestratorFactory.create(
       this.mission.waves,
+      this.grid,
       this.shipRegistry,
       this.aiOrchestrator,
-      this.ship,
+      this.particleManager,
       this.projectileSystem,
       this.laserSystem,
-      this.particleManager,
-      this.grid,
       combatService,
       this.explosionSystem,
       this.collisionSystem,
       this.shipConstructionAnimator,
       this.incidentOrchestrator,
-      this.popupMessageSystem,
+      this.popupMessageSystem
     );
-    this.waveSpawner.setMissionCompleteHandler(() => this.handlePlayerVictory());
+
+    // Notify wave orchestrator when a ship is destroyed
     destructionService.onEntityDestroyed((entity, _cause) => {
       if (entity instanceof Ship) {
-        this.waveSpawner.notifyShipDestruction(entity);
+        this.waveOrchestrator.notifyShipDestroyed(entity);
       }
     });
 
     // Planet System
-    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveSpawner, this.unifiedSceneRenderer);
+    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // AsteroidSpawner
@@ -416,13 +439,13 @@ export class EngineRuntime {
     this.missionDialogueManager = new MissionDialogueManager(
       this.inputManager, 
       this.canvasManager, 
-      this.waveSpawner, 
+      this.waveOrchestrator, 
       this.ship,
       this.coachMarkManager
     );
 
     // Overlay Displays (UI HUD)
-    this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveSpawner);
+    this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
     this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid, this.objectGrid);
     this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
@@ -439,7 +462,7 @@ export class EngineRuntime {
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
       this.pickupSystem,
-      this.waveSpawner,
+      this.waveOrchestrator,
       this.energyRechargeSystem,
       {
         update: (dt: number) => {
@@ -496,12 +519,12 @@ export class EngineRuntime {
 
   private pause() {
     this.isPaused = true;
-    this.waveSpawner.pause();
+    this.waveOrchestrator.pause();
   }
 
   private resume() {
     this.isPaused = false;
-    this.waveSpawner.resume();
+    this.waveOrchestrator.resume();
   }
 
   private update = (dt: number) => {
@@ -588,10 +611,10 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyN')) {
-      if (this.waveSpawner.getIsPaused()) {
-        this.waveSpawner.resume();
+      if (this.waveOrchestrator.getIsPaused()) {
+        this.waveOrchestrator.resume();
       } else {
-        this.waveSpawner.pause();
+        this.waveOrchestrator.pause();
       }
     }
 
@@ -614,7 +637,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasRightBracketPressed()) {
-      this.waveSpawner.skipToNextWave();
+      this.waveOrchestrator.skipToNextWave();
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyI')) {
@@ -777,9 +800,6 @@ export class EngineRuntime {
       addPostProcessEffect('sepia');
     }, timeoutMs - 100)
 
-    // Optional: trigger victory effects here (e.g. music, overlay)
-    // victoryEffectManager.play(); // hypothetical example
-
     setTimeout(() => {
       missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
       this.destroy();
@@ -808,8 +828,12 @@ export class EngineRuntime {
     this.gameLoop.offRender(this.boundRender);
     this.gameLoop.stop();
 
+    // === Dispose of Eventbus Listeners ===
+    GlobalEventBus.off('player:victory', this.handlePlayerVictory);
+    GlobalEventBus.off('player:defeat', this.handlePlayerFailure);
+
     // === Clean up singleton state ===
-    this.waveSpawner.reset();
+    this.waveOrchestrator.destroy();
     this.shipRegistry.clear();
     this.aiOrchestrator.clear();
     ShieldEffectsSystem.getInstance().clear();

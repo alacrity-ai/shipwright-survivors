@@ -3,7 +3,7 @@
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 import type { InputManager } from '@/core/InputManager';
 import type { CanvasManager } from '@/core/CanvasManager';
-import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { Ship } from '@/game/ship/Ship';
 
 import { missionLoader } from '@/game/missions/MissionLoader';
@@ -20,7 +20,7 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   constructor(
     private readonly inputManager: InputManager,
     private readonly canvasManager: CanvasManager,
-    private readonly waveSpawner: WaveSpawner,
+    private readonly waveOrchestrator: WaveOrchestrator,
     private readonly playerShip: Ship,
     private readonly coachMarkManager: CoachMarkManager
   ) {}
@@ -44,7 +44,7 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
     return {
       inputManager: this.inputManager,
       playerShip: this.playerShip,
-      waveSpawner: this.waveSpawner,
+      waveOrchestrator: this.waveOrchestrator,
       coachMarkManager: this.coachMarkManager,
       // Extend here as more systems are integrated
     };

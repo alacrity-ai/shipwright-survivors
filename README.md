@@ -148,6 +148,9 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Fix ShipCreationAnimationController:
+    - [ ] Graphics should be gl2
+    - [ ] Instead of iterating through and doing placeblock, use the bulk place block (it's faster, but don't add the blocks to the grid?), then as each block is revealed add it to the grid, that way they won't render, but we don't have to place them all one by one, which is slow-ish.
   - [ ] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
   - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
@@ -280,7 +283,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
-  - [ ] Skipping briefing menu doesn't countdown all items and give you the cores?
+  - [ ] Skipping briefing menu doesn't countdown all items and give you the cores IF countdown has already begun
   - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
   - [ ] Fix setTimeout in CompositeBlockDestructionService: src/game/ship/CompositeBlockDestructionService.ts
         Because it's using set Timeout, it continues to run even after the map is over.  Need to use update loop.

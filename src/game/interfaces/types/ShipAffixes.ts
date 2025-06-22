@@ -2,16 +2,16 @@
 
 export interface ShipAffixes {
   fireRateMulti?: number;
-  fireDamageMulti?: number; // Not implemented
-  accuracyMulti?: number; // Not implemented
-  energyCostMulti?: number; // Not implemented
+  fireDamageMulti?: number; // Not implemented yet
+  accuracyMulti?: number; // Not implemented yet
+  energyCostMulti?: number; // Not implemented yet
   thrustPowerMulti?: number;
   turnPowerMulti?: number;
-  energyChargeRateMulti?: number; // Not implemented
-  shieldEfficiencyMulti?: number; // Not implemented
-  shieldRadiusMulti?: number; // Not implemented
-  shieldEnergyDrainMulti?: number; // Not implemented
-  harvestRateMulti?: number; // Not implemented
+  energyChargeRateMulti?: number; // Not implemented yet
+  shieldEfficiencyMulti?: number; // Not implemented yet
+  shieldRadiusMulti?: number; // Not implemented yet
+  shieldEnergyDrainMulti?: number; // Not implemented yet
+  harvestRateMulti?: number; // Not implemented yet
   rammingDamageInflictMultiplier?: number;
   rammingArmorMultiplier?: number;
 }

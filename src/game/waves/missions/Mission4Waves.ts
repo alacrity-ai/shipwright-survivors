@@ -19,8 +19,8 @@ const SPEED_DEMON_AFFIXES: ShipAffixes = {
 
 export const waveDefinitions: WaveDefinition[] = [
   {
-    id: 1,
-    type: 'wave',
+    spawnDistribution: 'outer',
+    duration: 60,
     mods: [],
     ships: [
       { shipId: 'mission_04/spacestation_00', count: 8 },
@@ -40,37 +40,38 @@ export const waveDefinitions: WaveDefinition[] = [
     ],
   },
   {
-    id: 2,
-    type: 'wave',
+    spawnDistribution: 'outer',
+    duration: 60,
     mods: [],
     ships: [
       { shipId: 'mission_04/spacestation_00', count: 8 },
       { shipId: 'station_mini', count: 16 },
       { shipId: 'wave_5_00', count: 12 },
-    ]
+    ],
   },
   {
-    id: 3,
-    type: 'wave',
+    spawnDistribution: 'outer',
+    duration: 60,
     mods: [],
     ships: [
       { shipId: 'mission_04/spacestation_00', count: 8 },
       { shipId: 'station_mini', count: 16 },
       { shipId: 'wave_5_00', count: 12 },
-    ]
+    ],
   },
   {
-    id: 6,
-    type: 'boss',
+    spawnDistribution: 'center',
+    duration: Infinity,
     mods: ['shielded', 'extra-aggressive'],
     ships: [
-      { shipId: 'mission_03/boss_03', count: 1, hunter: true }
+      { shipId: 'mission_03/boss_03', count: 1, hunter: true },
     ],
     music: {
       file: 'assets/sounds/music/track_03_boss.mp3',
     },
     lightingSettings: {
-      clearColor: [0.0, 0.0, 0.0, 0.0]
-    }
-  }
+      clearColor: [0.0, 0.0, 0.0, 0.0],
+    },
+    isBoss: true,
+  },
 ];

@@ -10,7 +10,14 @@ export interface WaveShipEntry {
   hunter?: boolean;
   behaviorProfile?: BehaviorProfile;
   affixes?: ShipAffixes;
+
+  /**
+   * Optional script or trigger to run when ALL of this group’s ships are destroyed.
+   * Could call e.g. `progressToNextWave()` or `endMission()`.
+   */
+  onAllDefeated?: string;
 }
+
 
 interface WaveIncidentEntry {
   spawnChance: number;
@@ -44,13 +51,13 @@ export interface FormationShipSpec {
 export type FormationLayout = { x: number; y: number }[]; // Index-aligned to followers[]
 
 export interface WaveDefinition {
-  id: number;
-  type: 'wave' | 'boss' | string;
   mods: string[];
   ships: WaveShipEntry[];
   incidents?: WaveIncidentEntry[];
   formations?: ShipFormationEntry[];
   music?: MusicTrack;
   lightingSettings?: waveLightingSettings;
-  duration?: number;
+  duration?: number; // undefined or Infinity means never auto-advance
+  spawnDistribution: 'random' | 'outer' | 'inner' | 'aroundPlayer' | 'center';
+  isBoss?: boolean;
 }

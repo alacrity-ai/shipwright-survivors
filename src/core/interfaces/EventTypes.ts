@@ -20,6 +20,10 @@ export type CursorChangeType =
 type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
 
 export interface EventTypes {
+  // Game outcome events
+  'player:victory': undefined;
+  'player:defeat': undefined;
+
   // Incident events
   'incident:minimap:marker': IncidentMinimapMarker;
   'incident:minimap:clear': { id: string };
@@ -66,4 +70,5 @@ export interface EventTypes {
   };
   'postprocess:background:effect:remove': { effect: PostEffectName };
   'postprocess:background:effect:clear': undefined;
+
 }

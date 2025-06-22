@@ -44,7 +44,6 @@ export class TurretBackend implements WeaponBackend {
 
     if (!fireRequested || !target) return;
 
-    console.log('[TurretBackend] Firing');
     if (mode === FiringMode.Synced) {
       this.handleSyncedFiring(plan, ship, transform, target, fireRateMulti, dt);
     } else if (mode === FiringMode.Sequence) {
@@ -62,11 +61,8 @@ export class TurretBackend implements WeaponBackend {
   ): void {
     for (let i = plan.length - 1; i >= 0; i--) {
       const turret = plan[i];
-      console.log('[TurretBackend] Time since last shot: ', turret.timeSinceLastShot);
-      console.log('[TurretBackend] verifying we have turret blocks');
       if (!ship.getBlockCoord(turret.block)) continue;
 
-      console.log('[TurretBackend] Checking time since last block');
       if (turret.timeSinceLastShot < turret.fireCooldown / fireRateMulti) continue;
 
       this.spawnTurretProjectile(ship, transform, turret, target);

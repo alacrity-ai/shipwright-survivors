@@ -6,7 +6,7 @@ import type { Camera } from '@/core/Camera';
 import type { PlanetDefinition } from './interfaces/PlanetDefinition';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
-import type { WaveSpawner } from '@/systems/wavespawner/WaveSpawner';
+import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import type { PlanetInstance } from '@/rendering/unified/passes/PlanetPass';
 
@@ -25,7 +25,7 @@ export class PlanetSystem {
     private readonly inputManager: InputManager,
     private readonly camera: Camera,
     private readonly canvasManager: CanvasManager,
-    private readonly waveSpawner: WaveSpawner,
+    private readonly waveOrchestrator: WaveOrchestrator,
     private readonly unifiedRenderer: UnifiedSceneRendererGL
   ) {
     this.ctx = canvasManager.getContext('background');
@@ -48,7 +48,7 @@ export class PlanetSystem {
       this.inputManager,
       this.camera,
       def,
-      this.waveSpawner
+      this.waveOrchestrator
     );
     this.planets.add(controller);
 
@@ -72,7 +72,7 @@ export class PlanetSystem {
       this.playerShip,
       this.inputManager,
       this.camera,
-      this.waveSpawner
+      this.waveOrchestrator
     );
     this.planets.add(controller);
 

@@ -71,7 +71,6 @@ export class ShipGrid {
     factionCell.push(ship);
 
     // Track ship's current cell
-    console.log('[ShipGrid] Adding ship to cell', [cellX, cellY], 'ship id:', ship.id);
     this.shipToCellMap.set(ship.id, [cellX, cellY]);
   }
 
@@ -118,10 +117,7 @@ export class ShipGrid {
     const [oldCellX, oldCellY] = currentCell;
     if (oldCellX === newCellX && oldCellY === newCellY) {
       return; // No cell change, skip
-    }
-
-    console.log('[ShipGrid] Updating ship position', ship.id, 'from', currentCell, 'to', [newCellX, newCellY]);
-    
+    }    
 
     this.addShip(ship); // Re-add in new cell
   }

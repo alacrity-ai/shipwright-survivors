@@ -3,15 +3,17 @@
 import type { DialogueScript } from '@/systems/dialogue/interfaces/DialogueScript';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
+import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
+
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 
 export function createMissionGenericScript(ctx: DialogueContext): DialogueScript {
-  const { inputManager, waveSpawner, playerShip } = ctx;
+  const { inputManager, waveOrchestrator, playerShip } = ctx;
   if (!inputManager) {
     throw new Error('Input manager is required for generic mission dialogue');
   }
-  if (!waveSpawner) {
-    throw new Error('Wave spawner is required for generic mission dialogue');
+  if (!waveOrchestrator) {
+    throw new Error('Wave orchestrator is required for generic mission dialogue');
   }
   if (!playerShip) {
     throw new Error('Player ship is required for generic mission dialogue');
@@ -29,7 +31,7 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
-          waveSpawner.start();
+          waveOrchestrator.start();
         },
       },
       // Prompt user to defeat all incoming waves in order to receive permission to return to headquarters
@@ -57,7 +59,7 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveSpawner.isBossWaveActive());
+          return awaitCondition(() => waveOrchestrator.isBossWaveActive());
         },
       },
       // Show UI
@@ -115,7 +117,7 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveSpawner.shouldCompleteMission());
+          return awaitCondition(() => waveOrchestrator.areAllWavesCompleted());
         },
       },
       // Show UI
@@ -131,6 +133,13 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'pause',
         durationMs: 2000,
+      },
+      // End the mission
+      {
+        type: 'command',
+        run: () => {
+          emitPlayerVictory();
+        },
       },
     ],
   };
