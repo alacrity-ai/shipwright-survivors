@@ -49,15 +49,14 @@ export class WaveOrchestratorFactory {
     const shipFactory = new ShipFactory(
       grid,
       shipRegistry,
-      aiOrchestrator,
-      playerShip,
       particleManager,
       projectileSystem,
       laserSystem,
       combatService,
       explosionSystem,
       collisionSystem,
-      shipConstructionAnimator
+      shipConstructionAnimator,
+      aiOrchestrator
     );
 
     const formationFactory = new ShipFormationFactory(shipFactory);

@@ -10,6 +10,8 @@ import { TURRET_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { FiringMode, TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 type TargetPoint = { x: number; y: number };
 
 export class TurretBackend implements WeaponBackend {
@@ -18,7 +20,6 @@ export class TurretBackend implements WeaponBackend {
 
   constructor(
     private readonly projectileSystem: ProjectileSystem,
-    private readonly playerShip: Ship
   ) {}
 
   public update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
@@ -154,7 +155,8 @@ export class TurretBackend implements WeaponBackend {
     const particleColors = TURRET_COLOR_PALETTES[turretId] ?? TURRET_COLOR_PALETTES['turret0'];
 
     if (this.fireSoundTimer > 5) {
-      playSpatialSfx(ship, this.playerShip, {
+      const playerShip = ShipRegistry.getInstance().getPlayerShip();
+      playSpatialSfx(ship, playerShip, {
         file: 'assets/sounds/sfx/weapons/turret_00.wav',
         channel: 'sfx',
         pitchRange: [0.7, 1.4],

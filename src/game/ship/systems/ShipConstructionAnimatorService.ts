@@ -31,6 +31,7 @@ interface ConstructingShipState {
 }
 
 export class ShipConstructionAnimatorService {
+  private playerShip: Ship | null = null;
   private activeShips: ConstructingShipState[] = [];
 
   private readonly animationDuration = 500;
@@ -42,17 +43,19 @@ export class ShipConstructionAnimatorService {
   private readonly pitchIncrement = 0.03;
   private readonly maxPitch = 2;
 
-  private readonly playerShip: Ship;
   private readonly camera: Camera;
   private readonly ctx: CanvasRenderingContext2D;
 
   private frameBudgetMs: number = constructionFrameBudgetMs;
   private lastShipIndex: number = 0;
 
-  constructor(playerShip: Ship, camera: Camera, canvasManager: CanvasManager) {
-    this.playerShip = playerShip;
+  constructor(camera: Camera, canvasManager: CanvasManager) {
     this.camera = camera;
     this.ctx = canvasManager.getCanvas('fx').getContext('2d')!;
+  }
+
+  public setPlayerShip(ship: Ship): void {
+    this.playerShip = ship;
   }
 
   public animateShipConstruction(ship: Ship, auraLightOptions?: AuraLightOptions): void {
@@ -187,6 +190,8 @@ export class ShipConstructionAnimatorService {
   }
 
   public render(dt: number): void {
+    if (!this.playerShip) return;
+
     const playerPos = this.playerShip.getTransform().position;
     const grid = this.playerShip.getGrid();
 

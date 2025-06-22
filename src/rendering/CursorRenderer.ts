@@ -25,7 +25,9 @@ const AIM_DISTANCE = 800;
 export class CursorRenderer {
   private ctx: CanvasRenderingContext2D;
   private cursorSprite: HTMLCanvasElement | null;
-  private camera: Camera | null;
+  
+  private playerShip: Ship | null = null;
+  private camera: Camera | null = null;
 
   private cursorWorldPos = { x: 0, y: 0 };
   private hasInitializedCursor = false;
@@ -39,14 +41,17 @@ export class CursorRenderer {
   constructor(
     canvasManager: CanvasManager,
     private readonly inputManager: InputManager,
-    private readonly playerShip?: Ship | null,
   ) {
-    this.camera = playerShip ? Camera.getInstance() : null;
     this.cursorSprite = getCrosshairCursorSprite();
     this.ctx = canvasManager.getContext('overlay');
 
     GlobalEventBus.on('cursor:change', this.cursorChangeHandler);
     GlobalEventBus.on('cursor:restore', this.cursorRestoreHandler);
+  }
+
+  setPlayerShip(ship: Ship): void {
+    this.playerShip = ship;
+    this.camera = Camera.getInstance();
   }
 
   render(): void {

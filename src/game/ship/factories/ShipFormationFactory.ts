@@ -41,6 +41,9 @@ export class ShipFormationFactory {
   ): Promise<Map<Ship, AIControllerSystem>> {
     const result = new Map<Ship, AIControllerSystem>();
     const orchestrator = this.shipFactory.getOrchestrator();
+    if (!orchestrator) {
+      throw new Error('AIOrchestratorSystem not available');
+    }
     const registry = orchestrator.getFormationRegistry();
 
     const formationId = uuidv4();
@@ -103,8 +106,8 @@ export class ShipFormationFactory {
         );
 
       // === Set FormationState directly
-      followerController.setInitialState(
-        new FormationState(followerController, followerShip)
+      followerController!.setInitialState(
+        new FormationState(followerController!, followerShip)
       );
 
       formationMembers.push({
@@ -112,8 +115,8 @@ export class ShipFormationFactory {
         offset,
       });
 
-      followerControllers.push(followerController);
-      result.set(followerShip, followerController);
+      followerControllers.push(followerController!);
+      result.set(followerShip, followerController!);
     }
 
     // === Register formation BEFORE controller registration
@@ -124,14 +127,14 @@ export class ShipFormationFactory {
     });
 
     // === Register leader first
-    orchestrator.addController(leaderController, formationEntry.unCullable ?? false);
+    orchestrator.addController(leaderController!, formationEntry.unCullable ?? false);
 
     // === Register followers AFTER leader is in controllerToShipMap
     for (const followerController of followerControllers) {
       orchestrator.addController(followerController, formationEntry.unCullable ?? false);
     }
 
-    result.set(leaderShip, leaderController);
+    result.set(leaderShip, leaderController!);
     return result;
   }
 }

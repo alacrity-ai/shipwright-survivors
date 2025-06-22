@@ -12,6 +12,8 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Grid } from '@/systems/physics/Grid';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
@@ -52,7 +54,6 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     private readonly particleManager: ParticleManager,
     private readonly grid: Grid,
     private readonly explosionSystem: ExplosionSystem,
-    private readonly playerShip: Ship
   ) {}
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
@@ -115,7 +116,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       LightingOrchestrator.getInstance().registerLight(light);
 
       // Play spatial sfx
-      playSpatialSfx(ship, this.playerShip, {
+      const playerShip = ShipRegistry.getInstance().getPlayerShip();
+      playSpatialSfx(ship, playerShip, {
         file: 'assets/sounds/sfx/weapons/lance_00.wav',
         channel: 'sfx',
         baseVolume: 0.8,
@@ -249,7 +251,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               lance.particle.size *= 1.25;
 
               // Play stuck sound effect
-              playSpatialSfx(this.playerShip, ship, {
+              const playerShip = ShipRegistry.getInstance().getPlayerShip();
+              if (!playerShip) continue;
+              playSpatialSfx(playerShip, ship, {
                 file: 'assets/sounds/sfx/weapons/lance_01.wav',
                 channel: 'sfx',
                 baseVolume: 0.9,
@@ -272,7 +276,6 @@ export class ExplosiveLanceBackend implements WeaponBackend {
                 coord,
                 lance.fireDamage,
                 'explosiveLance',
-                this.playerShip
               );
               if (wasDestroyed) {
                 this.explodeLance(lance, ship);
@@ -315,7 +318,6 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           coord,
           lance.explosionDamage,
           'explosiveLanceAoE',
-          this.playerShip
         );
       }
     }

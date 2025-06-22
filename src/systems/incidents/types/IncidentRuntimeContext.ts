@@ -11,7 +11,6 @@ export interface IncidentRuntimeContext {
   canvasManager: CanvasManager;
   camera: Camera;
   inputManager: InputManager;
-  playerShip: Ship;
   aiOrchestrator: AIOrchestratorSystem;
   popupMessageSystem: PopupMessageSystem;
 }

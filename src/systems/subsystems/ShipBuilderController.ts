@@ -9,7 +9,7 @@ import type { Camera } from '@/core/Camera';
 import type { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils';
+import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils'; // Get this in GL
 import { BLOCK_SIZE } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
 import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
@@ -19,21 +19,33 @@ import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 import { audioManager } from '@/audio/Audio';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
+import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { DamageLevel } from '@/rendering/cache/BlockSpriteCache';
+
 export class ShipBuilderController {
   private rotation: number = 0;
   private lastBlockId: string | null = null;
-  private hasSaved = false;  // Flag to prevent multiple saves
   private hoveredShipCoord: GridCoord | null = null;
 
+  private ship: Ship | null = null;
+
   constructor(
-    private readonly ship: Ship,
     private readonly menu: ShipBuilderMenu,
     private readonly camera: Camera,
     private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly inputManager: InputManager
   ) {}
 
+  setPlayerShip(ship: Ship): void {
+    this.ship = ship;
+  }
+
   update(transform: BlockEntityTransform) {
+    if (!this.ship) return;
+
     if (this.inputManager.wasKeyJustPressed('Space')) {
       this.rotation = (this.rotation + 90) % 360;
     }
@@ -93,37 +105,31 @@ export class ShipBuilderController {
     }
 
     // Check if the player has enough currency to place the block
-    if (PlayerResources.getInstance().hasEnoughCurrency(blockCost)) {
-      if (this.inputManager.wasMouseClicked()) {
-        if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
-          this.ship.placeBlockById(coord, blockId, this.rotation);
-          const placedBlock = this.ship.getBlock(coord);
-          if (placedBlock?.position) {
-            this.shipBuilderEffects.createRepairEffect(placedBlock.position);
-          }
-          const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
-          audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
-          PlayerResources.getInstance().spendCurrency(blockCost);
-          missionResultStore.incrementBlockPlacedCount();
+    if (this.inputManager.wasMouseClicked()) {
+      if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
+        this.ship.placeBlockById(coord, blockId, this.rotation);
+        const placedBlock = this.ship.getBlock(coord);
+        if (placedBlock?.position) {
+          this.shipBuilderEffects.createRepairEffect(placedBlock.position);
         }
+        const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
+        audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
+        missionResultStore.incrementBlockPlacedCount();
       }
     }
 
     // DEBUG SAVING (will be removed when out of development testing).
     // THIS IS NOT the same functionality as ingame ship saving:
     // Check if the "L" key is pressed and save the ship, but only once
-    if (this.inputManager.isLPressed() && !this.hasSaved) {
-      const filename = 'saved_player_ship.json';
-      savePlayerShip(this.ship, this.ship.getGrid(), filename); // Save the current player ship to a file
-      this.hasSaved = true;  // Set the flag to prevent further saves
-    }
-    // Reset the save flag when "L" key is released
-    if (!this.inputManager.isLPressed() && this.hasSaved) {
-      this.hasSaved = false;  // Allow saving again if the key is released
-    }
+    // if (this.inputManager.wasKeyJustPressed('KeyL')) {
+    //   const filename = 'saved_player_ship.json';
+    //   savePlayerShip(this.ship, this.ship.getGrid(), filename); // Save the current player ship to a file
+    // }
   }
 
-  render(ctx: CanvasRenderingContext2D, transform: BlockEntityTransform): void {
+  render(_: unknown, transform: BlockEntityTransform): void {
+    if (!this.ship) return;
+
     const mouse = this.inputManager.getMousePosition();
     if (this.isCursorOverMenu(mouse)) return;
 
@@ -142,49 +148,67 @@ export class ShipBuilderController {
     const worldX = transform.position.x + rotatedX;
     const worldY = transform.position.y + rotatedY;
 
-    const screen = this.camera.worldToScreen(worldX, worldY);
-
-    ctx.save();
-    ctx.translate(screen.x, screen.y);
-    ctx.scale(this.camera.getZoom(), this.camera.getZoom());
-    ctx.rotate(transform.rotation);
-
     const tool = this.menu.getActiveTool();
+
+    const SPRITE_ROTATION_CORRECTION = Math.PI;
+    const FIN_ROTATION_CORRECTION = Math.PI * 1.5;
+
+    function getCorrectedRotation(baseRotation: number, typeId: string): number {
+      const needsFinCorrection = typeId.startsWith('fin');
+      return baseRotation + SPRITE_ROTATION_CORRECTION + (needsFinCorrection ? FIN_ROTATION_CORRECTION : 0);
+    }
 
     if (tool === ShipBuilderTool.REPAIR) {
       const hoveredBlock = this.ship.getBlock(coord);
       if (hoveredBlock) {
-        drawBlockHighlight(ctx, 'rgba(0,255,0,0.3)');
+        const sprite = getGL2BlockSprite(hoveredBlock.type.id, DamageLevel.NONE);
+        GlobalSpriteRequestBus.add({
+          texture: sprite.base,
+          worldX,
+          worldY,
+          widthPx: BLOCK_SIZE,
+          heightPx: BLOCK_SIZE,
+          alpha: 0.4,
+          rotation: getCorrectedRotation(transform.rotation, hoveredBlock.type.id),
+        });
       }
     } else if (tool === ShipBuilderTool.PLACE) {
       const blockId = this.menu.getSelectedBlockId();
-      if (!blockId) {
-        ctx.restore();
-        return;
-      }
+      if (!blockId) return;
 
       const existingBlock = this.ship.getBlock(coord);
 
       if (existingBlock) {
         const isSafe = this.ship.isDeletionSafe(coord);
-        drawBlockDeletionHighlight(ctx, isSafe);
+        const overlayColor = isSafe ? DamageLevel.NONE : DamageLevel.HEAVY;
+        const sprite = getGL2BlockSprite(existingBlock.type.id, overlayColor);
+
+        GlobalSpriteRequestBus.add({
+          texture: sprite.base,
+          worldX,
+          worldY,
+          widthPx: BLOCK_SIZE,
+          heightPx: BLOCK_SIZE,
+          alpha: 0.6,
+          rotation: getCorrectedRotation(transform.rotation, existingBlock.type.id),
+        });
       } else {
-        const sprite = getBlockSprite(blockId);
-        ctx.save();
-        ctx.rotate(this.rotation * Math.PI / 180);
-        ctx.globalAlpha = 0.6;
-        ctx.drawImage(
-          sprite.base,
-          -BLOCK_SIZE / 2,
-          -BLOCK_SIZE / 2,
-          BLOCK_SIZE,
-          BLOCK_SIZE
-        );
-        ctx.restore();
+        const sprite = getGL2BlockSprite(blockId, DamageLevel.NONE);
+
+        GlobalSpriteRequestBus.add({
+          texture: sprite.base,
+          worldX,
+          worldY,
+          widthPx: BLOCK_SIZE,
+          heightPx: BLOCK_SIZE,
+          alpha: 0.6,
+          rotation: getCorrectedRotation(
+            transform.rotation + this.rotation * Math.PI / 180,
+            blockId
+          ),
+        });
       }
     }
-
-    ctx.restore();
   }
 
   private isCursorOverMenu(mouse: { x: number; y: number }): boolean {
@@ -192,6 +216,8 @@ export class ShipBuilderController {
   }
 
   repairBlockAt(coord: { x: number; y: number }): void {
+    if (!this.ship) return;
+
     const block = this.ship.getBlock(coord);
     if (!block) return;
 
@@ -209,6 +235,8 @@ export class ShipBuilderController {
   }
 
   repairAllBlocks(): void {
+    if (!this.ship) return;
+
     const playerResources = PlayerResources.getInstance();
 
     // Get all damaged blocks
@@ -239,6 +267,7 @@ export class ShipBuilderController {
   }
 
   getHoveredShipBlock(): BlockInstance | undefined {
+    if (!this.ship) return;
     return this.hoveredShipCoord ? this.ship.getBlock(this.hoveredShipCoord) : undefined;
   }
 }

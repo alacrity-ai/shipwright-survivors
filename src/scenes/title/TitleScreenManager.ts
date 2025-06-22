@@ -16,6 +16,7 @@ import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
 import { isElectron } from '@/shared/isElectron';
+import { PlayerResources } from '@/game/player/PlayerResources';
 
 const TITLE_IMAGE_PATH = 'assets/title_screen.png';
 
@@ -162,11 +163,29 @@ export class TitleScreenManager {
       style: sharedStyle
     });
 
+    // === Editor Button (TODO : Remove in production) ===
+    buttons.push({
+      x: baseX,
+      y: baseY + (scaledVerticalSpacing * 2),
+      width,
+      height,
+      label: 'Editor',
+      isHovered: false,
+      onClick: () => {
+        missionLoader.setMission(missionRegistry['mission_editor']);
+        this.stop();
+        PlayerTechnologyManager.getInstance().unlockAll();
+        PlayerResources.getInstance().addCurrency(99999999999999);
+        sceneManager.fadeToScene('mission');
+      },
+      style: sharedStyle
+    });
+
     // === Quit button (always visible in Electron builds) ===
     if (isElectron()) {
       buttons.push({
         x: baseX,
-        y: baseY + (scaledVerticalSpacing * 2), // one row below Credits
+        y: baseY + (scaledVerticalSpacing * 3),
         width,
         height,
         label: 'Quit',

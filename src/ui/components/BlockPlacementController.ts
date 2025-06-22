@@ -15,20 +15,34 @@ import { audioManager } from '@/audio/Audio';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerResources } from '@/game/player/PlayerResources';
 
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
+import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { DamageLevel } from '@/rendering/cache/BlockSpriteCache'
+
+const SPRITE_ROTATION_CORRECTION = Math.PI;
+const FIN_ROTATION_CORRECTION = Math.PI / 2;
+
 export class BlockPlacementController {
+  private ship: Ship | null = null;
+
   private rotation: number = 0;
   private lastBlockId: string | null = null;
   private hoveredShipCoord: GridCoord | null = null;
 
   constructor(
-    private readonly ship: Ship,
     private readonly menu: BlockDropDecisionMenu,
     private readonly camera: Camera,
     private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly inputManager: InputManager
   ) {}
 
+  setPlayerShip(ship: Ship): void {
+    this.ship = ship;
+  }
+
   update(transform: BlockEntityTransform) {
+    if (!this.ship) return;
+
     if (this.inputManager.wasKeyJustPressed('Space')) {
       this.rotation = (this.rotation + 90) % 360;
     }
@@ -89,8 +103,15 @@ export class BlockPlacementController {
       }
     }
   }
+  
+  private getCorrectedRotation(base: number, typeId: string): number {
+    const needsFinCorrection = typeId.startsWith('fin');
+    return base + SPRITE_ROTATION_CORRECTION + (needsFinCorrection ? FIN_ROTATION_CORRECTION : 0);
+  }
 
-  render(ctx: CanvasRenderingContext2D, transform: BlockEntityTransform): void {
+  render(_: unknown, transform: BlockEntityTransform): void {
+    if (!this.ship) return;
+
     const mouse = this.inputManager.getMousePosition();
     if (this.isCursorOverMenu(mouse)) return;
 
@@ -109,40 +130,41 @@ export class BlockPlacementController {
     const worldX = transform.position.x + rotatedX;
     const worldY = transform.position.y + rotatedY;
 
-    const screen = this.camera.worldToScreen(worldX, worldY);
-
-    ctx.save();
-    ctx.translate(screen.x, screen.y);
-    ctx.scale(this.camera.getZoom(), this.camera.getZoom());
-    ctx.rotate(transform.rotation);
-
     const blockType = this.menu.getCurrentBlockType();
     const blockId = blockType?.id ?? null;
-    if (!blockId) {
-      ctx.restore();
-      return;
-    }
+    if (!blockId) return;
 
     const existingBlock = this.ship.getBlock(coord);
 
     if (existingBlock) {
       const isSafe = this.ship.isDeletionSafe(coord);
-      drawBlockDeletionHighlight(ctx, isSafe); // Misnomer, it's just a red highlight showing we can't place there
+      const sprite = getGL2BlockSprite(existingBlock.type.id, DamageLevel.NONE);
+
+      GlobalSpriteRequestBus.add({
+        texture: sprite.base,
+        worldX,
+        worldY,
+        widthPx: BLOCK_SIZE,
+        heightPx: BLOCK_SIZE,
+        alpha: 0.4,
+        rotation: this.getCorrectedRotation(transform.rotation, existingBlock.type.id),
+      });
     } else {
-      const sprite = getBlockSprite(blockId);
-      ctx.save();
-      ctx.rotate(this.rotation * Math.PI / 180);
-      ctx.globalAlpha = 0.6;
-      ctx.drawImage(
-        sprite.base,
-        -BLOCK_SIZE / 2,
-        -BLOCK_SIZE / 2,
-        BLOCK_SIZE,
-        BLOCK_SIZE
-      );
-      ctx.restore();
+      const sprite = getGL2BlockSprite(blockId, DamageLevel.NONE);
+
+      GlobalSpriteRequestBus.add({
+        texture: sprite.base,
+        worldX,
+        worldY,
+        widthPx: BLOCK_SIZE,
+        heightPx: BLOCK_SIZE,
+        alpha: 0.6,
+        rotation: this.getCorrectedRotation(
+          transform.rotation + this.rotation * Math.PI / 180,
+          blockId
+        ),
+      });
     }
-    ctx.restore();
   }
 
   private isCursorOverMenu(mouse: { x: number; y: number }): boolean {
@@ -150,6 +172,7 @@ export class BlockPlacementController {
   }
 
   getHoveredShipBlock(): BlockInstance | undefined {
+    if (!this.ship) return;
     return this.hoveredShipCoord ? this.ship.getBlock(this.hoveredShipCoord) : undefined;
   }
 }

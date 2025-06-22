@@ -64,7 +64,7 @@ export class WaveExecutor {
         );
 
         this.modApplier.apply(ship, wave.mods);
-        context.trackShip(ship, controller, entry);
+        context.trackShip(ship, controller!, entry);
       }
     }
 

@@ -25,7 +25,6 @@ export class ProjectileSystem {
     private readonly grid: Grid,
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
-    private readonly playerShip: Ship,
   ) {}
 
   spawnProjectile(
@@ -123,7 +122,6 @@ export class ProjectileSystem {
           coord,
           p.damage,
           'projectile',
-          this.playerShip
         );
 
         this.removeProjectile(p);

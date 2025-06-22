@@ -39,6 +39,8 @@ type ButtonId = 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll';
 type Phase = 'pre-open' | 'sliding-in' | 'settling' | 'open' | 'sliding-out' | null;
 
 export class BlockDropDecisionMenu implements Menu {
+  private ship: Ship | null = null;
+
   private open = false;
   private queue: BlockPickupEntry[] = [];
   private currentBlockType: BlockType | null = null;
@@ -103,7 +105,6 @@ export class BlockDropDecisionMenu implements Menu {
   private resume: () => void;
 
   constructor(
-    private readonly ship: Ship,
     private readonly inputManager: InputManager,
     shipBuilderEffects: ShipBuilderEffectsSystem,
     pause: () => void,
@@ -113,6 +114,10 @@ export class BlockDropDecisionMenu implements Menu {
     this.pause = pause;
     this.resume = resume;
     this.initialize();
+  }
+
+  setPlayerShip(ship: Ship): void {
+    this.ship = ship;
   }
 
   private initialize(): void {
@@ -248,6 +253,7 @@ export class BlockDropDecisionMenu implements Menu {
 
   update(dt: number): void {
     if (!this.open) return;
+    if (!this.ship) return;
 
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
@@ -454,6 +460,7 @@ export type InputAction =
 
   private handleAutoplace(): void {
     if (!this.currentBlockType) return;
+    if (!this.ship) return;
 
     const archetype = getArchetypeById('interceptor'); // TODO: Get from player prefs
     
@@ -494,6 +501,8 @@ export type InputAction =
     let delay = delayBase;
 
     while (this.currentBlockType && this.queue.length >= 0) {
+      if (!this.ship) return;
+
       const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects, archetype ?? undefined);
       if (!success) {
         audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');

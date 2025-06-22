@@ -1,5 +1,3 @@
-// src/game/ship/ShipFactory.ts
-
 import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
@@ -11,9 +9,9 @@ import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBac
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
-import { SeekTargetState } from '@/systems/ai/fsm/SeekTargetState';
-import { DefaultBehaviorProfile, SpaceStationBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { Faction } from '@/game/interfaces/types/Faction';
+import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -32,14 +30,12 @@ import type { BehaviorTypeKey } from '@/systems/ai/types/BehaviorProfileRegistry
 
 import { BehaviorProfileRegistry } from '@/systems/ai/types/BehaviorProfileRegistry';
 
-
 export type AuraLightOptions = {
   color: string;
   radius: number;
   intensity: number;
 };
 
-// Utility type guard to validate behaviorType
 function isBehaviorTypeKey(value: string): value is BehaviorTypeKey {
   return value in BehaviorProfileRegistry;
 }
@@ -48,8 +44,6 @@ export class ShipFactory {
   public constructor(
     private readonly grid: Grid,
     private readonly registry: ShipRegistry,
-    private readonly orchestrator: AIOrchestratorSystem,
-    private readonly playerShip: Ship,
     private readonly particleManager: ParticleManager,
     private readonly projectileSystem: ProjectileSystem,
     private readonly laserSystem: LaserSystem,
@@ -57,6 +51,7 @@ export class ShipFactory {
     private readonly explosionSystem: ExplosionSystem,
     private readonly collisionSystem: BlockObjectCollisionSystem,
     private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
+    private readonly orchestrator?: AIOrchestratorSystem // ← now optional
   ) {}
 
   public async createShip(
@@ -68,9 +63,10 @@ export class ShipFactory {
     affixes: ShipAffixes = {},
     faction: Faction = Faction.Enemy,
     registerController: boolean = true,
-    unCullable: boolean = false
-  ): Promise<{ ship: Ship; controller: AIControllerSystem }> {
-    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid);
+    unCullable: boolean = false,
+    isPlayerShip: boolean = false
+  ): Promise<{ ship: Ship; controller: AIControllerSystem | null, emitter: ThrusterEmitter, movement: MovementSystem, weapons: WeaponSystem, utility: UtilitySystem }> {
+    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid, faction);
 
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
@@ -84,50 +80,62 @@ export class ShipFactory {
     transform.position.y = y;
 
     this.registry.add(ship);
+    if (isPlayerShip) {
+      this.registry.setPlayerShip(ship);
+    }
 
     const emitter = new ThrusterEmitter(this.particleManager);
     const movement = new MovementSystem(ship, emitter, this.collisionSystem);
     const weapons = new WeaponSystem(
-      new TurretBackend(this.projectileSystem, this.playerShip),
+      new TurretBackend(this.projectileSystem),
       new LaserBackend(this.laserSystem),
-      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.playerShip),
+      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
-    const effectiveProfile =
-      behaviorProfile ??
-      (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
-        ? BehaviorProfileRegistry[behaviorType]
-        : undefined) ??
-      DefaultBehaviorProfile;
+    let controller: AIControllerSystem | null = null;
 
-    const controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
+    if (!isPlayerShip) {
+      const effectiveProfile =
+        behaviorProfile ??
+        (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
+          ? BehaviorProfileRegistry[behaviorType]
+          : undefined) ??
+        DefaultBehaviorProfile;
 
-    if (effectiveProfile.initialStateFactory) {
-      const initialState = effectiveProfile.initialStateFactory(controller);
-      controller.setInitialState(initialState);
-    } 
+      controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
 
-    controller.setHunter(hunter);
-    if (registerController) {
-      this.orchestrator.addController(controller, unCullable);
+      if (effectiveProfile.initialStateFactory) {
+        const initialState = effectiveProfile.initialStateFactory(controller);
+        controller.setInitialState(initialState);
+      }
+
+      controller.setHunter(hunter);
+
+      if (registerController && this.orchestrator) {
+        this.orchestrator.addController(controller, unCullable);
+      }
+    } else {
+      ship.setIsPlayerShip(true);
+      ship.setFiringMode(FiringMode.Sequence);
     }
 
     ship.hideAllBlocks();
     ship.updateBlockPositions();
 
+    const auraLightColor = isPlayerShip ? '#ADD8E6' : '#ff0000';
     const auraLightOptions: AuraLightOptions = {
-      color: '#ff0000',
+      color: auraLightColor,
       radius: 96,
       intensity: 0.8
     };
     this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 
-    return { ship, controller };
+    return { ship, controller, emitter, movement, weapons, utility };
   }
 
-  public getOrchestrator(): AIOrchestratorSystem {
+  public getOrchestrator(): AIOrchestratorSystem | undefined {
     return this.orchestrator;
   }
 }

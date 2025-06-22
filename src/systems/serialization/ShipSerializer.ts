@@ -3,6 +3,7 @@
 import { Ship } from '@/game/ship/Ship';
 import { Grid } from '@/systems/physics/Grid'; // Import the Grid class
 import { getAssetPath } from '@/shared/assetHelpers';
+import { Faction } from '@/game/interfaces/types/Faction';
 
 // Define the format for serialized ship data
 export interface SerializedShip {
@@ -71,12 +72,13 @@ export function deserializeShip(data: SerializedShip, grid: Grid): Ship {
 
 export function loadShipFromJson(
   fileName: string,
-  grid: Grid
+  grid: Grid,
+  faction: Faction = Faction.Enemy
 ): Promise<{ ship: Ship; behaviorType?: string }> {
   return fetch(getAssetPath(`/assets/ships/${fileName}`))
     .then(response => response.json())
     .then(data => {
-      const ship = new Ship(grid);
+      const ship = new Ship(grid, undefined, undefined, true, undefined, faction);
       ship.loadFromJson(data);
       return {
         ship,

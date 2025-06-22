@@ -5,6 +5,7 @@ import type { Menu } from '@/ui/interfaces/Menu';
 import type { MenuManager } from '@/ui/MenuManager';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 
+import { missionLoader } from '@/game/missions/MissionLoader';
 import { audioManager } from '@/audio/Audio';
 
 type MenuContext = {
@@ -36,6 +37,17 @@ export function handleMenuInput({
 
   // === TAB toggles ship builder ONLY when no other menu is open ===
   if (tabPressed) {
+    if (missionLoader.getMission().id === 'mission_editor') {
+      if (shipBuilderMenu.isOpen()) {
+        shipBuilderMenu.closeMenu();
+        resume();
+        return;
+      } else {
+        pause();
+        shipBuilderMenu.openMenu();
+        return;
+      }
+    }
     if (blockDropDecisionMenu.isOpen()) {
       return;
     } else if (!settingsMenu.isOpen() && !pauseMenu.isOpen() && !shipBuilderMenu.isOpen() && !blockDropDecisionMenu.isOpen()) {

@@ -5,6 +5,8 @@ import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { Camera } from '@/core/Camera';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -30,7 +32,6 @@ export class CombatService {
     coord: GridCoord,
     damage: number,
     cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'haloBlade' | 'scripted' = 'scripted',
-    playerShip: Ship | null = null, // Player ship for reference
     lightFlash: boolean = true
   ): boolean {
     if (block.indestructible) return false;
@@ -40,6 +41,8 @@ export class CombatService {
 
     // === Scale damage by mission difficulty ===
     const enemyPower = missionLoader.getEnemyPower();
+
+    const playerShip = ShipRegistry.getInstance().getPlayerShip();
 
     // Scale if damage is dealt *by* the player to a non-player entity
     if (playerShip?.getIsPlayerShip() && !(entity instanceof Ship && entity.getIsPlayerShip())) {

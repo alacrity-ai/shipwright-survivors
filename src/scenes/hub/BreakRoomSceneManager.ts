@@ -35,7 +35,7 @@ export class BreakroomSceneManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
 
-    this.cursorRenderer = new CursorRenderer(canvasManager, inputManager, null);
+    this.cursorRenderer = new CursorRenderer(canvasManager, inputManager);
 
     const crtStyle = {
       borderRadius: 10,

@@ -72,11 +72,7 @@ import { WaveOrchestratorFactory } from '@/game/waves/WaveOrchestratorFactory';
 import { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
-import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
-import { LaserBackend } from '@/systems/combat/backends/weapons/LaserBackend';
-import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBackend';
-import { ExplosiveLanceBackend } from '@/systems/combat/backends/weapons/ExplosiveLanceBackend';
-import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
+
 import { CombatService } from '@/systems/combat/CombatService';
 import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
 
@@ -118,17 +114,19 @@ export class EngineRuntime {
   private readonly boundUpdate = (dt: number) => this.update(dt);
   private readonly boundRender = (dt: number) => this.render(dt);
 
+  private isInitialized = false;
+
   private inputManager: InputManager;
-  private missionDialogueManager: MissionDialogueManager;
-  private coachMarkManager: CoachMarkManager;
+  private missionDialogueManager: MissionDialogueManager | null = null;
+  private coachMarkManager: CoachMarkManager | null = null;
   private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
-  private spaceStationBuilderMenu: SpaceStationBuilderMenu;
-  private settingsMenu: SettingsMenu;
+  private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
+  private settingsMenu: SettingsMenu | null = null;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
-  private pauseMenu: PauseMenu;
-  private hud: HudOverlay;
-  private miniMap: MiniMap;
+  private pauseMenu: PauseMenu | null = null;
+  private hud: HudOverlay | null = null;
+  private miniMap: MiniMap | null = null;
 
   private canvasManager: CanvasManager;
   private camera: Camera | null = null;
@@ -136,9 +134,9 @@ export class EngineRuntime {
   private mission: MissionDefinition
   private shipRegistry = ShipRegistry.getInstance();
   private blockObjectRegistry = CompositeBlockObjectRegistry.getInstance();
-  private shipCulling: ShipCullingSystem;
-  private blockObjectCulling: CompositeBlockObjectCullingSystem;
-  private blockObjectUpdate: CompositeBlockObjectUpdateSystem;
+  private shipCulling: ShipCullingSystem | null = null;
+  private blockObjectCulling: CompositeBlockObjectCullingSystem | null = null;
+  private blockObjectUpdate: CompositeBlockObjectUpdateSystem | null = null;
   private aiOrchestrator: AIOrchestratorSystem;
 
   private grid: Grid | null = null;
@@ -147,32 +145,34 @@ export class EngineRuntime {
   private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
   private spaceStation: SpaceStation | null = null;
 
+  private combatService: CombatService;
+  private destructionService: CompositeBlockDestructionService;
   private projectileSystem: ProjectileSystem;
   private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
   private particleManager: ParticleManager;
-  private unifiedSceneRenderer: UnifiedSceneRendererGL;
+  private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
-  private waveOrchestrator: WaveOrchestrator;
-  private incidentOrchestrator: IncidentOrchestrator;
-  private asteroidSpawner: AsteroidSpawningSystem;
-  private wavesOverlay: WavesOverlay;
-  private popupMessageSystem: PopupMessageSystem;
-  private debugOverlay: DebugOverlay;
+  private waveOrchestrator: WaveOrchestrator | null = null;
+  private incidentOrchestrator: IncidentOrchestrator | null = null;
+  private asteroidSpawner: AsteroidSpawningSystem | null = null;
+  private wavesOverlay: WavesOverlay | null = null;
+  private popupMessageSystem: PopupMessageSystem | null = null;
+  private debugOverlay: DebugOverlay | null = null;
   private lightingOrchestrator: LightingOrchestrator;
 
   private collisionSystem: BlockObjectCollisionSystem;
-  private movement: MovementSystem;
-  private weaponSystem: WeaponSystem;
-  private utilitySystem: UtilitySystem;
-  private planetSystem: PlanetSystem;
-  private energyRechargeSystem: EnergyRechargeSystem;
-  private playerController: PlayerControllerSystem;
+  private movement: MovementSystem | null = null;
+  private weaponSystem: WeaponSystem | null = null;
+  private utilitySystem: UtilitySystem | null = null;
+  private planetSystem: PlanetSystem | null = null;
+  private energyRechargeSystem: EnergyRechargeSystem | null = null;
+  private playerController: PlayerControllerSystem | null = null;
   private shipBuilderController: ShipBuilderController;
   private blockPlacementController: BlockPlacementController;
-  private spaceStationBuilderController: SpaceStationBuilderController;
+  private spaceStationBuilderController: SpaceStationBuilderController | null = null;
   private explosionSystem: ExplosionSystem;
   private shipBuilderEffects: ShipBuilderEffectsSystem;
   private screenEffects: ScreenEffectsSystem;
@@ -207,7 +207,7 @@ export class EngineRuntime {
     applyViewportResolution(this.canvasManager, this.camera);
 
     // Persistent UI
-    this.popupMessageSystem = new PopupMessageSystem(this.canvasManager);
+    this.popupMessageSystem = new PopupMessageSystem();
   
     // Lighting System
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
@@ -225,43 +225,17 @@ export class EngineRuntime {
     const playerStats = PlayerStats.getInstance();
     playerStats.initialize(); // Start with 100 energy
 
-    // Get starter ship, TODO: Replace this with user's selected starter ship
-    this.ship = getStarterShip(this.grid);
-
-    // Register player ship using the Singleton ShipRegistry
-    this.shipRegistry.add(this.ship);
-    this.shipRegistry.setPlayerShip(this.ship);
-
-    // Register culling systems
-    this.shipCulling = new ShipCullingSystem(this.shipGrid);
-    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid);
-
     // Initialize ExplosionSystem and ScreenEffectsSystem
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.canvasManager, this.camera);
     
     // === Cursor
-    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager, this.ship);
+    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
 
-    // === AI Orchestrator
-    this.aiOrchestrator = new AIOrchestratorSystem(this.shipGrid);
-    this.aiOrchestrator.registerPlayerShip(this.ship);
-
-    // Menus
+    // === Ship Builder (For Edit  Mode)
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera);
-    this.pauseMenu = new PauseMenu(
-      this.inputManager,
-      this.handlePlayerFailure.bind(this),
-      this.menuManager,
-    );
-    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
-    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
-    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
-    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
     this.shipBuilderController = new ShipBuilderController(
-      this.ship, 
       this.shipBuilderMenu, 
       this.camera, 
       this.shipBuilderEffects,
@@ -270,25 +244,27 @@ export class EngineRuntime {
     this.shipBuilderMenu.setRepairAllHandler(() => {
       this.shipBuilderController.repairAllBlocks();
     });
+
+    // === Block Drop Decision Menu
     this.blockDropDecisionMenu = new BlockDropDecisionMenu(
-      this.ship,
       this.inputManager, 
       this.shipBuilderEffects,
       this.pause.bind(this), 
       this.resume.bind(this)
     );
     this.blockPlacementController = new BlockPlacementController(
-      this.ship,
       this.blockDropDecisionMenu,
       this.camera,
       this.shipBuilderEffects,
       this.inputManager
     );
 
+    // === AI Orchestrator
+    this.aiOrchestrator = new AIOrchestratorSystem(this.shipGrid);
+
     // === Construct PickupSystem and PickupSpawner ===
     this.pickupSystem = new PickupSystem(
       this.camera, 
-      this.ship, 
       this.particleManager, 
       this.screenEffects, 
       this.popupMessageSystem,
@@ -298,80 +274,109 @@ export class EngineRuntime {
     const pickupSpawner = new PickupSpawner(this.pickupSystem);
 
     // === Destruction and Combat Services
-    const destructionService = new CompositeBlockDestructionService(
+    this.destructionService = new CompositeBlockDestructionService(
       this.explosionSystem,
       pickupSpawner,
       this.shipRegistry,
       this.aiOrchestrator,
     );
-
+    
     this.floatingTextManager = new FloatingTextManager();
-    const combatService = new CombatService(
+    this.combatService = new CombatService(
       this.explosionSystem,
       pickupSpawner,
-      destructionService,
+      this.destructionService,
       this.floatingTextManager
     );
-
-    // Collision System
-    this.collisionSystem = new BlockObjectCollisionSystem(combatService);
     
-    // === Shared ship systems ===
-    // Deprecate this awful class and put it into the turret backend 
-    // Projectile system (Single instance shared by all ships)
+    // Collision System
+    this.collisionSystem = new BlockObjectCollisionSystem(this.combatService);
+
     this.projectileSystem = new ProjectileSystem(
       this.canvasManager,
       this.grid,
-      combatService,
+      this.combatService,
       this.particleManager,
-      this.ship
     );
     // Laser system (Single instance shared by all ships)
     this.laserSystem = new LaserSystem(
       this.canvasManager,
       this.camera,
       this.grid,
-      combatService,
-      this.particleManager,
-      this.ship
+      this.combatService,
     );
+    this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.camera, this.canvasManager);
+
+    this.registerLoopHandlers();
+  }
+
+  public async initialize(): Promise<void> {
+    // === Player Ship
+    const { ship, controller, emitter, movement, weapons, utility } = await getStarterShip(
+      this.grid!,
+      this.shipRegistry,
+      this.particleManager,
+      this.projectileSystem,
+      this.laserSystem,
+      this.combatService,
+      this.explosionSystem,
+      this.collisionSystem,
+      this.shipConstructionAnimator,
+      'player/ship_00'
+    );
+
+    this.ship = ship
+    this.movement = movement; // Movement system needed for update() loop
+    this.weaponSystem = weapons; // Weapon system needed for update() loop
+    this.utilitySystem = utility; // Utility system needed for update() loop
+
+    // Player controller (input)
+    this.playerController = new PlayerControllerSystem(this.camera!, this.inputManager, this.cursorRenderer, this.ship);
+
+    // Register ship to:
+    this.pickupSystem.setPlayerShip(this.ship);
+    this.cursorRenderer.setPlayerShip(this.ship);
+    this.shipBuilderController.setPlayerShip(this.ship);
+    this.blockPlacementController.setPlayerShip(this.ship);
+    this.blockDropDecisionMenu.setPlayerShip(this.ship);
+    this.aiOrchestrator.registerPlayerShip(this.ship);
+    this.shipConstructionAnimator.setPlayerShip(this.ship);
+    MovementSystemRegistry.register(this.ship, this.movement); // TODO : This may be needed for player ship?
+
+    // Register culling systems
+    this.shipCulling = new ShipCullingSystem(this.shipGrid!);
+    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid!);
+
+    // Menus
+    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera!);
+    this.pauseMenu = new PauseMenu(
+      this.inputManager,
+      this.handlePlayerFailure.bind(this),
+      this.menuManager,
+    );
+    this.menuManager.registerMenu('pauseMenu', this.pauseMenu);
+    this.menuManager.registerMenu('settingsMenu', this.settingsMenu);
+    this.menuManager.registerMenu('shipBuilderMenu', this.shipBuilderMenu);
+    this.menuManager.registerPauseHandlers(this.pause.bind(this), this.resume.bind(this));
+
     // Energy Recharge System: Single instance used by all ships
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
 
     // Renderers
-    // this.asteroidRenderer = new AsteroidRenderer(this.canvasManager, this.camera, this.blockObjectCulling, this.inputManager);
-    this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.ship, this.camera, this.canvasManager);
-    this.unifiedSceneRenderer = new UnifiedSceneRendererGL(this.camera, this.inputManager);
+    this.unifiedSceneRenderer = new UnifiedSceneRendererGL(this.camera!, this.inputManager);
     this.unifiedSceneRenderer.setAmbientLight([0.4, 0.4, 0.4]);
     this.unifiedSceneRenderer.setBackgroundImage(this.mission.environmentSettings?.backgroundId ?? null);
 
     // Additional Update Systems
     this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
 
-    // Add components to player ship (Should all be abstracted into one factory)
-    const emitter = new ThrusterEmitter(this.particleManager);
-    this.movement = new MovementSystem(this.ship, emitter, this.collisionSystem);
-    MovementSystemRegistry.register(this.ship, this.movement);
-    this.weaponSystem = new WeaponSystem(
-      new TurretBackend(this.projectileSystem, this.ship),
-      new LaserBackend(this.laserSystem),
-      new ExplosiveLanceBackend(combatService, this.particleManager, this.grid, this.explosionSystem, this.ship),
-      new HaloBladeBackend(combatService, this.particleManager, this.grid, this.ship)
-    );
-    this.utilitySystem = new UtilitySystem(
-      new ShieldToggleBackend()
-    );
-
-    // Player controls
-    this.playerController = new PlayerControllerSystem(this.camera, this.inputManager, this.cursorRenderer, this.ship);
-
     // Dev Tools
     this.spaceStationBuilderMenu = new SpaceStationBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.spaceStation = getStarterSpaceStation(this.grid);
+    this.spaceStation = getStarterSpaceStation(this.grid!);
     this.spaceStationBuilderController = new SpaceStationBuilderController(
       this.spaceStation, 
       this.spaceStationBuilderMenu, 
-      this.camera, 
+      this.camera!, 
       this.shipBuilderEffects,
       this.inputManager
     );
@@ -379,60 +384,34 @@ export class EngineRuntime {
     // == Enemy Wave Spawning System and Incident System
     this.incidentOrchestrator = new IncidentOrchestrator({
       canvasManager: this.canvasManager,
-      camera: this.camera,
+      camera: this.camera!,
       inputManager: this.inputManager,
-      playerShip: this.ship,
       aiOrchestrator: this.aiOrchestrator,
-      popupMessageSystem: this.popupMessageSystem,
+      popupMessageSystem: this.popupMessageSystem!,
     });
-
-    // OLD
-    // this.waveSpawner = new WaveSpawner(
-    //   this.mission.waves,
-    //   this.shipRegistry,
-    //   this.aiOrchestrator,
-    //   this.ship,
-    //   this.projectileSystem,
-    //   this.laserSystem,
-    //   this.particleManager,
-    //   this.grid,
-    //   combatService,
-    //   this.explosionSystem,
-    //   this.collisionSystem,
-    //   this.shipConstructionAnimator,
-    //   this.incidentOrchestrator,
-    //   this.popupMessageSystem,
-    // );
 
     this.waveOrchestrator = WaveOrchestratorFactory.create(
       this.mission.waves,
-      this.grid,
+      this.grid!,
       this.shipRegistry,
       this.aiOrchestrator,
       this.particleManager,
       this.projectileSystem,
       this.laserSystem,
-      combatService,
+      this.combatService,
       this.explosionSystem,
       this.collisionSystem,
       this.shipConstructionAnimator,
       this.incidentOrchestrator,
-      this.popupMessageSystem
+      this.popupMessageSystem!
     );
 
     // Notify wave orchestrator when a ship is destroyed
-    destructionService.onEntityDestroyed((entity, _cause) => {
+    this.destructionService.onEntityDestroyed((entity, _cause) => {
       if (entity instanceof Ship) {
-        this.waveOrchestrator.notifyShipDestroyed(entity);
+        this.waveOrchestrator!.notifyShipDestroyed(entity);
       }
     });
-
-    // Planet System
-    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
-    this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
-
-    // AsteroidSpawner
-    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid, this.blockObjectRegistry, this.objectGrid);
 
     // Dialogue Manager
     this.coachMarkManager = CoachMarkManager.getInstance();
@@ -440,15 +419,31 @@ export class EngineRuntime {
       this.inputManager, 
       this.canvasManager, 
       this.waveOrchestrator, 
-      this.ship,
       this.coachMarkManager
     );
 
+    // Planet System
+    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera!, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
+    this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
+
+    // AsteroidSpawner
+    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid!, this.blockObjectRegistry, this.objectGrid!);
+
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid, this.objectGrid);
-    this.hud = new HudOverlay(this.canvasManager, this.ship, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
-    this.miniMap = new MiniMap(this.canvasManager, this.ship, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid!, this.objectGrid!);
+    this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
+    this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
+    
+    // Register player ship
+    this.miniMap.setPlayerShip(this.ship);
+    this.hud.setPlayerShip(this.ship);
+
+    // Hide hide if in editor
+    if (missionLoader.getMission().id === 'mission_editor') {
+      this.hud.hide();
+      this.miniMap.hide();
+    }
 
     // All systems that need to be updated every frame
     this.updatables = [
@@ -470,21 +465,21 @@ export class EngineRuntime {
             return;
           }
           // Player Ship's update
-          const intent: ShipIntent = this.playerController.getIntent();
-          this.movement.setIntent(intent.movement);
-          this.weaponSystem.setIntent(intent.weapons);
-          this.utilitySystem.setIntent(intent.utility);
+          const intent: ShipIntent = this.playerController!.getIntent();
+          this.movement!.setIntent(intent.movement);
+          this.weaponSystem!.setIntent(intent.weapons);
+          this.utilitySystem!.setIntent(intent.utility);
 
           try {
-            this.weaponSystem.update(dt, this.ship, this.ship.getTransform());
-            this.utilitySystem.update(dt, this.ship, this.ship.getTransform());
+            this.weaponSystem!.update(dt, this.ship, this.ship.getTransform());
+            this.utilitySystem!.update(dt, this.ship, this.ship.getTransform());
             this.ship.getAfterburnerComponent()?.update(dt);
           } catch (error) {
             console.error("Error updating system:", error);
           }
         }
       },
-      this.popupMessageSystem,
+      this.popupMessageSystem!,
       this.shipConstructionAnimator,
       this.planetSystem,
       this.lightingOrchestrator,
@@ -500,7 +495,7 @@ export class EngineRuntime {
       this.screenEffects,
       this.wavesOverlay,
       this.debugOverlay,
-      this.popupMessageSystem,
+      this.popupMessageSystem!,
       this.missionDialogueManager,
       this.shipConstructionAnimator,
       this.planetSystem,
@@ -509,7 +504,7 @@ export class EngineRuntime {
       this.coachMarkManager,
     ];
 
-    this.registerLoopHandlers();
+    this.isInitialized = true;
   }
 
   private registerLoopHandlers() {
@@ -519,15 +514,16 @@ export class EngineRuntime {
 
   private pause() {
     this.isPaused = true;
-    this.waveOrchestrator.pause();
+    this.waveOrchestrator!.pause();
   }
 
   private resume() {
     this.isPaused = false;
-    this.waveOrchestrator.resume();
+    this.waveOrchestrator!.resume();
   }
 
   private update = (dt: number) => {
+    if (!this.isInitialized) return;
     if (this.isDestroyed) return;
 
     // === Engine sound === TODO: Move this elsewhere, shouldn't fire on pause
@@ -542,8 +538,8 @@ export class EngineRuntime {
       pause: this.pause.bind(this),
       resume: this.resume.bind(this),
       shipBuilderMenu: this.shipBuilderMenu,
-      pauseMenu: this.pauseMenu,
-      settingsMenu: this.settingsMenu,
+      pauseMenu: this.pauseMenu!,
+      settingsMenu: this.settingsMenu!,
       blockDropDecisionMenu: this.blockDropDecisionMenu,
       menuManager: this.menuManager,
     });
@@ -556,20 +552,20 @@ export class EngineRuntime {
       }
     }
 
-    if (this.pauseMenu.isOpen()) {
-      this.pauseMenu.update();
+    if (this.pauseMenu!.isOpen()) {
+      this.pauseMenu!.update();
     }
 
-    if (this.settingsMenu.isOpen()) {
-      this.settingsMenu.update();
+    if (this.settingsMenu!.isOpen()) {
+      this.settingsMenu!.update();
     }
 
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderMenu.update();
     }
 
-    if (this.spaceStationBuilderMenu.isOpen()) {
-      this.spaceStationBuilderMenu.update();
+    if (this.spaceStationBuilderMenu!.isOpen()) {
+      this.spaceStationBuilderMenu!.update();
     }
 
     // Debug keys 
@@ -611,10 +607,10 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyN')) {
-      if (this.waveOrchestrator.getIsPaused()) {
-        this.waveOrchestrator.resume();
+      if (this.waveOrchestrator!.getIsPaused()) {
+        this.waveOrchestrator!.resume();
       } else {
-        this.waveOrchestrator.pause();
+        this.waveOrchestrator!.pause();
       }
     }
 
@@ -623,6 +619,9 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyO')) {
+      PlayerTechnologyManager.getInstance().unlockAll();
+      PlayerResources.getInstance().addCurrency(99999999999999);
+
       if (this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.closeMenu();
         this.resume();
@@ -637,18 +636,18 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasRightBracketPressed()) {
-      this.waveOrchestrator.skipToNextWave();
+      this.waveOrchestrator!.skipToNextWave();
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyI')) {
-      if (!this.spaceStationBuilderMenu.isOpen()) {
+      if (!this.spaceStationBuilderMenu!.isOpen()) {
         this.pause();
         console.log("Opening space station builder menu...");
-        this.spaceStationBuilderMenu.openMenu();
+        this.spaceStationBuilderMenu!.openMenu();
       } else {
         this.resume();
         console.log("Closing space station builder menu...");
-        this.spaceStationBuilderMenu.closeMenu();
+        this.spaceStationBuilderMenu!.closeMenu();
       }
     }
 
@@ -664,15 +663,17 @@ export class EngineRuntime {
       }
       const transform = this.ship.getTransform();
       this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
-      this.camera.follow(transform.position);
+      if (!this.shipBuilderMenu.isOpen()) {
+        this.camera.follow(transform.position);
+      }
       this.camera.update(dt);
 
       if (this.shipBuilderMenu.isOpen()) {
           this.shipBuilderController.update(transform);
       }
-      if (this.spaceStationBuilderMenu.isOpen()) {
+      if (this.spaceStationBuilderMenu!.isOpen()) {
         if (this.spaceStation) {
-          this.spaceStationBuilderController.update(this.spaceStation.getTransform());
+          this.spaceStationBuilderController!.update(this.spaceStation.getTransform());
         }
       }
     } catch (error) {
@@ -685,12 +686,12 @@ export class EngineRuntime {
     }
 
     // Always update these systems regardless of pause state
-    this.hud.update(dt);
+    this.hud!.update(dt);
     this.shipBuilderEffects.update(dt);
     this.inputManager.updateFrame();
-    this.missionDialogueManager.update(dt);
+    this.missionDialogueManager!.update(dt);
     this.floatingTextManager.update(dt);
-    this.coachMarkManager.update(dt);
+    this.coachMarkManager!.update(dt);
   };
 
   private render = (dt: number) => {
@@ -707,8 +708,8 @@ export class EngineRuntime {
 
     // Render all graphics through Unified Rendering Pipeline
     if (this.camera) {
-      const visibleBlockObjects = this.blockObjectCulling.getVisibleObjects();
-      const visibleShips = this.shipCulling.getVisibleShips();
+      const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
+      const visibleShips = this.shipCulling!.getVisibleShips();
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
       const activeParticles = this.particleManager.getActiveParticles();
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
@@ -720,7 +721,7 @@ export class EngineRuntime {
         this.ship.enqueueRenderRequest();
       }
 
-      this.unifiedSceneRenderer.render(
+      this.unifiedSceneRenderer!.render(
         this.camera,
         visibleObjects,
         visibleLights,
@@ -742,19 +743,19 @@ export class EngineRuntime {
       this.blockPlacementController.render(this.canvasManager.getContext('entities'), transform);
     }
 
-    if (this.spaceStationBuilderMenu.isOpen()) {
+    if (this.spaceStationBuilderMenu!.isOpen()) {
       if (this.spaceStation) {
-        this.spaceStationBuilderController.render(this.canvasManager.getContext('entities'), this.spaceStation.getTransform());
-        this.spaceStationBuilderMenu.render(this.canvasManager.getContext('ui'));
+        this.spaceStationBuilderController!.render(this.canvasManager.getContext('entities'), this.spaceStation.getTransform());
+        this.spaceStationBuilderMenu!.render(this.canvasManager.getContext('ui'));
       }
     }
 
-    if (this.pauseMenu.isOpen()) {
-      this.pauseMenu.render(this.canvasManager.getContext('ui'));
+    if (this.pauseMenu!.isOpen()) {
+      this.pauseMenu!.render(this.canvasManager.getContext('ui'));
     }
 
-    if (this.settingsMenu.isOpen()) {
-      this.settingsMenu.render(this.canvasManager.getContext('ui'));
+    if (this.settingsMenu!.isOpen()) {
+      this.settingsMenu!.render(this.canvasManager.getContext('ui'));
     }
 
     this.cursorRenderer.render();
@@ -774,22 +775,25 @@ export class EngineRuntime {
    * Starts the game loop and initializes the mission.
   **/
   public start() {
-    // TODO testing rasterization
+    if (!this.isInitialized) {
+      throw new Error('EngineRuntime: Cannot start before initialization');
+    }
+
     this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     this.gameLoop.start();
-    this.asteroidSpawner.spawnFieldById('asteroid-field-01');
+    this.asteroidSpawner!.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
     // TODO : Put this in options
     applyWarmCinematicEffect();
-    setTimeout(() => {
-      if (this.ship) {
-        this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 96, intensity: 1.25 });
-      }
-    }, 1000);
+    // setTimeout(() => {
+    //   if (this.ship) {
+    //     this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 96, intensity: 1.25 });
+    //   }
+    // }, 1000);
     setTimeout(() => {
       this.inputManager.enableAllActions();
-      this.missionDialogueManager.initialize();
+      this.missionDialogueManager!.initialize();
     }, 4200);
   }
 
@@ -833,7 +837,7 @@ export class EngineRuntime {
     GlobalEventBus.off('player:defeat', this.handlePlayerFailure);
 
     // === Clean up singleton state ===
-    this.waveOrchestrator.destroy();
+    this.waveOrchestrator!.destroy();
     this.shipRegistry.clear();
     this.aiOrchestrator.clear();
     ShieldEffectsSystem.getInstance().clear();
@@ -848,10 +852,10 @@ export class EngineRuntime {
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();
-    this.hud.destroy();
-    this.miniMap.destroy();
+    this.hud!.destroy();
+    this.miniMap!.destroy();
     this.lightingOrchestrator.destroy();
-    this.missionDialogueManager.destroy();
+    this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();
     // TODO : Destroy GL2 blocksprite cache?? Leaving undestroyed for use by Debriefing Scene
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));

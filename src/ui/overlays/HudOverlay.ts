@@ -13,12 +13,18 @@ import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { getUniformScaleFactor } from '@/config/view';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { PlayerResources as PlayerResourcesSingleton } from '@/game/player/PlayerResources';
 import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
 
 export class HudOverlay {
+  private ship: Ship | null = null;
+
   private readonly playerResources: PlayerResources;
   private readonly blockQueueDisplayManager: BlockQueueDisplayManager;
+
+  private hidden: boolean = false;
 
   private currency: number = 0;
   private previousCurrency: number = 0;
@@ -26,7 +32,6 @@ export class HudOverlay {
 
   constructor(
     private readonly canvasManager: CanvasManager,
-    private readonly ship: Ship,
     private readonly floatingTextManager: FloatingTextManager,
     private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
     private readonly inputManager: InputManager,
@@ -73,11 +78,18 @@ export class HudOverlay {
     );
   }
 
+  public setPlayerShip(ship: Ship): void {
+    this.ship = ship;
+  }
+
   update(dt: number): void {
     this.blockQueueDisplayManager.update(dt);
   }
 
   render(dt: number): void {
+    if (this.hidden) return;
+    if (!this.ship) return;
+
     const scale = getUniformScaleFactor();
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
@@ -224,5 +236,13 @@ export class HudOverlay {
 
   destroy(): void {
     this.disposer?.();
+  }
+
+  public hide(): void {
+    this.hidden = true;
+  }
+
+  public show(): void {
+    this.hidden = false;
   }
 }

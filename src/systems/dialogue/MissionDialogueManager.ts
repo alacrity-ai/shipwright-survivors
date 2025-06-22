@@ -6,6 +6,8 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { Ship } from '@/game/ship/Ship';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { DialogueQueueManagerFactory } from './factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from './registry/DialogueScriptRegistry';
@@ -14,6 +16,8 @@ import { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
 export class MissionDialogueManager implements IUpdatable, IRenderable {
+  private playerShip: Ship | null = null;
+
   private readonly dialogueQueueManager = DialogueQueueManagerFactory.create();
   private readonly scriptQueue: string[] = [];
 
@@ -21,9 +25,12 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
     private readonly inputManager: InputManager,
     private readonly canvasManager: CanvasManager,
     private readonly waveOrchestrator: WaveOrchestrator,
-    private readonly playerShip: Ship,
     private readonly coachMarkManager: CoachMarkManager
   ) {}
+
+  public setPlayerShip(ship: Ship): void {
+    this.playerShip = ship;
+  }
 
   public initialize(): void {
     this.enqueueInitialDialogues();
@@ -41,9 +48,13 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   }
 
   private getDialogueContext(): DialogueContext {
+    const playerShip = ShipRegistry.getInstance().getPlayerShip();
+    if (!playerShip) {
+      throw new Error('Player ship is required for dialogue context');
+    }
     return {
       inputManager: this.inputManager,
-      playerShip: this.playerShip,
+      playerShip: playerShip,
       waveOrchestrator: this.waveOrchestrator,
       coachMarkManager: this.coachMarkManager,
       // Extend here as more systems are integrated

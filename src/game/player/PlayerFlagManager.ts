@@ -17,7 +17,8 @@ export class PlayerFlagManager {
     this.flags.delete(flag);
   }
 
-  public has(flag: FlagKey): boolean {
+  public has(flag: FlagKey | null): boolean {
+    if (!flag) return true; // If no flag is required, it's always "unlocked"
     return this.flags.has(flag);
   }
 

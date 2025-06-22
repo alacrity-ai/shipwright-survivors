@@ -1,4 +1,4 @@
-import type { CanvasManager } from '@/core/CanvasManager';
+import { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
 
 interface PopupMessage {
@@ -15,8 +15,8 @@ export class PopupMessageSystem {
   private ctx: CanvasRenderingContext2D;
   private messages: PopupMessage[] = [];
 
-  constructor(private readonly canvasManager: CanvasManager) {
-    this.ctx = canvasManager.getContext('ui');
+  constructor() {
+    this.ctx = CanvasManager.getInstance().getContext('ui');
   }
 
   /**

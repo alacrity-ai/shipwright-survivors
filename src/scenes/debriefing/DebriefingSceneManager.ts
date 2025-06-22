@@ -84,7 +84,7 @@ export class DebriefingSceneManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
-    this.cursorRenderer = new CursorRenderer(canvasManager, inputManager, null);
+    this.cursorRenderer = new CursorRenderer(canvasManager, inputManager);
 
     this.missionResult = missionResultStore.get().outcome;
 

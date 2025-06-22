@@ -7,6 +7,23 @@ import { waveDefinitions as waveSet3 } from '@/game/waves/missions/Mission3Waves
 import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves';
 
 export const missionRegistry: Record<string, MissionDefinition> = {
+  mission_editor: {
+    id: 'mission_editor',
+    name: 'Editor',
+    waves: [],
+    dropMultiplier: 1.5,
+    environmentSettings: {
+      backgroundId: 'background_4_00.png',
+      gravity: 0,
+      worldWidth: 24000,
+      worldHeight: 24000,
+    },
+    enemyPower: 1,
+    bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
+    passiveReward: 0,
+    missionPortrait: null,
+    requiredFlag: 'mission.mission_001.unlocked',
+  },
   mission_001: {
     id: 'mission_001',
     name: 'Shipwright Second-Class',

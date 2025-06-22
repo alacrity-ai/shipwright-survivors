@@ -35,6 +35,7 @@ export function MissionRuntimeScreen() {
       try {
         await runtime.load(); // Block until everything critical is ready
         if (!cancelled) {
+          await runtime.initialize();
           runtime.start(); // Safe to begin runtime loop
           setReadyToFade(true); // Fade out black overlay
         }

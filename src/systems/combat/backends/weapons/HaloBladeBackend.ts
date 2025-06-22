@@ -191,7 +191,6 @@ export class HaloBladeBackend implements WeaponBackend {
                 coord,
                 props.damage,
                 'haloBlade',
-                this.ship,
                 chanceOfLightFlash
               );
               damageApplications++;

@@ -19,6 +19,8 @@ import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequ
 import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
@@ -59,7 +61,7 @@ export class PickupSystem {
   private resourcePickups: PickupInstance[] = [];
 
   private playerResources: PlayerResources;
-  private playerShip: Ship;
+  private playerShip: Ship | null = null;
   private sparkManager: ParticleManager;
   private screenEffects: ScreenEffectsSystem;
   private popupMessageSystem: PopupMessageSystem;
@@ -80,7 +82,6 @@ export class PickupSystem {
 
   constructor(
     private readonly camera: Camera,
-    playerShip: Ship,
     sparkManager: ParticleManager,
     screenEffects: ScreenEffectsSystem,
     popupMessageSystem: PopupMessageSystem,
@@ -88,12 +89,15 @@ export class PickupSystem {
     blockDropDecisionMenu: BlockDropDecisionMenu
   ) {
     this.playerResources = PlayerResources.getInstance();
-    this.playerShip = playerShip;
     this.sparkManager = sparkManager
     this.screenEffects = screenEffects;
     this.popupMessageSystem = popupMessageSystem;
     this.shipBuilderEffects = shipBuilderEffects;
     this.blockDropDecisionMenu = blockDropDecisionMenu;
+  }
+
+  setPlayerShip(ship: Ship): void {
+    this.playerShip = ship;
   }
 
   spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
@@ -217,6 +221,8 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
   render(dt: number): void {}
 
   update(dt: number): void {
+    if (!this.playerShip) return;
+
     this.timeSinceLastCurrencyPickup += dt;
     this.timeSinceLastBlockPickup += dt;
 
@@ -384,6 +390,8 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
   }
 
   private async collectPickup(pickup: PickupInstance): Promise<void> {
+    if (!this.playerShip) return;
+
     pickup.isPickedUp = true;
 
     // === Remove associated light if it exists ===

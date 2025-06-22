@@ -5,6 +5,8 @@ import type { Ship } from '@/game/ship/Ship';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { PlanetSystem } from '@/game/planets/PlanetSystem';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -14,6 +16,10 @@ import { getWorldWidth, getWorldHeight, getWorldCenter } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
 
 export class MiniMap {
+  private player: Ship | null = null;
+
+  private hidden: boolean = false;
+
   private readonly baseWidth = 220;
   private readonly baseHeight = 220;
   private readonly baseMargin = 14;
@@ -44,7 +50,6 @@ export class MiniMap {
 
   constructor(
     private readonly canvasManager: CanvasManager,
-    private readonly player: Ship,
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly planetSystem: PlanetSystem,
     private scale: number = 1.0
@@ -73,6 +78,10 @@ export class MiniMap {
     // Await incident markers being added
     GlobalEventBus.on('incident:minimap:marker', this.handleIncidentMarkerAdd);
     GlobalEventBus.on('incident:minimap:clear', this.handleIncidentMarkerClear);
+  }
+
+  public setPlayerShip(ship: Ship): void {
+    this.player = ship;
   }
 
   private initializeStaticCache(): void {
@@ -168,6 +177,8 @@ export class MiniMap {
   }
 
   render(): void {
+    if (this.hidden) return;
+
     const ctx = this.canvasManager.getContext('ui');
     const currentTime = performance.now();
     const deltaTime = currentTime - this.lastFrameTime;
@@ -277,6 +288,14 @@ export class MiniMap {
     ctx.stroke();
   }
 
+  public hide(): void {
+    this.hidden = true;
+  }
+
+  public show(): void {
+    this.hidden = false;
+  }
+
   private drawCRTBackground(ctx: CanvasRenderingContext2D, x: number, y: number): void {
     // Simple gradient background
     const bgGradient = ctx.createLinearGradient(x, y, x, y + this.height);
@@ -328,6 +347,8 @@ export class MiniMap {
     ctx: CanvasRenderingContext2D,
     project: (pos: { x: number; y: number }) => { x: number; y: number }
   ): void {
+    if (!this.player) return;
+
     const playerPos = project(this.player.getTransform().position);
     const playerRotation = this.player.getTransform().rotation;
 

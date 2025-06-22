@@ -12,6 +12,9 @@ import { drawLabelLine } from '@/ui/utils/drawLabelLine';
 import { audioManager } from '@/audio/Audio';
 import { Camera } from '@/core/Camera';
 
+import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { getUniformScaleFactor } from '@/config/view';
 import { getUIScale } from '@/ui/menus/helpers/getUIScale';
 import { getResolutionScaleFactor } from '@/config/view';
@@ -445,7 +448,17 @@ export class ShipBuilderMenu implements Menu {
         tool: ShipBuilderTool.SAVE,
         action: () => {
           audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
-          // future
+
+          const ship = ShipRegistry.getInstance().getPlayerShip();
+          if (!ship) return;
+
+          const defaultName = 'saved_player_ship.json';
+          const input = prompt('Enter a filename to save your ship:', defaultName);
+
+          if (input && input.trim() !== '') {
+            const filename = input.trim().endsWith('.json') ? input.trim() : `${input.trim()}.json`;
+            savePlayerShip(ship, ship.getGrid(), filename);
+          }
         }
       },
       {
@@ -549,6 +562,28 @@ export class ShipBuilderMenu implements Menu {
 
   update(): void {
     const cam = Camera.getInstance();
+
+    // === WASD input panning ===
+    const moveSpeed = 20 / cam.getZoom(); // scaled to zoom
+    const { x, y } = cam.getTarget();
+
+    let nextX = x;
+    let nextY = y;
+
+    if (this.inputManager.isKeyPressed('KeyA')) {
+      nextX -= moveSpeed;
+    }
+    if (this.inputManager.isKeyPressed('KeyD')) {
+      nextX += moveSpeed;
+    }
+    if (this.inputManager.isKeyPressed('KeyW')) {
+      nextY -= moveSpeed;
+    }
+    if (this.inputManager.isKeyPressed('KeyS')) {
+      nextY += moveSpeed;
+    }
+
+    cam.setTarget(nextX, nextY);
 
     // === Animate menu slide ===
     if (this.isAnimating) {

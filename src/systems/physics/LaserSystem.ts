@@ -42,8 +42,6 @@ export class LaserSystem implements IUpdatable, IRenderable {
     private readonly camera: Camera,
     private readonly grid: Grid,
     private readonly combatService: CombatService,
-    private readonly particleManager: ParticleManager,
-    private readonly playerShip: Ship
   ) {
     this.ctx = canvasManager.getContext('fx');
   }
@@ -135,7 +133,6 @@ export class LaserSystem implements IUpdatable, IRenderable {
               hitCoord,
               fire.fireDamage!,
               'laser',
-              this.playerShip
             );
           }
         }

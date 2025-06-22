@@ -30,7 +30,7 @@ export interface MissionDefinition {
   dialogue?: string;
   enemyPower?: number;
   sceneLighting?: SceneLightingRGBA;
-  requiredFlag: FlagKey; // Flag required to enter this mission
+  requiredFlag?: FlagKey; // Flag required to enter this mission
   missionPortrait?: string | null;
 }
 

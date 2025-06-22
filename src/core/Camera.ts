@@ -102,6 +102,15 @@ export class Camera {
     this.targetY = position.y - (this.viewportHeight / 2) / this.zoom;
   }
 
+  public setTarget(x: number, y: number): void {
+    this.targetX = x;
+    this.targetY = y;
+  }
+
+  public getTarget(): { x: number; y: number } {
+    return { x: this.targetX, y: this.targetY };
+  }
+
   worldToScreen(wx: number, wy: number): { x: number; y: number } {
     return {
       x: (wx - this.x) * this.zoom,
