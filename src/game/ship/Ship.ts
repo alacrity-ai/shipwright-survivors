@@ -22,15 +22,13 @@ import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { AfterburnerComponent } from './components/AfterburnerComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
-import { BLOCK_SIZE } from '@/config/view';
-
 import { Faction } from '@/game/interfaces/types/Faction';
 
-import { getUniformScaleFactor } from '@/config/view';
 import { ShipRasterizationService } from '@/rendering/services/ShipRasterizationService';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
 import { CanvasManager } from '@/core/CanvasManager';
+import { emitPlayerDefeat } from '@/core/interfaces/events/PlayerOutcomeReporter';
 
 type ShipDestroyedCallback = (ship: Ship) => void;
 
@@ -764,6 +762,8 @@ export class Ship extends CompositeBlockObject {
     }
     this.destroyedListeners.length = 0;
     this.markRasterDirty();
+
+    this.onDestroyed();
   }
 
   // What about this? <----
@@ -790,5 +790,8 @@ export class Ship extends CompositeBlockObject {
       cb(this);
     }
     this.destroyedListeners.length = 0;
+    if (this.isPlayerShip) {
+      emitPlayerDefeat();
+    }
   }
 }

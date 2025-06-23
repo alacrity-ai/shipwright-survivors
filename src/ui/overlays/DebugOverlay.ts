@@ -7,13 +7,13 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { ShipGrid } from '@/game/ship/ShipGrid';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
+import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
 
 import { Camera } from '@/core/Camera';
-
-const DEBUG_MODE = false;
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
@@ -27,6 +27,7 @@ export class DebugOverlay {
   ) {}
 
   render(dt: number): void {
+    const DEBUG_MODE = PlayerSettingsManager.getInstance().getDebugMode();
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
@@ -90,12 +91,46 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Visible Aura Lights: ${visibleAuraLights}`); y += lineHeight;
     drawLabel(ctx, x, y, `Orphaned Aura Lights: ${orphanedLights.length}`); y += lineHeight;
     drawLabel(ctx, x, y, `Composite Block Objects: ${compositeBlockObjectsInGrid.length}`); y += lineHeight;
+    const destroyedObjects = compositeBlockObjectsInGrid.filter(o => o.isDestroyed());
+    drawLabel(ctx, x, y, `Destroyed Composite Objects: ${destroyedObjects.length}`); y += lineHeight;
 
-    // === State Breakdown ===
-    for (const [state, count] of Object.entries(stateCounts)) {
-      drawLabel(ctx, x, y, `${state}: ${count}`);
-      y += lineHeight;
+    // === Residual Block Count in Grid (from one ship's grid ref)
+    const sampleShip = this.shipRegistry.getPlayerShip();
+    if (sampleShip) {
+      const grid = sampleShip.getGrid?.();
+      if (grid) {
+        let blockCount = 0;
+        const seen = new Set<BlockInstance>();
+
+        const scanMap = (map: Map<number, Map<number, BlockInstance[]>>) => {
+          for (const row of map.values()) {
+            for (const cell of row.values()) {
+              for (const block of cell) {
+                if (!seen.has(block)) {
+                  seen.add(block);
+                  blockCount++;
+                }
+              }
+            }
+          }
+        };
+
+        // Scan global + faction cells
+        scanMap((grid as any).cells);
+        for (const factionMap of (grid as any).factionCells.values()) {
+          scanMap(factionMap);
+        }
+
+        drawLabel(ctx, x, y, `BlockInstances in Grid: ${blockCount}`); y += lineHeight;
+      }
     }
+
+
+    // // === State Breakdown ===
+    // for (const [state, count] of Object.entries(stateCounts)) {
+    //   drawLabel(ctx, x, y, `${state}: ${count}`);
+    //   y += lineHeight;
+    // }
   }
 }
 

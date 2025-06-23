@@ -35,6 +35,8 @@ const CATEGORIES: BlockCategory[] = ['hull', 'engine', 'weapon', 'utility'];
 
 export class ShipBuilderMenu implements Menu {
   private repairAllHandler: (() => void) | null = null;
+  private setShipHandlerFromObject: ((json: any) => void) | null = null;
+
   private inputManager: InputManager;
   private cursorRenderer: CursorRenderer;
 
@@ -82,6 +84,10 @@ export class ShipBuilderMenu implements Menu {
     this.cursorRenderer = cursorRenderer;
     // Initialize slide position to be completely off-screen
     this.slideX = -(this.TOTAL_MENU_WIDTH! + 50);
+  }
+
+  public setSetShipHandlerFromObject(handler: (json: any) => void): void {
+    this.setShipHandlerFromObject = handler;
   }
 
   resize(): void {
@@ -466,9 +472,38 @@ export class ShipBuilderMenu implements Menu {
         tool: ShipBuilderTool.LOAD,
         action: () => {
           audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx');
-          // future
+
+          const fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.accept = '.json';
+
+          fileInput.onchange = () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+              try {
+                const jsonContent = event.target?.result;
+                if (typeof jsonContent !== 'string') return;
+
+                const parsedJson = JSON.parse(jsonContent);
+                console.log('[ShipBuilderMenu] Loaded ship JSON:', parsedJson);
+                this.setShipHandlerFromObject?.(parsedJson); // ← updated handler to accept raw object
+                
+                this.closeMenu();
+              } catch (e) {
+                console.error('[ShipBuilderMenu] Failed to load ship JSON:', e);
+              }
+            };
+
+            reader.readAsText(file);
+          };
+
+          fileInput.click();
         }
       }
+
     ];
 
     for (const { label, tool, action } of buttons) {
@@ -634,6 +669,14 @@ export class ShipBuilderMenu implements Menu {
 
   openMenu(): void {
     this.resize();
+    
+    const playerShip = ShipRegistry.getInstance().getPlayerShip();
+    const transform = playerShip?.getTransform();
+
+    if (transform) {
+      transform.rotation = 0;
+    }
+
     audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
     this.open = true;
 

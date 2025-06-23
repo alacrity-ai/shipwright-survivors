@@ -72,7 +72,8 @@ export class ShipFormationFactory {
         leaderData.affixes ?? {},
         undefined, // faction
         false, // === do not auto-register
-        formationEntry.unCullable ?? false
+        formationEntry.unCullable ?? false,
+        false
       );
 
     const followerControllers: AIControllerSystem[] = [];
@@ -102,7 +103,8 @@ export class ShipFormationFactory {
           follower.affixes ?? {}, // affixes
           undefined, // faction
           false, // === do not auto-register
-          formationEntry.unCullable ?? false
+          formationEntry.unCullable ?? false,
+          false
         );
 
       // === Set FormationState directly

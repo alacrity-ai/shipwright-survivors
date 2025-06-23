@@ -117,7 +117,7 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveOrchestrator.areAllWavesCompleted());
+          return awaitCondition(() => waveOrchestrator.isActiveWaveCompleted());
         },
       },
       // Show UI

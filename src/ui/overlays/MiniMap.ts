@@ -20,6 +20,9 @@ export class MiniMap {
 
   private hidden: boolean = false;
 
+  private readonly onHide = () => this.hide();
+  private readonly onShow = () => this.show();
+
   private readonly baseWidth = 220;
   private readonly baseHeight = 220;
   private readonly baseMargin = 14;
@@ -47,13 +50,15 @@ export class MiniMap {
   };
   private playerMarker: HTMLCanvasElement;
   private planetMarker: HTMLCanvasElement;
-
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly planetSystem: PlanetSystem,
-    private scale: number = 1.0
+    private scale: number = 1.0,
   ) {
+    GlobalEventBus.on('minimap:hide', this.onHide);
+    GlobalEventBus.on('minimap:show', this.onShow);
+
     this.unsubscribeResolution = PlayerSettingsManager.getInstance().onResolutionChange(() => {
       this.resize(getUniformScaleFactor());
     });
@@ -498,6 +503,10 @@ export class MiniMap {
 
     GlobalEventBus.off('incident:minimap:marker', this.handleIncidentMarkerAdd);
     GlobalEventBus.off('incident:minimap:clear', this.handleIncidentMarkerClear);
+
+    GlobalEventBus.off('minimap:hide', this.onHide);
+    GlobalEventBus.off('minimap:show', this.onShow);
+
     this.incidentMarkers.clear();
     this.iconCache.clear();
 

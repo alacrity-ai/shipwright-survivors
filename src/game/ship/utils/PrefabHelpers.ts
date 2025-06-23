@@ -103,3 +103,43 @@ export async function getStarterShip(
 
   return { ship, controller, emitter, movement, weapons, utility };
 }
+
+export async function getStarterShipFromJson(
+  jsonData: any,
+  grid: Grid,
+  registry: ShipRegistry,
+  particleManager: ParticleManager,
+  projectileSystem: ProjectileSystem,
+  laserSystem: LaserSystem,
+  combatService: CombatService,
+  explosionSystem: ExplosionSystem,
+  collisionSystem: BlockObjectCollisionSystem,
+  constructionAnimator: ShipConstructionAnimatorService
+): Promise<ShipResult> {
+  const factory = new ShipFactory(
+    grid,
+    registry,
+    particleManager,
+    projectileSystem,
+    laserSystem,
+    combatService,
+    explosionSystem,
+    collisionSystem,
+    constructionAnimator
+  );
+
+  const { ship, controller, emitter, movement, weapons, utility } = await factory.createShipFromJsonObject(
+    jsonData,
+    0, // x
+    0, // y
+    false,
+    undefined,
+    {},
+    Faction.Player,
+    false,
+    false,
+    true
+  );
+
+  return { ship, controller, emitter, movement, weapons, utility };
+}

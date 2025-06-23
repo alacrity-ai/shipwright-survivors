@@ -9,10 +9,12 @@ import type { Camera } from '@/core/Camera';
 import type { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
+
+// These should be replaced with GL2 textures, and then drawn in place of the damage placeholders below in render
 import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils'; // Get this in GL
+
 import { BLOCK_SIZE } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
-import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
 import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
@@ -86,6 +88,7 @@ export class ShipBuilderController {
     const blockCost = getBlockCost(blockId);
     if (blockCost === undefined) return;
 
+    // == Handles deleting the Block (right click)
     if (this.inputManager.wasRightClicked()) {
       const block = this.ship.getBlock(coord);
       if (!block) return;
@@ -104,12 +107,13 @@ export class ShipBuilderController {
       }
     }
 
-    // Check if the player has enough currency to place the block
+    // == Handles placing the block (left click)
     if (this.inputManager.wasMouseClicked()) {
       if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
         this.ship.placeBlockById(coord, blockId, this.rotation);
         const placedBlock = this.ship.getBlock(coord);
         if (placedBlock?.position) {
+          // Repair effect here is a misnomer, it's just a visual effect to show block placement
           this.shipBuilderEffects.createRepairEffect(placedBlock.position);
         }
         const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
@@ -117,14 +121,6 @@ export class ShipBuilderController {
         missionResultStore.incrementBlockPlacedCount();
       }
     }
-
-    // DEBUG SAVING (will be removed when out of development testing).
-    // THIS IS NOT the same functionality as ingame ship saving:
-    // Check if the "L" key is pressed and save the ship, but only once
-    // if (this.inputManager.wasKeyJustPressed('KeyL')) {
-    //   const filename = 'saved_player_ship.json';
-    //   savePlayerShip(this.ship, this.ship.getGrid(), filename); // Save the current player ship to a file
-    // }
   }
 
   render(_: unknown, transform: BlockEntityTransform): void {
@@ -158,6 +154,8 @@ export class ShipBuilderController {
       return baseRotation + SPRITE_ROTATION_CORRECTION + (needsFinCorrection ? FIN_ROTATION_CORRECTION : 0);
     }
 
+    // These are placeholders until the drawBlockHighlight and drawBlockDeletionHighlight are in GL2
+    // Repair is deprecated, but we'll keep it here, would be green ordinarily
     if (tool === ShipBuilderTool.REPAIR) {
       const hoveredBlock = this.ship.getBlock(coord);
       if (hoveredBlock) {
@@ -178,6 +176,7 @@ export class ShipBuilderController {
 
       const existingBlock = this.ship.getBlock(coord);
 
+      // Highlight red if deleteable
       if (existingBlock) {
         const isSafe = this.ship.isDeletionSafe(coord);
         const overlayColor = isSafe ? DamageLevel.NONE : DamageLevel.HEAVY;
@@ -193,6 +192,7 @@ export class ShipBuilderController {
           rotation: getCorrectedRotation(transform.rotation, existingBlock.type.id),
         });
       } else {
+        // Show the block we're placing itself as a preview over the cursor
         const sprite = getGL2BlockSprite(blockId, DamageLevel.NONE);
 
         GlobalSpriteRequestBus.add({

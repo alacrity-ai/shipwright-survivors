@@ -13,6 +13,7 @@ import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { getUniformScaleFactor } from '@/config/view';
 
+import { GlobalEventBus } from '@/core/EventBus';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 import { PlayerResources as PlayerResourcesSingleton } from '@/game/player/PlayerResources';
@@ -24,6 +25,8 @@ export class HudOverlay {
   private readonly playerResources: PlayerResources;
   private readonly blockQueueDisplayManager: BlockQueueDisplayManager;
 
+  private readonly onHide = () => this.hide();
+  private readonly onShow = () => this.show();
   private hidden: boolean = false;
 
   private currency: number = 0;
@@ -36,6 +39,9 @@ export class HudOverlay {
     private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
     private readonly inputManager: InputManager,
   ) {
+    GlobalEventBus.on('hud:hide', this.onHide);
+    GlobalEventBus.on('hud:show', this.onShow);
+
     this.inputManager = inputManager;
     this.playerResources = PlayerResourcesSingleton.getInstance();
     this.currency = this.playerResources.getCurrency();
@@ -236,6 +242,8 @@ export class HudOverlay {
 
   destroy(): void {
     this.disposer?.();
+    GlobalEventBus.off('hud:hide', this.onHide);
+    GlobalEventBus.off('hud:show', this.onShow);
   }
 
   public hide(): void {

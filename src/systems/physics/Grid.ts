@@ -71,20 +71,30 @@ export class Grid {
     const { x, y } = block.position!;
     const [cellX, cellY] = this.getCellCoords(x, y);
 
-    // Remove from global map
-    const globalRow = this.cells.get(cellX);
-    const globalCell = globalRow?.get(cellY);
-    if (globalCell) {
-      const idx = globalCell.indexOf(block);
-      if (idx !== -1) globalCell.splice(idx, 1);
-    }
+    const removeFrom = (map: Map<number, Map<number, BlockInstance[]>>) => {
+      const row = map.get(cellX);
+      if (!row) return;
 
-    // Remove from faction map
-    const factionRow = this.getFactionMap(block.ownerFaction).get(cellX);
-    const factionCell = factionRow?.get(cellY);
-    if (factionCell) {
-      const idx = factionCell.indexOf(block);
-      if (idx !== -1) factionCell.splice(idx, 1);
+      const cell = row.get(cellY);
+      if (!cell) return;
+
+      const idx = cell.indexOf(block);
+      if (idx !== -1) cell.splice(idx, 1);
+
+      // Clean up empty cell
+      if (cell.length === 0) {
+        row.delete(cellY);
+      }
+
+      // Clean up empty row
+      if (row.size === 0) {
+        map.delete(cellX);
+      }
+    };
+
+    removeFrom(this.cells);
+    if (block.ownerFaction) {
+      removeFrom(this.getFactionMap(block.ownerFaction));
     }
   }
 

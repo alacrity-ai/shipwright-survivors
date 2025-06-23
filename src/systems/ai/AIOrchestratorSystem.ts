@@ -42,6 +42,11 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     this.playerShip = ship;
   }
 
+  public clearPlayerShip(): void {
+    this.playerShip = null;
+    this.shipGrid.clear();
+  }
+
   public addController(controller: AIControllerSystem, unCullable: boolean = false): void {
     const ship = controller.getShip();
     if (!ship) return;

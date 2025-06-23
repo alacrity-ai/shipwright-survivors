@@ -73,16 +73,29 @@ export function deserializeShip(data: SerializedShip, grid: Grid): Ship {
 export function loadShipFromJson(
   fileName: string,
   grid: Grid,
-  faction: Faction = Faction.Enemy
+  faction: Faction = Faction.Enemy,
 ): Promise<{ ship: Ship; behaviorType?: string }> {
   return fetch(getAssetPath(`/assets/ships/${fileName}`))
     .then(response => response.json())
     .then(data => {
-      const ship = new Ship(grid, undefined, undefined, true, undefined, faction);
+      const ship = new Ship(grid, undefined, undefined, false, undefined, faction);
       ship.loadFromJson(data);
       return {
         ship,
         behaviorType: data.behavior?.type
       };
     });
+}
+
+export function loadShipFromJsonObject(
+  data: any,
+  grid: Grid,
+  faction: Faction = Faction.Enemy
+): { ship: Ship; behaviorType?: string } {
+  const ship = new Ship(grid, undefined, undefined, false, undefined, faction);
+  ship.loadFromJson(data);
+  return {
+    ship,
+    behaviorType: data.behavior?.type
+  };
 }

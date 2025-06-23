@@ -65,7 +65,7 @@ export class MovementSystem {
   constructor(
     private readonly ship: Ship,
     private readonly emitter: ThrusterEmitter,
-    private readonly collisionSystem: BlockObjectCollisionSystem
+    private readonly collisionSystem: BlockObjectCollisionSystem | null
   ) {}
 
   public setIntent(intent: MovementIntent): void {
@@ -128,7 +128,6 @@ export class MovementSystem {
 
     return justActivated;
   }
-
 
   private getAfterburnerMultipliers(): { speed: number; accel: number; turning: number } {
     const charge = this.afterburnerCharge;
@@ -284,7 +283,7 @@ export class MovementSystem {
     }
 
     // === Step 1: Resolve collisions *before* integration
-    if (this.ship.getIsPlayerShip()) {
+    if (this.collisionSystem) {
       this.collisionSystem.resolveCollisions(this.ship);
 
       // Optional: Clamp very small residuals to zero

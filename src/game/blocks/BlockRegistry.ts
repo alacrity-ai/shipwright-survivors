@@ -860,7 +860,7 @@ const blockTypes: Record<string, BlockType> = {
       }
     },
     sprite: 'haloBlade0',
-    category: 'weapon',
+    category: 'system',
     subcategory: 'haloBlade',
     dropRate: 0.1
   },

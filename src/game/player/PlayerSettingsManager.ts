@@ -16,6 +16,8 @@ export class PlayerSettingsManager {
   private lightingEnabled: boolean = true;
   private collisionsEnabled: boolean = true;
 
+  private debugMode: boolean = false;
+
   private viewportWidth: number = 1920;
   private viewportHeight: number = 1080;
   private resolutionChangeCallbacks: (() => void)[] = [];
@@ -130,6 +132,11 @@ export class PlayerSettingsManager {
     this.collisionsEnabled = enabled;
   }
 
+  setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
+  }
+
+  getDebugMode(): boolean { return this.debugMode; }
   getMasterVolume(): number { return this.masterVolume; }
   getMusicVolume(): number { return this.musicVolume; }
   getSfxVolume(): number { return this.sfxVolume; }

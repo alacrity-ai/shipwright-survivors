@@ -7,7 +7,7 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
-import { GlobalEventBus } from '@/core/EventBus';
+import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -26,7 +26,8 @@ export type DestructionCause =
   | 'explosiveLanceAoE'
   | 'haloBlade'
   | 'self'
-  | 'scripted';
+  | 'scripted'
+  | 'replaced';
 
 export class CompositeBlockDestructionService {
   private destructionCallbacks: Set<(entity: CompositeBlockObject, cause: DestructionCause) => void> = new Set();
@@ -49,7 +50,6 @@ export class CompositeBlockDestructionService {
   public destroyEntity(entity: CompositeBlockObject, cause: DestructionCause = 'scripted'): void {
     const transform = entity.getTransform();
     const blocks = entity.getAllBlocks();
-    const totalMass = entity.getTotalMass();
     const entityId = entity.id;
 
     // === Step 0: Notify destruction observers ===
@@ -70,6 +70,9 @@ export class CompositeBlockDestructionService {
 
     entity.destroy();
 
+    // === Early exit if destruction is non-visual ===
+    if (cause === 'replaced') return;
+
     // === Step 2: Explosion & pickup animation ===
     blocks.forEach(([coord, block], index) => {
       setTimeout(() => {
@@ -88,11 +91,9 @@ export class CompositeBlockDestructionService {
 
     // === Step 3: Ship-only orphaned block detonation ===
     if (entity instanceof Ship) {
-
-      // === Step 4: If lighting system enabled, make a big flash at entity position ===
       if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
         const lightingOrchestrator = LightingOrchestrator.getInstance();
-        const flashColor = '#ffffff'; // intense, eye-searing flash with a hint of heat
+        const flashColor = '#ffffff';
         const intensity = 1.25;
         const radius = 4 * entity.getTotalMass();
         const life = 0.5;
@@ -116,7 +117,6 @@ export class CompositeBlockDestructionService {
       const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
       const serialize = (c: GridCoord) => `${c.x},${c.y}`;
 
-      // TODO : This can't be setTimeout, because if the map ends this persists
       for (const [coord, block] of blocks) {
         if (!connectedSet.has(serialize(coord))) {
           setTimeout(() => {

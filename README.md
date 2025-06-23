@@ -148,6 +148,8 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Interesting idea for game mode:
+    - Player spawns near space station, they have 2-5 minutes (can be tuned) to explore map, do incidents, kill enemy patrols, gather blocks - This is the gather phase.  When gather phase ends they should return to space station.  They can use entropium to build up the space station, and then they fight off waves of enemies as the station.  After the wave is destroyed, they return back to gather phase and repeat??  This becomes now a tower defense / vampire survivors gathering hybrid.
   - [ ] Fix ShipCreationAnimationController:
     - [ ] Graphics should be gl2
     - [ ] Instead of iterating through and doing placeblock, use the bulk place block (it's faster, but don't add the blocks to the grid?), then as each block is revealed add it to the grid, that way they won't render, but we don't have to place them all one by one, which is slow-ish.

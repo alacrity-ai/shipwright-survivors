@@ -807,7 +807,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveOrchestrator.areAllWavesCompleted());
+          return awaitCondition(() => waveOrchestrator.isActiveWaveCompleted());
         },
       },
       {

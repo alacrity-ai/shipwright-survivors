@@ -6,6 +6,7 @@ import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
@@ -172,6 +173,7 @@ export class TitleScreenManager {
       label: 'Editor',
       isHovered: false,
       onClick: () => {
+        PlayerSettingsManager.getInstance().setDebugMode(true);
         missionLoader.setMission(missionRegistry['mission_editor']);
         this.stop();
         PlayerTechnologyManager.getInstance().unlockAll();

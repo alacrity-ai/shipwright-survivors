@@ -1,4 +1,4 @@
-import { loadShipFromJson } from '@/systems/serialization/ShipSerializer';
+import { loadShipFromJson, loadShipFromJsonObject } from '@/systems/serialization/ShipSerializer';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
 import { WeaponSystem } from '@/systems/combat/WeaponSystem';
@@ -85,7 +85,7 @@ export class ShipFactory {
     }
 
     const emitter = new ThrusterEmitter(this.particleManager);
-    const movement = new MovementSystem(ship, emitter, this.collisionSystem);
+    const movement = new MovementSystem(ship, emitter, isPlayerShip ? this.collisionSystem : null);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
       new LaserBackend(this.laserSystem),
@@ -129,6 +129,97 @@ export class ShipFactory {
       color: auraLightColor,
       radius: 96,
       intensity: 0.8
+    };
+    this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
+
+    return { ship, controller, emitter, movement, weapons, utility };
+  }
+
+  public async createShipFromJsonObject(
+    jsonData: any,
+    x: number,
+    y: number,
+    hunter: boolean = false,
+    behaviorProfile?: BehaviorProfile,
+    affixes: ShipAffixes = {},
+    faction: Faction = Faction.Enemy,
+    registerController: boolean = true,
+    unCullable: boolean = false,
+    isPlayerShip: boolean = false
+  ): Promise<{
+    ship: Ship;
+    controller: AIControllerSystem | null;
+    emitter: ThrusterEmitter;
+    movement: MovementSystem;
+    weapons: WeaponSystem;
+    utility: UtilitySystem;
+  }> {
+    const { ship, behaviorType } = loadShipFromJsonObject(jsonData, this.grid, faction);
+
+    if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
+      console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
+    }
+
+    // === Override transform ===
+    const transform = ship.getTransform();
+    transform.position = { x, y };
+    transform.rotation = 0;
+    transform.velocity = { x: 0, y: 0 };
+    transform.angularVelocity = 0;
+
+    ship.setAffixes(affixes);
+    ship.setFaction(faction);
+
+    this.registry.add(ship);
+    if (isPlayerShip) {
+      this.registry.setPlayerShip(ship);
+      ship.setIsPlayerShip(true);
+    }
+
+    const emitter = new ThrusterEmitter(this.particleManager);
+    const movement = new MovementSystem(ship, emitter, this.collisionSystem);
+    const weapons = new WeaponSystem(
+      new TurretBackend(this.projectileSystem),
+      new LaserBackend(this.laserSystem),
+      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
+      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
+    );
+    const utility = new UtilitySystem(new ShieldToggleBackend());
+
+    let controller: AIControllerSystem | null = null;
+
+    if (!isPlayerShip) {
+      const effectiveProfile =
+        behaviorProfile ??
+        (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
+          ? BehaviorProfileRegistry[behaviorType]
+          : undefined) ??
+        DefaultBehaviorProfile;
+
+      controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
+
+      if (effectiveProfile.initialStateFactory) {
+        controller.setInitialState(effectiveProfile.initialStateFactory(controller));
+      }
+
+      controller.setHunter(hunter);
+
+      if (registerController && this.orchestrator) {
+        this.orchestrator.addController(controller, unCullable);
+      }
+    } else {
+      ship.setIsPlayerShip(true);
+      ship.setFiringMode(FiringMode.Sequence);
+    }
+
+    ship.hideAllBlocks();
+    ship.updateBlockPositions();
+
+    const auraLightColor = isPlayerShip ? '#ADD8E6' : '#ff0000';
+    const auraLightOptions: AuraLightOptions = {
+      color: auraLightColor,
+      radius: 96,
+      intensity: 0.8,
     };
     this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 

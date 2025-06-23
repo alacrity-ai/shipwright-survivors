@@ -128,6 +128,10 @@ export class WaveOrchestrator implements IUpdatable {
     return !!this.activeWave?.getWave().isBoss;
   }
 
+  public isActiveWaveCompleted(): boolean {
+    return this.activeWave?.isComplete() ?? false;
+  }
+
   public skipToNextWave(): void {
     if (!this.isRunning || this.isPaused) return;
     if (this.pendingWavePromise) return;

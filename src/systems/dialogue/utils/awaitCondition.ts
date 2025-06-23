@@ -7,6 +7,7 @@ export function awaitCondition(
   return new Promise((resolve) => {
     const check = () => {
       if (predicate()) {
+        console.log('Condition met, resolving promise');
         resolve();
       } else {
         setTimeout(check, checkIntervalMs);

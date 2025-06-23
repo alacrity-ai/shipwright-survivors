@@ -36,6 +36,14 @@ export interface EventTypes {
   'menu:opened': { id: string };
   'menu:closed': { id: string };
 
+  // Hud/Minimap/Waves overlays
+  'waves:show': undefined;
+  'waves:hide': undefined;
+  'hud:show': undefined;
+  'hud:hide': undefined;
+  'minimap:show': undefined;
+  'minimap:hide': undefined;
+
   // Camera events
   'camera:shake': { strength: number; duration: number; frequency?: number };
 

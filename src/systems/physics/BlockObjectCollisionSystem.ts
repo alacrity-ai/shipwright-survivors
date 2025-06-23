@@ -26,7 +26,6 @@ export class BlockObjectCollisionSystem {
 
   private _blockCache = new Map<CompositeBlockObject, [coord: { x: number; y: number }, block: BlockInstance][]>();
 
-
   constructor(private readonly combatService: CombatService) {}
 
   public resolveCollisions(movingObject: CompositeBlockObject): void {
@@ -60,6 +59,10 @@ export class BlockObjectCollisionSystem {
     return blocks;
   }
 
+  public clearCache(): void {
+    this._blockCache.clear();
+  }
+
   private getNearbyObjects(target: CompositeBlockObject): CompositeBlockObject[] {
     const aabb = this.computeAABB(target);
 
@@ -74,9 +77,9 @@ export class BlockObjectCollisionSystem {
 
     for (const block of nearbyBlocks) {
       const obj = BlockToObjectIndex.getObject(block);
-      if (obj && obj !== target) {
-        nearbyObjects.add(obj);
-      }
+      if (!obj || obj === target) continue;
+
+      nearbyObjects.add(obj);
     }
 
     return Array.from(nearbyObjects);

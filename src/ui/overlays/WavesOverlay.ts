@@ -4,15 +4,35 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 import { getUniformScaleFactor } from '@/config/view';
 
 export class WavesOverlay {
+  private readonly onHide = () => this.hide();
+  private readonly onShow = () => this.show();
+  
   constructor(
     private readonly canvasManager: CanvasManager,
-    private readonly waveOrchestrator: WaveOrchestrator
-  ) {}
+    private readonly waveOrchestrator: WaveOrchestrator,
+    
+    private hidden: boolean = false
+  ) {
+    GlobalEventBus.on('waves:hide', this.onHide);
+    GlobalEventBus.on('waves:show', this.onShow);
+  }
+
+  public hide(): void {
+    this.hidden = true;
+  }
+
+  public show(): void {
+    this.hidden = false;
+  }
 
   render(): void {
+    if (this.hidden) return;
+
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
@@ -34,5 +54,10 @@ export class WavesOverlay {
     } else {
       drawLabel(ctx, x, y, `Next wave in: ${Math.ceil(countdown)}s`, {}, scale);
     }
+  }
+
+  destroy(): void {
+    GlobalEventBus.off('waves:hide', this.onHide);
+    GlobalEventBus.off('waves:show', this.onShow);
   }
 }
