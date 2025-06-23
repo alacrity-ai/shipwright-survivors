@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Constructs a horizontal line formation (line abreast),
@@ -16,7 +17,9 @@ export function createLineFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   const layout = [
     { x: -3, y: 0 }, // far left
@@ -32,7 +35,8 @@ export function createLineFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -42,6 +46,7 @@ export function createLineFormation(
       shipId: leaderShipId,
       affixes: leaderAffixes,
       hunter: leaderIsHunter,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,

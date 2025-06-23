@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Constructs a Convoy formation.
@@ -17,7 +18,9 @@ export function createConvoyFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   const layout = [
     { x:  0, y: -2 }, // far front escort
@@ -31,7 +34,8 @@ export function createConvoyFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -41,6 +45,7 @@ export function createConvoyFormation(
       shipId: leaderShipId,
       affixes: leaderAffixes,
       hunter: leaderIsHunter,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,

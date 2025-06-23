@@ -10,6 +10,7 @@ import type { WeaponFiringPlanEntry } from '@/systems/combat/types/WeaponTypes';
 import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
 import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { createPointLight } from '@/lighting/lights/createPointLight';
@@ -143,6 +144,26 @@ export class Ship extends CompositeBlockObject {
     });
 
     orchestrator.registerLight(auraLight);
+  }
+
+  public updateAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
+    if (!LightingOrchestrator.hasInstance()) return;
+
+    this.cleanupAuraLight();
+
+    const orchestrator = LightingOrchestrator.getInstance();
+    this.lightAuraId = `aura-${this.id}`;
+
+    const updatedLight = createPointLight({
+      id: this.lightAuraId,
+      x: this.getTransform().position.x,
+      y: this.getTransform().position.y,
+      radius,
+      color,
+      intensity,
+    });
+
+    orchestrator.registerLight(updatedLight);
   }
 
   public cleanupAuraLight(): void {
@@ -777,6 +798,8 @@ export class Ship extends CompositeBlockObject {
 
   public onDestroyed(): void {
     this.cleanupAuraLight();
+
+    ShipRegistry.getInstance().remove(this);
 
     const gl = CanvasManager.getInstance().getWebGL2Context('unifiedgl2');
 

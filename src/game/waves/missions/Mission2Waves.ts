@@ -8,7 +8,7 @@ import { createMediumWedgeFormation } from '@/systems/ai/formations/prefabs/crea
 import { createSmallWedgeFormation } from '@/systems/ai/formations/prefabs/createSmallWedgeFormation';
 import { createLargeWedgeFormation } from '@/systems/ai/formations/prefabs/createLargeWedgeFormation';
 
-import { RammingBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+import { RammingBehaviorProfile, SiegeBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 const RAMMER_SPEAR_AFFIXES: ShipAffixes = {
   rammingDamageInflictMultiplier: 2.0,
@@ -74,7 +74,9 @@ const killCrewFormation = createSmallWedgeFormation(
   700,
   3,
   true,
-  true
+  true,
+  SiegeBehaviorProfile,
+  SiegeBehaviorProfile
 );
 
 const speedHuntersFormation = createSmallWedgeFormation(
@@ -99,7 +101,7 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'wave_0_01', count: 4 },
       { shipId: 'wave_0_02', count: 4 },
     ],
-    formations: [smallWedgeFormation],
+    formations: [],
   },
   {
     spawnDistribution: 'aroundPlayer',

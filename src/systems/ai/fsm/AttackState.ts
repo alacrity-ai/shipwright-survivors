@@ -1,11 +1,9 @@
-// src/systems/ai/fsm/AttackState.ts
-
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from './BaseAIState';
-import { orbitTarget, approachTarget, leadTarget } from '@/systems/ai/steering/SteeringHelper';
+import { orbitTarget, approachTarget, leadTarget, faceTarget } from '@/systems/ai/steering/SteeringHelper';
 import { SeekTargetState } from './SeekTargetState';
 import { FormationState } from './FormationState';
 import { PatrolState } from './PatrolState';
@@ -38,20 +36,34 @@ const INERT_UTILITY = {
 export class AttackState extends BaseAIState {
   private readonly target: Ship;
   private readonly disengageRange = 1400;
-  private readonly orbitRadius = 300;
   private readonly projectileSpeed = 400;
+  private readonly orbitDuration = 10;
+
+  private readonly orbitRadius: number;
+  private readonly siegeRange: number;
+
+  private orbitClockwise: boolean = false;
+  private actualOrbitRadius: number;
 
   private phase: AttackPhase = AttackPhase.Ramming;
   private phaseTimer: number = 0;
-  private readonly orbitDuration = 10;
 
   constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
     super(controller, ship);
     this.target = target;
+
+    const params = controller.getBehaviorProfile().params ?? {};
+
+    this.orbitRadius = params.orbitRadius ?? 400;
+    this.siegeRange = params.siegeRange ?? 400;
+
+    this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
   }
 
   public override onEnter(): void {
     this.controller.makeUncullable();
+    this.orbitClockwise = Math.random() < 0.5;
+    this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
   }
 
   public update(dt: number): ShipIntent {
@@ -72,10 +84,17 @@ export class AttackState extends BaseAIState {
     const targetPos = targetTransform.position;
     const targetVel = targetTransform.velocity;
 
+    const dx = selfPos.x - targetPos.x;
+    const dy = selfPos.y - targetPos.y;
+    const distSq = dx * dx + dy * dy;
+
+    // === Ram behavior
     if (behavior === 'ram') {
       if (this.phase === AttackPhase.Ramming && this.ship.isColliding()) {
         this.phase = AttackPhase.Orbiting;
         this.phaseTimer = 0;
+        this.orbitClockwise = Math.random() < 0.5;
+        this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
       } else if (this.phase === AttackPhase.Orbiting) {
         this.phaseTimer += dt;
         if (this.phaseTimer >= this.orbitDuration) {
@@ -96,9 +115,8 @@ export class AttackState extends BaseAIState {
         };
       }
 
-      // Orbiting phase
       return {
-        movement: orbitTarget(this.ship, selfVel, targetPos, this.orbitRadius),
+        movement: orbitTarget(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise),
         weapons: {
           firePrimary: false,
           fireSecondary: false,
@@ -108,9 +126,23 @@ export class AttackState extends BaseAIState {
       };
     }
 
-    if (behavior === 'orbit') {
+    // === Siege behavior
+    if (behavior === 'siege') {
+      const inRange = distSq <= this.siegeRange * this.siegeRange;
+      const faceIntent = faceTarget(this.ship, targetPos);
+
       return {
-        movement: orbitTarget(this.ship, selfVel, targetPos, this.orbitRadius),
+        movement: inRange
+          ? {
+              thrustForward: false,
+              brake: true,
+              rotateLeft: faceIntent.rotateLeft,
+              rotateRight: faceIntent.rotateRight,
+              strafeLeft: false,
+              strafeRight: false,
+            }
+          : approachTarget(this.ship, targetPos, selfVel),
+
         weapons: {
           firePrimary: true,
           fireSecondary: false,
@@ -120,7 +152,19 @@ export class AttackState extends BaseAIState {
       };
     }
 
-    // Fallback: inert intent
+    // === Orbit behavior
+    if (behavior === 'orbit') {
+      return {
+        movement: orbitTarget(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise),
+        weapons: {
+          firePrimary: true,
+          fireSecondary: false,
+          aimAt: leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed),
+        },
+        utility: { toggleShields: false },
+      };
+    }
+
     return {
       movement: INERT_MOVEMENT,
       weapons: INERT_WEAPONS,
@@ -139,7 +183,6 @@ export class AttackState extends BaseAIState {
     const selfPos = selfTransform.position;
     const targetPos = targetTransform.position;
 
-    // === Formation fallback ===
     const formationId = this.controller.getFormationId();
     const registry = this.controller.getFormationRegistry();
     const leader = this.controller.getFormationLeaderController();
@@ -149,7 +192,6 @@ export class AttackState extends BaseAIState {
         : new PatrolState(this.controller, this.ship);
     }
 
-    // === Disengage and revert to seek ===
     const dx = selfPos.x - targetPos.x;
     const dy = selfPos.y - targetPos.y;
     const distSq = dx * dx + dy * dy;

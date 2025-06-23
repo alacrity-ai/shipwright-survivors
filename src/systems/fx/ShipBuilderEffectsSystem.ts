@@ -60,8 +60,8 @@ export class ShipBuilderEffectsSystem implements IUpdatable {
     this.particleManager.emitBurst(position, 24, {
       colors,
       randomDirection: true,
-      speedRange: [220, 340],
-      sizeRange: [0.5, 1.2],
+      speedRange: [160, 300],
+      sizeRange: [0.8, 1.8],
       lifeRange: [0.2, 0.7],
       fadeOut: true,
       light: true,

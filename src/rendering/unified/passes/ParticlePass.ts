@@ -18,7 +18,6 @@ function hexToRgb(hex: string): [number, number, number] {
   return [r, g, b];
 }
 
-
 export class ParticlePass {
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;

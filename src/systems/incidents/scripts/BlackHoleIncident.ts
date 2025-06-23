@@ -5,7 +5,7 @@ import type { IncidentRuntimeContext } from '../types/IncidentRuntimeContext';
 
 export class BlackHoleIncident extends BaseIncidentScript {
   private elapsed = 0;
-  private lifetime = 5; // seconds
+  private lifetime = 180; // seconds
   private nextLogTime = 0;
 
   constructor(

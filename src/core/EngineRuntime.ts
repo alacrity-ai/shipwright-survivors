@@ -10,6 +10,7 @@ import { GlobalEventBus } from './EventBus';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
+import { spawnSpecialFx } from './interfaces/events/SpecialFxReporter';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -53,7 +54,6 @@ import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
-import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
@@ -150,6 +150,7 @@ export class EngineRuntime {
   private projectileSystem: ProjectileSystem;
   private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
+  private pickupSpawner: PickupSpawner;
   private particleManager: ParticleManager;
   private persistentParticleManager: ParticleManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
@@ -280,12 +281,12 @@ export class EngineRuntime {
       this.shipBuilderEffects,
       this.blockDropDecisionMenu
     );
-    const pickupSpawner = new PickupSpawner(this.pickupSystem);
+    this.pickupSpawner = new PickupSpawner(this.pickupSystem);
 
     // === Destruction and Combat Services
     this.destructionService = new CompositeBlockDestructionService(
       this.explosionSystem,
-      pickupSpawner,
+      this.pickupSpawner,
       this.shipRegistry,
       this.aiOrchestrator,
     );
@@ -293,7 +294,7 @@ export class EngineRuntime {
     this.floatingTextManager = new FloatingTextManager();
     this.combatService = new CombatService(
       this.explosionSystem,
-      pickupSpawner,
+      this.pickupSpawner,
       this.destructionService,
       this.floatingTextManager
     );
@@ -477,6 +478,7 @@ export class EngineRuntime {
       this.aiOrchestrator,
       this.floatingTextManager,
       this.coachMarkManager,
+      this.incidentOrchestrator
     ];
 
     this.isInitialized = true;
@@ -524,7 +526,8 @@ export class EngineRuntime {
       this.popupMessageSystem!,
       this.shipConstructionAnimator,
       this.planetSystem!,
-      this.lightingOrchestrator
+      this.lightingOrchestrator,
+      this.incidentOrchestrator!
     ];
   }
 
@@ -613,6 +616,9 @@ export class EngineRuntime {
     if (!this.isInitialized) return;
     if (this.isDestroyed) return;
 
+    // === Shader Special FX
+    this.unifiedSceneRenderer!.update(dt);
+
     // === Engine sound === TODO: Move this elsewhere, shouldn't fire on pause
     this.engineSoundPlaying = handleEngineSound(
       this.inputManager.isKeyPressed('KeyW'),
@@ -656,6 +662,28 @@ export class EngineRuntime {
     }
 
     // Debug keys 
+    if (this.inputManager.wasKeyJustPressed('KeyB')) {
+      spawnSpecialFx({
+        worldX: 100,
+        worldY: 0,
+        radius: 600,
+        strength: 2.0,
+        duration: 1.2,
+        type: 0, // e.g. shockwave
+      });
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyN')) {
+      spawnSpecialFx({
+        worldX: -100,
+        worldY: 100,
+        radius: 600,
+        strength: 2.0,
+        duration: 1.2,
+        type: 0, // e.g. vortex
+      });
+    }
+
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
       flags.unlockAllFlags();
     }
@@ -870,13 +898,7 @@ export class EngineRuntime {
     this.gameLoop.start();
     this.asteroidSpawner!.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
-    // TODO : Put this in options
     applyWarmCinematicEffect();
-    // setTimeout(() => {
-    //   if (this.ship) {
-    //     this.shipConstructionAnimator.animateShipConstruction(this.ship, { color: '#ADD8E6', radius: 96, intensity: 1.25 });
-    //   }
-    // }, 1000);
     setTimeout(() => {
       this.inputManager.enableAllActions();
       this.missionDialogueManager!.initialize();
@@ -942,6 +964,11 @@ export class EngineRuntime {
     MenuManager.getInstance().reset();
     CoachMarkManager.getInstance().clear();
     SpriteRendererGL.destroyInstance();
+
+    // Additional cleanup
+    this.pickupSpawner.destroy();
+    this.incidentOrchestrator!.destroy();
+    this.destructionService.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

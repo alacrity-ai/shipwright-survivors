@@ -18,6 +18,15 @@ export interface WaveShipEntry {
   onAllDefeated?: string;
 }
 
+export interface ShipFormationEntry {
+  formationId: string; // Used for formation registry
+  layout: FormationLayout; // Array of offsets
+  leader: FormationShipSpec;
+  followers: FormationShipSpec[];
+  count?: number;
+  leaderIsHunter?: boolean;
+  unCullable?: boolean;
+}
 
 interface WaveIncidentEntry {
   spawnChance: number;
@@ -30,20 +39,10 @@ interface waveLightingSettings {
   clearColor?: [number, number, number, number];
 }
 
-export interface ShipFormationEntry {
-  formationId: string; // Used for formation registry
-  layout: FormationLayout; // Array of offsets
-  leader: FormationShipSpec;
-  followers: FormationShipSpec[];
-  count?: number;
-  leaderIsHunter?: boolean;
-  unCullable?: boolean;
-}
-
 export interface FormationShipSpec {
   shipId: string;
   hunter?: boolean;
-  behaviorProfile?: string; // Optional override
+  behaviorProfile?: BehaviorProfile; // Optional override
   offset?: { x: number; y: number }; // Optional override if not using layout index
   affixes?: ShipAffixes; // Optional ship affixes override
 }
@@ -58,6 +57,7 @@ export interface WaveDefinition {
   music?: MusicTrack;
   lightingSettings?: waveLightingSettings;
   duration?: number; // undefined or Infinity means never auto-advance
-  spawnDistribution: 'random' | 'outer' | 'inner' | 'aroundPlayer' | 'center';
+  spawnDistribution: 'at' | 'random' | 'outer' | 'inner' | 'aroundPlayer' | 'aroundPlayerNear' | 'center'; // Added "At"
+  atCoords?: { x: number; y: number }; // NEW
   isBoss?: boolean;
 }

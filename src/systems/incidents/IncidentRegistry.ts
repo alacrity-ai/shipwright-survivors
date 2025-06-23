@@ -6,6 +6,7 @@ import type { IncidentRuntimeContext } from './types/IncidentRuntimeContext';
 // Example scripts — import all here
 import { BlackHoleIncident } from './scripts/BlackHoleIncident';
 import { HealingBeaconIncident } from './scripts/HealingBeaconIncident';
+import { CursedCargoIncident } from './scripts/CursedCargoIncident';
 // Add more as needed...
 
 export class IncidentRegistry {
@@ -22,6 +23,7 @@ export class IncidentRegistry {
   private registerAll(): void {
     this.register('BlackHoleIncident', BlackHoleIncident);
     this.register('HealingBeaconIncident', HealingBeaconIncident);
+    this.register('CursedCargoIncident', CursedCargoIncident);
     // Register additional scripts here...
   }
 

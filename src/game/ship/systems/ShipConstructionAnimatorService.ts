@@ -2,6 +2,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { AuraLightOptions } from '@/game/ship/factories/ShipFactory';
 
+import { spawnSpecialFx } from '@/core/interfaces/events/SpecialFxReporter';
 import { constructionFrameBudgetMs } from '@/config/graphicsConfig';
 import { Ship } from '@/game/ship/Ship';
 import { toKey, getWorldPositionFromShipCoord } from '@/game/ship/utils/shipBlockUtils';
@@ -173,6 +174,14 @@ export class ShipConstructionAnimatorService {
       } else if (state.phase === 'shockwave') {
         state.shockwaveTimer -= ms;
         if (state.shockwaveTimer <= 0) {
+          // spawnSpecialFx({
+          //   worldX: state.ship.getTransform().position.x,
+          //   worldY: state.ship.getTransform().position.y,
+          //   radius: 1200,
+          //   strength: 2.0,
+          //   duration: 1.2,
+          //   type: 0, // e.g. shockwave
+          // });
           shipsToRemove.add(state);
         }
       }

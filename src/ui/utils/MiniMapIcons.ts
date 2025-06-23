@@ -1,6 +1,10 @@
 // src/ui/utils/MiniMapIcons.ts
 
-export type IconType = 'caution' | 'greenCross' | 'skullAndBones';
+export type IconType = 
+'caution' | 
+'greenCross' | 
+'skullAndBones' | 
+'treasure';
 
 export class MiniMapIcons {
   /**
@@ -26,8 +30,11 @@ export class MiniMapIcons {
       case 'skullAndBones':
         this.drawSkullAndBonesIcon(ctx, size);
         break;
+      case 'treasure':
+        this.drawTreasureIcon(ctx, size);
+        break;
     }
-    
+
     return canvas;
   }
   
@@ -65,24 +72,24 @@ export class MiniMapIcons {
     const center = size / 2;
     const radius = size * 0.45;
     
-    // Draw circular background
-    const gradient = ctx.createRadialGradient(center, center, 0, center, center, radius);
-    gradient.addColorStop(0, '#00ff88');
-    gradient.addColorStop(1, '#00cc44');
+    // // Draw circular background
+    // const gradient = ctx.createRadialGradient(center, center, 0, center, center, radius);
+    // gradient.addColorStop(0, '#00ff88');
+    // gradient.addColorStop(1, '#00cc44');
     
-    ctx.fillStyle = gradient;
-    ctx.strokeStyle = '#008833';
-    ctx.lineWidth = size * 0.05;
+    // ctx.fillStyle = gradient;
+    // ctx.strokeStyle = '#008833';
+    // ctx.lineWidth = size * 0.05;
     
-    ctx.beginPath();
-    ctx.arc(center, center, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    // ctx.beginPath();
+    // ctx.arc(center, center, radius, 0, Math.PI * 2);
+    // ctx.fill();
+    // ctx.stroke();
     
-    // Draw cross
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = size * 0.08;
+    // Draw Cross
+    ctx.fillStyle = '#00ff00';
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = size * 0.18;
     ctx.lineCap = 'round';
     
     const crossSize = size * 0.25;
@@ -190,6 +197,48 @@ export class MiniMapIcons {
     ctx.beginPath();
     ctx.arc(length / 2, 0, endSize, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
+  }
+
+  private static drawTreasureIcon(ctx: CanvasRenderingContext2D, size: number): void {
+    const center = size / 2;
+    const crateSize = size * 0.5;
+    const crateX = center - crateSize / 2;
+    const crateY = center - crateSize / 2;
+
+    // // Background glow
+    // const glowRadius = size * 0.48;
+    // const gradient = ctx.createRadialGradient(center, center, 0, center, center, glowRadius);
+    // gradient.addColorStop(0, '#ffdd55');
+    // gradient.addColorStop(1, '#ffaa00');
+
+    // ctx.fillStyle = gradient;
+    // ctx.beginPath();
+    // ctx.arc(center, center, glowRadius, 0, Math.PI * 2);
+    // ctx.fill();
+
+    // Crate base
+    ctx.fillStyle = '#8b5a2b'; // dark wood
+    ctx.strokeStyle = '#5c4033'; // border
+    ctx.lineWidth = size * 0.05;
+
+    ctx.fillRect(crateX, crateY, crateSize, crateSize);
+    ctx.strokeRect(crateX, crateY, crateSize, crateSize);
+
+    // Crate cross bands
+    ctx.strokeStyle = '#d2b48c'; // tan straps
+    ctx.lineWidth = size * 0.05;
+
+    // Vertical band
+    ctx.beginPath();
+    ctx.moveTo(center, crateY);
+    ctx.lineTo(center, crateY + crateSize);
+    ctx.stroke();
+
+    // Horizontal band
+    ctx.beginPath();
+    ctx.moveTo(crateX, center);
+    ctx.lineTo(crateX + crateSize, center);
     ctx.stroke();
   }
 }

@@ -2,13 +2,11 @@
 
 export type Vec2 = { x: number; y: number };
 
-// src/systems/ai/helpers/VectorUtils.ts
 export function getDistance(a: Vec2, b: Vec2): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   return Math.sqrt(dx * dx + dy * dy);
 }
-
 
 export function subtract(a: Vec2, b: Vec2): Vec2 {
   return { x: a.x - b.x, y: a.y - b.y };

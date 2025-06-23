@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Constructs an X-shaped formation with the leader at the center
@@ -16,7 +17,9 @@ export function createXFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   // Four diagonal arms: up-left, up-right, down-left, down-right
   const layout = [
@@ -31,7 +34,8 @@ export function createXFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -41,6 +45,7 @@ export function createXFormation(
       shipId: leaderShipId,
       affixes: leaderAffixes,
       hunter: leaderIsHunter,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,

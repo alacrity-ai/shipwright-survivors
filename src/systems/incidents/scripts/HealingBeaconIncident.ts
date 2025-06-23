@@ -5,7 +5,7 @@ import type { IncidentRuntimeContext } from '../types/IncidentRuntimeContext';
 
 export class HealingBeaconIncident extends BaseIncidentScript {
   private elapsed = 0;
-  private lifetime = 6; // seconds
+  private lifetime = 180; // seconds
   private nextLogTime = 0;
 
   constructor(
@@ -22,6 +22,8 @@ export class HealingBeaconIncident extends BaseIncidentScript {
   }
 
   public onTrigger(): void {
+    super.onTrigger();
+    
     console.log(`[HealingBeaconIncident] Deployed at (${this.options.x}, ${this.options.y})`);
 
     this.context.popupMessageSystem.displayMessage('✨ Healing Beacon Online ✨', {

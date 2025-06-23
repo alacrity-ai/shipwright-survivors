@@ -1,9 +1,9 @@
 // src/shared/graphicsConfig.ts
 
 // Renderer Pass Budgets
-export const particleFrameBudgetMs = 1.0;
-export const entityFrameBudgetMs = 3.6;
-export const lightingFrameBudgetMs = 0.8; // Not used
+export const particleFrameBudgetMs = 1.4;
+export const entityFrameBudgetMs = 3.8;
+export const lightingFrameBudgetMs = 1.0; // Not used
 export const postProcessFrameBudgetMs = 0.8; // Not used
 
 // AI System Budget

@@ -106,7 +106,15 @@ export const waveDefinitions: WaveDefinition[] = [
     formations: [
       smallWedgeFormation,
       mediumWedgeFormation,
-    ]
+    ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: {},
+        label: 'Cursed Cargo',
+      },
+    ],
   },
   {
     spawnDistribution: 'outer',

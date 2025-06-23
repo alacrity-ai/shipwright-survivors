@@ -1,12 +1,12 @@
+// src/rendering/unified/UnifiedSceneRendererGL.ts
+
 import type { Camera } from '@/core/Camera';
 import type { AnyLightInstance } from '@/lighting/lights/types';
 import type { Particle } from '@/systems/fx/interfaces/Particle';
-import type { Ship } from '@/game/ship/Ship';
 import type { InputManager } from '@/core/InputManager';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
-import type { PlanetInstance } from '@/rendering/unified/passes/PlanetPass';
 
 import { CanvasManager } from '@/core/CanvasManager';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -28,6 +28,10 @@ import {
   type UnderwaterParams
 } from '@/rendering/unified/passes/PostProcessPass';
 
+import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
+import type { SpecialFxInstance } from '@/rendering/unified/interfaces/SpecialFxInstance';
+import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
+
 type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
 
 export class UnifiedSceneRendererGL {
@@ -41,6 +45,9 @@ export class UnifiedSceneRendererGL {
   private readonly particlePass: ParticlePass;
   private readonly postProcessPass: PostProcessPass;
   private readonly backgroundPostProcessPass: PostProcessPass;
+
+  private sceneFramebufferFX: WebGLFramebuffer;
+  private sceneTextureFX: WebGLTexture;
 
   private readonly cameraUBO: WebGLBuffer;
 
@@ -58,6 +65,9 @@ export class UnifiedSceneRendererGL {
   private backgroundFramebuffer: WebGLFramebuffer;
   private backgroundTexture: WebGLTexture;
 
+  private readonly specialFxPass: SpecialFxPass;
+  private readonly specialFxController: SpecialFxController = new SpecialFxController();
+
   constructor(camera: Camera, private readonly inputManager: InputManager) {
     const canvasManager = CanvasManager.getInstance();
     this.gl = canvasManager.getWebGL2Context('unifiedgl2');
@@ -70,6 +80,7 @@ export class UnifiedSceneRendererGL {
     this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
     this.entityPass = new EntityPass(this.gl, this.inputManager);
     this.spritePass = new SpritePass(this.gl, this.cameraUBO);
+    this.specialFxPass = new SpecialFxPass(this.gl, this.cameraUBO);
     this.particlePass = new ParticlePass(this.gl, this.cameraUBO);
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
@@ -79,6 +90,9 @@ export class UnifiedSceneRendererGL {
     this.backgroundFramebuffer = this.gl.createFramebuffer()!;
     this.backgroundTexture = this.gl.createTexture()!;
     
+    this.sceneFramebufferFX = this.gl.createFramebuffer()!;
+    this.sceneTextureFX = this.gl.createTexture()!;
+
     this.initializeFramebuffers();
 
     GlobalEventBus.on('resolution:changed', this.onResolutionChanged);
@@ -156,7 +170,7 @@ export class UnifiedSceneRendererGL {
     const width = gl.drawingBufferWidth;
     const height = gl.drawingBufferHeight;
 
-    // Initialize scene framebuffer
+    // === Scene Texture A ===
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -167,7 +181,18 @@ export class UnifiedSceneRendererGL {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sceneTexture, 0);
 
-    // Initialize background framebuffer
+    // === Scene Texture B (FX ping-pong target) ===
+    gl.bindTexture(gl.TEXTURE_2D, this.sceneTextureFX);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebufferFX);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sceneTextureFX, 0);
+
+    // === Background framebuffer ===
     gl.bindTexture(gl.TEXTURE_2D, this.backgroundTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -198,9 +223,8 @@ export class UnifiedSceneRendererGL {
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
+
     this.backgroundPass.render(camera.getOffset());
-    // this.planetPass.renderAll(); // If here, then background post process effects
 
     // === Step 3: Apply background post-processing ===
     const backgroundEffectChain = Array.from(this.backgroundPostProcessEffects.entries()).map(
@@ -217,27 +241,21 @@ export class UnifiedSceneRendererGL {
       this.sceneFramebuffer
     );
 
-    // === Step 4: Continue with scene rendering on top of processed background ===
+    // === Step 4: Render planets atop processed background ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
-
-    // === Step 4.5: Render planets
     this.planetPass.renderAll();
 
     // === Step 5: Generate light buffer (offscreen) ===
     const lightTexture = this.lightingPass.generateLightBuffer(lights, camera);
 
-    // === Step 6: Re-bind scene framebuffer ===
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
-
-    // === Step 7: Render entities ===
+    // === Step 6: Render entities ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Light was rendering to offscreen FB, so we needed to rebind before going to the next
     const ambientLight = this.lightingPass.getAmbientLight();
     this.entityPass.setAmbientLight(ambientLight);
     this.entityPass.render(ships, lightTexture, camera);
 
-    // === Step 8: Render sprites ===
-    for (const group of this.spriteGroups.values()) {
-      group.length = 0;
-    }
+    // === Step 7: Render batched sprites ===
+    for (const group of this.spriteGroups.values()) group.length = 0;
     this.clearedTextures.length = 0;
 
     for (const sprite of sprites) {
@@ -263,18 +281,36 @@ export class UnifiedSceneRendererGL {
       }
     }
 
-    // === Step 9: Render particles ===
+    // === Step 8: Render particles ===
     this.particlePass.render(particles, camera);
 
-    // === Step 10: Apply main post-processing to default framebuffer ===
+    // === Step 9: Apply ripple/distortion FX (sceneTexture → sceneFramebufferFX)
+    const activeFx = this.specialFxController.getActiveFx();
+    if (activeFx.length > 0) {
+      this.specialFxPass.run(this.sceneTexture, activeFx, this.sceneFramebufferFX, this.cameraUBO);
+
+      // Swap textures and framebuffers: FX result becomes the new scene texture
+      const tmpTex = this.sceneTexture;
+      const tmpFbo = this.sceneFramebuffer;
+      this.sceneTexture = this.sceneTextureFX;
+      this.sceneFramebuffer = this.sceneFramebufferFX;
+      this.sceneTextureFX = tmpTex;
+      this.sceneFramebufferFX = tmpFbo;
+    }
+
+    // === Step 10: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const effectChain = Array.from(this.postProcessEffects.entries()).map(
       ([effect, params]) => ({ effect, params })
     );
     this.postProcessPass.run(this.sceneTexture, effectChain);
 
-    // === Step 11: Composite light halos directly over final framebuffer ===
-    this.lightingPass.compositeLightingOverTarget(null); // <- Target = screen
+    // === Step 11: Composite additive lighting effects (e.g. halos) over final image ===
+    this.lightingPass.compositeLightingOverTarget(null);
+  }
+
+  public update(deltaSeconds: number): void {
+    this.specialFxController.update(deltaSeconds);
   }
 
   resize(): void {
@@ -297,6 +333,8 @@ export class UnifiedSceneRendererGL {
     this.particlePass.destroy();
     this.postProcessPass.destroy();
     this.backgroundPostProcessPass.destroy();
+    this.specialFxPass.destroy();
+    this.specialFxController.destroy();
 
     GlobalEventBus.off('resolution:changed', this.onResolutionChanged);
     GlobalEventBus.off('postprocess:effect:set', this.onPostProcessEffectsSet);
@@ -378,6 +416,10 @@ export class UnifiedSceneRendererGL {
 
   public getParticlePass(): ParticlePass {
     return this.particlePass;
+  }
+
+  public getSpecialFxController(): SpecialFxController {
+    return this.specialFxController;
   }
 
   public getPostProcessPass(): PostProcessPass {

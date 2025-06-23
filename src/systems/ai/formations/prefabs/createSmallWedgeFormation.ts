@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Generates a compact wedge (triangle) formation with 1 leader and 2 wing followers.
@@ -17,7 +18,9 @@ export function createSmallWedgeFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   // Equilateral triangle, followers placed 60° behind and to the sides of the leader
   const layout = [
@@ -30,7 +33,8 @@ export function createSmallWedgeFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -40,6 +44,7 @@ export function createSmallWedgeFormation(
       shipId: leaderShipId,
       affixes: leaderAffixes,
       hunter: leaderIsHunter,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,

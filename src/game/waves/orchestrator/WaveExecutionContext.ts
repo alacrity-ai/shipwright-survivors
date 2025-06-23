@@ -5,7 +5,9 @@ import type { ScriptRunner } from '@/game/waves/scripting/ScriptRunner';
 import type { WaveDefinition, WaveShipEntry } from '@/game/waves/types/WaveDefinition';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 
+import { destroyEntityExternally } from '@/core/interfaces/events/EntityReporter';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { completeWave } from '@/core/interfaces/events/WaveSpawnReporter';
 
 interface ShipGroup {
   remaining: Set<Ship>;
@@ -16,11 +18,13 @@ interface ShipGroup {
 export class WaveExecutionContext {
   private readonly allShips = new Set<Ship>();
   private readonly groupMap = new Map<WaveShipEntry, ShipGroup>();
+  private isDestroyed = false;
 
   constructor(
     private readonly wave: WaveDefinition,
     private readonly waveIndex: number,
-    private readonly scriptRunner: ScriptRunner
+    private readonly scriptRunner: ScriptRunner,
+    private readonly tag?: string // Optional tag for single-shot wave tracking
   ) {}
 
   public trackShip(ship: Ship, controller: AIControllerSystem, origin: WaveShipEntry): void {
@@ -59,6 +63,11 @@ export class WaveExecutionContext {
         group.scriptFired = true;
       }
     }
+
+    // If this is a tagged single-shot wave, emit completion when empty
+    if (this.tag && this.isComplete() && !this.isDestroyed) {
+      completeWave(this.tag);
+    }
   }
 
   public isComplete(): boolean {
@@ -71,5 +80,23 @@ export class WaveExecutionContext {
 
   public getWaveIndex(): number {
     return this.waveIndex;
+  }
+
+  public destroy(): void {
+    if (this.isDestroyed) return;
+    this.isDestroyed = true;
+
+    for (const ship of this.allShips) {
+      destroyEntityExternally(ship, 'scripted');
+      ship.destroy();
+      ship.destroyInstantly(); // Full teardown
+    }
+
+    this.allShips.clear();
+    this.groupMap.clear();
+
+    if (this.tag) {
+      completeWave(this.tag);
+    }
   }
 }

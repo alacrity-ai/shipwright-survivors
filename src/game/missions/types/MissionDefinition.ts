@@ -29,6 +29,7 @@ export interface MissionDefinition {
   bossMusic?: MusicTrack;
   dialogue?: string;
   enemyPower?: number;
+  waveDensity?: number;
   sceneLighting?: SceneLightingRGBA;
   requiredFlag?: FlagKey; // Flag required to enter this mission
   missionPortrait?: string | null;

@@ -148,6 +148,7 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Are mobs always turning the same direction when they begin orbiting? We should change to be random.
   - [ ] Interesting idea for game mode:
     - Player spawns near space station, they have 2-5 minutes (can be tuned) to explore map, do incidents, kill enemy patrols, gather blocks - This is the gather phase.  When gather phase ends they should return to space station.  They can use entropium to build up the space station, and then they fight off waves of enemies as the station.  After the wave is destroyed, they return back to gather phase and repeat??  This becomes now a tower defense / vampire survivors gathering hybrid.
   - [ ] Fix ShipCreationAnimationController:

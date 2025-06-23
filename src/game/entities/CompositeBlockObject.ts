@@ -344,7 +344,7 @@ export abstract class CompositeBlockObject {
 
     for (const { block } of this.blocks.values()) {
       this.grid.removeBlockFromCell(block);
-      // BlockToObjectIndex.unregisterBlock(block);
+      BlockToObjectIndex.unregisterBlock(block);
     }
 
     this.blocks.clear();

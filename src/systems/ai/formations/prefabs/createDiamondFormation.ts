@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Constructs a diamond-shaped formation centered on the leader,
@@ -16,7 +17,9 @@ export function createDiamondFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   const layout = [
     { x:  0,        y: -1 }, // top
@@ -30,7 +33,8 @@ export function createDiamondFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -40,6 +44,7 @@ export function createDiamondFormation(
       shipId: leaderShipId,
       affixes: leaderAffixes,
       hunter: leaderIsHunter,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,

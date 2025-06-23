@@ -18,6 +18,13 @@ const FORBIDDEN_ZONE = {
 const PLAYER_SPAWN_RADIUS_MIN = 2600;
 const PLAYER_SPAWN_RADIUS_VARIANCE = 1200;
 
+const PLAYER_SPAWN_RADIUS_FAR_MIN = 2600;
+const PLAYER_SPAWN_RADIUS_FAR_MAX = PLAYER_SPAWN_RADIUS_FAR_MIN + PLAYER_SPAWN_RADIUS_VARIANCE;
+
+const PLAYER_SPAWN_RADIUS_NEAR_MIN = 500;
+const PLAYER_SPAWN_RADIUS_NEAR_MAX = 800;
+
+
 // Fallback spawn padding for failed attempts to find a legal 'outer' spawn
 const OUTER_SPAWN_PADDING = 200;
 
@@ -36,7 +43,10 @@ export class SpawnCoordinateResolver {
         return this.randomInsideForbidden();
 
       case 'aroundPlayer':
-        return this.spawnAroundPlayer();
+        return this.spawnAroundPlayer(PLAYER_SPAWN_RADIUS_FAR_MIN, PLAYER_SPAWN_RADIUS_FAR_MAX);
+
+      case 'aroundPlayerNear':
+        return this.spawnAroundPlayer(PLAYER_SPAWN_RADIUS_NEAR_MIN, PLAYER_SPAWN_RADIUS_NEAR_MAX);
 
       case 'center':
         return { x: 0, y: 0 };
@@ -74,18 +84,18 @@ export class SpawnCoordinateResolver {
     return { x, y };
   }
 
-  private spawnAroundPlayer(): { x: number; y: number } {
+  private spawnAroundPlayer(minRadius: number, maxRadius: number): { x: number; y: number } {
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     if (!playerShip) return { x: 0, y: 0 };
 
     const playerPos = playerShip.getTransform().position;
     const angle = Math.random() * Math.PI * 2;
-    const radius = PLAYER_SPAWN_RADIUS_MIN + Math.random() * PLAYER_SPAWN_RADIUS_VARIANCE;
+    const radius = minRadius + Math.random() * (maxRadius - minRadius);
 
-    const x = playerPos.x + Math.cos(angle) * radius;
-    const y = playerPos.y + Math.sin(angle) * radius;
-
-    return { x, y };
+    return {
+      x: playerPos.x + Math.cos(angle) * radius,
+      y: playerPos.y + Math.sin(angle) * radius,
+    };
   }
 
   private fallbackOutsideForbidden(): { x: number; y: number } {

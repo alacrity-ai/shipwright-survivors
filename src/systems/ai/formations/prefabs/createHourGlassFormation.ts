@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Generates a scalable hourglass-shaped formation centered around the leader.
@@ -15,7 +16,9 @@ export function createHourGlassFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   const layout = [
     { x: -distance, y: -distance },     // F0 - upper left
@@ -28,7 +31,8 @@ export function createHourGlassFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -37,7 +41,8 @@ export function createHourGlassFormation(
     leader: {
       shipId: leaderShipId,
       hunter: leaderIsHunter,
-      affixes: leaderAffixes
+      affixes: leaderAffixes,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,

@@ -2,6 +2,7 @@
 
 import type { ShipFormationEntry } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 /**
  * Constructs an arrowhead formation with the leader at the front
@@ -16,7 +17,9 @@ export function createArrowHeadFormation(
   distance: number = 1000,
   count: number = 1,
   unCullable: boolean = false,
-  leaderIsHunter: boolean = false
+  leaderIsHunter: boolean = false,
+  leaderBehaviorProfile?: BehaviorProfile,
+  followerBehaviorProfile?: BehaviorProfile
 ): ShipFormationEntry {
   const layout = [
     { x: -2, y: +1 }, // far left wing
@@ -30,7 +33,8 @@ export function createArrowHeadFormation(
 
   const followers = followerShipIds.map((shipId) => ({
     shipId,
-    affixes: followerAffixes
+    affixes: followerAffixes,
+    behaviorProfile: followerBehaviorProfile,
   }));
 
   return {
@@ -39,10 +43,11 @@ export function createArrowHeadFormation(
     leader: {
       shipId: leaderShipId,
       affixes: leaderAffixes,
-      hunter: leaderIsHunter
+      hunter: leaderIsHunter,
+      behaviorProfile: leaderBehaviorProfile,
     },
     followers,
     count,
-    unCullable
+    unCullable,
   };
 }

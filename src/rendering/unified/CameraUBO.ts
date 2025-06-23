@@ -1,3 +1,5 @@
+// src/rendering/unified/CameraUBO.ts
+
 import { createOrthographicMatrix, createTranslationMatrix } from '@/rendering/gl/matrixUtils';
 import type { Camera } from '@/core/Camera';
 

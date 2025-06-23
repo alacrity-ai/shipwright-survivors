@@ -6,6 +6,8 @@ import type { WaveExecutor } from '@/game/waves/executor/WaveExecutor';
 import type { WaveExecutionContext } from './WaveExecutionContext';
 import type { Ship } from '@/game/ship/Ship';
 
+import { GlobalEventBus } from '@/core/EventBus'; // IMPORT THIS
+
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 export class WaveOrchestrator implements IUpdatable {
@@ -24,13 +26,16 @@ export class WaveOrchestrator implements IUpdatable {
   private isPaused = false;
 
   private activeWave: WaveExecutionContext | null = null;
-
   private pendingWavePromise: Promise<void> | null = null;
+
+  private readonly singleShotWaves = new Map<string, WaveExecutionContext>();
 
   public constructor(
     waves: WaveDefinition[],
     private readonly executor: WaveExecutor
   ) {
+    GlobalEventBus.on('wave:spawn', this.handleOneShotSpawn);
+    GlobalEventBus.on('wave:clear', this.handleOneShotClear);
     this.waves = waves;
   }
 
@@ -143,10 +148,40 @@ export class WaveOrchestrator implements IUpdatable {
     });
   }
 
+  // Event Handlers
+  private handleOneShotSpawn = async ({ tag, wave }: { tag: string; wave: WaveDefinition }): Promise<void> => {
+    if (this.singleShotWaves.has(tag)) return; // Avoid double-spawn
+
+    // Customize the aura light for one-shot waves
+    const ctx = await this.executor.execute(wave, -1, tag, {
+      color: '#aa66ff',   // Aesthetic violet tone (deep but vibrant)
+      radius: 400,
+      intensity: 1.6,
+    });
+
+    this.singleShotWaves.set(tag, ctx);
+  };
+
+  private handleOneShotClear = ({ tag }: { tag: string }): void => {
+    const ctx = this.singleShotWaves.get(tag);
+    if (!ctx) return;
+
+    ctx.destroy();
+    this.singleShotWaves.delete(tag);
+  };
+
   public destroy(): void {
     this.isRunning = false;
     this.isPaused = true;
     this.pendingWavePromise = null;
     this.activeWave = null;
+
+    GlobalEventBus.off('wave:spawn', this.handleOneShotSpawn);
+    GlobalEventBus.off('wave:clear', this.handleOneShotClear);
+
+    for (const ctx of this.singleShotWaves.values()) {
+      ctx.destroy();
+    }
+    this.singleShotWaves.clear();
   }
 }

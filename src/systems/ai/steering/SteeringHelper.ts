@@ -85,12 +85,15 @@ export function approachTarget(
 /**
  * Returns a MovementIntent that maintains an orbital trajectory around a target.
  * Uses thrust vector alignment and radial correction to sustain orbit.
+ * 
+ * @param clockwise If true, orbit proceeds clockwise; else counterclockwise (default).
  */
 export function orbitTarget(
   ship: Ship,
   currentVel: Vec2,
   targetPos: Vec2,
-  desiredRadius: number
+  desiredRadius: number,
+  clockwise: boolean = false
 ): MovementIntent {
   const currentPos = ship.getTransform().position;
   const toTarget = subtract(targetPos, currentPos);
@@ -98,7 +101,11 @@ export function orbitTarget(
   const radiusError = dist - desiredRadius;
 
   const directionToTarget = normalize(toTarget);
-  const orbitDirection = { x: -directionToTarget.y, y: directionToTarget.x };
+
+  // === Direction of orbit: rotate 90° either CW or CCW
+  const orbitDirection = clockwise
+    ? { x: directionToTarget.y, y: -directionToTarget.x }   // Clockwise: +90° rotation
+    : { x: -directionToTarget.y, y: directionToTarget.x };  // Counterclockwise: -90° rotation
 
   // === Phase 1: Determine rotation ===
   const netThrustDir = getNetThrustDirection(ship); // Approximate facing
@@ -129,10 +136,8 @@ export function orbitTarget(
     const velOutward = velocityMag > 0 ? dot(normalize(currentVel), outwardDir) : 0;
 
     if (velOutward < 0.6) {
-      // Moving inwards or stagnant — push outward
       thrustForward = true;
     } else {
-      // Already drifting out — allow it to coast
       brake = false;
     }
   } else {
@@ -153,6 +158,7 @@ export function orbitTarget(
     strafeRight: false,
   };
 }
+
 
 export function leadTarget(
   shooterPos: Vec2,
