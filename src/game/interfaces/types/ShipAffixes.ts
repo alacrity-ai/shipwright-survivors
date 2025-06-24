@@ -7,6 +7,7 @@ export interface ShipAffixes {
   energyCostMulti?: number; // Not implemented yet
   thrustPowerMulti?: number;
   turnPowerMulti?: number;
+  blockDurabilityMulti?: number; // Not implemented yet
   energyChargeRateMulti?: number; // Not implemented yet
   shieldEfficiencyMulti?: number; // Not implemented yet
   shieldRadiusMulti?: number; // Not implemented yet
@@ -14,4 +15,5 @@ export interface ShipAffixes {
   harvestRateMulti?: number; // Not implemented yet
   rammingDamageInflictMultiplier?: number;
   rammingArmorMultiplier?: number;
+  invulnerable?: boolean;
 }

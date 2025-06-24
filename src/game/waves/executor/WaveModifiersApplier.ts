@@ -33,8 +33,12 @@ export class WaveModifiersApplier {
 
       for (const key of Object.keys(affix) as (keyof ShipAffixes)[]) {
         const val = affix[key];
-        if (val !== undefined) {
-          mergedAffixes[key] = (mergedAffixes[key] ?? 1) * val;
+
+        if (typeof val === 'number') {
+          const existing = mergedAffixes[key];
+          (mergedAffixes as any)[key] = (typeof existing === 'number' ? existing : 1) * val;
+        } else if (typeof val === 'boolean') {
+          (mergedAffixes as any)[key] = val;
         }
       }
     }

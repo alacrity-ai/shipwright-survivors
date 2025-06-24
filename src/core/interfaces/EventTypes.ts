@@ -94,6 +94,10 @@ export interface EventTypes {
   'wave:clear': { tag: string; }; // Removed by tag
   'wave:completed': { tag: string; }; // Completed by tag
 
+  // Incident spawning / lifecycle
+  'incident:trigger': { script: string; tag: string; options?: Record<string, any> };
+  'incident:clear': { tag: string };
+
   // Pickups
   'pickup:spawn:block': {
     x: number;

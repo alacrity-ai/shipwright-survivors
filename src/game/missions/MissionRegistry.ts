@@ -1,6 +1,7 @@
 // src/game/missions/MissionRegistry.ts
 
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+import { waveDefinitions as waveSet0 } from '@/game/waves/missions/Mission0Waves';
 import { waveDefinitions as waveSet1 } from '@/game/waves/missions/Mission1Waves';
 import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves';
 import { waveDefinitions as waveSet3 } from '@/game/waves/missions/Mission3Waves';
@@ -15,11 +16,11 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
-      worldWidth: 24000,
-      worldHeight: 24000,
+      worldWidth: 12000,
+      worldHeight: 12000,
     },
     enemyPower: 1,
-    waveDensity: 1,
+    waveDensity: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 0,
     missionPortrait: null,
@@ -29,19 +30,19 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     id: 'mission_001',
     name: 'Shipwright Second-Class',
     dialogue: 'intro-briefing',
-    waves: waveSet1,
+    waves: waveSet0,
     dropMultiplier: 1.5,
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
-      worldWidth: 24000,
-      worldHeight: 24000,
+      worldWidth: 18000,
+      worldHeight: 18000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
     },
     enemyPower: 0.5,
-    waveDensity: 1,
+    waveDensity: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
     requiredFlag: 'mission.mission_001.unlocked',
@@ -56,14 +57,14 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
-      worldWidth: 24000,
-      worldHeight: 24000,
+      worldWidth: 18000,
+      worldHeight: 18000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
     },
     enemyPower: 1,
-    waveDensity: 1,
+    waveDensity: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
     requiredFlag: 'mission.mission_002.unlocked',

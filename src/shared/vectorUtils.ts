@@ -1,6 +1,7 @@
 // src/shared/types/vectorUtils.ts
 
 import { getWorldWidth, getWorldHeight } from '@/config/world';
+import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 export type Vec2 = { x: number; y: number };
 
@@ -32,4 +33,19 @@ export function getRandomWorldCoordinates(borderMargin: number = 0): Vec2 {
   const y = Math.random() * (maxY - minY) + minY;
 
   return { x, y };
+}
+
+/**
+ * Returns a coordinate randomly within a circular radius around a center point.
+ */
+export function getRandomCoordInRadius(center: GridCoord, radius: number): GridCoord {
+  const angle = Math.random() * Math.PI * 2;
+  const r = Math.sqrt(Math.random()) * radius; // ensures uniform distribution
+  const offsetX = Math.cos(angle) * r;
+  const offsetY = Math.sin(angle) * r;
+
+  return {
+    x: center.x + offsetX,
+    y: center.y + offsetY,
+  };
 }

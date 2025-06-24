@@ -11,7 +11,6 @@ export function clearWave(tag: string): void {
   GlobalEventBus.emit('wave:clear', { tag });
 }
 
-// ADDED
 export function completeWave(tag: string): void {
   GlobalEventBus.emit('wave:completed', { tag });
 }

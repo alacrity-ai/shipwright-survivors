@@ -4,9 +4,9 @@ import type { IncidentScript, IncidentScriptConstructor } from './types/Incident
 import type { IncidentRuntimeContext } from './types/IncidentRuntimeContext';
 
 // Example scripts — import all here
-import { BlackHoleIncident } from './scripts/BlackHoleIncident';
-import { HealingBeaconIncident } from './scripts/HealingBeaconIncident';
-import { CursedCargoIncident } from './scripts/CursedCargoIncident';
+import { BlackHoleIncident } from '@/systems/incidents/scripts/BlackHoleIncident';
+import { HealingBeaconIncident } from '@/systems/incidents/scripts/HealingBeaconIncident';
+import { CursedCargoIncident } from '@/systems/incidents/scripts/cursedCargo/CursedCargoIncident';
 // Add more as needed...
 
 export class IncidentRegistry {
@@ -47,21 +47,26 @@ export class IncidentRegistry {
   }
 
   /**
-   * Instantiates a script by ID with the given options, wave context, and full runtime context.
+   * Instantiates a script by script ID with given options and runtime context.
+   * The `instanceId` is a unique identifier for the specific invocation.
    */
   public create(
-    id: string,
+    scriptId: string,
     options: Record<string, any>,
     waveId: number | undefined,
-    context: IncidentRuntimeContext
+    context: IncidentRuntimeContext,
+    instanceId?: string
   ): IncidentScript | null {
-    const ctor = this.scriptConstructors.get(id);
+    const ctor = this.scriptConstructors.get(scriptId);
     if (!ctor) {
-      console.warn(`[IncidentRegistry] Unknown incident script ID: '${id}'`);
+      console.warn(`[IncidentRegistry] Unknown incident script ID: '${scriptId}'`);
       return null;
     }
 
-    return new ctor(id, options, waveId, context);
+    const finalId = instanceId ?? scriptId;
+    const resolvedOptions = structuredClone(options); // Ensure immutability per invocation
+
+    return new ctor(finalId, resolvedOptions, waveId, context);
   }
 
   /**

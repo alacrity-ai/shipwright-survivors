@@ -33,6 +33,7 @@ interface WaveIncidentEntry {
   script: string;
   options?: Record<string, any>;
   label?: string;
+  delaySeconds?: number;
 }
 
 interface waveLightingSettings {
@@ -57,7 +58,7 @@ export interface WaveDefinition {
   music?: MusicTrack;
   lightingSettings?: waveLightingSettings;
   duration?: number; // undefined or Infinity means never auto-advance
-  spawnDistribution: 'at' | 'random' | 'outer' | 'inner' | 'aroundPlayer' | 'aroundPlayerNear' | 'center'; // Added "At"
-  atCoords?: { x: number; y: number }; // NEW
+  spawnDistribution: 'at' | 'random' | 'outer' | 'inner' | 'aroundPlayer' | 'aroundPlayerNear' | 'center';
+  atCoords?: { x: number; y: number, spreadRadius?: number }; // NEW SPREADRADIUS
   isBoss?: boolean;
 }

@@ -17,8 +17,10 @@ export type SeekBehaviorType = 'direct' | 'flank';
 export interface BehaviorParams {
   orbitRadius?: number;
   siegeRange?: number;
+  disengageRange?: number;
   [key: string]: any;
 }
+
 
 export interface BehaviorProfile {
   attack: AttackBehaviorType;

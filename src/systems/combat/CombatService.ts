@@ -36,41 +36,53 @@ export class CombatService {
   ): boolean {
     if (block.indestructible) return false;
 
-    // === If source and entity are the same faction, ignore ===
-    if (source.getFaction() === entity.getFaction()) return false;
+    // === Local caches for fast repeated logic ===
+    const playerShip = ShipRegistry.getInstance().getPlayerShip();
+    const isSourceShip = source instanceof Ship;
+    const isEntityShip = entity instanceof Ship;
+    const isEntityPlayer = isEntityShip && entity.getIsPlayerShip();
+    const isSourcePlayer = isSourceShip && source.getIsPlayerShip();
+    const affixes = isEntityShip ? entity.getAffixes() : undefined;
+    const sameFaction = source.getFaction() === entity.getFaction();
 
-    // === Scale damage by mission difficulty ===
+    if (sameFaction) return false;
+
+    // === Mission difficulty adjustment ===
     const enemyPower = missionLoader.getEnemyPower();
 
-    const playerShip = ShipRegistry.getInstance().getPlayerShip();
-
-    // Scale if damage is dealt *by* the player to a non-player entity
-    if (playerShip?.getIsPlayerShip() && !(entity instanceof Ship && entity.getIsPlayerShip())) {
+    if (isSourcePlayer && !isEntityPlayer) {
       damage /= enemyPower;
-    }
-    // Scale damage *received* by the player from enemies, if desired
-    else if (!(playerShip?.getIsPlayerShip()) && entity instanceof Ship && entity.getIsPlayerShip()) {
+    } else if (!isSourcePlayer && isEntityPlayer) {
       damage *= enemyPower;
     }
 
-    // === Ship-only shield absorption ===
-    if (block.isShielded && entity instanceof Ship) {
+    // === Invulnerability check (non-scripted damage still plays effects) ===
+    if (affixes?.invulnerable && cause !== 'scripted') {
+      damage = 0;
+    }
+
+    // === Ship shield absorption
+    if (block.isShielded && isEntityShip) {
       const energy = entity.getEnergyComponent?.();
       const efficiency = block.shieldEfficiency ?? 0;
 
       if (efficiency > 0) {
-        // Make a big blue light on hit
-        // Random 5-10
-        const lightRadiusScalar = Math.random() * 5 + 5;
-        const lightOptions = PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision'
-          ? { lightRadiusScalar: lightRadiusScalar, lightIntensity: 1.2, lightLifeScalar: 0.5, lightColor: '#00ffff' }
-          : undefined;
-
         const clampedEfficiency = Math.max(0.001, efficiency);
         const energyCost = damage / clampedEfficiency;
 
         if (energy && energy.spend(energyCost)) {
           if (block.position) {
+            // Optional lighting
+            const lightingEnabled = PlayerSettingsManager.getInstance().isLightingEnabled();
+            const lightOptions = lightingEnabled && cause !== 'collision'
+              ? {
+                  lightRadiusScalar: Math.random() * 5 + 5,
+                  lightIntensity: 1.2,
+                  lightLifeScalar: 0.5,
+                  lightColor: '#00ffff',
+                }
+              : undefined;
+
             playSpatialSfx(entity, playerShip, {
               file: 'assets/sounds/sfx/ship/energy-shield-hit_00.wav',
               channel: 'sfx',
@@ -91,8 +103,8 @@ export class CombatService {
       }
     }
 
-    // === Direct HP damage fallback ===
-    block.hp -= damage;
+    // === Final fallback: direct HP reduction
+    block.hp -= (damage / (affixes?.blockDurabilityMulti ?? 1));
 
     // Light color for laser hits
     const LASER_HIT_LIGHT_COLOR = '#00ffff';

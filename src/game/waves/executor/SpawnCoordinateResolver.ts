@@ -1,12 +1,9 @@
-// src/game/waves/executor/SpawnCoordinateResolver.ts
-
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import { getWorldHeight, getWorldWidth } from '@/config/world';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 // === Configuration Constants ===
 
-// Central "forbidden zone" (used in 'outer' and 'inner' spawn modes)
 const FORBIDDEN_ZONE = {
   xMin: -1000,
   xMax: 1000,
@@ -14,25 +11,19 @@ const FORBIDDEN_ZONE = {
   yMax: 1000,
 };
 
-// Player-centered ring (used in 'aroundPlayer' mode)
-const PLAYER_SPAWN_RADIUS_MIN = 2600;
-const PLAYER_SPAWN_RADIUS_VARIANCE = 1200;
-
 const PLAYER_SPAWN_RADIUS_FAR_MIN = 2600;
-const PLAYER_SPAWN_RADIUS_FAR_MAX = PLAYER_SPAWN_RADIUS_FAR_MIN + PLAYER_SPAWN_RADIUS_VARIANCE;
+const PLAYER_SPAWN_RADIUS_FAR_MAX = PLAYER_SPAWN_RADIUS_FAR_MIN + 1200;
 
 const PLAYER_SPAWN_RADIUS_NEAR_MIN = 500;
 const PLAYER_SPAWN_RADIUS_NEAR_MAX = 800;
 
-
-// Fallback spawn padding for failed attempts to find a legal 'outer' spawn
 const OUTER_SPAWN_PADDING = 200;
 
 export class SpawnCoordinateResolver {
-  public getCoords(
-    spawnDistribution: WaveDefinition['spawnDistribution'] = 'random'
-  ): { x: number; y: number } {
-    switch (spawnDistribution) {
+  public getCoords(wave: WaveDefinition): { x: number; y: number } {
+    const distribution = wave.spawnDistribution ?? 'random';
+
+    switch (distribution) {
       case 'random':
         return this.randomAnywhere();
 
@@ -51,8 +42,18 @@ export class SpawnCoordinateResolver {
       case 'center':
         return { x: 0, y: 0 };
 
+      case 'at': {
+        const { atCoords } = wave;
+        if (!atCoords) return { x: 0, y: 0 };
+
+        const spread = atCoords.spreadRadius ?? 0;
+        return spread > 0
+          ? this.spawnAroundPoint(atCoords, spread)
+          : { x: atCoords.x, y: atCoords.y };
+      }
+
       default:
-        console.warn(`[SpawnCoordinateResolver] Unknown spawnDistribution '${spawnDistribution}', falling back to 'random'.`);
+        console.warn(`[SpawnCoordinateResolver] Unknown spawnDistribution '${distribution}', falling back to 'random'.`);
         return this.randomAnywhere();
     }
   }
@@ -65,16 +66,11 @@ export class SpawnCoordinateResolver {
 
   private randomOutsideForbidden(): { x: number; y: number } {
     const maxAttempts = 10;
-
     for (let i = 0; i < maxAttempts; i++) {
       const x = Math.random() * getWorldWidth() - getWorldWidth() / 2;
       const y = Math.random() * getWorldHeight() - getWorldHeight() / 2;
-
-      if (this.isOutsideForbidden(x, y)) {
-        return { x, y };
-      }
+      if (this.isOutsideForbidden(x, y)) return { x, y };
     }
-
     return this.fallbackOutsideForbidden();
   }
 
@@ -95,6 +91,15 @@ export class SpawnCoordinateResolver {
     return {
       x: playerPos.x + Math.cos(angle) * radius,
       y: playerPos.y + Math.sin(angle) * radius,
+    };
+  }
+
+  private spawnAroundPoint(center: { x: number; y: number }, radius: number): { x: number; y: number } {
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.sqrt(Math.random()) * radius; // uniform area sampling
+    return {
+      x: center.x + Math.cos(angle) * r,
+      y: center.y + Math.sin(angle) * r,
     };
   }
 

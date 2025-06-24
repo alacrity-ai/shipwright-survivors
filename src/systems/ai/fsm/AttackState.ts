@@ -35,7 +35,7 @@ const INERT_UTILITY = {
 
 export class AttackState extends BaseAIState {
   private readonly target: Ship;
-  private readonly disengageRange = 1400;
+  private readonly disengageRange: number;
   private readonly projectileSpeed = 400;
   private readonly orbitDuration = 10;
 
@@ -55,7 +55,8 @@ export class AttackState extends BaseAIState {
     const params = controller.getBehaviorProfile().params ?? {};
 
     this.orbitRadius = params.orbitRadius ?? 400;
-    this.siegeRange = params.siegeRange ?? 400;
+    this.siegeRange = params.siegeRange ?? 600;
+    this.disengageRange = params.disengageRange ?? 1500;
 
     this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
   }

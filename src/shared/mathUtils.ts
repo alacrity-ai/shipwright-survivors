@@ -15,3 +15,7 @@ export function randomIntInclusive(min: number, max: number): number {
 export function randomAngle(): number {
   return Math.random() * 2 * Math.PI;
 }
+
+export function randomIntFromRange(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}

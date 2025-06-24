@@ -40,11 +40,7 @@ export class WaveExecutor {
       const baseCount = formationEntry.count ?? 1;
       const scaledCount = Math.round(baseCount * densityMultiplier);
       for (let i = 0; i < scaledCount; i++) {
-        const { x, y } =
-          distribution === 'at' && wave.atCoords
-            ? wave.atCoords
-            : this.spawnResolver.getCoords(distribution);
-
+        const { x, y } = this.spawnResolver.getCoords(wave);
         const formationMap = await this.shipFormationFactory.spawnFormation(formationEntry, x, y);
 
         for (const [ship, controller] of formationMap.entries()) {
@@ -71,11 +67,7 @@ export class WaveExecutor {
       const baseCount = entry.count ?? 1;
       const scaledCount = Math.round(baseCount * densityMultiplier);
       for (let i = 0; i < scaledCount; i++) {
-        const { x, y } =
-          distribution === 'at' && wave.atCoords
-            ? wave.atCoords
-            : this.spawnResolver.getCoords(distribution);
-
+        const { x, y } = this.spawnResolver.getCoords(wave);
         const { ship, controller } = await this.shipFactory.createShip(
           entry.shipId,
           x,
@@ -103,7 +95,7 @@ export class WaveExecutor {
       const roll = Math.random();
       if (roll <= incident.spawnChance) {
         console.log(`[WaveExecutor] Triggering incident: ${incident.script}`);
-        this.incidentSystem.trigger(incident.script, incident.options ?? {}, waveIndex);
+        this.incidentSystem.trigger(incident.script, incident.options ?? {}, waveIndex, incident.delaySeconds);
       }
     }
 
