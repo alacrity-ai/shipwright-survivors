@@ -195,7 +195,7 @@ export class EngineRuntime {
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
-    this.shipGrid = new ShipGrid(3000);
+    this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
 
     GlobalEventBus.on('player:victory', () => this.handlePlayerVictory());
@@ -270,7 +270,7 @@ export class EngineRuntime {
     );
 
     // === AI Orchestrator
-    this.aiOrchestrator = new AIOrchestratorSystem(this.shipGrid);
+    this.aiOrchestrator = new AIOrchestratorSystem();
 
     // === Construct PickupSystem and PickupSpawner ===
     this.pickupSystem = new PickupSystem(
@@ -354,7 +354,7 @@ export class EngineRuntime {
     MovementSystemRegistry.register(this.ship, this.movement); // TODO : This may be needed for player ship?
 
     // Register culling systems
-    this.shipCulling = new ShipCullingSystem(this.shipGrid!);
+    this.shipCulling = new ShipCullingSystem();
     this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid!);
 
     // Menus
@@ -441,7 +441,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.shipGrid!, this.objectGrid!);
+    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!);
     this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
     
@@ -541,7 +541,7 @@ export class EngineRuntime {
       this.ship.destroyInstantly();
       this.destructionService.destroyEntity(this.ship, 'replaced'); // Instead of destroyInstantly
       this.shipRegistry.remove(this.ship);
-      this.shipGrid?.removeShip(this.ship);
+      ShipGrid.getInstance().removeShip(this.ship);
       this.objectGrid?.remove(this.ship);
       this.aiOrchestrator.clearPlayerShip();
       MovementSystemRegistry.unregister(this.ship);
@@ -714,7 +714,8 @@ export class EngineRuntime {
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
       // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
-      const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
+      // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
+      const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
       for (let i = 0; i < 20; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -958,6 +959,7 @@ export class EngineRuntime {
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();
+    ShipGrid.getInstance().destroy();
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();
     Camera.destroy();

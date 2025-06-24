@@ -22,7 +22,6 @@ export class DebugOverlay {
     private readonly canvasManager: CanvasManager,
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
-    private readonly shipGrid: ShipGrid,
     private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
   ) {}
 
@@ -55,8 +54,8 @@ export class DebugOverlay {
     const visibleAuraLights = visibleLights.filter(l => l.id?.startsWith('aura-')).length;
 
     const shipCount = this.shipRegistry.count();
-    const visibleShips = this.shipGrid.getShipsInCameraView(0).length;
-    const activeAIShips = this.shipGrid.getShipsInCameraView(2000).length;
+    const visibleShips = ShipGrid.getInstance().getShipsInCameraView(0).length;
+    const activeAIShips = ShipGrid.getInstance().getShipsInCameraView(2000).length;
 
     const compositeBlockObjectsInGrid = this.objectGrid.getAllObjects();
 
@@ -93,6 +92,19 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Composite Block Objects: ${compositeBlockObjectsInGrid.length}`); y += lineHeight;
     const destroyedObjects = compositeBlockObjectsInGrid.filter(o => o.isDestroyed());
     drawLabel(ctx, x, y, `Destroyed Composite Objects: ${destroyedObjects.length}`); y += lineHeight;
+    // Player's faction
+    const playerFaction = this.shipRegistry.getPlayerShip()?.getFaction() ?? 'Unknown';
+    drawLabel(ctx, x, y, `Player Faction: ${playerFaction}`); y += lineHeight;
+
+    // Get all ships in registry, and show counts of faction player, faction enemy, and faction neutral
+    const shipsByFaction: Record<string, number> = {};
+    for (const ship of this.shipRegistry.getAll()) {
+      const faction = ship.getFaction();
+      shipsByFaction[faction] = (shipsByFaction[faction] ?? 0) + 1;
+    }
+    for (const [faction, count] of Object.entries(shipsByFaction)) {
+      drawLabel(ctx, x, y, `Ships (${faction}): ${count}`); y += lineHeight;
+    }
 
     // === Residual Block Count in Grid (from one ship's grid ref)
     const sampleShip = this.shipRegistry.getPlayerShip();

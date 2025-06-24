@@ -8,6 +8,7 @@ import { renderLaserWeapon } from './blockRenderers/laserBlockRenderer';
 import { renderHullBlock } from './blockRenderers/hullBlockRenderer';
 import { renderFacetPlate } from './blockRenderers/facePlateBlockRenderer';
 import { renderTurret } from './blockRenderers/turretBlockRenderer';
+import { renderHeatSeeker } from './blockRenderers/heatSeekerBlockRenderer';
 import { renderReactorCore } from './blockRenderers/reactorBlockRenderer';
 import { renderEngine } from './blockRenderers/engineBlockRenderer';
 import { renderFin } from './blockRenderers/finBlockRenderer';
@@ -382,6 +383,67 @@ function drawProceduralBlock(typeId: string): void {
         barrelLength: BLOCK_SIZE * 0.75,
       });
       break;
+
+      case 'heatSeeker0': // GREY
+      case 'heatSeeker1': // GREY
+        renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#777', '#555', '#333'],
+          launcherColors: ['#666', '#444', '#222'],
+          tubeGradientStops: [
+            [0, '#333'],
+            [0.4, '#555'],
+            [0.8, '#777'],
+            [1, '#444']
+          ],
+          missileColors: ['#c44', '#a22', '#822'],
+        });
+        break;
+
+      case 'heatSeeker2': // GREEN
+        renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#66BB6A', '#4CAF50', '#2E7D32'],
+          launcherColors: ['#4CAF50', '#2E7D32', '#1B5E20'],
+          tubeGradientStops: [
+            [0, '#1B5E20'],
+            [0.3, '#2E7D32'],
+            [0.7, '#4CAF50'],
+            [1, '#388E3C']
+          ],
+          missileColors: ['#66BB6A', '#4CAF50', '#2E7D32'],
+        });
+        break;
+
+      case 'heatSeeker3': // BLUE
+        renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#64B5F6', '#2196F3', '#1565C0'],
+          launcherColors: ['#42A5F5', '#1976D2', '#0D47A1'],
+          tubeGradientStops: [
+            [0, '#0D47A1'],
+            [0.2, '#1565C0'],
+            [0.5, '#1976D2'],
+            [0.8, '#64B5F6'],
+            [1, '#2196F3']
+          ],
+          missileColors: ['#90CAF9', '#64B5F6', '#42A5F5'],
+        });
+        break;
+
+      case 'heatSeeker4': // PURPLE
+        renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#E1BEE7', '#BA68C8', '#9C27B0', '#7B1FA2', '#4A148C'],
+          launcherColors: ['#CE93D8', '#AB47BC', '#8E24AA', '#6A1B99'],
+          tubeGradientStops: [
+            [0, '#4A148C'],
+            [0.15, '#6A1B99'],
+            [0.3, '#8E24AA'],
+            [0.5, '#AB47BC'],
+            [0.7, '#CE93D8'],
+            [0.85, '#E1BEE7'],
+            [1, '#BA68C8']
+          ],
+          missileColors: ['#F3E5F5', '#E1BEE7', '#CE93D8'],
+        });
+        break;
 
     case 'laser0':
       renderLaserWeapon(baseCtx, BLOCK_SIZE, {
@@ -789,7 +851,8 @@ function drawProceduralBlock(typeId: string): void {
     base: baseCanvas,
     overlay: (
       typeId.startsWith('turret') ||
-      typeId.startsWith('explosiveLance')
+      typeId.startsWith('explosiveLance') ||
+      typeId.startsWith('heatSeeker')
     )
       ? overlayCanvas
       : undefined,

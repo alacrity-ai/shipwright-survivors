@@ -22,6 +22,7 @@ type LoopGraph = {
   pan: StereoPannerNode;
 };
 
+const MIN_TIME_BETWEEN_SAME_PLAY_S = 0.01; // 10ms
 const FADE_DURATION = 0.2; // seconds (30ms is perceptually instantaneous)
 
 export class AudioManager {
@@ -35,6 +36,7 @@ export class AudioManager {
   private currentMusicSource: AudioBufferSourceNode | null = null;
   private currentMusicFile: string | null = null;
   private isMusicLooping = false;
+  private lastPlayAttempt = new Map<string, number>();
 
   constructor() {
     this.context = new AudioContext();
@@ -55,6 +57,13 @@ export class AudioManager {
   }
 
   public async play(file: string, channel: AudioChannel, options?: PlayOptions): Promise<boolean> {
+    const now = this.context.currentTime;
+    const last = this.lastPlayAttempt.get(file) ?? 0;
+    if ((now - last) < MIN_TIME_BETWEEN_SAME_PLAY_S) {
+      return false;
+    }
+    this.lastPlayAttempt.set(file, now);
+
     const maxSimultaneous = options?.maxSimultaneous ?? 1;
     const volume = Math.max(0, Math.min(1, options?.volume ?? 1.0));
     const pan = Math.max(-1, Math.min(1, options?.pan ?? 0));

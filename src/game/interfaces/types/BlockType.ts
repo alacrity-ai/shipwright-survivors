@@ -6,6 +6,7 @@ export type BlockCategory = 'system' | 'hull' | 'engine' | 'weapon' | 'utility' 
 
 export interface BlockType {
   id: string;
+  tier: number;
   name: string;
   sprite: string;
   armor: number;

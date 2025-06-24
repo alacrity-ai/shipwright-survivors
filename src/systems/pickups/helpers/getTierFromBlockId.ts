@@ -3,25 +3,27 @@
 import type { BlockType } from "@/game/interfaces/types/BlockType";
 import { getBlockType } from "@/game/blocks/BlockRegistry";
 
+/** Returns the tier of the block identified by its ID using the BlockRegistry. */
 export function getTierFromBlockId(id: string): number {
-  if (id.startsWith('cockpit')) return 10;
-  const match = id.match(/(\d{1,2})$/);
-  return match ? parseInt(match[1], 10) : 0;
+  const blockType = getBlockType(id);
+  return blockType?.tier ?? 0;
 }
 
+/** Attempts to return the next-tier block ID for a given block ID, assuming naming follows same prefix+tier format. */
 export function getNextTierBlockFromBlockId(id: string): string {
-  const tier = getTierFromBlockId(id);
-  const nextTier = tier + 1;
-  return id.replace(/\d+$/, String(nextTier));
+  const blockType = getBlockType(id);
+  if (!blockType) return 'hull1';
+
+  const prefix = id.replace(/\d+$/, ''); // Strip numeric suffix
+  const nextTierId = `${prefix}${blockType.tier + 1}`;
+  return getBlockType(nextTierId) ? nextTierId : 'hull1';
 }
 
-// Tier 0 blocks are reserved for system (e.g. enemies), but they should still drop blocks.
-// If they do drop blocks, we convert them to their tier 1 equivalent.
+/** Converts tier-0 blocks to their tier-1 equivalent using the naming convention. Falls back to hull1 if lookup fails. */
 export function getTier1BlockIfTier0(blockType: BlockType): BlockType {
-  const tier = getTierFromBlockId(blockType.id);
-  if (tier === 0) {
+  if (blockType.tier === 0) {
     const newId = blockType.id.replace(/\d+$/, '1');
-    return getBlockType(newId)!;
+    return getBlockType(newId) ?? getBlockType('hull1')!;
   }
   return blockType;
 }

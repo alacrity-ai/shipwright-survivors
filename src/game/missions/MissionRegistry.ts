@@ -16,8 +16,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
-      worldWidth: 12000,
-      worldHeight: 12000,
+      worldWidth: 16000,
+      worldHeight: 16000,
     },
     enemyPower: 1,
     waveDensity: 0.5,
@@ -35,8 +35,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
-      worldWidth: 18000,
-      worldHeight: 18000,
+      worldWidth: 16000,
+      worldHeight: 16000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
@@ -57,8 +57,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
-      worldWidth: 18000,
-      worldHeight: 18000,
+      worldWidth: 16000,
+      worldHeight: 16000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',

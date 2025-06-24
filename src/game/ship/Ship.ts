@@ -47,6 +47,7 @@ export class Ship extends CompositeBlockObject {
   private firingMode: FiringMode = FiringMode.Synced;
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
   private haloBladeBlocks: Map<BlockInstance, HaloBladeProperties> = new Map();
+  private heatSeekerBlocks: Map<BlockInstance, number> = new Map();
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
   private lightAuraId: string | null = null;
@@ -348,7 +349,7 @@ export class Ship extends CompositeBlockObject {
   }
 
   /**
-   * Removes a turret from the firing plan using swap-and-pop for O(1) deletion.
+   * Removes a weapon from the firing plan using swap-and-pop for O(1) deletion.
    */
   private removeWeaponFromPlanIfApplicable(block: BlockInstance): void {
     const index = this.firingPlanIndex.get(block);
@@ -491,6 +492,21 @@ export class Ship extends CompositeBlockObject {
     return this.finBlocks;
   }
 
+  public getHeatSeekerBlocks(): Map<BlockInstance, number> {
+    return this.heatSeekerBlocks;
+  }
+
+  public rebuildHeatSeekerIndex(): void {
+    this.heatSeekerBlocks.clear();
+
+    for (const { block } of this.blocks.values()) {
+      const behavior = block.type.behavior;
+      if (behavior?.fire?.fireType === 'heatSeeker') {
+        this.heatSeekerBlocks.set(block, block.type.tier);
+      }
+    }
+  }
+
   // === Utility Systems: Harvesting, etc ===
 
   public getTotalHarvestRate(): number {
@@ -595,6 +611,11 @@ export class Ship extends CompositeBlockObject {
       this.haloBladeBlocks.set(block, halo);
     }
 
+    // Heat Seekers
+    if (block.type.behavior?.fire?.fireType === 'heatSeeker') {
+      this.heatSeekerBlocks.set(block, block.type.tier);
+    }
+
     // Fuel Tanks
     if (block.type.id.startsWith('fuelTank')) {
       this.fuelTankBlocks.add(block);
@@ -629,6 +650,7 @@ export class Ship extends CompositeBlockObject {
     this.harvesterBlocks.delete(block);
     this.shieldBlocks.delete(block);
     this.haloBladeBlocks.delete(block);
+    this.heatSeekerBlocks.delete(block);
     this.fuelTankBlocks.delete(block);
 
     this.removeWeaponFromPlanIfApplicable(block);
@@ -684,6 +706,7 @@ export class Ship extends CompositeBlockObject {
       this.harvesterBlocks.delete(block);
       this.shieldBlocks.delete(block);
       this.haloBladeBlocks.delete(block);
+      this.heatSeekerBlocks.delete(block);
       this.fuelTankBlocks.delete(block);
       BlockToObjectIndex.unregisterBlock(block);
     }
@@ -759,6 +782,7 @@ export class Ship extends CompositeBlockObject {
     this.rebuildHaloBladeIndex();
     this.rebuildEngineBlockIndex();
     this.rebuildFinBlockIndex();
+    this.rebuildHeatSeekerIndex();
     this.markRasterDirty();
   }
 

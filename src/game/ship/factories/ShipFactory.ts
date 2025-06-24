@@ -5,6 +5,7 @@ import { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/weapons/LaserBackend';
 import { ExplosiveLanceBackend } from '@/systems/combat/backends/weapons/ExplosiveLanceBackend';
+import { HeatSeekerBackend } from '@/systems/combat/backends/weapons/HeatSeekerBackend';
 import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBackend';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
@@ -12,6 +13,7 @@ import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
+import { ShipGrid } from '@/game/ship/ShipGrid';
 
 import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -83,12 +85,14 @@ export class ShipFactory {
     if (isPlayerShip) {
       this.registry.setPlayerShip(ship);
     }
+    ShipGrid.getInstance().addShip(ship);
 
     const emitter = new ThrusterEmitter(this.particleManager);
     const movement = new MovementSystem(ship, emitter, isPlayerShip ? this.collisionSystem : null);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
       new LaserBackend(this.laserSystem),
+      new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
     );
@@ -175,12 +179,14 @@ export class ShipFactory {
       this.registry.setPlayerShip(ship);
       ship.setIsPlayerShip(true);
     }
+    ShipGrid.getInstance().addShip(ship);
 
     const emitter = new ThrusterEmitter(this.particleManager);
     const movement = new MovementSystem(ship, emitter, this.collisionSystem);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
       new LaserBackend(this.laserSystem),
+      new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
     );

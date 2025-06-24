@@ -16,7 +16,7 @@ export class PlayerSettingsManager {
   private lightingEnabled: boolean = true;
   private collisionsEnabled: boolean = true;
 
-  private debugMode: boolean = false;
+  private debugMode: boolean = false; // Set to false TODO: In prod set to false
 
   private viewportWidth: number = 1920;
   private viewportHeight: number = 1080;

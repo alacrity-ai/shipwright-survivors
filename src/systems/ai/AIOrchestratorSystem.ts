@@ -33,9 +33,8 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
   private lastControllerIndex: number = 0;
   private readonly tempControllerList: AIControllerSystem[] = [];
 
-  constructor(private shipGrid: ShipGrid) {
+  constructor() {
     AIOrchestratorSystem.instance = this;
-    this.shipGrid = shipGrid;
   }
 
   public registerPlayerShip(ship: Ship): void {
@@ -44,7 +43,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
   public clearPlayerShip(): void {
     this.playerShip = null;
-    this.shipGrid.clear();
+    ShipGrid.getInstance().clear();
   }
 
   public addController(controller: AIControllerSystem, unCullable: boolean = false): void {
@@ -57,8 +56,6 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
     this.setUncullable(controller, unCullable || controller.isHunter());
     controller.setCullabilityDelegate(this);
-    
-    this.shipGrid.addShip(ship);
 
     const formation = this.formationRegistry.getFormationByShipId(ship.id);
     if (formation) {
@@ -82,7 +79,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     const ship = this.controllerToShipMap.get(controller);
     if (ship) {
       this.shipIdToControllerMap.delete(ship.id);
-      this.shipGrid.removeShip(ship);
+      ShipGrid.getInstance().removeShip(ship);
     }
 
     this.controllerToShipMap.delete(controller);
@@ -142,7 +139,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     this.controllerToShipMap.clear();
     this.shipIdToControllerMap.clear();
     this.uncullableControllers.clear();
-    this.shipGrid.clear();
+    ShipGrid.getInstance().clear();
   }
 
   public update(dt: number): void {
@@ -153,7 +150,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
     // === 1. Update ship grid occupancy (every frame) ===
     for (const [controller, ship] of this.controllerToShipMap) {
-      this.shipGrid.updateShipPosition(ship);
+      ShipGrid.getInstance().updateShipPosition(ship);
     }
 
     // === 2. Manage relevant controllers set ===
@@ -174,7 +171,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       
       // Include spatially relevant controllers near player
       const playerPos = this.playerShip.getTransform().position;
-      const nearbyShips = this.shipGrid.getShipsInRadius(
+      const nearbyShips = ShipGrid.getInstance().getShipsInRadius(
         playerPos.x,
         playerPos.y,
         SCAN_RADIUS

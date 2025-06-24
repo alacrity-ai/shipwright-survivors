@@ -21,6 +21,8 @@ export type DestructionCause =
   | 'laser'
   | 'explosiveLance'
   | 'explosiveLanceAoE'
+  | 'heatSeekerDirect'
+  | 'heatSeekerAoE'
   | 'haloBlade'
   | 'self'
   | 'scripted'

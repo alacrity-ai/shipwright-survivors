@@ -1,20 +1,32 @@
 // src/game/ship/ShipGrid.ts
 
 import type { Ship } from '@/game/ship/Ship';
-import type { Faction } from '@/game/interfaces/types/Faction';
+import { Faction } from '@/game/interfaces/types/Faction';
 import { Camera } from '@/core/Camera';
 
+const CELL_SIZE = 3000
+
 export class ShipGrid {
+  private static instance: ShipGrid | undefined;
+
+  /** Returns the singleton instance. Throws if not yet initialized. */
+  public static getInstance(): ShipGrid {
+    if (!ShipGrid.instance) {
+      ShipGrid.instance = new ShipGrid(CELL_SIZE);
+    }
+    return ShipGrid.instance;
+  }
+
+  private readonly cellSize: number = CELL_SIZE;
+
   private cells: Map<number, Map<number, Ship[]>> = new Map();
   private factionCells: Map<Faction, Map<number, Map<number, Ship[]>>> = new Map();
   private shipToCellMap: Map<string, [number, number]> = new Map();
-  private cellSize: number;
 
-  constructor(cellSize: number = 1000) {
+  private constructor(cellSize: number) {
     this.cellSize = cellSize;
   }
 
-  /** Use Math.round to avoid spatial jitter around cell boundaries, especially in negative space. */
   private getCellCoords(x: number, y: number): [number, number] {
     return [Math.round(x / this.cellSize), Math.round(y / this.cellSize)];
   }
@@ -44,35 +56,45 @@ export class ShipGrid {
 
   private getCellSources(excludeFaction?: Faction): Map<number, Map<number, Ship[]>>[] {
     if (!excludeFaction) return [this.cells];
+
     const result: Map<number, Map<number, Ship[]>>[] = [];
     for (const [faction, map] of this.factionCells) {
-      if (faction !== excludeFaction) result.push(map);
+      if (faction !== excludeFaction && faction !== Faction.Neutral) {
+        result.push(map);
+      }
     }
     return result;
   }
 
-  public addShip(ship: Ship): void {
-    const transform = ship.getTransform();
-    if (!transform) return;
-
-    const { x, y } = transform.position;
-    const [cellX, cellY] = this.getCellCoords(x, y);
-
-    // Remove from old cell if it was already tracked
-    this.removeShip(ship);
-
-    // Add to global map
-    const globalCell = this.getOrCreateCell(this.cells, cellX, cellY);
-    globalCell.push(ship);
-
-    // Add to faction-specific map
-    const factionMap = this.getFactionMap(ship.getFaction());
-    const factionCell = this.getOrCreateCell(factionMap, cellX, cellY);
-    factionCell.push(ship);
-
-    // Track ship's current cell
-    this.shipToCellMap.set(ship.id, [cellX, cellY]);
+public addShip(ship: Ship): void {
+  const transform = ship.getTransform();
+  if (!transform) {
+    console.warn('[ShipGrid] Skipping addShip: no transform for ship', ship.id);
+    return;
   }
+
+  const { x, y } = transform.position;
+  const [cellX, cellY] = this.getCellCoords(x, y);
+
+  this.removeShip(ship); // Remove from old cell
+
+  const globalCell = this.getOrCreateCell(this.cells, cellX, cellY);
+  globalCell.push(ship);
+
+  const faction = ship.getFaction();
+  const factionMap = this.getFactionMap(faction);
+  const factionCell = this.getOrCreateCell(factionMap, cellX, cellY);
+  factionCell.push(ship);
+
+  this.shipToCellMap.set(ship.id, [cellX, cellY]);
+
+  // === Diagnostic Logging ===
+  console.log(`[ShipGrid] Added ship: ${ship.id}`);
+  console.log(`  Faction: ${faction}`);
+  console.log(`  Position: (${x.toFixed(1)}, ${y.toFixed(1)})`);
+  console.log(`  Cell: (${cellX}, ${cellY})`);
+}
+
 
   public removeShip(ship: Ship): void {
     const currentCell = this.shipToCellMap.get(ship.id);
@@ -80,7 +102,6 @@ export class ShipGrid {
 
     const [cellX, cellY] = currentCell;
 
-    // Remove from global map
     const globalRow = this.cells.get(cellX);
     const globalCell = globalRow?.get(cellY);
     if (globalCell) {
@@ -88,7 +109,6 @@ export class ShipGrid {
       if (idx !== -1) globalCell.splice(idx, 1);
     }
 
-    // Remove from faction map
     const factionRow = this.getFactionMap(ship.getFaction()).get(cellX);
     const factionCell = factionRow?.get(cellY);
     if (factionCell) {
@@ -99,7 +119,6 @@ export class ShipGrid {
     this.shipToCellMap.delete(ship.id);
   }
 
-  /** Update ship's cell if it has crossed a cell boundary. */
   public updateShipPosition(ship: Ship): void {
     const transform = ship.getTransform();
     if (!transform) return;
@@ -109,17 +128,14 @@ export class ShipGrid {
     const currentCell = this.shipToCellMap.get(ship.id);
 
     if (!currentCell) {
-      // Ship not yet tracked
       this.addShip(ship);
       return;
     }
 
     const [oldCellX, oldCellY] = currentCell;
-    if (oldCellX === newCellX && oldCellY === newCellY) {
-      return; // No cell change, skip
-    }    
+    if (oldCellX === newCellX && oldCellY === newCellY) return;
 
-    this.addShip(ship); // Re-add in new cell
+    this.addShip(ship); // Re-add to new cell
   }
 
   public getShipsInArea(minX: number, minY: number, maxX: number, maxY: number, excludeFaction?: Faction): Ship[] {
@@ -205,19 +221,20 @@ export class ShipGrid {
     return count;
   }
 
-  /** Removes all ships and clears the grid. */
   public clear(): void {
     this.cells.clear();
     this.factionCells.clear();
     this.shipToCellMap.clear();
   }
 
-  /** Returns whether a ship is currently tracked in the grid. */
+  public destroy(): void {
+    this.clear();
+  }
+
   public hasShip(ship: Ship): boolean {
     return this.shipToCellMap.has(ship.id);
   }
 
-  /** Debug method to visualize ship distribution. */
   public getDebugInfo(): { totalShips: number; cellsUsed: number; avgShipsPerCell: number } {
     let totalShips = 0;
     let cellsUsed = 0;

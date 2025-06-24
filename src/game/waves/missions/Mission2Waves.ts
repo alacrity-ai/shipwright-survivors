@@ -3,6 +3,8 @@
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 
+import { randomIntFromRange } from '@/shared/mathUtils';
+
 import { createHourGlassFormation } from '@/systems/ai/formations/prefabs/createHourGlassFormation';
 import { createMediumWedgeFormation } from '@/systems/ai/formations/prefabs/createMediumWedgeFormation';
 import { createSmallWedgeFormation } from '@/systems/ai/formations/prefabs/createSmallWedgeFormation';
@@ -29,6 +31,26 @@ const FAST_AFFIXES: ShipAffixes = {
 const SUPER_FAST_AFFIXES: ShipAffixes = {
   thrustPowerMulti: 4.4,
   turnPowerMulti: 4.4,
+};
+
+const cursedCargoTier1Params = {
+  rewardBlockTier: 1,
+  rewardQuantityMultiplier: 1,
+  ships: [
+    { shipId: 'incidents/cursed_cargo/cursed_cargo_killer_00', count: 4 },
+    { shipId: 'incidents/cursed_cargo/cursed_cargo_killer_01', count: 4 },
+  ],
+  cursedCacheShip: { shipId: 'incidents/cursed_cargo/cursed_cargo_00', count: 1 },
+};
+
+const cursedCargoTier2Params = {
+  rewardBlockTier: 2,
+  rewardQuantityMultiplier: 1,
+  ships: [
+    { shipId: 'incidents/cursed_cargo/cursed_cargo_killer_02', count: 4 },
+    { shipId: 'incidents/cursed_cargo/cursed_cargo_killer_03', count: 4 },
+  ],
+  cursedCacheShip: { shipId: 'incidents/cursed_cargo/cursed_cargo_01', count: 1 },
 };
 
 const smallWedgeFormation = createSmallWedgeFormation(
@@ -112,6 +134,19 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'wave_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'wave_0_03', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier1Params,
+      },
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier1Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+    ],
     formations: [mediumWedgeFormation],
   },
   {
@@ -142,6 +177,25 @@ export const waveDefinitions: WaveDefinition[] = [
         hunter: true,
         behaviorProfile: RammingBehaviorProfile,
         affixes: RAMMER_SPEAR_AFFIXES,
+      },
+    ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+      },
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+      {
+        spawnChance: 0.5,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
       },
     ],
   },
@@ -201,6 +255,25 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [],
     formations: [cruiserLargeWedgeFormation, smallWedgeFormation, mediumWedgeFormation],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+      },
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+      {
+        spawnChance: 0.5,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+    ],
   },
   {
     spawnDistribution: 'aroundPlayer',
@@ -256,13 +329,52 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true },
       { shipId: 'mission_02/wave_5_03', count: 4 },
     ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+      },
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+      {
+        spawnChance: 0.5,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+    ],
     formations: [killCrewFormation],
   },
   {
     spawnDistribution: 'center',
     duration: Infinity,
     mods: [],
-    ships: [{ shipId: 'boss_0_00', count: 1, hunter: true }],
+    ships: [
+      {
+        shipId: 'boss_0_00',
+        count: 1,
+        hunter: true,
+        behaviorProfile: {
+          ...SiegeBehaviorProfile,
+          params: {
+            ...SiegeBehaviorProfile.params,
+            siegeRange: 1600,
+            disengageRange: 2800,
+          },
+        },
+        affixes: {
+          blockDurabilityMulti: 15.0,
+          thrustPowerMulti: 4.0,
+          turnPowerMulti: 1.0,
+          fireRateMulti: 2.0,
+        },
+      },
+    ],
     music: {
       file: 'assets/sounds/music/track_03_boss.mp3',
     },

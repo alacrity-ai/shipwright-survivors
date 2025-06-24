@@ -31,7 +31,7 @@ export class CombatService {
     block: BlockInstance, // The block receiving the damage
     coord: GridCoord,
     damage: number,
-    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'haloBlade' | 'scripted' = 'scripted',
+    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' = 'scripted',
     lightFlash: boolean = true
   ): boolean {
     if (block.indestructible) return false;

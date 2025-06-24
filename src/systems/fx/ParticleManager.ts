@@ -106,7 +106,6 @@ export class ParticleManager {
     return particle;
   }
 
-
   emitBurst(origin: { x: number; y: number }, count: number, options: ParticleOptions = {}): void {
     for (let i = 0; i < count; i++) {
       this.spawnParticle(origin, options);

@@ -4,15 +4,13 @@ import { ShipGrid } from '@/game/ship/ShipGrid';
 import { Ship } from '@/game/ship/Ship';
 
 export class ShipCullingSystem {
-  constructor(
-    private readonly shipGrid: ShipGrid
-  ) {}
+  constructor() {}
 
   getVisibleShips(): Ship[] {
-    return this.shipGrid.getShipsInCameraView(250);
+    return ShipGrid.getInstance().getShipsInCameraView(250);
   }
 
   getActiveAIShips(): Ship[] {
-    return this.shipGrid.getShipsInCameraView(2000);
+    return ShipGrid.getInstance().getShipsInCameraView(2000);
   }
 }

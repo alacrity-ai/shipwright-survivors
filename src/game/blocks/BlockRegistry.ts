@@ -7,6 +7,7 @@ import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId
 const blockTypes: Record<string, BlockType> = {
   cockpit0: {
     id: 'cockpit0',
+    tier: 0,
     name: 'Cockpit',
     armor: 20,
     cost: 50,
@@ -30,6 +31,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   cockpit1: {
     id: 'cockpit1',
+    tier: 1,
     name: 'Cockpit',
     armor: 150,
     cost: 50,
@@ -53,6 +55,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   hull0: {
     id: 'hull0',
+    tier: 0,
     name: 'Hull Mk 0',
     armor: 15,
     mass: 50,
@@ -64,6 +67,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   hull1: {
     id: 'hull1',
+    tier: 1,
     name: 'Hull Mk I',
     armor: 50,
     mass: 50,
@@ -75,6 +79,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   hull2: {
     id: 'hull2',
+    tier: 2,
     name: 'Hull Mk II',
     armor: 75,
     mass: 60,
@@ -86,6 +91,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   hull3: {
     id: 'hull3',
+    tier: 3,
     name: 'Hull Mk III',
     armor: 100,
     mass: 75,
@@ -97,6 +103,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   hull4: {
     id: 'hull4',
+    tier: 4,
     name: 'Hull Mk IV',
     armor: 150,
     mass: 90,
@@ -108,6 +115,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   facetplate0: {
     id: 'facetplate0',
+    tier: 0,
     name: 'Facetplate Mk 0',
     armor: 20,
     mass: 30,
@@ -123,6 +131,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   facetplate1: {
     id: 'facetplate1',
+    tier: 1,
     name: 'Facetplate Mk I',
     armor: 75,
     mass: 30,
@@ -138,6 +147,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   facetplate2: {
     id: 'facetplate2',
+    tier: 2,
     name: 'Facetplate Mk II',
     armor: 100,
     mass: 40,
@@ -153,6 +163,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   facetplate3: {
     id: 'facetplate3',
+    tier: 3,
     name: 'Facetplate Mk III',
     armor: 125,
     mass: 50,
@@ -168,6 +179,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   facetplate4: {
     id: 'facetplate4',
+    tier: 4,
     name: 'Facetplate Mk IV',
     armor: 175,
     mass: 60,
@@ -183,6 +195,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   turret0: {
     id: 'turret0',
+    tier: 0,
     name: 'Turret Mk 0',
     armor: 20,
     cost: 40,
@@ -206,6 +219,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   turret1: {
     id: 'turret1',
+    tier: 1,
     name: 'Turret Mk I',
     armor: 40,
     cost: 40,
@@ -229,6 +243,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   turret2: {
     id: 'turret2',
+    tier: 2,
     name: 'Turret Mk II',
     armor: 50,
     cost: 100,
@@ -252,6 +267,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   turret3: {
     id: 'turret3',
+    tier: 3,
     name: 'Turret Mk III',
     armor: 75,
     cost: 200,
@@ -275,6 +291,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   turret4: {
     id: 'turret4',
+    tier: 4,
     name: 'Turret Mk IV',
     armor: 100,
     cost: 400,
@@ -298,6 +315,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   explosiveLance0: {
     id: 'explosiveLance0',
+    tier: 0,
     name: 'Explosive Lance Mk 0',
     armor: 60,
     cost: 120,
@@ -323,6 +341,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   explosiveLance1: {
     id: 'explosiveLance1',
+    tier: 1,
     name: 'Explosive Lance Mk I',
     armor: 60,
     cost: 140,
@@ -348,6 +367,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   explosiveLance2: {
     id: 'explosiveLance2',
+    tier: 2,
     name: 'Explosive Lance Mk II',
     armor: 80,
     cost: 220,
@@ -373,6 +393,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   explosiveLance3: {
     id: 'explosiveLance3',
+    tier: 3,
     name: 'Explosive Lance Mk III',
     armor: 90,
     cost: 360,
@@ -398,6 +419,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   explosiveLance4: {
     id: 'explosiveLance4',
+    tier: 4,
     name: 'Explosive Lance Mk IV',
     armor: 100,
     cost: 600,
@@ -423,6 +445,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   laser0: {
     id: 'laser0',
+    tier: 0,
     name: 'Laser Emitter Mk 0',
     armor: 40,
     cost: 500,
@@ -446,6 +469,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   laser1: {
     id: 'laser1',
+    tier: 3,
     name: 'Laser Emitter Mk I',
     armor: 80,
     cost: 500,
@@ -466,6 +490,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   laser2: {
     id: 'laser2',
+    tier: 4,
     name: 'Laser Emitter Mk II',
     armor: 100,
     cost: 1000,
@@ -486,6 +511,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   laser3: {
     id: 'laser3',
+    tier: 5,
     name: 'Laser Emitter Mk III',
     armor: 100,
     cost: 1800,
@@ -506,6 +532,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   reactor0: {
     id: 'reactor0',
+    tier: 0,
     name: 'Reactor Mk 0',
     armor: 25,
     cost: 400,
@@ -520,6 +547,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   reactor1: {
     id: 'reactor1',
+    tier: 3,
     name: 'Reactor Mk I',
     armor: 50,
     cost: 400,
@@ -534,6 +562,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   reactor2: {
     id: 'reactor2',
+    tier: 4,
     name: 'Reactor Mk II',
     armor: 75,
     cost: 800,
@@ -548,6 +577,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   battery0: {
     id: 'battery0',
+    tier: 0,
     name: 'Battery Mk 0',
     armor: 20,
     cost: 200,
@@ -562,6 +592,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   battery1: {
     id: 'battery1',
+    tier: 3,
     name: 'Battery Mk I',
     armor: 30,
     cost: 200,
@@ -576,6 +607,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   battery2: {
     id: 'battery2',
+    tier: 4,
     name: 'Battery Mk II',
     armor: 40,
     cost: 400,
@@ -590,6 +622,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   shield0: {
     id: 'shield0',
+    tier: 0,
     name: 'Shield Mk 0',
     armor: 20,
     cost: 200,
@@ -607,6 +640,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   shield1: {
     id: 'shield1',
+    tier: 3,
     name: 'Shield Mk I',
     armor: 60,
     cost: 160,
@@ -624,6 +658,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   shield2: {
     id: 'shield2',
+    tier: 4,
     name: 'Shield Mk II',
     armor: 80,
     cost: 300,
@@ -641,6 +676,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   shield3: {
     id: 'shield3',
+    tier: 5,
     name: 'Shield Mk III',
     armor: 100,
     cost: 600,
@@ -658,6 +694,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   engine0: {
     id: 'engine0',
+    tier: 0,
     name: 'Engine Mk 0',
     armor: 15,
     cost: 35,
@@ -673,6 +710,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   engine1: {
     id: 'engine1',
+    tier: 1,
     name: 'Engine Mk I',
     armor: 40,
     cost: 35,
@@ -688,6 +726,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   engine2: {
     id: 'engine2',
+    tier: 2,
     name: 'Engine Mk II',
     armor: 45,
     cost: 60,
@@ -703,6 +742,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   engine3: {
     id: 'engine3',
+    tier: 3,
     name: 'Engine Mk III',
     armor: 50,
     cost: 80,
@@ -718,6 +758,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   engine4: {
     id: 'engine4',
+    tier: 4,
     name: 'Engine Mk IV',
     armor: 55,
     mass: 30,
@@ -733,6 +774,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin0: {
     id: 'fin0',
+    tier: 0,
     name: 'Fin Mk 0',
     armor: 10,
     mass: 20,
@@ -747,6 +789,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin1: {
     id: 'fin1',
+    tier: 1,
     name: 'Fin Mk I',
     armor: 50,
     mass: 10,
@@ -761,6 +804,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin2: {
     id: 'fin2',
+    tier: 2,
     name: 'Fin Mk II',
     armor: 75,
     mass: 10,
@@ -775,6 +819,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin3: {
     id: 'fin3',
+    tier: 3,
     name: 'Fin Mk III',
     armor: 90,
     mass: 10,
@@ -789,6 +834,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fin4: {
     id: 'fin4',
+    tier: 4,
     name: 'Fin Mk IV',
     armor: 120,
     mass: 10,
@@ -803,6 +849,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   harvester0: {
     id: 'harvester0',
+    tier: 0,
     name: 'Resource Harvester Mk 0',
     armor: 50,
     mass: 30,
@@ -817,6 +864,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   harvester1: {
     id: 'harvester1',
+    tier: 1,
     name: 'Resource Harvester Mk I',
     armor: 50,
     mass: 30,
@@ -831,6 +879,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   harvester2: {
     id: 'harvester2',
+    tier: 2,
     name: 'Resource Harvester Mk II',
     armor: 80,
     mass: 40,
@@ -845,6 +894,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   haloBlade0: {
     id: 'haloBlade0',
+    tier: 0,
     name: 'Halo Blade Mk 0',
     armor: 100,
     mass: 80,
@@ -866,6 +916,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   haloBlade1: {
     id: 'haloBlade1',
+    tier: 1,
     name: 'Halo Blade Mk I',
     armor: 120,
     mass: 80,
@@ -887,6 +938,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   haloBlade2: {
     id: 'haloBlade2',
+    tier: 2,
     name: 'Halo Blade Mk II',
     armor: 140,
     mass: 80,
@@ -908,6 +960,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   haloBlade3: {
     id: 'haloBlade3',
+    tier: 3,
     name: 'Halo Blade Mk III',
     armor: 160,
     mass: 80,
@@ -929,6 +982,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   haloBlade4: {
     id: 'haloBlade4',
+    tier: 4,
     name: 'Halo Blade Mk IV',
     armor: 180,
     mass: 80,
@@ -948,8 +1002,139 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'haloBlade',
     dropRate: 0.1
   },
+  heatSeeker0: {
+    id: 'heatSeeker0',
+    tier: 0,
+    name: 'Heat Seeker Mk 0',
+    armor: 70,
+    mass: 80,
+    cost: 400,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.8,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 2,
+        explosionRadiusBlocks: 2,
+        projectileSpeed: 800,
+        turningPower: 2.0,
+        targetingRange: 3000,
+        lifetime: 3.0,
+      } 
+    },
+    sprite: 'heatSeeker0',
+    category: 'weapon',
+    subcategory: 'heatSeeker',
+    dropRate: 0.18
+  },
+  heatSeeker1: {
+    id: 'heatSeeker1',
+    tier: 1,
+    name: 'Heat Seeker Mk I',
+    armor: 80,
+    mass: 80,
+    cost: 400,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.8,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 4,
+        explosionRadiusBlocks: 3,
+        turningPower: 2.0,
+        targetingRange: 3000,
+        projectileSpeed: 800,
+        lifetime: 3.0,
+      } 
+    },
+    sprite: 'heatSeeker1',
+    category: 'weapon',
+    subcategory: 'heatSeeker',
+    dropRate: 0.18
+  },
+  heatSeeker2: {
+    id: 'heatSeeker2',
+    tier: 2,
+    name: 'Heat Seeker Mk II',
+    armor: 90,
+    mass: 80,
+    cost: 800,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.8,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 6,
+        explosionRadiusBlocks: 4,
+        turningPower: 2.2,
+        targetingRange: 3000,
+        projectileSpeed: 800,
+        lifetime: 3.2,
+      } 
+    },
+    sprite: 'heatSeeker2',
+    category: 'weapon',
+    subcategory: 'heatSeeker',
+    dropRate: 0.18
+  },
+  heatSeeker3: {
+    id: 'heatSeeker3',
+    tier: 3,
+    name: 'Heat Seeker Mk III',
+    armor: 100,
+    mass: 80,
+    cost: 1200,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.8,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 8,
+        explosionRadiusBlocks: 5,
+        turningPower: 2.4,
+        targetingRange: 3000,
+        projectileSpeed: 800,
+        lifetime: 3.4,
+      } 
+    },
+    sprite: 'heatSeeker3',
+    category: 'weapon',
+    subcategory: 'heatSeeker',
+    dropRate: 0.18
+  },
+  heatSeeker4: {
+    id: 'heatSeeker4',
+    tier: 4,
+    name: 'Heat Seeker Mk IV',
+    armor: 120,
+    mass: 80,
+    cost: 1600,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.8,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 10,
+        explosionRadiusBlocks: 6,
+        turningPower: 2.8,
+        targetingRange: 3000,
+        projectileSpeed: 800,
+        lifetime: 3.6,
+      } 
+    },
+    sprite: 'heatSeeker4',
+    category: 'weapon',
+    subcategory: 'heatSeeker',
+    dropRate: 0.18
+  },
   fuelTank0: {
     id: 'fuelTank0',
+    tier: 0,
     name: 'Fuel Tank Mk 0',
     armor: 50,
     cost: 50,
@@ -964,6 +1149,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fuelTank1: {
     id: 'fuelTank1',
+    tier: 1,
     name: 'Fuel Tank Mk I',
     armor: 60,
     cost: 50,
@@ -978,6 +1164,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fuelTank2: {
     id: 'fuelTank2',
+    tier: 2,
     name: 'Fuel Tank Mk II',
     armor: 70,
     cost: 50,
@@ -992,6 +1179,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fuelTank3: {
     id: 'fuelTank3',
+    tier: 3,
     name: 'Fuel Tank Mk III',
     armor: 80,
     cost: 50,
@@ -1006,6 +1194,7 @@ const blockTypes: Record<string, BlockType> = {
   },
   fuelTank4: {
     id: 'fuelTank4',
+    tier: 4,
     name: 'Fuel Tank Mk IV',
     armor: 90,
     cost: 50,
@@ -1034,12 +1223,16 @@ export function getBlockCost(id: string): number | undefined {
 }
 
 export function getAllBlocksInTier(tier: number): BlockType[] {
-  return Object.values(blockTypes).filter(block => getTierFromBlockId(block.id) === tier);
+  return Object.values(blockTypes).filter(
+    block => getTierFromBlockId(block.id) === tier && !block.id.includes('cockpit')
+  );
 }
 
 export function getAllBlocksInTierFromBlockType(blockType: BlockType): BlockType[] {
   const tier = getTierFromBlockId(blockType.id);
-  return Object.values(blockTypes).filter(block => getTierFromBlockId(block.id) === tier);
+  return Object.values(blockTypes).filter(
+    block => getTierFromBlockId(block.id) === tier && !block.id.includes('cockpit')
+  );
 }
 
 export function getTierFromBlockType(blockType: BlockType): number {

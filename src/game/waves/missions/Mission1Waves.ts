@@ -233,14 +233,15 @@ export const waveDefinitions: WaveDefinition[] = [
           ...SiegeBehaviorProfile,
           params: {
             ...SiegeBehaviorProfile.params,
-            siegeRange: 1200,
-            disengageRange: 2400,
+            siegeRange: 1600,
+            disengageRange: 2800,
           },
         },
         affixes: {
           blockDurabilityMulti: 15.0,
           thrustPowerMulti: 4.0,
-          turnPowerMulti: 4.0,
+          turnPowerMulti: 1.0,
+          fireRateMulti: 2.0,
         },
       },
     ],

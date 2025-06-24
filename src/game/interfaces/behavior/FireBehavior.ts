@@ -11,4 +11,6 @@ export interface FireBehavior {
   detonationDelayMs?: number; // New
   explosionDamage?: number; // New 
   explosionRadiusBlocks?: number; // New
+  turningPower?: number; // New
+  targetingRange?: number; // New
 }
