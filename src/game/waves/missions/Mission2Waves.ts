@@ -467,143 +467,143 @@ export const waveDefinitions: WaveDefinition[] = [
     },
     isBoss: true,
   },
-  {
-    spawnDistribution: 'outer',
-    duration: 20,
-    mods: [],
-    ships: [
-      { shipId: 'mission_03/haloblade_minicruiser_00', count: 4, hunter: true },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 6, hunter: true },
-      { shipId: 'mission_03/horrorhunter_00', count: 4, hunter: true },
-      { shipId: 'mission_03/horror_station_00', count: 2 },
-      { shipId: 'mission_03/speedhunter_00', count: 4, hunter: true },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true },
-    ],
-    music: {
-      file: 'assets/sounds/music/track_07_mission5.mp3',
-    }
-  },
-  {
-    spawnDistribution: 'outer',
-    duration: 20,
-    mods: [],
-    ships: [
-      { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/horrorhunter_00', count: 6, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/speedhunter_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-    ],
-    formations: [hunterCrewFormation],
-    incidents: [
-        {
-          spawnChance: 1.0,
-          script: 'CursedCargoIncident',
-          options: cursedCargoTier2Params,
-        },
-        {
-          spawnChance: 1.0,
-          script: 'CursedCargoIncident',
-          options: cursedCargoTier2Params,
-          delaySeconds: randomIntFromRange(10, 60),
-        },
-        {
-          spawnChance: 0.5,
-          script: 'CursedCargoIncident',
-          options: cursedCargoTier2Params,
-          delaySeconds: randomIntFromRange(10, 60),
-        },
-        {
-          spawnChance: 1.0,
-          script: 'DimensionalPortalIncident',
-          options: {
-            maxDuration: 30,
-            tiers: [
-              [ // Tier 0: 0–4 kills
-                { shipId: 'mission_03/horrorhunter_01', count: 4, hunter: true }
-              ],
-              [ // Tier 1: 5–9 kills
-                { shipId: 'mission_03/horrorhunter_01', count: 4, hunter: true }
-              ],
-              [ // Tier 2: 10–14 kills
-                { shipId: 'mission_03/horrorhunter_02', count: 8, hunter: true }
-              ],
-              [ // Tier 3: 15–19 kills
-                { shipId: 'mission_03/haloblade_cruiser_00', count: 8, hunter: true }
-              ],
-              [ // Tier 4+: 20+ kills
-                { shipId: 'mission_03/haloblade_cruiser_00', count: 8, hunter: true }
-              ],
-            ],
-          },
-        }
-      ],
-  },
-  {
-    spawnDistribution: 'outer',
-    duration: 20,
-    mods: [],
-    ships: [
-      { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/horrorhunter_00', count: 6, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/speedhunter_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-    ],
-    formations: [hunterCrewFormation, hunterCrewFormation],
-  },
-  {
-    spawnDistribution: 'outer',
-    duration: 20,
-    mods: [],
-    ships: [
-      { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/speedhunter_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-    ],
-    formations: [hunterCrewFormation, hunterCrewFormation],
-  },
-  {
-    spawnDistribution: 'outer',
-    duration: 20,
-    mods: [],
-    ships: [
-      { shipId: 'ship_deathcruiser_4', count: 8, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-    ],
-    formations: [hunterCrewFormation],
-  },
-  {
-    spawnDistribution: 'center',
-    duration: Infinity,
-    mods: [],
-    ships: [
-      {
-        shipId: 'mission_03/boss_03',
-        count: 1,
-        hunter: true,
-        behaviorProfile: {
-          ...SiegeBehaviorProfile,
-          params: {
-            ...SiegeBehaviorProfile.params,
-            siegeRange: 1600,
-            disengageRange: 2800,
-          },
-        },
-        affixes: {
-          blockDurabilityMulti: 15.0,
-          thrustPowerMulti: 4.0,
-          turnPowerMulti: 1.0,
-          fireRateMulti: 2.0,
-        },
-      },
-    ],
-    music: {
-      file: 'assets/sounds/music/track_03_boss.mp3',
-    },
-    lightingSettings: {
-      clearColor: [0.25, 0.0, 0.0, 0.0],
-    },
-    isBoss: true,
-  },
+  // {
+  //   spawnDistribution: 'outer',
+  //   duration: 20,
+  //   mods: [],
+  //   ships: [
+  //     { shipId: 'mission_03/haloblade_minicruiser_00', count: 4, hunter: true },
+  //     { shipId: 'mission_03/haloblade_cruiser_00', count: 6, hunter: true },
+  //     { shipId: 'mission_03/horrorhunter_00', count: 4, hunter: true },
+  //     { shipId: 'mission_03/horror_station_00', count: 2 },
+  //     { shipId: 'mission_03/speedhunter_00', count: 4, hunter: true },
+  //     { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true },
+  //   ],
+  //   music: {
+  //     file: 'assets/sounds/music/track_07_mission5.mp3',
+  //   }
+  // },
+  // {
+  //   spawnDistribution: 'outer',
+  //   duration: 20,
+  //   mods: [],
+  //   ships: [
+  //     { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/horrorhunter_00', count: 6, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/speedhunter_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //   ],
+  //   formations: [hunterCrewFormation],
+  //   incidents: [
+  //       {
+  //         spawnChance: 1.0,
+  //         script: 'CursedCargoIncident',
+  //         options: cursedCargoTier2Params,
+  //       },
+  //       {
+  //         spawnChance: 1.0,
+  //         script: 'CursedCargoIncident',
+  //         options: cursedCargoTier2Params,
+  //         delaySeconds: randomIntFromRange(10, 60),
+  //       },
+  //       {
+  //         spawnChance: 0.5,
+  //         script: 'CursedCargoIncident',
+  //         options: cursedCargoTier2Params,
+  //         delaySeconds: randomIntFromRange(10, 60),
+  //       },
+  //       {
+  //         spawnChance: 1.0,
+  //         script: 'DimensionalPortalIncident',
+  //         options: {
+  //           maxDuration: 30,
+  //           tiers: [
+  //             [ // Tier 0: 0–4 kills
+  //               { shipId: 'mission_03/horrorhunter_01', count: 4, hunter: true }
+  //             ],
+  //             [ // Tier 1: 5–9 kills
+  //               { shipId: 'mission_03/horrorhunter_01', count: 4, hunter: true }
+  //             ],
+  //             [ // Tier 2: 10–14 kills
+  //               { shipId: 'mission_03/horrorhunter_02', count: 8, hunter: true }
+  //             ],
+  //             [ // Tier 3: 15–19 kills
+  //               { shipId: 'mission_03/haloblade_cruiser_00', count: 8, hunter: true }
+  //             ],
+  //             [ // Tier 4+: 20+ kills
+  //               { shipId: 'mission_03/haloblade_cruiser_00', count: 8, hunter: true }
+  //             ],
+  //           ],
+  //         },
+  //       }
+  //     ],
+  // },
+  // {
+  //   spawnDistribution: 'outer',
+  //   duration: 20,
+  //   mods: [],
+  //   ships: [
+  //     { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/horrorhunter_00', count: 6, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/speedhunter_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //   ],
+  //   formations: [hunterCrewFormation, hunterCrewFormation],
+  // },
+  // {
+  //   spawnDistribution: 'outer',
+  //   duration: 20,
+  //   mods: [],
+  //   ships: [
+  //     { shipId: 'mission_03/horrorhunter_01', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/horrorhunter_02', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/speedhunter_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //     { shipId: 'mission_03/haloblade_cruiser_00', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //   ],
+  //   formations: [hunterCrewFormation, hunterCrewFormation],
+  // },
+  // {
+  //   spawnDistribution: 'outer',
+  //   duration: 20,
+  //   mods: [],
+  //   ships: [
+  //     { shipId: 'ship_deathcruiser_4', count: 8, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+  //   ],
+  //   formations: [hunterCrewFormation],
+  // },
+  // {
+  //   spawnDistribution: 'center',
+  //   duration: Infinity,
+  //   mods: [],
+  //   ships: [
+  //     {
+  //       shipId: 'mission_03/boss_03',
+  //       count: 1,
+  //       hunter: true,
+  //       behaviorProfile: {
+  //         ...SiegeBehaviorProfile,
+  //         params: {
+  //           ...SiegeBehaviorProfile.params,
+  //           siegeRange: 1600,
+  //           disengageRange: 2800,
+  //         },
+  //       },
+  //       affixes: {
+  //         blockDurabilityMulti: 15.0,
+  //         thrustPowerMulti: 4.0,
+  //         turnPowerMulti: 1.0,
+  //         fireRateMulti: 2.0,
+  //       },
+  //     },
+  //   ],
+  //   music: {
+  //     file: 'assets/sounds/music/track_03_boss.mp3',
+  //   },
+  //   lightingSettings: {
+  //     clearColor: [0.25, 0.0, 0.0, 0.0],
+  //   },
+  //   isBoss: true,
+  // },
 ];
