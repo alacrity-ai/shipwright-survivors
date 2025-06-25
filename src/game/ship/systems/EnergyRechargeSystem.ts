@@ -2,7 +2,6 @@
 
 import type { IUpdatable } from '@/core/interfaces/types';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
 export class EnergyRechargeSystem implements IUpdatable {
   constructor(private readonly shipRegistry: ShipRegistry) {}
@@ -22,11 +21,14 @@ export class EnergyRechargeSystem implements IUpdatable {
         let totalDrain = 0;
 
         for (const block of ship.getShieldBlocks()) {
-          const drain = block.type.behavior?.shieldEnergyDrain ?? 0;
-          totalDrain += drain;
+          const baseDrain = block.type.behavior?.shieldEnergyDrain ?? 0;
+          totalDrain += baseDrain;
         }
 
-        const drainAmount = totalDrain * dt;
+        // === Apply passive multiplier (e.g., 0.9 for -10%)
+        const drainMultiplier = ship.getPassiveBonus('shield-energy-drain'); // default 1.0
+        const drainAmount = totalDrain * drainMultiplier * dt;
+
         const success = energy.spend(drainAmount);
 
         // === Deactivate shields if energy is too low

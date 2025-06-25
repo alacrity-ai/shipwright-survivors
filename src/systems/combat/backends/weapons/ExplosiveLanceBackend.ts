@@ -22,6 +22,7 @@ import { createPointLight } from '@/lighting/lights/createPointLight';
 import { PointLightInstance } from '@/lighting/lights/types';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { GlobalEventBus } from '@/core/EventBus';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
 interface ActiveExplosiveLance {
   position: { x: number; y: number };
@@ -63,12 +64,15 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const target = intent?.aimAt;
     const fireRequested = intent?.firePrimary ?? false;
 
+    const fireRateBonus = ship.getPassiveBonus('explosive-lance-firing-rate');
+    const radiusBonus = ship.getPassiveBonus('explosive-lance-radius');
+
     for (let i = plan.length - 1; i >= 0; i--) {
       const lance = plan[i];
       if (!ship.getBlockCoord(lance.block)) continue;
 
       lance.timeSinceLastShot += dt;
-      if (!fireRequested || lance.timeSinceLastShot < lance.fireCooldown) continue;
+      if (!fireRequested || lance.timeSinceLastShot < lance.fireCooldown / fireRateBonus) continue;
 
       lance.timeSinceLastShot = 0;
 
@@ -131,7 +135,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         velocity: { x: vx, y: vy },
         fireDamage: fire.fireDamage ?? 10,
         explosionDamage: fire.explosionDamage ?? 30,
-        explosionRadius: fire.explosionRadiusBlocks ?? 2,
+        explosionRadius: (fire.explosionRadiusBlocks ?? 2) * radiusBonus,
         detonationDelay: fire.detonationDelayMs! / 1000,
         elapsed: 0,
         stuck: false,
@@ -299,18 +303,28 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     LightingOrchestrator.getInstance().removeLight(lance.light.id);
 
     const blocks = lance.targetShip.getBlocksWithinGridDistance(lance.coord, lance.explosionRadius);
+    let firstBlockDetonated = false;
     for (const block of blocks) {
       const coord = lance.targetShip.getBlockCoord(block);
       if (coord) {
-        this.explosionSystem.createBlockExplosion(
-          lance.targetShip.getTransform().position,
-          lance.targetShip.getTransform().rotation,
-          coord,
-          lance.explosionRadius * 64,
-          0.7,
-          EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]?.[0],
-          EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]
-        );
+        if (!firstBlockDetonated) {
+          createLightFlash(
+            lance.targetShip.getTransform().position.x,
+            lance.targetShip.getTransform().position.y,
+            lance.explosionRadius * 24,
+            0.8,
+            0.4,
+            EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]?.[0] ?? '#ccc'
+          );
+          this.particleManager.emitBurst(lance.position, 24, {
+            colors: EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#ccc', '#aaa', '#888'],
+            baseSpeed: 1200,
+            sizeRange: [2, 4],
+            lifeRange: [0.5, 0.8],
+            fadeOut: true,
+          });
+          firstBlockDetonated = true;
+        }
         this.combatService.applyDamageToBlock(
           lance.targetShip,
           ship,

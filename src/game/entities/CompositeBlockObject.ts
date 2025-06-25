@@ -31,6 +31,9 @@ export abstract class CompositeBlockObject {
 
   protected collidingUntil: number = 0;
 
+  protected blockColor: string | null = null;
+  protected blockColorIntensity: number = 0.5; // NEW!
+
   private _lastTransformCheckX: number = NaN;
   private _lastTransformCheckY: number = NaN;
   private _lastTransformCheckRot: number = NaN; // optional
@@ -220,6 +223,23 @@ export abstract class CompositeBlockObject {
     this.grid.removeBlocksFromCells(toRemove);
     this.invalidateBlockCache();
     this.invalidateMass();
+  }
+
+  // --- Color customization (RGBA)
+  public setBlockColor(color: string | null): void {
+    this.blockColor = color;
+  }
+
+  public getBlockColor(): string | null {
+    return this.blockColor;
+  }
+
+  public setBlockColorIntensity(intensity: number): void {
+    this.blockColorIntensity = intensity;
+  }
+
+  public getBlockColorIntensity(): number {
+    return this.blockColorIntensity;
   }
 
   // --- Spatial Access ---

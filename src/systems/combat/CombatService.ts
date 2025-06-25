@@ -175,7 +175,7 @@ export class CombatService {
       return true;
     }
 
-    const isCockpit = block.type.id.startsWith('cockpit');
+    const isCockpit = block.type.metatags?.includes('cockpit');
 
     this.explosionSystem.createBlockExplosion(
       entity.getTransform().position,
@@ -256,7 +256,7 @@ export class CombatService {
 
       // === Cockpit-only final fallback ===
       const remainingBlocks = Array.from(entity.getBlockMap().values());
-      if (remainingBlocks.length === 1 && remainingBlocks[0].type.id.startsWith('cockpit')) {
+      if (remainingBlocks.length === 1 && remainingBlocks[0].type.metatags?.includes('cockpit')) {
         const lastCoord = entity.getCockpitCoord?.();
         if (lastCoord) {
           const cockpitBlock = remainingBlocks[0];

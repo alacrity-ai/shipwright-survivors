@@ -137,6 +137,31 @@ export class DebugOverlay {
       }
     }
 
+    // === Hull and Cockpit Block HP ===
+    if (!sampleShip) return;
+    const allBlocks = sampleShip.getAllBlocks();
+
+    let totalHullHp = 0;
+    let cockpitHp: number | null = null;
+
+    for (const [, block] of allBlocks) {
+      const id = block.type.id;
+      if (id.includes('hull')) {
+        totalHullHp += block.hp;
+      } else if (id.includes('cockpit') && cockpitHp === null) {
+        cockpitHp = block.hp;
+      }
+    }
+
+    drawLabel(ctx, x, y, `Total Hull HP: ${totalHullHp}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Cockpit HP: ${cockpitHp !== null ? cockpitHp : '(none)'}`); y += lineHeight;
+
+    drawLabel(ctx, x, y, `Total Hull HP: ${totalHullHp}`); y += lineHeight;
+    if (cockpitHp !== null) {
+      drawLabel(ctx, x, y, `Cockpit HP: ${cockpitHp}`); y += lineHeight;
+    } else {
+      drawLabel(ctx, x, y, `Cockpit HP: (none)`); y += lineHeight;
+    }
 
     // // === State Breakdown ===
     // for (const [state, count] of Object.entries(stateCounts)) {

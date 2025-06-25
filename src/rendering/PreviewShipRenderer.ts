@@ -127,8 +127,8 @@ export class PreviewShipRendererGL {
       gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
       gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
 
-      const glow = block.type.id.startsWith('cockpit') ? 1.0 : 0.0;
-      const sheen = block.type.id.startsWith('hull') ? 1.0 : 0.0;
+      const glow = block.type.metatags?.includes('cockpit') ? 1.0 : 0.0;
+      const sheen = block.type.metatags?.includes('hull') ? 1.0 : 0.0;
 
       gl.uniform1f(this.uniforms.uGlowStrength, glow);
       gl.uniform1f(this.uniforms.uSheenStrength, sheen);

@@ -108,6 +108,7 @@ import { flags } from '@/game/player/PlayerFlagManager';
 
 // Debug
 import { getBlockType } from '@/game/blocks/BlockRegistry';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -662,6 +663,30 @@ export class EngineRuntime {
     }
 
     // Debug keys 
+    if (this.inputManager.wasKeyJustPressed('Backquote')) {
+      PlayerSettingsManager.getInstance().toggleDebugMode();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyN')) {
+      const randomRGBColorSets = [
+        '#ff0000', // solid red
+        '#0000ff', // solid blue
+        '#00ff00', // solid green
+        '#8000ff', // solid purple
+        '#000000'  // solid black
+      ];
+      const randomColor = randomRGBColorSets[Math.floor(Math.random() * randomRGBColorSets.length)];
+      this.ship?.setBlockColor(randomColor);
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyM')) {
+      const currentIntensity = this.ship?.getBlockColorIntensity() ?? 0.5;
+      this.ship?.setBlockColorIntensity(currentIntensity + 0.1);
+      if (currentIntensity >= 1.0) {
+        this.ship?.setBlockColorIntensity(0.0);
+      }
+    }
+
     if (this.inputManager.wasKeyJustPressed('KeyB')) {
       spawnSpecialFx({
         worldX: 100,
@@ -670,17 +695,6 @@ export class EngineRuntime {
         strength: 2.0,
         duration: 1.2,
         type: 0, // e.g. shockwave
-      });
-    }
-
-    if (this.inputManager.wasKeyJustPressed('KeyN')) {
-      spawnSpecialFx({
-        worldX: -100,
-        worldY: 100,
-        radius: 600,
-        strength: 2.0,
-        duration: 1.2,
-        type: 0, // e.g. vortex
       });
     }
 
@@ -712,10 +726,10 @@ export class EngineRuntime {
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
-      // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
+      const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
-      const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
+      // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
       for (let i = 0; i < 20; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -968,6 +982,7 @@ export class EngineRuntime {
     SpriteRendererGL.destroyInstance();
 
     // Additional cleanup
+    this.pickupSystem.destroy();
     this.pickupSpawner.destroy();
     this.incidentOrchestrator!.destroy();
     this.destructionService.destroy();

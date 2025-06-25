@@ -78,7 +78,7 @@ export class SpaceStationBuilderController {
       const block = this.spaceStation.getBlock(coord);
       if (!block) return;
 
-      if (!block.type.id.startsWith('cockpit')) {
+      if (!block.type.metatags?.includes('cockpit')) {
         // const deletionSafe = this.spaceStation.isDeletionSafe(coord);
         // if (!deletionSafe) {
         //   audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 3 });

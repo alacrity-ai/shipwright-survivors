@@ -27,7 +27,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'cockpit0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0
+    dropRate: 0,
+    metatags: ['cockpit']
   },
   cockpit1: {
     id: 'cockpit1',
@@ -51,7 +52,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'cockpit1',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0
+    dropRate: 0,
+    metatags: ['cockpit']
   },
   hull0: {
     id: 'hull0',
@@ -63,7 +65,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'hull0',
     category: 'system',
     subcategory: 'hull',
-    dropRate: 0.07
+    dropRate: 0.07,
+    metatags: ['hull']
   },
   hull1: {
     id: 'hull1',
@@ -75,7 +78,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'hull1',
     category: 'hull',
     subcategory: 'hull',
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['hull']
   },
   hull2: {
     id: 'hull2',
@@ -87,7 +91,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'hull2',
     category: 'hull',
     subcategory: 'hull',
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['hull']
   },
   hull3: {
     id: 'hull3',
@@ -99,7 +104,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'hull3',
     category: 'hull',
     subcategory: 'hull',
-    dropRate: 0.04
+    dropRate: 0.04,
+    metatags: ['hull']
   },
   hull4: {
     id: 'hull4',
@@ -111,7 +117,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'hull4',
     category: 'hull',
     subcategory: 'hull',
-    dropRate: 0.03
+    dropRate: 0.03,
+    metatags: ['hull']
   },
   facetplate0: {
     id: 'facetplate0',
@@ -127,7 +134,8 @@ const blockTypes: Record<string, BlockType> = {
       rammingDamageMultiplier: 1.1,
       rammingArmor: 7,
     },
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['facetplate']
   },
   facetplate1: {
     id: 'facetplate1',
@@ -144,6 +152,7 @@ const blockTypes: Record<string, BlockType> = {
       rammingDamageMultiplier: 1.3,
       rammingArmor: 7,
     },
+    metatags: ['facetplate']
   },
   facetplate2: {
     id: 'facetplate2',
@@ -159,7 +168,8 @@ const blockTypes: Record<string, BlockType> = {
       rammingDamageMultiplier: 1.5,
       rammingArmor: 12,
     },
-    dropRate: 0.04
+    dropRate: 0.04,
+    metatags: ['facetplate']
   },
   facetplate3: {
     id: 'facetplate3',
@@ -175,7 +185,8 @@ const blockTypes: Record<string, BlockType> = {
       rammingDamageMultiplier: 1.7,
       rammingArmor: 17,
     },
-    dropRate: 0.03
+    dropRate: 0.03,
+    metatags: ['facetplate']
   },
   facetplate4: {
     id: 'facetplate4',
@@ -191,7 +202,8 @@ const blockTypes: Record<string, BlockType> = {
       rammingDamageMultiplier: 2,
       rammingArmor: 22,
     },
-    dropRate: 0.02
+    dropRate: 0.02,
+    metatags: ['facetplate']
   },
   turret0: {
     id: 'turret0',
@@ -216,6 +228,7 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'system',
     dropRate: 0.3,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
+    metatags: ['turret']
   },
   turret1: {
     id: 'turret1',
@@ -239,7 +252,8 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.3,
-    placementSound: 'assets/sounds/sfx/ship/attach_00.wav'
+    placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
+    metatags: ['turret']
   },
   turret2: {
     id: 'turret2',
@@ -263,7 +277,8 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.2,
-    placementSound: 'assets/sounds/sfx/ship/attach_00.wav'
+    placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
+    metatags: ['turret']
   },
   turret3: {
     id: 'turret3',
@@ -287,7 +302,8 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.15,
-    placementSound: 'assets/sounds/sfx/ship/attach_00.wav'
+    placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
+    metatags: ['turret']
   },
   turret4: {
     id: 'turret4',
@@ -311,7 +327,8 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.12,
-    placementSound: 'assets/sounds/sfx/ship/attach_00.wav'
+    placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
+    metatags: ['turret']
   },
   explosiveLance0: {
     id: 'explosiveLance0',
@@ -337,7 +354,8 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.95
       } 
     },
-    dropRate: 0.2
+    dropRate: 0.2,
+    metatags: ['explosiveLance']
   },
   explosiveLance1: {
     id: 'explosiveLance1',
@@ -363,7 +381,8 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.95
       } 
     },
-    dropRate: 0.15
+    dropRate: 0.15,
+    metatags: ['explosiveLance']
   },
   explosiveLance2: {
     id: 'explosiveLance2',
@@ -389,7 +408,8 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.97
       } 
     },
-    dropRate: 0.14
+    dropRate: 0.14,
+    metatags: ['explosiveLance']
   },
   explosiveLance3: {
     id: 'explosiveLance3',
@@ -415,7 +435,8 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.98
       } 
     },
-    dropRate: 0.13
+    dropRate: 0.13,
+    metatags: ['explosiveLance']
   },
   explosiveLance4: {
     id: 'explosiveLance4',
@@ -441,7 +462,8 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.99
       } 
     },
-    dropRate: 0.1
+    dropRate: 0.1,
+    metatags: ['explosiveLance']
   },
   laser0: {
     id: 'laser0',
@@ -465,7 +487,8 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
-    dropRate: 0.12
+    dropRate: 0.12,
+    metatags: ['laser']
   },
   laser1: {
     id: 'laser1',
@@ -486,7 +509,8 @@ const blockTypes: Record<string, BlockType> = {
         energyCost: 0.15,
       },
     },
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['laser']
   },
   laser2: {
     id: 'laser2',
@@ -507,7 +531,8 @@ const blockTypes: Record<string, BlockType> = {
         energyCost: 0.2,
       },
     },
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['laser']
   },
   laser3: {
     id: 'laser3',
@@ -528,7 +553,8 @@ const blockTypes: Record<string, BlockType> = {
         energyCost: 0.3,
       },
     },
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['laser']
   },
   reactor0: {
     id: 'reactor0',
@@ -543,7 +569,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'reactor0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['reactor']
   },
   reactor1: {
     id: 'reactor1',
@@ -558,7 +585,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'reactor1',
     category: 'utility',
     subcategory: 'energy',
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['reactor']
   },
   reactor2: {
     id: 'reactor2',
@@ -573,7 +601,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'reactor2',
     category: 'utility',
     subcategory: 'energy',
-    dropRate: 0.03
+    dropRate: 0.03,
+    metatags: ['reactor']
   },
   battery0: {
     id: 'battery0',
@@ -588,7 +617,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'battery0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['battery']
   },
   battery1: {
     id: 'battery1',
@@ -603,7 +633,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'battery1',
     category: 'utility',
     subcategory: 'energy',
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['battery']
   },
   battery2: {
     id: 'battery2',
@@ -618,7 +649,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'battery2',
     category: 'utility',
     subcategory: 'energy',
-    dropRate: 0.03
+    dropRate: 0.03,
+    metatags: ['battery']
   },
   shield0: {
     id: 'shield0',
@@ -636,7 +668,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'shield0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['shield']
   },
   shield1: {
     id: 'shield1',
@@ -654,7 +687,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'shield1',
     category: 'utility',
     subcategory: 'shield',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['shield']
   },
   shield2: {
     id: 'shield2',
@@ -672,7 +706,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'shield2',
     category: 'utility',
     subcategory: 'shield',
-    dropRate: 0.03
+    dropRate: 0.03,
+    metatags: ['shield']
   },
   shield3: {
     id: 'shield3',
@@ -690,7 +725,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'shield3',
     category: 'utility',
     subcategory: 'shield',
-    dropRate: 0.02
+    dropRate: 0.02,
+    metatags: ['shield']
   },
   engine0: {
     id: 'engine0',
@@ -706,7 +742,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'engine0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['engine']
   },
   engine1: {
     id: 'engine1',
@@ -722,7 +759,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'engine1',
     category: 'engine',
     subcategory: 'engine',
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['engine']
   },
   engine2: {
     id: 'engine2',
@@ -738,7 +776,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'engine2',
     category: 'engine',
     subcategory: 'engine',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['engine']
   },
   engine3: {
     id: 'engine3',
@@ -754,7 +793,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'engine3',
     category: 'engine',
     subcategory: 'engine',
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['engine']
   },
   engine4: {
     id: 'engine4',
@@ -770,7 +810,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'engine4',
     category: 'engine',
     subcategory: 'engine',
-    dropRate: 0.04
+    dropRate: 0.04,
+    metatags: ['engine']
   },
   fin0: {
     id: 'fin0',
@@ -785,7 +826,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fin0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['fin']
   },
   fin1: {
     id: 'fin1',
@@ -800,7 +842,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fin1',
     category: 'hull',
     subcategory: 'fin',
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['fin']
   },
   fin2: {
     id: 'fin2',
@@ -815,7 +858,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fin2',
     category: 'hull',
     subcategory: 'fin',
-    dropRate: 0.06
+    dropRate: 0.06,
+    metatags: ['fin']
   },
   fin3: {
     id: 'fin3',
@@ -830,7 +874,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fin3',
     category: 'hull',
     subcategory: 'fin',
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['fin']
   },
   fin4: {
     id: 'fin4',
@@ -845,7 +890,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fin4',
     category: 'hull',
     subcategory: 'fin',
-    dropRate: 0.05
+    dropRate: 0.05,
+    metatags: ['fin']
   },
   harvester0: {
     id: 'harvester0',
@@ -860,7 +906,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'harvester0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.1
+    dropRate: 0.1,
+    metatags: ['harvester']
   },
   harvester1: {
     id: 'harvester1',
@@ -875,7 +922,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'harvester1',
     category: 'utility',
     subcategory: 'exploration',
-    dropRate: 0.1
+    dropRate: 0.1,
+    metatags: ['harvester']
   },
   harvester2: {
     id: 'harvester2',
@@ -890,7 +938,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'harvester2',
     category: 'utility',
     subcategory: 'exploration',
-    dropRate: 0.1
+    dropRate: 0.1,
+    metatags: ['harvester']
   },
   haloBlade0: {
     id: 'haloBlade0',
@@ -912,7 +961,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'haloBlade0',
     category: 'system',
     subcategory: 'haloBlade',
-    dropRate: 0.1
+    dropRate: 0.1,
+    metatags: ['haloBlade']
   },
   haloBlade1: {
     id: 'haloBlade1',
@@ -934,7 +984,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'haloBlade1',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.18
+    dropRate: 0.18,
+    metatags: ['haloBlade']
   },
   haloBlade2: {
     id: 'haloBlade2',
@@ -956,7 +1007,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'haloBlade2',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.14
+    dropRate: 0.14,
+    metatags: ['haloBlade']
   },
   haloBlade3: {
     id: 'haloBlade3',
@@ -978,7 +1030,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'haloBlade3',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.12
+    dropRate: 0.12,
+    metatags: ['haloBlade']
   },
   haloBlade4: {
     id: 'haloBlade4',
@@ -1000,7 +1053,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'haloBlade4',
     category: 'weapon',
     subcategory: 'haloBlade',
-    dropRate: 0.1
+    dropRate: 0.1,
+    metatags: ['haloBlade']
   },
   heatSeeker0: {
     id: 'heatSeeker0',
@@ -1015,7 +1069,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 2,
+        explosionDamage: 3,
         explosionRadiusBlocks: 2,
         projectileSpeed: 800,
         turningPower: 2.0,
@@ -1026,7 +1080,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker0',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18
+    dropRate: 0.18,
+    metatags: ['heatSeeker']
   },
   heatSeeker1: {
     id: 'heatSeeker1',
@@ -1041,7 +1096,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 4,
+        explosionDamage: 5,
         explosionRadiusBlocks: 3,
         turningPower: 2.0,
         targetingRange: 3000,
@@ -1052,7 +1107,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker1',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18
+    dropRate: 0.18,
+    metatags: ['heatSeeker']
   },
   heatSeeker2: {
     id: 'heatSeeker2',
@@ -1067,7 +1123,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 6,
+        explosionDamage: 8,
         explosionRadiusBlocks: 4,
         turningPower: 2.2,
         targetingRange: 3000,
@@ -1078,7 +1134,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker2',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18
+    dropRate: 0.18,
+    metatags: ['heatSeeker']
   },
   heatSeeker3: {
     id: 'heatSeeker3',
@@ -1093,7 +1150,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 8,
+        explosionDamage: 12,
         explosionRadiusBlocks: 5,
         turningPower: 2.4,
         targetingRange: 3000,
@@ -1104,7 +1161,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker3',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18
+    dropRate: 0.18,
+    metatags: ['heatSeeker']
   },
   heatSeeker4: {
     id: 'heatSeeker4',
@@ -1119,7 +1177,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 10,
+        explosionDamage: 15,
         explosionRadiusBlocks: 6,
         turningPower: 2.8,
         targetingRange: 3000,
@@ -1130,7 +1188,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker4',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18
+    dropRate: 0.18,
+    metatags: ['heatSeeker']
   },
   fuelTank0: {
     id: 'fuelTank0',
@@ -1145,7 +1204,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fuelTank0',
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['fuelTank']
   },
   fuelTank1: {
     id: 'fuelTank1',
@@ -1160,7 +1220,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fuelTank1',
     category: 'utility',
     subcategory: 'fuel',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['fuelTank']
   },
   fuelTank2: {
     id: 'fuelTank2',
@@ -1175,7 +1236,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fuelTank2',
     category: 'utility',
     subcategory: 'fuel',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['fuelTank']
   },
   fuelTank3: {
     id: 'fuelTank3',
@@ -1190,7 +1252,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fuelTank3',
     category: 'utility',
     subcategory: 'fuel',
-    dropRate: 0.08
+    dropRate: 0.08,
+    metatags: ['fuelTank']
   },
   fuelTank4: {
     id: 'fuelTank4',
@@ -1205,7 +1268,8 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'fuelTank4',
     category: 'utility',
     subcategory: 'fuel',
-    dropRate: 0.07
+    dropRate: 0.07,
+    metatags: ['fuelTank']
   }
 };
 

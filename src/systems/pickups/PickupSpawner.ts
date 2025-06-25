@@ -5,6 +5,7 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { missionLoader } from '@/game/missions/MissionLoader';
+import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
@@ -77,9 +78,11 @@ export class PickupSpawner {
 
   spawnPickupOnBlockDestruction(block: BlockInstance): void {
     const blockType = block.type;
+
     const baseDropRate = blockType.dropRate ?? 0;
-    const dropMultiplier = missionLoader.getDropMultiplier();
-    const effectiveDropRate = Math.min(baseDropRate * dropMultiplier, 1.0);
+    const missionMultiplier = missionLoader.getDropMultiplier();
+    const passiveDropMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('block-drop-rate');
+    const effectiveDropRate = Math.min(baseDropRate * missionMultiplier * passiveDropMultiplier, 1.0);
 
     const pickupPosition = {
       x: block.position?.x ?? 0,
@@ -91,12 +94,20 @@ export class PickupSpawner {
       return;
     }
 
+    // === Sub-drop: Repair or Currency
     if (Math.random() < 0.2) {
-      if (Math.random() < 0.07) {
+      const repairOrbChance = 0.07 * PlayerPassiveManager.getInstance().getPassiveBonus('repair-orb-drop-rate');
+
+      if (Math.random() < repairOrbChance) {
         const repairAmount = this.getRepairAmountForBlock(block);
         this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
       } else {
-        const currencyAmount = this.getCurrencyAmountForBlock(block);
+        let currencyAmount = this.getCurrencyAmountForBlock(block);
+
+        // Passive bonus to entropium gain
+        const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
+        currencyAmount = Math.floor(currencyAmount * currencyMultiplier);
+
         this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
       }
     }

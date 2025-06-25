@@ -56,6 +56,7 @@ export class WaveExecutor {
               customAuraLightProps.radius,
               customAuraLightProps.intensity
             );
+            ship.setBlockColor(customAuraLightProps.color!);
           }
         }
       }
@@ -85,6 +86,8 @@ export class WaveExecutor {
             customAuraLightProps.radius,
             customAuraLightProps.intensity
           );
+          ship.setBlockColor(customAuraLightProps.color!);
+          ship.setBlockColorIntensity(1.0);
         }
       }
     }

@@ -3,7 +3,6 @@
 import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { BLOCK_SIZE } from '@/config/view';
 import { PlayerResources } from '@/game/player/PlayerResources';
-// import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { getTier1BlockIfTier0, getTierFromBlockId } from './helpers/getTierFromBlockId';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
@@ -18,8 +17,6 @@ import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
-
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
@@ -79,6 +76,7 @@ export class PickupSystem {
   private timeSinceLastCurrencyPickup: number = 0;
   private timeSinceLastBlockPickup: number = 0;
 
+  private destroyed = false;
 
   constructor(
     private readonly camera: Camera,
@@ -221,7 +219,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
   render(dt: number): void {}
 
   update(dt: number): void {
-    if (!this.playerShip) return;
+    if (this.destroyed || !this.playerShip) return;
 
     this.timeSinceLastCurrencyPickup += dt;
     this.timeSinceLastBlockPickup += dt;
@@ -494,5 +492,25 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     } else {
       console.warn('Unhandled pickup category or malformed pickup:', pickup);
     }
+  }
+
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
+    const lighting = LightingOrchestrator.getInstance();
+
+    for (const pickup of this.pickups) {
+      if (pickup.lightId) {
+        lighting.removeLight(pickup.lightId);
+      }
+    }
+
+    // Clear all arrays and nullify references
+    this.pickups.length = 0;
+    this.blockPickups.length = 0;
+    this.resourcePickups.length = 0;
+
+    this.playerShip = null;
   }
 }

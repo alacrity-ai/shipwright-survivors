@@ -9,8 +9,10 @@ import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { WeaponFiringPlanEntry } from '@/systems/combat/types/WeaponTypes';
 import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
 import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
+import type { PassiveId } from '@/game/player/PlayerPassiveManager';
+import type { BlockType } from '@/game/interfaces/types/BlockType';
 
-import { ShipGrid } from '@/game/ship/ShipGrid';
+import { PlayerPassiveManager } from '../player/PlayerPassiveManager';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { PlayerStats } from '@/game/player/PlayerStats';
@@ -90,6 +92,14 @@ export class Ship extends CompositeBlockObject {
 
   public setIsPlayerShip(isPlayerShip: boolean): void {
     this.isPlayerShip = isPlayerShip;
+  }
+
+  public getPassiveManager(): PlayerPassiveManager | null {
+    return this.isPlayerShip ? PlayerPassiveManager.getInstance() : null;
+  }
+
+  public getPassiveBonus(id: PassiveId): number {
+    return this.getPassiveManager()?.getPassiveBonus(id) ?? 1.0;
   }
 
   // == Affixes system
@@ -465,13 +475,22 @@ export class Ship extends CompositeBlockObject {
 
     for (const { block } of this.blocks.values()) {
       const behavior = block.type.behavior;
+      const tags = block.type.metatags ?? [];
 
       if (behavior?.energyMaxIncrease) {
-        totalMax += behavior.energyMaxIncrease;
+        if (tags.includes('battery')) {
+          totalMax += behavior.energyMaxIncrease * this.getPassiveBonus('battery-capacity');
+        } else {
+          totalMax += behavior.energyMaxIncrease;
+        }
       }
 
       if (behavior?.energyChargeRate) {
-        totalRegen += behavior.energyChargeRate;
+        if (tags.includes('reactor')) {
+          totalRegen += behavior.energyChargeRate * this.getPassiveBonus('charger-rate');
+        } else {
+          totalRegen += behavior.energyChargeRate;
+        }
       }
     }
 
@@ -515,7 +534,7 @@ export class Ship extends CompositeBlockObject {
     for (const rate of this.harvesterBlocks.values()) {
       total += rate;
     }
-    return total;
+    return total * this.getPassiveBonus('harvester-range');
   }
 
   private rebuildHaloBladeIndex(): void {
@@ -543,10 +562,29 @@ export class Ship extends CompositeBlockObject {
     this.finBlocks.clear();
 
     for (const { block } of this.blocks.values()) {
-      if (block.type.id.startsWith('fin')) {
+      if (block.type.metatags?.includes('fin')) {
         this.finBlocks.add(block);
       }
     }
+  }
+
+  private static readonly armorTagToPassiveId: Record<string, PassiveId> = {
+    cockpit: 'cockpit-armor',
+    hull: 'hull-armor',
+    facetplate: 'facetplate-armor',
+  };
+
+  private getArmorBonusForBlockType(type: BlockType): number {
+    let bonus = 0;
+
+    for (const tag of type.metatags ?? []) {
+      const passiveId = Ship.armorTagToPassiveId[tag];
+      if (passiveId) {
+        bonus += this.getPassiveBonus(passiveId);
+      }
+    }
+
+    return bonus;
   }
 
   // === Ship Specific Block Placement & Removal Overrides ===
@@ -562,11 +600,14 @@ export class Ship extends CompositeBlockObject {
     const worldPos = this.calculateBlockWorldPosition(coord);
     const uniqueId = crypto.randomUUID();
 
+    const durabilityMultiplier = this.getPassiveBonus('block-durability');
+    const passiveFlatBonus = this.getArmorBonusForBlockType(type);
+    console.log('Applying flat armor bonus of', passiveFlatBonus, 'to block', type.name);
     const block: BlockInstance = {
       ownerFaction: this.faction,
       id: uniqueId,
       type,
-      hp: type.armor,
+      hp: type.armor * durabilityMultiplier + passiveFlatBonus,
       ownerShipId: this.id,
       position: worldPos,
       ...(rotation !== undefined ? { rotation } : {})
@@ -591,12 +632,12 @@ export class Ship extends CompositeBlockObject {
     }
 
     // Engine blocks
-    if (block.type.id.startsWith('engine')) {
+    if (block.type.metatags?.includes('engine')) {
       this.engineBlocks.add(block);
     }
 
     // Fins
-    if (block.type.id.startsWith('fin')) {
+    if (block.type.metatags?.includes('fin')) {
       this.finBlocks.add(block);
     }
 
@@ -618,7 +659,7 @@ export class Ship extends CompositeBlockObject {
     }
 
     // Fuel Tanks
-    if (block.type.id.startsWith('fuelTank')) {
+    if (block.type.metatags?.includes('fuelTank')) {
       this.fuelTankBlocks.add(block);
     }
 
@@ -734,7 +775,7 @@ export class Ship extends CompositeBlockObject {
 
     // Find cockpit or fallback to first block
     const rootKey = [...remaining.entries()]
-      .find(([, entry]) => entry.block.type.id.startsWith('cockpit'))?.[0]
+      .find(([, entry]) => entry.block.type.metatags?.includes('cockpit'))?.[0]
       ?? [...remaining.keys()][0];
 
     if (!rootKey) return true; // Nothing left, safe to remove

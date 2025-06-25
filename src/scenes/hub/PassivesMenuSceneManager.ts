@@ -156,6 +156,8 @@ export class PassivesMenuSceneManager {
       handleButtonInteraction(btn, x, y, clicked, getUniformScaleFactor());
     }
 
+    // === Debugging ===
+    // TODO : Remove on launch
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
       PlayerPassiveManager.getInstance().addPassivePoints(1);
     }

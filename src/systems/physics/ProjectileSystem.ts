@@ -39,7 +39,7 @@ export class ProjectileSystem {
     ownerFaction: Faction,
     particleColors?: string[],
     fadeMode?: 'linear' | 'delayed',
-  ) {
+  ): void {
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
     const mag = Math.sqrt(dx * dx + dy * dy);
@@ -54,22 +54,70 @@ export class ProjectileSystem {
     const vx = Math.cos(angle) * speed;
     const vy = Math.sin(angle) * speed;
 
-    // Emit exactly one visual particle to represent the projectile being fired
+    this.emitProjectile(
+      origin,
+      { x: vx, y: vy },
+      type,
+      damage,
+      lifetime,
+      ownerShipId,
+      ownerFaction,
+      particleColors,
+      fadeMode
+    );
+  }
+
+  spawnProjectileWithVelocity(
+    origin: { x: number; y: number },
+    velocity: { x: number; y: number },
+    type: string,
+    damage: number,
+    lifetime = 2,
+    _accuracy = 1, // ignored here, already baked into velocity
+    ownerShipId: string,
+    ownerFaction: Faction,
+    particleColors?: string[],
+    fadeMode?: 'linear' | 'delayed',
+  ): void {
+    this.emitProjectile(
+      origin,
+      velocity,
+      type,
+      damage,
+      lifetime,
+      ownerShipId,
+      ownerFaction,
+      particleColors,
+      fadeMode
+    );
+  }
+
+  private emitProjectile(
+    origin: { x: number; y: number },
+    velocity: { x: number; y: number },
+    type: string,
+    damage: number,
+    lifetime: number,
+    ownerShipId: string,
+    ownerFaction: Faction,
+    particleColors?: string[],
+    fadeMode?: 'linear' | 'delayed',
+  ): void {
     const particle = this.particleManager.emitParticle(origin, {
       colors: particleColors ?? ['#ffff88', '#ffaa00', '#ffcc33'],
       baseSpeed: 0,
       sizeRange: [2.2, 2.8],
-      lifeRange: [lifetime, lifetime + 0.1], // tightly synced
-      velocity: { x: vx, y: vy },
+      lifeRange: [lifetime, lifetime + 0.1],
+      velocity,
       light: true,
       lightRadiusScalar: 20,
       lightIntensity: 0.8,
-      fadeMode
+      fadeMode,
     });
 
     this.projectiles.push({
       position: { x: origin.x, y: origin.y },
-      velocity: { x: vx, y: vy },
+      velocity: { x: velocity.x, y: velocity.y },
       type,
       damage,
       life: lifetime,

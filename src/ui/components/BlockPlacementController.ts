@@ -64,7 +64,7 @@ export class BlockPlacementController {
       if (!block) return;
 
       // Disallow selling cockpit blocks
-      if (!block.type.id.startsWith('cockpit')) {
+      if (!block.type.metatags?.includes('cockpit')) {
         const deletionSafe = this.ship.isDeletionSafe(this.hoveredShipCoord);
         if (!deletionSafe) {
           audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 3 });

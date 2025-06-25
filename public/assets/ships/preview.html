@@ -154,14 +154,17 @@
         });
 
         let color = 'black';
-        if (block.id.startsWith('cockpit')) color = 'blue';
-        else if (block.id.startsWith('fin')) color = 'gray';
-        else if (block.id.startsWith('turret')) color = 'red';
-        else if (block.id.startsWith('engine')) color = 'orange';
-        else if (block.id.startsWith('hull')) color = 'black';
-        else if (block.id.startsWith('laser')) color = 'red';
-        else if (block.id.startsWith('explosiveLance')) color = 'red';
-        else if (block.id.startsWith('haloBlade')) color = 'red';
+
+        const tags = block.type.metatags ?? [];
+
+        if (tags.includes('cockpit')) color = 'blue';
+        else if (tags.includes('fin')) color = 'gray';
+        else if (tags.includes('turret')) color = 'red';
+        else if (tags.includes('engine')) color = 'orange';
+        else if (tags.includes('hull')) color = 'black';
+        else if (tags.includes('laser')) color = 'red';
+        else if (tags.includes('explosiveLance')) color = 'red';
+        else if (tags.includes('haloBlade')) color = 'red';
 
         ctx.fillStyle = color;
         ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);

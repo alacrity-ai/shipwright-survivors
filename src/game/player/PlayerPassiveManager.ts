@@ -1,14 +1,18 @@
 // src/game/player/PlayerPassiveManager.ts
 
 import { PlayerMetaCurrencyManager } from './PlayerMetaCurrencyManager';
+import { PassiveMetadata } from '@/scenes/hub/passives_menu/types/Passives'; // IMPORTED HERE
 
 export type PassiveId =
   | 'harvester-range'
   | 'laser-damage'
   | 'laser-energy-drain'
-  | 'laser-block-cost'
   | 'explosive-lance-radius'
   | 'explosive-lance-firing-rate'
+  | 'heat-seeker-damage'
+  | 'heat-seeker-firing-rate'
+  | 'halo-blade-damage'
+  | 'halo-blade-size'
   | 'block-durability'
   | 'fin-turn-power'
   | 'engine-thrust'
@@ -22,13 +26,12 @@ export type PassiveId =
   | 'shield-efficiency'
   | 'facetplate-armor'
   | 'hull-armor'
-  | 'hull-mass'
   | 'cockpit-armor'
-  | 'block-repair-cost'
+  | 'repair-orb-drop-rate'
   | 'entropium-pickup-bonus'
   | 'block-drop-rate';
 
-export type PassiveTier = 1 | 2 | 3;
+export type PassiveTier = 1 | 2 | 3 | 4 | 5;
 
 interface SerializablePassiveData {
   passives: Record<PassiveId, PassiveTier>;
@@ -66,7 +69,9 @@ export class PlayerPassiveManager {
       switch (tier) {
         case 1: return 5;
         case 2: return 10;
-        case 3: return 15;
+        case 3: return 20;
+        case 4: return 30;
+        case 5: return 50;
         default: return 0;
       }
     };
@@ -99,6 +104,25 @@ export class PlayerPassiveManager {
 
   public getPassiveTier(id: PassiveId): PassiveTier | null {
     return this.passives.get(id) ?? null;
+  }
+
+  /**
+   * Returns the current effective bonus for a given passive.
+   * If the unit is '%', returns a multiplier (e.g. 20 → 1.2).
+   * If the unit is undefined or not '%', returns the raw value.
+   * Returns 1.0 if the passive is not unlocked or invalid.
+   */
+  public getPassiveBonus(id: PassiveId): number {
+    const tier = this.getPassiveTier(id);
+    if (!tier) return 1.0;
+
+    const meta = PassiveMetadata[id];
+    if (!meta) return 1.0;
+
+    const value = meta.tiers[tier];
+    if (typeof value !== 'number') return 1.0;
+
+    return meta.unit === '%' ? (100 + value) / 100 : value;
   }
 
   public hasPassive(id: PassiveId): boolean {
@@ -177,9 +201,12 @@ export class PlayerPassiveManager {
       'harvester-range',
       'laser-damage',
       'laser-energy-drain',
-      'laser-block-cost',
       'explosive-lance-radius',
       'explosive-lance-firing-rate',
+      'heat-seeker-damage',
+      'heat-seeker-firing-rate',
+      'halo-blade-damage',
+      'halo-blade-size',
       'block-durability',
       'fin-turn-power',
       'engine-thrust',
@@ -193,15 +220,14 @@ export class PlayerPassiveManager {
       'shield-efficiency',
       'facetplate-armor',
       'hull-armor',
-      'hull-mass',
       'cockpit-armor',
-      'block-repair-cost',
+      'repair-orb-drop-rate',
       'entropium-pickup-bonus',
       'block-drop-rate',
     ].includes(id);
   }
 
   private isValidTier(tier: any): tier is PassiveTier {
-    return tier === 1 || tier === 2 || tier === 3;
+    return tier === 1 || tier === 2 || tier === 3 || tier === 4 || tier === 5;
   }
 }

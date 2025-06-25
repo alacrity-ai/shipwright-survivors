@@ -199,6 +199,9 @@ export class MovementSystem {
       rawTurnPower += block.type.behavior?.turnPower ?? 0;
     }
 
+    // === Add player passive bonus to turn power ===
+    rawTurnPower *= this.ship.getPassiveBonus('fin-turn-power');
+
     // === Angular motion with assist (enhanced by afterburner) ===
     const totalTurnPower = Math.min(MAXIMUM_TURN_POWER, Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT));
 
@@ -243,13 +246,6 @@ export class MovementSystem {
     if (thrustForward && playerShip) {
       this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position, afterburnerMultipliers, justActivatedAfterburner, cameraBounds, playerShip);
     }
-    // Deprecated
-    // if (strafeLeft) {
-    //   this.applyDirectionalThrust(dt, 'strafeLeft', thrustGroups.strafeLeft, transform, position, afterburnerMultipliers, justActivatedAfterburner);
-    // }
-    // if (strafeRight) {
-    //   this.applyDirectionalThrust(dt, 'strafeRight', thrustGroups.strafeRight, transform, position, afterburnerMultipliers, justActivatedAfterburner);
-    // }
 
     // === Inertial dampening
     if (!thrustForward && !strafeLeft && !strafeRight) {
@@ -319,161 +315,6 @@ export class MovementSystem {
     }
   }
 
-  // Deprecated
-  // private applyDirectionalThrust(
-  //   dt: number,
-  //   thrustDirection: ThrustDirection,
-  //   thrusters: { coord: GridCoord; power: number; rotation: number }[],
-  //   transform: BlockEntityTransform,
-  //   position: { x: number; y: number },
-  //   afterburnerMultipliers: { speed: number; accel: number; turning: number },
-  //   flashOnThisFrame: boolean
-  // ): void {
-  //   let totalThrustX = 0;
-  //   let totalThrustY = 0;
-
-  //   // === Apply fallback to ALL directions equally ===
-  //   const fallbackPower = this.fallbackThrustPower;
-  //   const engineCount = thrusters.length + 1;
-  //   const baseUnit = SPEED_PER_THRUST_UNIT;
-
-  //   const totalEngineThrust = thrusters.reduce((sum, t) => sum + t.power, 0);
-  //   const totalThrustPower = totalEngineThrust + fallbackPower;
-
-  //   const baseMaxSpeed = (() => {
-  //     if (engineCount <= DIMINISHING_START) return totalThrustPower * baseUnit;
-
-  //     const basePower = (totalThrustPower / engineCount) * DIMINISHING_START;
-  //     const excessEngines = engineCount - DIMINISHING_START;
-  //     const excessPowerPerEngine = totalThrustPower / engineCount;
-  //     const effectivenessMultiplier = 1 / (1 + DIMINISHING_RATE * excessEngines);
-  //     const diminishedExcessPower = excessPowerPerEngine * excessEngines * effectivenessMultiplier;
-  //     return (basePower + diminishedExcessPower) * baseUnit;
-  //   })();
-
-  //   // Apply afterburner speed multiplier
-  //   const mass = this.ship.getTotalMass();
-  //   const speedScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
-  //   const maxSpeed = baseMaxSpeed * afterburnerMultipliers.speed * speedScale;
-
-
-  //   // === Apply fallback thrust in correct direction ===
-  //   const fallbackDirection = (() => {
-  //     switch (thrustDirection) {
-  //       case 'forward': return this.rotateVector(0, -1, transform.rotation);
-  //       case 'strafeLeft': return this.rotateVector(-1, 0, transform.rotation);
-  //       case 'strafeRight': return this.rotateVector(1, 0, transform.rotation);
-  //     }
-  //   })();
-  //   totalThrustX += fallbackDirection.x * fallbackPower;
-  //   totalThrustY += fallbackDirection.y * fallbackPower;
-
-  //   // Determine if we're near the player ship (For thruster effects)
-  //   const playerShip = ShipRegistry.getInstance().getPlayerShip();
-  //   let emit = false;
-  //   let afterburnerJustActivated = false;
-  //   let pulseJustActivated = false;
-  //   let isPulsing = false;
-  //   let superPulseJustActivated = false;
-
-  //   if (playerShip && playerShip !== this.ship) {
-  //     const cameraBounds = Camera.getInstance().getViewportBounds();
-  //     const MARGIN = 100;
-
-  //     const minX = cameraBounds.x - MARGIN;
-  //     const minY = cameraBounds.y - MARGIN;
-  //     const maxX = cameraBounds.x + cameraBounds.width + MARGIN;
-  //     const maxY = cameraBounds.y + cameraBounds.height + MARGIN;
-
-  //     const center = this.ship.getTransform().position;
-  //     emit = center.x >= minX && center.x <= maxX &&
-  //           center.y >= minY && center.y <= maxY;
-  //   } else {
-  //     afterburnerJustActivated = this.ship.getAfterburnerComponent()?.wasAfterburnerJustActivated() ?? false;
-  //     pulseJustActivated = this.ship.getAfterburnerComponent()?.wasPulseJustActivated() ?? false;
-  //     isPulsing = this.ship.getAfterburnerComponent()?.isPulsing() ?? false;
-  //     superPulseJustActivated = this.ship.getAfterburnerComponent()?.wasSuperPulseJustActivated() ?? false;
-  //     emit = true; // Always emit if it's the player ship
-  //   }
-
-  //   // Sound effects and screen shake for afterburner/pulse use
-  //   if (this.ship.getIsPlayerShip()) {
-  //     if (pulseJustActivated || superPulseJustActivated || afterburnerJustActivated) {
-  //       this.emitPulseSoundAndShake(this.ship.id, pulseJustActivated, superPulseJustActivated);
-  //     }
-  //     // Special light effect on ship for super pulse
-  //     if (superPulseJustActivated) {
-  //       createLightFlash(this.ship.getTransform().position.x, this.ship.getTransform().position.y, 300, 1.5, 0.5, '#ffffff');
-  //     }
-  //   }
-
-  //   // === Apply thruster force
-  //   for (const { coord, power, rotation: blockRotation } of thrusters) {
-  //     const block = this.ship.getBlock(coord);
-  //     if (!block) continue;
-
-  //     const localThrust = this.getBlockThrustDirection(blockRotation);
-  //     const worldThrust = this.rotateVector(localThrust.x, localThrust.y, transform.rotation);
-
-  //     totalThrustX += worldThrust.x * power;
-  //     totalThrustY += worldThrust.y * power;
-
-  //     if (emit) {
-  //       this.emitter.emit({
-  //         coord,
-  //         block,
-  //         blockRotation,
-  //         shipRotation: transform.rotation,
-  //         shipPosition: position,
-  //         afterBurner: this.ship.getAfterburnerComponent()?.isActive() ?? false,
-  //         afterBurnerJustActivated: flashOnThisFrame,
-  //         isPulsing: isPulsing,
-  //         pulseJustActivated: pulseJustActivated,
-  //         superPulseJustActivated: superPulseJustActivated
-  //       });
-  //     }
-  //   }
-
-  //   // === Apply impulse (enhanced by afterburner acceleration) ===
-  //   const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
-  //   const impulseX = totalThrustX * dt * accelScale * afterburnerMultipliers.accel;
-  //   const impulseY = totalThrustY * dt * accelScale * afterburnerMultipliers.accel;
-
-  //   transform.velocity.x += impulseX;
-  //   transform.velocity.y += impulseY;
-
-  //   // === Directional assist (enhanced by afterburner) ===
-  //   const speed = Math.sqrt(transform.velocity.x ** 2 + transform.velocity.y ** 2);
-  //   if (speed > 0) {
-  //     const vxNorm = transform.velocity.x / speed;
-  //     const vyNorm = transform.velocity.y / speed;
-
-  //     const steerX = fallbackDirection.x - vxNorm;
-  //     const steerY = fallbackDirection.y - vyNorm;
-
-  //     const steeringAssist = STEERING_ASSIST_STRENGTH * afterburnerMultipliers.turning;
-  //     transform.velocity.x += steerX * steeringAssist * speed * dt;
-  //     transform.velocity.y += steerY * steeringAssist * speed * dt;
-  //   }
-
-  //   // === Soft speed cap (per-directional component limiting) ===
-  //   const velocityInThrustDir =
-  //     transform.velocity.x * fallbackDirection.x +
-  //     transform.velocity.y * fallbackDirection.y;
-
-  //   if (velocityInThrustDir > maxSpeed) {
-  //     const excessRatio = velocityInThrustDir / maxSpeed;
-  //     const softCapMultiplier = 1 / (1 + 0.5 * (excessRatio - 1));
-
-  //     const excessVelocity =
-  //       velocityInThrustDir - (velocityInThrustDir * softCapMultiplier);
-
-  //     // Subtract excess along the thrust direction vector
-  //     transform.velocity.x -= fallbackDirection.x * excessVelocity;
-  //     transform.velocity.y -= fallbackDirection.y * excessVelocity;
-  //   }
-  // }
-
   private applyDirectionalThrust(
     dt: number,
     thrustDirection: ThrustDirection,
@@ -509,7 +350,7 @@ export class MovementSystem {
     // === Max Speed Computation with Diminishing Returns ===
     const engineCount = thrusters.length + 1;
     const totalEngineThrust = thrusters.reduce((sum, t) => sum + t.power, 0);
-    const totalThrustPower = totalEngineThrust + fallbackPower;
+    const totalThrustPower = (totalEngineThrust + fallbackPower) * this.ship.getPassiveBonus('engine-thrust');
 
     const baseMaxSpeed = (() => {
       if (engineCount <= DIMINISHING_START) return totalThrustPower * SPEED_PER_THRUST_UNIT;

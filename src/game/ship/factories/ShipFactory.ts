@@ -68,7 +68,7 @@ export class ShipFactory {
     unCullable: boolean = false,
     isPlayerShip: boolean = false
   ): Promise<{ ship: Ship; controller: AIControllerSystem | null, emitter: ThrusterEmitter, movement: MovementSystem, weapons: WeaponSystem, utility: UtilitySystem }> {
-    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid, faction);
+    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid, faction, isPlayerShip);
 
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
@@ -121,7 +121,6 @@ export class ShipFactory {
         this.orchestrator.addController(controller, unCullable);
       }
     } else {
-      ship.setIsPlayerShip(true);
       ship.setFiringMode(FiringMode.Sequence);
     }
 
@@ -158,7 +157,7 @@ export class ShipFactory {
     weapons: WeaponSystem;
     utility: UtilitySystem;
   }> {
-    const { ship, behaviorType } = loadShipFromJsonObject(jsonData, this.grid, faction);
+    const { ship, behaviorType } = loadShipFromJsonObject(jsonData, this.grid, faction, isPlayerShip);
 
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
@@ -177,7 +176,6 @@ export class ShipFactory {
     this.registry.add(ship);
     if (isPlayerShip) {
       this.registry.setPlayerShip(ship);
-      ship.setIsPlayerShip(true);
     }
     ShipGrid.getInstance().addShip(ship);
 
@@ -214,7 +212,6 @@ export class ShipFactory {
         this.orchestrator.addController(controller, unCullable);
       }
     } else {
-      ship.setIsPlayerShip(true);
       ship.setFiringMode(FiringMode.Sequence);
     }
 

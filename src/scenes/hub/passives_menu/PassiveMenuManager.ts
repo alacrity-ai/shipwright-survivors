@@ -5,11 +5,13 @@ import type { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import type { PassiveId, PassiveTier } from '@/game/player/PlayerPassiveManager';
 
 import { getUniformScaleFactor } from '@/config/view'; // ADDED THIS IMPORT
-
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { drawCRTButton, type UICRTButton } from '@/ui/primitives/CRTButton';
+import { audioManager } from '@/audio/Audio';
 
 import { PassiveMetadata, PassiveCategoryLabels, PassiveCategory } from './types/Passives';
+
+const CONTENT_BUFFER = Math.floor(900 * getUniformScaleFactor());
 
 export class PassiveMenuManager {
   private scrollOffset = 0;
@@ -21,6 +23,7 @@ export class PassiveMenuManager {
   private contentHeight = 0;
 
   private activeButtons: UICRTButton[] = [];
+  private hoverSoundState: Map<string, boolean> = new Map();
 
   constructor(
     private readonly inputManager: InputManager,
@@ -113,6 +116,9 @@ export class PassiveMenuManager {
     const scale = getUniformScaleFactor();
     const { x, y, width, height } = this.bounds;
 
+    const mouse = this.inputManager.getMousePosition();
+    const { x: mouseX, y: mouseY } = mouse;
+
     ctx.save();
     ctx.beginPath();
     ctx.rect(x, y, width, height);
@@ -133,6 +139,8 @@ export class PassiveMenuManager {
 
     let passiveRowIndex = 0;
 
+    const tierLevels: PassiveTier[] = [1, 2, 3, 4, 5];
+
     for (const categoryKey of Object.keys(PassiveCategoryLabels) as PassiveCategory[]) {
       const categoryLabel = PassiveCategoryLabels[categoryKey];
 
@@ -152,9 +160,11 @@ export class PassiveMenuManager {
           color: '#ffffff',
         });
 
-        let tierIndex = 0;
-        for (const tierLevel of [1, 2, 3] as PassiveTier[]) {
+        // Render all tier values
+        tierLevels.forEach((tierLevel, tierIndex) => {
           const value = meta.tiers[tierLevel];
+          if (value == null) return; // skip undefined tiers
+
           const label = `${value}${meta.unit ?? ''}`;
           const tx = tierOffsetX + tierIndex * tierSpacing;
 
@@ -162,31 +172,49 @@ export class PassiveMenuManager {
             font: `${Math.floor(15 * scale)}px monospace`,
             color: currentTier !== null && tierLevel <= currentTier ? '#00ff41' : '#666666',
           });
+        });
 
-          tierIndex++;
-        }
-
-        const nextTier: PassiveTier = ((currentTier ?? 0) + 1) as PassiveTier;
-        const canUpgrade = nextTier <= 3 && this.passiveManager.canAfford(nextTier);
-
-        let lastX = tierOffsetX + 3 * tierSpacing + Math.floor(10 * scale);
-
-        const isValidTier = nextTier <= 3;
-        const upgradeCost = isValidTier ? this.passiveManager.getUpgradeCost(nextTier, currentTier) : 0;
+        const nextTier = ((currentTier ?? 0) + 1) as PassiveTier;
+        const isValidTier = tierLevels.includes(nextTier);
         const canAfford = isValidTier && this.passiveManager.canAfford(nextTier);
+        const upgradeCost = isValidTier ? this.passiveManager.getUpgradeCost(nextTier, currentTier) : 0;
 
-        if (isValidTier) {
+        let lastX = tierOffsetX + tierLevels.length * tierSpacing + Math.floor(10 * scale);
+
+        if (isValidTier && nextTier <= 5) {
+          const btnWidth = Math.floor(30 * scale);
+          const btnHeight = Math.floor(20 * scale);
+          const btnX = lastX;
+          const btnY = cursorY - Math.floor(2 * scale);
+
+          const isHovered =
+            mouseX >= btnX &&
+            mouseX <= btnX + btnWidth &&
+            mouseY >= btnY &&
+            mouseY <= btnY + btnHeight;
+
+          const buttonId = `upgrade:${id}`;
+          const wasHovered = this.hoverSoundState.get(buttonId) ?? false;
+
+          const onClick = () => {
+            if (canAfford) {
+              const success = this.passiveManager.setPassiveTier(id as PassiveId, nextTier);
+              if (success) {
+                audioManager.play('assets/sounds/sfx/ui/gamblewin_02.wav', 'sfx', { maxSimultaneous: 6 });
+              }
+            } else {
+              audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 6 });
+            }
+          };
+
           const btn: UICRTButton = {
-            x: lastX,
-            y: cursorY - Math.floor(2 * scale),
-            width: Math.floor(30 * scale),
-            height: Math.floor(20 * scale),
+            x: btnX,
+            y: btnY,
+            width: btnWidth,
+            height: btnHeight,
             label: '+',
-            onClick: canAfford
-              ? () => {
-                  this.passiveManager.setPassiveTier(id as PassiveId, nextTier);
-                }
-              : () => {}, // noop if unaffordable
+            isHovered,
+            onClick,
             style: {
               font: `${Math.floor(14 * scale)}px monospace`,
               backgroundColor: '#111111',
@@ -199,6 +227,12 @@ export class PassiveMenuManager {
           };
 
           this.activeButtons.push(btn);
+
+          if (btn.isHovered && !wasHovered) {
+            audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 12 });
+          }
+          this.hoverSoundState.set(buttonId, btn.isHovered ?? false);
+
           drawCRTButton(ctx, btn);
 
           drawCRTText(ctx, btn.x + btn.width + Math.floor(8 * scale), cursorY, `Cost: ${upgradeCost}`, {
@@ -209,10 +243,9 @@ export class PassiveMenuManager {
           lastX = btn.x + btn.width + Math.floor(80 * scale);
         }
 
-        if (passiveRowIndex === 0) {
-          const points = this.passiveManager.getAvailablePoints();
-          drawCRTText(ctx, lastX, cursorY, `Passive Licenses: ${points}`, {
-            font: `${Math.floor(14 * scale)}px monospace`,
+        if (currentTier === 5) {
+          drawCRTText(ctx, lastX, cursorY, 'MAXED', {
+            font: `${Math.floor(13 * scale)}px monospace`,
             color: '#00ff00',
           });
         }
@@ -225,12 +258,19 @@ export class PassiveMenuManager {
     }
 
     // === Update content height and scroll offset ===
-    this.contentHeight = cursorY - y;
+    this.contentHeight = (cursorY - y) + CONTENT_BUFFER;
     const maxScroll = Math.max(0, this.contentHeight - height);
     this.scrollOffset = Math.min(this.scrollOffset, maxScroll);
 
     ctx.restore(); // End clipping
     ctx.save();
+
+    // === Passive Points Label
+    const points = this.passiveManager.getAvailablePoints();
+    drawCRTText(ctx, 300 * scale, 46 * scale, `Available Cores: ${points}`, {
+      font: `${Math.floor(16 * scale)}px monospace`,
+      color: '#00ff00',
+    });
 
     // === Scroll Buttons ===
     const scrollSpeed = Math.floor(this.baseScrollSpeed * scale);

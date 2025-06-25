@@ -1,12 +1,10 @@
-// src/rendering/unified/passes/EntityPass.ts
-
+// Imports remain unchanged
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/config/view';
 import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { getGL2BlockOrAsteroidSprite } from '@/rendering/unified/helpers/GLSpriteResolver';
-
 import { entityFrameBudgetMs } from '@/config/graphicsConfig';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
@@ -15,6 +13,7 @@ import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createRotationMatrix, createTranslationMatrix, multiplyMatrices } from '@/rendering/gl/matrixUtils';
 import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/unified/utils/bufferUtils';
 
+// --- Utility Functions ---
 function getChargeColor(id: string): [number, number, number] | null {
   if (id === 'battery1' || id === 'reactor1' || id === 'shield1') return [0.2, 0.6, 1.0];
   if (id === 'battery2' || id === 'reactor2' || id === 'shield3') return [0.8, 0.5, 1.0];
@@ -26,6 +25,7 @@ function isMetallicSheenBlock(id: string): boolean {
   return id.startsWith('hull') || id.startsWith('fin') || id.startsWith('faceplate') || id.startsWith('engine');
 }
 
+// --- Main Class ---
 export class EntityPass {
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;
@@ -53,6 +53,9 @@ export class EntityPass {
     uCollisionColor: WebGLUniformLocation | null;
     uUseCollisionColor: WebGLUniformLocation | null;
     uAmbientLight: WebGLUniformLocation | null;
+    uBlockColor: WebGLUniformLocation | null;
+    uUseBlockColor: WebGLUniformLocation | null;
+    uBlockColorIntensity: WebGLUniformLocation | null;
   };
 
   private shipModelMatrix: Float32Array = new Float32Array(16);
@@ -64,7 +67,7 @@ export class EntityPass {
     this.gl = gl;
     this.program = createProgramFromSources(gl, entityVertSrc, entityFragSrc);
 
-    // === BIND CAMERA UBO TO BINDING POINT 0 ===
+    // UBO binding
     const blockIndex = gl.getUniformBlockIndex(this.program, 'CameraBlock');
     if (blockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(this.program, blockIndex, 0);
@@ -93,7 +96,10 @@ export class EntityPass {
       uSheenStrength: gl.getUniformLocation(this.program, 'uSheenStrength'),
       uCollisionColor: gl.getUniformLocation(this.program, 'uCollisionColor'),
       uUseCollisionColor: gl.getUniformLocation(this.program, 'uUseCollisionColor'),
-      uAmbientLight: gl.getUniformLocation(this.program, 'uAmbientLight')
+      uAmbientLight: gl.getUniformLocation(this.program, 'uAmbientLight'),
+      uBlockColor: gl.getUniformLocation(this.program, 'uBlockColor'),
+      uUseBlockColor: gl.getUniformLocation(this.program, 'uUseBlockColor'),
+      uBlockColorIntensity: gl.getUniformLocation(this.program, 'uBlockColorIntensity'),
     };
   }
 
@@ -131,7 +137,6 @@ export class EntityPass {
     }
 
     let i = startIndex;
-    let processedAny = false;
 
     for (let looped = 0; looped < entities.length; looped++) {
       const entity = entities[i];
@@ -144,6 +149,21 @@ export class EntityPass {
 
       gl.uniformMatrix4fv(this.uniforms.uModelMatrix, false, this.shipModelMatrix);
       gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
+
+      // === Multiplicative block tint logic ===
+      const colorOverride = entity.getBlockColor?.();
+      const intensity = entity.getBlockColorIntensity?.() ?? 0.5;
+
+      if (colorOverride) {
+        const r = parseInt(colorOverride.slice(1, 3), 16) / 255;
+        const g = parseInt(colorOverride.slice(3, 5), 16) / 255;
+        const b = parseInt(colorOverride.slice(5, 7), 16) / 255;
+        gl.uniform3f(this.uniforms.uBlockColor, r, g, b);
+        gl.uniform1i(this.uniforms.uUseBlockColor, 1);
+        gl.uniform1f(this.uniforms.uBlockColorIntensity, intensity);
+      } else {
+        gl.uniform1i(this.uniforms.uUseBlockColor, 0);
+      }
 
       const blocks = Array.from(entity.getAllBlocks());
       let blockIndex = this.lastBlockIndices.get(entity) ?? 0;
@@ -196,7 +216,6 @@ export class EntityPass {
           gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
         }
 
-        processedAny = true;
         if (performance.now() > deadline) {
           this.lastEntityIndex = i;
           this.lastBlockIndices.set(entity, blockIndex);
@@ -207,12 +226,10 @@ export class EntityPass {
         }
       }
 
-      // Finished this entity
       this.lastBlockIndices.delete(entity);
       i = (i + 1) % entities.length;
     }
 
-    // If we completed the full loop, reset pointers
     this.lastEntityIndex = i;
     this.lastBlockIndices = new WeakMap();
 

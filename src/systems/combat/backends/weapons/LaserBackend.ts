@@ -31,9 +31,7 @@ export class LaserBackend implements WeaponBackend {
     }
 
     const laserBlocks = ship.getAllBlocks().filter(([_, b]) =>
-      b.type.id.startsWith('laser') &&
-      b.type.behavior?.canFire &&
-      b.type.behavior.fire?.fireType === 'laser'
+      b.type.metatags?.includes('laser')
     );
 
     if (laserBlocks.length === 0) return;

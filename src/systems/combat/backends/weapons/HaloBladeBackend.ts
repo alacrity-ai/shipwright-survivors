@@ -22,6 +22,8 @@ interface OrbitingBlade {
   radius: number;
   position: { x: number; y: number };
   sprite: GLProjectileSprite;
+  size: number;
+  damage: number;
 }
 
 export class HaloBladeBackend implements WeaponBackend {
@@ -52,7 +54,8 @@ export class HaloBladeBackend implements WeaponBackend {
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const bladeMap = this.ship.getHaloBladeBlocks();
-
+    const sizeBonus = ship.getPassiveBonus('halo-blade-size');
+    const damageBonus = ship.getPassiveBonus('halo-blade-damage');
     const currentBlades = Array.from(bladeMap.keys());
 
     // === Prune removed orbiters ===
@@ -68,7 +71,9 @@ export class HaloBladeBackend implements WeaponBackend {
           angle: 0, // will be set by tier logic
           radius: props.orbitingRadius,
           position: { x: 0, y: 0 },
-          sprite: this.energyRingSprites.get(props.sprite)!
+          sprite: this.energyRingSprites.get(props.sprite)!,
+          size: props.size * sizeBonus,
+          damage: props.damage * damageBonus,
         });
       }
     }
@@ -128,8 +133,8 @@ export class HaloBladeBackend implements WeaponBackend {
           texture: orbiter.sprite.texture,
           worldX: orbiter.position.x,
           worldY: orbiter.position.y,
-          widthPx: 64,
-          heightPx: 64,
+          widthPx: 64 * sizeBonus,
+          heightPx: 64 * sizeBonus,
           alpha: 1.0,
         });
         
@@ -159,9 +164,6 @@ export class HaloBladeBackend implements WeaponBackend {
     let damageApplications = 0;
 
     for (const orbiter of this.orbiters) {
-      const props = bladeMap.get(orbiter.block);
-      if (!props) continue;
-
       const x = orbiter.position.x;
       const y = orbiter.position.y;
 
@@ -177,7 +179,7 @@ export class HaloBladeBackend implements WeaponBackend {
           const dy = y - block.position.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < props.size / 2 + 16) {
+          if (dist < orbiter.size / 2 + 16) {
             const enemyShip = findObjectByBlock(block);
             const coord = enemyShip?.getBlockCoord(block);
 
@@ -189,7 +191,7 @@ export class HaloBladeBackend implements WeaponBackend {
                 ship,
                 block,
                 coord,
-                props.damage,
+                orbiter.damage,
                 'haloBlade',
                 chanceOfLightFlash
               );

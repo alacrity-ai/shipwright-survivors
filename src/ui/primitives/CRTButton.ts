@@ -11,6 +11,9 @@ export interface UICRTButton {
   onClick: () => void;
   isHovered?: boolean;
 
+  /** Internal: whether this button was hovered in the previous frame */
+  _wasHoveredLastFrame?: boolean;
+
   style?: {
     backgroundColor?: string;
     borderColor?: string;
@@ -47,6 +50,8 @@ export function drawCRTButton(
     chromaticAberration = true,
     alpha = 1.0,
   } = style;
+
+  button._wasHoveredLastFrame = isHovered;
 
   // === Scale width and height only ===
   const scaledWidth = width * uiScale;

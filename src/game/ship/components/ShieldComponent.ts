@@ -37,13 +37,21 @@ export class ShieldComponent {
       return;
     }
 
+    // === Retrieve passive bonuses ===
+    const passiveRadiusBonus = this.ownerShip.getPassiveBonus('shield-radius');         // additive
+    const passiveEfficiencyBonus = this.ownerShip.getPassiveBonus('shield-efficiency'); // multiplicative
+
     // Step 2: Recalculate coverage from emitters
     for (const emitter of emitters) {
       const emitterCoord = this.ownerShip.getBlockCoord(emitter);
       if (!emitterCoord) continue;
 
-      const gridRadius = emitter.type.behavior?.shieldRadius ?? 0;
-      const shieldEfficiency = emitter.type.behavior?.shieldEfficiency ?? 0;
+      const baseRadius = emitter.type.behavior?.shieldRadius ?? 0;
+      const baseEfficiency = emitter.type.behavior?.shieldEfficiency ?? 0;
+
+      const gridRadius = baseRadius + passiveRadiusBonus;
+      const shieldEfficiency = baseEfficiency * passiveEfficiencyBonus;
+
       const highlightColor =
         SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES[emitter.type.id] ?? 'rgba(100, 255, 255, 0.4)';
 

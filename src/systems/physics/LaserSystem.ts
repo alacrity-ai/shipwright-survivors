@@ -64,9 +64,7 @@ export class LaserSystem implements IUpdatable, IRenderable {
       if (!intent?.fireSecondary) continue;
 
       const laserBlocks = ship.getAllBlocks().filter(([_, b]) =>
-        b.type.id.startsWith('laser') &&
-        b.type.behavior?.canFire &&
-        b.type.behavior.fire?.fireType === 'laser'
+        b.type.metatags?.includes('laser')
       );
       if (laserBlocks.length === 0) continue;
 
@@ -77,10 +75,12 @@ export class LaserSystem implements IUpdatable, IRenderable {
       }
       if (!energyComponent) continue;
 
+      const energyDrainMultiplier = ship.getPassiveBonus('laser-energy-drain');
       let totalEnergyCost = 0;
+
       for (const [, block] of laserBlocks) {
-        const blockCost = block.type.behavior?.fire?.energyCost ?? 0.25;
-        totalEnergyCost += blockCost;
+        const baseCost = block.type.behavior?.fire?.energyCost ?? 0.25;
+        totalEnergyCost += baseCost * energyDrainMultiplier;
       }
 
       if (!energyComponent.spend(totalEnergyCost)) continue;
@@ -126,12 +126,14 @@ export class LaserSystem implements IUpdatable, IRenderable {
           const hitCoord = targetShip ? findBlockCoordinatesInObject(hit.block, targetShip) : null;
 
           if (targetShip && hitCoord) {
+            const damageBonus = ship.getPassiveBonus('laser-damage');
+
             this.combatService.applyDamageToBlock(
               targetShip,
               ship,
               hit.block,
               hitCoord,
-              fire.fireDamage!,
+              fire.fireDamage! * damageBonus,
               'laser',
             );
           }

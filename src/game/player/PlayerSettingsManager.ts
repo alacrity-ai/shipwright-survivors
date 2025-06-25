@@ -136,6 +136,10 @@ export class PlayerSettingsManager {
     this.debugMode = enabled;
   }
 
+  toggleDebugMode(): void {
+    this.debugMode = !this.debugMode;
+  }
+
   getDebugMode(): boolean { return this.debugMode; }
   getMasterVolume(): number { return this.masterVolume; }
   getMusicVolume(): number { return this.musicVolume; }

@@ -18,4 +18,5 @@ export interface BlockType {
   size?: number;
   dropRate?: number;
   placementSound?: string;
+  metatags?: string[];
 }

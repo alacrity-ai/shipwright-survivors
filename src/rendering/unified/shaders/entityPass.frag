@@ -2,7 +2,7 @@
 precision mediump float;
 
 in vec2 vUV;
-in vec2 vScreenUV; // passed from vertex shader
+in vec2 vScreenUV;
 out vec4 outColor;
 
 uniform sampler2D uTexture;
@@ -16,6 +16,9 @@ uniform float uSheenStrength;
 uniform vec3 uCollisionColor;
 uniform bool uUseCollisionColor;
 uniform vec3 uAmbientLight;
+uniform vec3 uBlockColor;
+uniform float uBlockColorIntensity;
+uniform bool uUseBlockColor;
 
 void main() {
   vec4 base = texture(uTexture, vUV);
@@ -23,24 +26,18 @@ void main() {
 
   // === Lightmap Sampling ===
   vec3 lightSample = texture(uLightMap, vScreenUV).rgb;
-  vec3 effectiveLight = max(lightSample, uAmbientLight); // clamp floor
-  
-  // Darken base by ambient light floor
+  vec3 effectiveLight = max(lightSample, uAmbientLight);
+
+  // === Lighting Layers ===
   vec3 ambiented = base.rgb * uAmbientLight;
-
-  // Modulate with light texture
   vec3 modulated = base.rgb * lightSample;
-
-  // Additive bloom-style wrap lighting
   vec3 additive = lightSample * 0.7;
 
-  // Final mix: ambient base + modulated + additive bloom
   base.rgb = ambiented + modulated * 0.6 + additive * 0.4;
 
   // === Radial Charge Bloom ===
   vec2 centeredUV = vUV - 0.5;
   float dist = length(centeredUV);
-
   float wavePhase = uTime * 3.0 - dist * 8.0;
   float pulse = sin(wavePhase) * 0.5 + 0.5;
   pulse = pow(pulse, 2.0);
@@ -60,23 +57,23 @@ void main() {
 
   // === Metallic Sheen ===
   if (uSheenStrength > 0.0) {
-    vec2 centeredUV = vUV - 0.5;
-    float dist = length(centeredUV);
-
     float radialFalloff = 1.0 - smoothstep(0.0, 0.7, dist);
     radialFalloff = pow(radialFalloff, 0.8);
 
     float noise = sin(vUV.x * 12.0) * sin(vUV.y * 8.0) * 0.1 + 0.9;
-
     float metallic = radialFalloff * noise;
 
     vec3 metallicColor = base.rgb * 1.2 + vec3(0.05, 0.05, 0.1);
     base.rgb = mix(base.rgb, metallicColor, uSheenStrength * metallic * 0.3);
-
     base.rgb += uSheenStrength * metallic * 0.15;
   }
 
-  // === Collision Red Override ===
+  // === Block Color Override (applied last, pre-collision) ===
+  if (uUseBlockColor) {
+    base.rgb = mix(base.rgb, base.rgb * uBlockColor, uBlockColorIntensity);
+  }
+
+  // === Collision Debug Color Override ===
   if (uUseCollisionColor) {
     base.rgb = uCollisionColor;
   }

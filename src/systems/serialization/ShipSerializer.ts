@@ -74,6 +74,7 @@ export async function loadShipFromJson(
   fileName: string,
   grid: Grid,
   faction: Faction = Faction.Enemy,
+  isPlayerShip: boolean = false
 ): Promise<{ ship: Ship; behaviorType?: string }> {
   const url = getAssetPath(`/assets/ships/${fileName}`);
 
@@ -99,6 +100,7 @@ export async function loadShipFromJson(
     }
 
     const ship = new Ship(grid, undefined, undefined, false, undefined, faction);
+    ship.setIsPlayerShip(isPlayerShip);
     ship.loadFromJson(data);
 
     return {
@@ -116,9 +118,11 @@ export async function loadShipFromJson(
 export function loadShipFromJsonObject(
   data: any,
   grid: Grid,
-  faction: Faction = Faction.Enemy
+  faction: Faction = Faction.Enemy,
+  isPlayerShip: boolean = false
 ): { ship: Ship; behaviorType?: string } {
   const ship = new Ship(grid, undefined, undefined, false, undefined, faction);
+  ship.setIsPlayerShip(isPlayerShip);
   ship.loadFromJson(data);
   return {
     ship,
