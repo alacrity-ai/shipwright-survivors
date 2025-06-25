@@ -63,7 +63,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
     },
-    enemyPower: 1,
+    enemyPower: 0.5,
     waveDensity: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
@@ -86,7 +86,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Ferrust', x: -3000, y: 4000 },
       { name: 'Gilipe', x: 9000, y: -4000 },
     ],
-    enemyPower: 0.25,
+    enemyPower: 0.5,
     waveDensity: 0.5,
     music: {
       file: 'assets/sounds/music/track_09_junkyard.mp3',

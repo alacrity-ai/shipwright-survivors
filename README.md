@@ -148,7 +148,11 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Lower drop rate significantly, Entropium levels you up.  Puts a level up menu:
+    - [ ] In level up menu: Choose 1 of 3 randomly given bonuses.
+    - [ ] Entropium cost per level continues to increase, clearly show entropium til next level
   - [ ] Are mobs always turning the same direction when they begin orbiting? We should change to be random.
+  - [ ] To prevent wave buildup, on each wave transition, expire enemies (FIFO) beyond certain cap.
   - [ ] Interesting idea for game mode:
     - Player spawns near space station, they have 2-5 minutes (can be tuned) to explore map, do incidents, kill enemy patrols, gather blocks - This is the gather phase.  When gather phase ends they should return to space station.  They can use entropium to build up the space station, and then they fight off waves of enemies as the station.  After the wave is destroyed, they return back to gather phase and repeat??  This becomes now a tower defense / vampire survivors gathering hybrid.
   - [ ] Fix ShipCreationAnimationController:

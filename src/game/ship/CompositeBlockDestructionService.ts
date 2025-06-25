@@ -1,3 +1,5 @@
+// src/game/ship/CompositeBlockDestructionService.ts
+
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
@@ -118,7 +120,7 @@ export class CompositeBlockDestructionService {
 
     // Animate primary block explosions
     blocks.forEach(([coord, block], index) => {
-      const delay = index * 0.05;
+      const delay = index * 0.05 * 0.5;
       steps.push({
         delay,
         callback: () => {
@@ -159,7 +161,7 @@ export class CompositeBlockDestructionService {
 
         for (const [coord, block] of blocks) {
           if (!connectedSet.has(serialize(coord))) {
-            const delay = 0.5 + Math.random() * 0.1; // delay is arbitrary but can be tuned
+            const delay = 0.5 + Math.random() * 0.5; // delay is arbitrary but can be tuned
             steps.push({
               delay,
               callback: () => {

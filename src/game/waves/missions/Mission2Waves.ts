@@ -103,12 +103,12 @@ const killCrewFormation = createSmallWedgeFormation(
 
 const hunterCrewFormation = createSmallWedgeFormation(
   'hunter-crew',
-  'mission_03/horrorhunter_01',
-  ['mission_03/horrorhunter_00', 'mission_03/horrorhunter_00'],
+  'mission_02/missile_hunter_01',
+  ['mission_02/missile_hunter_00', 'mission_02/missile_hunter_00'],
   FAST_AFFIXES,
   FAST_AFFIXES,
   700,
-  3,
+  2,
   true,
   true,
 );
@@ -143,8 +143,6 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [
       { shipId: 'wave_0_01', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'wave_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'wave_0_03', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
     incidents: [
       {
@@ -166,8 +164,8 @@ export const waveDefinitions: WaveDefinition[] = [
     duration: 30,
     mods: [],
     ships: [
-      { shipId: 'wave_0_03', count: 12 },
-      { shipId: 'wave_0_04', count: 14 },
+      { shipId: 'wave_0_03', count: 8 },
+      { shipId: 'wave_0_04', count: 10 },
     ],
     formations: [mediumWedgeFormation],
   },
@@ -290,7 +288,7 @@ export const waveDefinitions: WaveDefinition[] = [
     duration: 30,
     mods: [],
     ships: [],
-    formations: [cruiserLargeWedgeFormation, smallWedgeFormation, mediumWedgeFormation],
+    formations: [cruiserLargeWedgeFormation, smallWedgeFormation],
     incidents: [
       {
         spawnChance: 1.0,
@@ -322,13 +320,13 @@ export const waveDefinitions: WaveDefinition[] = [
               { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true }
             ],
             [ // Tier 2: 10–14 kills
-              { shipId: 'mission_02/ship_rammerspear_00', count: 8, hunter: true }
+              { shipId: 'mission_02/missile_hunter_00', count: 4, hunter: true }
             ],
             [ // Tier 3: 15–19 kills
-              { shipId: 'mission_02/ship_dragonfly_00', count: 8, hunter: true }
+              { shipId: 'mission_02/missile_hunter_01', count: 4, hunter: true }
             ],
             [ // Tier 4+: 20+ kills
-              { shipId: 'mission_02/wave_5_03', count: 8, hunter: true }
+              { shipId: 'mission_02/ship_harbinger_00', count: 4, hunter: true }
             ],
           ],
         },
@@ -355,14 +353,9 @@ export const waveDefinitions: WaveDefinition[] = [
         behaviorProfile: RammingBehaviorProfile,
         affixes: RAMMER_SPEAR_AFFIXES,
       },
-      {
-        shipId: 'mission_02/ship_rammerhead_00',
-        count: 2,
-        behaviorProfile: RammingBehaviorProfile,
-        affixes: RAMMER_SPEAR_AFFIXES,
-      },
+      { shipId: 'mission_02/ship_harbinger_00', count: 4, hunter: true },
     ],
-    formations: [killCrewFormation],
+    formations: [hunterCrewFormation],
   },
   {
     spawnDistribution: 'aroundPlayer',
@@ -370,9 +363,10 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [
       { shipId: 'mission_02/spacestation_00', count: 4 },
-      { shipId: 'mission_02/wave_5_03', count: 4 },
+      { shipId: 'mission_02/ship_harbinger_00', count: 2, hunter: true },
+      { shipId: 'mission_02/bomber_03', count: 2, hunter: true },
     ],
-    formations: [cruiserLargeWedgeFormation, smallWedgeFormation],
+    formations: [hunterCrewFormation],
   },
   {
     spawnDistribution: 'aroundPlayer',
@@ -386,8 +380,8 @@ export const waveDefinitions: WaveDefinition[] = [
         behaviorProfile: RammingBehaviorProfile,
         affixes: RAMMER_SPEAR_AFFIXES,
       },
-      { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true },
-      { shipId: 'mission_02/wave_5_03', count: 4 },
+      { shipId: 'mission_02/bomber_03', count: 2, hunter: true },
+      { shipId: 'mission_02/ship_harbinger_00', count: 2 },
     ],
     incidents: [
       {
@@ -414,19 +408,19 @@ export const waveDefinitions: WaveDefinition[] = [
           maxDuration: 30,
           tiers: [
             [ // Tier 0: 0–4 kills
-              { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true }
+              { shipId: 'mission_02/missile_hunter_00', count: 4, hunter: true }
             ],
             [ // Tier 1: 5–9 kills
-              { shipId: 'mission_02/ship_stalker_00', count: 4, hunter: true }
+              { shipId: 'mission_02/bomber_02', count: 2, hunter: true }
             ],
             [ // Tier 2: 10–14 kills
-              { shipId: 'mission_02/ship_rammerspear_00', count: 8, hunter: true }
+              { shipId: 'mission_02/bomber_03', count: 4, hunter: true }
             ],
             [ // Tier 3: 15–19 kills
-              { shipId: 'mission_02/ship_dragonfly_00', count: 8, hunter: true }
+              { shipId: 'mission_02/ship_harbinger_00', count: 4, hunter: true }
             ],
             [ // Tier 4+: 20+ kills
-              { shipId: 'mission_02/wave_5_03', count: 8, hunter: true }
+              { shipId: 'mission_02/ship_harbinger_00', count: 4, hunter: true }
             ],
           ],
         },
@@ -452,7 +446,7 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
         affixes: {
-          blockDurabilityMulti: 15.0,
+          blockDurabilityMulti: 10.0,
           thrustPowerMulti: 4.0,
           turnPowerMulti: 1.0,
           fireRateMulti: 2.0,

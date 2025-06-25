@@ -15,11 +15,11 @@ export function calculateCoresEarnedDetailed() {
   const result = missionResultStore.get();
 
   return {
-    fromWaves: result.wavesCleared * 3,
-    fromKills: Math.floor(result.enemiesDestroyed / 25),
-    fromBlocks: Math.floor(result.blocksCollected / 100),
+    fromWaves: result.wavesCleared * 1,
+    fromKills: Math.floor(result.enemiesDestroyed / 100),
+    fromBlocks: Math.floor(result.blocksCollected / 200),
     fromCurrency: Math.floor(result.currencyGathered / 1000),
-    fromMass: Math.floor(result.massAchieved / 2000),
+    fromMass: Math.floor(result.massAchieved / 4000),
     fromIncidents: result.incidentsCompleted,
     fromVictory: result.outcome === 'victory' ? 5 : 0,
   };
