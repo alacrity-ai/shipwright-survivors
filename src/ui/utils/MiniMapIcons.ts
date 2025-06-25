@@ -4,7 +4,8 @@ export type IconType =
 'caution' | 
 'greenCross' | 
 'skullAndBones' | 
-'treasure';
+'treasure' |
+'purpleVortex';
 
 export class MiniMapIcons {
   /**
@@ -32,6 +33,9 @@ export class MiniMapIcons {
         break;
       case 'treasure':
         this.drawTreasureIcon(ctx, size);
+        break;
+      case 'purpleVortex':
+        this.drawPurpleVortexIcon(ctx, size);
         break;
     }
 
@@ -70,21 +74,6 @@ export class MiniMapIcons {
   
   private static drawGreenCrossIcon(ctx: CanvasRenderingContext2D, size: number): void {
     const center = size / 2;
-    const radius = size * 0.45;
-    
-    // // Draw circular background
-    // const gradient = ctx.createRadialGradient(center, center, 0, center, center, radius);
-    // gradient.addColorStop(0, '#00ff88');
-    // gradient.addColorStop(1, '#00cc44');
-    
-    // ctx.fillStyle = gradient;
-    // ctx.strokeStyle = '#008833';
-    // ctx.lineWidth = size * 0.05;
-    
-    // ctx.beginPath();
-    // ctx.arc(center, center, radius, 0, Math.PI * 2);
-    // ctx.fill();
-    // ctx.stroke();
     
     // Draw Cross
     ctx.fillStyle = '#00ff00';
@@ -199,6 +188,48 @@ export class MiniMapIcons {
     ctx.fill();
     ctx.stroke();
   }
+
+  private static drawPurpleVortexIcon(ctx: CanvasRenderingContext2D, size: number): void {
+    const center = size / 2;
+    const outerRadius = size * 0.4;
+    const innerRadius = size * 0.2;
+
+    ctx.save();
+    ctx.translate(center, center);
+
+    // Base purple glow ring
+    ctx.beginPath();
+    const gradient = ctx.createRadialGradient(0, 0, innerRadius * 0.5, 0, 0, outerRadius);
+    gradient.addColorStop(0, '#cc66ff');
+    gradient.addColorStop(1, '#6600aa');
+    ctx.fillStyle = gradient;
+    ctx.arc(0, 0, outerRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rotational swirl arcs
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = size * 0.05;
+    ctx.lineCap = 'round';
+
+    const swirlCount = 3;
+    for (let i = 0; i < swirlCount; i++) {
+      const angle = (Math.PI * 2 / swirlCount) * i;
+      const arcRadius = innerRadius + (i * (outerRadius - innerRadius)) / swirlCount;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, arcRadius, angle, angle + Math.PI * 0.5);
+      ctx.stroke();
+    }
+
+    // Core white dot
+    ctx.beginPath();
+    ctx.fillStyle = '#ffffff';
+    ctx.arc(0, 0, size * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
 
   private static drawTreasureIcon(ctx: CanvasRenderingContext2D, size: number): void {
     const center = size / 2;

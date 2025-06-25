@@ -66,35 +66,28 @@ export class ShipGrid {
     return result;
   }
 
-public addShip(ship: Ship): void {
-  const transform = ship.getTransform();
-  if (!transform) {
-    console.warn('[ShipGrid] Skipping addShip: no transform for ship', ship.id);
-    return;
+  public addShip(ship: Ship): void {
+    const transform = ship.getTransform();
+    if (!transform) {
+      console.warn('[ShipGrid] Skipping addShip: no transform for ship', ship.id);
+      return;
+    }
+
+    const { x, y } = transform.position;
+    const [cellX, cellY] = this.getCellCoords(x, y);
+
+    this.removeShip(ship); // Remove from old cell
+
+    const globalCell = this.getOrCreateCell(this.cells, cellX, cellY);
+    globalCell.push(ship);
+
+    const faction = ship.getFaction();
+    const factionMap = this.getFactionMap(faction);
+    const factionCell = this.getOrCreateCell(factionMap, cellX, cellY);
+    factionCell.push(ship);
+
+    this.shipToCellMap.set(ship.id, [cellX, cellY]);
   }
-
-  const { x, y } = transform.position;
-  const [cellX, cellY] = this.getCellCoords(x, y);
-
-  this.removeShip(ship); // Remove from old cell
-
-  const globalCell = this.getOrCreateCell(this.cells, cellX, cellY);
-  globalCell.push(ship);
-
-  const faction = ship.getFaction();
-  const factionMap = this.getFactionMap(faction);
-  const factionCell = this.getOrCreateCell(factionMap, cellX, cellY);
-  factionCell.push(ship);
-
-  this.shipToCellMap.set(ship.id, [cellX, cellY]);
-
-  // === Diagnostic Logging ===
-  console.log(`[ShipGrid] Added ship: ${ship.id}`);
-  console.log(`  Faction: ${faction}`);
-  console.log(`  Position: (${x.toFixed(1)}, ${y.toFixed(1)})`);
-  console.log(`  Cell: (${cellX}, ${cellY})`);
-}
-
 
   public removeShip(ship: Ship): void {
     const currentCell = this.shipToCellMap.get(ship.id);

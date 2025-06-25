@@ -1,5 +1,3 @@
-// src/systems/incidents/types/BaseIncidentScript.ts
-
 import { reportMinimapMarker, clearMinimapMarker } from '@/core/interfaces/events/IncidentMinimapReporter';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -24,6 +22,7 @@ export abstract class BaseIncidentScript implements IncidentScript {
 
   private minimapRegistered = false;
   private proximityTriggered = false;
+  private hasCompleted = false;
 
   constructor(
     id: string,
@@ -59,9 +58,8 @@ export abstract class BaseIncidentScript implements IncidentScript {
     const icon = this.getMinimapIcon();
     let { x, y } = this.options;
 
-    // Fallback to random coordinates if not provided
     if (typeof x !== 'number' || typeof y !== 'number') {
-      const fallback = getRandomWorldCoordinates(400); // Optional: supply a default margin
+      const fallback = getRandomWorldCoordinates(400);
       x = fallback.x;
       y = fallback.y;
       this.options.x = x;
@@ -69,22 +67,16 @@ export abstract class BaseIncidentScript implements IncidentScript {
     }
 
     if (icon) {
-      reportMinimapMarker({
-        id: this.id,
-        icon,
-        x,
-        y,
-      });
+      reportMinimapMarker({ id: this.id, icon, x, y });
       this.minimapRegistered = true;
     }
   }
 
   /**
    * Called once when the player first enters proximity range.
-   * Override this in subclasses to implement ambush, dialogue, etc.
    */
   protected onPlayerEnterProximity(): void {
-    // Base class does nothing
+    // No-op by default
   }
 
   /**
@@ -92,7 +84,13 @@ export abstract class BaseIncidentScript implements IncidentScript {
    * Should still call super.update(dt) to preserve proximity check behavior.
    */
   public update(dt: number): void {
+    if (this.hasCompleted) return;
     this.checkPlayerProximity();
+    this.onUpdate(dt);
+  }
+
+  protected onUpdate(_dt: number): void {
+    // Default no-op
   }
 
   private checkPlayerProximity(): void {
@@ -105,8 +103,7 @@ export abstract class BaseIncidentScript implements IncidentScript {
     const playerPos = playerShip?.getTransform().position;
     if (!playerPos) return;
 
-    const incidentPos = { x, y };
-    const dist = getDistance(playerPos, incidentPos);
+    const dist = getDistance(playerPos, { x, y });
     if (dist <= proximityRadius) {
       this.proximityTriggered = true;
       this.onPlayerEnterProximity();
@@ -115,33 +112,51 @@ export abstract class BaseIncidentScript implements IncidentScript {
 
   public render?(canvasManager: CanvasManager, dt: number): void;
 
-  public abstract isComplete(): boolean;
+  /**
+   * Optional override: incidents may use this to signal logical completion.
+   */
+  public isComplete(): boolean {
+    return this.hasCompleted;
+  }
 
   /**
-   * Called automatically by the orchestrator when this incident completes naturally.
-   * Subclasses overriding this must call `super.onComplete()`.
+   * Call this when the incident finishes. Ensures onComplete logic only runs once.
    */
-  public onComplete(): void {
-    audioManager.play('assets/sounds/sfx/pickups/powerup_02.wav', 'sfx', { maxSimultaneous: 1 });
+  public onComplete(successful: boolean = true): void {
+    if (this.hasCompleted) {
+      console.warn(`[Incident:${this.getId()}] onComplete() called more than once.`);
+      return;
+    }
+    this.hasCompleted = true;
 
-    // Popup text on completion:
-    this.context.popupMessageSystem.displayMessage('MISSION OBJECTIVE ACHIEVED', {
-      color: '#00ff00',
-      duration: 3,
-      font: '28px monospace',
-      glow: true,
-    });
+    if (successful) {
+      audioManager.play('assets/sounds/sfx/pickups/powerup_02.wav', 'sfx', { maxSimultaneous: 1 });
+
+      this.context.popupMessageSystem.displayMessage('MISSION OBJECTIVE ACHIEVED', {
+        color: '#00ff00',
+        duration: 3,
+        font: '28px monospace',
+        glow: true,
+      });
+
+      missionResultStore.incrementIncidentsCompleted();
+    }
 
     if (this.minimapRegistered) {
       clearMinimapMarker(this.id);
       this.minimapRegistered = false;
     }
-    missionResultStore.incrementIncidentsCompleted();
+  }
+
+  /**
+   * Use to generate incident-owned tags (e.g. for spawned waves).
+   */
+  protected generateWaveTag(suffix: string): string {
+    return `${this.id}:${suffix}`;
   }
 
   /**
    * Called when the incident is forcibly removed or cleared.
-   * Subclasses overriding this must call `super.destroy()`.
    */
   public destroy(): void {
     if (this.minimapRegistered) {

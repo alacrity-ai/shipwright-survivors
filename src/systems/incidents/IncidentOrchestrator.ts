@@ -3,6 +3,7 @@
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 import type { IncidentScript } from './types/IncidentScript';
 import type { IncidentRuntimeContext } from './types/IncidentRuntimeContext';
+import { v4 as uuidv4 } from 'uuid';
 
 import { IncidentRegistry } from './IncidentRegistry';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -39,10 +40,7 @@ export class IncidentOrchestrator implements IUpdatable, IRenderable {
     waveId?: number,
     delaySeconds?: number
   ): void {
-    const base = `${scriptId}:${waveId ?? 'none'}`;
-    const count = (this.waveIncidentCounters.get(base) ?? 0) + 1;
-    this.waveIncidentCounters.set(base, count);
-    const id = `${base}:${count}`;
+    const id = `${scriptId}:${waveId ?? 'none'}:${uuidv4()}`;
 
     if (delaySeconds && delaySeconds > 0) {
       this.pendingTriggers.push({
@@ -87,6 +85,7 @@ export class IncidentOrchestrator implements IUpdatable, IRenderable {
   }
 
   public update(dt: number): void {
+    // === Delayed incident triggers ===
     for (let i = this.pendingTriggers.length - 1; i >= 0; i--) {
       const trigger = this.pendingTriggers[i];
       trigger.remainingDelay -= dt;
@@ -117,7 +116,8 @@ export class IncidentOrchestrator implements IUpdatable, IRenderable {
     for (const [id, script] of this.activeIncidents) {
       script.update(dt);
       if (script.isComplete()) {
-        script.onComplete?.();
+        console.log(`[IncidentOrchestrator] Incident '${id}' reported completion.`);
+        script.onComplete?.(); // Internally guarded via BaseIncidentScript.hasCompleted
         script.destroy?.();
         this.activeIncidents.delete(id);
       }

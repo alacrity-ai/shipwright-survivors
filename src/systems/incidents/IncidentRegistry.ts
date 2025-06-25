@@ -7,6 +7,7 @@ import type { IncidentRuntimeContext } from './types/IncidentRuntimeContext';
 import { BlackHoleIncident } from '@/systems/incidents/scripts/BlackHoleIncident';
 import { HealingBeaconIncident } from '@/systems/incidents/scripts/HealingBeaconIncident';
 import { CursedCargoIncident } from '@/systems/incidents/scripts/cursedCargo/CursedCargoIncident';
+import { DimensionalPortalIncident } from '@/systems/incidents/scripts/dimensionalPortal/DimensionalPortalIncident';
 // Add more as needed...
 
 export class IncidentRegistry {
@@ -24,6 +25,7 @@ export class IncidentRegistry {
     this.register('BlackHoleIncident', BlackHoleIncident);
     this.register('HealingBeaconIncident', HealingBeaconIncident);
     this.register('CursedCargoIncident', CursedCargoIncident);
+    this.register('DimensionalPortalIncident', DimensionalPortalIncident);
     // Register additional scripts here...
   }
 

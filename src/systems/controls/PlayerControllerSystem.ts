@@ -9,6 +9,7 @@ import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { Ship } from '@/game/ship/Ship';
 
+import { ShipGrid } from '@/game/ship/ShipGrid';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { audioManager } from '@/audio/Audio';
@@ -26,6 +27,9 @@ export class PlayerControllerSystem {
   ) {}
 
   public getIntent(): ShipIntent {
+    // Update ship position in ship grid | TODO: Should go somewhere agnostic that is run every frame.
+    ShipGrid.getInstance().updateShipPosition(this.playerShip);
+
     const shift = this.inputManager.isShiftPressed();
     const leftStick = this.inputManager.getGamepadMovementVector();
     const leftStickMag = Math.hypot(leftStick.x, leftStick.y);

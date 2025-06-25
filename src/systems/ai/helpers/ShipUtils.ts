@@ -37,8 +37,6 @@ export function findNearestTarget(originShip: Ship, range: number): Ship | null 
   const originPos = originShip.getTransform().position;
   const candidates = ShipGrid.getInstance().getShipsInRadius(originPos.x, originPos.y, range);
 
-  console.log('[ShipUtils] findNearestTarget: candidates count: %d', candidates.length);
-
   let nearest: Ship | null = null;
   let nearestDist = Infinity;
 
@@ -46,9 +44,7 @@ export function findNearestTarget(originShip: Ship, range: number): Ship | null 
     if (candidate === originShip) continue;
 
     const faction = candidate.getFaction();
-    if (faction === Faction.Player) {
-      console.log('[ShipUtils] findNearestTarget: candidate is player');
-    }
+
     if (faction === originFaction || faction === Faction.Neutral) continue;
     if (candidate.getAffixes()?.invulnerable) continue;
 

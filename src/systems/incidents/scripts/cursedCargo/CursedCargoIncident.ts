@@ -1,7 +1,6 @@
-// src/systems/incidents/scripts/CursedCargoIncident.ts
+// src/systems/incidents/scripts/cursedCargo/CursedCargoIncident.ts
 
 import { BaseIncidentScript } from '@/systems/incidents/types/BaseIncidentScript';
-import { v4 } from 'uuid';
 import { spawnWave, clearWave } from '@/core/interfaces/events/WaveSpawnReporter';
 import { GlobalEventBus } from '@/core/EventBus';
 import { spawnCurrencyExplosion } from '@/systems/pickups/helpers/spawnCurrencyExplosion';
@@ -10,7 +9,6 @@ import { spawnRepairExplosion } from '@/systems/pickups/helpers/spawnRepairExplo
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
 import type { WaveDefinition, WaveShipEntry } from '@/game/waves/types/WaveDefinition';
-
 import type { IncidentRuntimeContext } from '@/systems/incidents/types/IncidentRuntimeContext';
 
 export interface CursedCargoOptions {
@@ -26,16 +24,11 @@ export class CursedCargoIncident extends BaseIncidentScript {
   private elapsed = 0;
   private lifetime = 180;
   private nextLogTime = 0;
+  private timedOut = false;
 
-  private waveTag: string = `cursed-cargo-${v4()}`;
+  private readonly ownedWaveTags: Set<string> = new Set();
   private hasSpawnedAmbush = false;
-  private isResolvedByWave = false;
-
-  private readonly handleWaveCompleted = (data: { tag: string }) => {
-    if (data.tag === this.waveTag) {
-      this.isResolvedByWave = true;
-    }
-  };
+  private ambushTag: string | null = null;
 
   constructor(
     id: string,
@@ -53,6 +46,8 @@ export class CursedCargoIncident extends BaseIncidentScript {
   public onTrigger(): void {
     super.onTrigger();
 
+    const { x, y, cursedCacheShip } = this.options as CursedCargoOptions;
+
     this.context.popupMessageSystem.displayMessage('✨ Cursed Cargo Detected! ✨', {
       color: '#00ffaa',
       duration: 3,
@@ -60,15 +55,16 @@ export class CursedCargoIncident extends BaseIncidentScript {
       glow: true,
     });
 
-    const { x, y, cursedCacheShip } = this.options as CursedCargoOptions;
+    const cargoWaveTag = this.generateWaveTag('cargo');
+    this.ownedWaveTags.add(cargoWaveTag);
 
     const cargoShipEntry: WaveShipEntry = cursedCacheShip
       ? {
           ...cursedCacheShip,
-          count: 1, // force count
+          count: 1,
           affixes: {
             ...cursedCacheShip.affixes,
-            invulnerable: true, // override or insert
+            invulnerable: true,
           },
         }
       : {
@@ -77,16 +73,16 @@ export class CursedCargoIncident extends BaseIncidentScript {
           affixes: { invulnerable: true },
         };
 
-    const CursedCargo: WaveDefinition = {
+    const wave: WaveDefinition = {
       spawnDistribution: 'at',
       atCoords: { x, y },
       duration: Infinity,
-      mods: [],
       ships: [cargoShipEntry],
+      mods: [],
       formations: [],
     };
 
-    spawnWave(this.waveTag + '-cargo', CursedCargo);
+    spawnWave(cargoWaveTag, wave);
   }
 
   protected onPlayerEnterProximity(): void {
@@ -94,25 +90,27 @@ export class CursedCargoIncident extends BaseIncidentScript {
 
     const { x, y, ships } = this.options as CursedCargoOptions;
 
-    const ambushShips: WaveShipEntry[] =
-      Array.isArray(ships) && ships.length > 0
-        ? ships
-        : [
-            { shipId: 'wave_0_00', count: 2 },
-            { shipId: 'wave_0_01', count: 2 },
-            { shipId: 'wave_0_02', count: 2 },
-          ];
+    const ambushShips: WaveShipEntry[] = ships?.length
+      ? ships
+      : [
+          { shipId: 'wave_0_00', count: 2 },
+          { shipId: 'wave_0_01', count: 2 },
+          { shipId: 'wave_0_02', count: 2 },
+        ];
 
-    const AmbushWave: WaveDefinition = {
+    this.ambushTag = this.generateWaveTag('ambush');
+    this.ownedWaveTags.add(this.ambushTag);
+
+    const ambushWave: WaveDefinition = {
       spawnDistribution: 'at',
-      atCoords: { x: x, y: y, spreadRadius: 1000 },
+      atCoords: { x, y, spreadRadius: 1000 },
       duration: Infinity,
-      mods: [],
       ships: ambushShips,
+      mods: [],
       formations: [],
     };
 
-    spawnWave(this.waveTag, AmbushWave);
+    spawnWave(this.ambushTag, ambushWave);
     GlobalEventBus.on('wave:completed', this.handleWaveCompleted);
     this.hasSpawnedAmbush = true;
 
@@ -124,8 +122,13 @@ export class CursedCargoIncident extends BaseIncidentScript {
     });
   }
 
-  public update(dt: number): void {
-    super.update(dt);
+  private readonly handleWaveCompleted = (data: { tag: string }) => {
+    if (this.ownedWaveTags.has(data.tag)) {
+      this.ownedWaveTags.delete(data.tag);
+    } 
+  };
+
+  protected override onUpdate(dt: number): void {
     this.elapsed += dt;
 
     if (this.elapsed >= this.nextLogTime) {
@@ -133,52 +136,66 @@ export class CursedCargoIncident extends BaseIncidentScript {
     }
   }
 
-  // Can be completed by time, or by wave completion
-  public isComplete(): boolean {
-    return this.elapsed >= this.lifetime || this.isResolvedByWave;
+  public override isComplete(): boolean {
+    const timeExceeded = this.elapsed >= this.lifetime;
+    const ambushCleared = this.hasSpawnedAmbush && this.ambushTag !== null && !this.ownedWaveTags.has(this.ambushTag);
+
+    if (timeExceeded && !ambushCleared) {
+      this.timedOut = true;
+    }
+
+    return timeExceeded || ambushCleared;
   }
 
-  public onComplete(): void {
-    const { x, y, rewardBlockTier = 1, rewardQuantityMultiplier = 1 } = this.options as CursedCargoOptions;
+  public override onComplete(): void {
+    const successful = !this.timedOut;
 
-    spawnCurrencyExplosion({
-      x: x,
-      y: y,
-      currencyType: 'entropium',
-      totalAmount: 3000,
-      pickupCount: 40 * rewardQuantityMultiplier,
-      spreadRadius: 1100,
-      randomizeAmount: true,
-    });
+    if (successful) {
+      const { x, y, rewardBlockTier = 1, rewardQuantityMultiplier = 1 } = this.options as CursedCargoOptions;
 
-    spawnBlockExplosion({
-      x: x,
-      y: y,
-      tier: rewardBlockTier,
-      blockCount: 10 * rewardQuantityMultiplier,
-      spreadRadius: 1100,
-    });
+      spawnCurrencyExplosion({
+        x,
+        y,
+        currencyType: 'entropium',
+        totalAmount: 3000,
+        pickupCount: 40 * rewardQuantityMultiplier,
+        spreadRadius: 1100,
+        randomizeAmount: true,
+      });
 
-    spawnRepairExplosion({
-      x: x,
-      y: y,
-      totalAmount: 300,
-      pickupCount: 4 * rewardQuantityMultiplier,
-      spreadRadius: 1100,
-      randomizeAmount: true,
-    });
+      spawnBlockExplosion({
+        x,
+        y,
+        tier: rewardBlockTier,
+        blockCount: 10 * rewardQuantityMultiplier,
+        spreadRadius: 1100,
+      });
 
-    createLightFlash(x, y, 1400, 1.0, 0.5, '#ffffff');
+      spawnRepairExplosion({
+        x,
+        y,
+        totalAmount: 300,
+        pickupCount: 4 * rewardQuantityMultiplier,
+        spreadRadius: 1100,
+        randomizeAmount: true,
+      });
 
-    clearWave(this.waveTag);
-    clearWave(this.waveTag + '-cargo');
+      createLightFlash(x, y, 1400, 1.0, 0.5, '#ffffff');
+    }
+
+    for (const tag of this.ownedWaveTags) {
+      clearWave(tag);
+    }
+
     GlobalEventBus.off('wave:completed', this.handleWaveCompleted);
-    super.onComplete();
+    super.onComplete(successful);
   }
 
   public destroy(): void {
-    clearWave(this.waveTag);
-    clearWave(this.waveTag + '-cargo');
+    for (const tag of this.ownedWaveTags) {
+      clearWave(tag);
+    }
+
     GlobalEventBus.off('wave:completed', this.handleWaveCompleted);
     super.destroy();
   }

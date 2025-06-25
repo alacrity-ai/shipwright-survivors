@@ -10,6 +10,7 @@ import type { WeaponFiringPlanEntry } from '@/systems/combat/types/WeaponTypes';
 import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
 import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
 
+import { ShipGrid } from '@/game/ship/ShipGrid';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { PlayerStats } from '@/game/player/PlayerStats';

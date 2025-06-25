@@ -32,7 +32,6 @@ export class WaveExecutor {
     customAuraLightProps?: { color?: string; radius?: number; intensity?: number }
   ): Promise<WaveExecutionContext> {
     const context = new Context(wave, waveIndex, this.scriptRunner, tag);
-    const distribution = wave.spawnDistribution ?? 'random';
     const densityMultiplier = missionLoader.getMission().waveDensity ?? 1;
 
     // === Formations ===

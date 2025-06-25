@@ -144,6 +144,30 @@ export const waveDefinitions: WaveDefinition[] = [
         options: cursedCargoTier1Params,
         delaySeconds: randomIntFromRange(10, 60),
       },
+      {
+        spawnChance: 1.0,
+        script: 'DimensionalPortalIncident',
+        options: {
+          maxDuration: 30,
+          tiers: [
+            [ // Tier 0: 0–4 kills
+              { shipId: 'wave_0_00', count: 2, hunter: true }
+            ],
+            [ // Tier 1: 5–9 kills
+              { shipId: 'wave_0_01', count: 3, hunter: true }
+            ],
+            [ // Tier 2: 10–14 kills
+              { shipId: 'wave_0_02', count: 4, hunter: true }
+            ],
+            [ // Tier 3: 15–19 kills
+              { shipId: 'wave_0_03', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 20+ kills
+              { shipId: 'wave_0_04', count: 4, hunter: true }
+            ],
+          ],
+        },
+      }
     ],
   },
   {
@@ -179,6 +203,30 @@ export const waveDefinitions: WaveDefinition[] = [
         options: cursedCargoTier1Params,
         delaySeconds: randomIntFromRange(10, 60),
       },
+      {
+        spawnChance: 1.0,
+        script: 'DimensionalPortalIncident',
+        options: {
+          maxDuration: 30,
+          tiers: [
+            [ // Tier 0: 0–4 kills
+              { shipId: 'wave_0_00', count: 1 }
+            ],
+            [ // Tier 1: 5–9 kills
+              { shipId: 'wave_0_01', count: 2 }
+            ],
+            [ // Tier 2: 10–14 kills
+              { shipId: 'wave_0_02', count: 3, hunter: true }
+            ],
+            [ // Tier 3: 15–19 kills
+              { shipId: 'wave_0_03', count: 3, hunter: true }
+            ],
+            [ // Tier 4+: 20+ kills
+              { shipId: 'wave_0_04', count: 4, hunter: true }
+            ],
+          ],
+        },
+      }
     ],
   },
   {
