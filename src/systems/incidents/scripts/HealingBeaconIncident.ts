@@ -23,12 +23,12 @@ export class HealingBeaconIncident extends BaseIncidentScript {
 
   public onTrigger(): void {
     super.onTrigger();
-    
+
     console.log(`[HealingBeaconIncident] Deployed at (${this.options.x}, ${this.options.y})`);
 
     this.context.popupMessageSystem.displayMessage('✨ Healing Beacon Online ✨', {
       color: '#00ffaa',
-      duration: 3,
+      duration: 5,
       font: '26px monospace',
       glow: true,
     });

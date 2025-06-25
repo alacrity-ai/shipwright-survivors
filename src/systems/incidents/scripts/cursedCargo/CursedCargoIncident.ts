@@ -50,7 +50,7 @@ export class CursedCargoIncident extends BaseIncidentScript {
 
     this.context.popupMessageSystem.displayMessage('✨ Cursed Cargo Detected! ✨', {
       color: '#00ffaa',
-      duration: 3,
+      duration: 5,
       font: '26px monospace',
       glow: true,
     });
@@ -116,7 +116,7 @@ export class CursedCargoIncident extends BaseIncidentScript {
 
     this.context.popupMessageSystem.displayMessage('🚨 Ambush Incoming! 🚨', {
       color: '#ff3333',
-      duration: 3,
+      duration: 5,
       font: '26px monospace',
       glow: true,
     });

@@ -67,7 +67,7 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
 
     this.context.popupMessageSystem.displayMessage('💫 Dimensional Portal Detected 💫', {
       color: '#aa66ff',
-      duration: 3,
+      duration: 5,
       font: '26px monospace',
       glow: true,
     });
@@ -79,7 +79,7 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
 
     this.context.popupMessageSystem.displayMessage('🛑 Survive the Rift! 🛑\nDefeat as many as you can.', {
       color: '#ff66aa',
-      duration: 3,
+      duration: 5,
       font: '24px monospace',
       glow: true,
     });
@@ -107,8 +107,8 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
 
     this.context.popupMessageSystem.displayMessage(`⏱ +${bonusTime}s`, {
       color: '#ffff99',
-      duration: 2,
-      font: '20px monospace',
+      duration: 5,
+      font: '16px monospace',
       glow: true,
     });
 

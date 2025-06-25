@@ -286,6 +286,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] Still a problem with orphaned halo lights.
   - [ ] Skipping briefing menu doesn't countdown all items and give you the cores IF countdown has already begun
   - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
   - [ ] Fix setTimeout in CompositeBlockDestructionService: src/game/ship/CompositeBlockDestructionService.ts

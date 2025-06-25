@@ -3,6 +3,8 @@
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 interface PopupMessage {
   text: string;
   duration: number;
@@ -88,9 +90,11 @@ export class PopupMessageSystem {
   }
 
   render(): void {
+    const scale = getUniformScaleFactor();
+
     const baseX = this.ctx.canvas.width / 2;
     const baseY = this.ctx.canvas.height * 0.35;
-    const lineHeight = 36;
+    const lineHeight = 36 * scale;
 
     for (let i = 0; i < this.messages.length; i++) {
       const msg = this.messages[i];
@@ -106,7 +110,7 @@ export class PopupMessageSystem {
         glow: msg.glow,
         shadowBlur: 0,
         color: msg.color,
-      });
+      }, scale);
     }
 
     // === Timer HUD ===
@@ -122,7 +126,7 @@ export class PopupMessageSystem {
         glow: this.activeTimer.glow,
         color: this.activeTimer.color,
         shadowBlur: 4,
-      });
+      }, scale);
     }
   }
 }

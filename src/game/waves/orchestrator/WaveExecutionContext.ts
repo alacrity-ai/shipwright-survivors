@@ -70,6 +70,26 @@ export class WaveExecutionContext {
     }
   }
 
+  public getBossShips(): Ship[] {
+    if (!this.wave.isBoss) return [];
+
+    const result: Ship[] = [];
+
+    for (const [entry, group] of this.groupMap.entries()) {
+      const isBossEntry =
+        entry.shipId?.startsWith('boss_') || // heuristic fallback
+        this.wave.isBoss; // authoritative from wave metadata
+
+      if (isBossEntry) {
+        for (const ship of group.remaining) {
+          result.push(ship);
+        }
+      }
+    }
+
+    return result;
+  }
+
   public isComplete(): boolean {
     return this.allShips.size === 0;
   }

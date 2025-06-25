@@ -134,7 +134,7 @@ export abstract class BaseIncidentScript implements IncidentScript {
 
       this.context.popupMessageSystem.displayMessage('MISSION OBJECTIVE ACHIEVED', {
         color: '#00ff00',
-        duration: 3,
+        duration: 5,
         font: '28px monospace',
         glow: true,
       });

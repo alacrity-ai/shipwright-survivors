@@ -156,6 +156,11 @@ export class WaveOrchestrator implements IUpdatable {
     });
   }
 
+  public getBossShips(): Ship[] {
+    if (!this.isBossWaveActive()) return [];
+    return this.activeWave?.getBossShips() ?? [];
+  }
+
   // Event Handlers
   private handleOneShotSpawn = async ({ tag, wave }: { tag: string; wave: WaveDefinition }): Promise<void> => {
     if (this.singleShotWaves.has(tag)) return; // Avoid double-spawn

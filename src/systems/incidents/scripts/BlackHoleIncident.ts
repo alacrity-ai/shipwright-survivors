@@ -27,7 +27,7 @@ export class BlackHoleIncident extends BaseIncidentScript {
 
     this.context.popupMessageSystem.displayMessage('⚠ BLACK HOLE SPAWNED ⚠', {
       color: '#ff5555',
-      duration: 3,
+      duration: 5,
       glow: true,
       font: '28px monospace',
     });

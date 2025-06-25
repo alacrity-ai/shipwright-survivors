@@ -102,7 +102,7 @@ export class WaveExecutor {
     if (tag === undefined) {
       this.popupMessageSystem.displayMessage(`Wave ${waveIndex + 1}`, {
         color: '#00ff00',
-        duration: 3,
+        duration: 5,
         glow: true,
         font: '28px monospace',
       });
