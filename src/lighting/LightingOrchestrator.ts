@@ -186,9 +186,18 @@ export class LightingOrchestrator {
     if (_instance !== this) return;
 
     this.clear();
+
+    this.lightPool.forEach(light => {
+      light.id = '';
+      light.life = undefined;
+      light.maxLife = undefined;
+      light.animationPhase = undefined;
+    });
+
     this.lightPool.length = 0;
     this.cachedVisibleLights.length = 0;
     this.lastCameraBounds = null;
+
     _instance = null;
     nextLightId = 0;
   }

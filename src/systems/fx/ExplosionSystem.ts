@@ -223,4 +223,21 @@ export class ExplosionSystem {
     
     return colors[Math.floor(Math.random() * colors.length)];
   }
+
+  public destroy(): void {
+    // Clear internal explosion state
+    this.explosions.length = 0;
+    this.lastExplosionIndex = 0;
+
+    // Clear emitted lights from lingering explosions
+    if (this.lightingOrchestrator) {
+      const activeLights = this.lightingOrchestrator.getActiveLightEntries();
+      for (const [id, light] of activeLights) {
+        // Optional: only remove if this system tagged them (e.g., with prefix 'explosion_')
+        if (light.expires) {
+          this.lightingOrchestrator.removeLight(id);
+        }
+      }
+    }
+  }
 }

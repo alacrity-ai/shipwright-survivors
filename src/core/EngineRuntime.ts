@@ -976,6 +976,8 @@ export class EngineRuntime {
     this.cursorRenderer.destroy();
     this.hud!.destroy();
     this.miniMap!.destroy();
+    this.explosionSystem.destroy();
+    this.particleManager.destroy();
     this.lightingOrchestrator.destroy();
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();
@@ -989,12 +991,12 @@ export class EngineRuntime {
     this.hud!.destroy();
     this.miniMap!.destroy();
 
-    // // Clear rendering and update lists
+    // Clear rendering and update lists
     this.updatables.length = 0;
     this.renderables.length = 0;
 
-    // Optional: Clear event listeners from global input systems
-    this.inputManager.destroy(); // or similar method
+    // Clear event listeners from global input systems
+    this.inputManager.destroy();
     this.menuManager.reset();
 
     // Null references (defensive)

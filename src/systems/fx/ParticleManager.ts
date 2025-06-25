@@ -208,4 +208,18 @@ export class ParticleManager {
 
     this.particlePool.push(p);
   }
+
+  public destroy(): void {
+    // Remove all lights still attached to particles
+    for (const p of this.activeParticles) {
+      if (p.lightId) {
+        this.lightingOrchestrator.removeLight(p.lightId);
+        p.lightId = undefined;
+      }
+    }
+
+    this.activeParticles.length = 0;
+    this.particlePool.length = 0;
+    this.emissionAccumulator = 0;
+  }
 }
