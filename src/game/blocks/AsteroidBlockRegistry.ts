@@ -14,6 +14,8 @@ const asteroidBlockTypes: Record<string, BlockType> = {
     category: 'environment',
     subcategory: 'asteroid',
     dropRate: 0,
+    tier: 0,
+    metatags: ['asteroid']
   },
   // Square shaped rock
   rock0: {
@@ -26,6 +28,8 @@ const asteroidBlockTypes: Record<string, BlockType> = {
     category: 'environment',
     subcategory: 'asteroid',
     dropRate: 0,
+    tier: 0,
+    metatags: ['asteroid']
   },
   // Wedge shaped rock
   facetRock0: {
@@ -38,6 +42,8 @@ const asteroidBlockTypes: Record<string, BlockType> = {
     category: 'environment',
     subcategory: 'asteroid',
     dropRate: 0,
+    tier: 0,
+    metatags: ['asteroid']
   },
   facetRock1: {
     id: 'facetRock1',
@@ -49,6 +55,8 @@ const asteroidBlockTypes: Record<string, BlockType> = {
     category: 'environment',
     subcategory: 'asteroid',
     dropRate: 0,
+    tier: 0,
+    metatags: ['asteroid']
   },
   facetRockSlim0: {
     id: 'facetRockSlim0',
@@ -60,6 +68,8 @@ const asteroidBlockTypes: Record<string, BlockType> = {
     category: 'environment',
     subcategory: 'asteroid',
     dropRate: 0,
+    tier: 0,
+    metatags: ['asteroid']
   },
 };
 
