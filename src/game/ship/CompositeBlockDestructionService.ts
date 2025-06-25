@@ -28,8 +28,20 @@ export type DestructionCause =
   | 'scripted'
   | 'replaced';
 
+interface BlockDestructionStep {
+  delay: number; // in seconds
+  callback: () => void;
+}
+
+interface DestructionJob {
+  entityId: string;
+  steps: BlockDestructionStep[];
+  elapsed: number;
+}
+
 export class CompositeBlockDestructionService {
   private destructionCallbacks: Set<(entity: CompositeBlockObject, cause: DestructionCause) => void> = new Set();
+  private activeDestructions: Map<string, DestructionJob> = new Map();
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -43,6 +55,26 @@ export class CompositeBlockDestructionService {
   public destroy(): void {
     GlobalEventBus.off('entity:destroy', this.handleDestroyEntity);
     this.destructionCallbacks.clear();
+    this.activeDestructions.clear(); // prevent bleedover
+  }
+
+  public update(dt: number): void {
+    for (const [entityId, job] of this.activeDestructions) {
+      job.elapsed += dt;
+
+      while (job.steps.length > 0 && job.steps[0].delay <= job.elapsed) {
+        const step = job.steps.shift();
+        try {
+          step?.callback();
+        } catch (err) {
+          console.error(`[CompositeBlockDestructionService] Error executing block destruction step:`, err);
+        }
+      }
+
+      if (job.steps.length === 0) {
+        this.activeDestructions.delete(entityId);
+      }
+    }
   }
 
   public onEntityDestroyed(callback: (entity: CompositeBlockObject, cause: DestructionCause) => void): void {
@@ -53,13 +85,7 @@ export class CompositeBlockDestructionService {
     this.destructionCallbacks.delete(callback);
   }
 
-  private handleDestroyEntity = ({
-    entity,
-    cause,
-  }: {
-    entity: CompositeBlockObject;
-    cause: DestructionCause;
-  }): void => {
+  private handleDestroyEntity = ({ entity, cause }: { entity: CompositeBlockObject; cause: DestructionCause }): void => {
     this.destroyEntity(entity, cause);
   };
 
@@ -68,16 +94,16 @@ export class CompositeBlockDestructionService {
     const blocks = entity.getAllBlocks();
     const entityId = entity.id;
 
-    // === Step 0: Notify observers
-    this.destructionCallbacks.forEach(callback => {
+    // Notify observers
+    for (const cb of this.destructionCallbacks) {
       try {
-        callback(entity, cause);
+        cb(entity, cause);
       } catch (err) {
         console.error('[CompositeBlockDestructionService] Error in destruction callback:', err);
       }
-    });
+    }
 
-    // === Step 1: Cleanup systems
+    // Cleanup systems
     if (entity instanceof Ship) {
       this.shipRegistry.remove(entity);
       MovementSystemRegistry.unregister(entity);
@@ -88,23 +114,29 @@ export class CompositeBlockDestructionService {
 
     if (cause === 'replaced') return;
 
-    // === Step 2: Animate each block
+    const steps: BlockDestructionStep[] = [];
+
+    // Animate primary block explosions
     blocks.forEach(([coord, block], index) => {
-      setTimeout(() => {
-        this.explosionSystem.createBlockExplosion(
-          transform.position,
-          transform.rotation,
-          coord,
-          50 + Math.random() * 40,
-          0.5 + Math.random() * 0.5,
-          undefined,
-          DEFAULT_EXPLOSION_SPARK_PALETTE
-        );
-        this.pickupSpawner.spawnPickupOnBlockDestruction(block);
-      }, index * 50);
+      const delay = index * 0.05;
+      steps.push({
+        delay,
+        callback: () => {
+          this.explosionSystem.createBlockExplosion(
+            transform.position,
+            transform.rotation,
+            coord,
+            50 + Math.random() * 40,
+            0.5 + Math.random() * 0.5,
+            undefined,
+            DEFAULT_EXPLOSION_SPARK_PALETTE
+          );
+          this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+        },
+      });
     });
 
-    // === Step 3: Handle disconnected fragments for ships
+    // Handle ship-specific effects
     if (entity instanceof Ship) {
       if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
         const lightingOrchestrator = LightingOrchestrator.getInstance();
@@ -121,27 +153,37 @@ export class CompositeBlockDestructionService {
       }
 
       const cockpitCoord = entity.getCockpitCoord?.();
-      if (!cockpitCoord) return;
+      if (cockpitCoord) {
+        const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
+        const serialize = (c: GridCoord) => `${c.x},${c.y}`;
 
-      const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
-      const serialize = (c: GridCoord) => `${c.x},${c.y}`;
-
-      for (const [coord, block] of blocks) {
-        if (!connectedSet.has(serialize(coord))) {
-          setTimeout(() => {
-            this.explosionSystem.createBlockExplosion(
-              transform.position,
-              transform.rotation,
-              coord,
-              60 + Math.random() * 20,
-              0.5 + Math.random() * 0.3,
-              undefined,
-              DEFAULT_EXPLOSION_SPARK_PALETTE
-            );
-            this.pickupSpawner.spawnPickupOnBlockDestruction(block);
-          }, 50 + Math.random() * 100);
+        for (const [coord, block] of blocks) {
+          if (!connectedSet.has(serialize(coord))) {
+            const delay = 0.5 + Math.random() * 0.1; // delay is arbitrary but can be tuned
+            steps.push({
+              delay,
+              callback: () => {
+                this.explosionSystem.createBlockExplosion(
+                  transform.position,
+                  transform.rotation,
+                  coord,
+                  60 + Math.random() * 20,
+                  0.5 + Math.random() * 0.3,
+                  undefined,
+                  DEFAULT_EXPLOSION_SPARK_PALETTE
+                );
+                this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+              },
+            });
+          }
         }
       }
     }
+
+    this.activeDestructions.set(entityId, {
+      entityId,
+      steps: steps.sort((a, b) => a.delay - b.delay), // ensure sorted order
+      elapsed: 0,
+    });
   }
 }

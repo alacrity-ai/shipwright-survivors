@@ -138,6 +138,7 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
+          console.log('Dialogue manager ending mission');
           emitPlayerVictory();
         },
       },

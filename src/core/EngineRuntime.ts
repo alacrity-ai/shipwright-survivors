@@ -518,6 +518,7 @@ export class EngineRuntime {
       this.persistentParticleManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
+      this.destructionService,
       this.explosionSystem,
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
@@ -956,7 +957,7 @@ export class EngineRuntime {
   **/
   public destroy(): void {
     console.log("EngineRuntime: Performing cleanup before scene transition.");
-
+    if (this.isDestroyed) return;
     this.isDestroyed = true;
     this.gameLoop.offUpdate(this.boundUpdate);
     this.gameLoop.offRender(this.boundRender);
@@ -1018,6 +1019,18 @@ export class EngineRuntime {
     this.ship = null;
     this.camera = null;
     this.grid = null;
+    this.shipGrid = null;
+    this.objectGrid = null;
+    this.spaceStation = null;
+    this.shipCulling = null;
+    this.blockObjectCulling = null;
+    this.blockObjectUpdate = null;
+    this.waveOrchestrator = null;
+    this.incidentOrchestrator = null;
+    this.asteroidSpawner = null;
+    this.unifiedSceneRenderer = null;
+    this.missionDialogueManager = null;
+    this.spaceStationBuilderMenu = null;
 
     console.log("EngineRuntime: Cleanup complete.");
   }

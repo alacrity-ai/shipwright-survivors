@@ -290,6 +290,7 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
       {
         type: 'command',
         run: () => {
+          console.log('Dialogue manager ending mission');
           emitPlayerVictory();
         },
       }

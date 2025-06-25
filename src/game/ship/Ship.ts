@@ -602,12 +602,11 @@ export class Ship extends CompositeBlockObject {
 
     const durabilityMultiplier = this.getPassiveBonus('block-durability');
     const passiveFlatBonus = this.getArmorBonusForBlockType(type);
-    console.log('Applying flat armor bonus of', passiveFlatBonus, 'to block', type.name);
     const block: BlockInstance = {
       ownerFaction: this.faction,
       id: uniqueId,
       type,
-      hp: type.armor * durabilityMultiplier + passiveFlatBonus,
+      hp: Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus),
       ownerShipId: this.id,
       position: worldPos,
       ...(rotation !== undefined ? { rotation } : {})
