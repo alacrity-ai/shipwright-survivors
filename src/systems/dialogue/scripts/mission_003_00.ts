@@ -286,13 +286,24 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
         type: 'pause',
         durationMs: 2000,
       },
-      // End the mission
       {
-        type: 'command',
-        run: () => {
-          emitPlayerVictory();
-        },
-      }
+        type: 'line',
+        speakerId: 'carl',
+        text: 'Surprising! I was expecting something more... conventional.',
+      },
+      // Urges player to continue fighting
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: 'Readings indicate more powerful hostiles inbound.',
+      },
+      // // End the mission
+      // {
+      //   type: 'command',
+      //   run: () => {
+      //     emitPlayerVictory();
+      //   },
+      // }
     ],
   };
 }

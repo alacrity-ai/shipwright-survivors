@@ -70,21 +70,47 @@ export function deserializeShip(data: SerializedShip, grid: Grid): Ship {
   return ship;
 }
 
-export function loadShipFromJson(
+export async function loadShipFromJson(
   fileName: string,
   grid: Grid,
   faction: Faction = Faction.Enemy,
 ): Promise<{ ship: Ship; behaviorType?: string }> {
-  return fetch(getAssetPath(`/assets/ships/${fileName}`))
-    .then(response => response.json())
-    .then(data => {
-      const ship = new Ship(grid, undefined, undefined, false, undefined, faction);
-      ship.loadFromJson(data);
-      return {
-        ship,
-        behaviorType: data.behavior?.type
-      };
-    });
+  const url = getAssetPath(`/assets/ships/${fileName}`);
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      console.error(`[ShipLoader] Failed to fetch ship JSON: '${fileName}' — HTTP ${response.status}`);
+      throw new Error(`[ShipLoader] HTTP error loading ship '${fileName}': ${response.statusText}`);
+    }
+
+    let data: any;
+
+    try {
+      data = await response.json();
+    } catch (jsonErr) {
+      console.error(`[ShipLoader] Invalid JSON while loading '${fileName}'. Response was likely HTML or malformed JSON.`);
+      const text = await response.text(); // Try to read and print the actual body (e.g., HTML fallback)
+      console.debug(`[ShipLoader] Raw response body for '${fileName}':\n${text.slice(0, 300)}…`);
+
+      const message = jsonErr instanceof Error ? jsonErr.message : String(jsonErr);
+      throw new Error(`[ShipLoader] Failed to parse JSON for '${fileName}': ${message}`);
+    }
+
+    const ship = new Ship(grid, undefined, undefined, false, undefined, faction);
+    ship.loadFromJson(data);
+
+    return {
+      ship,
+      behaviorType: data.behavior?.type,
+    };
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[ShipLoader] Error loading ship from '${fileName}': ${message}`);
+    throw err;
+  }
 }
 
 export function loadShipFromJsonObject(

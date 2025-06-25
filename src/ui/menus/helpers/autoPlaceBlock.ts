@@ -7,7 +7,7 @@ import { isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingU
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
-const SEARCH_RADIUS = 20;
+const SEARCH_RADIUS = 40;
 
   export function autoPlaceBlock(
     ship: Ship,

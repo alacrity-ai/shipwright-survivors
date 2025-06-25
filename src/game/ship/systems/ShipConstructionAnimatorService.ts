@@ -164,11 +164,13 @@ export class ShipConstructionAnimatorService {
           });
 
           if (state.auraLightOptions) {
-            state.ship.registerAuraLight(
-              state.auraLightOptions.color,
-              state.auraLightOptions.radius,
-              state.auraLightOptions.intensity
-            );
+            if (!state.ship.isDestroyed()) {
+              state.ship.registerAuraLight(
+                state.auraLightOptions.color,
+                state.auraLightOptions.radius,
+                state.auraLightOptions.intensity
+              );
+            }
           }
         }
       } else if (state.phase === 'shockwave') {
