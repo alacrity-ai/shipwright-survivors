@@ -245,7 +245,6 @@ export const waveDefinitions: WaveDefinition[] = [
         shipId: 'mission_02/ship_stalker_00',
         count: 12,
         hunter: true,
-        behaviorProfile: RammingBehaviorProfile,
         affixes: SPEED_DEMON_AFFIXES,
       },
     ],

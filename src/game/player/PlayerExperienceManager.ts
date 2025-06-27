@@ -18,12 +18,8 @@ export class PlayerExperienceManager {
   // === Runtime Fields ===
   private currentEntropium: number = 0;
   private currentLevel: number = 1;
-  private entropiumForNextLevel: number = PlayerExperienceManager.BASE_XP_REQUIREMENT;
+  private entropiumForNextLevel: number = 100;
   private powerUpsByLevel: Map<number, PowerUpChoice> = new Map();
-
-  // === Configurable Progression Constants ===
-  private static readonly BASE_XP_REQUIREMENT = 200;
-  private static readonly LEVEL_MULTIPLIER = 2;
 
   private constructor() {}
 
@@ -60,23 +56,6 @@ export class PlayerExperienceManager {
     this.updateEntropiumThreshold();
     reportEntropiumLevelUp(this.currentLevel);
     return true;
-  }
-
-  public getPendingLevelUps(): number {
-    let simulatedXP = this.currentEntropium;
-    let simulatedLevel = this.currentLevel;
-    let pending = 0;
-
-    const base = PlayerExperienceManager.BASE_XP_REQUIREMENT;
-    const multiplier = PlayerExperienceManager.LEVEL_MULTIPLIER;
-
-    while (simulatedXP >= Math.floor(base * Math.pow(multiplier, simulatedLevel - 1))) {
-      simulatedXP -= Math.floor(base * Math.pow(multiplier, simulatedLevel - 1));
-      simulatedLevel += 1;
-      pending += 1;
-    }
-
-    return pending;
   }
 
   public addEntropium(amount: number): void {
@@ -120,8 +99,19 @@ export class PlayerExperienceManager {
   // === Internal ===
 
   private updateEntropiumThreshold(): void {
-    const base = PlayerExperienceManager.BASE_XP_REQUIREMENT;
-    const multiplier = PlayerExperienceManager.LEVEL_MULTIPLIER;
-    this.entropiumForNextLevel = Math.floor(base * Math.pow(multiplier, this.currentLevel - 1));
+    this.entropiumForNextLevel = this.getEntropiumRequirement(this.currentLevel);
+  }
+
+  private getEntropiumRequirement(level: number): number {
+    if (level <= 1) return 100;
+    if (level === 2) return 300;
+    if (level === 3) return 600;
+    if (level === 4) return 1000;
+    if (level === 5) return 1500;
+    if (level === 6) return 2100;
+    if (level === 7) return 2800;
+    if (level === 8) return 3600;
+    if (level === 9) return 4500;
+    return 5000; // fixed cost after level 10
   }
 }
