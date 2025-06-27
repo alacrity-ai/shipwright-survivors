@@ -2,16 +2,16 @@
 
 export interface PowerupEffectMetadata {
   // Offense
-  critChance?: number;
-  critMultiplier?: number;
-  critChainChance?: number;
-  critLifeStealPercent?: number;
+  critChance?: number; // Implemented
+  critMultiplier?: number; // Implemented
+  lifeStealOnCrit?: boolean; // Implemented
+  critLifeStealPercent?: number; // Implemented
   baseDamageMultiplier?: number; // Implemented
   fireRateMultiplier?: number; // Implemented
 
   // Defense
-  flatDamageReductionPercent?: number;
-  cockpitInvulnChance?: number;
+  flatDamageReductionPercent?: number; // Implemented
+  cockpitInvulnChance?: number; // Implemented
   reflectOnDamagePercent?: number;
   reflectCanCrit?: boolean;
 

@@ -1,3 +1,5 @@
+// src/systems/fx/ShipBuilderEffectsSystem.ts
+
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
@@ -22,12 +24,21 @@ export class ShipBuilderEffectsSystem implements IUpdatable {
     private readonly particleManager: ParticleManager
   ) {}
 
-  createRepairEffect(position: { x: number; y: number }, size: number = 48, life: number = 0.5): void {
-    this.effects.push(this.createEffect(position, size, life, 'repair'));
-    this.emitParticles(position, 'repair');
+  createRepairEffect(
+    position: { x: number; y: number },
+    size: number = 48,
+    life: number = 0.5,
+    colorPalette?: string[]
+  ): void {
+    this.effects.push(this.createEffect(position, size, life, 'repair', colorPalette));
+    this.emitParticles(position, 'repair', colorPalette);
   }
 
-  createSellEffect(position: { x: number; y: number }, size: number = 48, life: number = 0.5): void {
+  createSellEffect(
+    position: { x: number; y: number },
+    size: number = 48,
+    life: number = 0.5
+  ): void {
     this.effects.push(this.createEffect(position, size, life, 'sell'));
     this.emitParticles(position, 'sell');
   }
@@ -36,8 +47,10 @@ export class ShipBuilderEffectsSystem implements IUpdatable {
     position: { x: number; y: number },
     size: number,
     life: number,
-    kind: EffectKind
+    kind: EffectKind,
+    overridePalette?: string[]
   ): BuilderEffect {
+    const palette = overridePalette ?? this.getDefaultPalette(kind);
     return {
       kind,
       position: { ...position },
@@ -45,17 +58,16 @@ export class ShipBuilderEffectsSystem implements IUpdatable {
       maxSize: size,
       life,
       maxLife: life,
-      color: this.getRandomColor(kind)
+      color: palette[Math.floor(Math.random() * palette.length)],
     };
   }
 
-  private emitParticles(position: { x: number; y: number }, kind: EffectKind): void {
-    const colorPalettes = {
-      repair: ['#00ffff', '#66ffcc', '#66ccff', '#33ffee', '#ccffff'],
-      sell: ['#ff6666', '#ff3333', '#ff9999', '#ff4444', '#ff2200'],
-    };
-
-    const colors = colorPalettes[kind];
+  private emitParticles(
+    position: { x: number; y: number },
+    kind: EffectKind,
+    overridePalette?: string[]
+  ): void {
+    const colors = overridePalette ?? this.getDefaultPalette(kind);
 
     this.particleManager.emitBurst(position, 24, {
       colors,
@@ -87,12 +99,11 @@ export class ShipBuilderEffectsSystem implements IUpdatable {
     // NOOP
   }
 
-  private getRandomColor(kind: EffectKind): string {
+  private getDefaultPalette(kind: EffectKind): string[] {
     const palettes = {
       repair: ['#00ffff', '#66ffcc', '#66ccff', '#33ffee', '#ccffff'],
       sell: ['#ff6666', '#ff3333', '#ff9999', '#ff4444', '#ff2200'],
     };
-    const palette = palettes[kind];
-    return palette[Math.floor(Math.random() * palette.length)];
+    return palettes[kind];
   }
 }

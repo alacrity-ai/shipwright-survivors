@@ -315,7 +315,8 @@ export class EngineRuntime {
       this.explosionSystem,
       this.pickupSpawner,
       this.destructionService,
-      this.floatingTextManager
+      this.shipBuilderEffects,
+      this.floatingTextManager,
     );
     
     // Collision System

@@ -1,3 +1,5 @@
+// src/systems/combat/CombatService.ts
+
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
@@ -7,6 +9,7 @@ import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextM
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
+import { repairBlockViaLifesteal } from '../pickups/helpers/repairAllBlocksWithHealing';
 import { Camera } from '@/core/Camera';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -16,12 +19,14 @@ import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUti
 import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
+import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
 export class CombatService {
   constructor(
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
     private readonly destructionService: CompositeBlockDestructionService,
+    private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly floatingTextManager?: FloatingTextManager
   ) {}
 
@@ -58,7 +63,7 @@ export class CombatService {
 
     // === Invulnerability check (non-scripted damage still plays effects) ===
     if (affixes?.invulnerable && cause !== 'scripted') {
-      damage = 0;
+      return false;
     }
 
     // === Ship shield absorption
@@ -103,8 +108,51 @@ export class CombatService {
       }
     }
 
+    // === Calculate Damage Mitigation via Powerups
+    const { 
+      flatDamageReductionPercent = 0, 
+      cockpitInvulnChance = 0 
+    } = isEntityShip ? entity.getPowerupBonus() : {};
+    
+    const {
+      critChance = 0,
+      critMultiplier = 1,
+      lifeStealOnCrit = false,
+      critLifeStealPercent = 0,
+    } = isSourceShip ? source.getPowerupBonus() : {};
+
+    // === Apply crit chance
+    const isCriticalHit = Math.random() < critChance;
+    if (isCriticalHit) {
+      damage *= critMultiplier;
+    }
+
+    // === Apply flat damage reduction
+    damage *= (1 - flatDamageReductionPercent);
+
+    // === Apply affix-based block durability reduction
+    damage /= (affixes?.blockDurabilityMulti ?? 1);
+
+    // === Enforce minimum damage if not immune
+    const isCockpit = block.type.metatags?.includes('cockpit');
+    const isImmune = isCockpit && Math.random() < cockpitInvulnChance;
+
+    if (isImmune) {
+      damage = 0;
+    } else {
+      damage = Math.max(damage, 1);
+      damage = Math.floor(damage); // Round down to nearest integer
+    }
+
+    // If crit, determine lifesteal amount
+    if (isCriticalHit && lifeStealOnCrit && isSourceShip) {
+      const lifestealAmount = Math.floor(damage * critLifeStealPercent);
+      console.log('[Lifestealing] lifestealAmount', lifestealAmount);
+      repairBlockViaLifesteal(source, lifestealAmount, this.shipBuilderEffects);
+    }
+
     // === Final fallback: direct HP reduction
-    block.hp -= (damage / (affixes?.blockDurabilityMulti ?? 1));
+    block.hp -= damage;
 
     // Light color for laser hits
     const LASER_HIT_LIGHT_COLOR = '#00ffff';
@@ -152,8 +200,8 @@ export class CombatService {
         140,
         1.0,
         '#FFFFFF',
-        { impactScale: 1.5 }, 
-        block.ownerShipId
+        { impactScale: isCriticalHit ? 3.0 : 1.5, multiColor: isCriticalHit ?? false }, 
+        block.ownerShipId,
       );      
     }
 
@@ -174,8 +222,6 @@ export class CombatService {
       this.destructionService.destroyEntity(entity, cause);
       return true;
     }
-
-    const isCockpit = block.type.metatags?.includes('cockpit');
 
     this.explosionSystem.createBlockExplosion(
       entity.getTransform().position,

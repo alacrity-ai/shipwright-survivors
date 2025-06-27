@@ -5,6 +5,7 @@ import { CanvasManager } from '@/core/CanvasManager';
 import type { FloatingTextBehaviorOptions } from '@/rendering/floatingtext/interfaces/FloatingTextBehaviorOptions';
 import type { Camera } from '@/core/Camera';
 
+
 export class FloatingTextManager {
   private floatingTexts: FloatingTextEntity[] = [];
   private canvasManager: CanvasManager;
@@ -12,7 +13,7 @@ export class FloatingTextManager {
 
   // Channel tracking
   private channelMap: Map<string, { entity: FloatingTextEntity; lastUpdate: number }> = new Map();
-  private readonly MERGE_WINDOW_MS = 250;
+  private readonly MERGE_WINDOW_MS = 50;
 
   constructor() {
     this.canvasManager = CanvasManager.getInstance();

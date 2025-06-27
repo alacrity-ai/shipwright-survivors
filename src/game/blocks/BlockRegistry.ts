@@ -216,10 +216,10 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       canFire: true,
       fire: {
-        fireRate: 1,
+        fireRate: 0.6,
         fireType: 'bullet',
         fireDamage: 2,
-        projectileSpeed: 700,
+        projectileSpeed: 400,
         lifetime: 2.2,
         accuracy: 0.5
       } 
@@ -241,10 +241,10 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       canFire: true,
       fire: {
-        fireRate: 1,
+        fireRate: 0.6,
         fireType: 'bullet',
         fireDamage: 10,
-        projectileSpeed: 800,
+        projectileSpeed: 600,
         lifetime: 1.8,
         accuracy: 0.65
       } 
@@ -266,10 +266,10 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       canFire: true,
       fire: {
-        fireRate: 2,
+        fireRate: 0.8,
         fireType: 'bullet',
         fireDamage: 16,
-        projectileSpeed: 800,
+        projectileSpeed: 700,
         lifetime: 2.2,
         accuracy: 0.75
       } 
@@ -291,10 +291,10 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       canFire: true,
       fire: {
-        fireRate: 3,
+        fireRate: 1.2,
         fireType: 'bullet',
         fireDamage: 20,
-        projectileSpeed: 900,
+        projectileSpeed: 800,
         lifetime: 2.2,
         accuracy: 0.9
       } 
@@ -316,10 +316,10 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       canFire: true,
       fire: {
-        fireRate: 4,
+        fireRate: 1.4,
         fireType: 'bullet',
-        fireDamage: 30,
-        projectileSpeed: 1000,
+        fireDamage: 28,
+        projectileSpeed: 900,
         lifetime: 2.2,
         accuracy: 0.95
       } 
