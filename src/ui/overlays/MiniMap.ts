@@ -379,6 +379,7 @@ export class MiniMap {
 
     // === Draw Player (diamond with orientation, rasterized) ===
     ctx.save();
+    ctx.globalAlpha = 1.0;
     ctx.translate(playerPos.x, playerPos.y);
     ctx.rotate(playerRotation);
     const playerMarkerHalfSize = Math.floor(8 * this.scale);

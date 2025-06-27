@@ -165,8 +165,8 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
       x,
       y,
       currencyType: 'entropium',
-      totalAmount: 100 * this.kills,
-      pickupCount: 5 * this.kills,
+      totalAmount: 80 * this.kills,
+      pickupCount: 4 * this.kills,
       spreadRadius: 1000,
       randomizeAmount: true,
     });
@@ -175,7 +175,7 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
       x,
       y,
       tier: 1 + Math.floor(this.kills / 10),
-      blockCount: Math.floor(this.kills / 5),
+      blockCount: Math.floor(this.kills / 10),
       spreadRadius: 1000,
     });
 
@@ -183,7 +183,7 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
       x,
       y,
       totalAmount: 300,
-      pickupCount: 5,
+      pickupCount: 4,
       spreadRadius: 1000,
     });
 

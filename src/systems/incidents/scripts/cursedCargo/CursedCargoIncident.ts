@@ -7,6 +7,7 @@ import { spawnCurrencyExplosion } from '@/systems/pickups/helpers/spawnCurrencyE
 import { spawnBlockExplosion } from '@/systems/pickups/helpers/spawnBlockExplosion';
 import { spawnRepairExplosion } from '@/systems/pickups/helpers/spawnRepairExplosion';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { randomIntFromRange } from '@/shared/mathUtils';
 
 import type { WaveDefinition, WaveShipEntry } from '@/game/waves/types/WaveDefinition';
 import type { IncidentRuntimeContext } from '@/systems/incidents/types/IncidentRuntimeContext';
@@ -157,8 +158,8 @@ export class CursedCargoIncident extends BaseIncidentScript {
         x,
         y,
         currencyType: 'entropium',
-        totalAmount: 3000,
-        pickupCount: 40 * rewardQuantityMultiplier,
+        totalAmount: 1000,
+        pickupCount: randomIntFromRange(10, 25) * rewardQuantityMultiplier,
         spreadRadius: 1100,
         randomizeAmount: true,
       });
@@ -167,7 +168,7 @@ export class CursedCargoIncident extends BaseIncidentScript {
         x,
         y,
         tier: rewardBlockTier,
-        blockCount: 10 * rewardQuantityMultiplier,
+        blockCount: randomIntFromRange(2, 4) * rewardQuantityMultiplier,
         spreadRadius: 1100,
       });
 
@@ -175,7 +176,7 @@ export class CursedCargoIncident extends BaseIncidentScript {
         x,
         y,
         totalAmount: 300,
-        pickupCount: 4 * rewardQuantityMultiplier,
+        pickupCount: randomIntFromRange(2, 4) * rewardQuantityMultiplier,
         spreadRadius: 1100,
         randomizeAmount: true,
       });

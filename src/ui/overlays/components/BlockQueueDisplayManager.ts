@@ -7,8 +7,9 @@ import type { InputManager } from '@/core/InputManager';
 
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
 
+import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
+import { reportOverlayInteracting, reportOverlayNotInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
-import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { brightenColor } from '@/shared/colorUtils';
 import { getUniformScaleFactor } from '@/config/view';
@@ -32,7 +33,8 @@ export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
-  private readonly BLOCK_CULLING_THRESHOLD = 20;
+  private readonly BLOCK_CULLING_THRESHOLD = 30;
+  private readonly MAXIMUM_CARDS = 25; // TODO : Move this to config
 
   private readonly floatOffsets: number[] = [];
   private readonly xOffsets: number[] = [];
@@ -48,11 +50,13 @@ export class BlockQueueDisplayManager {
   private readonly PULSE_SCALE_AMPLITUDE = 0.06;
   private readonly PULSE_BRIGHTNESS_AMPLITUDE = 0.25;
 
+  private cursorRestored = false;
+
   // Cached layout variables (computed by resize)
   private cardWidth: number = 0;
   private cardHeight: number = 0;
   private cardMarginX: number = 0;
-  private cardColumns: number = 6;
+  private cardColumns: number = 12;
   private windowMarginX: number = 0;
   private windowMarginY: number = 0;
   private windowWidth: number = 0;
@@ -61,6 +65,8 @@ export class BlockQueueDisplayManager {
   private cardSpacing: number = 0;
   private fanBaseX: number = 0;
   private scale: number = 1;
+
+  private hoveredCardIndex: number | null = null;
 
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -87,7 +93,7 @@ export class BlockQueueDisplayManager {
     this.cardMarginX = Math.floor(8 * this.scale);
     this.windowMarginX = Math.floor(6 * this.scale);
     this.windowMarginY = Math.floor(6 * this.scale);
-    const distanceFromBottom = Math.floor(80 * this.scale);
+    const distanceFromBottom = Math.floor(54 * this.scale);
 
     this.windowWidth = Math.floor(
       (this.cardWidth * this.cardColumns) +
@@ -132,7 +138,7 @@ export class BlockQueueDisplayManager {
     }
 
     // === Mouse Hover Detection (single block) ===
-    let mouseHoverIndex: number | null = null;
+    this.hoveredCardIndex = null;
     for (let i = blockQueue.length - 1; i >= 0; i--) {
       let cardX: number;
       if (isRollHovered && i <= 2) {
@@ -149,7 +155,7 @@ export class BlockQueueDisplayManager {
         mouseY >= cardY &&
         mouseY <= cardY + this.cardHeight
       ) {
-        mouseHoverIndex = i;
+        this.hoveredCardIndex = i;
         break;
       }
     }
@@ -169,7 +175,7 @@ export class BlockQueueDisplayManager {
       let target = 0;
       let maxStep = this.FLOAT_SPEED * dt;
 
-      if (i === mouseHoverIndex) {
+      if (i === this.hoveredCardIndex) {
         target = this.MOUSE_HOVER_HEIGHT;
         maxStep = this.MOUSE_HOVER_SPEED * dt;
       } else if (uiHoverIndices.has(i)) {
@@ -210,6 +216,20 @@ export class BlockQueueDisplayManager {
       const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
       this.xOffsets[i] += step;
     }
+  
+    if (this.hoveredCardIndex !== null) {
+      if (this.inputManager.wasMouseClicked()) {
+        const block = blockQueue[this.hoveredCardIndex];
+        if (block) {
+          requestPlaceBlockFromQueue(this.hoveredCardIndex, block.id);
+        }
+      } else if (this.inputManager.wasRightClicked()) {
+        const block = blockQueue[this.hoveredCardIndex];
+        if (block) {
+          requestRefineBlockFromQueue(this.hoveredCardIndex, block.id);
+        }
+      }
+    }
   }
 
   render(): void {
@@ -217,7 +237,7 @@ export class BlockQueueDisplayManager {
     const canvas = ctx.canvas;
     const scale = getUniformScaleFactor();
 
-    const distanceFromBottom = Math.floor(80 * scale);
+    const distanceFromBottom = Math.floor(54 * scale);
     const centerScreenX = Math.floor(canvas.width / 2);
 
     // Base dimensions
@@ -225,7 +245,7 @@ export class BlockQueueDisplayManager {
     const cardHeight = Math.floor(32 * scale);
     const cardMarginX = Math.floor(8 * scale);
     const cardMarginY = Math.floor(8 * scale);
-    const cardColumns = 6;
+    const cardColumns = 12;
 
     // Encompassing window
     const windowMarginX = Math.floor(6 * scale);
@@ -246,9 +266,19 @@ export class BlockQueueDisplayManager {
     const blockQueue = this.playerResources.getBlockQueue();
     const blockCount = blockQueue.length;
 
-    let borderColor = blockCount > 0 ? '#00ff00' : '#003400';
-    let labelText = `Blocks: ${blockCount}`;
-    let borderAlpha = 0.5;
+    let borderColor: string;
+    let labelText: string;
+    let borderAlpha: number;
+
+    if (blockCount >= this.MAXIMUM_CARDS) {
+      borderColor = '#ff8800'; // Neon orange
+      borderAlpha = 1.0;
+      labelText = `Full: ${blockCount}/${this.MAXIMUM_CARDS}`;
+    } else {
+      borderColor = blockCount > 0 ? '#00ff00' : '#003400';
+      borderAlpha = 0.5;
+      labelText = `Blocks: ${blockCount}`;
+    }
 
     if (hovered && blockCount > 0) {
       switch (hovered) {
@@ -285,8 +315,13 @@ export class BlockQueueDisplayManager {
       borderAlpha = Math.min(1.0, borderAlpha + 0.3);
       borderColor = brightenColor(borderColor, 0.2);
       setCursor('hovered');
+      reportOverlayInteracting();
+      this.cursorRestored = false;
     } else {
-      restoreCursor();
+      if (!this.cursorRestored) {
+        this.cursorRestored = true;
+        restoreCursor();
+      }
     }
 
     const borderOptions = {
@@ -399,5 +434,10 @@ export class BlockQueueDisplayManager {
         );
       }
     }
+  }
+
+  // Public API
+  public getHoveredCardIndex(): number | null {
+    return this.hoveredCardIndex;
   }
 }

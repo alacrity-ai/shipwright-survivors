@@ -11,6 +11,7 @@ import type { SpecialFxInstance } from '@/rendering/unified/interfaces/SpecialFx
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
+import type { PowerUpChoice } from '@/game/player/PlayerExperienceManager';
 
 export type CursorChangeType =
   | 'crosshair'
@@ -55,10 +56,17 @@ export interface EventTypes {
 
   // Player events
   'player:firemode:changed': { mode: FiringMode };
+  'player:entropium:added': { amount: number };
+  'player:entropium:levelup': { newLevel: number };
+  'player:powerup:chosen': { powerup: PowerUpChoice };
 
   // Cursor events
   'cursor:change': { type: CursorChangeType };
   'cursor:restore': undefined;
+
+  // UI Events
+  'ui:overlay:interacting': undefined
+  'ui:overlay:not-interacting': undefined;
 
   // Resolution
   'resolution:changed': { width: number; height: number };
@@ -120,5 +128,16 @@ export interface EventTypes {
   'entity:destroy': {
     entity: CompositeBlockObject;
     cause: DestructionCause;
+  };
+
+  // UI-triggered block placement from BlockQueueDisplayManager
+  'blockqueue:request-place': {
+    blockTypeId: string;
+    index: number;
+  };
+
+  'blockqueue:request-refine': {
+    blockTypeId: string;
+    index: number;
   };
 }

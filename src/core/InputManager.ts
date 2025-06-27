@@ -36,7 +36,6 @@ export class InputManager {
   private rightStickDisabled = false;
 
   private mouseMoved = false;
-
   private mouseState: MouseState = {
     x: 0,
     y: 0,
@@ -46,6 +45,9 @@ export class InputManager {
 
   private scrollUpDetected = false;
   private scrollDownDetected = false;
+
+  private consumedActions: Set<InputAction> = new Set();
+
   private initialized = false;
 
   constructor(private canvasElement: HTMLCanvasElement) {
@@ -206,6 +208,18 @@ private mouseMoveHandler = (e: MouseEvent) => {
         toggleBrowserFullscreen();
       }
     }
+  }
+
+  public consumeAction(action: InputAction): void {
+    this.consumedActions.add(action);
+  }
+
+  public isActionConsumed(action: InputAction): boolean {
+    return this.consumedActions.has(action);
+  }
+
+  public clearConsumedActions(): void {
+    this.consumedActions.clear();
   }
 
   public disableKey(code: string): void {

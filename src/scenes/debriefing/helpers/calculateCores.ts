@@ -18,7 +18,7 @@ export function calculateCoresEarnedDetailed() {
     fromWaves: result.wavesCleared * 1,
     fromKills: Math.floor(result.enemiesDestroyed / 100),
     fromBlocks: Math.floor(result.blocksCollected / 200),
-    fromCurrency: Math.floor(result.currencyGathered / 1000),
+    fromCurrency: Math.floor(result.entropiumGathered / 1000),
     fromMass: Math.floor(result.massAchieved / 4000),
     fromIncidents: result.incidentsCompleted,
     fromVictory: result.outcome === 'victory' ? 5 : 0,

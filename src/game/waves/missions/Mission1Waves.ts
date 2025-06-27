@@ -148,13 +148,13 @@ export const waveDefinitions: WaveDefinition[] = [
         spawnChance: 1.0,
         script: 'DimensionalPortalIncident',
         options: {
-          maxDuration: 30,
+          maxDuration: 20,
           tiers: [
             [ // Tier 0: 0–4 kills
-              { shipId: 'wave_0_00', count: 2, hunter: true }
+              { shipId: 'wave_0_00', count: 4, hunter: true }
             ],
             [ // Tier 1: 5–9 kills
-              { shipId: 'wave_0_01', count: 3, hunter: true }
+              { shipId: 'wave_0_01', count: 4, hunter: true }
             ],
             [ // Tier 2: 10–14 kills
               { shipId: 'wave_0_02', count: 4, hunter: true }
@@ -164,6 +164,15 @@ export const waveDefinitions: WaveDefinition[] = [
             ],
             [ // Tier 4+: 20+ kills
               { shipId: 'wave_0_04', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 25+ kills
+              { shipId: 'ship_scrapper_4', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 30+ kills
+              { shipId: 'ship_scrapper_5', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 35+ kills
+              { shipId: 'ship_scrapper_6', count: 4, hunter: true }
             ],
           ],
         },
@@ -207,22 +216,31 @@ export const waveDefinitions: WaveDefinition[] = [
         spawnChance: 1.0,
         script: 'DimensionalPortalIncident',
         options: {
-          maxDuration: 30,
+          maxDuration: 20,
           tiers: [
             [ // Tier 0: 0–4 kills
-              { shipId: 'wave_0_00', count: 1 }
+              { shipId: 'wave_0_00', count: 4 }
             ],
             [ // Tier 1: 5–9 kills
-              { shipId: 'wave_0_01', count: 2 }
+              { shipId: 'wave_0_01', count: 4 }
             ],
             [ // Tier 2: 10–14 kills
-              { shipId: 'wave_0_02', count: 3, hunter: true }
+              { shipId: 'wave_0_02', count: 4, hunter: true }
             ],
             [ // Tier 3: 15–19 kills
-              { shipId: 'wave_0_03', count: 3, hunter: true }
+              { shipId: 'wave_0_03', count: 4, hunter: true }
             ],
-            [ // Tier 4+: 20+ kills
+            [ // Tier 4+: 24+ kills
               { shipId: 'wave_0_04', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 29+ kills
+              { shipId: 'ship_scrapper_4', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 34+ kills
+              { shipId: 'ship_scrapper_5', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 39+ kills
+              { shipId: 'ship_scrapper_6', count: 4, hunter: true }
             ],
           ],
         },
@@ -286,10 +304,10 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
         affixes: {
-          blockDurabilityMulti: 15.0,
+          blockDurabilityMulti: 12.0,
           thrustPowerMulti: 4.0,
-          turnPowerMulti: 1.0,
-          fireRateMulti: 2.0,
+          turnPowerMulti: 1.2,
+          fireRateMulti: 3.0,
         },
       },
     ],

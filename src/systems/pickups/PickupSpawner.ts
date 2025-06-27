@@ -6,6 +6,8 @@ import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
+import { SETTINGS } from '@/config/settings';
+
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
@@ -89,7 +91,7 @@ export class PickupSpawner {
       y: block.position?.y ?? 0,
     };
 
-    if (Math.random() < effectiveDropRate) {
+    if (Math.random() < effectiveDropRate * SETTINGS.GLOBAL_BLOCK_DROP_RATE) {
       this.pickupSystem.spawnBlockPickup(pickupPosition, blockType);
       return;
     }

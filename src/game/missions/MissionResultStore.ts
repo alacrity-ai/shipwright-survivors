@@ -5,7 +5,7 @@ import { GlobalEventBus } from '@/core/EventBus';
 export interface MissionResultData {
   outcome: 'victory' | 'defeat';
   enemiesDestroyed: number;
-  currencyGathered: number;
+  entropiumGathered: number;
   blocksUnlocked: string[];
   blockPlacedCount: number;
   passivePointsEarned: number;
@@ -26,7 +26,7 @@ class MissionResultStore {
     this.result = {
       outcome: 'victory', // default placeholder, will be finalized
       enemiesDestroyed: 0,
-      currencyGathered: 0,
+      entropiumGathered: 0,
       blocksUnlocked: [],
       blockPlacedCount: 0,
       passivePointsEarned: 0,
@@ -52,9 +52,9 @@ class MissionResultStore {
     this.result!.outcome = outcome;
   }
 
-  public addCurrency(amount: number) {
+  public addEntropium(amount: number) {
     this.ensureInitialized();
-    this.result!.currencyGathered += amount;
+    this.result!.entropiumGathered += amount;
   }
 
   public incrementKillCount(by = 1) {

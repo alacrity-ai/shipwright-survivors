@@ -52,14 +52,10 @@ export function handleMenuInput({
       return;
     } else if (!settingsMenu.isOpen() && !pauseMenu.isOpen() && !shipBuilderMenu.isOpen() && !blockDropDecisionMenu.isOpen()) {
       console.log('Attempting to open blockDropDecisionMenu...')
-      if (blockDropDecisionMenu.hasBlocksInQueue()) {
-        console.log('Called openMenu on blockDropDecisionMenu')
-        blockDropDecisionMenu.openMenu();
-        return;
-      } else {
-        console.log('No blocks in queue, not opening blockDropDecisionMenu');
-        audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
-      }
+    // if (blockDropDecisionMenu.hasBlocksInQueue()) {
+      console.log('Called openMenu on blockDropDecisionMenu')
+      blockDropDecisionMenu.openMenu();
+      return;
     }
     console.log('Failed to open blockDropDecisionMenu');
     return;

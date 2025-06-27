@@ -6,6 +6,7 @@ import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueCont
 import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
 
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { flags } from '@/game/player/PlayerFlagManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
@@ -196,7 +197,7 @@ export function createMission003Script00(ctx: DialogueContext): DialogueScript {
           {
             type: 'command',
             run: () => {
-              return awaitCondition(() => PlayerResources.getInstance().getCurrency() >= 1000);
+              return awaitCondition(() => PlayerExperienceManager.getInstance().getEntropium() >= 1000);
             },
           },
           { type: 'showUI' },

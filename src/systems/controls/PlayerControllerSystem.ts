@@ -9,6 +9,7 @@ import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { Ship } from '@/game/ship/Ship';
 
+import { GlobalEventBus } from '@/core/EventBus';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
@@ -18,13 +19,25 @@ import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 export class PlayerControllerSystem {
   private isEnginePlaying = false;
   private lastFiringModeSwitchTime: number = -Infinity;
+  private isOverlayInteracting = false;
 
   constructor(
     private readonly camera: Camera,
     private readonly inputManager: InputManager,
     private readonly cursorRenderer: CursorRenderer,
     private readonly playerShip: Ship
-  ) {}
+  ) {
+    GlobalEventBus.on('ui:overlay:interacting', this.onOverlayInteracting);
+    GlobalEventBus.on('ui:overlay:not-interacting', this.onOverlayNotInteracting);
+  }
+
+  private onOverlayInteracting = () => {
+    this.isOverlayInteracting = true;
+  };
+
+  private onOverlayNotInteracting = () => {
+    this.isOverlayInteracting = false;
+  };
 
   public getIntent(): ShipIntent {
     // Update ship position in ship grid | TODO: Should go somewhere agnostic that is run every frame.
@@ -85,8 +98,8 @@ export class PlayerControllerSystem {
     };
 
     // === Weapon controls ===
-    const firePrimary = this.inputManager.isActionPressed('firePrimary');
-    const fireSecondary = this.inputManager.isActionPressed('fireSecondary');
+    const firePrimary = this.inputManager.isActionPressed('firePrimary') && !this.isOverlayInteracting;
+    const fireSecondary = this.inputManager.isActionPressed('fireSecondary') && !this.isOverlayInteracting;
 
     const playerPos = this.playerShip.getTransform().position;
     const rawGamepadAim = this.inputManager.getGamepadAimVector();
@@ -154,6 +167,8 @@ export class PlayerControllerSystem {
       createLightFlash(playerPos.x, playerPos.y, 520, 1.2, 0.4, lightColor);
     }
 
+    this.onOverlayNotInteracting();
+
     return {
       movement: movementIntent,
       weapons: weaponIntent,
@@ -164,5 +179,10 @@ export class PlayerControllerSystem {
   private normalize(x: number, y: number): { x: number; y: number } {
     const mag = Math.hypot(x, y);
     return mag > 1e-5 ? { x: x / mag, y: y / mag } : { x: 0, y: 0 };
+  }
+
+  public destroy(): void {
+    GlobalEventBus.off('ui:overlay:interacting', this.onOverlayInteracting);
+    GlobalEventBus.off('ui:overlay:not-interacting', this.onOverlayNotInteracting);
   }
 }

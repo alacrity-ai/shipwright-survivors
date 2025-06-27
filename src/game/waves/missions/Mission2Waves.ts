@@ -131,11 +131,20 @@ export const waveDefinitions: WaveDefinition[] = [
     duration: 30,
     mods: [],
     ships: [
-      { shipId: 'wave_0_00', count: 4 },
-      { shipId: 'wave_0_01', count: 4 },
-      { shipId: 'wave_0_02', count: 4 },
+      { shipId: 'wave_0_00', count: 6 },
+      { shipId: 'wave_0_01', count: 6 },
+      { shipId: 'wave_0_02', count: 6 },
+      { shipId: 'wave_0_03', count: 6 },
+      { shipId: 'mission_02/spacestation_00', count: 4 },
     ],
     formations: [],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier1Params,
+      },
+    ],
   },
   {
     spawnDistribution: 'aroundPlayer',
@@ -165,7 +174,7 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [
       { shipId: 'wave_0_03', count: 8 },
-      { shipId: 'wave_0_04', count: 10 },
+      { shipId: 'wave_0_04', count: 8 },
     ],
     formations: [mediumWedgeFormation],
   },
@@ -194,12 +203,6 @@ export const waveDefinitions: WaveDefinition[] = [
         spawnChance: 1.0,
         script: 'CursedCargoIncident',
         options: cursedCargoTier2Params,
-      },
-      {
-        spawnChance: 1.0,
-        script: 'CursedCargoIncident',
-        options: cursedCargoTier2Params,
-        delaySeconds: randomIntFromRange(10, 60),
       },
       {
         spawnChance: 0.5,
@@ -239,11 +242,11 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [
       {
-        shipId: 'mission_02/ship_rammerspear_00',
+        shipId: 'mission_02/ship_stalker_00',
         count: 12,
         hunter: true,
         behaviorProfile: RammingBehaviorProfile,
-        affixes: RAMMER_SPEAR_AFFIXES,
+        affixes: SPEED_DEMON_AFFIXES,
       },
     ],
   },
@@ -252,13 +255,7 @@ export const waveDefinitions: WaveDefinition[] = [
     duration: 10,
     mods: [],
     ships: [
-      {
-        shipId: 'mission_02/ship_rammerspear_00',
-        count: 12,
-        hunter: true,
-        behaviorProfile: RammingBehaviorProfile,
-        affixes: RAMMER_SPEAR_AFFIXES,
-      },
+      { shipId: 'mission_02/ship_minifly_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
   },
   {
@@ -266,20 +263,7 @@ export const waveDefinitions: WaveDefinition[] = [
     duration: 30,
     mods: [],
     ships: [
-      {
-        shipId: 'mission_02/ship_rammerspear_00',
-        count: 12,
-        hunter: true,
-        behaviorProfile: RammingBehaviorProfile,
-        affixes: RAMMER_SPEAR_AFFIXES,
-      },
-      {
-        shipId: 'mission_02/ship_rammerhead_00',
-        count: 4,
-        hunter: true,
-        behaviorProfile: RammingBehaviorProfile,
-        affixes: RAMMER_SPEAR_AFFIXES,
-      },
+      { shipId: 'mission_02/ship_minifly_00', count: 12, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
     formations: [speedHuntersFormation],
   },
@@ -294,12 +278,6 @@ export const waveDefinitions: WaveDefinition[] = [
         spawnChance: 1.0,
         script: 'CursedCargoIncident',
         options: cursedCargoTier2Params,
-      },
-      {
-        spawnChance: 1.0,
-        script: 'CursedCargoIncident',
-        options: cursedCargoTier2Params,
-        delaySeconds: randomIntFromRange(10, 60),
       },
       {
         spawnChance: 0.5,
@@ -339,7 +317,7 @@ export const waveDefinitions: WaveDefinition[] = [
     mods: [],
     ships: [
       { shipId: 'mission_02/ship_minifly_00', count: 8, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'mission_02/ship_dragonfly_00', count: 20, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/ship_dragonfly_00', count: 16, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
   },
   {
@@ -353,7 +331,7 @@ export const waveDefinitions: WaveDefinition[] = [
         behaviorProfile: RammingBehaviorProfile,
         affixes: RAMMER_SPEAR_AFFIXES,
       },
-      { shipId: 'mission_02/ship_harbinger_00', count: 4, hunter: true },
+      { shipId: 'mission_02/ship_harbinger_00', count: 2, hunter: true },
     ],
     formations: [hunterCrewFormation],
   },
@@ -370,7 +348,7 @@ export const waveDefinitions: WaveDefinition[] = [
   },
   {
     spawnDistribution: 'aroundPlayer',
-    duration: 20,
+    duration: 30,
     mods: [],
     ships: [
       {
@@ -380,7 +358,7 @@ export const waveDefinitions: WaveDefinition[] = [
         behaviorProfile: RammingBehaviorProfile,
         affixes: RAMMER_SPEAR_AFFIXES,
       },
-      { shipId: 'mission_02/bomber_03', count: 2, hunter: true },
+      { shipId: 'mission_02/bomber_01', count: 2, hunter: true },
       { shipId: 'mission_02/ship_harbinger_00', count: 2 },
     ],
     incidents: [
@@ -388,12 +366,6 @@ export const waveDefinitions: WaveDefinition[] = [
         spawnChance: 1.0,
         script: 'CursedCargoIncident',
         options: cursedCargoTier2Params,
-      },
-      {
-        spawnChance: 1.0,
-        script: 'CursedCargoIncident',
-        options: cursedCargoTier2Params,
-        delaySeconds: randomIntFromRange(10, 60),
       },
       {
         spawnChance: 0.5,
@@ -446,10 +418,10 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
         affixes: {
-          blockDurabilityMulti: 10.0,
+          blockDurabilityMulti: 15.0,
           thrustPowerMulti: 4.0,
-          turnPowerMulti: 1.0,
-          fireRateMulti: 2.0,
+          turnPowerMulti: 1.2,
+          fireRateMulti: 3.0,
         },
       },
     ],

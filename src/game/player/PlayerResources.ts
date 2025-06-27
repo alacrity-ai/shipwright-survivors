@@ -5,8 +5,9 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 export class PlayerResources {
   private static instance: PlayerResources;
 
-  private currency: number = 0;
+  // private currency: number = 0;
   private blockQueue: BlockType[] = [];
+  private maxBlockQueueSize: number = 25;
 
   private onCurrencyChangeCallbacks: Set<(newValue: number) => void> = new Set();
 
@@ -20,47 +21,55 @@ export class PlayerResources {
   }
 
   public initialize(startingCurrency: number = 0): void {
-    this.currency = startingCurrency;
+    // this.currency = startingCurrency;
   }
 
-  // === Currency ===
-  public getCurrency(): number {
-    return this.currency;
-  }
+  // // === Currency ===
+  // public getCurrency(): number {
+  //   return this.currency;
+  // }
 
-  public hasEnoughCurrency(amount: number): boolean {
-    return this.currency >= amount;
-  }
+  // public hasEnoughCurrency(amount: number): boolean {
+  //   return this.currency >= amount;
+  // }
 
-  public addCurrency(amount: number): number {
-    if (amount <= 0) return this.currency;
+  // public addCurrency(amount: number): number {
+  //   if (amount <= 0) return this.currency;
 
-    this.currency += amount;
-    this.notifyCurrencyChange();
-    return this.currency;
-  }
+  //   this.currency += amount;
+  //   this.notifyCurrencyChange();
+  //   return this.currency;
+  // }
 
-  public spendCurrency(amount: number): boolean {
-    if (amount <= 0) return true;
-    if (this.currency < amount) return false;
+  // public spendCurrency(amount: number): boolean {
+  //   if (amount <= 0) return true;
+  //   if (this.currency < amount) return false;
 
-    this.currency -= amount;
-    this.notifyCurrencyChange();
-    return true;
-  }
+  //   this.currency -= amount;
+  //   this.notifyCurrencyChange();
+  //   return true;
+  // }
 
-  public onCurrencyChange(callback: (newValue: number) => void): () => void {
-    this.onCurrencyChangeCallbacks.add(callback);
-    return () => this.onCurrencyChangeCallbacks.delete(callback);
-  }
+  // public onCurrencyChange(callback: (newValue: number) => void): () => void {
+  //   this.onCurrencyChangeCallbacks.add(callback);
+  //   return () => this.onCurrencyChangeCallbacks.delete(callback);
+  // }
 
-  private notifyCurrencyChange(): void {
-    for (const callback of this.onCurrencyChangeCallbacks) {
-      callback(this.currency);
-    }
-  }
+  // private notifyCurrencyChange(): void {
+  //   for (const callback of this.onCurrencyChangeCallbacks) {
+  //     callback(this.currency);
+  //   }
+  // }
 
   // === Block Queue ===
+  public getMaxBlockQueueSize(): number {
+    return this.maxBlockQueueSize;
+  }
+
+  public setMaxBlockQueueSize(size: number): void {
+    this.maxBlockQueueSize = size;
+  }
+
   public enqueueBlock(blockType: BlockType): void {
     this.blockQueue.push(blockType);
   }
@@ -85,8 +94,14 @@ export class PlayerResources {
     return this.blockQueue.length > 0;
   }
 
-  public queueSize(): number {
+  /** Removes a block from the queue at the specified index. Returns true if removed. */
+  public removeBlockAt(index: number): boolean {
+    if (index < 0 || index >= this.blockQueue.length) return false;
+    this.blockQueue.splice(index, 1);
+    return true;
+  }
 
+  public queueSize(): number {
     return this.blockQueue.length;
   }
 
@@ -96,13 +111,11 @@ export class PlayerResources {
 
   // === Lifecycle ===
   public reset(): void {
-    this.currency = 0;
     this.blockQueue = [];
-    this.notifyCurrencyChange();
+    // this.notifyCurrencyChange(); TODO : Check for consumers awaiting this
   }
 
   public destroy(): void {
-    this.currency = 0;
     this.blockQueue = [];
     this.onCurrencyChangeCallbacks.clear();
   }

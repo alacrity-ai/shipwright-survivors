@@ -18,6 +18,7 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { DamageLevel } from '@/rendering/cache/BlockSpriteCache'
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 const SPRITE_ROTATION_CORRECTION = Math.PI;
 const FIN_ROTATION_CORRECTION = Math.PI / 2;
@@ -78,7 +79,7 @@ export class BlockPlacementController {
         this.ship.removeBlock(this.hoveredShipCoord);
         audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
 
-        PlayerResources.getInstance().addCurrency(refundAmount);
+        PlayerExperienceManager.getInstance().addEntropium(refundAmount);
       }
     }
 

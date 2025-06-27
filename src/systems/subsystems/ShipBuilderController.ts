@@ -26,6 +26,7 @@ import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { DamageLevel } from '@/rendering/cache/BlockSpriteCache';
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 export class ShipBuilderController {
   private rotation: number = 0;
@@ -103,7 +104,7 @@ export class ShipBuilderController {
         this.ship.removeBlock(coord);
         audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
         const refundCost = Math.round(blockCost / 2);
-        PlayerResources.getInstance().addCurrency(refundCost);
+        PlayerExperienceManager.getInstance().addEntropium(refundCost);
       }
     }
 
@@ -224,14 +225,8 @@ export class ShipBuilderController {
     const missingHp = block.type.armor - block.hp;
     if (missingHp <= 0) return;
 
-    const repairCost = getRepairCost(block);
-    const playerResources = PlayerResources.getInstance();
-
-    if (playerResources.hasEnoughCurrency(repairCost)) {
-      playerResources.spendCurrency(repairCost);
-      block.hp = block.type.armor;
-      this.shipBuilderEffects.createRepairEffect(block.position!);
-    }
+    block.hp = block.type.armor;
+    this.shipBuilderEffects.createRepairEffect(block.position!);
   }
 
   repairAllBlocks(): void {
@@ -256,13 +251,8 @@ export class ShipBuilderController {
 
     for (const { coord, block } of damagedBlocks) {
       const repairCost = getRepairCost(block);
-      if (playerResources.hasEnoughCurrency(repairCost)) {
-        audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
-        this.repairBlockAt(coord);
-      } else {
-        console.log("Stopped repair: insufficient funds.");
-        break;
-      }
+      audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
+      this.repairBlockAt(coord);
     }
   }
 

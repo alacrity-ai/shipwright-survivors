@@ -177,7 +177,6 @@ export class TitleScreenManager {
         missionLoader.setMission(missionRegistry['mission_editor']);
         this.stop();
         PlayerTechnologyManager.getInstance().unlockAll();
-        PlayerResources.getInstance().addCurrency(99999999999999);
         sceneManager.fadeToScene('mission');
       },
       style: sharedStyle

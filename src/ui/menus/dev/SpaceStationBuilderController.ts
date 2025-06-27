@@ -87,8 +87,6 @@ export class SpaceStationBuilderController {
 
         this.spaceStation.removeBlock(coord);
         audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
-        const refundCost = Math.round(blockCost / 2);
-        PlayerResources.getInstance().addCurrency(refundCost);
       }
     }
 
@@ -99,8 +97,6 @@ export class SpaceStationBuilderController {
         // if (!this.spaceStation.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
           this.spaceStation.placeBlockById(coord, blockId, this.rotation);
           audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx', { maxSimultaneous: 3 }); // Play sound effect when block is placed
-          PlayerResources.getInstance().spendCurrency(blockCost); // Deduct the cost from player's currency
-          missionResultStore.incrementBlockPlacedCount();
         // }
       // }
     } 
@@ -195,14 +191,8 @@ export class SpaceStationBuilderController {
     const missingHp = block.type.armor - block.hp;
     if (missingHp <= 0) return;
 
-    const repairCost = getRepairCost(block);
-    const playerResources = PlayerResources.getInstance();
-
-    if (playerResources.hasEnoughCurrency(repairCost)) {
-      playerResources.spendCurrency(repairCost);
-      block.hp = block.type.armor;
-      this.shipBuilderEffects.createRepairEffect(block.position!);
-    }
+    block.hp = block.type.armor;
+    this.shipBuilderEffects.createRepairEffect(block.position!);
   }
 
   repairAllBlocks(): void {
@@ -224,14 +214,8 @@ export class SpaceStationBuilderController {
       });
 
     for (const { coord, block } of damagedBlocks) {
-      const repairCost = getRepairCost(block);
-      if (playerResources.hasEnoughCurrency(repairCost)) {
-        audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
-        this.repairBlockAt(coord);
-      } else {
-        console.log("Stopped repair: insufficient funds.");
-        break;
-      }
+      audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
+      this.repairBlockAt(coord);
     }
   }
 

@@ -17,6 +17,8 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { menuOpened, menuClosed } from '@/core/interfaces/events/MenuOpenReporter';
 import { PlayerResources } from '@/game/player/PlayerResources';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 // import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock'; // OLD METHOD
 import { autoPlaceBlockWithArchetype as autoPlaceBlock } from '@/systems/autoplacement/autoPlaceAdvanced';
 import { getArchetypeById } from '@/systems/autoplacement/ShipArchetypeSystem';
@@ -29,10 +31,7 @@ import { drawButton, handleButtonInteraction, type UIButton } from '@/ui/primiti
 import { getUniformScaleFactor } from '@/config/view';
 import { Camera } from '@/core/Camera';
 import { audioManager } from '@/audio/Audio';
-
-interface BlockPickupEntry {
-  blockType: BlockType;
-}
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 type ButtonId = 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll';
 
@@ -42,8 +41,6 @@ export class BlockDropDecisionMenu implements Menu {
   private ship: Ship | null = null;
 
   private open = false;
-  private queue: BlockPickupEntry[] = [];
-  private currentBlockType: BlockType | null = null;
 
   private blockPreviewRenderer: BlockPreviewRenderer | null = null;
   private nextBlockPreviewRenderer: BlockPreviewRenderer | null = null;
@@ -114,6 +111,9 @@ export class BlockDropDecisionMenu implements Menu {
     this.pause = pause;
     this.resume = resume;
     this.initialize();
+
+    GlobalEventBus.on('blockqueue:request-place', this.handleBlockQueueRequest);
+    GlobalEventBus.on('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
   }
 
   setPlayerShip(ship: Ship): void {
@@ -219,7 +219,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   openMenu(): void {
-    if (!this.queue.length) {
+    const globalQueue = PlayerResources.getInstance().getBlockQueue();
+    if (!globalQueue.length) {
       audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
       return;
     }
@@ -238,14 +239,35 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   enqueueBlock(blockType: BlockType): void {
-    this.queue.push({ blockType });
     PlayerResources.getInstance().enqueueBlock(blockType);
+    if (this.open) {
+      this.rebuildInternalQueueFromGlobal();
+    }
+  }
+
+  private rebuildInternalQueueFromGlobal(): void {
+    const current = this.getCurrentBlockType();
+
+    // If no blocks remain, close the menu
+    if (!current) {
+      this.coachMarksVisible = false;
+      CoachMarkManager.getInstance().clear();
+      this.isAnimating = true;
+      this.animationPhase = 'sliding-out';
+      Camera.getInstance().animateZoomTo(this.originalZoom);
+      this.isAutoPlacingAll = false;
+      menuClosed('blockDropDecisionMenu');
+      return;
+    }
+
+    // Otherwise just update the preview for next block
     this.updateNextBlockPreview();
   }
 
   private updateNextBlockPreview(): void {
-    // Update the next block preview renderer based on queue state
-    const nextBlock = this.queue.length > 0 ? this.queue[0]?.blockType : null;
+    const queue = PlayerResources.getInstance().getBlockQueue();
+    const nextBlock = queue.length > 1 ? queue[1] : null;
+
     this.nextBlockPreviewRenderer = nextBlock
       ? new BlockPreviewRenderer(nextBlock, 0, 0)
       : null;
@@ -301,7 +323,6 @@ export class BlockDropDecisionMenu implements Menu {
           this.animationPhase = null;
           this.isAnimating = false;
           this.open = false;
-          this.currentBlockType = null;
           this.blockPreviewRenderer = null;
           this.nextBlockPreviewRenderer = null;
           this.hoveredButton = null;
@@ -363,29 +384,6 @@ export class BlockDropDecisionMenu implements Menu {
       if (wasClicked) onClickSet();
     }
 
-/*
-export type InputAction =
-  | 'thrustForward'
-  | 'afterburner'
-  | 'brake'
-  | 'rotateLeft'
-  | 'rotateRight'
-  | 'strafeLeft' // To be deprecated
-  | 'strafeRight'// To be deprecated
-  | 'powerSlide' // New
-  | 'firePrimary'
-  | 'fireSecondary'
-  | 'fireTertiary'
-  | 'fireQuaternary'
-  | 'switchFiringMode'
-  | 'openShipBuilder'
-  | 'openMenu'
-  | 'select'
-  | 'cancel'
-  | 'pause';
-
-*/
-
     // === Gamepad support ===
     if (this.inputManager.wasActionJustPressed('switchFiringMode') || this.inputManager.wasKeyJustPressed('KeyA')) {
       this.refineButton.onClick();
@@ -414,16 +412,17 @@ export type InputAction =
     this.targetX = 0;
     this.isAnimating = true;
     this.animationPhase = 'sliding-in';
-    
+
     const cam = Camera.getInstance();
     this.originalZoom = cam.getZoom();
 
-    this.currentBlockType = this.queue.shift()?.blockType ?? null;
-    this.blockPreviewRenderer = this.currentBlockType
-      ? new BlockPreviewRenderer(this.currentBlockType)
+    // Preview the first block in the queue (no dequeue!)
+    const current = this.getCurrentBlockType();
+    this.blockPreviewRenderer = current
+      ? new BlockPreviewRenderer(current)
       : null;
-    
-    // Update next block preview after shifting current block
+
+    // No need to set this.queue anymore
     this.updateNextBlockPreview();
   }
 
@@ -449,22 +448,27 @@ export type InputAction =
   }
 
   private handleRefine(): void {
-    // Give player currency (Entropium) equal to the block cost
-    PlayerResources.getInstance().addCurrency(this.currentBlockType?.cost ?? 0);
+    const current = this.getCurrentBlockType();
+    if (!current) return;
+
+    // Refund currency based on block cost
+    PlayerExperienceManager.getInstance().addEntropium(current.cost ?? 0);
     PlayerResources.getInstance().dequeueBlock();
+
     audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
     missionResultStore.incrementBlockRefinedCount();
+
     this.advanceQueueOrClose();
     this.clickedButton = 'refine';
   }
 
   private handleAutoplace(): void {
-    if (!this.currentBlockType) return;
-    if (!this.ship) return;
+    const current = this.getCurrentBlockType();
+    if (!current || !this.ship) return;
 
     const archetype = getArchetypeById('interceptor'); // TODO: Get from player prefs
-    
-    const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects, archetype ?? undefined);
+
+    const success = autoPlaceBlock(this.ship, current, this.shipBuilderEffects, archetype ?? undefined);
     if (!success) {
       audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
       return;
@@ -492,7 +496,6 @@ export type InputAction =
     this.disableButton(this.randomRollButton);
     this.disableButton(this.autoPlaceAllButton);
 
-    // Execute placement loop
     const archetype = getArchetypeById('interceptor');
     const delayBase = 300;
     const delayMin = 10;
@@ -500,13 +503,16 @@ export type InputAction =
 
     let delay = delayBase;
 
-    while (this.currentBlockType && this.queue.length >= 0) {
+    while (this.getCurrentBlockType() && PlayerResources.getInstance().getBlockQueue().length > 0) {
       if (!this.ship) return;
 
-      const success = autoPlaceBlock(this.ship, this.currentBlockType, this.shipBuilderEffects, archetype ?? undefined);
+      const current = this.getCurrentBlockType();
+      if (!current) break;
+
+      const success = autoPlaceBlock(this.ship, current, this.shipBuilderEffects, archetype ?? undefined);
       if (!success) {
         audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
-        this.restoreButtons(); // ← critical
+        this.restoreButtons();
         return;
       }
 
@@ -515,30 +521,29 @@ export type InputAction =
 
       this.advanceQueueOrClose();
 
-      if (!this.currentBlockType) break;
-
       await new Promise(resolve => setTimeout(resolve, delay));
       delay = Math.max(delay * decayRate, delayMin);
     }
 
-    if (this.currentBlockType) {
-      this.restoreButtons();
-    }
-
+    this.restoreButtons();
     this.clickedButton = 'autoPlaceAll';
   }
 
   private handleRoll(): void {
-    // Must have at least 3 total: currentBlockType + 2 in queue
-    if (this.queue.length + 1 < 3 || !this.currentBlockType) {
+    const queue = PlayerResources.getInstance().getBlockQueue();
+    const current = this.getCurrentBlockType();
+
+    // Must have at least 3 total: current block + 2 in queue
+    if (!current || queue.length < 3) {
       audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
       return;
     }
 
     // === Compute averaged base tier from 3 blocks ===
     const sacrificeBlocks: BlockType[] = [
-      this.currentBlockType,
-      ...this.queue.slice(0, 2).map(entry => entry.blockType),
+      current,
+      queue[1],
+      queue[2],
     ];
 
     const baseTier = Math.floor(
@@ -564,19 +569,12 @@ export type InputAction =
 
     const rewardBlock = candidates[Math.floor(Math.random() * candidates.length)];
 
-    // Dequeue current block (currentBlockType)
-    PlayerResources.getInstance().dequeueBlock();
-
-    // Dequeue next 2 from queue
-    for (let i = 0; i < 2; i++) {
-      if (this.queue.length > 0) {
-        this.queue.shift();
-        PlayerResources.getInstance().dequeueBlock();
-      }
-    }
+    // Dequeue current block and next 2
+    PlayerResources.getInstance().dequeueBlock(); // current
+    PlayerResources.getInstance().dequeueBlock(); // 1st in queue
+    PlayerResources.getInstance().dequeueBlock(); // 2nd in queue
 
     // Enqueue reward block to front
-    this.queue.unshift({ blockType: rewardBlock });
     PlayerResources.getInstance().enqueueBlockToFront(rewardBlock);
 
     // === Tier-specific Audio Feedback ===
@@ -587,7 +585,6 @@ export type InputAction =
     };
 
     const soundPath = soundMap[tierDelta] ?? soundMap[0];
-
     audioManager.play(soundPath, 'sfx', { maxSimultaneous: 5 });
 
     this.advanceQueueOrClose();
@@ -595,27 +592,84 @@ export type InputAction =
   }
 
   public advanceQueueOrClose(): void {
-    this.currentBlockType = this.queue.shift()?.blockType ?? null;
-    this.blockPreviewRenderer = this.currentBlockType
-      ? new BlockPreviewRenderer(this.currentBlockType, this.BASE_BLOCK_SPIN_SPEED, this.BASE_BLOCK_SPIN_SPEED * 2)
+    const current = this.getCurrentBlockType();
+
+    // Rebuild the main block preview if we still have a block
+    this.blockPreviewRenderer = current
+      ? new BlockPreviewRenderer(current, this.BASE_BLOCK_SPIN_SPEED, this.BASE_BLOCK_SPIN_SPEED * 2)
       : null;
 
-    // Update next block preview after advancing
     this.updateNextBlockPreview();
 
-    if (!this.currentBlockType) {
+    if (!current) {
       this.coachMarksVisible = false;
       CoachMarkManager.getInstance().clear();
       this.isAnimating = true;
       this.animationPhase = 'sliding-out';
-      const camera = Camera.getInstance();
-      camera.animateZoomTo(this.originalZoom);
+      Camera.getInstance().animateZoomTo(this.originalZoom);
       this.isAutoPlacingAll = false;
       menuClosed('blockDropDecisionMenu');
     } else {
       this.didAdvance = true;
     }
   }
+
+private handleBlockQueueRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
+  if (!this.ship) return;
+
+  const fullQueue = PlayerResources.getInstance().getBlockQueue();
+
+  if (index < 0 || index >= fullQueue.length) {
+    console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
+    return;
+  }
+
+  const block = fullQueue[index];
+  if (block.id !== blockTypeId) {
+    console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
+    return;
+  }
+
+  const archetype = getArchetypeById('interceptor');
+  const success = autoPlaceBlock(this.ship, block, this.shipBuilderEffects, archetype ?? undefined);
+
+  if (!success) {
+    audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+    return;
+  }
+
+  PlayerResources.getInstance().removeBlockAt(index);
+  missionResultStore.incrementBlockPlacedCount();
+  audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+
+  if (this.open) this.rebuildInternalQueueFromGlobal();
+};
+
+
+private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
+  if (!this.ship) return;
+
+  const fullQueue = PlayerResources.getInstance().getBlockQueue();
+
+  if (index < 0 || index >= fullQueue.length) {
+    console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
+    return;
+  }
+
+  const block = fullQueue[index];
+  if (block.id !== blockTypeId) {
+    console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
+    return;
+  }
+
+  PlayerExperienceManager.getInstance().addEntropium(block.cost ?? 0);
+  PlayerResources.getInstance().removeBlockAt(index);
+  audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
+  missionResultStore.incrementBlockRefinedCount();
+
+  if (this.open) this.rebuildInternalQueueFromGlobal();
+};
+
 
   render(ctx: CanvasRenderingContext2D): void {
     if (this.animationPhase === null && !this.open) return;
@@ -652,39 +706,39 @@ export type InputAction =
       }
     });
 
-    // Label centered horizontally, and offset a bit from the top vertically
-    const blockTier = this.currentBlockType ? getTierFromBlockType(this.currentBlockType) : 1;
+    // === Retrieve current and queue directly from global ===
+    const current = this.getCurrentBlockType();
+    const queue = PlayerResources.getInstance().getBlockQueue();
+    const blockTier = current ? getTierFromBlockType(current) : 1;
     const tierColor = BLOCK_TIER_COLORS[blockTier] ?? '#ffffff';
 
+    // Label: current block name
     drawLabel(
       ctx,
       scaledWindowX + scaledSlideX + (scaledWindowWidth / 2),
       scaledWindowY + (42 * scale),
-      this.currentBlockType?.name ?? '',
+      current?.name ?? '',
       {
         font: `${scaledLabelFontSize}px monospace`,
         align: 'center',
-        // glow: true,
         color: brightenColor(tierColor, 0.5),
       },
     );
 
-    // Draw animated block preview
-    // Centered horizontally, and below the label with some space
+    // Large preview
     if (this.blockPreviewRenderer) {
       const previewX = scaledWindowX + scaledSlideX + (scaledWindowWidth / 2) - (scaledBlockPreviewWidth / 2);
       const previewY = scaledWindowY + (128 * scale);
       this.blockPreviewRenderer.render(ctx, previewX, previewY, scaledBlockPreviewWidth, scaledBlockPreviewHeight);
     }
 
-    // Queue count label
-    // In the top left of the window
-    if (this.queue.length > 0) {
+    // Queue count (top left)
+    if (queue.length > 1) {
       drawLabel(
         ctx,
         scaledWindowX + scaledSlideX + (16 * scale),
         scaledWindowY + (16 * scale),
-        `+${this.queue.length} more`,
+        `+${queue.length - 1} more`,
         {
           font: `${scaledLabelFontSize}px monospace`,
           align: 'left',
@@ -693,13 +747,12 @@ export type InputAction =
       );
     }
 
-    // "Next:" label and mini preview in top right
-    if (this.queue.length > 0 && this.nextBlockPreviewRenderer) {
+    // "Next:" label and mini preview (top right)
+    if (queue.length > 1 && this.nextBlockPreviewRenderer) {
       const nextLabelText = 'Next:';
       const nextLabelX = scaledWindowX + scaledSlideX + scaledWindowWidth - (16 * scale) - scaledMiniPreviewWidth - (8 * scale);
       const nextLabelY = scaledWindowY + (16 * scale);
-      
-      // Draw "Next:" label
+
       drawLabel(
         ctx,
         nextLabelX,
@@ -712,20 +765,21 @@ export type InputAction =
         },
       );
 
-      // Draw mini block preview to the right of the label
       const miniPreviewX = scaledWindowX + scaledSlideX + scaledWindowWidth - (16 * scale) - scaledMiniPreviewWidth;
       const miniPreviewY = scaledWindowY + (8 * scale);
       this.nextBlockPreviewRenderer.render(ctx, miniPreviewX, miniPreviewY, scaledMiniPreviewWidth, scaledMiniPreviewHeight);
     }
 
-    if (this.currentBlockType) {
+    // Block stats
+    if (current) {
       const statsX = scaledWindowX + scaledSlideX + (32 * scale);
       const statsY = scaledWindowY + (128 * scale) + scaledBlockPreviewHeight + (32 * scale);
       const statsWidth = scaledWindowWidth - (64 * scale);
-      drawBlockStatsLabels(ctx, this.currentBlockType, statsX, statsY, statsWidth, scale);
+      drawBlockStatsLabels(ctx, current, statsX, statsY, statsWidth, scale);
     }
 
-    if (this.animationPhase === 'open' || this.currentBlockType) {
+    // Buttons only if active
+    if (this.animationPhase === 'open' || current) {
       drawButton(ctx, this.refineButton, scale);
       drawButton(ctx, this.autoplaceButton, scale);
       drawButton(ctx, this.randomRollButton, scale);
@@ -734,7 +788,11 @@ export type InputAction =
   }
 
   getCurrentBlockType(): BlockType | null {
-    return this.currentBlockType;
+    return PlayerResources.getInstance().getBlockQueue()[0] ?? null;
+  }
+
+  getRemainingQueue(): BlockType[] {
+    return PlayerResources.getInstance().getBlockQueue().slice(1);
   }
 
   isOpen(): boolean {
@@ -746,8 +804,6 @@ export type InputAction =
     this.coachMarksVisible = false;
     CoachMarkManager.getInstance().clear();
     this.open = false;
-    this.queue.length = 0;
-    this.currentBlockType = null;
     this.nextBlockPreviewRenderer = null;
     menuClosed('blockDropDecisionMenu');
   }
@@ -765,7 +821,7 @@ export type InputAction =
   }
 
   hasBlocksInQueue(): boolean {
-    return this.queue.length > 0;
+    return PlayerResources.getInstance().getBlockQueue().length > 0;
   }
 
   private getMenuTargetZoom(): number {
@@ -789,5 +845,7 @@ export type InputAction =
     this.pause = () => {};
     this.resume = () => {};
     this.nextBlockPreviewRenderer = null;
+    GlobalEventBus.off('blockqueue:request-place', this.handleBlockQueueRequest);
+    GlobalEventBus.off('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
   }
 }

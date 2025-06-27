@@ -14,6 +14,7 @@ import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { repairAllBlocksWithHealing } from '@/systems/pickups/helpers/repairAllBlocksWithHealing';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
@@ -361,6 +362,15 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
 
       if (distSq > attractionRangeSq) continue;
 
+      // If the pickup is a block
+      if (pickup.type.category === 'block') {
+        const playerResources = PlayerResources.getInstance();
+        const maxQueueSize = playerResources.getMaxBlockQueueSize();
+        const currentQueueSize = playerResources.getBlockCount();
+
+        if (currentQueueSize >= maxQueueSize) continue;
+      }
+
       const normalizedDistanceSq = distSq / attractionRangeSq;
       const attractionMultiplier = Math.pow(1 - normalizedDistanceSq, PICKUP_ATTRACTION_EXPONENT);
       const attractionSpeed = ATTRACTION_SPEED * attractionMultiplier;
@@ -439,8 +449,8 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     // === Handle pickup effects by category ===
     if (pickup.type.category === 'currency') {
       const amount = pickup.currencyAmount;
-      this.playerResources.addCurrency(amount);
-      missionResultStore.addCurrency(amount);
+      PlayerExperienceManager.getInstance().addEntropium(amount);
+      missionResultStore.addEntropium(amount);
 
       playedSound = await audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', {
         volume: 1.25,

@@ -624,7 +624,7 @@
       "rotation": 90
     },
     {
-      "id": "heatSeeker1",
+      "id": "heatSeeker0",
       "coord": {
         "x": 0,
         "y": 9
@@ -632,7 +632,7 @@
       "rotation": 0
     },
     {
-      "id": "heatSeeker1",
+      "id": "heatSeeker0",
       "coord": {
         "x": 0,
         "y": 8
@@ -640,7 +640,7 @@
       "rotation": 0
     },
     {
-      "id": "heatSeeker1",
+      "id": "heatSeeker0",
       "coord": {
         "x": 0,
         "y": 10

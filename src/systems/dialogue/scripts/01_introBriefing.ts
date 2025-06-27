@@ -9,6 +9,7 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 import { createAfterBurnerCoachMark } from '@/rendering/coachmarks/helpers/createAfterBurnerCoachMark';
 import { createOpenBlockMenuCoachMark } from '@/rendering/coachmarks/helpers/createOpenBlockMenuCoachMark';
@@ -534,7 +535,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Gather Entropium to meet your quota. Your current target is 300 units.',
+        text: `Gather Entropium to meet your quota. Your current target is ${PlayerExperienceManager.getInstance().getEntropiumForNextLevel()} units.`,
         options: {
           side: 'right',
         },
@@ -546,7 +547,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => playerResources.getCurrency() >= 300);
+          return awaitCondition(() => PlayerExperienceManager.getInstance().getEntropium() >= PlayerExperienceManager.getInstance().getEntropiumForNextLevel());
         },
       },
       // Show UI

@@ -8,6 +8,7 @@ import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { PlayerResources } from '@/game/player/PlayerResources';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -42,6 +43,9 @@ export class DebugOverlay {
 
     if (DEBUG_MODE) drawLabel(ctx, x, y, `DEBUG`); y += lineHeight;
     drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
+    
+    const blocksInQueue = PlayerResources.getInstance().getBlockQueue().length;
+    drawLabel(ctx, x, y, `Blocks in Queue: ${blocksInQueue}`); y += lineHeight;
 
     if (!DEBUG_MODE) return;
 

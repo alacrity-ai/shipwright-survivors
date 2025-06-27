@@ -1,4 +1,4 @@
-// src/ui/hud/HudOverlay.ts
+// src/ui/overlays/HudOverlay.ts
 
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Ship } from '@/game/ship/Ship';
@@ -7,6 +7,8 @@ import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextM
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { InputManager } from '@/core/InputManager';
 
+import { PlayerExperienceBar } from '@/ui/overlays/components/PlayerExperienceBar';
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
@@ -14,7 +16,6 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { getUniformScaleFactor } from '@/config/view';
 
 import { GlobalEventBus } from '@/core/EventBus';
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 import { PlayerResources as PlayerResourcesSingleton } from '@/game/player/PlayerResources';
 import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
@@ -29,9 +30,9 @@ export class HudOverlay {
   private readonly onShow = () => this.show();
   private hidden: boolean = false;
 
-  private currency: number = 0;
-  private previousCurrency: number = 0;
-  private disposer: (() => void) | null = null;
+  private entropium: number = 0;
+  private previousEntropium: number = 0;
+  private experienceBar: PlayerExperienceBar;
 
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -42,38 +43,11 @@ export class HudOverlay {
     GlobalEventBus.on('hud:hide', this.onHide);
     GlobalEventBus.on('hud:show', this.onShow);
 
+    this.experienceBar = new PlayerExperienceBar(floatingTextManager);
     this.inputManager = inputManager;
     this.playerResources = PlayerResourcesSingleton.getInstance();
-    this.currency = this.playerResources.getCurrency();
-    this.previousCurrency = this.currency;
-
-    this.disposer = this.playerResources.onCurrencyChange((newValue) => {
-      if (newValue > this.currency) {
-        const ctx = this.canvasManager.getContext('ui');
-        const gained = newValue - this.currency;
-
-        const uiScale = getUniformScaleFactor();
-        const screenX = Math.floor(900 * uiScale) + Math.floor(80 * uiScale);
-        const y = ctx.canvas.height - Math.floor(24 * uiScale);
-        const screenY = y - Math.floor(12 * uiScale);
-
-        this.floatingTextManager.createScreenText(
-          `+${gained}`,
-          screenX,
-          screenY,
-          12,
-          'monospace',
-          1,
-          100,
-          1.0,
-          '#FFD700',
-          { impactScale: 1.5 },
-          'currency'
-        );
-      }
-
-      this.currency = newValue;
-    });
+    this.entropium = PlayerExperienceManager.getInstance().getEntropium();
+    this.previousEntropium = this.entropium;
 
     // Pass through the blockDropDecisionMenu
     this.blockQueueDisplayManager = new BlockQueueDisplayManager(
@@ -89,6 +63,7 @@ export class HudOverlay {
   }
 
   update(dt: number): void {
+    this.experienceBar.update(dt);
     this.blockQueueDisplayManager.update(dt);
   }
 
@@ -96,13 +71,14 @@ export class HudOverlay {
     if (this.hidden) return;
     if (!this.ship) return;
 
+    this.experienceBar.render();
+
     const scale = getUniformScaleFactor();
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
     const { velocity } = this.ship.getTransform();
     // const blocks = this.ship.getAllBlocks();
-    const mass = this.ship.getTotalMass();
     const currentHp = Math.floor(this.ship.getCockpitHp() ?? 0);
     const maxHp = Math.floor(this.ship.getCockpit()?.type.armor ?? 1);
     const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
@@ -111,12 +87,17 @@ export class HudOverlay {
     const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
     const maxEnergy = Math.floor(energyComponent?.getMax() ?? 0);
 
-    const barWidth = Math.floor(180 * scale);
+    const barWidth = Math.floor(120 * scale);
     const barHeight = Math.floor(12 * scale);
     const spacing = Math.floor(20 * scale);
     const totalWidth = barWidth * 2 + spacing;
     const baseX = Math.floor((canvas.width - totalWidth) / 2);
     const y = canvas.height - Math.floor(24 * scale);
+
+    const toggleWidth = Math.floor(120 * scale);
+    const toggleHeight = Math.floor(24 * scale);
+    const toggleX = Math.floor(64 * scale);
+    const toggleY = y - Math.floor(70 * scale);
 
     // === Afterburner Fuel Bar ===
     const afterburnerComponent = this.ship.getAfterburnerComponent();
@@ -124,8 +105,8 @@ export class HudOverlay {
     const afterburnerMax = afterburnerComponent ? afterburnerComponent.getMax() : 1;
 
     drawUIResourceBar(ctx, {
-      x: baseX,
-      y,
+      x: toggleX,
+      y: y - Math.floor(24 * scale),
       width: barWidth,
       height: barHeight,
       value: afterburnerValue / afterburnerMax,
@@ -151,8 +132,8 @@ export class HudOverlay {
 
     // === Energy Bar ===
     drawUIResourceBar(ctx, {
-      x: baseX + barWidth + spacing,
-      y,
+      x: toggleX,
+      y: y,
       width: barWidth,
       height: barHeight,
       value: maxEnergy > 0 ? energy / maxEnergy : 1,
@@ -201,14 +182,10 @@ export class HudOverlay {
     });
 
     // === Firing Mode Toggle ===
-    const toggleWidth = Math.floor(120 * scale);
-    const toggleHeight = Math.floor(24 * scale);
-    const toggleX = Math.floor(64 * scale);
-    const toggleY = y - Math.floor(12 * scale);
 
     drawFiringModeToggle(ctx, {
       x: toggleX,
-      y: toggleY,
+      y: y - Math.floor(62 * scale),
       mode: this.ship.getFiringMode(),
       style: {
         width: toggleWidth,
@@ -227,23 +204,14 @@ export class HudOverlay {
       }
     }, performance.now());
 
-    // === Additional Metrics ===
-    const infoX = Math.floor(900 * scale);
-    const lineHeight = Math.floor(16 * scale);
-    let infoY = toggleY;
-
-    drawLabel(ctx, infoX, infoY, `Entropium: ${this.currency}`, {}, scale);
-    infoY += lineHeight;
-    drawLabel(ctx, infoX, infoY, `Mass: ${mass.toFixed(1)} kg`, {}, scale);
-
     // === Block Queue Display ===
     this.blockQueueDisplayManager.render();
   }
 
   destroy(): void {
-    this.disposer?.();
     GlobalEventBus.off('hud:hide', this.onHide);
     GlobalEventBus.off('hud:show', this.onShow);
+    this.experienceBar.destroy();
   }
 
   public hide(): void {

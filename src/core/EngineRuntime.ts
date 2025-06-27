@@ -7,6 +7,7 @@ import { InputManager } from './InputManager';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -23,6 +24,7 @@ import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequ
 
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
+import { PowerupSelectionMenu } from '@/game/powerups/ui/PowerupSelectionMenu';
 import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
 import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
 import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
@@ -101,19 +103,26 @@ import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
+import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
+import { PlayerPowerupManager } from '@/game/powerups/runtime/PlayerPowerupManager';
 import { flags } from '@/game/player/PlayerFlagManager';
 
 // Debug
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { testPowerups } from '@/game/powerups/test/poweruptest';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
   private readonly boundUpdate = (dt: number) => this.update(dt);
   private readonly boundRender = (dt: number) => this.render(dt);
+  private boundHandleVictory = () => this.handlePlayerVictory();
+  private boundHandleDefeat = () => this.handlePlayerFailure();
+  private boundHandleLevelUp = () => this.handlePlayerLevelUp();
+
 
   private isInitialized = false;
 
@@ -122,6 +131,7 @@ export class EngineRuntime {
   private coachMarkManager: CoachMarkManager | null = null;
   private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
+  private powerupSelectionMenu: PowerupSelectionMenu;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private settingsMenu: SettingsMenu | null = null;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
@@ -199,8 +209,11 @@ export class EngineRuntime {
     this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
 
-    GlobalEventBus.on('player:victory', () => this.handlePlayerVictory());
-    GlobalEventBus.on('player:defeat', () => this.handlePlayerFailure());
+    PowerupRegistry.initialize();
+
+    GlobalEventBus.on('player:victory', this.boundHandleVictory);
+    GlobalEventBus.on('player:defeat', this.boundHandleDefeat);
+    GlobalEventBus.on('player:entropium:levelup', this.boundHandleLevelUp);
 
     // Initialize GL caches
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -254,6 +267,11 @@ export class EngineRuntime {
     );
     this.shipBuilderMenu.setRepairAllHandler(() => {
       this.shipBuilderController.repairAllBlocks();
+    });
+
+    // === Powerup (On level up) Menu
+    this.powerupSelectionMenu = new PowerupSelectionMenu(this.inputManager, (selectedNode) => {
+      this.resume();
     });
 
     // === Block Drop Decision Menu
@@ -479,7 +497,8 @@ export class EngineRuntime {
       this.aiOrchestrator,
       this.floatingTextManager,
       this.coachMarkManager,
-      this.incidentOrchestrator
+      this.incidentOrchestrator,
+      this.powerupSelectionMenu,
     ];
 
     this.isInitialized = true;
@@ -618,6 +637,9 @@ export class EngineRuntime {
     if (!this.isInitialized) return;
     if (this.isDestroyed) return;
 
+    // Clear input consumed inputs
+    this.inputManager.clearConsumedActions();
+
     // === Shader Special FX
     this.unifiedSceneRenderer!.update(dt);
 
@@ -688,6 +710,12 @@ export class EngineRuntime {
       }
     }
 
+    if (this.inputManager.wasKeyJustPressed('KeyP')) {
+      this.powerupSelectionMenu.openMenu();
+      // testPowerups();
+    }
+
+    // TODO: Revisit this rendering pass, currently broken
     if (this.inputManager.wasKeyJustPressed('KeyB')) {
       spawnSpecialFx({
         worldX: 100,
@@ -725,13 +753,13 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
-      // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
+      const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
-      const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
+      // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
       // this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
@@ -746,12 +774,11 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit0')) {
-      PlayerResources.getInstance().addCurrency(1000);
+      PlayerExperienceManager.getInstance().addEntropium(1000);
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyO')) {
       PlayerTechnologyManager.getInstance().unlockAll();
-      PlayerResources.getInstance().addCurrency(99999999999999);
 
       if (this.shipBuilderMenu.isOpen()) {
         this.shipBuilderMenu.closeMenu();
@@ -811,15 +838,18 @@ export class EngineRuntime {
       console.error("Error getting ship transform:", error);
     }
 
-    // Update all systems if not paused
+    // Update input manager
+    this.inputManager.updateFrame();
+    this.hud!.update(dt); // BlockQueueDisplayManager is here
+
+    // All updatables
     if (!this.isPaused) {
-      this.updatables.forEach(system => system.update(dt));
+      this.updatables.forEach(system => system.update(dt)); // PlayerControllerSystem is here
     }
 
     // Always update these systems regardless of pause state
-    this.hud!.update(dt);
+    this.powerupSelectionMenu.update(dt);
     this.shipBuilderEffects.update(dt);
-    this.inputManager.updateFrame();
     this.missionDialogueManager!.update(dt);
     this.floatingTextManager.update(dt);
     this.coachMarkManager!.update(dt);
@@ -921,6 +951,12 @@ export class EngineRuntime {
     }, 4200);
   }
 
+  public handlePlayerLevelUp() {
+    console.log("Player leveled up!");
+    this.pause();
+    this.powerupSelectionMenu.openMenu();
+  }
+
   public handlePlayerVictory(timeoutMs: number = 5_000): void {
     console.log("Player victorious — debriefing will begin in 5 seconds...");
     setTimeout(() => {
@@ -964,8 +1000,9 @@ export class EngineRuntime {
     this.gameLoop.stop();
 
     // === Dispose of Eventbus Listeners ===
-    GlobalEventBus.off('player:victory', this.handlePlayerVictory);
-    GlobalEventBus.off('player:defeat', this.handlePlayerFailure);
+    GlobalEventBus.off('player:victory', this.boundHandleVictory);
+    GlobalEventBus.off('player:defeat', this.boundHandleDefeat);
+    GlobalEventBus.off('player:entropium:levelup', this.boundHandleLevelUp);
 
     // === Clean up singleton state ===
     this.waveOrchestrator!.destroy();
@@ -974,6 +1011,7 @@ export class EngineRuntime {
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();
+    PlayerPowerupManager.destroy();
     ShipGrid.getInstance().destroy();
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();
@@ -997,6 +1035,8 @@ export class EngineRuntime {
     this.lightingOrchestrator.destroy();
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();
+    this.playerController!.destroy();
+
     // TODO : Destroy GL2 blocksprite cache?? Leaving undestroyed for use by Debriefing Scene
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
     destroyGLPickupSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -1006,6 +1046,7 @@ export class EngineRuntime {
     this.wavesOverlay!.destroy();
     this.hud!.destroy();
     this.miniMap!.destroy();
+    PlayerExperienceManager.getInstance().destroy();
 
     // Clear rendering and update lists
     this.updatables.length = 0;
