@@ -1,6 +1,6 @@
 import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
-import { PlayerPowerupManager } from '@/game/powerups/runtime/PlayerPowerupManager';
+import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 
 /**
  * Returns the next powerup nodes that the player is eligible to select.

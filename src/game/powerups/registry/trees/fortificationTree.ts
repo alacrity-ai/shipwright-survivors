@@ -26,8 +26,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     category: 'fortification',
     parentId: 'fortification-1',
     metadata: {
-      flatDamageReductionPercent: 0.10,
-      cockpitInvulnChance: 0.15
+      flatDamageReductionPercent: 0.05,
+      cockpitInvulnChance: 0.1
     }
   },
   {
@@ -38,8 +38,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     category: 'fortification',
     parentId: 'fortification-shield-2',
     metadata: {
-      flatDamageReductionPercent: 0.15,
-      cockpitInvulnChance: 0.25
+      flatDamageReductionPercent: 0.05,
+      cockpitInvulnChance: 0.1
     }
   },
   {
@@ -51,8 +51,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     parentId: 'fortification-shield-3',
     isProcedural: true,
     scaling: {
-      flatDamageReductionPercent: 0.02,
-      cockpitInvulnChance: 0.05
+      flatDamageReductionPercent: 0.05,
+      cockpitInvulnChance: 0.1
     }
   },
   {
@@ -64,8 +64,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     parentId: 'fortification-shield-4',
     isProcedural: true,
     scaling: {
-      flatDamageReductionPercent: 0.02,
-      cockpitInvulnChance: 0.05
+      flatDamageReductionPercent: 0.05,
+      cockpitInvulnChance: 0.1
     },
     capstoneAtLevel: 5
   },
@@ -79,7 +79,7 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     category: 'fortification',
     parentId: 'fortification-1',
     metadata: {
-      reflectOnDamagePercent: 0.15
+      reflectOnDamagePercent: 0.20
     }
   },
   {
@@ -103,7 +103,7 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     parentId: 'fortification-reflect-3',
     isProcedural: true,
     scaling: {
-      reflectOnDamagePercent: 0.025
+      reflectOnDamagePercent: 0.20
     }
   },
   {
@@ -115,7 +115,7 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     parentId: 'fortification-reflect-4',
     isProcedural: true,
     scaling: {
-      reflectOnDamagePercent: 0.025
+      reflectOnDamagePercent: 0.20
     },
     capstoneAtLevel: 5
   }

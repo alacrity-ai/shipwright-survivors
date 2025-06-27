@@ -75,6 +75,10 @@ export class LaserSystem implements IUpdatable, IRenderable {
       }
       if (!energyComponent) continue;
 
+      let damageBonus = ship.getPassiveBonus('laser-damage');
+      const { baseDamageMultiplier = 0 } = ship.getPowerupBonus();
+      damageBonus += baseDamageMultiplier;
+
       const energyDrainMultiplier = ship.getPassiveBonus('laser-energy-drain');
       let totalEnergyCost = 0;
 
@@ -126,7 +130,6 @@ export class LaserSystem implements IUpdatable, IRenderable {
           const hitCoord = targetShip ? findBlockCoordinatesInObject(hit.block, targetShip) : null;
 
           if (targetShip && hitCoord) {
-            const damageBonus = ship.getPassiveBonus('laser-damage');
 
             this.combatService.applyDamageToBlock(
               targetShip,

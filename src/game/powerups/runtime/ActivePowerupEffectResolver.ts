@@ -1,9 +1,9 @@
 // src/game/powerups/runtime/ActivePowerupEffectResolver.ts
 
-import { PlayerPowerupManager } from './PlayerPowerupManager';
-import { PowerupRegistry } from '../registry/PowerupRegistry';
-import type { PowerupNodeDefinition } from '../registry/PowerupNodeDefinition';
-import type { PowerupEffectMetadata } from '../types/PowerupMetadataTypes';
+import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
+import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
+import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
+import type { PowerupEffectMetadata } from '@/game/powerups/types/PowerupMetadataTypes';
 
 export function getAggregatedPowerupEffects(): PowerupEffectMetadata {
   const acquiredIds = PlayerPowerupManager.getInstance().getAll();
@@ -47,3 +47,12 @@ export function getAggregatedPowerupEffects(): PowerupEffectMetadata {
 
   return total;
 }
+
+/* Example payload:
+baseDamageMultiplier: 1.1
+cockpitInvulnChance: 0.55
+critChance: 0.49000000000000005
+critMultiplier: 5.549999999999999
+fireRateMultiplier: 3.5999999999999996
+flatDamageReductionPercent: 0.3600000000000001
+*/

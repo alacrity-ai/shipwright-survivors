@@ -1,6 +1,6 @@
-import { PlayerPowerupManager } from '@/game/powerups/runtime/PlayerPowerupManager';
+import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
-
+import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
 
 export function testPowerups() {
   PowerupRegistry.initialize();
@@ -17,6 +17,11 @@ export function testPowerups() {
 
   generateRandomSelectionTestBasic();
   testExclusiveBranchEnforcement();
+}
+
+export function testActivePowerupEffectResolver(): void {
+  const effects = getAggregatedPowerupEffects();
+  console.log('[testActivePowerupEffectResolver] Aggregated effects: ', effects);
 }
 
 // Tests that we get back 3 selections with no player upgrades
@@ -76,7 +81,7 @@ function testExclusiveBranchEnforcement(): void {
     );
   }
 
-  console.log('✅ Exclusive branch enforcement passed: no conflicting nodes offered');
+  console.log('Exclusive branch enforcement passed: no conflicting nodes offered');
 }
 
 

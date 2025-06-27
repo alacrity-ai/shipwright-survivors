@@ -27,8 +27,8 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     category: 'critical-hit',
     parentId: 'critical-hit-1',
     metadata: {
-      critChance: 0.15,
-      critMultiplier: 1.75
+      critChance: 0.10,
+      critMultiplier: 0.25
     }
   },
   {
@@ -39,8 +39,8 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     category: 'critical-hit',
     parentId: 'critical-surge-2',
     metadata: {
-      critChance: 0.18,
-      critMultiplier: 2.0
+      critChance: 0.10,
+      critMultiplier: 0.25
     }
   },
   {
@@ -52,8 +52,8 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     parentId: 'critical-surge-3',
     isProcedural: true,
     scaling: {
-      critChance: 0.02,
-      critMultiplier: 0.1
+      critChance: 0.10,
+      critMultiplier: 0.25
     }
   },
   {
@@ -65,8 +65,8 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     parentId: 'critical-surge-4',
     isProcedural: true,
     scaling: {
-      critChance: 0.02,
-      critMultiplier: 0.1
+      critChance: 0.10,
+      critMultiplier: 0.25
     },
     capstoneAtLevel: 5
   },
@@ -80,7 +80,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     category: 'critical-hit',
     parentId: 'critical-hit-1',
     metadata: {
-      critChainChance: 0.25
+      critLifeStealPercent: 0.05
     }
   },
   {
@@ -91,7 +91,6 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     category: 'critical-hit',
     parentId: 'vampirism-2',
     metadata: {
-      critChainChance: 0.25,
       critLifeStealPercent: 0.05
     }
   },
@@ -104,8 +103,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     parentId: 'vampirism-3',
     isProcedural: true,
     scaling: {
-      critLifeStealPercent: 0.01,
-      critChainChance: 0.05
+      critLifeStealPercent: 0.05,
     }
   },
   {
@@ -117,8 +115,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     parentId: 'vampirism-4',
     isProcedural: true,
     scaling: {
-      critLifeStealPercent: 0.01,
-      critChainChance: 0.05
+      critLifeStealPercent: 0.05,
     },
     capstoneAtLevel: 5
   }

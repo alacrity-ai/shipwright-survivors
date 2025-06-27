@@ -64,7 +64,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const target = intent?.aimAt;
     const fireRequested = intent?.firePrimary ?? false;
 
-    const fireRateBonus = ship.getPassiveBonus('explosive-lance-firing-rate');
+    let fireRateBonus = ship.getPassiveBonus('explosive-lance-firing-rate');
+    const { fireRateMultiplier = 0 } = ship.getPowerupBonus();
+    fireRateBonus += fireRateMultiplier;
     const radiusBonus = ship.getPassiveBonus('explosive-lance-radius');
 
     for (let i = plan.length - 1; i >= 0; i--) {
@@ -158,6 +160,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
   private updateLances(dt: number, ship: Ship): void {
     const exploded = new Set<ActiveExplosiveLance>();
+
+    const { baseDamageMultiplier = 1 } = ship.getPowerupBonus();
+    const totalDamageBonus = baseDamageMultiplier;
 
     for (const lance of this.activeLances) {
       lance.age += dt;
@@ -278,7 +283,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
                 ship,
                 block,
                 coord,
-                lance.fireDamage,
+                lance.fireDamage * totalDamageBonus,
                 'explosiveLance',
               );
               if (wasDestroyed) {

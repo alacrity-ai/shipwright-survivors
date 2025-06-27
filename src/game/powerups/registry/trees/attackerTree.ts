@@ -27,7 +27,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'attacker-1',
     metadata: {
-      fireRateMultiplier: 1.15
+      fireRateMultiplier: 0.05
     }
   },
   {
@@ -38,7 +38,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'rapid-fire-2',
     metadata: {
-      fireRateMultiplier: 1.25
+      fireRateMultiplier: 0.05
     }
   },
   {
@@ -76,7 +76,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'attacker-1',
     metadata: {
-      baseDamageMultiplier: 1.25
+      baseDamageMultiplier: 0.1
     }
   },
   {
@@ -87,7 +87,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'deadly-damage-2',
     metadata: {
-      baseDamageMultiplier: 1.4
+      baseDamageMultiplier: 0.1
     }
   },
   {

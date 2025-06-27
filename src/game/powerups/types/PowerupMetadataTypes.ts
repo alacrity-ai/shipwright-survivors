@@ -6,8 +6,8 @@ export interface PowerupEffectMetadata {
   critMultiplier?: number;
   critChainChance?: number;
   critLifeStealPercent?: number;
-  baseDamageMultiplier?: number;
-  fireRateMultiplier?: number;
+  baseDamageMultiplier?: number; // Implemented
+  fireRateMultiplier?: number; // Implemented
 
   // Defense
   flatDamageReductionPercent?: number;

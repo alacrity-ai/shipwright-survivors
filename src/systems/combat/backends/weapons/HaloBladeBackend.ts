@@ -55,7 +55,9 @@ export class HaloBladeBackend implements WeaponBackend {
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const bladeMap = this.ship.getHaloBladeBlocks();
     const sizeBonus = ship.getPassiveBonus('halo-blade-size');
-    const damageBonus = ship.getPassiveBonus('halo-blade-damage');
+    let damageBonus = ship.getPassiveBonus('halo-blade-damage');
+    const { baseDamageMultiplier = 0 } = ship.getPowerupBonus();
+    damageBonus += baseDamageMultiplier;
     const currentBlades = Array.from(bladeMap.keys());
 
     // === Prune removed orbiters ===

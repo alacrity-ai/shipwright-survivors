@@ -12,6 +12,8 @@ import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladePr
 import type { PassiveId } from '@/game/player/PlayerPassiveManager';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
+import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
+import { PowerupEffectMetadata } from '../powerups/types/PowerupMetadataTypes';
 import { PlayerPassiveManager } from '../player/PlayerPassiveManager';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
@@ -109,6 +111,14 @@ export class Ship extends CompositeBlockObject {
 
   public setAffixes(affixes: ShipAffixes): void {
     this.affixes = affixes;
+  }
+
+  // == Powerups system
+  public getPowerupBonus(): PowerupEffectMetadata {
+    // If the playership, return the effects, otherwise return empty
+    if (!this.isPlayerShip) return {};
+
+    return getAggregatedPowerupEffects();
   }
 
   // == Afterburner

@@ -107,13 +107,13 @@ import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
-import { PlayerPowerupManager } from '@/game/powerups/runtime/PlayerPowerupManager';
+import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { flags } from '@/game/player/PlayerFlagManager';
 
 // Debug
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { testPowerups } from '@/game/powerups/test/poweruptest';
+import { testActivePowerupEffectResolver } from '@/game/powerups/test/poweruptest';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -711,8 +711,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
-      this.powerupSelectionMenu.openMenu();
-      // testPowerups();
+      testActivePowerupEffectResolver();
     }
 
     // TODO: Revisit this rendering pass, currently broken

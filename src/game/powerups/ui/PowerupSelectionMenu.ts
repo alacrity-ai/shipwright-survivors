@@ -7,7 +7,7 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { resolvePowerupIconSprite } from '@/game/powerups/icons/PowerupIconSpriteCache';
 import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
-import { PlayerPowerupManager } from '@/game/powerups/runtime/PlayerPowerupManager';
+import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { isBranchNodeWithExclusion, getExcludedBranchLabels } from '@/game/powerups/utils/PowerupTreeUtils';
 
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';

@@ -34,9 +34,16 @@ export class TurretBackend implements WeaponBackend {
     const { fireRateMulti = 1 } = ship.getAffixes();
 
     // Player passive bonus
-    const fireRateBonus = ship.getPassiveBonus('turret-firing-rate');
-    const damageBonus = ship.getPassiveBonus('turret-damage');
+    let fireRateBonus = ship.getPassiveBonus('turret-firing-rate');
+    let damageBonus = ship.getPassiveBonus('turret-damage');
     const accuracyBonus = ship.getPassiveBonus('turret-accuracy');
+
+    // Powerup bonuses
+    const { fireRateMultiplier = 0, baseDamageMultiplier = 0 } = ship.getPowerupBonus();
+
+    // Aggregate Bonus (Additive)
+    fireRateBonus += fireRateMultiplier;
+    damageBonus += baseDamageMultiplier;
 
     // Always advance cooldowns
     for (const turret of plan) {

@@ -63,7 +63,12 @@ export class HeatSeekerBackend implements WeaponBackend {
     if (plan.length === 0) return;
 
     const fireRequested = intent?.firePrimary ?? false;
-    const fireRateBonus = ship.getPassiveBonus('heat-seeker-firing-rate');
+    let fireRateBonus = ship.getPassiveBonus('heat-seeker-firing-rate');
+    // Powerup bonuses
+    const { fireRateMultiplier = 0 } = ship.getPowerupBonus();
+
+    // Aggregate Bonus (Additive)
+    fireRateBonus += fireRateMultiplier;
 
     for (const seeker of plan) {
       const fire = seeker.block.type.behavior!.fire!;
@@ -302,6 +307,10 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     if (!centerCoord) return;
 
+    let damageBonus = sourceShip.getPassiveBonus('heat-seeker-damage');
+    const { baseDamageMultiplier = 0 } = sourceShip.getPowerupBonus();
+    damageBonus += baseDamageMultiplier;
+
     const blocks = missile.targetShip.getBlocksWithinGridDistance(centerCoord, missile.explosionRadius);
     for (const block of blocks) {
       const coord = missile.targetShip.getBlockCoord(block);
@@ -312,7 +321,7 @@ export class HeatSeekerBackend implements WeaponBackend {
         sourceShip,
         block,
         coord,
-        missile.explosionDamage * sourceShip.getPassiveBonus('heat-seeker-damage'),
+        missile.explosionDamage * damageBonus,
         'heatSeekerAoE'
       );
     }
