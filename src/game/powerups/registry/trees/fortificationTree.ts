@@ -79,7 +79,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     category: 'fortification',
     parentId: 'fortification-1',
     metadata: {
-      reflectOnDamagePercent: 0.20
+      flatDamageReductionPercent: 0.03,
+      reflectOnDamagePercent: 0.50
     }
   },
   {
@@ -90,7 +91,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     category: 'fortification',
     parentId: 'fortification-reflect-2',
     metadata: {
-      reflectOnDamagePercent: 0.20,
+      flatDamageReductionPercent: 0.03,
+      reflectOnDamagePercent: 1.00,
       reflectCanCrit: true
     }
   },
@@ -103,7 +105,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     parentId: 'fortification-reflect-3',
     isProcedural: true,
     scaling: {
-      reflectOnDamagePercent: 0.20
+      flatDamageReductionPercent: 0.03,
+      reflectOnDamagePercent: 1.50
     }
   },
   {
@@ -115,7 +118,8 @@ export const fortificationTree: PowerupNodeDefinition[] = [
     parentId: 'fortification-reflect-4',
     isProcedural: true,
     scaling: {
-      reflectOnDamagePercent: 0.20
+      flatDamageReductionPercent: 0.03,
+      reflectOnDamagePercent: 2.00
     },
     capstoneAtLevel: 5
   }

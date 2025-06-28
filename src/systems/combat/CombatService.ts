@@ -36,7 +36,7 @@ export class CombatService {
     block: BlockInstance, // The block receiving the damage
     coord: GridCoord,
     damage: number,
-    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' = 'scripted',
+    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' | 'reflected' = 'scripted',
     lightFlash: boolean = true
   ): boolean {
     if (block.indestructible) return false;
@@ -49,6 +49,7 @@ export class CombatService {
     const isSourcePlayer = isSourceShip && source.getIsPlayerShip();
     const affixes = isEntityShip ? entity.getAffixes() : undefined;
     const sameFaction = source.getFaction() === entity.getFaction();
+    const rawDamage = damage;
 
     if (sameFaction) return false;
 
@@ -111,7 +112,8 @@ export class CombatService {
     // === Calculate Damage Mitigation via Powerups
     const { 
       flatDamageReductionPercent = 0, 
-      cockpitInvulnChance = 0 
+      cockpitInvulnChance = 0,
+      reflectOnDamagePercent = 0,
     } = isEntityShip ? entity.getPowerupBonus() : {};
     
     const {
@@ -119,10 +121,13 @@ export class CombatService {
       critMultiplier = 1,
       lifeStealOnCrit = false,
       critLifeStealPercent = 0,
+      reflectCanCrit = false,
     } = isSourceShip ? source.getPowerupBonus() : {};
 
     // === Apply crit chance
-    const isCriticalHit = Math.random() < critChance;
+    const isReflected = cause === 'reflected';
+    const canCrit = !isReflected || reflectCanCrit;
+    const isCriticalHit = canCrit && Math.random() < critChance;
     if (isCriticalHit) {
       damage *= critMultiplier;
     }
@@ -149,6 +154,35 @@ export class CombatService {
       const lifestealAmount = Math.floor(damage * critLifeStealPercent);
       console.log('[Lifestealing] lifestealAmount', lifestealAmount);
       repairBlockViaLifesteal(source, lifestealAmount, this.shipBuilderEffects);
+    }
+
+    // === Reflect damage back to attacker ===
+    if (
+      reflectOnDamagePercent > 0 &&
+      cause !== 'reflected' && // Prevent recursive reflection
+      source instanceof Ship &&
+      source !== entity // Sanity check for self-hit cases
+    ) {
+      const reflectedDamage = Math.floor(rawDamage * reflectOnDamagePercent);
+
+      if (reflectedDamage > 0) {
+        const reflectionDamageTargetBlock = source.getRandomBlock();
+        if (reflectionDamageTargetBlock) {
+          const reflectionDamageTargetCoord = source.getBlockCoord(reflectionDamageTargetBlock);
+          if (reflectionDamageTargetCoord) {
+          // Deal reflected damage to attacker — but prevent recursion
+            this.applyDamageToBlock(
+              source,
+              entity, // reversed: now we are the source
+              reflectionDamageTargetBlock,
+              reflectionDamageTargetCoord,
+              reflectedDamage,
+              'reflected', // new cause
+              true
+            );
+          }
+        }
+      }
     }
 
     // === Final fallback: direct HP reduction

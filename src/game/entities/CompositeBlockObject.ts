@@ -5,6 +5,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedBlockObject } from '@/systems/serialization/CompositeBlockObjectSerializer';
 
+import { randomFromArray } from '@/shared/arrayUtils';
 import { Grid } from '@/systems/physics/Grid';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
@@ -94,6 +95,12 @@ export abstract class CompositeBlockObject {
 
   public getBlock(coord: GridCoord): BlockInstance | undefined {
     return this.blocks.get(toKey(coord))?.block;
+  }
+
+  public getRandomBlock(): BlockInstance | undefined {
+    if (!this.blocks.size) return undefined;
+    const randomKey = randomFromArray(Array.from(this.blocks.keys()));
+    return this.blocks.get(randomKey)?.block;
   }
 
   public hasBlockAt(coord: GridCoord): boolean {

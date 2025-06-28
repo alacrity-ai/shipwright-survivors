@@ -22,7 +22,7 @@ type LoopGraph = {
   pan: StereoPannerNode;
 };
 
-const MIN_TIME_BETWEEN_SAME_PLAY_S = 0.01; // 10ms
+const MIN_TIME_BETWEEN_SAME_PLAY_S = 0.1; // 10ms
 const FADE_DURATION = 0.2; // seconds (30ms is perceptually instantaneous)
 
 export class AudioManager {

@@ -9,7 +9,7 @@ export interface IncidentScript {
   onTrigger(): void;
   update(dt: number): void;
   render?(canvasManager: CanvasManager, dt: number): void;
-  onComplete(): void;
+  onComplete(successful?: boolean): void;
   destroy(): void;
   isComplete(): boolean;
 }

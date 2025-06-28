@@ -107,6 +107,7 @@ export interface EventTypes {
   'incident:clear': { tag: string };
 
   // Pickups
+  'pickup:collected': { typeId: string; };
   'pickup:spawn:block': {
     x: number;
     y: number;
@@ -122,6 +123,10 @@ export interface EventTypes {
     x: number;
     y: number;
     amount: number;
+  };
+  'pickup:spawn:quantumAttractor': {
+    x: number;
+    y: number;
   };
 
   // Entities

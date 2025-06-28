@@ -93,14 +93,6 @@ The game features Newtonian physics with inertia and realistic thruster effects.
 
 ## 🔮 Planned Features
 
-MISSION  3:
-Should be 5 waves
-[x] Add area preference for waves, e.g. in a wave definition, for each enemy spawn row, I can specify preference for outer, or inner.  This will allow me to spawn stronger enemies on the fringes, reducing early player deaths that feel bad.
-[x] Enemies with blue boosters aren't moving???
-[x] No screen shake for enemy kills
-[x] Enemies shouldn't be able to damage each other
-Add spawn delay time to enemy definitions in wave definition (for staggered hunters)
-
 STEAM CHECKLIST:
 - [ ] Steamdeck Verified! required.
 - [ ] Steampage
@@ -116,10 +108,6 @@ What's needed to get to Demo:
 - [ ] Player death state
 - [ ] Controller Support
   - [ ] Menus (Need navtree)
-  - [x] Gameplay
-    - [x] Issue: Figure out, do we want a boost button? Do we want a sharp turn button?
-    - [x] Issue: Presently, we just turnTo (degrees), we may want to have it so that the 40 degree radius or so in the back of the ship, causes breaking.
-          - This is because, right now, if I'm moving a direction, and I move the stick to the polar opposite of that direction, it's ambiguous if I'll turn left or right.  So instead, make the polar opposite of aiming (maybe a 30 degree wide range) cause breaking instead.
 - [ ] Incidents (Make at least 10 or so incidents)
 - [ ] 5 Missions - each tested thoroughly for smooth flow
   - [ ] Sub objectives in each mission, e.g. in the galaxy select
@@ -127,7 +115,6 @@ What's needed to get to Demo:
 - [ ] Basic breakroom dialogue
 - [ ] Passive system fleshed out a bit, polished, stats actually effect game.  Datacores from Entropium.
 - [ ] Planet merchants, trade blocks for other blocks, entropium, etc. unlockables
-- [x] Mission Debriefing Screen
 - [ ] Demo End splash (List what's coming)
 - [ ] Titlescreen polish / rework
 - [ ] Laser polish, add heat seeking missles.
@@ -148,44 +135,28 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
-  - [ ] Lower drop rate significantly, Entropium levels you up.  Puts a level up menu:
-    - [ ] In level up menu: Choose 1 of 3 randomly given bonuses.
-    - [ ] Entropium cost per level continues to increase, clearly show entropium til next level
-  - [ ] Are mobs always turning the same direction when they begin orbiting? We should change to be random.
+  - [x] Levelup Menu
+    - [x] Consume mouse input (No fire after selecting an option)
+    - [x] Don't allow opening of any menus or escape (probably input manager disable input)
+    - [x] Menu should have a brief opening phase, to avoid instantly choosing something
+    - [x] Selection of an item should have visual feedback, then a closing phase
+  - [x] Add a Incident that triggers: All entropium and repair orbs on the map flies toward the player and is absorbed
+
   - [ ] To prevent wave buildup, on each wave transition, expire enemies (FIFO) beyond certain cap.
-  - [ ] Interesting idea for game mode:
-    - Player spawns near space station, they have 2-5 minutes (can be tuned) to explore map, do incidents, kill enemy patrols, gather blocks - This is the gather phase.  When gather phase ends they should return to space station.  They can use entropium to build up the space station, and then they fight off waves of enemies as the station.  After the wave is destroyed, they return back to gather phase and repeat??  This becomes now a tower defense / vampire survivors gathering hybrid.
-  - [ ] Fix ShipCreationAnimationController:
-    - [ ] Graphics should be gl2
-    - [ ] Instead of iterating through and doing placeblock, use the bulk place block (it's faster, but don't add the blocks to the grid?), then as each block is revealed add it to the grid, that way they won't render, but we don't have to place them all one by one, which is slow-ish.
   - [ ] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
   - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
     - [x] Move planets and background rendering to new unifiedgl2 layer. 
     - [ ] Move explosions (block explosion) to gl2
-    - [ ] Move block placement animations to gl2
+    - [x] Move block placement animations to gl2
     - [ ] Cleanup all unused canvases/layers.
-  - [x] Evaluate king's bible CPU crunch logic. (HaloBlade). Causing a decent amount of frameloss.
-  - [x] Afterburner:
-    - [x] Add distinct visual effect to thrusters (change in color maybe?)
-    - [x] Add initial burst on toggle (light flash, particle emission)
-    - [x] Add intial burst sound effect
-    - [x] Add distinct sound effect when active
-    - [x] Add meter + consumable resource
   - [ ] Controller Support: Make buttons work with D-Pad on joystick using Navlinks controlling the virtualMouse position.
     - [ ] Menu: Ergonomically abstract button elements to be accessible via controller.
     - [ ] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
-  - [ ] Create Galaxy Map
-    - [x] 3D Planets
-    - [x] Unlocked vs Locked
-    - [x] Planet opens mission
-    - [x] Cleanup bugs resolved:
-      - [x] Going into mission, entitiesgl layer is messed up, not showing overlays
-      - [x] Leaving mission and coming back to Galaxy map, rendering is static, messed up
+  - [ ] Galaxy Map
     - [ ] Completed planets have some kind of indicator/mark
     - [ ] Basic description when hovered
     - [ ] Additional Descriptions when Selected
-      - [x] Boss portrait / mission portrait
       - [ ] Description box of objectives / Unlockables
       - [ ] Alternate mission arrows with a (. . . (.) . .) tab selector at bottom.
         - [ ] Clicking on the side Arrows < > toggles between mission variants for that Location
@@ -195,64 +166,32 @@ TODOS:
   - [ ] Radar Enhancements
     - [ ] Hover over radar makes it opaque
     - [ ] Add animated "LOOK HERE!" Arrow indicators that can be triggered via event hub
-    - [ ] Player ship brighter, or blinking? Either way it's transparent and shouldn't be.
-  - [x] Transition to boss music on boss fight (Add boss music to the mission registry, wavespawner will play the mission boss music)
-  - [x] BlockDropSelectionMenu Remaining Tasks:
-    - [ ] Clicking on the UI indicator for the BlockDropSelectionMenu should open it
+  - [ ] BlockDropSelectionMenu
     - [ ] Be able to close the BlockDropSelectionMenu with ESC/Tab
     - [ ] Be able to upgrade block to the next tier by placing it on top of another block of the same type.
-    - [x] Update tutorial to explain this menu, not the old shipbuilding menu
-    - [x] Chat dialogue moves to right when shipbuilder is open
-    - [x] Show little mini spinning preview of next block in queue
-    - [x] If a block can't be autoplaced, play a notification sound, don't progress! (Blocks are getting lost)
-    - [x] Show in HUD pulsing indicator when you have blocks in queue
-    - [x] Add satisfying animation on placement (in the menu) and on refinement (in the menu)
-    - [x] Add sound effect for refinement
   - [ ] Make a cockpit backend, each selectable ship will have their own cockpit weapon.
     - [ ] Move the default cockpit1 weapon to the cockpit backend
     - [ ] Make player cockpits specific: cockpitPlayer0, cockpitPlayer1, etc.
-  - [x] Sound effect and visual effect on ship when switching firing modes
-    - [x] Tutorialization of Firing Modes
-    - [x] Switching firing mode should reset timers
   - [ ] Screen edge indicators (e.g. showing objectives on the map, minibosses, etc): compliments radar
-  - [x] Clearly give rewards on failure. E.g. Passive points:
-      - Unlockables in each mission should be shown in the debriefing, and how close you got to each.
-  - [x] Remove repairing - Instead, have green health drop pickups.  Constant repairing is a dark pattern.
-    - [x] Pickups added to game
-    - [x] Repair removed
   - [ ] Make enemy wave spawn notifications more gameified and obvious. Big warning center screen + sounds, blinking countdown, and perhaps notifications when wave spawner is paused, e.g. in an event.
-  - [ ] Lots of Random Events things to discover in a run:
-    - [ ] ADD Dialoge PAUSE functionality to the dialoguequeuemanager so that:
-      When an event is triggered, it can show it's own dialogue, and then afterwards, resume the previous dialogue.
-    - [ ] Random Events (e.g. Black Hole, Gravitational Anomaly, etc)
+  - [x] Lots of Random Events things to discover in a run:
     - [ ] Enemy Spawner: When triggered, spawns a bunch of enemies, destroying it gives reward
     - [ ] Healing beacons : destroying it drops a bunch of HP
     - [ ] Treasure goblins - chase them and destroy them for reward.
     - [ ] Shrines - Provides a bonus / boon / or bane duration Buff
     - [ ] Planet interactions
     - [ ] Miniboss triggers
-    - [ ] League mechanics? Such as: 
+    - [x] League mechanics? Such as: 
       - [ ] Time dilation field: Time moves faster in here, or slower?
-      - [ ] Enemy spawner pod. Active until destroyed
       - [ ] Explosive fuel depot: Chain reactive destructibles for battlefield control
       - [ ] Turret emplacements: Defended stations with Loot cores
-      - [ ] Contested Cache: Triggers escalating waves as you open it: Reward based on survival?
       - [ ] Entropy Spire: Pay entropium for XYZ bonus
       - [ ] Salvage Drone Convoy: Maybe marked on the map, or spawn announced. Escorted hauler with loot.
       - [ ] Ancient Data Vault: Requires collecting 3 keys scattered across the map?
-      - [ ] Cursed cargo: Opening it spawns elite squad with mods.
       - [ ] Challenge Modifier Node: Choose a challenge mod for a bonus, e.g. 30% entropium gain.
       - [ ] Orbiting Debris Field (Many asteroids)
   - [ ] Move 2d Canvas to webgl:
-    - [x] Ships
-    - [x] Planets
-    - [x] Background
-    - [x] Particles
-    - [x] Asteroids
     - [ ] ExplosionSystem
-  - [x] More UI Scaling fixes for resolution support/scaling support
-  - [x] Explore gating hull size, and having max hull size increasable via the passive tree
-    - [x] Starter ships could have implicit max hull sizes
   - [ ] Add the concept of a selectable startship
     - [ ] Upon returning to base, you are given 2 additional starter ships
     - [ ] Starter ships will have implicit bonuses per ship, e.g.
@@ -270,66 +209,20 @@ TODOS:
         text: tr`intro-briefing.line1|Greetings, Shipwright Second Class. Assessing your consciousness status...`,
       }
       ``` And then keep the other language definitions for intro-briefing.line1 in another file
-  - [x] Allow pause menu parameterization wherein the abandon mission button is greyed out during the first tutorial mission
       - [ ] Also allow Quitting directly from this menu if we're in electron
-  - [x] Clicking Resume on the pause menu does not free up input
-  - [x] Correct positioning of inPerson conversations
-  - [x] Add resolution select to settings menu
-  - [ ] Spending a passive point should have SATISFYING auditory and visual feedback
-  - [ ] Player death state
-  - [x] If ship builder menu is open during dialogue, they overlap. (Need to move dialogue right in this case)
   - [ ] Add click-to-move movement option (Instead of WASD)
-  - [x] Add warp in effect for spawning hostiles / player (maybe build up block by block dramatically?)
-  - [x] Block to block collisions
-  - [x] Make crosshair easier to see, lightup when firing or targetting an enemy
-  - [x] If the cockpit is the only remaining block on an enemy ship, it should be destroyed
-  - [x] HP bar, shield bar should be graphical and center bottom. Graphical hud needed.
-  - [x] AI Patrol State, right now all created enemies just bumrush player
   - [ ] Improve initial mission tutorial:
     - [ ] Handle block rotation, refinement, autoplace, and place explicitly (Lock buttons if needed, give blocks if needed)
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
-  - [ ] Still a problem with orphaned halo lights.
-  - [ ] Skipping briefing menu doesn't countdown all items and give you the cores IF countdown has already begun
   - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
-  - [ ] Fix setTimeout in CompositeBlockDestructionService: src/game/ship/CompositeBlockDestructionService.ts
-        Because it's using set Timeout, it continues to run even after the map is over.  Need to use update loop.
-  - [x] Hunters are not seeking the player from across the map. They seem to just be patrolling.
-  - [x] Enemy lights seem to "persist" beyond enemy death, seems to be caused by going away from window and coming back?
-  - [x] CRITICAL: While Paused, particles continue to spawn at an alarming rate, causing intense FPS drop
-  - [x] Mission result menu does not scale with resolution
-  - [x] Planet Popping in and out of view when it's nearly offscreen but not completely
-  - [x] Dialogue misaligned after tutorial at 1080p in Hub?? or was it 1440p? 
-    - [x] Reproduced on new game. Dialogue was rolling out aligned right, not aligned left.
-  - [x] Planets are different sizes and spatial coordinates in different resolutions when switching. I believe that the renderers need to re-cache the images.  Use onresolution change cb.
-  - [x] Background is different size in different resolutions
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
-  - [x] If game is paused, wavespawner becomes misaligned.  Even though displayed timer countdown pauses and resumes correctly, actual time gets thrown off.
-      E.g. if I pause on wave 1, wait a minute or so, then unpause, the waves won't spawn properly, in fact, if I pause for several minutes, and unpause, no waves spawn at all
-      - [x] Test this fix, verify by pausing on map start (after first wave has spawned, and before), waiting like 3 minutes, then unpausing and verifying all waves spawn.
-  - [x] Turret Firing Sound effect issue - redo logic of how turret SFX is played. Different turret timers causes only 1 sound to play
-  - [x] Shield Rendering regression - No longer showing shield aura circles or highlighted blocks
-  - [x] Turret firing: If a block is destroyed, the entire firing sequence is re-evaluated,
-       This is potentially inefficient, but more imporantly, it resets your firing cooldown.
-      So if you're having blocks destroyed while in combat, you might never be able to fire.
-      Turret system needs to be re-evaluated.
-  - [x] Significant performance degradation when destroying many blocks simultaneously. We need to batch this.
-  - [x] Significant performance degradation when damaging a group of blocks with Explosive lance
 
 ### Things to Explore:
   - [ ] "Town Portal" - Back to the planet? 
-  - [x] Remove passive points, have Entropium be unlock currency? Or keep passive points and use entropium for everything else?
   - [ ] Add autofire option?
-  - [x] Instead of just being able to build all blocks gated by Entropium.
-    - [x] What about: Enemies just have a chance to drop blocks. In your ship builder menu, you can only build the blocks you have.  E.g. if you loot 3 green hulls, you can build 3 green hulls, and a 3 will be over that block in the menu.
-    - [x] You can always build the low tier blocks.  This way, what weapons you get, would be kind of random each round.
-        - [x] E.g. this allows for lots of different events, treasure goblin rewards, league mechnics in a map,
-        convoys that you ambush, treasure chests, etc, that might contain nice blocks.
-    - [x] Entropium now becomes a resource you would use for things in the meta game instead, passive unlocks,
-      more upgrades, etc.
-  - [x] Add autobuild option?
 
 ### Small Things:
   - [x] Turret shots vanish too fast, they should only vanish right at the end

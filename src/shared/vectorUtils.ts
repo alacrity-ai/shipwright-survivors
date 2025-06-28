@@ -49,3 +49,13 @@ export function getRandomCoordInRadius(center: GridCoord, radius: number): GridC
     y: center.y + offsetY,
   };
 }
+
+/**
+ * Returns a coordinate exactly on the perimeter of a circle centered at `center`, at angle `theta` (in radians).
+ */
+export function getPointOnCircle(center: Vec2, radius: number, theta: number): Vec2 {
+  return {
+    x: center.x + Math.cos(theta) * radius,
+    y: center.y + Math.sin(theta) * radius,
+  };
+}

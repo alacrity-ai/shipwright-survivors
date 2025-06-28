@@ -26,6 +26,7 @@ export interface UIResourceBar {
     warningColor?: string;
     criticalColor?: string;
     animated?: boolean; // Adds subtle animation effects
+    criticalAnimation?: boolean; // Adds critical animation effects
   };
 }
 
@@ -45,6 +46,7 @@ const DEFAULT_STYLE = {
   warningColor: '#ffaa00',
   criticalColor: '#ff0040',
   animated: true,
+  criticalAnimation: true,
 };
 
 // Cache for static elements that don't change between frames
@@ -390,7 +392,7 @@ export function drawUIResourceBar(
   let pulseIntensity = 1;
   let scanlineOffset = 0;
   if (animated) {
-    if (clampedValue <= criticalThreshold) {
+    if (clampedValue <= criticalThreshold && mergedStyle.criticalAnimation) {
       pulseIntensity = 0.7 + 0.3 * Math.sin(time * 0.008);
     }
     scanlineOffset = (time * 0.02) % 4;

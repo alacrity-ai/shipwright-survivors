@@ -13,7 +13,8 @@ import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { repairAllBlocksWithHealing } from '@/systems/pickups/helpers/repairAllBlocksWithHealing';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
-
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
+import { reportPickupCollected } from '@/core/interfaces/events/PickupSpawnReporter';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
@@ -41,6 +42,7 @@ const ROTATION_SPEED = {
   currency: 1,
   block: 1,
   repair: 1,
+  quantumAttractor: 4,
 };
 
 const CULL_PADDING = 128;
@@ -71,6 +73,11 @@ export class PickupSystem {
   private static readonly PICKUP_PITCH_INCREMENT = 0.05;
   private static readonly MAX_PICKUP_PITCH = 2.2;
   private static readonly PITCH_RESET_DELAY = 3.2; // seconds
+
+  private static readonly QUANTUM_ATTRACTOR_DURATION = 4.0;
+  private static readonly QUANTUM_ATTRACTOR_RANGE_BOOST = 30000;
+  private static readonly QUANTUM_ATTRACTOR_SPEED_MULTIPLIER = 5.0;
+  private quantumAttractorActiveUntil: number | null = null;
 
   private currencyPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
   private blockPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
@@ -130,7 +137,7 @@ export class PickupSystem {
       rotation: 0,
       lightId: light.id,
       spawnTime: performance.now() / 1000,
-      ttl: 30,
+      ttl: 90,
     };
 
     this.pickups.push(newPickup);
@@ -175,11 +182,10 @@ export class PickupSystem {
     this.resourcePickups.push(newPickup);
   }
 
-
-spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
-  const lightingOrchestrator = LightingOrchestrator.getInstance();
-  const tier = getTierFromBlockId(blockType.id);
-  const color = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? '#ffffff'; // fallback to white
+  spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+    const tier = getTierFromBlockId(blockType.id);
+    const color = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? '#ffffff'; // fallback to white
 
     const light = createPointLight({
       x: position.x,
@@ -217,6 +223,63 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     this.blockPickups.push(newPickup);
   }
 
+  spawnQuantumAttractorPickup(position: { x: number; y: number }): void {
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    const light = createPointLight({
+      x: position.x,
+      y: position.y,
+      radius: 380,
+      color: '#00ffff', // cyan-blue glow to match "quantum" tone
+      intensity: 1.6,
+      life: 10000,
+      expires: true,
+    });
+
+    lightingOrchestrator.registerLight(light);
+
+    const newPickup: PickupInstance = {
+      type: {
+        id: 'quantumAttractor',
+        name: 'Quantum Attractor',
+        sprite: 'quantumAttractor',
+        category: 'quantumAttractor',
+        currencyAmount: 0,
+        repairAmount: 0,
+      },
+      position,
+      isPickedUp: false,
+      repairAmount: 0,
+      currencyAmount: 0,
+      rotation: 0,
+      lightId: light.id,
+      spawnTime: performance.now() / 1000,
+      ttl: 30,
+    };
+
+    this.pickups.push(newPickup);
+    this.resourcePickups.push(newPickup);
+  }
+
+  private isQuantumAttractorActive(): boolean {
+    return this.quantumAttractorActiveUntil !== null &&
+          performance.now() / 1000 < this.quantumAttractorActiveUntil;
+  }
+
+  private activateQuantumAttractor(): void {
+    this.quantumAttractorActiveUntil = performance.now() / 1000 + PickupSystem.QUANTUM_ATTRACTOR_DURATION;
+
+    // Optional: global feedback
+    shakeCamera(10, 3, 10);
+
+    // Optional: global sound
+    audioManager.play('assets/sounds/sfx/magic/activate.wav', 'sfx', {
+      volume: 1.0,
+      pitch: 1.0,
+      maxSimultaneous: 1,
+    });
+  }
+
   render(dt: number): void {}
 
   update(dt: number): void {
@@ -235,7 +298,14 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     const shipPosition = this.playerShip.getTransform().position;
     const baseAttractionRange = 600;
     const bonusRange = this.playerShip.getTotalHarvestRate() * PICKUP_RANGE_PER_HARVEST_UNIT;
-    const attractionRange = baseAttractionRange + bonusRange;
+    let attractionRange = baseAttractionRange + bonusRange;
+    let attractionSpeedBoost = 1.0;
+
+    if (this.isQuantumAttractorActive()) {
+      attractionRange += PickupSystem.QUANTUM_ATTRACTOR_RANGE_BOOST;
+      attractionSpeedBoost = PickupSystem.QUANTUM_ATTRACTOR_SPEED_MULTIPLIER;
+    }
+
     const attractionRangeSq = attractionRange * attractionRange;
     const pickupRadiusSq = PICKUP_RADIUS * PICKUP_RADIUS;
     const emitParticles = Math.random() < 0.2;
@@ -247,6 +317,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
     const maxY = viewport.y + viewport.height + CULL_PADDING;
 
     const now = performance.now() / 1000;
+    const shouldCull = !this.isQuantumAttractorActive();
 
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const pickup = this.pickups[i];
@@ -266,7 +337,10 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
 
       const px = pickup.position.x;
       const py = pickup.position.y;
-      if (px < minX || px > maxX || py < minY || py > maxY) continue;
+      
+      if (shouldCull) {
+        if (px < minX || px > maxX || py < minY || py > maxY) continue;
+      }
 
       pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
 
@@ -308,6 +382,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       const textureEntry = (() => {
         switch (pickup.type.category) {
           case 'currency':
+          case 'quantumAttractor':
           case 'repair':
             try {
               return getGLPickupSprite(pickup.type.id).texture;
@@ -347,6 +422,9 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
         } else if (pickup.type.category === 'block') {
           width *= BASE_BLOCK_PICKUP_SCALE;
           height *= BASE_BLOCK_PICKUP_SCALE;
+        } else if (pickup.type.category === 'quantumAttractor') {
+          width = 176;
+          height = 176;
         }
 
         GlobalSpriteRequestBus.add({
@@ -373,7 +451,7 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
 
       const normalizedDistanceSq = distSq / attractionRangeSq;
       const attractionMultiplier = Math.pow(1 - normalizedDistanceSq, PICKUP_ATTRACTION_EXPONENT);
-      const attractionSpeed = ATTRACTION_SPEED * attractionMultiplier;
+      const attractionSpeed = ATTRACTION_SPEED * attractionMultiplier * attractionSpeedBoost;
 
       const distance = Math.sqrt(distSq);
       const nx = dx / distance;
@@ -498,7 +576,10 @@ spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void
       audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', {
         maxSimultaneous: 3,
       });
-
+    } else if (pickup.type.id === 'quantumAttractor') {
+      reportPickupCollected('quantumAttractor');
+      createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#EFBF04');
+      this.activateQuantumAttractor();
     } else {
       console.warn('Unhandled pickup category or malformed pickup:', pickup);
     }

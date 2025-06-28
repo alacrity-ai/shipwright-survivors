@@ -12,8 +12,8 @@ export interface PowerupEffectMetadata {
   // Defense
   flatDamageReductionPercent?: number; // Implemented
   cockpitInvulnChance?: number; // Implemented
-  reflectOnDamagePercent?: number;
-  reflectCanCrit?: boolean;
+  reflectOnDamagePercent?: number; // Implemented
+  reflectCanCrit?: boolean; // Implemented
 
   // Regen / Utility (future)
   regenPerSecond?: number;

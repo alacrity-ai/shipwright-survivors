@@ -1,0 +1,199 @@
+// // src/game/powerups/ui/PowerupSelectionMenu.ts
+
+// import { getUniformScaleFactor } from '@/config/view';
+// import { CanvasManager } from '@/core/CanvasManager';
+// import { drawWindow } from '@/ui/primitives/WindowBox';
+// import { drawLabel } from '@/ui/primitives/UILabel';
+// import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
+// import { resolvePowerupIconSprite } from '@/game/powerups/icons/PowerupIconSpriteCache';
+// import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
+// import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
+// import { isBranchNodeWithExclusion, getExcludedBranchLabels } from '@/game/powerups/utils/PowerupTreeUtils';
+// import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
+
+// import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
+// import type { InputManager } from '@/core/InputManager';
+// import type { Menu } from '@/ui/interfaces/Menu';
+
+// export class PowerupSelectionMenu implements Menu {
+//   private canvasManager: CanvasManager;
+
+//   private open = false;
+//   private selectedNodes: PowerupNodeDefinition[] = [];
+//   private hoveredIndex: number = -1;
+
+//   // UI dimensions
+//   private windowX: number = 50;
+//   private windowY: number = 160;
+//   private windowWidth: number = 640;
+//   private windowHeight: number = 420;
+//   private rowHeight: number = 110;
+
+//   constructor(
+//     private readonly inputManager: InputManager,
+//     private readonly onSelect: (node: PowerupNodeDefinition) => void
+//   ) {
+//     this.canvasManager = CanvasManager.getInstance();
+
+//     const scale = getUniformScaleFactor();
+//     const viewportWidth = this.canvasManager.getCanvas('ui').width;
+
+//     this.windowWidth = this.windowWidth * scale;
+//     this.windowHeight = this.windowHeight * scale;
+//     this.windowX = (viewportWidth / 2) - (this.windowWidth / 2);
+//     this.windowY = this.windowY * scale;
+//     this.rowHeight = this.rowHeight * scale;
+//   }
+
+//   openMenu(): void {
+//     this.generateRandomSelection();
+//     this.hoveredIndex = -1;
+//     this.open = true;
+//   }
+
+//   closeMenu(): void {
+//     this.open = false;
+//   }
+
+//   isOpen(): boolean {
+//     return this.open;
+//   }
+
+//   isBlocking(): boolean {
+//     return true;
+//   }
+
+//   update(dt: number): void {
+//     if (!this.open) return;
+
+//     const scale = getUniformScaleFactor();
+//     const mouse = this.inputManager.getMousePosition();
+//     if (!mouse) return;
+
+//     const { x, y } = mouse;
+//     this.hoveredIndex = -1;
+    
+//     for (let i = 0; i < this.selectedNodes.length; i++) {
+
+//       const rectX = this.windowX + (10 * scale);
+//       const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
+//       const rectWidth = this.windowWidth - (20 * scale);
+//       const rectHeight = this.rowHeight;
+
+//       const rect = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
+
+//       if (isMouseOverRect(x, y, rect, 1.0)) {
+//         this.hoveredIndex = i;
+//         reportOverlayInteracting();
+//         if (this.inputManager.wasMouseClicked()) {
+//           const selected = this.selectedNodes[i];
+//           PlayerPowerupManager.getInstance().acquire(selected.id);
+//           this.onSelect(selected);
+//           this.closeMenu();
+//         }
+//         break;
+//       }
+//     }
+//   }
+
+//   render(): void {
+//     if (!this.open) return;
+
+//     const ctx = this.canvasManager.getContext('ui');
+//     const scale = getUniformScaleFactor();
+
+//     drawWindow({
+//       ctx,
+//       x: this.windowX,
+//       y: this.windowY,
+//       width: this.windowWidth,
+//       height: this.windowHeight,
+//       options: {
+//         alpha: 0.9,
+//         borderRadius: 14,
+//         borderColor: '#00ff00',
+//         backgroundGradient: {
+//           type: 'linear',
+//           stops: [
+//             { offset: 0, color: '#002200' },
+//             { offset: 1, color: '#001500' }
+//           ]
+//         }
+//       }
+//     });
+
+//     drawLabel(
+//       ctx,
+//       this.windowX + this.windowWidth * 0.5,
+//       this.windowY + (12 * scale),
+//       'Choose Upgrade!',
+//       {
+//         font: `${18 * scale}px monospace`,
+//         align: 'center',
+//         glow: true
+//       },
+//     );
+
+//     // === Render Powerup Options ===
+//     for (let i = 0; i < this.selectedNodes.length; i++) {
+//       const node = this.selectedNodes[i];
+//       const rectX = this.windowX + (10 * scale);
+//       const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
+//       const rectWidth = this.windowWidth - (20 * scale);
+//       const rectHeight = this.rowHeight;
+
+//       // Hover background
+//       if (i === this.hoveredIndex) {
+//         ctx.fillStyle = 'rgba(0, 255, 0, 0.15)';
+//         ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+//       }
+
+//       // Icon
+//       const icon = resolvePowerupIconSprite(node.icon);
+//       ctx.drawImage(icon, rectX + (8 * scale), rectY + (8 * scale), 32 * scale, 32 * scale);
+
+//       // Label
+//       drawLabel(ctx, rectX + (70 * scale), rectY + (10 * scale), node.label, {
+//         font: `${16 * scale}px monospace`,
+//         align: 'left',
+//         glow: true
+//       });
+
+//       // Description
+//       drawLabel(ctx, rectX + (70 * scale), rectY + (30 * scale), node.description, {
+//         font: `${12 * scale}px monospace`,
+//         align: 'left',
+//         glow: false
+//       });
+
+//       // === Exclusive branch warning ===
+//       if (isBranchNodeWithExclusion(node)) {
+//         const excluded = getExcludedBranchLabels(node);
+//         const warning = `⚠️ Choosing this locks out: ${excluded.join(', ')}`;
+//         drawLabel(ctx, rectX + (70 * scale), rectY + (48 * scale), warning, {
+//           font: `${12 * scale}px monospace`,
+//           align: 'left',
+//           glow: false,
+//           color: '#ff6666'
+//         });
+//       }
+//     }
+//   }
+
+//   private generateRandomSelection(): void {
+//     const manager = PlayerPowerupManager.getInstance();
+//     const acquired = manager.getAcquiredSet();
+
+//     // Compute all eligible nodes using finalized branching logic
+//     const candidates = PowerupRegistry.getEligiblePowerupNodes(acquired);
+
+//     // Randomize and choose up to 3
+//     const shuffled = [...candidates];
+//     for (let i = shuffled.length - 1; i > 0; i--) {
+//       const j = Math.floor(Math.random() * (i + 1));
+//       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+//     }
+
+//     this.selectedNodes = shuffled.slice(0, 3);
+//   }
+// }

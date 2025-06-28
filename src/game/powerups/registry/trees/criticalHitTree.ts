@@ -82,7 +82,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     metadata: {
       lifeStealOnCrit: true,
       critChance: 0.05,
-      critLifeStealPercent: 0.05
+      critLifeStealPercent: 0.025
     }
   },
   {
@@ -94,7 +94,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     parentId: 'vampirism-2',
     metadata: {
       critChance: 0.05,
-      critLifeStealPercent: 0.05,
+      critLifeStealPercent: 0.025,
     }
   },
   {
@@ -107,7 +107,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     isProcedural: true,
     scaling: {
       critChance: 0.05,
-      critLifeStealPercent: 0.05,
+      critLifeStealPercent: 0.025,
     }
   },
   {
@@ -120,7 +120,7 @@ export const criticalHitTree: PowerupNodeDefinition[] = [
     isProcedural: true,
     scaling: {
       critChance: 0.05,
-      critLifeStealPercent: 0.05,
+      critLifeStealPercent: 0.025,
     },
     capstoneAtLevel: 5
   }

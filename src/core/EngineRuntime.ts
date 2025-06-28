@@ -4,6 +4,7 @@ import { Camera } from './Camera';
 import { getViewportWidth, getViewportHeight, getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
+import { audioManager } from '@/audio/Audio';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
@@ -11,6 +12,7 @@ import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
+import { shakeCamera } from './interfaces/events/CameraReporter';
 import { spawnSpecialFx } from './interfaces/events/SpecialFxReporter';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
@@ -114,6 +116,7 @@ import { flags } from '@/game/player/PlayerFlagManager';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { testActivePowerupEffectResolver } from '@/game/powerups/test/poweruptest';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -197,6 +200,7 @@ export class EngineRuntime {
   private dynamicUpdatables: IUpdatable[] = [];
   private renderables: IRenderable[] = [];
 
+  private levelingUpAnimationTimer = 0;
   private isPaused = false;
   private isDestroyed = false;
 
@@ -272,6 +276,8 @@ export class EngineRuntime {
     // === Powerup (On level up) Menu
     this.powerupSelectionMenu = new PowerupSelectionMenu(this.inputManager, (selectedNode) => {
       this.resume();
+      this.inputManager.enableAction('pause');
+      this.inputManager.enableAction('openShipBuilder');
     });
 
     // === Block Drop Decision Menu
@@ -638,6 +644,17 @@ export class EngineRuntime {
     if (!this.isInitialized) return;
     if (this.isDestroyed) return;
 
+    // Leveling up animation (Open menu after animation completes)
+    if (this.levelingUpAnimationTimer > 0) {
+      this.levelingUpAnimationTimer -= dt;
+
+      if (this.levelingUpAnimationTimer <= 0) {
+        this.levelingUpAnimationTimer = 0;
+        this.pause();
+        this.powerupSelectionMenu.openMenu();
+      }
+    }
+
     // Clear input consumed inputs
     this.inputManager.clearConsumedActions();
 
@@ -953,8 +970,23 @@ export class EngineRuntime {
 
   public handlePlayerLevelUp() {
     console.log("Player leveled up!");
-    this.pause();
-    this.powerupSelectionMenu.openMenu();
+    this.inputManager.disableAction('pause');
+    this.inputManager.disableAction('openShipBuilder');
+    this.levelingUpAnimationTimer = 1.0;
+    this.particleManager.emitBurst(this.ship!.getTransform().position, 100, {
+      colors: ['#FFFF00', '#EFBF04', '#FFFFFF', '#C2B067'],
+      randomDirection: true,
+      speedRange: [800, 2000],
+      sizeRange: [1.0, 2.0],
+      lifeRange: [0.5, 1.0],
+      fadeOut: true,
+      light: true,
+      lightRadiusScalar: 32,
+      lightIntensity: 1.0,
+    });
+    audioManager.play('assets/sounds/sfx/debriefing/debriefing_addcores_00.wav', 'sfx', { maxSimultaneous: 10 });
+    createLightFlash(this.ship!.getTransform().position.x, this.ship!.getTransform().position.y, 800, 1.0, 0.5, '#FFFF00');
+    shakeCamera(10, 1, 10);
   }
 
   public handlePlayerVictory(timeoutMs: number = 5_000): void {

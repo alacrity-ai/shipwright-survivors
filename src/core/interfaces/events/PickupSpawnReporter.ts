@@ -2,6 +2,10 @@
 
 import { GlobalEventBus } from '@/core/EventBus';
 
+export function reportPickupCollected(typeId: string): void {
+  GlobalEventBus.emit('pickup:collected', { typeId });
+}
+
 export function spawnBlockPickup(
   x: number,
   y: number,
@@ -25,4 +29,11 @@ export function spawnRepairPickup(
   amount: number
 ): void {
   GlobalEventBus.emit('pickup:spawn:repair', { x, y, amount });
+}
+
+export function spawnQuantumAttractor(
+  x: number,
+  y: number
+): void {
+  GlobalEventBus.emit('pickup:spawn:quantumAttractor', { x, y });
 }

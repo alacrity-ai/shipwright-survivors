@@ -28,6 +28,7 @@ export type DestructionCause =
   | 'haloBlade'
   | 'self'
   | 'scripted'
+  | 'reflected'
   | 'replaced';
 
 interface BlockDestructionStep {

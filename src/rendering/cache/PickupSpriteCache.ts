@@ -1,6 +1,7 @@
 // src/rendering/cache/PickupSpriteCache.ts
 
 import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
+import { drawQuantumAttractor } from '@/rendering/cache/helpers/drawQuantumAttractor';
 
 export interface PickupSprite {
   canvas: HTMLCanvasElement;
@@ -18,7 +19,7 @@ const glSpriteCache: Map<string, GLPickupSprite> = new Map();
 // --- Sprite ID Registry ---
 
 function getAllPickupTypes(): string[] {
-  return ['currency', 'repair'];
+  return ['currency', 'repair', 'quantumAttractor'];
 }
 
 // --- Canvas Setup ---
@@ -34,6 +35,12 @@ function createBlankCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingC
 // --- Drawing Logic ---
 
 function drawProceduralPickup(typeId: string): void {
+  if (typeId === 'quantumAttractor') {
+    const canvas = drawQuantumAttractor();
+    spriteCache.set(typeId, { canvas });
+    return;
+  }
+
   const { canvas, ctx } = createBlankCanvas();
   const center = PICKUP_SIZE / 2;
 

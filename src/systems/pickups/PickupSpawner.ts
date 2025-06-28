@@ -19,7 +19,8 @@ export class PickupSpawner {
 
     GlobalEventBus.on('pickup:spawn:block', this.handleSpawnBlockPickup);
     GlobalEventBus.on('pickup:spawn:currency', this.handleSpawnCurrencyPickup);
-    GlobalEventBus.on('pickup:spawn:repair', this.handleSpawnRepairPickup); // NEW
+    GlobalEventBus.on('pickup:spawn:repair', this.handleSpawnRepairPickup);
+    GlobalEventBus.on('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor); // NEW
   }
 
   // === Event Handlers ===
@@ -68,12 +69,23 @@ export class PickupSpawner {
     this.pickupSystem.spawnRepairPickup({ x, y }, amount);
   };
 
+  private handleSpawnQuantumAttractor = ({
+    x,
+    y,
+  }: {
+    x: number;
+    y: number;
+  }): void => {
+    this.pickupSystem.spawnQuantumAttractorPickup({ x, y });
+  };
+
   // === Destruction / cleanup ===
 
   public destroy(): void {
     GlobalEventBus.off('pickup:spawn:block', this.handleSpawnBlockPickup);
     GlobalEventBus.off('pickup:spawn:currency', this.handleSpawnCurrencyPickup);
-    GlobalEventBus.off('pickup:spawn:repair', this.handleSpawnRepairPickup); // NEW
+    GlobalEventBus.off('pickup:spawn:repair', this.handleSpawnRepairPickup);
+    GlobalEventBus.off('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor);
   }
 
   // === Block destruction hooks ===
@@ -120,8 +132,8 @@ export class PickupSpawner {
     const tier = getTierFromBlockId(id);
 
     const tierToBaseValue: Record<number, number> = {
-      0: 5, 1: 10, 2: 15, 3: 25, 4: 35, 5: 40,
-      6: 45, 7: 50, 8: 60, 9: 75, 10: 80,
+      0: 10, 1: 20, 2: 35, 3: 50, 4: 75, 5: 100,
+      6: 120, 7: 120, 8: 120, 9: 120, 10: 120,
     };
 
     const base = tierToBaseValue[tier] ?? 0;

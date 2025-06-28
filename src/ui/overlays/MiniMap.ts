@@ -153,7 +153,7 @@ export class MiniMap {
     const size = Math.floor(18 * this.scale);
     
     // Check if it's a valid icon type, fallback to simple circle if not
-    const validIcons: IconType[] = ['caution', 'greenCross', 'skullAndBones'];
+    const validIcons: IconType[] = ['caution', 'greenCross', 'skullAndBones', 'treasure', 'purpleVortex', 'quantumAttractor'];
     const iconType = validIcons.includes(icon as IconType) ? icon as IconType : null;
     
     let canvas: HTMLCanvasElement;

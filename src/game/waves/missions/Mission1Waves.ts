@@ -5,8 +5,6 @@ import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 
 import { SiegeBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
-import type { CursedCargoOptions } from '@/systems/incidents/scripts/cursedCargo/CursedCargoIncident';
-
 import { randomIntFromRange } from '@/shared/mathUtils';
 import { createHourGlassFormation } from '@/systems/ai/formations/prefabs/createHourGlassFormation';
 import { createMediumWedgeFormation } from '@/systems/ai/formations/prefabs/createMediumWedgeFormation';
@@ -267,6 +265,10 @@ export const waveDefinitions: WaveDefinition[] = [
       speedHuntersFormation
     ],
     incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'QuantumBoomIncident',
+      },
       {
         spawnChance: 1.0,
         script: 'CursedCargoIncident',

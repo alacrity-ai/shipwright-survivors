@@ -8,7 +8,7 @@ import type { InputManager } from '@/core/InputManager';
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
 
 import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
-import { reportOverlayInteracting, reportOverlayNotInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
+import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { brightenColor } from '@/shared/colorUtils';

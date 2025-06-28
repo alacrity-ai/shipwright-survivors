@@ -1,6 +1,6 @@
 // src/game/interfaces/types/PickupType.ts
 
-export type PickupCategory = 'currency' | 'block' | 'repair';
+export type PickupCategory = 'currency' | 'block' | 'repair' | 'quantumAttractor';
 
 export interface PickupType {
   id: string;               // Unique ID for the pickup type

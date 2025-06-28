@@ -93,6 +93,8 @@ export class PlayerExperienceBar {
       label: text,
       style: {
         barColor: glow ? '#fff861' : '#ffd700',
+        warningColor: '#f9d247',
+        criticalColor: '#ffb543',
         borderColor: glow ? '#ffeeaa' : '#ccaa55',
         backgroundColor: '#1a1300',
         glow,
@@ -103,6 +105,7 @@ export class PlayerExperienceBar {
         phosphorDecay: true,
         cornerBevel: true,
         animated: true,
+        criticalAnimation: false,
       }
     }, performance.now());
   }

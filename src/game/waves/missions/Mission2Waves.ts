@@ -363,6 +363,10 @@ export const waveDefinitions: WaveDefinition[] = [
     incidents: [
       {
         spawnChance: 1.0,
+        script: 'QuantumBoomIncident',
+      },
+      {
+        spawnChance: 1.0,
         script: 'CursedCargoIncident',
         options: cursedCargoTier2Params,
       },

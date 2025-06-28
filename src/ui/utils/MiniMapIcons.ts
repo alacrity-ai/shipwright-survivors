@@ -5,7 +5,8 @@ export type IconType =
 'greenCross' | 
 'skullAndBones' | 
 'treasure' |
-'purpleVortex';
+'purpleVortex' |
+'quantumAttractor';
 
 export class MiniMapIcons {
   /**
@@ -37,11 +38,48 @@ export class MiniMapIcons {
       case 'purpleVortex':
         this.drawPurpleVortexIcon(ctx, size);
         break;
+      case 'quantumAttractor':
+        this.drawQuantumAttractorIcon(ctx, size);
+        break;
     }
 
     return canvas;
   }
   
+  private static drawQuantumAttractorIcon(ctx: CanvasRenderingContext2D, size: number): void {
+    const center = size / 2;
+    const radius = size * 0.4;
+
+    // === Hexagon ===
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(Math.PI / 6); // flat-topped orientation
+
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI * 2 / 6) * i;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = size * 0.12;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    // === Central dot (core nucleus) ===
+    ctx.beginPath();
+    ctx.fillStyle = '#33ffff';
+    ctx.arc(center, center, size * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   private static drawCautionIcon(ctx: CanvasRenderingContext2D, size: number): void {
     const center = size / 2;
     const radius = size * 0.4;
