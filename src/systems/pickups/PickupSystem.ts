@@ -254,7 +254,7 @@ export class PickupSystem {
       rotation: 0,
       lightId: light.id,
       spawnTime: performance.now() / 1000,
-      ttl: 30,
+      ttl: 999,
     };
 
     this.pickups.push(newPickup);

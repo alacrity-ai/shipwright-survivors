@@ -151,8 +151,7 @@ export class CombatService {
 
     // If crit, determine lifesteal amount
     if (isCriticalHit && lifeStealOnCrit && isSourceShip) {
-      const lifestealAmount = Math.floor(damage * critLifeStealPercent);
-      console.log('[Lifestealing] lifestealAmount', lifestealAmount);
+      const lifestealAmount = Math.max(Math.floor(damage * critLifeStealPercent), 1);
       repairBlockViaLifesteal(source, lifestealAmount, this.shipBuilderEffects);
     }
 
@@ -271,7 +270,7 @@ export class CombatService {
       file: 'assets/sounds/sfx/explosions/explosion_00.wav',
       channel: 'sfx',
       baseVolume: 1.0,
-      pitchRange: [0.7, 1.0],
+      pitchRange: [1.0, 1.2],
       volumeJitter: 0.2,
       maxSimultaneous: 3,
     });
@@ -291,7 +290,7 @@ export class CombatService {
           file: 'assets/sounds/sfx/explosions/explosion_01.wav',
           channel: 'sfx',
           baseVolume: 0.8,
-          pitchRange: [0.7, 1.0],
+          pitchRange: [1.0, 1.2],
           volumeJitter: 0.2,
         });
 
@@ -360,7 +359,7 @@ export class CombatService {
             file: 'assets/sounds/sfx/explosions/explosion_01.wav',
             channel: 'sfx',
             baseVolume: 0.8,
-            pitchRange: [0.7, 1.0],
+            pitchRange: [1.0, 1.2],
             volumeJitter: 0.2,
           });
         }

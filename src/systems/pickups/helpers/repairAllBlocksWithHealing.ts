@@ -64,7 +64,7 @@ export function repairRandomBlockWithHealing(
     if (isLifeSteal) {
       const shipPos = ship.getTransform().position;
       createLightFlash(shipPos.x, shipPos.y, 600, 1.2, 0.7, '#ff3333');
-      const pitch = randomInRange(0.8, 1.2);
+      const pitch = randomInRange(1.1, 1.4);
       audioManager.play('assets/sounds/sfx/magic/magic_poof.wav', 'sfx', { pitch, maxSimultaneous: 3 });
     }
 

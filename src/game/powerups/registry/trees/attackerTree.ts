@@ -13,8 +13,8 @@ export const attackerTree: PowerupNodeDefinition[] = [
     parentId: null,
     exclusiveBranchKey: 'attacker',
     metadata: {
-      baseDamageMultiplier: 0.15,
-      fireRateMultiplier: 0.1
+      baseDamageMultiplier: 0.20,
+      fireRateMultiplier: 0.15
     }
   },
 
@@ -27,7 +27,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'attacker-1',
     metadata: {
-      fireRateMultiplier: 0.1
+      fireRateMultiplier: 0.15
     }
   },
   {
@@ -38,7 +38,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'rapid-fire-2',
     metadata: {
-      fireRateMultiplier: 0.1
+      fireRateMultiplier: 0.15
     }
   },
   {
@@ -50,7 +50,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     parentId: 'rapid-fire-3',
     isProcedural: true,
     scaling: {
-      fireRateMultiplier: 0.1
+      fireRateMultiplier: 0.15
     }
   },
   {
@@ -62,7 +62,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     parentId: 'rapid-fire-4',
     isProcedural: true,
     scaling: {
-      fireRateMultiplier: 0.1
+      fireRateMultiplier: 0.15
     },
     capstoneAtLevel: 5
   },
@@ -76,7 +76,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'attacker-1',
     metadata: {
-      baseDamageMultiplier: 0.15
+      baseDamageMultiplier: 0.20
     }
   },
   {
@@ -87,7 +87,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     category: 'attacker',
     parentId: 'deadly-damage-2',
     metadata: {
-      baseDamageMultiplier: 0.15
+      baseDamageMultiplier: 0.20
     }
   },
   {
@@ -99,7 +99,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     parentId: 'deadly-damage-3',
     isProcedural: true,
     scaling: {
-      baseDamageMultiplier: 0.15
+      baseDamageMultiplier: 0.20
     }
   },
   {
@@ -111,7 +111,7 @@ export const attackerTree: PowerupNodeDefinition[] = [
     parentId: 'deadly-damage-4',
     isProcedural: true,
     scaling: {
-      baseDamageMultiplier: 0.15
+      baseDamageMultiplier: 0.20
     },
     capstoneAtLevel: 5
   }

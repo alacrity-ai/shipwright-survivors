@@ -123,8 +123,8 @@ export class HeatSeekerBackend implements WeaponBackend {
       playSpatialSfx(ship, ShipRegistry.getInstance().getPlayerShip(), {
         file: 'assets/sounds/sfx/weapons/missile_00.wav',
         channel: 'sfx',
-        baseVolume: 0.85,
-        pitchRange: [0.95, 1.1],
+        baseVolume: 0.75,
+        pitchRange: [1.0, 1.25],
         volumeJitter: 0.05,
         maxSimultaneous: 5,
       });

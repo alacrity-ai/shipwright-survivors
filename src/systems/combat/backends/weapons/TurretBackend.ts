@@ -197,15 +197,15 @@ private spawnTurretProjectile(
     vy += aimY * correction;
   }
 
-  if (this.fireSoundTimer > 5) {
+  if (this.fireSoundTimer > 4) {
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     playSpatialSfx(ship, playerShip, {
-      file: 'assets/sounds/sfx/weapons/turret_00.wav',
+      file: 'assets/sounds/sfx/weapons/turret_03.wav',
       channel: 'sfx',
       pitchRange: [0.7, 1.4],
       volumeJitter: 0.2,
       baseVolume: 1.0,
-      maxSimultaneous: 7,
+      maxSimultaneous: 10,
     });
     this.fireSoundTimer = 0;
   }

@@ -126,8 +126,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       playSpatialSfx(ship, playerShip, {
         file: 'assets/sounds/sfx/weapons/lance_00.wav',
         channel: 'sfx',
-        baseVolume: 0.8,
-        pitchRange: [0.8, 1.2],
+        baseVolume: 0.7,
+        pitchRange: [1.0, 1.3],
         volumeJitter: 0.1,
         maxSimultaneous: 3,
       });
@@ -265,8 +265,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               playSpatialSfx(playerShip, ship, {
                 file: 'assets/sounds/sfx/weapons/lance_01.wav',
                 channel: 'sfx',
-                baseVolume: 0.9,
-                pitchRange: [0.8, 1.2],
+                baseVolume: 0.85,
+                pitchRange: [1.0, 1.3],
                 volumeJitter: 0.1,
                 maxSimultaneous: 5,
               });
