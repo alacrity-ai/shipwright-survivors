@@ -148,7 +148,7 @@ TODOS:
   - [ ] Verify ship select menu isn't leaking resources in any way
   - [ ] Further enhancements:
     - [ ] Add ship skill trees (nodes purchaseable by cores).  Support X shapes, Y shapes etc.  Decision trees.
-    - [ ] Add ship color customization (Backend already present) in ship select menu
+    - [x] Add ship color customization (Backend already present) in ship select menu
 
   - [x] Levelup Menu
     - [x] Consume mouse input (No fire after selecting an option)
@@ -231,6 +231,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] If you levelup, and then get enough EXP for another levelup during the delay (before the levelup window pops up), you lose the powerup choice from the first levelup.  We need to queue all the levelups to make sure you get all the choices. This can be easy, just keep track of total powerups, and if you don't have as many as you do levels, then reopen the menu on close.
   - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.

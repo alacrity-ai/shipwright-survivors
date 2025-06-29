@@ -1,5 +1,7 @@
 // src/game/player/PlayerShipCollection.ts
 
+import { ShipColorPreset } from '@/game/ship/utils/shipColorHelpers';
+
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
 
 /**
@@ -14,6 +16,8 @@ export class PlayerShipCollection {
   private discoveredShipNames: Set<string> = new Set();
   private unlockedShipNames: Set<string> = new Set();
 
+  private selectedColor: ShipColorPreset = ShipColorPreset.White;
+
   private constructor() {}
 
   static getInstance(): PlayerShipCollection {
@@ -23,7 +27,7 @@ export class PlayerShipCollection {
     return PlayerShipCollection.instance;
   }
 
-  // === Active ship management ===
+  // === Active Ship Management ===
 
   setActiveShip(ship: CollectableShipDefinition): void {
     this.activeShip = ship;
@@ -44,7 +48,6 @@ export class PlayerShipCollection {
   discover(shipName: string): void {
     if (!this.discoveredShipNames.has(shipName)) {
       this.discoveredShipNames.add(shipName);
-      // missionResultStore.addShipDiscovery(shipName); // TODO: This should be handled in the mission runtime
     }
   }
 
@@ -74,6 +77,23 @@ export class PlayerShipCollection {
     return Array.from(this.unlockedShipNames);
   }
 
+  // === Color Preference ===
+
+  public setSelectedColor(color: ShipColorPreset): void {
+    this.selectedColor = color;
+  }
+
+  public getSelectedColor(): ShipColorPreset {
+    return this.selectedColor;
+  }
+
+  public cycleSelectedColor(direction: 1 | -1 = 1): void {
+    const values = Object.values(ShipColorPreset);
+    const currentIndex = values.indexOf(this.selectedColor);
+    const nextIndex = (currentIndex + direction + values.length) % values.length;
+    this.selectedColor = values[nextIndex] as ShipColorPreset;
+  }
+
   // === Admin / Dev Cheats ===
 
   unlockAll(shipNames: string[]): void {
@@ -86,6 +106,7 @@ export class PlayerShipCollection {
   reset(): void {
     this.discoveredShipNames.clear();
     this.unlockedShipNames.clear();
+    this.selectedColor = ShipColorPreset.White;
   }
 
   destroy(): void {
@@ -98,15 +119,27 @@ export class PlayerShipCollection {
     return JSON.stringify({
       discovered: Array.from(this.discoveredShipNames),
       unlocked: Array.from(this.unlockedShipNames),
+      selectedColor: this.selectedColor,
     });
   }
 
   public fromJSON(json: string): void {
     try {
       const parsed = JSON.parse(json);
-      if (parsed && Array.isArray(parsed.discovered) && Array.isArray(parsed.unlocked)) {
+      if (
+        parsed &&
+        Array.isArray(parsed.discovered) &&
+        Array.isArray(parsed.unlocked)
+      ) {
         this.discoveredShipNames = new Set(parsed.discovered);
         this.unlockedShipNames = new Set(parsed.unlocked);
+
+        if (
+          typeof parsed.selectedColor === 'string' &&
+          parsed.selectedColor in ShipColorPreset
+        ) {
+          this.selectedColor = parsed.selectedColor as ShipColorPreset;
+        }
       } else {
         console.warn('[PlayerShipCollection] Malformed JSON input');
       }

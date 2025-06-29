@@ -4,13 +4,28 @@ import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
+import { handleButtonInteraction, drawButton, type UIButton } from '@/ui/primitives/UIButton';
 import type { InputManager } from '@/core/InputManager';
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
-
 import { PreviewShipComponent } from './components/PreviewShipComponent';
 import { ShipSelectionGridComponent } from './components/ShipSelectionGridComponent';
 import { EquippedArtifactsComponent } from './components/EquippedArtifactsComponent';
 import { ShipDetailsComponent } from './components/ShipDetailsComponent';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+
+const crtStyle = {
+  borderRadius: 10,
+  alpha: 0.85,
+  borderColor: '#00ff00',
+  textFont: `18px monospace`,
+  backgroundGradient: {
+    type: 'linear' as const,
+    stops: [
+      { offset: 0, color: '#002200' },
+      { offset: 1, color: '#001500' }
+    ]
+  }
+};
 
 export class ShipSelectionMenu {
   private canvasManager: CanvasManager;
@@ -21,6 +36,9 @@ export class ShipSelectionMenu {
   private windowY: number;
   private windowWidth: number;
   private windowHeight: number;
+
+  private colorLeftButton: UIButton;
+  private colorRightButton: UIButton;
 
   // Owned components
   private previewComponent: PreviewShipComponent;
@@ -43,12 +61,61 @@ export class ShipSelectionMenu {
     this.windowX = (viewportWidth / 2) - (this.windowWidth / 2);
     this.windowY = (viewportHeight / 2) - (this.windowHeight / 2);
 
+    // Initialize color buttons
+    const arrowWidth = 24;
+    const arrowHeight = 24;
+    const labelWidth = 10 * scale;
+    const spacing = 12 * scale;
+    const totalWidth = arrowWidth + spacing + labelWidth + spacing + arrowWidth;
+
+    const centerX = viewportWidth / 2;
+    const baseX = centerX - totalWidth / 2;
+    const baseY = this.windowY + this.windowHeight - (arrowHeight + 48 * scale);
+
+    this.colorLeftButton = {
+      x: baseX,
+      y: baseY,
+      width: arrowWidth,
+      height: arrowHeight,
+      label: '←',
+      isHovered: false,
+      wasHovered: false,
+      onClick: () => {
+        const collection = PlayerShipCollection.getInstance();
+        collection.cycleSelectedColor(-1);
+        this.previewComponent.updateColor();
+      },
+      style: {
+        ...crtStyle,
+        textFont: `18px monospace`
+      }
+    };
+
+    this.colorRightButton = {
+      x: baseX + arrowWidth + spacing + labelWidth + spacing,
+      y: baseY,
+      width: arrowWidth,
+      height: arrowHeight,
+      label: '→',
+      isHovered: false,
+      wasHovered: false,
+      onClick: () => {
+        const collection = PlayerShipCollection.getInstance();
+        collection.cycleSelectedColor(1);
+        this.previewComponent.updateColor();
+      },
+      style: {
+        ...crtStyle,
+        textFont: `18px monospace`
+      }
+    };
+
     // Instantiate components
     this.previewComponent = new PreviewShipComponent();
     this.gridComponent = new ShipSelectionGridComponent(inputManager);
     this.artifactsComponent = new EquippedArtifactsComponent();
     this.detailsComponent = new ShipDetailsComponent();
-  }
+  } 
 
   getSelectedShip(): CollectableShipDefinition | null {
     return this.gridComponent.getSelectedShip();
@@ -62,6 +129,15 @@ export class ShipSelectionMenu {
       this.detailsComponent.setShip(selected);
     }
 
+    // Color button logic
+    const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
+    const clicked = this.inputManager.wasMouseClicked();
+    const scale = getUniformScaleFactor();
+
+    handleButtonInteraction(this.colorLeftButton, mouseX, mouseY, clicked, scale);
+    handleButtonInteraction(this.colorRightButton, mouseX, mouseY, clicked, scale);
+
+    // Update components
     this.previewComponent.update(dt);
     this.gridComponent.update();
     this.artifactsComponent.update();
@@ -121,6 +197,24 @@ export class ShipSelectionMenu {
         }
       );
     }
+
+    // === Color Selector Buttons ===
+    drawButton(uiCtx, this.colorLeftButton, scale);
+    drawButton(uiCtx, this.colorRightButton, scale);
+
+    // === Center Label ===
+    const spacing = 36 * scale;
+    const labelCenterX =
+      this.colorRightButton.x + this.colorRightButton.width + spacing
+    const labelCenterY = this.colorLeftButton.y + (this.colorLeftButton.height / 2);
+
+    const color = PlayerShipCollection.getInstance().getSelectedColor();
+    console.log('[Color Selection] Selected color:', color);
+    drawLabel(uiCtx, labelCenterX, labelCenterY, 'Body Color', {
+      font: `${12 * scale}px monospace`,
+      align: 'left',
+      color: color || '#ffffff'
+    });
 
     // === Components ===
     this.previewComponent.render(uiCtx);

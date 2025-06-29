@@ -13,6 +13,9 @@ export class PreviewShip {
   private readonly blocks = new Map<string, BlockInstance>();
   private readonly blockToCoordMap = new Map<BlockInstance, GridCoord>();
   private readonly transform: BlockEntityTransform;
+  
+  private blockColor: string | null = null;
+  private blockColorIntensity: number = 0.5;
 
   constructor(
     initialBlocks: [GridCoord, BlockInstance][] = [],
@@ -91,6 +94,23 @@ export class PreviewShip {
     this.clearAllBlocks();
     this.transform.position = { x: 0, y: 0 };
     this.transform.rotation = 0;
+  }
+
+  // --- Color customization (RGBA)
+  public setBlockColor(color: string | null): void {
+    this.blockColor = color;
+  }
+
+  public getBlockColor(): string | null {
+    return this.blockColor;
+  }
+
+  public setBlockColorIntensity(intensity: number): void {
+    this.blockColorIntensity = intensity;
+  }
+
+  public getBlockColorIntensity(): number {
+    return this.blockColorIntensity;
   }
 
   /** Loads preview ship structure and transform from JSON representation */

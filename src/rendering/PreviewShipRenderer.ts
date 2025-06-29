@@ -1,7 +1,5 @@
 // src/rendering/PreviewShipRendererGL.ts
 
-// TODO : This needs to be migrated to GL2
-
 import type { PreviewShip } from '@/game/ship/PreviewShip';
 import { BLOCK_SIZE } from '@/config/view';
 import { getDamageLevel, getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
@@ -34,7 +32,6 @@ export class PreviewShipRendererGL {
   constructor() {
     this.gl = CanvasManager.getInstance().getWebGL2Context('gl2fx');
 
-    // TODO : Still using old shaders
     this.program = createProgramFromSources(this.gl, VERT_SHADER_SRC, FRAG_SHADER_SRC);
     this.quadBuffer = createQuadBuffer(this.gl);
 
@@ -53,6 +50,9 @@ export class PreviewShipRendererGL {
       uBlockScale: this.gl.getUniformLocation(this.program, 'uBlockScale'),
       uCollisionColor: this.gl.getUniformLocation(this.program, 'uCollisionColor'),
       uUseCollisionColor: this.gl.getUniformLocation(this.program, 'uUseCollisionColor'),
+      uBlockColor: this.gl.getUniformLocation(this.program, 'uBlockColor'),
+      uBlockColorIntensity: this.gl.getUniformLocation(this.program, 'uBlockColorIntensity'),
+      uUseBlockColor: this.gl.getUniformLocation(this.program, 'uUseBlockColor'),
     };
   }
 
@@ -78,18 +78,15 @@ export class PreviewShipRendererGL {
   public render(previewShip: PreviewShip, deltaTime: number): void {
     const { gl } = this;
     const time = performance.now() / 1000;
-
     this.spinAngle += deltaTime * 0.4;
 
     const canvasW = gl.canvas.width;
     const canvasH = gl.canvas.height;
 
-    // === Step 1: Get ship transform and center the projection on it ===
     const transform = previewShip.getTransform();
     this.updateProjectionMatrix(transform.position.x, transform.position.y);
     this.updateViewMatrix();
 
-    // === Step 2: GL setup ===
     gl.viewport(0, 0, canvasW, canvasH);
     gl.useProgram(this.program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
@@ -100,7 +97,6 @@ export class PreviewShipRendererGL {
     gl.uniformMatrix4fv(this.uniforms.uViewMatrix, false, this.viewMatrix);
     gl.uniform1f(this.uniforms.uTime, time);
 
-    // === Step 3: Compose model matrix (rotation + scale only) ===
     const scale = typeof transform.scale === 'number'
       ? { x: transform.scale, y: transform.scale }
       : transform.scale ?? { x: 1, y: 1 };
@@ -108,10 +104,22 @@ export class PreviewShipRendererGL {
     const rotationMatrix = createRotationMatrix(this.spinAngle);
     const scaleMatrix = createScaleMatrix(scale.x, scale.y);
     const modelMatrix = multiplyMatrices(rotationMatrix, scaleMatrix);
-
     gl.uniformMatrix4fv(this.uniforms.uModelMatrix, false, modelMatrix);
 
-    // === Step 4: Draw blocks ===
+    const colorOverride = previewShip.getBlockColor?.();
+    const intensity = previewShip.getBlockColorIntensity?.() ?? 0.5;
+
+    if (colorOverride) {
+      const r = parseInt(colorOverride.slice(1, 3), 16) / 255;
+      const g = parseInt(colorOverride.slice(3, 5), 16) / 255;
+      const b = parseInt(colorOverride.slice(5, 7), 16) / 255;
+      gl.uniform3f(this.uniforms.uBlockColor, r, g, b);
+      gl.uniform1f(this.uniforms.uBlockColorIntensity, intensity);
+      gl.uniform1i(this.uniforms.uUseBlockColor, 1);
+    } else {
+      gl.uniform1i(this.uniforms.uUseBlockColor, 0);
+    }
+
     for (const [coord, block] of previewShip.getAllBlocks()) {
       if (block.hidden) continue;
 
@@ -134,6 +142,7 @@ export class PreviewShipRendererGL {
       gl.uniform1f(this.uniforms.uSheenStrength, sheen);
       gl.uniform1f(this.uniforms.uEnergyPulse, 0.0);
       gl.uniform3f(this.uniforms.uChargeColor, 0, 0, 0);
+      gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
 
       gl.uniform1i(this.uniforms.uTexture, 0);
       gl.activeTexture(gl.TEXTURE0);
@@ -148,12 +157,11 @@ export class PreviewShipRendererGL {
       }
     }
 
-    // === Step 5: Cleanup ===
     gl.disableVertexAttribArray(this.attribs.position);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.useProgram(null);
   }
-  
+
   destroy(): void {
     const { gl } = this;
     if (!gl.isProgram(this.program)) return;

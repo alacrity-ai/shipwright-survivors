@@ -33,7 +33,7 @@ export abstract class CompositeBlockObject {
   protected collidingUntil: number = 0;
 
   protected blockColor: string | null = null;
-  protected blockColorIntensity: number = 0.5; // NEW!
+  protected blockColorIntensity: number = 0.5;
 
   private _lastTransformCheckX: number = NaN;
   private _lastTransformCheckY: number = NaN;

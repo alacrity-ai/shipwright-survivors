@@ -7,6 +7,8 @@ import { PreviewShipRendererGL } from '@/rendering/PreviewShipRenderer';
 import { loadJson } from '@/shared/jsonLoader';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { getUniformScaleFactor } from '@/config/view';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { applyShipColorPreset } from '@/game/ship/utils/shipColorHelpers';
 
 const DEFAULT_POSITION = { x: 0, y: 0 }; // Can be overridden if you want center alignment
 const PREVIEW_SCALE = 2.00 * getUniformScaleFactor(); // Adjustable per layout fit
@@ -29,6 +31,7 @@ export class PreviewShipComponent {
       const jsonPath = getAssetPath(`assets/ships/${shipDef.filepath}.json`);
       const serialized = await loadJson(jsonPath);
       const previewShip = createPreviewShip(serialized, DEFAULT_POSITION.x, DEFAULT_POSITION.y, PREVIEW_SCALE);
+      applyShipColorPreset(previewShip, PlayerShipCollection.getInstance().getSelectedColor());
 
       this.currentShip = previewShip;
       this.currentShipId = shipDef.filepath;
@@ -36,6 +39,12 @@ export class PreviewShipComponent {
       console.warn('[PreviewShipComponent] Failed to load ship JSON:', shipDef.filepath, err);
       this.currentShip = null;
     }
+  }
+
+  public updateColor(): void {
+    if (!this.currentShip) return;
+    console.log('[PreviewShipComponent] Updating color');
+    applyShipColorPreset(this.currentShip, PlayerShipCollection.getInstance().getSelectedColor());
   }
 
   public update(deltaTime: number): void {

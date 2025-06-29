@@ -53,6 +53,10 @@ export const FRAG_SHADER_SRC = `
   uniform vec3 uCollisionColor;
   uniform bool uUseCollisionColor;
 
+  // === NEW UNIFORMS FOR BLOCK COLORING ===
+  uniform vec3 uBlockColor;
+  uniform float uBlockColorIntensity;
+  uniform bool uUseBlockColor;
 
   void main() {
     vec4 base = texture2D(uTexture, vUV);
@@ -62,49 +66,37 @@ export const FRAG_SHADER_SRC = `
     vec2 centeredUV = vUV - 0.5;
     float dist = length(centeredUV);
     
-    // Smoother, slower pulse that radiates outward
     float wavePhase = uTime * 3.0 - dist * 8.0;
     float pulse = sin(wavePhase) * 0.5 + 0.5;
-    pulse = pow(pulse, 2.0); // Square for sharper peaks
+    pulse = pow(pulse, 2.0);
     
-    // Better falloff with more control
     float innerRadius = 0.1;
     float outerRadius = 0.4;
     float falloff = 1.0 - smoothstep(innerRadius, outerRadius, dist);
-    falloff = pow(falloff, 1.5); // More concentrated near center
+    falloff = pow(falloff, 1.5);
     
     float energy = pulse * falloff * uEnergyPulse;
     base.rgb += uChargeColor * energy * 0.8;
 
     // === Pulsating Glow ===
-    // Slower, smoother breathing effect
     float breathe = sin(uTime * 2.5) * 0.3 + 0.7;
-    breathe = smoothstep(0.4, 1.0, breathe); // Smoother transitions
+    breathe = smoothstep(0.4, 1.0, breathe);
     base.rgb += base.rgb * uGlowStrength * breathe * 0.3;
 
     // === Metallic Sheen ===
     if (uSheenStrength > 0.0) {
-      // Subtle metallic surface enhancement
-      vec2 centeredUV = vUV - 0.5;
-      float dist = length(centeredUV);
-      
-      // Gentle radial gradient for metallic reflection
       float radialFalloff = 1.0 - smoothstep(0.0, 0.7, dist);
       radialFalloff = pow(radialFalloff, 0.8);
-      
-      // Add some texture variation to break up uniformity
       float noise = sin(vUV.x * 12.0) * sin(vUV.y * 8.0) * 0.1 + 0.9;
-      
-      // Combine for subtle metallic enhancement
       float metallic = radialFalloff * noise;
-      
-      // Boost the existing color with metallic qualities
-      // Increase contrast and add slight blue tint
       vec3 metallicColor = base.rgb * 1.2 + vec3(0.05, 0.05, 0.1);
       base.rgb = mix(base.rgb, metallicColor, uSheenStrength * metallic * 0.3);
-      
-      // Add subtle specular-like brightness
       base.rgb += uSheenStrength * metallic * 0.15;
+    }
+
+    // === Block Color Override ===
+    if (uUseBlockColor) {
+      base.rgb = mix(base.rgb, base.rgb * uBlockColor, uBlockColorIntensity);
     }
 
     // === Collision Red Override ===
