@@ -25,6 +25,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     passiveReward: 0,
     missionPortrait: null,
     requiredFlag: 'mission.mission_001.unlocked',
+    music: {
+      file: null,
+    }
   },
   mission_001: {
     id: 'mission_001',

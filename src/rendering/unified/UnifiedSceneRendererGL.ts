@@ -336,6 +336,10 @@ export class UnifiedSceneRendererGL {
     this.specialFxPass.destroy();
     this.specialFxController.destroy();
 
+    this.spriteGroups.clear();
+    this.postProcessEffects.clear();
+    this.backgroundPostProcessEffects.clear();
+
     GlobalEventBus.off('resolution:changed', this.onResolutionChanged);
     GlobalEventBus.off('postprocess:effect:set', this.onPostProcessEffectsSet);
     GlobalEventBus.off('postprocess:effect:add', this.onPostProcessEffectAdd);

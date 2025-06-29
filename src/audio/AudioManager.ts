@@ -5,7 +5,7 @@ import { getAssetPath } from '@/shared/assetHelpers';
 export type AudioChannel = 'music' | 'sfx' | 'dialogue';
 
 export interface MusicTrack {
-  file: string;
+  file: string | null;
   loopStartMs?: number;
 }
 
@@ -250,6 +250,13 @@ export class AudioManager {
       }
 
       this.stopMusic(); // Clean up current music source
+
+      // If null was passed in, just clear the file
+      if (!file) {
+        this.currentMusicFile = null;
+        this.isMusicLooping = false;
+        return;
+      }
 
       let buffer = this.bufferCache.get(file);
       if (!buffer) {

@@ -99,8 +99,6 @@ export class HubSceneManager {
       console.log('[UnlockableShipDefinition] Unlocking starter ship: SW-1 Standard Issue');
       playerShipCollection.discover('SW-1 Standard Issue');
       playerShipCollection.unlock('SW-1 Standard Issue');
-      playerShipCollection.discover('Vanguard');
-      playerShipCollection.unlock('Vanguard');
     }
 
     // Dialogue Tree
@@ -170,6 +168,20 @@ export class HubSceneManager {
     }
 
     handleButtonInteraction(this.quitButton, m.x, m.y, clicked, getUniformScaleFactor());
+
+    // TODO: DEBUG - Remove in release
+    if (this.inputManager.wasKeyJustPressed('Digit0')) {
+      const playerShipCollection = PlayerShipCollection.getInstance();
+      playerShipCollection.discover('Vanguard');
+      playerShipCollection.unlock('Vanguard');
+      playerShipCollection.discover('Monarch');
+      playerShipCollection.unlock('Monarch');
+      playerShipCollection.discover('Halo Mk I');
+      playerShipCollection.unlock('Halo Mk I');
+      playerShipCollection.discover('Godhand Prototype');
+      playerShipCollection.unlock('Godhand Prototype');
+      audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+    }
   };
 
   private render = (_dt: number) => {

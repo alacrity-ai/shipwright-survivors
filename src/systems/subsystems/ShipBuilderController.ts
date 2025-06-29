@@ -103,8 +103,8 @@ export class ShipBuilderController {
         this.shipBuilderEffects.createSellEffect(block.position!);
         this.ship.removeBlock(coord);
         audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
-        const refundCost = Math.round(blockCost / 2);
-        PlayerExperienceManager.getInstance().addEntropium(refundCost);
+        // const refundCost = Math.round(blockCost / 2);
+        // PlayerExperienceManager.getInstance().addEntropium(refundCost);
       }
     }
 
