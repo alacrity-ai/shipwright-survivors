@@ -24,43 +24,6 @@ export class PlayerResources {
     // this.currency = startingCurrency;
   }
 
-  // // === Currency ===
-  // public getCurrency(): number {
-  //   return this.currency;
-  // }
-
-  // public hasEnoughCurrency(amount: number): boolean {
-  //   return this.currency >= amount;
-  // }
-
-  // public addCurrency(amount: number): number {
-  //   if (amount <= 0) return this.currency;
-
-  //   this.currency += amount;
-  //   this.notifyCurrencyChange();
-  //   return this.currency;
-  // }
-
-  // public spendCurrency(amount: number): boolean {
-  //   if (amount <= 0) return true;
-  //   if (this.currency < amount) return false;
-
-  //   this.currency -= amount;
-  //   this.notifyCurrencyChange();
-  //   return true;
-  // }
-
-  // public onCurrencyChange(callback: (newValue: number) => void): () => void {
-  //   this.onCurrencyChangeCallbacks.add(callback);
-  //   return () => this.onCurrencyChangeCallbacks.delete(callback);
-  // }
-
-  // private notifyCurrencyChange(): void {
-  //   for (const callback of this.onCurrencyChangeCallbacks) {
-  //     callback(this.currency);
-  //   }
-  // }
-
   // === Block Queue ===
   public getMaxBlockQueueSize(): number {
     return this.maxBlockQueueSize;

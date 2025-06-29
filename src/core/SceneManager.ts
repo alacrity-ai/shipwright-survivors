@@ -10,6 +10,9 @@ import { GalaxyMapSceneManager } from '@/scenes/hub/GalaxyMapSceneManager';
 import { PassivesMenuSceneManager } from '@/scenes/hub/PassivesMenuSceneManager';
 import { BreakroomSceneManager } from '@/scenes/hub/BreakRoomSceneManager';
 import { DebriefingSceneManager } from '@/scenes/debriefing/DebriefingSceneManager';
+import { ShipSelectionSceneManager } from '@/scenes/ship_selection/ShipSelectionSceneManager';
+
+import { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 
 import { audioManager } from '@/audio/Audio';
 import { FadeManager } from '@/rendering/FadeManager';
@@ -21,9 +24,14 @@ export type Scene =
   | 'passives'
   | 'breakroom'
   | 'mission'
-  | 'debriefing';
+  | 'debriefing'
+  | 'ship-selection';
 
 type SceneListener = (scene: Scene) => void;
+
+export interface SceneOptions {
+  mission?: MissionDefinition;
+}
 
 /**
  * SceneManager controls global scene transitions between:
@@ -75,8 +83,7 @@ class SceneManager {
     this.canvasManager = null;
   }
 
-  public setScene(scene: Scene): void {
-    // Guard to stop hanging loops from persisting across scenes
+  public setScene(scene: Scene, options?: SceneOptions): void {
     audioManager.stopAllLoops();
 
     if (this.currentScene === scene) return;
@@ -154,6 +161,18 @@ class SceneManager {
         break;
       }
 
+      case 'ship-selection': {
+        const mgr = new ShipSelectionSceneManager(
+          this.ensureCanvasManager(),
+          this.gameLoop,
+          this.ensureInputManager(),
+          options?.mission ?? null // <-- inject mission if provided
+        );
+        mgr.start();
+        this.activeSceneManager = mgr;
+        break;
+      }
+
       case 'mission': {
         this.destroyTransientManagers();
         break;
@@ -180,10 +199,10 @@ class SceneManager {
     return this.inputManager;
   }
 
-  public fadeToScene(scene: Scene): void {
+  public fadeToScene(scene: Scene, options?: SceneOptions): void {
     const fadeManager = FadeManager.getInstance();
     if (fadeManager.isFadeInProgress()) return;
-    fadeManager.startFade(() => this.setScene(scene));
+    fadeManager.startFade(() => this.setScene(scene, options));
   }
 }
 

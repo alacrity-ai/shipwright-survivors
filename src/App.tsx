@@ -68,6 +68,7 @@ export default function App() {
       <canvas id="ui-canvas" />
       <canvas id="overlay-canvas" />
       <canvas id="dialogue-canvas" />
+      <canvas id="gl2fx-canvas" />
       {scene === 'mission' && <MissionRuntimeScreen />}
     </div>
   );

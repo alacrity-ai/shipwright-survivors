@@ -124,4 +124,8 @@ export class PlanetController {
   getPosition(): { x: number; y: number } {
     return { x: this.x, y: this.y };
   }
+
+  getScale(): number {
+    return this.definition.scale;
+  }
 }

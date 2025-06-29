@@ -10,6 +10,8 @@ import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
 import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { isBranchNodeWithExclusion, getExcludedBranchLabels } from '@/game/powerups/utils/PowerupTreeUtils';
 import { audioManager } from '@/audio/Audio';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
+import { CursorRenderer } from '@/rendering/CursorRenderer';
 
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
 import type { InputManager } from '@/core/InputManager';
@@ -50,8 +52,12 @@ export class PowerupSelectionMenu implements Menu {
   private CORRECTION_SPEED = 1000;
   private SELECTION_ANIMATION_DURATION = 0.8;
 
+  // Gamepad support
+  private gamepadInputLatched = false;
+
   constructor(
     private readonly inputManager: InputManager,
+    private readonly cursorRenderer: CursorRenderer,
     private readonly onSelect: (node: PowerupNodeDefinition) => void
   ) {
     this.canvasManager = CanvasManager.getInstance();
@@ -74,6 +80,10 @@ export class PowerupSelectionMenu implements Menu {
     this.state = 'initializing';
     this.transitionTimer = 0;
     this.animatedX = -this.windowWidth; // start fully offscreen left
+
+    if (this.isUsingGamepad()) {
+      this.cursorRenderer.hide();
+    }
   }
 
   closeMenu(): void {
@@ -86,6 +96,10 @@ export class PowerupSelectionMenu implements Menu {
 
   isBlocking(): boolean {
     return true;
+  }
+
+  private isUsingGamepad(): boolean {
+    return InputDeviceTracker.getInstance().getLastUsed() === 'gamepad';
   }
 
   update(dt: number): void {
@@ -117,40 +131,83 @@ export class PowerupSelectionMenu implements Menu {
         break;
 
       case 'open': {
-        const mouse = this.inputManager.getMousePosition();
-        if (!mouse) return;
+        const scale = getUniformScaleFactor();
 
-        const { x, y } = mouse;
-        const previousHovered = this.hoveredIndex;
-        this.hoveredIndex = -1;
+        if (this.isUsingGamepad()) {
+          // === Gamepad input handling ===
+          const aimY = this.inputManager.getGamepadMovementVector().y;
+          const dpadDown = this.inputManager.wasGamepadAliasJustPressed('dpadDown');
+          const dpadUp = this.inputManager.wasGamepadAliasJustPressed('dpadUp');
 
-        for (let i = 0; i < this.selectedNodes.length; i++) {
-          const rectX = this.animatedX + (10 * scale);
-          const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
-          const rectWidth = this.windowWidth - (20 * scale);
-          const rectHeight = this.rowHeight;
+          const shouldNavigateDown = aimY > 0.6 || dpadDown;
+          const shouldNavigateUp = aimY < -0.6 || dpadUp;
+          const inputActive = shouldNavigateDown || shouldNavigateUp;
 
-          const rect = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
+          if (this.hoveredIndex === -1 && this.selectedNodes.length > 0) {
+            this.hoveredIndex = 0;
+          }
 
-          if (isMouseOverRect(x, y, rect, 1.0)) {
-            if (previousHovered !== i) {
-              audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
+          if (inputActive && !this.gamepadInputLatched) {
+            if (shouldNavigateDown) {
+              this.hoveredIndex = (this.hoveredIndex + 1) % this.selectedNodes.length;
+            } else if (shouldNavigateUp) {
+              this.hoveredIndex = (this.hoveredIndex - 1 + this.selectedNodes.length) % this.selectedNodes.length;
             }
 
-            this.hoveredIndex = i;
+            audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
+            this.gamepadInputLatched = true;
+          }
 
-            if (this.inputManager.wasMouseClicked()) {
-              const selected = this.selectedNodes[i];
-              PlayerPowerupManager.getInstance().acquire(selected.id);
-              this.choice = selected;
-              this.selectedIndex = i;
-              this.state = 'selectionMade';
-              this.transitionTimer = 0;
-              audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
+          this.gamepadInputLatched = !this.inputManager.isGamepadVerticalNavigationNeutral();
+
+          const confirmPressed = this.inputManager.wasGamepadAliasJustPressed('A');
+          if (confirmPressed && this.hoveredIndex !== -1) {
+            const selected = this.selectedNodes[this.hoveredIndex];
+            PlayerPowerupManager.getInstance().acquire(selected.id);
+            this.choice = selected;
+            this.selectedIndex = this.hoveredIndex;
+            this.state = 'selectionMade';
+            this.transitionTimer = 0;
+            audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
+          }
+        } else {
+          // === Mouse input handling ===
+          const mouse = this.inputManager.getMousePosition();
+          if (!mouse) return;
+
+          const { x, y } = mouse;
+          const previousHovered = this.hoveredIndex;
+          this.hoveredIndex = -1;
+
+          for (let i = 0; i < this.selectedNodes.length; i++) {
+            const rectX = this.animatedX + (10 * scale);
+            const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
+            const rectWidth = this.windowWidth - (20 * scale);
+            const rectHeight = this.rowHeight;
+
+            const rect = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
+
+            if (isMouseOverRect(x, y, rect, 1.0)) {
+              if (previousHovered !== i) {
+                audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
+              }
+
+              this.hoveredIndex = i;
+
+              if (this.inputManager.wasMouseClicked()) {
+                const selected = this.selectedNodes[i];
+                PlayerPowerupManager.getInstance().acquire(selected.id);
+                this.choice = selected;
+                this.selectedIndex = i;
+                this.state = 'selectionMade';
+                this.transitionTimer = 0;
+                audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
+              }
+              break;
             }
-            break;
           }
         }
+
         break;
       }
 
@@ -166,6 +223,7 @@ export class PowerupSelectionMenu implements Menu {
         if (this.animatedX >= this.canvasManager.getCanvas('ui').width) {
           this.closeMenu();
           if (this.choice) {
+            this.cursorRenderer.show();
             this.onSelect(this.choice);
           }
         }

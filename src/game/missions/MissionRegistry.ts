@@ -47,6 +47,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     passiveReward: 1,
     requiredFlag: 'mission.mission_001.unlocked',
     missionPortrait: null,
+    planets: [
+      { name: 'Voidia', x: -5000, y: -6000 },
+    ],
   },
   mission_002: {
     id: 'mission_002',
@@ -68,7 +71,10 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,
     requiredFlag: 'mission.mission_002.unlocked',
-    missionPortrait: 'assets/characters/bosses/character_boss_wildjoe.png'
+    missionPortrait: 'assets/characters/bosses/character_boss_wildjoe.png',
+    planets: [
+      { name: 'Voidia', x: -5000, y: -6000 },
+    ],
   },
   mission_003_00: {
     id: 'mission_003_00',
@@ -83,8 +89,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       worldHeight: 9000,
     },
     planets: [
-      { name: 'Ferrust', x: -3000, y: 4000 },
-      { name: 'Gilipe', x: 9000, y: -4000 },
+      { name: 'Ferrust', x: -2600, y: 3000 },
+      { name: 'Gilipe', x: 3400, y: -2000 },
     ],
     enemyPower: 0.5,
     waveDensity: 0.5,

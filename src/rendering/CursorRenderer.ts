@@ -32,6 +32,8 @@ export class CursorRenderer {
   private cursorWorldPos = { x: 0, y: 0 };
   private hasInitializedCursor = false;
 
+  private isHidden = false;
+
   // Track listeners for removal
   private cursorChangeHandler = (payload: { type: CursorChangeType }) =>
     this.setCursorFromType(payload.type);
@@ -55,7 +57,7 @@ export class CursorRenderer {
   }
 
   render(): void {
-    if (!this.cursorSprite) return;
+    if (!this.cursorSprite || this.isHidden) return;
 
     const scale = getUniformScaleFactor();
     const lastUsed = InputDeviceTracker.getInstance().getLastUsed();
@@ -125,6 +127,14 @@ export class CursorRenderer {
   }
 
   // === Public API ===
+  hide() {
+    this.isHidden = true;
+  }
+
+  show() {
+    this.isHidden = false;
+  }
+
   setCursorSprite(sprite: HTMLCanvasElement) {
     this.cursorSprite = sprite;
   }

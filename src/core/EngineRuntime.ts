@@ -110,6 +110,7 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { flags } from '@/game/player/PlayerFlagManager';
 
 // Debug
@@ -274,7 +275,7 @@ export class EngineRuntime {
     });
 
     // === Powerup (On level up) Menu
-    this.powerupSelectionMenu = new PowerupSelectionMenu(this.inputManager, (selectedNode) => {
+    this.powerupSelectionMenu = new PowerupSelectionMenu(this.inputManager, this.cursorRenderer, (selectedNode) => {
       this.resume();
       this.inputManager.enableAction('pause');
       this.inputManager.enableAction('openShipBuilder');
@@ -348,6 +349,8 @@ export class EngineRuntime {
 
   public async initialize(): Promise<void> {
     // === Player Ship
+    const activeShipFilepath = PlayerShipCollection.getInstance().getActiveShipFilepath();
+
     const { ship, controller, emitter, movement, weapons, utility } = await getStarterShip(
       this.grid!,
       this.shipRegistry,
@@ -358,7 +361,7 @@ export class EngineRuntime {
       this.explosionSystem,
       this.collisionSystem,
       this.shipConstructionAnimator,
-      'player/ship_00'
+      activeShipFilepath
     );
 
     this.ship = ship

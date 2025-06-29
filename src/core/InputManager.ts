@@ -527,4 +527,14 @@ private mouseMoveHandler = (e: MouseEvent) => {
 
     return keyboardJustReleased || gamepadJustReleased;
   }
+
+  // Gamepad Passthroughs
+
+  public isGamepadVerticalNavigationNeutral(): boolean {
+    return this.gamepadManager.isVerticalNavigationNeutral();
+  }
+
+  public wasGamepadAliasJustPressed(alias: GamepadButtonAlias): boolean {
+    return this.gamepadManager.wasActionJustPressed(alias);
+  }
 }

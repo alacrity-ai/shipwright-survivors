@@ -11,7 +11,8 @@ export type CanvasLayer =
   | 'ui'
   | 'overlay'
   | 'dialogue'
-  | 'unifiedgl2';
+  | 'unifiedgl2'
+  | 'gl2fx';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
@@ -23,6 +24,7 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas',
   unifiedgl2: 'unifiedgl2-canvas',
+  gl2fx: 'gl2fx-canvas'
 };
 
 export class CanvasManager {
@@ -58,7 +60,7 @@ export class CanvasManager {
       }
 
       // === 2D Context Initialization ===
-      if (!['polygon', 'unifiedgl2'].includes(layer)) {
+      if (!['polygon', 'unifiedgl2', 'gl2fx'].includes(layer)) {
         const ctx = canvas.getContext('2d', { willReadFrequently: false });
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
@@ -95,6 +97,7 @@ export class CanvasManager {
       case 'ui': return 9;
       case 'overlay': return 10;
       case 'dialogue': return 11;
+      case 'gl2fx': return 12;
     }
   }
 
@@ -125,6 +128,8 @@ export class CanvasManager {
       this.clearWebGL2Layer(layer);
     } else if (layer === 'polygon') {
       this.clearWebGLLayer(layer);
+    } else if (layer === 'gl2fx') {
+      this.clearWebGL2Layer(layer);
     } else {
       const ctx = this.getContext(layer);
       ctx.clearRect(0, 0, getViewportWidth(), getViewportHeight());

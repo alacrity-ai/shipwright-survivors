@@ -3,6 +3,8 @@ import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+
 
 export interface SaveGameData {
   flags: string[];
@@ -11,6 +13,7 @@ export interface SaveGameData {
   passives?: any;
   metaCurrency?: any;
   version?: number;
+  ships?: string;
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
@@ -64,12 +67,11 @@ export class SaveGameManager {
       settings: PlayerSettingsManager.getInstance().toJSON(),
       passives: JSON.parse(PlayerPassiveManager.getInstance().toJSON()),
       metaCurrency: JSON.parse(PlayerMetaCurrencyManager.getInstance().toJSON()),
-      version: 1
+      ships: PlayerShipCollection.getInstance().toJSON(),
+      version: 1,
     };
 
     this.writeData(data);
-
-    // Update last save slot index
     localStorage.setItem(LAST_SAVE_SLOT_KEY, String(this.saveSlot));
   }
 
@@ -85,6 +87,9 @@ export class SaveGameManager {
     }
     if (data.metaCurrency) {
       PlayerMetaCurrencyManager.getInstance().fromJSON(JSON.stringify(data.metaCurrency));
+    }
+    if (data.ships) {
+      PlayerShipCollection.getInstance().fromJSON(data.ships);
     }
   }
 
@@ -166,6 +171,12 @@ export class SaveGameManager {
     this.writeData(data);
   }
 
+  public saveShips(): void {
+    const data = this.loadData();
+    data.ships = PlayerShipCollection.getInstance().toJSON();
+    this.writeData(data);
+  }
+
   // === LOAD METHODS ===
 
   public loadFlags(): void {
@@ -196,6 +207,13 @@ export class SaveGameManager {
     const data = this.loadData();
     if (data.metaCurrency) {
       PlayerMetaCurrencyManager.getInstance().fromJSON(JSON.stringify(data.metaCurrency));
+    }
+  }
+
+  public loadShips(): void {
+    const data = this.loadData();
+    if (data.ships) {
+      PlayerShipCollection.getInstance().fromJSON(data.ships);
     }
   }
 }

@@ -32,7 +32,7 @@ export class PreviewShipRendererGL {
   private spinAngle: number = 0;
 
   constructor() {
-    this.gl = CanvasManager.getInstance().getWebGL2Context('unifiedgl2');
+    this.gl = CanvasManager.getInstance().getWebGL2Context('gl2fx');
 
     // TODO : Still using old shaders
     this.program = createProgramFromSources(this.gl, VERT_SHADER_SRC, FRAG_SHADER_SRC);

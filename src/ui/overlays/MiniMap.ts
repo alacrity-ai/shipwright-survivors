@@ -5,8 +5,6 @@ import type { Ship } from '@/game/ship/Ship';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { PlanetSystem } from '@/game/planets/PlanetSystem';
 
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
-
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -340,11 +338,32 @@ export class MiniMap {
     ctx: CanvasRenderingContext2D,
     project: (pos: { x: number; y: number }) => { x: number; y: number }
   ): void {
+    const basePlanetWorldRadius = 256; // Match whatever a scale=1.0 planet means in world units
+
     for (const planet of this.planetSystem.getPlanets()) {
-      const pos = planet.getPosition(); // Assumes a public accessor exists
+      const scale = planet.getScale();
+      const pos = planet.getPosition();
       const screen = project(pos);
-      const markerHalfSize = Math.floor(8 * this.scale);
-      ctx.drawImage(this.planetMarker, screen.x - markerHalfSize, screen.y - markerHalfSize); // Centered
+
+      // === Determine world size of planet, then map to minimap scale
+      const planetWorldRadius = basePlanetWorldRadius * scale;
+
+      // Convert world-space radius to minimap pixels
+      const minimapPixelRadius = Math.floor(
+        (planetWorldRadius / getWorldWidth()) * (this.width - Math.floor(20 * this.scale))
+      );
+
+      const pixelRadius = Math.max(2, minimapPixelRadius); // Enforce a minimum render size
+
+      ctx.save();
+      ctx.translate(screen.x, screen.y);
+      ctx.fillStyle = '#00ffff';
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = Math.floor(6 * this.scale);
+      ctx.beginPath();
+      ctx.arc(0, 0, pixelRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 

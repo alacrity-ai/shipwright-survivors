@@ -151,6 +151,17 @@ export class GamePadManager {
     return Math.abs(v) < DEADZONE ? 0 : v;
   }
 
+  public isVerticalNavigationNeutral(): boolean {
+    const aimY = this.getLeftStick().y;
+
+    // Analog stick within deadzone, and no D-pad up/down alias was just pressed this frame
+    const stickNeutral = aimY > -0.3 && aimY < 0.3;
+    const dpadNeutral =
+      !this.wasActionJustPressed('dpadUp') && !this.wasActionJustPressed('dpadDown');
+
+    return stickNeutral && dpadNeutral;
+  }
+
   private mapButtonIndexToAlias(index: number): GamepadButtonAlias | null {
     // Standard gamepad mapping (Xbox 360/One layout)
     switch (index) {

@@ -9,6 +9,7 @@ import { audioManager } from '@/audio/Audio';
 import { getUniformScaleFactor } from '@/config/view';
 
 import { flags } from '@/game/player/PlayerFlagManager';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
@@ -92,6 +93,17 @@ export class HubSceneManager {
 
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
 
+    // Always unlock the first ship if not unlocked
+    const playerShipCollection = PlayerShipCollection.getInstance();
+    if (!playerShipCollection.isUnlocked('SW-1 Standard Issue')) {
+      console.log('[UnlockableShipDefinition] Unlocking starter ship: SW-1 Standard Issue');
+      playerShipCollection.discover('SW-1 Standard Issue');
+      playerShipCollection.unlock('SW-1 Standard Issue');
+      playerShipCollection.discover('Vanguard');
+      playerShipCollection.unlock('Vanguard');
+    }
+
+    // Dialogue Tree
     if (!flags.has('hub.introduction-1.complete')) {
       const script = getDialogueScript('hub-introduction-1', { inputManager: this.inputManager });
       if (script) {

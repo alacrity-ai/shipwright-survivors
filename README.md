@@ -135,6 +135,21 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [x] Mission1 needs a planet, and perhaps slightly shorter waves with one additional in the middle
+    - [x] Planet icon on minimap needs to scale to match world dimensions
+  - [ ] Unlockable Ship Blueprint Pickups
+  - [x] Ship Selection Menu, with Core Unlocks (After blueprint acquired)
+  - [ ] Make Additional starter ships:
+    - [x] One that starts with seeker missiles, a bit slower?
+    - [ ] One that starts with haloblade, no turrets?
+    - [ ] One that starts with explosive lance
+    - [ ] One that starts with lasers
+  - [ ] Verify that GL2 blocksprite cache is being cleared on the entityfx layer before entering runtime to avoid leaks
+  - [ ] Verify ship select menu isn't leaking resources in any way
+  - [ ] Further enhancements:
+    - [ ] Add ship skill trees (nodes purchaseable by cores).  Support X shapes, Y shapes etc.  Decision trees.
+    - [ ] Add ship color customization (Backend already present) in ship select menu
+
   - [x] Levelup Menu
     - [x] Consume mouse input (No fire after selecting an option)
     - [x] Don't allow opening of any menus or escape (probably input manager disable input)

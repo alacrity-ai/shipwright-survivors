@@ -17,6 +17,7 @@ export interface MissionResultData {
   wavesCleared: number;
   incidentsCompleted: number;
   massAchieved: number;
+  shipsDiscovered: string[];
 }
 
 class MissionResultStore {
@@ -38,6 +39,7 @@ class MissionResultStore {
       wavesCleared: 0,
       incidentsCompleted: 0,
       massAchieved: 0,
+      shipsDiscovered: [],
     };
   }
 
@@ -85,6 +87,11 @@ class MissionResultStore {
   public incrementIncidentsCompleted(by = 1) {
     this.ensureInitialized();
     this.result!.incidentsCompleted += by;
+  }
+
+  public addShipDiscovery(shipName: string) {
+    this.ensureInitialized();
+    this.result!.shipsDiscovered.push(shipName);
   }
 
   public incrementMassAchieved(totalMass: number) {
