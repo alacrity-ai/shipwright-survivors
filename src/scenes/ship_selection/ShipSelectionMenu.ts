@@ -209,7 +209,6 @@ export class ShipSelectionMenu {
     const labelCenterY = this.colorLeftButton.y + (this.colorLeftButton.height / 2);
 
     const color = PlayerShipCollection.getInstance().getSelectedColor();
-    console.log('[Color Selection] Selected color:', color);
     drawLabel(uiCtx, labelCenterX, labelCenterY, 'Body Color', {
       font: `${12 * scale}px monospace`,
       align: 'left',

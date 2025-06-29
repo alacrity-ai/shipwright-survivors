@@ -28,6 +28,7 @@ export function getUniformScaleFactor(): number {
 export function getResolutionScaleFactor(): number {
   const w = getViewportWidth();
   const h = getViewportHeight();
+  console.log('[getResolutionScaleFactor] w:', w, ' h:', h);
   if (w >= 3840) return 1.8;
   if (w >= 2560) return 1.2;
   if (h >= 1200) return 1.0;
