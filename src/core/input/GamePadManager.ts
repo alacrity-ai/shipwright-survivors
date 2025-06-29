@@ -162,6 +162,21 @@ export class GamePadManager {
     return stickNeutral && dpadNeutral;
   }
 
+  public isHorizontalNavigationNeutral(): boolean {
+    const aimX = this.getLeftStick().x;
+
+    // Analog stick within deadzone, and no D-pad left/right alias was just pressed this frame
+    const stickNeutral = aimX > -0.3 && aimX < 0.3;
+    const dpadNeutral =
+      !this.wasActionJustPressed('dpadLeft') && !this.wasActionJustPressed('dpadRight');
+
+    return stickNeutral && dpadNeutral;
+  }
+
+  public isNavigationNeutral(): boolean {
+    return this.isVerticalNavigationNeutral() && this.isHorizontalNavigationNeutral();
+  }
+
   private mapButtonIndexToAlias(index: number): GamepadButtonAlias | null {
     // Standard gamepad mapping (Xbox 360/One layout)
     switch (index) {

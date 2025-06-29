@@ -63,9 +63,15 @@ export interface EventTypes {
   // Cursor events
   'cursor:change': { type: CursorChangeType };
   'cursor:restore': undefined;
+  'cursor:hide': undefined;
+  'cursor:show': undefined;
+  // Gamepad cursor hiding (to separate logic from an actual cursor hide for cutscenes etc)
+  // Gamepad cursor hiding should be used when the gamepad is the input device and we're in a menu
+  'cursor:gamepad:hide': undefined; 
+  'cursor:gamepad:show': undefined;
 
   // UI Events
-  'ui:overlay:interacting': undefined
+  'ui:overlay:interacting': undefined;
   'ui:overlay:not-interacting': undefined;
 
   // Resolution

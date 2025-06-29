@@ -17,3 +17,31 @@ export function setCursor(type: CursorChangeType): void {
 export function restoreCursor(): void {
   GlobalEventBus.emit('cursor:restore', undefined);
 }
+
+/**
+ * Emits a cursor:hide event to hide the cursor.
+ */
+export function hideCursor(): void {
+  GlobalEventBus.emit('cursor:hide', undefined);
+}
+
+/**
+ * Emits a cursor:show event to show the cursor.
+ */
+export function showCursor(): void {
+  GlobalEventBus.emit('cursor:show', undefined);
+}
+
+/**
+ * Emits a cursor:gamepad:hide event to hide the cursor when using a gamepad.
+ */
+export function hideGamepadCursor(): void {
+  GlobalEventBus.emit('cursor:gamepad:hide', undefined);
+}
+
+/**
+ * Emits a cursor:gamepad:show event to show the cursor when using a gamepad.
+ */
+export function showGamepadCursor(): void {
+  GlobalEventBus.emit('cursor:gamepad:show', undefined);
+}

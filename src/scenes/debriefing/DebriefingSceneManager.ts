@@ -5,6 +5,7 @@ import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
 import { AnimatedLabel } from '@/ui/components/AnimatedLabel';
 import { calculateCoresEarnedDetailed } from '@/scenes/debriefing/helpers/calculateCores';
@@ -31,21 +32,12 @@ const BOX_HEIGHT = 60;
 
 type DebriefingPhase = 'reveal' | 'tally' | 'done';
 
-// // === DEBUG: Simulated mission ===
-// missionResultStore.initialize();
-// missionResultStore.get().outcome = 'victory';
-// missionResultStore.incrementBlockCollectedCount(220);
-// missionResultStore.incrementWavesCleared(3);
-// missionResultStore.incrementKillCount(100);
-// missionResultStore.addEntropium(4542);
-// missionResultStore.incrementMassAchieved(4040);
-// missionResultStore.incrementIncidentsCompleted(2);
-
 export class DebriefingSceneManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private cursorRenderer: CursorRenderer;
+  private gamepadNavManager: GamepadMenuInteractionManager;
 
   private state: DebriefingPhase = 'reveal';
 
@@ -85,6 +77,7 @@ export class DebriefingSceneManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
     this.cursorRenderer = new CursorRenderer(canvasManager, inputManager);
+    this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
 
     this.missionResult = missionResultStore.get().outcome;
 
@@ -209,12 +202,29 @@ export class DebriefingSceneManager {
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
+
+    if (this.inputManager.isUsingGamepad?.()) {
+      const btn = this.buttons[0];
+
+      this.gamepadNavManager.setNavMap([
+        {
+          gridX: 0,
+          gridY: 0,
+          screenX: btn.x + (btn.width / 2),
+          screenY: btn.y + (btn.height / 2),
+          isEnabled: true,
+        }
+      ]);
+    } else {
+      this.gamepadNavManager.clearNavMap();
+    }
   }
 
   stop() {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();
+    this.gamepadNavManager.clearNavMap();
   }
 
   private update = () => {
@@ -238,6 +248,7 @@ export class DebriefingSceneManager {
 
     const scale = getUniformScaleFactor();
     this.inputManager.updateFrame();
+    this.gamepadNavManager.update();
 
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();

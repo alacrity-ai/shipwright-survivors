@@ -434,10 +434,14 @@ export class SettingsMenu implements Menu {
 
   openMenu(): void {
     this.open = true;
+    this.inputManager.setGamepadMousemockingEnabled(true);
+    this.inputManager.setGamepadCursorOverrideEnabled(false);
   }
 
   closeMenu(): void {
     this.open = false;
+    this.inputManager.setGamepadMousemockingEnabled(true);
+    this.inputManager.setGamepadCursorOverrideEnabled(true);
   }
 
   isBlocking(): boolean {

@@ -6,7 +6,7 @@ import type { InputBinding } from '@/core/input/interfaces/InputBinding';
 export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   thrustForward:    { keys: ['KeyW'], gamepadButtons: ['leftTrigger'] },
   afterburner:      { keys: ['ShiftLeft'], gamepadButtons: ['leftBumper'] },
-  brake:            { keys: ['KeyS'], gamepadButtons: ['B'] },
+  brake:            { keys: ['KeyS'], gamepadButtons: ['leftTrigger'] },
   powerSlide:       { keys: [], gamepadButtons: [] }, // Deprecated
 
   rotateLeft:       { keys: ['KeyA'], gamepadButtons: [] },
@@ -16,7 +16,7 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
 
   firePrimary:      { keys: ['MouseLeft'], gamepadButtons: ['rightBumper'] },
   fireSecondary:    { keys: ['MouseRight'], gamepadButtons: ['rightTrigger'] },
-  fireTertiary:     { keys: ['Space'], gamepadButtons: ['leftTrigger'] },
+  fireTertiary:     { keys: ['Space'], gamepadButtons: ['B'] },
   fireQuaternary:   { keys: ['KeyC'], gamepadButtons: [] },
 
   switchFiringMode: { keys: ['KeyX'], gamepadButtons: ['X'] },
@@ -25,6 +25,9 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   select:           { keys: ['Enter'], gamepadButtons: ['A'] },
   cancel:           { keys: ['Escape'], gamepadButtons: ['B'] },
   pause:            { keys: ['Escape'], gamepadButtons: ['start'] },
+
+  zoomIn:           { keys: ['WheelUp'], gamepadButtons: ['dpadUp'] },
+  zoomOut:          { keys: ['WheelDown'], gamepadButtons: ['dpadDown'] },
 };
 
 /*

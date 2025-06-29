@@ -87,7 +87,7 @@ export function drawButton(
 
     const effectiveStops = stops.map(stop => ({
       offset: stop.offset,
-      color: disabled ? '#111' : (isHovered ? brightenColor(stop.color, 0.1) : stop.color)
+      color: disabled ? '#111' : (isHovered ? brightenColor(stop.color, 0.4) : stop.color)
     }));
 
     for (const stop of effectiveStops) {

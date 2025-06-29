@@ -121,6 +121,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   private initialize(): void {
+    this.inputManager.setGamepadCursorOverrideEnabled(false);
+
     const scaled = getUniformScaleFactor();
     const buttonSpacing = 32 * scaled;
 
@@ -328,6 +330,7 @@ export class BlockDropDecisionMenu implements Menu {
           this.hoveredButton = null;
           this.clickedButton = null;
           this.didAdvance = false;
+          this.inputManager.setGamepadCursorOverrideEnabled(true);
           this.resume();
         }
       }

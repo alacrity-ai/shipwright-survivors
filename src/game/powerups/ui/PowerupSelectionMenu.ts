@@ -12,6 +12,7 @@ import { isBranchNodeWithExclusion, getExcludedBranchLabels } from '@/game/power
 import { audioManager } from '@/audio/Audio';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
 import type { InputManager } from '@/core/InputManager';
@@ -53,7 +54,8 @@ export class PowerupSelectionMenu implements Menu {
   private SELECTION_ANIMATION_DURATION = 0.8;
 
   // Gamepad support
-  private gamepadInputLatched = false;
+  private navManager: GamepadMenuInteractionManager;
+  // private gamepadInputLatched = false; // No longer needed
 
   constructor(
     private readonly inputManager: InputManager,
@@ -61,6 +63,7 @@ export class PowerupSelectionMenu implements Menu {
     private readonly onSelect: (node: PowerupNodeDefinition) => void
   ) {
     this.canvasManager = CanvasManager.getInstance();
+    this.navManager = new GamepadMenuInteractionManager(inputManager);
   }
 
   openMenu(): void {
@@ -79,15 +82,33 @@ export class PowerupSelectionMenu implements Menu {
     this.open = true;
     this.state = 'initializing';
     this.transitionTimer = 0;
-    this.animatedX = -this.windowWidth; // start fully offscreen left
+    this.animatedX = -this.windowWidth;
+
+    const navPoints = this.selectedNodes.map((node, i) => {
+      const rectX = this.windowX + (10 * scale);
+      const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
+      const rectWidth = this.windowWidth - (20 * scale);
+      const rectHeight = this.rowHeight;
+
+      return {
+        gridX: 0,
+        gridY: i,
+        screenX: rectX + rectWidth / 2,
+        screenY: rectY + rectHeight / 2,
+        isEnabled: true,
+      };
+    });
 
     if (this.isUsingGamepad()) {
-      this.cursorRenderer.hide();
+      this.navManager.setNavMap(navPoints);
+    } else {
+      this.navManager.clearNavMap();
     }
   }
 
   closeMenu(): void {
     this.open = false;
+    this.navManager.clearNavMap();
   }
 
   isOpen(): boolean {
@@ -133,78 +154,42 @@ export class PowerupSelectionMenu implements Menu {
       case 'open': {
         const scale = getUniformScaleFactor();
 
-        if (this.isUsingGamepad()) {
-          // === Gamepad input handling ===
-          const aimY = this.inputManager.getGamepadMovementVector().y;
-          const dpadDown = this.inputManager.wasGamepadAliasJustPressed('dpadDown');
-          const dpadUp = this.inputManager.wasGamepadAliasJustPressed('dpadUp');
+        // Always update navManager (even if map is empty)
+        this.navManager.update();
 
-          const shouldNavigateDown = aimY > 0.6 || dpadDown;
-          const shouldNavigateUp = aimY < -0.6 || dpadUp;
-          const inputActive = shouldNavigateDown || shouldNavigateUp;
+        // Unified mouse/virtual-mouse interaction
+        const mouse = this.inputManager.getMousePosition();
+        if (!mouse) break;
 
-          if (this.hoveredIndex === -1 && this.selectedNodes.length > 0) {
-            this.hoveredIndex = 0;
-          }
+        const { x, y } = mouse;
+        const previousHovered = this.hoveredIndex;
+        this.hoveredIndex = -1;
 
-          if (inputActive && !this.gamepadInputLatched) {
-            if (shouldNavigateDown) {
-              this.hoveredIndex = (this.hoveredIndex + 1) % this.selectedNodes.length;
-            } else if (shouldNavigateUp) {
-              this.hoveredIndex = (this.hoveredIndex - 1 + this.selectedNodes.length) % this.selectedNodes.length;
+        for (let i = 0; i < this.selectedNodes.length; i++) {
+          const rectX = this.animatedX + (10 * scale);
+          const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
+          const rectWidth = this.windowWidth - (20 * scale);
+          const rectHeight = this.rowHeight;
+
+          const rect = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
+
+          if (isMouseOverRect(x, y, rect, 1.0)) {
+            if (previousHovered !== i) {
+              audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
             }
 
-            audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
-            this.gamepadInputLatched = true;
-          }
+            this.hoveredIndex = i;
 
-          this.gamepadInputLatched = !this.inputManager.isGamepadVerticalNavigationNeutral();
-
-          const confirmPressed = this.inputManager.wasGamepadAliasJustPressed('A');
-          if (confirmPressed && this.hoveredIndex !== -1) {
-            const selected = this.selectedNodes[this.hoveredIndex];
-            PlayerPowerupManager.getInstance().acquire(selected.id);
-            this.choice = selected;
-            this.selectedIndex = this.hoveredIndex;
-            this.state = 'selectionMade';
-            this.transitionTimer = 0;
-            audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
-          }
-        } else {
-          // === Mouse input handling ===
-          const mouse = this.inputManager.getMousePosition();
-          if (!mouse) return;
-
-          const { x, y } = mouse;
-          const previousHovered = this.hoveredIndex;
-          this.hoveredIndex = -1;
-
-          for (let i = 0; i < this.selectedNodes.length; i++) {
-            const rectX = this.animatedX + (10 * scale);
-            const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
-            const rectWidth = this.windowWidth - (20 * scale);
-            const rectHeight = this.rowHeight;
-
-            const rect = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
-
-            if (isMouseOverRect(x, y, rect, 1.0)) {
-              if (previousHovered !== i) {
-                audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
-              }
-
-              this.hoveredIndex = i;
-
-              if (this.inputManager.wasMouseClicked()) {
-                const selected = this.selectedNodes[i];
-                PlayerPowerupManager.getInstance().acquire(selected.id);
-                this.choice = selected;
-                this.selectedIndex = i;
-                this.state = 'selectionMade';
-                this.transitionTimer = 0;
-                audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
-              }
-              break;
+            if (this.inputManager.wasMouseClicked()) {
+              const selected = this.selectedNodes[i];
+              PlayerPowerupManager.getInstance().acquire(selected.id);
+              this.choice = selected;
+              this.selectedIndex = i;
+              this.state = 'selectionMade';
+              this.transitionTimer = 0;
+              audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
             }
+            break;
           }
         }
 
@@ -223,7 +208,6 @@ export class PowerupSelectionMenu implements Menu {
         if (this.animatedX >= this.canvasManager.getCanvas('ui').width) {
           this.closeMenu();
           if (this.choice) {
-            this.cursorRenderer.show();
             this.onSelect(this.choice);
           }
         }

@@ -18,4 +18,6 @@ export type InputAction =
   | 'openMenu'
   | 'select'
   | 'cancel'
-  | 'pause';
+  | 'pause'
+  | 'zoomIn'
+  | 'zoomOut';

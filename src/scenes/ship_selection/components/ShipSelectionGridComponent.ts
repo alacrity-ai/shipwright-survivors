@@ -7,6 +7,8 @@ import { getAssetPath } from '@/shared/assetHelpers';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { drawShipTile } from '@/ui/primitives/UIShipTile';
 
+import { audioManager } from '@/audio/Audio';
+
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
 import type { InputManager } from '@/core/InputManager';
 
@@ -35,6 +37,7 @@ export class ShipSelectionGridComponent {
   private gridX: number = 0;
   private gridY: number = 0;
   private tileSize: number;
+  private hoveredTileIndex: number | null = null;
 
   private placeholderSprite: CanvasImageSource;
   private isInitialized = false;
@@ -106,7 +109,13 @@ export class ShipSelectionGridComponent {
         mouse.y >= tile.y &&
         mouse.y <= tile.y + this.tileSize;
 
+      if (tile.isHovered && this.hoveredTileIndex !== this.tiles.indexOf(tile)) {
+        audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 4 });
+        this.hoveredTileIndex = this.tiles.indexOf(tile);
+      }
+
       if (tile.isHovered && click && tile.shipDef) {
+        audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 4 });
         this.selectedShipDef = tile.shipDef;
 
         for (const other of this.tiles) {
@@ -141,6 +150,34 @@ export class ShipSelectionGridComponent {
 
   getSelectedShip(): CollectableShipDefinition | null {
     return this.selectedShipDef;
+  }
+
+  getGridButtons(): {
+    gridX: number;
+    gridY: number;
+    screenX: number;
+    screenY: number;
+    isEnabled: boolean;
+  }[] {
+    if (!this.isInitialized) return [];
+
+    const buttons = [];
+
+    for (let i = 0; i < this.tiles.length; i++) {
+      const tile = this.tiles[i];
+      const row = Math.floor(i / GRID_COLS);
+      const col = i % GRID_COLS;
+
+      buttons.push({
+        gridX: col,
+        gridY: row + 1, // Shift all rows down by 1
+        screenX: tile.x + (this.tileSize / 2),
+        screenY: tile.y + (this.tileSize / 2),
+        isEnabled: !!tile.shipDef,
+      });
+    }
+
+    return buttons;
   }
 
   private createPlaceholderSprite(): CanvasImageSource {

@@ -20,6 +20,8 @@ type MouseState = {
 
 export class InputManager {
   private gamepadManager: GamePadManager = new GamePadManager();
+  private gamepadMousemockingEnabled = true;
+  private overrideCursorWithGamepad = true;
 
   private keyState: Record<string, KeyState> = {};
   private prevKeyState: Record<string, boolean> = {};
@@ -73,35 +75,56 @@ export class InputManager {
     return { x: this.mouseState.x, y: this.mouseState.y };
   }
 
-private mouseMoveHandler = (e: MouseEvent) => {
-  const target = e.target as HTMLCanvasElement;
-  const rect = target.getBoundingClientRect();
-
-  const scaleX = target.width / rect.width;
-  const scaleY = target.height / rect.height;
-
-  const newX = (e.clientX - rect.left) * scaleX;
-  const newY = (e.clientY - rect.top) * scaleY;
-
-  const moved = newX !== this.mouseState.x || newY !== this.mouseState.y;
-  if (moved) {
-    this.mouseMoved = true;
-
-    const deviceTracker = InputDeviceTracker.getInstance();
-    const lastUsed = deviceTracker.getLastUsed();
-
-    // 🧠 If not already in mouse mode, switch to mouse AND adopt real coordinates
-    if (lastUsed !== 'mouse') {
-      deviceTracker.updateDevice('mouse');
-      this.virtualMouse.x = newX;
-      this.virtualMouse.y = newY;
-    }
+  public setVirtualMousePosition(x: number, y: number): void {
+    this.virtualMouse.x = x;
+    this.virtualMouse.y = y;
   }
 
-  this.mouseState.x = newX;
-  this.mouseState.y = newY;
-};
+  public setGamepadMousemockingEnabled(enabled: boolean): void {
+    this.gamepadMousemockingEnabled = enabled;
+  }
 
+  public setGamepadCursorOverrideEnabled(enabled: boolean): void {
+    this.overrideCursorWithGamepad = enabled;
+  }
+
+  public isGamepadCursorOverrideEnabled(): boolean {
+    return this.overrideCursorWithGamepad;
+  }
+
+  public isUsingGamepad(): boolean {
+    const deviceTracker = InputDeviceTracker.getInstance();
+    return deviceTracker.getLastUsed() === 'gamepad';
+  }
+
+  private mouseMoveHandler = (e: MouseEvent) => {
+    const target = e.target as HTMLCanvasElement;
+    const rect = target.getBoundingClientRect();
+
+    const scaleX = target.width / rect.width;
+    const scaleY = target.height / rect.height;
+
+    const newX = (e.clientX - rect.left) * scaleX;
+    const newY = (e.clientY - rect.top) * scaleY;
+
+    const moved = newX !== this.mouseState.x || newY !== this.mouseState.y;
+    if (moved) {
+      this.mouseMoved = true;
+
+      const deviceTracker = InputDeviceTracker.getInstance();
+      const lastUsed = deviceTracker.getLastUsed();
+
+      // 🧠 If not already in mouse mode, switch to mouse AND adopt real coordinates
+      if (lastUsed !== 'mouse') {
+        deviceTracker.updateDevice('mouse');
+        this.virtualMouse.x = newX;
+        this.virtualMouse.y = newY;
+      }
+    }
+
+    this.mouseState.x = newX;
+    this.mouseState.y = newY;
+  };
 
   // === Lifecycle ===
   public initialize(): void {
@@ -145,8 +168,8 @@ private mouseMoveHandler = (e: MouseEvent) => {
     const deviceTracker = InputDeviceTracker.getInstance();
     const usingGamepad = deviceTracker.getLastUsed() === 'gamepad';
 
-    if (usingGamepad) {
-      const dt = 1 / 60; // OR pass in `dt` from your game loop if available
+    if (usingGamepad && this.gamepadMousemockingEnabled) {
+      const dt = 1 / 60;
       const { x: dx, y: dy } = this.getGamepadMovementVector();
       const mag = Math.hypot(dx, dy);
 
@@ -154,7 +177,6 @@ private mouseMoveHandler = (e: MouseEvent) => {
         this.virtualMouse.x += dx * this.VIRTUAL_MOUSE_SPEED * dt;
         this.virtualMouse.y += dy * this.VIRTUAL_MOUSE_SPEED * dt;
 
-        // Clamp to canvas bounds
         const canvasWidth = this.canvasElement.width;
         const canvasHeight = this.canvasElement.height;
 
@@ -290,16 +312,25 @@ private mouseMoveHandler = (e: MouseEvent) => {
   }
 
   public consumeZoomDelta(): number {
-    if (this.inputDisabled) return 0;
+    if (this.inputDisabled || !this.overrideCursorWithGamepad) return 0;
 
-    const up = this.scrollUpDetected || this.isKeyPressed('KeyR');
-    const down = this.scrollDownDetected || this.isKeyPressed('KeyT');
+    const scrollUpDetected = this.scrollUpDetected;
+    const scrollDownDetected = this.scrollDownDetected;
+
+    const up = scrollUpDetected || this.isKeyPressed('KeyR') || this.gamepadAliasIsPressed('dpadUp');
+    const down = scrollDownDetected || this.isKeyPressed('KeyT') || this.gamepadAliasIsPressed('dpadDown');
 
     if (up || down) {
       Camera.getInstance().abortZoomAnimation();
     }
 
-    return (up ? 10 : 0) + (down ? -10 : 0);
+    // Return higher zoom speed for scrollwheel
+    if (scrollUpDetected || scrollDownDetected) {
+      return (scrollUpDetected ? 10 : 0) + (scrollDownDetected ? -10 : 0);
+    }
+
+    // Return zoom speed for keys or buttons
+    return (up ? 0.2 : 0) + (down ? -0.2 : 0);
   }
 
   // === Custom aliases ===
@@ -534,7 +565,19 @@ private mouseMoveHandler = (e: MouseEvent) => {
     return this.gamepadManager.isVerticalNavigationNeutral();
   }
 
+  public isGamepadHorizontalNavigationNeutral(): boolean {
+    return this.gamepadManager.isHorizontalNavigationNeutral();
+  }
+
+  public isGamepadNavigationNeutral(): boolean {
+    return this.gamepadManager.isNavigationNeutral();
+  }
+
   public wasGamepadAliasJustPressed(alias: GamepadButtonAlias): boolean {
     return this.gamepadManager.wasActionJustPressed(alias);
+  }
+
+  public gamepadAliasIsPressed(alias: GamepadButtonAlias): boolean {
+    return this.gamepadManager.isActionPressed(alias);
   }
 }

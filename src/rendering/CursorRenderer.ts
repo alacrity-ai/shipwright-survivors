@@ -33,12 +33,16 @@ export class CursorRenderer {
   private hasInitializedCursor = false;
 
   private isHidden = false;
+  private isHiddenFromGamepad = false;
 
   // Track listeners for removal
   private cursorChangeHandler = (payload: { type: CursorChangeType }) =>
     this.setCursorFromType(payload.type);
-
   private cursorRestoreHandler = () => this.setDefaultCursor();
+  private hideHandler = () => this.hide();
+  private showHandler = () => this.show();
+  private hideFromGamepadHandler = () => this.hideFromGamepad();
+  private showFromGamepadHandler = () => this.showFromGamepad();
 
   constructor(
     canvasManager: CanvasManager,
@@ -49,6 +53,10 @@ export class CursorRenderer {
 
     GlobalEventBus.on('cursor:change', this.cursorChangeHandler);
     GlobalEventBus.on('cursor:restore', this.cursorRestoreHandler);
+    GlobalEventBus.on('cursor:hide', this.hideHandler);
+    GlobalEventBus.on('cursor:show', this.showHandler);
+    GlobalEventBus.on('cursor:gamepad:hide', this.hideFromGamepadHandler);
+    GlobalEventBus.on('cursor:gamepad:show', this.showFromGamepadHandler);
   }
 
   setPlayerShip(ship: Ship): void {
@@ -74,12 +82,22 @@ export class CursorRenderer {
     if (lastUsed === 'gamepad') {
       if (isMenuScene) {
         const mouse = this.inputManager.getMousePosition(); // virtual mouse
+        if (this.isHiddenFromGamepad) return;
         drawCursor(this.ctx, this.cursorSprite, mouse.x, mouse.y, scale);
         return;
       }
 
       if (!this.playerShip || !this.camera) return;
 
+      const shouldOverrideCursor = this.inputManager.isGamepadCursorOverrideEnabled();
+      if (!shouldOverrideCursor) {
+        const mouse = this.inputManager.getMousePosition(); // virtual mouse
+        if (this.isHiddenFromGamepad) return;
+        drawCursor(this.ctx, this.cursorSprite, mouse.x, mouse.y, scale);
+        return;
+      }
+
+      // proceed with aimVec hijack only if override is enabled
       const aim = this.inputManager.getGamepadAimVector();
       const hasAim = aim.x !== 0 || aim.y !== 0;
 
@@ -107,6 +125,7 @@ export class CursorRenderer {
       }
 
       const screen = this.camera.worldToScreen(this.cursorWorldPos.x, this.cursorWorldPos.y);
+      if (this.isHiddenFromGamepad) return;
       drawCursor(this.ctx, this.cursorSprite, screen.x, screen.y, scale);
     }
   }
@@ -133,6 +152,14 @@ export class CursorRenderer {
 
   show() {
     this.isHidden = false;
+  }
+
+  hideFromGamepad() {
+    this.isHiddenFromGamepad = true;
+  }
+
+  showFromGamepad() {
+    this.isHiddenFromGamepad = false;
   }
 
   setCursorSprite(sprite: HTMLCanvasElement) {
@@ -186,5 +213,9 @@ export class CursorRenderer {
   destroy(): void {
     GlobalEventBus.off('cursor:change', this.cursorChangeHandler);
     GlobalEventBus.off('cursor:restore', this.cursorRestoreHandler);
+    GlobalEventBus.off('cursor:hide', this.hide);
+    GlobalEventBus.off('cursor:show', this.show);
+    GlobalEventBus.off('cursor:gamepad:hide', this.hideFromGamepad);
+    GlobalEventBus.off('cursor:gamepad:show', this.showFromGamepad);
   }
 }

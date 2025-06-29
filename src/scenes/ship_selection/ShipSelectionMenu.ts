@@ -222,6 +222,20 @@ export class ShipSelectionMenu {
     this.detailsComponent.render(uiCtx, this.windowX + this.windowWidth - (200 * scale), this.windowY + (32 * scale));
   }
 
+  getColorButtons(): [UIButton, UIButton] {
+    return [this.colorLeftButton, this.colorRightButton];
+  }
+
+  getGridButtons(): {
+    gridX: number;
+    gridY: number;
+    screenX: number;
+    screenY: number;
+    isEnabled: boolean;
+  }[] {
+    return this.gridComponent.getGridButtons();
+  }
+
   destroy(): void {
     this.previewComponent.destroy();
   }

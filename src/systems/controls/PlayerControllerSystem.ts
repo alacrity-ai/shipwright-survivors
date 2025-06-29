@@ -43,6 +43,8 @@ export class PlayerControllerSystem {
     // Update ship position in ship grid | TODO: Should go somewhere agnostic that is run every frame.
     ShipGrid.getInstance().updateShipPosition(this.playerShip);
 
+    this.inputManager.setGamepadCursorOverrideEnabled(true);
+
     const shift = this.inputManager.isShiftPressed();
     const leftStick = this.inputManager.getGamepadMovementVector();
     const leftStickMag = Math.hypot(leftStick.x, leftStick.y);

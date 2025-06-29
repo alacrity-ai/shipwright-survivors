@@ -7,6 +7,9 @@ import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
 import { addPostProcessEffect, removePostProcessEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 import { flags } from '@/game/player/PlayerFlagManager';
+import { hideCursor, showCursor } from '@/core/interfaces/events/CursorReporter';
+
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
 import type { MenuManager } from '@/ui/MenuManager';
 import type { UIButton } from '@/ui/primitives/UIButton';
@@ -32,11 +35,17 @@ export class PauseMenu implements Menu {
   private readonly buttonWidth = 140;
   private readonly buttonHeight = 40;
 
+  // Gamepad input
+  private navManager: GamepadMenuInteractionManager;
+
   constructor(
     private readonly inputManager: InputManager,
     private readonly onAbandon: () => void,
     private readonly menuManager: MenuManager,
   ) {
+    // Gamepad interaction
+    this.navManager = new GamepadMenuInteractionManager(inputManager);
+
     // Style definitions
     this.sharedStyle = {
       borderRadius: 10,
@@ -125,16 +134,19 @@ export class PauseMenu implements Menu {
     const scale = getUniformScaleFactor();
     const mouse = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
-    if (!mouse) return;
 
-    const { x, y } = mouse;
+    // === Gamepad nav update (stick + dpad)
+    this.navManager.update();
 
     const buttons = [this.settingsButton, this.abandonButton, this.resumeButton];
+
+    const { x, y } = mouse ?? { x: -1, y: -1 };
     for (const btn of buttons) {
       const rect = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
       btn.isHovered = isMouseOverRect(x, y, rect, scale);
     }
 
+    // Shared click behavior, now works for mouse and virtual mouse via nav
     if (clicked) {
       if (this.settingsButton.isHovered) this.settingsButton.onClick();
       else if (this.abandonButton.isHovered) this.abandonButton.onClick();
@@ -192,11 +204,52 @@ export class PauseMenu implements Menu {
     this.initialize();
     this.open = true;
     addPostProcessEffect('blackwhite');
+
+    const usingGamepad = this.inputManager.isUsingGamepad?.() ?? false;
+    if (usingGamepad) {
+      const scale = getUniformScaleFactor();
+
+      const navPoints = [
+        {
+          button: this.settingsButton,
+          gridX: 0,
+          gridY: 0,
+        },
+        {
+          button: this.abandonButton,
+          gridX: 0,
+          gridY: 1,
+        },
+        {
+          button: this.resumeButton,
+          gridX: 0,
+          gridY: 2,
+        },
+      ]
+        .filter(({ button }) => button && button.style !== this.disabledStyle)
+        .map(({ button, gridX, gridY }) => {
+          const centerX = button.x + (button.width * scale) / 2;
+          const centerY = button.y + (button.height * scale) / 2;
+
+          return {
+            gridX,
+            gridY,
+            screenX: centerX,
+            screenY: centerY,
+            isEnabled: true,
+          };
+        });
+
+      this.navManager.setNavMap(navPoints);
+    } else {
+      this.navManager.clearNavMap();
+    }
   }
 
   closeMenu(): void {
     this.open = false;
     removePostProcessEffect('blackwhite');
+    this.navManager.clearNavMap();
   }
 
   isBlocking(): boolean {

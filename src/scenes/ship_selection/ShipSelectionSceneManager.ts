@@ -5,6 +5,7 @@ import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
 import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
 import { getUniformScaleFactor } from '@/config/view';
 import { loadImage } from '@/shared/imageCache';
@@ -40,6 +41,7 @@ export class ShipSelectionSceneManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
+  private gamepadNavManager: GamepadMenuInteractionManager;
 
   private mission: MissionDefinition | null;
   private backgroundImage: HTMLImageElement | null = null;
@@ -58,6 +60,7 @@ export class ShipSelectionSceneManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+    this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
     this.mission = mission;
 
     this.shipSelectionMenu = new ShipSelectionMenu(this.inputManager);
@@ -115,6 +118,7 @@ export class ShipSelectionSceneManager {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.shipSelectionMenu.destroy();
+    this.gamepadNavManager.clearNavMap();
     destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
   }
 
@@ -127,6 +131,68 @@ export class ShipSelectionSceneManager {
   private update = (dt: number) => {
     const scale = getUniformScaleFactor();
     this.inputManager.updateFrame();
+    this.gamepadNavManager.update();
+
+    // Handle Gamepad input
+    if (this.inputManager.isUsingGamepad?.()) {
+      if (!this.gamepadNavManager.hasNavMap()) {
+        const scale = getUniformScaleFactor();
+        const navPoints = [];
+
+        const backButton = this.buttons[0];
+        navPoints.push({
+          gridX: 0,
+          gridY: 0,
+          screenX: backButton.x + (backButton.width * scale) / 2,
+          screenY: backButton.y + (backButton.height * scale) / 2,
+          isEnabled: true,
+        });
+
+        const [leftColorBtn, rightColorBtn] = this.shipSelectionMenu.getColorButtons();
+        navPoints.push({
+          gridX: 0,
+          gridY: 6,
+          screenX: leftColorBtn.x + (leftColorBtn.width * scale) / 2,
+          screenY: leftColorBtn.y + (leftColorBtn.height * scale) / 2,
+          isEnabled: true,
+        });
+        navPoints.push({
+          gridX: 1,
+          gridY: 6,
+          screenX: rightColorBtn.x + (rightColorBtn.width * scale) / 2,
+          screenY: rightColorBtn.y + (rightColorBtn.height * scale) / 2,
+          isEnabled: true,
+        });
+
+        if (this.launchButton) {
+          navPoints.push({
+            gridX: 0,
+            gridY: 7,
+            screenX: this.launchButton.x + (this.launchButton.width * scale) / 2,
+            screenY: this.launchButton.y + (this.launchButton.height * scale) / 2,
+            isEnabled: true,
+          });
+        }
+
+        // === Add grid tile nav points ===
+        const gridButtons = this.shipSelectionMenu.getGridButtons();
+        for (const point of gridButtons) {
+          navPoints.push(point); // already in correct format
+        }
+
+        this.gamepadNavManager.setNavMap(navPoints);
+        this.gamepadNavManager.setCurrentGridPosition(0, 7);
+      }
+      // Move to Back button if B is pressed
+      if (this.inputManager.wasGamepadAliasJustPressed('B')) {
+        this.gamepadNavManager.setCurrentGridPosition(0, 0);
+      }
+    } else {
+      if (this.gamepadNavManager.hasNavMap()) {
+        this.gamepadNavManager.clearNavMap();
+      }
+    }
+    // End handle gamepadinput
 
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
@@ -165,6 +231,8 @@ export class ShipSelectionSceneManager {
 
     this.shipSelectionMenu.render(uiCtx, overlayCtx);
 
-    drawCursor(uiCtx, getCrosshairCursorSprite(), x, y, scale);
+    if (!this.inputManager.isUsingGamepad()) {
+      drawCursor(uiCtx, getCrosshairCursorSprite(), x, y, scale);
+    }
   };
 }
