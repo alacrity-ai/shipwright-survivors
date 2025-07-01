@@ -1,0 +1,162 @@
+{
+  "gridSize": 12,
+  "squares": [
+    {
+      "x": 4,
+      "y": 1,
+      "description": "turretDamage: 10"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "description": "turretSplitShots: true"
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "description": "turretPenetratingShots: true"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "description": "turretDamage: 5"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "description": "turretCriticalChance: 0.04"
+    },
+    {
+      "x": 6,
+      "y": 5,
+      "description": "turretProjectileSpeed: 15"
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "description": "startingBlocks: ['turret1']"
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "description": "turretCriticalChance: 0.03"
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "description": "turretProjectileSpeed: 10"
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "description": "turretCriticalChance: 0.03"
+    },
+    {
+      "x": 8,
+      "y": 11,
+      "description": "turretProjectileSpeed: 10"
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "x": 2,
+        "y": 5
+      },
+      "to": {
+        "x": 0,
+        "y": 3
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 4
+      },
+      "to": {
+        "x": 4,
+        "y": 1
+      }
+    },
+    {
+      "from": {
+        "x": 2,
+        "y": 9
+      },
+      "to": {
+        "x": 4,
+        "y": 7
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 7
+      },
+      "to": {
+        "x": 2,
+        "y": 5
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 7
+      },
+      "to": {
+        "x": 6,
+        "y": 5
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 7
+      },
+      "to": {
+        "x": 4,
+        "y": 4
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 7
+      },
+      "to": {
+        "x": 6,
+        "y": 9
+      }
+    },
+    {
+      "from": {
+        "x": 6,
+        "y": 9
+      },
+      "to": {
+        "x": 8,
+        "y": 11
+      }
+    },
+    {
+      "from": {
+        "x": 6,
+        "y": 5
+      },
+      "to": {
+        "x": 8,
+        "y": 3
+      }
+    },
+    {
+      "from": {
+        "x": 0,
+        "y": 11
+      },
+      "to": {
+        "x": 2,
+        "y": 9
+      }
+    }
+  ]
+}
