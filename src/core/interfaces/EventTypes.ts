@@ -27,6 +27,10 @@ export type CursorChangeType =
 type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
 
 export interface EventTypes {
+  // Runtime control
+  'runtime:pause': undefined;
+  'runtime:resume': undefined;
+
   // Game outcome events
   'player:victory': undefined;
   'player:defeat': undefined;
@@ -134,6 +138,14 @@ export interface EventTypes {
     x: number;
     y: number;
   };
+  'pickup:spawn:shipBlueprint': {
+    x: number;
+    y: number;
+    shipId: string;
+  };
+
+  // Tradeposts
+  'tradepost:open': { tradePostId: string };
 
   // Entities
   'entity:destroy': {

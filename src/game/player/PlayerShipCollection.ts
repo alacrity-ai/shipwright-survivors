@@ -20,8 +20,7 @@ export class PlayerShipCollection {
 
   // XP required to go from level N to N+1
   private static getXpThresholdForLevel(level: number): number {
-    // linear
-    return 100 + (level - 1) * 150;
+    return level * 100;
   }
 
   private shipMasteryMap: Map<string, { masteryLevel: number; experience: number }> = new Map();
@@ -57,6 +56,7 @@ export class PlayerShipCollection {
 
   discover(shipName: string): void {
     if (!this.discoveredShipNames.has(shipName)) {
+      console.log(`[PlayerShipCollection] Discovered new ship: ${shipName}`);
       this.discoveredShipNames.add(shipName);
     }
   }
@@ -187,7 +187,7 @@ export class PlayerShipCollection {
       discovered: Array.from(this.discoveredShipNames),
       unlocked: Array.from(this.unlockedShipNames),
       selectedColor: this.selectedColor,
-      mastery: Array.from(this.shipMasteryMap.entries()), // [['vanguard', { masteryLevel: 2, experience: 180 }], ...]
+      mastery: Array.from(this.shipMasteryMap.entries()), // [['Vanguard', { masteryLevel: 2, experience: 180 }], ...]
     });
   }
 

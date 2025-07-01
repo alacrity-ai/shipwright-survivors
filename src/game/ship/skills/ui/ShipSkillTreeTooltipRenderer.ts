@@ -111,7 +111,7 @@ export class ShipSkillTreeTooltipRenderer {
     } else {
       const masteryLevel = PlayerShipCollection.getInstance().getShipMasteryLevel(shipId);
       const selectedCount = PlayerShipSkillTreeManager.getInstance().getSelectedCount(shipId);
-      const requiredMastery = selectedCount + 1;
+      const requiredMastery = node.masteryRequirement ?? selectedCount + 1;
       const hasEnoughMastery = masteryLevel >= requiredMastery;
 
       const canAfford = metaManager.canAfford(cost);

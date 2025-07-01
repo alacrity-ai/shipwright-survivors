@@ -37,3 +37,11 @@ export function spawnQuantumAttractor(
 ): void {
   GlobalEventBus.emit('pickup:spawn:quantumAttractor', { x, y });
 }
+
+export function spawnShipBlueprint(
+  x: number,
+  y: number,
+  shipId: string
+): void {
+  GlobalEventBus.emit('pickup:spawn:shipBlueprint', { x, y, shipId });
+}

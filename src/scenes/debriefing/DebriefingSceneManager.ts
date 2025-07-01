@@ -11,6 +11,7 @@ import { AnimatedLabel } from '@/ui/components/AnimatedLabel';
 import { calculateCoresEarnedDetailed } from '@/scenes/debriefing/helpers/calculateCores';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
 import { destroyGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 
@@ -64,6 +65,7 @@ export class DebriefingSceneManager {
   private subtitleLabel!: AnimatedLabel;
 
   private missionResult: string | null = null;
+  private didEarnMasteryXp: boolean = false;
 
   private initialBlackoutTimer: number = 1.2;
   private introDelayTimer: number = 1.20; // seconds
@@ -85,6 +87,22 @@ export class DebriefingSceneManager {
     const detailed = calculateCoresEarnedDetailed();
     const totalEarned = Object.values(detailed).reduce((sum, v) => sum + v, 0);
     PlayerMetaCurrencyManager.getInstance().addMetaCurrency(totalEarned);
+
+    // === Award Mastery XP (only on victory) ===
+    const collection = PlayerShipCollection.getInstance();
+    const activeShip = collection.getActiveShip();
+    const masteryXpAwarded = 100;
+
+    const didEarnMasteryXp =
+      this.missionResult === 'victory' &&
+      !!activeShip &&
+      collection.getExperienceForLevel(collection.getShipMasteryLevel(activeShip.name)) > 0;
+
+    this.didEarnMasteryXp = didEarnMasteryXp;
+
+    if (didEarnMasteryXp && activeShip) {
+      collection.addExperience(activeShip.name, masteryXpAwarded);
+    }
 
     if (this.missionResult === 'victory') {
       audioManager.play('assets/sounds/sfx/debriefing/debriefing_succeeded_00.wav', 'sfx');
@@ -171,7 +189,8 @@ export class DebriefingSceneManager {
 
     const result = missionResultStore.get();
 
-    const labelEntries: [string, number][] = [
+    type LabelEntry = [text: string, value?: number, color?: string];
+    const labelEntries: LabelEntry[] = [
       [`Waves Cleared: ${result.wavesCleared}`, detailed.fromWaves],
       [`Enemies Destroyed: ${result.enemiesDestroyed}`, detailed.fromKills],
       [`Blocks Collected: ${result.blocksCollected}`, detailed.fromBlocks],
@@ -184,16 +203,44 @@ export class DebriefingSceneManager {
       labelEntries.push([`Victory Bonus: 1000`, detailed.fromVictory]);
     }
 
-    this.flyInLabels = labelEntries.map(([text], i) => {
-      return new FlyInLabel(text, labelX, baseY + i * spacing);
+    // === Inject Discovered Ships ===
+    if (result.shipsDiscovered.length > 0) {
+      for (const shipId of result.shipsDiscovered) {
+        labelEntries.push([`Ship Discovered: ${shipId}`, undefined, '#00ffff']); // No value
+      }
+    }
+
+    // === Inject Mastery XP ===
+    if (this.didEarnMasteryXp && activeShip) {
+      const shipName = activeShip.name;
+      const masteryLevel = collection.getShipMasteryLevel(shipName);
+      const currentXp = collection.getShipExperience(shipName);
+      const xpForNext = collection.getExperienceForLevel(masteryLevel);
+      const previousXp = currentXp - masteryXpAwarded;
+
+      let masteryText: string;
+
+      if (xpForNext === 0) {
+        masteryText = `Mastery: ${shipName} reached MAX Level (${masteryLevel})`;
+      } else if (previousXp < 0) {
+        // Leveled up at least once (overflowed into this level)
+        masteryText = `Mastery: ${shipName} reached Level ${masteryLevel}`;
+      } else {
+        masteryText = `Mastery: ${shipName} +${masteryXpAwarded} XP (${currentXp}/${xpForNext})`;
+      }
+
+      labelEntries.push([masteryText, undefined, '#ffff00']);
+    }
+
+    this.flyInLabels = labelEntries.map(([text, _, color], i) => {
+      return new FlyInLabel(text, labelX, baseY + i * spacing, undefined, color);
     });
 
-    this.coresToAdd = labelEntries.map(([_, coreValue]) => coreValue);
-    this.originalCoresToAdd = [...this.coresToAdd]; // Store a copy of original values
+    this.coresToAdd = labelEntries.map(([, value]) => value ?? 0);
+    this.originalCoresToAdd = [...this.coresToAdd];
 
     // === Summary box (placed after all labels)
     const boxX = screenW / 2 - BOX_WIDTH * scale / 2;
-    // const boxY = baseY + labelEntries.length * spacing + 40 * scale + 24 * scale;
     const boxY = screenH - (220 * scale);
     this.summaryBox = new FlyInBox(boxX, boxY, BOX_WIDTH, BOX_HEIGHT);
   }
@@ -272,13 +319,22 @@ export class DebriefingSceneManager {
     this.labelRevealTimer -= dt;
 
     if (this.labelRevealTimer <= 0 && this.nextLabelIndex < this.flyInLabels.length) {
-      audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 5 });
-      audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_00.wav', 'sfx', { maxSimultaneous: 5 });
-      audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_01.wav', 'sfx', { maxSimultaneous: 5 });
+      const text = this.flyInLabels[this.nextLabelIndex].getRenderedText();
+
+      const isShipDiscovery = text.startsWith('Ship Discovered');
+
+      if (isShipDiscovery) {
+        audioManager.play('assets/sounds/sfx/magic/collect_ship.wav', 'sfx', { maxSimultaneous: 4 });
+        // Optionally trigger visual effects or screen pulse here
+      } else {
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 5 });
+        audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_00.wav', 'sfx', { maxSimultaneous: 5 });
+        audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_01.wav', 'sfx', { maxSimultaneous: 5 });
+      }
+
       this.flyInLabels[this.nextLabelIndex].trigger();
       this.nextLabelIndex++;
       this.labelRevealTimer = 1.0;
-
     }
 
     if (
@@ -322,14 +378,38 @@ export class DebriefingSceneManager {
     this.tallyTimer -= dt;
     if (this.tallyTimer > 0) return;
 
-    const coresRemaining = this.coresToAdd[this.tallyIndex];
     const label = this.flyInLabels[this.tallyIndex];
+    const text = label?.getRenderedText() ?? '';
+    const isShipDiscovery = text.startsWith('Ship Discovered');
+    const isMasteryLabel = text.startsWith('Mastery:');
+
+    if (isShipDiscovery || isMasteryLabel) {
+      // === Optional SFX for mastery level-up ===
+      if (isMasteryLabel && text.includes('reached Level')) {
+        audioManager.play('assets/sounds/sfx/magic/levelup.wav', 'sfx', { maxSimultaneous: 4 });
+      }
+
+      label.setActive(false);
+      this.tallyIndex++;
+      if (this.tallyIndex < this.flyInLabels.length) {
+        this.flyInLabels[this.tallyIndex].setActive(true);
+      }
+      this.tallyTimer = 0.5;
+      this.currentDecrement = 1;
+      this.tallyPitchAdd = 0;
+      return;
+    }
+
+    const coresRemaining = this.coresToAdd[this.tallyIndex];
     label?.setActive(true);
 
     const decremented = label?.decrementDynamic(Math.floor(this.currentDecrement)) ?? false;
 
     if (decremented) {
-      audioManager.play('assets/sounds/sfx/debriefing/debriefing_tally_01.wav', 'sfx', { maxSimultaneous: 25, pitch: 1.0 + this.tallyPitchAdd });
+      audioManager.play('assets/sounds/sfx/debriefing/debriefing_tally_01.wav', 'sfx', {
+        maxSimultaneous: 25,
+        pitch: 1.0 + this.tallyPitchAdd
+      });
       this.currentDecrement *= this.decrementAcceleration;
       this.tallyTimer = 0.05;
       this.tallyPitchAdd -= 0.005;

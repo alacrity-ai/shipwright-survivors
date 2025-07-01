@@ -39,7 +39,8 @@ export interface UIButton {
 export function drawButton(
   ctx: CanvasRenderingContext2D,
   button: UIButton,
-  uiScale: number = 1.0
+  uiScale: number = 1.0,
+  fontSize: number = 13
 ): void {
   const {
     x, y, width, height, label, isHovered, style = {}, disabled = false
@@ -50,7 +51,7 @@ export function drawButton(
     backgroundColor,
     borderColor = '#666',
     textColor = '#fff',
-    textFont = '13px monospace',
+    textFont = `${fontSize}px monospace`,
     alpha = 1.0,
     backgroundGradient
   } = style;

@@ -8,9 +8,10 @@ export type FlyInLabelPhase = 'hidden' | 'sliding-in' | 'settling' | 'appeared';
 export class FlyInLabel {
   private originalText: string;
   private labelPrefix: string;
-  private displayedValue: number;
+  private displayedValue: number | undefined;
   private targetX: number;
   private y: number;
+  private textColor: string | undefined;
 
   private phase: FlyInLabelPhase = 'hidden';
   private x: number;
@@ -22,19 +23,31 @@ export class FlyInLabel {
 
   private isActive: boolean = false;
 
-  constructor(text: string, targetX: number, y: number, slideSpeed?: number) {
+  constructor(
+    text: string,
+    targetX: number,
+    y: number,
+    slideSpeed?: number,
+    textColor?: string
+  ) {
     this.originalText = text;
     this.targetX = targetX;
     this.y = y;
     this.slideSpeed = slideSpeed ?? 1200;
+    this.textColor = textColor;
 
     const scale = getUniformScaleFactor();
     this.x = targetX - 200 * scale;
 
-    // Parse dynamic value from label (assumes format: "Label: 123")
+    // Parse optional dynamic value from label (format: "Label: 123")
     const split = text.split(':');
+    const maybeValue = split[1]?.trim();
+
     this.labelPrefix = split[0].trim();
-    this.displayedValue = parseInt(split[1]?.trim() ?? '0');
+    this.displayedValue =
+      maybeValue !== undefined && /^\d+$/.test(maybeValue)
+        ? parseInt(maybeValue)
+        : undefined;
   }
 
   trigger(): void {
@@ -54,8 +67,10 @@ export class FlyInLabel {
         const direction = Math.sign(overshootX - this.x);
         this.x += direction * this.slideSpeed * dt;
 
-        if ((direction > 0 && this.x >= overshootX) ||
-            (direction < 0 && this.x <= overshootX)) {
+        if (
+          (direction > 0 && this.x >= overshootX) ||
+          (direction < 0 && this.x <= overshootX)
+        ) {
           this.x = overshootX;
           this.phase = 'settling';
           this.settleTimer = this.settleDuration;
@@ -81,26 +96,23 @@ export class FlyInLabel {
 
     const scale = getUniformScaleFactor();
 
-    drawLabel(
-      ctx,
-      this.x * scale,
-      this.y * scale,
-      this.getRenderedText(),
-      {
-        font: `${Math.round(18 * scale)}px monospace`,
-        color: this.isActive ? '#ffffff' : '#00ff00',
-        glow: true,
-        align: 'left',
-      }
-    );
+    drawLabel(ctx, this.x * scale, this.y * scale, this.getRenderedText(), {
+      font: `${Math.round(18 * scale)}px monospace`,
+      color: this.textColor ?? (this.isActive ? '#ffffff' : '#00ff00'),
+      glow: true,
+      align: 'left',
+    });
   }
 
   getRenderedText(): string {
-    return `${this.labelPrefix}: ${this.displayedValue}`;
+    if (this.displayedValue !== undefined) {
+      return `${this.labelPrefix}: ${this.displayedValue}`;
+    }
+    return this.originalText;
   }
 
   decrementDynamic(amount: number): boolean {
-    if (this.displayedValue <= 0) return false;
+    if (this.displayedValue === undefined || this.displayedValue <= 0) return false;
     this.displayedValue = Math.max(0, this.displayedValue - amount);
     return true;
   }

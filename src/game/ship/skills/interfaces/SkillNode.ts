@@ -10,6 +10,8 @@ export interface SkillNode {
   category?: string; // optional: for UI filtering/grouping
   cost: number;
 
+  masteryRequirement?: number; // minimum mastery level required to unlock
+
   nodeSize: 'major' | 'minor';
   metadata: ShipSkillEffectMetadata;
 }

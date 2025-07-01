@@ -3,6 +3,7 @@
 import type { Camera } from '@/core/Camera';
 import { drawCRTText } from '@/ui/primitives/CRTText';
 import { getUniformScaleFactor } from '@/config/view';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 export class PlanetOverlayRenderer {
   constructor(
@@ -29,7 +30,15 @@ export class PlanetOverlayRenderer {
         chromaticAberration: true,
       });
 
-      drawCRTText(overlayCtx, screenCenterX, topOffsetY + (32 * uiScale), 'Open Communications: [C]', {
+      const tracker = InputDeviceTracker.getInstance();
+      const lastUsed = tracker.getLastUsed();
+      const isUsingGamepad = lastUsed === 'gamepad';
+
+      const messageLabel = isUsingGamepad
+        ? 'Open Communications: [A]'
+        : 'Open Communications: [C]';
+
+      drawCRTText(overlayCtx, screenCenterX, topOffsetY + (32 * uiScale), messageLabel, {
         font: `${uiScale * 16}px "Courier New", monospace`,
         align: 'center',
         baseline: 'top',

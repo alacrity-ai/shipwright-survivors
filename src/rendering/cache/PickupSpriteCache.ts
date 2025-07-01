@@ -2,6 +2,7 @@
 
 import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 import { drawQuantumAttractor } from '@/rendering/cache/helpers/drawQuantumAttractor';
+import { drawShipBlueprint } from '@/rendering/cache/helpers/drawShipBlueprint';
 
 export interface PickupSprite {
   canvas: HTMLCanvasElement;
@@ -19,7 +20,7 @@ const glSpriteCache: Map<string, GLPickupSprite> = new Map();
 // --- Sprite ID Registry ---
 
 function getAllPickupTypes(): string[] {
-  return ['currency', 'repair', 'quantumAttractor'];
+  return ['currency', 'repair', 'quantumAttractor', 'shipBlueprint'];
 }
 
 // --- Canvas Setup ---
@@ -37,6 +38,12 @@ function createBlankCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingC
 function drawProceduralPickup(typeId: string): void {
   if (typeId === 'quantumAttractor') {
     const canvas = drawQuantumAttractor();
+    spriteCache.set(typeId, { canvas });
+    return;
+  }
+
+  if (typeId === 'shipBlueprint') {
+    const canvas = drawShipBlueprint();
     spriteCache.set(typeId, { canvas });
     return;
   }

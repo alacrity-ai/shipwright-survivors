@@ -4,6 +4,7 @@ import { PlanetOverlayRenderer } from '@/game/planets/PlanetOverlayRenderer';
 
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
+import { openTradepostMenu } from '@/core/interfaces/events/TradePostReporter';
 
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
@@ -74,14 +75,21 @@ export class PlanetController {
     this.renderer.update(dt);
 
     // Example: later trigger dialogue or highlight UI
-    if (inInteractionRange && this.inputManager.wasKeyJustPressed('KeyC') && !this.isInteracting) {
-      this.isInteracting = true;
-      const script = getDialogueScript(this.definition.interactionDialogueId, { 
-        inputManager: this.inputManager, 
-        playerShip: this.playerShip, 
-        waveOrchestrator: this.waveOrchestrator });
-      if (script) {
-        this.dialogueQueueManager.startScript(script);
+    if (inInteractionRange && (this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('A')) && !this.isInteracting) {
+      // TODO : Perhaps open tradepost through dialogue and remove this priority system where we directly open menu
+      if (this.definition.tradePostId) {
+        this.isInteracting = true;
+        openTradepostMenu(this.definition.tradePostId);
+        return;
+      } else {
+        this.isInteracting = true;
+        const script = getDialogueScript(this.definition.interactionDialogueId, { 
+          inputManager: this.inputManager, 
+          playerShip: this.playerShip, 
+          waveOrchestrator: this.waveOrchestrator });
+        if (script) {
+          this.dialogueQueueManager.startScript(script);
+        }
       }
     }
     if (this.dialogueQueueManager.isRunning()) {

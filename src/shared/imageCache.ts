@@ -19,6 +19,7 @@ export async function loadImage(relativePath: string): Promise<HTMLImageElement>
     const img = new Image();
     img.src = resolvedPath;
     img.onload = () => {
+      console.log('[ImageCache] Loaded image:', resolvedPath);
       imageCache.set(resolvedPath, img);
       resolve(img);
     };

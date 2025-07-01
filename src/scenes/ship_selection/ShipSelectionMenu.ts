@@ -4,6 +4,7 @@ import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
+import { drawMasteryLevel } from '@/ui/primitives/UIMasteryBadge';
 import { handleButtonInteraction, drawButton, type UIButton } from '@/ui/primitives/UIButton';
 
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
@@ -153,6 +154,10 @@ export class ShipSelectionMenu {
     this.gridComponent = new ShipSelectionGridComponent(inputManager);
     this.artifactsComponent = new EquippedArtifactsComponent();
     this.detailsComponent = new ShipDetailsComponent();
+
+    // DEBUG: Log discovered ships
+    const discoveredShips = PlayerShipCollection.getInstance().getDiscoveredShips();
+    console.log('[ShipSelectionMenu] Discovered ships:', discoveredShips);
   } 
 
   getSelectedShip(): CollectableShipDefinition | null {
@@ -258,37 +263,50 @@ export class ShipSelectionMenu {
       const xpForNext = collection.getExperienceForLevel(masteryLevel);
       const selectedCount = skillManager.getSelectedCount(selected.name);
 
-      let masteryLabel = `Mastery Level: ${masteryLevel}`;
+      // Coordinates
+      const labelY = previewTopY + (24 * scale);
+      const pointsY = previewTopY + (44 * scale);
+      const badgeRadius = 16 * scale;
+      const badgeX = centerX - (128 * scale); // Offset left of label
+      const labelX = badgeX + (32 * scale);  // Slight spacing right of badge
+
+      // Draw badge
+      drawMasteryLevel(uiCtx, badgeX, labelY + badgeRadius / 2, masteryLevel, scale);
+
+      // Construct XP label
+      let masteryLabel = `Mastery Level`;
       if (xpForNext > 0) {
         masteryLabel += `  (${currentXp} / ${xpForNext} XP)`;
       } else {
-        masteryLabel += `  (MAX)`;
+        masteryLabel += `  (MAXIMUM LEVEL)`;
       }
 
-      // Draw Mastery Level + XP
+      // Draw label beside badge
       drawLabel(
         uiCtx,
-        centerX,
-        previewTopY + (24 * scale), // Below name
+        labelX,
+        labelY,
         masteryLabel,
         {
-          font: `${14 * scale}px monospace`,
-          align: 'center',
+          font: `${14}px monospace`,
+          align: 'left',
           glow: false
-        }
+        },
+        scale
       );
 
       // Draw Points Spent / Allowed
       drawLabel(
         uiCtx,
         centerX,
-        previewTopY + (44 * scale), // Below mastery label
-        `Points Spent: ${selectedCount} / ${masteryLevel}`,
+        pointsY,
+        `Points Assigned: ${selectedCount} / ${masteryLevel}`,
         {
-          font: `${14 * scale}px monospace`,
+          font: `${14}px monospace`,
           align: 'center',
           glow: false
-        }
+        },
+        scale
       );
     }
 

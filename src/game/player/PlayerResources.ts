@@ -37,7 +37,7 @@ export class PlayerResources {
     this.blockQueue.push(blockType);
   }
 
-  enqueueBlockToFront(blockType: BlockType): void {
+  public enqueueBlockToFront(blockType: BlockType): void {
     this.blockQueue.unshift(blockType);
   }
 

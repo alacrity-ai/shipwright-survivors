@@ -95,8 +95,6 @@ export class HubSceneManager {
 
     // Always unlock the first ship if not unlocked
     const playerShipCollection = PlayerShipCollection.getInstance();
-    playerShipCollection.reset();
-    playerShipCollection.unlockAll(['SW-1 Standard Issue', 'Vanguard', 'Monarch', 'Halo Mk I', 'Godhand Prototype']);
     if (!playerShipCollection.isUnlocked('SW-1 Standard Issue')) {
       console.log('[UnlockableShipDefinition] Unlocking starter ship: SW-1 Standard Issue');
       playerShipCollection.discover('SW-1 Standard Issue');

@@ -199,11 +199,13 @@ export function initializeShipSkillTreeSpriteCache(): void {
     'icon-laser-efficiency': getLaserEfficiencyIconSprite(),
     'icon-laser-penetrate': getLaserPenetrateIconSprite(),
     'icon-laser-targeting': getLaserTargetingIconSprite(),
-    'icon-laser-block': getLaserBlockIconSprite(),
 
     // Empty node placeholders
     'icon-empty-node-minor': createEmptyMinorNodeIcon(),
     'icon-empty-node-major': createEmptyMajorNodeIcon(),
+
+    // Custom icons
+    'icon-extra-block': getLaserBlockIconSprite(),
   };
 }
 

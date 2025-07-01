@@ -12,6 +12,7 @@ export interface PickupInstance {
   ttl?: number;
   rotation: number;
   lightId?: string;
+  shipId?: string;
 }
 
 

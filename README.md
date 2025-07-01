@@ -135,10 +135,19 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
-  - [ ] Ship Blueprints need to drop! Put drops for all 5 ships in the game
-  - [ ] Add acquisition of ship mastery levels in mission debriefing.  1 level clear = 100xp?
-  - [ ] Add purchasing of a discovered ship in the ship selection menu
-  - [ ] Add mastery level requirement to ShipSkillTreeNode, to make the tooltip more clear.
+  - [ ] Todos, add difficulty level selection to mission selection.
+    - [ ] Difficulty scaling should scale enemy quantity, and enemy power.
+    - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
+  - [ ] Plugin ship SkillTree effects to game systems
+  - [ ] Add unlockable ships to each vendor so that every ship of the 5 is possible to unlock in game.
+
+  - [x] Integrate tradepost registry entries in PlanetRegistry definitions
+    - [x] Add all the existing tradeposts to the existing planets
+  - [x] Ship blueprints droppable
+  - [x] Add acquisition of ship mastery levels in mission debriefing.  1 level clear = 100xp?
+  - [x] Add purchasing of a discovered ship in the ship selection menu
+  - [x] Add mastery level requirement to ShipSkillTreeNode, to make the tooltip more clear.
+  - [x] Fix black ship skilltree icons
 
   - [ ] Passive menu needs to use GamepadNavMap
   - [ ] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)

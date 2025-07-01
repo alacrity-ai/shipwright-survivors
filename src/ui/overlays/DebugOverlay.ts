@@ -9,6 +9,8 @@ import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { InputManager } from '@/core/InputManager';
+import { getUniformScaleFactor } from '@/config/view';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -20,6 +22,7 @@ export class DebugOverlay {
   private smoothedFps: number = 60;
 
   constructor(
+    private readonly inputManager: InputManager,
     private readonly canvasManager: CanvasManager,
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
@@ -46,6 +49,18 @@ export class DebugOverlay {
     
     const blocksInQueue = PlayerResources.getInstance().getBlockQueue().length;
     drawLabel(ctx, x, y, `Blocks in Queue: ${blocksInQueue}`); y += lineHeight;
+
+    // Mouse Coords
+    const mouse = this.inputManager.getMousePosition();
+    const { x: mouseX, y: mouseY } = mouse;
+    const scale = getUniformScaleFactor();
+
+    const virtualMouseX = mouseX / scale;
+    const virtualMouseY = mouseY / scale;
+
+    drawLabel(ctx, x, y, `Mouse (raw): ${mouseX.toFixed(0)}, ${mouseY.toFixed(0)}`); y += lineHeight;
+    drawLabel(ctx, x, y, `Mouse (virtual): ${virtualMouseX.toFixed(0)}, ${virtualMouseY.toFixed(0)}`); y += lineHeight;
+
 
     if (!DEBUG_MODE) return;
 

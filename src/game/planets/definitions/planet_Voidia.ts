@@ -6,5 +6,6 @@ export const VoidiaPlanet: PlanetDefinition = {
   imagePath: 'assets/planets/13.png',
   scale: 6,
   interactionDialogueId: 'planet-generic',
+  tradePostId: 'mission1-tradepost-0',
   // approachDialogueId: 'dialogue-aetherion-approach',
 };

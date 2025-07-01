@@ -22,15 +22,6 @@ export class ShipDetailsComponent {
     const meta = this.selectedShip.metaData;
     if (!meta) return;
 
-    // === Tier ===
-    // drawLabel(ctx, centerX, cursorY, `Tier ${meta.tier}`, {
-    //   font: `${14 * scale}px monospace`,
-    //   align: 'center',
-    //   color: '#ffffff',
-    //   glow: true,
-    // });
-    // cursorY += lineHeight;
-
     // === Additional Description ===
     if (meta.additionalDescription) {
       drawLabel(ctx, centerX, cursorY, meta.additionalDescription, {

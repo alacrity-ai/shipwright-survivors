@@ -29,6 +29,7 @@ import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PowerupSelectionMenu } from '@/game/powerups/ui/PowerupSelectionMenu';
 import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
 import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
+import { TradePostMenu } from '@/game/tradepost/TradePostMenu';
 import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import { BlockPlacementController } from '@/ui/components/BlockPlacementController';
 import { SettingsMenu } from '@/ui/menus/SettingsMenu';
@@ -118,6 +119,7 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { testActivePowerupEffectResolver } from '@/game/powerups/test/poweruptest';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -126,7 +128,8 @@ export class EngineRuntime {
   private boundHandleVictory = () => this.handlePlayerVictory();
   private boundHandleDefeat = () => this.handlePlayerFailure();
   private boundHandleLevelUp = () => this.handlePlayerLevelUp();
-
+  private boundPause = () => this.pause();
+  private boundResume = () => this.resume();
 
   private isInitialized = false;
 
@@ -137,6 +140,7 @@ export class EngineRuntime {
   private shipBuilderMenu: ShipBuilderMenu
   private powerupSelectionMenu: PowerupSelectionMenu;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
+  private tradePostMenu: TradePostMenu;
   private settingsMenu: SettingsMenu | null = null;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
   private pauseMenu: PauseMenu | null = null;
@@ -219,6 +223,8 @@ export class EngineRuntime {
     GlobalEventBus.on('player:victory', this.boundHandleVictory);
     GlobalEventBus.on('player:defeat', this.boundHandleDefeat);
     GlobalEventBus.on('player:entropium:levelup', this.boundHandleLevelUp);
+    GlobalEventBus.on('runtime:pause', this.boundPause);
+    GlobalEventBus.on('runtime:resume', this.boundResume);
 
     // Initialize GL caches
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -294,6 +300,9 @@ export class EngineRuntime {
       this.shipBuilderEffects,
       this.inputManager
     );
+
+    // === Trade Post Menu
+    this.tradePostMenu = new TradePostMenu(this.inputManager);
 
     // === AI Orchestrator
     this.aiOrchestrator = new AIOrchestratorSystem();
@@ -470,7 +479,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
-    this.debugOverlay = new DebugOverlay(this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!);
+    this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!);
     this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
     
@@ -509,6 +518,7 @@ export class EngineRuntime {
       this.coachMarkManager,
       this.incidentOrchestrator,
       this.powerupSelectionMenu,
+      this.tradePostMenu,
     ];
 
     this.isInitialized = true;
@@ -711,24 +721,19 @@ export class EngineRuntime {
       PlayerSettingsManager.getInstance().toggleDebugMode();
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyN')) {
-      const randomRGBColorSets = [
-        '#ff0000', // solid red
-        '#0000ff', // solid blue
-        '#00ff00', // solid green
-        '#8000ff', // solid purple
-        '#000000'  // solid black
-      ];
-      const randomColor = randomRGBColorSets[Math.floor(Math.random() * randomRGBColorSets.length)];
-      this.ship?.setBlockColor(randomColor);
+    if (this.inputManager.wasKeyJustPressed('KeyJ')) {
+      spawnShipBlueprint(0, 0, 'Vanguard');
+      spawnShipBlueprint(0, 0, 'Monarch');
+      spawnShipBlueprint(0, 0, 'Halo Mk I');
+      spawnShipBlueprint(0, 0, 'Godhand Prototype');
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyM')) {
-      const currentIntensity = this.ship?.getBlockColorIntensity() ?? 0.5;
-      this.ship?.setBlockColorIntensity(currentIntensity + 0.1);
-      if (currentIntensity >= 1.0) {
-        this.ship?.setBlockColorIntensity(0.0);
-      }
+      PlayerShipCollection.getInstance().addExperience('SW-1 Standard Issue', 100);
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyT')) {
+      this.tradePostMenu.openMenu('mission3-tradepost-0');
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
@@ -868,6 +873,7 @@ export class EngineRuntime {
     }
 
     // Always update these systems regardless of pause state
+    this.tradePostMenu.update(dt);
     this.powerupSelectionMenu.update(dt);
     this.shipBuilderEffects.update(dt);
     this.missionDialogueManager!.update(dt);
@@ -1038,6 +1044,8 @@ export class EngineRuntime {
     GlobalEventBus.off('player:victory', this.boundHandleVictory);
     GlobalEventBus.off('player:defeat', this.boundHandleDefeat);
     GlobalEventBus.off('player:entropium:levelup', this.boundHandleLevelUp);
+    GlobalEventBus.off('runtime:pause', this.boundPause);
+    GlobalEventBus.off('runtime:resume', this.boundResume);
 
     // === Clean up singleton state ===
     this.waveOrchestrator!.destroy();
@@ -1060,6 +1068,7 @@ export class EngineRuntime {
     this.pickupSpawner.destroy();
     this.incidentOrchestrator!.destroy();
     this.destructionService.destroy();
+    this.tradePostMenu.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

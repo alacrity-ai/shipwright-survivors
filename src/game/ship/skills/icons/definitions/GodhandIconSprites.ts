@@ -10,15 +10,26 @@ const cy = 12;
 export function getLaserPenetrateIconSprite(): HTMLCanvasElement {
   const canvas = createCanvas(ICON_SIZE, ICON_SIZE);
   const ctx = canvas.getContext('2d')!;
+  const cx = ICON_SIZE / 2;
+  const cy = ICON_SIZE / 2;
 
-  drawIconBase(ctx, '#ff3366', (ctx) => {
-    ctx.beginPath();
-    ctx.arc(cx, cy, 7, 0, Math.PI * 2);
-    ctx.moveTo(cx - 5, cy);
-    ctx.lineTo(cx + 5, cy);
-    ctx.moveTo(cx, cy - 5);
-    ctx.lineTo(cx, cy + 5);
-  });
+  drawIconBase(
+    ctx,
+    '#3399ff',
+    (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 7);                  // Top point
+      ctx.lineTo(cx + 6, cy - 2);              // Upper right
+      ctx.lineTo(cx + 4, cy + 6);              // Lower right
+      ctx.lineTo(cx, cy + 8);                  // Bottom center
+      ctx.lineTo(cx - 4, cy + 6);              // Lower left
+      ctx.lineTo(cx - 6, cy - 2);              // Upper left
+      ctx.closePath();                         // Back to top
+      ctx.stroke();
+    },
+    'stroke',
+    false // No black outline
+  );
 
   return canvas;
 }
@@ -27,18 +38,49 @@ export function getLaserPenetrateIconSprite(): HTMLCanvasElement {
 export function getLaserTargetingIconSprite(): HTMLCanvasElement {
   const canvas = createCanvas(ICON_SIZE, ICON_SIZE);
   const ctx = canvas.getContext('2d')!;
+  const cx = ICON_SIZE / 2;
+  const cy = ICON_SIZE / 2;
 
-  drawIconBase(ctx, '#66ccff', (ctx) => {
-    ctx.beginPath();
-    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-    ctx.moveTo(cx - 6, cy);
-    ctx.lineTo(cx + 6, cy);
-    ctx.moveTo(cx, cy - 6);
-    ctx.lineTo(cx, cy + 6);
-  });
+  drawIconBase(
+    ctx,
+    '#66ccff',
+    (ctx) => {
+      const outerRadius = 6;
+      const tickLength = 2.5;
+
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Horizontal ticks
+      ctx.beginPath();
+      ctx.moveTo(cx - outerRadius, cy);
+      ctx.lineTo(cx - outerRadius + tickLength, cy);
+      ctx.moveTo(cx + outerRadius, cy);
+      ctx.lineTo(cx + outerRadius - tickLength, cy);
+      ctx.stroke();
+
+      // Vertical ticks
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerRadius);
+      ctx.lineTo(cx, cy - outerRadius + tickLength);
+      ctx.moveTo(cx, cy + outerRadius);
+      ctx.lineTo(cx, cy + outerRadius - tickLength);
+      ctx.stroke();
+
+      // Optional: Inner dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, 1.2, 0, Math.PI * 2);
+      ctx.stroke();
+    },
+    'stroke',
+    false // No black outline
+  );
 
   return canvas;
 }
+
 
 // === 🔫 Deployed Laser (minor) ===
 export function getLaserBlockIconSprite(): HTMLCanvasElement {
@@ -96,18 +138,42 @@ export function getLaserWidthIconSprite(): HTMLCanvasElement {
 export function getLaserEfficiencyIconSprite(): HTMLCanvasElement {
   const canvas = createCanvas(ICON_SIZE, ICON_SIZE);
   const ctx = canvas.getContext('2d')!;
+  const cx = ICON_SIZE / 2;
+  const cy = ICON_SIZE / 2;
 
-  drawIconBase(ctx, '#33cc99', (ctx) => {
-    ctx.beginPath();
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI / 4) * i;
-      const x = cx + 6 * Math.cos(angle);
-      const y = cy + 6 * Math.sin(angle);
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(x, y);
-    }
-    ctx.arc(cx, cy, 2, 0, Math.PI * 2); // center core
-  });
+  drawIconBase(
+    ctx,
+    '#33cc99',
+    (ctx) => {
+      const bodyWidth = 10;
+      const bodyHeight = 6;
+      const terminalWidth = 4;
+      const terminalHeight = 2;
+
+      // Battery body
+      const x = cx - bodyWidth / 2;
+      const y = cy - bodyHeight / 2;
+      ctx.beginPath();
+      ctx.rect(x, y, bodyWidth, bodyHeight);
+      ctx.stroke();
+
+      // Terminal
+      const tx = cx - terminalWidth / 2;
+      const ty = y - terminalHeight;
+      ctx.beginPath();
+      ctx.rect(tx, ty, terminalWidth, terminalHeight);
+      ctx.stroke();
+
+      // Optional charge bar
+      ctx.beginPath();
+      ctx.moveTo(x + 2, y + bodyHeight / 2);
+      ctx.lineTo(x + bodyWidth - 2, y + bodyHeight / 2);
+      ctx.stroke();
+    },
+    'stroke',
+    false // No black outline
+  );
 
   return canvas;
 }
+

@@ -29,6 +29,7 @@ import type { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import type { Camera } from '@/core/Camera';
 import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
 
 const BASE_PICKUP_SCALE = 0.5;
@@ -43,6 +44,7 @@ const ROTATION_SPEED = {
   block: 1,
   repair: 1,
   quantumAttractor: 4,
+  shipBlueprint: 4,
 };
 
 const CULL_PADDING = 128;
@@ -261,6 +263,45 @@ export class PickupSystem {
     this.resourcePickups.push(newPickup);
   }
 
+  spawnShipBlueprintPickup(position: { x: number; y: number }, shipId: string): void {
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    const light = createPointLight({
+      x: position.x,
+      y: position.y,
+      radius: 500,
+      color: '#00FFFF', // cyan-blue glow
+      intensity: 1.4,
+      life: 10000,
+      expires: true,
+    });
+
+    lightingOrchestrator.registerLight(light);
+
+    const newPickup: PickupInstance = {
+      type: {
+        id: `shipBlueprint`,
+        name: `${shipId} Blueprint`,
+        sprite: 'shipBlueprint',
+        category: 'shipBlueprint',
+        currencyAmount: 0,
+        repairAmount: 0,
+      },
+      position,
+      isPickedUp: false,
+      repairAmount: 0,
+      currencyAmount: 0,
+      rotation: 0,
+      lightId: light.id,
+      spawnTime: performance.now() / 1000,
+      ttl: 999,
+      shipId,
+    };
+
+    this.pickups.push(newPickup);
+    this.resourcePickups.push(newPickup);
+  }
+
   private isQuantumAttractorActive(): boolean {
     return this.quantumAttractorActiveUntil !== null &&
           performance.now() / 1000 < this.quantumAttractorActiveUntil;
@@ -383,6 +424,7 @@ export class PickupSystem {
         switch (pickup.type.category) {
           case 'currency':
           case 'quantumAttractor':
+          case 'shipBlueprint':
           case 'repair':
             try {
               return getGLPickupSprite(pickup.type.id).texture;
@@ -423,6 +465,9 @@ export class PickupSystem {
           width *= BASE_BLOCK_PICKUP_SCALE;
           height *= BASE_BLOCK_PICKUP_SCALE;
         } else if (pickup.type.category === 'quantumAttractor') {
+          width = 176;
+          height = 176;
+        } else if (pickup.type.category === 'shipBlueprint') {
           width = 176;
           height = 176;
         }
@@ -580,6 +625,39 @@ export class PickupSystem {
       reportPickupCollected('quantumAttractor');
       createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#EFBF04');
       this.activateQuantumAttractor();
+    } else if (pickup.type.category === 'shipBlueprint') {
+      // Need pickup logic here
+      if (!pickup.shipId) {
+        console.warn('Ship blueprint pickup missing ship ID:', pickup);
+        return;
+      }
+      const shipCollection = PlayerShipCollection.getInstance();
+
+      // If we already have this ship unlocked
+      if (shipCollection.isUnlocked(pickup.shipId)) {
+        audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', { maxSimultaneous: 8, });
+        this.popupMessageSystem.displayMessage(`${pickup.shipId} already Unlocked`, {
+          color: '#00FFFF',
+          duration: 5,
+          font: '28px monospace',
+          glow: true,
+        });
+      } else {
+        missionResultStore.addShipDiscovery(pickup.shipId);
+        shipCollection.discover(pickup.shipId);
+        shipCollection.unlock(pickup.shipId);
+
+        audioManager.play('assets/sounds/sfx/magic/collect_ship.wav', 'sfx', { maxSimultaneous: 8, });
+
+        // Popup message here
+        this.popupMessageSystem.displayMessage(`${pickup.shipId} Blueprint Discovered!`, {
+          color: '#00FFFF',
+          duration: 5,
+          font: '28px monospace',
+          glow: true,
+        });
+      }
+      createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#00FFFF');
     } else {
       console.warn('Unhandled pickup category or malformed pickup:', pickup);
     }

@@ -20,7 +20,8 @@ export class PickupSpawner {
     GlobalEventBus.on('pickup:spawn:block', this.handleSpawnBlockPickup);
     GlobalEventBus.on('pickup:spawn:currency', this.handleSpawnCurrencyPickup);
     GlobalEventBus.on('pickup:spawn:repair', this.handleSpawnRepairPickup);
-    GlobalEventBus.on('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor); // NEW
+    GlobalEventBus.on('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor);
+    GlobalEventBus.on('pickup:spawn:shipBlueprint', this.handleSpawnShipBlueprint);
   }
 
   // === Event Handlers ===
@@ -79,6 +80,18 @@ export class PickupSpawner {
     this.pickupSystem.spawnQuantumAttractorPickup({ x, y });
   };
 
+  private handleSpawnShipBlueprint = ({
+    x,
+    y,
+    shipId,
+  }: {
+    x: number;
+    y: number;
+    shipId: string;
+  }): void => {
+    this.pickupSystem.spawnShipBlueprintPickup({ x, y }, shipId);
+  };
+
   // === Destruction / cleanup ===
 
   public destroy(): void {
@@ -86,6 +99,7 @@ export class PickupSpawner {
     GlobalEventBus.off('pickup:spawn:currency', this.handleSpawnCurrencyPickup);
     GlobalEventBus.off('pickup:spawn:repair', this.handleSpawnRepairPickup);
     GlobalEventBus.off('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor);
+    GlobalEventBus.off('pickup:spawn:shipBlueprint', this.handleSpawnShipBlueprint);
   }
 
   // === Block destruction hooks ===
