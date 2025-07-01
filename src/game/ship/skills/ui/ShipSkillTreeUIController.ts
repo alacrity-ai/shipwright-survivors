@@ -2,11 +2,13 @@
 
 import { CanvasManager } from '@/core/CanvasManager';
 import type { InputManager } from '@/core/InputManager';
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
 import { getStarterShipSkillTree } from '@/game/ship/skills/registry/StarterShipSkillTreeRegistry';
 import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
 import { audioManager } from '@/audio/Audio';
 
@@ -53,6 +55,15 @@ export class ShipSkillTreeUIController {
 
   public getShip(): CollectableShipDefinition | null {
     return this.currentShip;
+  }
+
+  public getNavPoints(): NavPoint[] {
+    if (!this.currentShip) return [];
+
+    const tree = getStarterShipSkillTree(this.currentShip.name);
+    if (!tree) return [];
+
+    return this.uiRenderer.getNavPoints(tree, this.renderX1, this.renderY1, this.scale);
   }
 
   public setRenderBounds(x1: number, y1: number, x2: number, y2: number, scale: number): void {
@@ -124,6 +135,16 @@ export class ShipSkillTreeUIController {
         return;
       }
 
+      // === Mastery-gated unlock check ===
+      const masteryLevel = PlayerShipCollection.getInstance().getShipMasteryLevel(shipId);
+      const canAcquire = playerTreeManager.canAcquireNode(shipId, nodeId, masteryLevel);
+
+      if (!canAcquire) {
+        console.log(`[ShipSkillTreeUIController] Cannot acquire node: cap reached for mastery level ${masteryLevel}`);
+        audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
+        return;
+      }
+
       metaManager.subtractMetaCurrency(node.cost);
       const success = playerTreeManager.acquireNode(shipId, nodeId);
 
@@ -136,8 +157,6 @@ export class ShipSkillTreeUIController {
 
       console.log('[ShipSkillTreeUIController] Acquired node:', nodeId);
       audioManager.play('assets/sounds/sfx/magic/levelup.wav', 'sfx', { maxSimultaneous: 8 });
-
-      // TODO: animate node unlock, emit event
     }
   }
 
@@ -177,7 +196,7 @@ export class ShipSkillTreeUIController {
           this.scale
         );
 
-        this.tooltipRenderer.renderTooltip(node.node, x, y, this.scale);
+        this.tooltipRenderer.renderTooltip(node.node, x, y, this.scale, this.currentShip.name);
       }
     }
   }

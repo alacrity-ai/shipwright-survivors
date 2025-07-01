@@ -135,6 +135,11 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Ship Blueprints need to drop! Put drops for all 5 ships in the game
+  - [ ] Add acquisition of ship mastery levels in mission debriefing.  1 level clear = 100xp?
+  - [ ] Add purchasing of a discovered ship in the ship selection menu
+  - [ ] Add mastery level requirement to ShipSkillTreeNode, to make the tooltip more clear.
+
   - [ ] Passive menu needs to use GamepadNavMap
   - [ ] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)
   - [ ] Gamepad - Press select to toggle to the block queue. d-pad left and right to cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
@@ -144,9 +149,6 @@ TODOS:
       - [ ] Artifact equip in loadout menu
       - [ ] Artifact stat tooltip/description
       - [ ] PlayerArtifactStore / Registry / Effects (use Powerup system as reference)
-    - [ ] Add ship skill trees (Nodes) with decision trees, e.g. Y shape, or X shape (Purchaseable with Cores)
-      - [ ] Store skill unlocks in PlayerShipCollection?
-      - [ ] Ship skill tree Registry, Effects (use Powerup system as reference)
     - [ ] Unify gathering aggregate powerups/ship skills/artifact effects with a single command
     - [ ] Unlockable Ship Blueprint Pickups
     - [ ] Verify that GL2 blocksprite cache is being cleared on the entityfx layer before entering runtime to avoid leaks

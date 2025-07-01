@@ -16,6 +16,16 @@ export class PlayerShipCollection {
   private discoveredShipNames: Set<string> = new Set();
   private unlockedShipNames: Set<string> = new Set();
 
+  private static readonly MAX_MASTERY_LEVEL = 5;
+
+  // XP required to go from level N to N+1
+  private static getXpThresholdForLevel(level: number): number {
+    // linear
+    return 100 + (level - 1) * 150;
+  }
+
+  private shipMasteryMap: Map<string, { masteryLevel: number; experience: number }> = new Map();
+
   private selectedColor: ShipColorPreset = ShipColorPreset.White;
 
   private constructor() {}
@@ -57,6 +67,63 @@ export class PlayerShipCollection {
       return;
     }
     this.unlockedShipNames.add(shipName);
+
+    // Initialize mastery if not present
+    if (!this.shipMasteryMap.has(shipName)) {
+      this.shipMasteryMap.set(shipName, { masteryLevel: 1, experience: 0 });
+    }
+  }
+
+  // === Mastery Getters ===
+
+  public getShipMasteryLevel(shipName: string): number {
+    return this.shipMasteryMap.get(shipName)?.masteryLevel ?? 1;
+  }
+
+  public getShipExperience(shipName: string): number {
+    return this.shipMasteryMap.get(shipName)?.experience ?? 0;
+  }
+
+  /**
+   * Returns the XP threshold required to reach the next level from the specified level.
+   * If the level is at or beyond the max, returns 0.
+   */
+  public getExperienceForLevel(level: number): number {
+    if (level >= PlayerShipCollection.MAX_MASTERY_LEVEL) return 0;
+    return PlayerShipCollection.getXpThresholdForLevel(level);
+  }
+
+  // === Mastery Mutators ===
+
+  public addExperience(shipName: string, xp: number): void {
+    if (!this.shipMasteryMap.has(shipName)) {
+      this.shipMasteryMap.set(shipName, { masteryLevel: 1, experience: 0 });
+    }
+
+    const state = this.shipMasteryMap.get(shipName)!;
+    if (state.masteryLevel >= PlayerShipCollection.MAX_MASTERY_LEVEL) return;
+
+    state.experience += xp;
+
+    while (
+      state.masteryLevel < PlayerShipCollection.MAX_MASTERY_LEVEL &&
+      state.experience >= PlayerShipCollection.getXpThresholdForLevel(state.masteryLevel)
+    ) {
+      state.experience -= PlayerShipCollection.getXpThresholdForLevel(state.masteryLevel);
+      state.masteryLevel += 1;
+    }
+  }
+
+  public levelUpShip(shipName: string): void {
+    if (!this.shipMasteryMap.has(shipName)) {
+      this.shipMasteryMap.set(shipName, { masteryLevel: 1, experience: 0 });
+    }
+
+    const state = this.shipMasteryMap.get(shipName)!;
+    if (state.masteryLevel < PlayerShipCollection.MAX_MASTERY_LEVEL) {
+      state.masteryLevel += 1;
+      state.experience = 0;
+    }
   }
 
   // === Accessors ===
@@ -120,6 +187,7 @@ export class PlayerShipCollection {
       discovered: Array.from(this.discoveredShipNames),
       unlocked: Array.from(this.unlockedShipNames),
       selectedColor: this.selectedColor,
+      mastery: Array.from(this.shipMasteryMap.entries()), // [['vanguard', { masteryLevel: 2, experience: 180 }], ...]
     });
   }
 
@@ -139,6 +207,10 @@ export class PlayerShipCollection {
           parsed.selectedColor in ShipColorPreset
         ) {
           this.selectedColor = parsed.selectedColor as ShipColorPreset;
+        }
+
+        if (Array.isArray(parsed.mastery)) {
+          this.shipMasteryMap = new Map(parsed.mastery);
         }
       } else {
         console.warn('[PlayerShipCollection] Malformed JSON input');

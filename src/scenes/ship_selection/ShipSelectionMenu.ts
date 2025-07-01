@@ -5,14 +5,18 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { handleButtonInteraction, drawButton, type UIButton } from '@/ui/primitives/UIButton';
+
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
 import type { InputManager } from '@/core/InputManager';
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
+
 import { PreviewShipComponent } from './components/PreviewShipComponent';
 import { ShipSelectionGridComponent } from './components/ShipSelectionGridComponent';
 import { EquippedArtifactsComponent } from './components/EquippedArtifactsComponent';
 import { ShipDetailsComponent } from './components/ShipDetailsComponent';
 import { ShipSkillTreeUIController } from '@/game/ship/skills/ui/ShipSkillTreeUIController';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
 import { 
   initializeShipSkillTreeSpriteCache, 
   destroyShipSkillTreeSpriteCache 
@@ -155,6 +159,14 @@ export class ShipSelectionMenu {
     return this.gridComponent.getSelectedShip();
   }
 
+  public getSkillTreeNavPoints(): NavPoint[] {
+    return this.skillTreeController.getNavPoints();
+  }
+
+  public cycleSelectedShip(direction: 1 | -1): void {
+    this.gridComponent.cycleSelectedShip(direction);
+  }
+
   update(dt: number): void {
     const selected = this.gridComponent.getSelectedShip();
     if (selected && selected.filepath !== this.lastPreviewedFilepath) {
@@ -179,7 +191,7 @@ export class ShipSelectionMenu {
     // Update components
     // CALL UPDATE OF SHIP SKILL TREE CONTROLLER HERE
     this.previewComponent.update(dt);
-    this.gridComponent.update();
+    this.gridComponent.update(dt);
     this.artifactsComponent.update();
   }
 
@@ -234,6 +246,48 @@ export class ShipSelectionMenu {
           font: `${18 * scale}px monospace`,
           align: 'center',
           glow: true
+        }
+      );
+
+      // === Mastery Level
+      const collection = PlayerShipCollection.getInstance();
+      const skillManager = PlayerShipSkillTreeManager.getInstance();
+
+      const masteryLevel = collection.getShipMasteryLevel(selected.name);
+      const currentXp = collection.getShipExperience(selected.name);
+      const xpForNext = collection.getExperienceForLevel(masteryLevel);
+      const selectedCount = skillManager.getSelectedCount(selected.name);
+
+      let masteryLabel = `Mastery Level: ${masteryLevel}`;
+      if (xpForNext > 0) {
+        masteryLabel += `  (${currentXp} / ${xpForNext} XP)`;
+      } else {
+        masteryLabel += `  (MAX)`;
+      }
+
+      // Draw Mastery Level + XP
+      drawLabel(
+        uiCtx,
+        centerX,
+        previewTopY + (24 * scale), // Below name
+        masteryLabel,
+        {
+          font: `${14 * scale}px monospace`,
+          align: 'center',
+          glow: false
+        }
+      );
+
+      // Draw Points Spent / Allowed
+      drawLabel(
+        uiCtx,
+        centerX,
+        previewTopY + (44 * scale), // Below mastery label
+        `Points Spent: ${selectedCount} / ${masteryLevel}`,
+        {
+          font: `${14 * scale}px monospace`,
+          align: 'center',
+          glow: false
         }
       );
     }

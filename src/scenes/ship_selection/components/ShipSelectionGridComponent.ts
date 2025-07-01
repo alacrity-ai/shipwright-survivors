@@ -4,9 +4,9 @@ import { getUniformScaleFactor } from '@/config/view';
 import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
 import { loadImage } from '@/shared/imageCache';
 import { getAssetPath } from '@/shared/assetHelpers';
-import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { drawShipTile } from '@/ui/primitives/UIShipTile';
 
+import { brightenColor } from '@/shared/colorUtils';
 import { audioManager } from '@/audio/Audio';
 
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
@@ -37,7 +37,9 @@ export class ShipSelectionGridComponent {
   private gridX: number = 0;
   private gridY: number = 0;
   private tileSize: number;
+
   private hoveredTileIndex: number | null = null;
+  private hoverPulseTime = 0;
 
   private placeholderSprite: CanvasImageSource;
   private isInitialized = false;
@@ -49,7 +51,6 @@ export class ShipSelectionGridComponent {
     this.tileSize = TILE_SIZE * scale;
     this.placeholderSprite = this.createPlaceholderSprite();
 
-    // Async init
     this.loadTiles();
   }
 
@@ -91,8 +92,10 @@ export class ShipSelectionGridComponent {
     this.isInitialized = true;
   }
 
-  update(): void {
+  update(dt: number): void {
     if (!this.isInitialized) return;
+
+    this.hoverPulseTime += dt;
 
     const mouse = this.inputManager.getMousePosition();
     const click = this.inputManager.wasMouseClicked();
@@ -125,21 +128,25 @@ export class ShipSelectionGridComponent {
   render(ctx: CanvasRenderingContext2D): void {
     if (!this.isInitialized) return;
 
-    const scale = getUniformScaleFactor();
-    
+    const pulseAmount = 0 + 0.5 * Math.sin(this.hoverPulseTime * 4); // range: 0.5 → 1.0
+
     for (const tile of this.tiles) {
-      drawShipTile(
-        ctx,
-        {
-          x: tile.x,
-          y: tile.y,
-          size: this.tileSize,
-          sprite: tile.icon ?? this.placeholderSprite,
-          isHovered: tile.isHovered,
-          isSelected: tile.isSelected,
-          isLocked: !tile.shipDef,
-        },
-      );
+      let hoverColorOverride: string | undefined = undefined;
+
+      if (tile.isHovered) {
+        hoverColorOverride = brightenColor('#ffffff', pulseAmount);
+      }
+
+      drawShipTile(ctx, {
+        x: tile.x,
+        y: tile.y,
+        size: this.tileSize,
+        sprite: tile.icon ?? this.placeholderSprite,
+        isHovered: tile.isHovered,
+        isSelected: tile.isSelected,
+        isLocked: !tile.shipDef,
+        hoverColorOverride,
+      });
     }
   }
 
@@ -165,9 +172,9 @@ export class ShipSelectionGridComponent {
 
       buttons.push({
         gridX: col,
-        gridY: row + 1, // Shift all rows down by 1
-        screenX: tile.x + (this.tileSize / 2),
-        screenY: tile.y + (this.tileSize / 2),
+        gridY: row + 1,
+        screenX: tile.x + this.tileSize / 2,
+        screenY: tile.y + this.tileSize / 2,
         isEnabled: !!tile.shipDef,
       });
     }
@@ -185,5 +192,28 @@ export class ShipSelectionGridComponent {
     ctx.strokeStyle = '#444';
     ctx.strokeRect(0, 0, 32, 32);
     return canvas;
+  }
+
+  public cycleSelectedShip(direction: 1 | -1): void {
+    if (!this.isInitialized || this.tiles.length === 0) return;
+
+    const enabledIndices = this.tiles
+      .map((tile, idx) => (tile.shipDef ? idx : null))
+      .filter((idx): idx is number => idx !== null);
+
+    if (enabledIndices.length === 0) return;
+
+    const currentIndex = this.tiles.findIndex(t => t.shipDef === this.selectedShipDef);
+    const currentEnabledIdx = enabledIndices.indexOf(currentIndex);
+
+    const nextEnabledIdx = (currentEnabledIdx + direction + enabledIndices.length) % enabledIndices.length;
+    const nextIndex = enabledIndices[nextEnabledIdx];
+
+    this.tiles.forEach(t => (t.isSelected = false));
+    const nextTile = this.tiles[nextIndex];
+    nextTile.isSelected = true;
+    this.selectedShipDef = nextTile.shipDef;
+
+    audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 4 });
   }
 }

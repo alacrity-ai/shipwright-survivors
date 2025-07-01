@@ -3,10 +3,14 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { SkillNode } from '@/game/ship/skills/interfaces/SkillNode';
 import { drawLabel } from '@/ui/primitives/UILabel';
 
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
+
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager'; // ⬅ Add this
 
 const BOX_PADDING = 24;
-const LINE_SPACING = 36;
+const LINE_SPACING = 40;
 const MAX_WIDTH = 480;
 
 export class ShipSkillTreeTooltipRenderer {
@@ -20,7 +24,8 @@ export class ShipSkillTreeTooltipRenderer {
     node: SkillNode,
     anchorX: number,
     anchorY: number,
-    uiScale: number
+    uiScale: number,
+    shipId: string
   ): void {
     const ctx = this.canvasManager.getContext('overlay');
     if (!ctx) return;
@@ -31,9 +36,9 @@ export class ShipSkillTreeTooltipRenderer {
     const contentLineCount = 3 + metadataEntries.length;
     const boxWidth = MAX_WIDTH * uiScale;
     const boxHeight =
-      (contentLineCount * LINE_SPACING + BOX_PADDING * 2) * uiScale;
+      (contentLineCount * LINE_SPACING + BOX_PADDING * 3) * uiScale;
 
-    const boxX = anchorX - boxWidth - 16 * uiScale;
+    const boxX = anchorX - boxWidth - 64 * uiScale;
     const boxY = anchorY - boxHeight / 2;
 
     // === Background ===
@@ -58,13 +63,13 @@ export class ShipSkillTreeTooltipRenderer {
       currentY,
       name,
       {
-        font: `${22}px monospace`,
+        font: `${24}px monospace`,
         color: nodeSize === 'major' ? '#cc66ff' : '#00ff00',
         glow: true,
       },
       uiScale
     );
-    currentY += LINE_SPACING * uiScale;
+    currentY += (LINE_SPACING + 8)* uiScale;
 
     drawLabel(
       ctx,
@@ -72,7 +77,7 @@ export class ShipSkillTreeTooltipRenderer {
       currentY,
       description,
       {
-        font: `${16}px monospace`,
+        font: `${18}px monospace`,
         color: '#cccccc',
       },
       uiScale
@@ -82,21 +87,65 @@ export class ShipSkillTreeTooltipRenderer {
     // === Cost + Player Core Count ===
     const metaManager = PlayerMetaCurrencyManager.getInstance();
     const playerCores = metaManager.getMetaCurrency();
-    const canAfford = metaManager.canAfford(cost);
-    const costColor = canAfford ? '#ffaa00' : '#666666';
-
-    drawLabel(
-      ctx,
-      labelX,
-      currentY,
-      `Cost: ${cost} cores  |  You: ${playerCores}`,
-      {
-        font: `${16}px monospace`,
-        color: costColor,
-      },
-      uiScale
+    const alreadyUnlocked = PlayerShipSkillTreeManager.getInstance().hasNode(
+      shipId,
+      node.id
     );
-    currentY += LINE_SPACING * uiScale;
+
+    if (alreadyUnlocked) {
+      const actionButton = InputDeviceTracker.getInstance().getLastUsed() === 'gamepad'
+        ? 'B'
+        : 'Right Click';
+      drawLabel(
+        ctx,
+        labelX,
+        currentY,
+        `Refund (${actionButton})`,
+        {
+          font: `${18}px monospace`,
+          color: '#aaff88',
+        },
+        uiScale
+      );
+      currentY += LINE_SPACING * uiScale;
+    } else {
+      const masteryLevel = PlayerShipCollection.getInstance().getShipMasteryLevel(shipId);
+      const selectedCount = PlayerShipSkillTreeManager.getInstance().getSelectedCount(shipId);
+      const requiredMastery = selectedCount + 1;
+      const hasEnoughMastery = masteryLevel >= requiredMastery;
+
+      const canAfford = metaManager.canAfford(cost);
+      const costColor = hasEnoughMastery
+        ? (canAfford ? '#ffaa00' : '#666666') // Yellow if afford, gray if not
+        : '#555555'; // Dimmed if mastery too low
+
+      drawLabel(
+        ctx,
+        labelX,
+        currentY,
+        `Cost: ${cost} cores  |  You: ${playerCores}`,
+        {
+          font: `${18}px monospace`,
+          color: costColor,
+        },
+        uiScale
+      );
+      currentY += LINE_SPACING * uiScale;
+
+      const masteryColor = hasEnoughMastery ? '#88ff88' : '#ff4444';
+      drawLabel(
+        ctx,
+        labelX,
+        currentY,
+        `Requires Mastery Level: ${requiredMastery}`,
+        {
+          font: `${18}px monospace`,
+          color: masteryColor,
+        },
+        uiScale
+      );
+      currentY += LINE_SPACING * uiScale;
+    }
 
     for (const [key, value] of metadataEntries) {
       const formatted = `${this.formatLabel(key)}: ${this.formatValue(key, value)}`;
@@ -106,7 +155,7 @@ export class ShipSkillTreeTooltipRenderer {
         currentY,
         formatted,
         {
-          font: `${16}px monospace`,
+          font: `${18}px monospace`,
           color: '#8888ff',
         },
         uiScale

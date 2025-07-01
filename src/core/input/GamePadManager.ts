@@ -188,8 +188,8 @@ export class GamePadManager {
       case 5: return 'rightBumper'; // RB
       case 6: return 'leftTrigger'; // LT (if digital)
       case 7: return 'rightTrigger';        // RT (right trigger)
-      case 8: return 'start';      // Back/View button
-      case 9: return 'select';       // Start/Menu button
+      case 8: return 'select';      // Back/View button
+      case 9: return 'start';       // Start/Menu button
       case 10: return 'leftStickButton';  // Left stick click (L3)
       case 11: return 'rightStickButton'; // Right stick click (R3)
       case 12: return 'dpadUp';     // D-pad Up

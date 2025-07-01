@@ -12,6 +12,10 @@ import { loadImage } from '@/shared/imageCache';
 
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
+import { drawLabel } from '@/ui/primitives/UILabel';
+
+import { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 import { initializeGL2BlockSpriteCache, destroyGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 
@@ -20,6 +24,7 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
+import { scale } from '@/systems/galaxymap/webgl/matrixUtils';
 
 const BACKGROUND_PATH = 'assets/backgrounds/background_2_00.png';
 
@@ -56,6 +61,8 @@ export class ShipSelectionSceneManager {
 
   private buttons: UIButton[];
   private launchButton: UIButton | null = null;
+
+  private skillTreeNavActive: boolean = false;
 
   private uiCtx: CanvasRenderingContext2D;
   private overlayCtx: CanvasRenderingContext2D;
@@ -99,6 +106,16 @@ export class ShipSelectionSceneManager {
     ];
   }
 
+  launchMission(): void {
+    if (!this.mission) return;
+
+    audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', { maxSimultaneous: 4 });
+    PlayerShipCollection.getInstance().setActiveShip(this.getSelectedShip());
+    missionLoader.setMission(this.mission!);
+    this.stop();
+    sceneManager.fadeToScene('mission');
+  }
+
   async start() {
     initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
 
@@ -115,11 +132,7 @@ export class ShipSelectionSceneManager {
         isHovered: false,
         wasHovered: false,
         onClick: () => {
-          audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', { maxSimultaneous: 4 });
-          PlayerShipCollection.getInstance().setActiveShip(this.getSelectedShip());
-          missionLoader.setMission(this.mission!);
-          this.stop();
-          sceneManager.fadeToScene('mission');
+          this.launchMission();
         },
         style: crtStyle
       };
@@ -129,6 +142,25 @@ export class ShipSelectionSceneManager {
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
+
+    // === Show [Y] Coach Mark if gamepad is active ===
+    const coachMarkManager = CoachMarkManager.getInstance();
+    coachMarkManager.createScreenCoachMark(
+      '',
+      946,
+      676,
+      {
+        type: 'gamepadFaceButton',
+        label: 'Y',
+        radius: 16,
+        fontSize: 12,
+        textColor: '#FFFFFF',
+        fillColor: '#f9d600',       // Yellow
+        borderColor: '#a58d00',
+        highlightColor: '#ffff66',
+        duration: Infinity,
+      }
+    );
   }
 
   stop() {
@@ -137,6 +169,7 @@ export class ShipSelectionSceneManager {
     this.shipSelectionMenu.destroy();
     this.gamepadNavManager.clearNavMap();
     destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
+    CoachMarkManager.getInstance().clear();
   }
 
   private getSelectedShip(): CollectableShipDefinition {
@@ -148,76 +181,66 @@ export class ShipSelectionSceneManager {
   private update = (dt: number) => {
     const scale = getUniformScaleFactor();
     this.inputManager.updateFrame();
+    CoachMarkManager.getInstance().update(dt);
     this.gamepadNavManager.update();
 
-    // Scroll background image
+    // === Background scroll update ===
     this.backgroundScrollOffsetX += BACKGROUND_SCROLL_DIRECTION.x * BACKGROUND_SCROLL_SPEED * dt;
     this.backgroundScrollOffsetY += BACKGROUND_SCROLL_DIRECTION.y * BACKGROUND_SCROLL_SPEED * dt;
-
     this.backgroundScrollOffsetX %= BACKGROUND_TILE_WIDTH;
     this.backgroundScrollOffsetY %= BACKGROUND_TILE_HEIGHT;
 
-    // Handle Gamepad input
+    // === Gamepad bumper ship cycling ===
+  if (this.inputManager.isUsingGamepad?.()) {
+    let cycled = false;
+
+    if (this.inputManager.wasGamepadAliasJustPressed('leftBumper')) {
+      this.shipSelectionMenu.cycleSelectedShip(-1);
+      cycled = true;
+    } else if (this.inputManager.wasGamepadAliasJustPressed('rightBumper')) {
+      this.shipSelectionMenu.cycleSelectedShip(1);
+      cycled = true;
+    }
+
+    if (cycled) {
+      this.shipSelectionMenu.update(0); // force sync update
+      this.rebuildNavMap(scale);
+    }
+  }
+
+    // === Handle nav mode toggle ===
+    if (this.inputManager.wasGamepadAliasJustPressed('Y')) {
+      this.skillTreeNavActive = !this.skillTreeNavActive;
+      this.rebuildNavMap(scale);
+      if (!this.skillTreeNavActive) {
+        this.gamepadNavManager.setCurrentGridPosition(0, 1);
+      }
+    }
+
+    // === Handle gamepad nav setup ===
     if (this.inputManager.isUsingGamepad?.()) {
       if (!this.gamepadNavManager.hasNavMap()) {
-        const scale = getUniformScaleFactor();
-        const navPoints = [];
-
-        const backButton = this.buttons[0];
-        navPoints.push({
-          gridX: 0,
-          gridY: 0,
-          screenX: backButton.x + (backButton.width * scale) / 2,
-          screenY: backButton.y + (backButton.height * scale) / 2,
-          isEnabled: true,
-        });
-
-        const [leftColorBtn, rightColorBtn] = this.shipSelectionMenu.getColorButtons();
-        navPoints.push({
-          gridX: 0,
-          gridY: 6,
-          screenX: leftColorBtn.x + (leftColorBtn.width * scale) / 2,
-          screenY: leftColorBtn.y + (leftColorBtn.height * scale) / 2,
-          isEnabled: true,
-        });
-        navPoints.push({
-          gridX: 1,
-          gridY: 6,
-          screenX: rightColorBtn.x + (rightColorBtn.width * scale) / 2,
-          screenY: rightColorBtn.y + (rightColorBtn.height * scale) / 2,
-          isEnabled: true,
-        });
-
-        if (this.launchButton) {
-          navPoints.push({
-            gridX: 0,
-            gridY: 7,
-            screenX: this.launchButton.x + (this.launchButton.width * scale) / 2,
-            screenY: this.launchButton.y + (this.launchButton.height * scale) / 2,
-            isEnabled: true,
-          });
+        this.rebuildNavMap(scale);
+        if (!this.skillTreeNavActive) {
+          this.gamepadNavManager.setCurrentGridPosition(0, 1);
         }
-
-        // === Add grid tile nav points ===
-        const gridButtons = this.shipSelectionMenu.getGridButtons();
-        for (const point of gridButtons) {
-          navPoints.push(point); // already in correct format
-        }
-
-        this.gamepadNavManager.setNavMap(navPoints);
-        this.gamepadNavManager.setCurrentGridPosition(0, 7);
       }
-      // Move to Back button if B is pressed
-      if (this.inputManager.wasGamepadAliasJustPressed('B')) {
+
+      if (!this.skillTreeNavActive && this.inputManager.wasGamepadAliasJustPressed('B')) {
         this.gamepadNavManager.setCurrentGridPosition(0, 0);
       }
+
     } else {
       if (this.gamepadNavManager.hasNavMap()) {
         this.gamepadNavManager.clearNavMap();
       }
     }
-    // End handle gamepadinput
 
+    if (this.inputManager.gamepadAliasIsPressed('start')) {
+      this.launchMission();
+    }
+
+    // === Mouse interaction ===
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
@@ -229,6 +252,7 @@ export class ShipSelectionSceneManager {
       handleButtonInteraction(this.launchButton, x, y, clicked, scale);
     }
 
+    // === Submenu update ===
     this.shipSelectionMenu.update(dt);
   }
 
@@ -259,6 +283,84 @@ export class ShipSelectionSceneManager {
 
     if (!this.inputManager.isUsingGamepad()) {
       drawCursor(this.overlayCtx, getCrosshairCursorSprite(), x, y, scale);
+    }
+
+    // Draw Coachmark Label
+    if (InputDeviceTracker.getInstance().getLastUsed() === 'gamepad') {
+      const label = this.skillTreeNavActive ? 'Select Ship' : 'Assign Skill Points';
+      CoachMarkManager.getInstance().render();
+      drawLabel(
+        this.uiCtx,
+        996 * scale,
+        668 * scale,
+        label,
+        {
+          font: `${16 * scale}px monospace`,
+          align: 'left',
+        }
+      );
+    }
+  }
+
+  private rebuildNavMap(scale: number): void {
+    if (this.skillTreeNavActive) {
+      const skillTreePoints = this.shipSelectionMenu.getSkillTreeNavPoints();
+      this.gamepadNavManager.setNavMap(skillTreePoints);
+
+      const firstEnabled = skillTreePoints.find(p => p.isEnabled);
+      if (firstEnabled) {
+        this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
+      }
+
+    } else {
+      const navPoints = [];
+
+      // Back button
+      const backButton = this.buttons[0];
+      navPoints.push({
+        gridX: 0,
+        gridY: 0,
+        screenX: backButton.x + (backButton.width * scale) / 2,
+        screenY: backButton.y + (backButton.height * scale) / 2,
+        isEnabled: true,
+      });
+
+      // Color buttons
+      const [leftColorBtn, rightColorBtn] = this.shipSelectionMenu.getColorButtons();
+      navPoints.push({
+        gridX: 0,
+        gridY: 6,
+        screenX: leftColorBtn.x + (leftColorBtn.width * scale) / 2,
+        screenY: leftColorBtn.y + (leftColorBtn.height * scale) / 2,
+        isEnabled: true,
+      });
+      navPoints.push({
+        gridX: 1,
+        gridY: 6,
+        screenX: rightColorBtn.x + (rightColorBtn.width * scale) / 2,
+        screenY: rightColorBtn.y + (rightColorBtn.height * scale) / 2,
+        isEnabled: true,
+      });
+
+      // Launch button
+      if (this.launchButton) {
+        navPoints.push({
+          gridX: 0,
+          gridY: 7,
+          screenX: this.launchButton.x + (this.launchButton.width * scale) / 2,
+          screenY: this.launchButton.y + (this.launchButton.height * scale) / 2,
+          isEnabled: true,
+        });
+      }
+
+      // Grid buttons
+      navPoints.push(...this.shipSelectionMenu.getGridButtons());
+
+      this.gamepadNavManager.setNavMap(navPoints);
+      const firstEnabled = navPoints.find(p => p.isEnabled);
+      if (firstEnabled) {
+        this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
+      }
     }
   }
 

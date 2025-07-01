@@ -1,5 +1,6 @@
 import type { StarterShipSkillTree } from '@/game/ship/skills/interfaces/StarterShipSkillTree';
 import type { PositionedSkillNode } from '@/game/ship/skills/interfaces/PositionedSkillNode';
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
 import { resolveSkillTreeIconSprite } from '@/game/ship/skills/icons/StarterShipSkillIconSpriteCache';
 import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
@@ -122,6 +123,27 @@ export class ShipSkillTreeUIRenderer {
     };
   }
 
+  public getNavPoints(
+    tree: StarterShipSkillTree,
+    x1: number,
+    y1: number,
+    scale: number
+  ): NavPoint[] {
+    return tree.nodes.map((positionedNode) => {
+      const { node, x, y } = positionedNode;
+
+      const screenPos = this.getNodeScreenPosition(positionedNode, x1, y1, scale);
+
+      return {
+        gridX: x,
+        gridY: y,
+        screenX: screenPos.x,
+        screenY: screenPos.y,
+        isEnabled: true,
+      };
+    });
+  }
+
   private resolveConnectionStyle(
     fromUnlocked: boolean,
     toUnlocked: boolean,
@@ -201,14 +223,14 @@ export class ShipSkillTreeUIRenderer {
 
     ctx.save();
 
-    if (unlocked) {
+    if (hovered) {
+      ctx.strokeStyle = '#ffff88';
+      ctx.lineWidth = 4 * scale;
+    } else if (unlocked) {
       ctx.strokeStyle = '#00ff66';
       ctx.lineWidth = 4 * scale;
     } else if (selected) {
       ctx.strokeStyle = '#44ff44';
-      ctx.lineWidth = 4 * scale;
-    } else if (hovered) {
-      ctx.strokeStyle = '#ffff88';
       ctx.lineWidth = 4 * scale;
     } else if (unlockable) {
       ctx.strokeStyle = '#003f19';

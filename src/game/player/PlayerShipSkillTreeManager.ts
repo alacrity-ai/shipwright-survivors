@@ -43,7 +43,7 @@ export class PlayerShipSkillTreeManager {
     return true;
   }
 
-  public canAcquireNode(shipId: string, nodeId: string): boolean {
+  public canAcquireNode(shipId: string, nodeId: string, maxNodesAllowed?: number): boolean {
     const tree = getStarterShipSkillTree(shipId);
     if (!tree) return false;
 
@@ -53,7 +53,8 @@ export class PlayerShipSkillTreeManager {
     if (nodeSet.has(nodeId)) return false;
 
     // Enforce cap
-    if (nodeSet.size >= tree.maxSelectableNodes) return false;
+    const cap = maxNodesAllowed ?? tree.maxSelectableNodes;
+    if (nodeSet.size >= cap) return false;
 
     const node = tree.nodes.find(n => n.node.id === nodeId);
     if (!node) return false;

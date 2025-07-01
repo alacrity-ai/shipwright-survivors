@@ -9,7 +9,8 @@ export interface UIShipTile {
   sprite: CanvasImageSource; 
   isHovered: boolean; 
   isSelected: boolean; 
-  isLocked?: boolean; 
+  isLocked?: boolean;
+  hoverColorOverride?: string;
 } 
  
 /** 
@@ -25,7 +26,8 @@ export function drawShipTile(
     sprite, 
     isHovered, 
     isSelected, 
-    isLocked 
+    isLocked,
+    hoverColorOverride,
   } = tile; 
  
   const innerPadding = 4 * uiScale; 
@@ -48,23 +50,43 @@ export function drawShipTile(
   }
  
   // === Background with gradient and glow effects ===
-  if (isSelected && !isLocked) {
-    // Selected: Vibrant blue gradient with outer glow
+  if (isHovered && !isLocked) {
+    // Hovered — overrides selected visuals for feedback
+    const gradient = ctx.createLinearGradient(x, y, x, y + innerSize);
+    if (isSelected) {
+      gradient.addColorStop(0, '#3b82f6');
+      gradient.addColorStop(1, '#1d4ed8');
+    } else {
+      gradient.addColorStop(0, '#0f766e');
+      gradient.addColorStop(1, '#134e4a');
+    }
+
+    ctx.shadowColor = hoverColorOverride ?? (isSelected ? '#ffffff' : '#ffffff');
+    ctx.shadowBlur = 8 * uiScale;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    ctx.fillStyle = gradient;
+    drawRoundedRect(x, y, innerSize, innerSize, cornerRadius);
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  } else if (isSelected && !isLocked) {
+    // Selected (not hovered): Standard visual
     const gradient = ctx.createLinearGradient(x, y, x, y + innerSize);
     gradient.addColorStop(0, '#3b82f6');
     gradient.addColorStop(1, '#1d4ed8');
-    
-    // Outer glow
+
     ctx.shadowColor = '#3b82f6';
     ctx.shadowBlur = 12 * uiScale;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
-    
+
     ctx.fillStyle = gradient;
     drawRoundedRect(x, y, innerSize, innerSize, cornerRadius);
     ctx.fill();
-    
-    // Reset shadow
+
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
   } else if (isSelected && isLocked) {
@@ -83,7 +105,7 @@ export function drawShipTile(
     gradient.addColorStop(1, '#134e4a');
     
     // Soft outer glow
-    ctx.shadowColor = '#14b8a6';
+    ctx.shadowColor = hoverColorOverride ?? '#14b8a6';
     ctx.shadowBlur = 8 * uiScale;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
@@ -135,7 +157,7 @@ export function drawShipTile(
   // Add subtle glow to sprite when hovered/selected (only if not locked)
   ctx.save();
   if ((isHovered || isSelected) && !isLocked) {
-    ctx.shadowColor = isSelected ? '#3b82f6' : '#14b8a6';
+    ctx.shadowColor = isSelected ? '#3b82f6' : (hoverColorOverride ?? '#14b8a6');
     ctx.shadowBlur = 4 * uiScale;
   }
   
@@ -199,7 +221,7 @@ export function drawShipTile(
     ctx.stroke();
   } else if (isHovered && !isLocked) {
     // Subtle hover border
-    ctx.strokeStyle = '#2dd4bf';
+    ctx.strokeStyle = hoverColorOverride ?? '#2dd4bf';
     ctx.lineWidth = 2 * uiScale;
     drawRoundedRect(
       x + 1 * uiScale, 
