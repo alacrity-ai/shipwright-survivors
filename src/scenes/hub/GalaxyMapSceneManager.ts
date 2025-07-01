@@ -85,7 +85,7 @@ export class GalaxyMapSceneManager {
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
-
+    audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
     audioManager.play('assets/sounds/sfx/ui/galaxymap_00.wav', 'sfx', { maxSimultaneous: 1 });
   }
 

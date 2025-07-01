@@ -95,9 +95,9 @@ export class CanvasManager {
       case 'fx': return 7;
       case 'particles': return 8;
       case 'ui': return 9;
-      case 'overlay': return 10;
-      case 'dialogue': return 11;
-      case 'gl2fx': return 12;
+      case 'gl2fx': return 10;
+      case 'overlay': return 11;
+      case 'dialogue': return 12;
     }
   }
 

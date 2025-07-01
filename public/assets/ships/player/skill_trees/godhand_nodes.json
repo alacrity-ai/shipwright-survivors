@@ -1,0 +1,188 @@
+{
+  "gridSize": 12,
+  "squares": [
+    {
+      "x": 4,
+      "y": 0,
+      "description": "laserShieldPenetration: true"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "description": "laserTargeting: true"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "description": "startingBlocks: ['laser1']"
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "description": "startingBlocks: ['laser1']"
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "description": "laserDamage: 2"
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "description": "laserDamage: 2"
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "description": "laserBeamWidth: 50"
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "description": "laserEfficiency: 0.2"
+    },
+    {
+      "x": 4,
+      "y": 11,
+      "description": "laserBeamWidth: 50"
+    },
+    {
+      "x": 7,
+      "y": 11,
+      "description": "laserEfficiency: 0.2"
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "x": 4,
+        "y": 11
+      },
+      "to": {
+        "x": 1,
+        "y": 9
+      }
+    },
+    {
+      "from": {
+        "x": 1,
+        "y": 9
+      },
+      "to": {
+        "x": 3,
+        "y": 7
+      }
+    },
+    {
+      "from": {
+        "x": 10,
+        "y": 9
+      },
+      "to": {
+        "x": 8,
+        "y": 7
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 0
+      },
+      "to": {
+        "x": 7,
+        "y": 0
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 7
+      },
+      "to": {
+        "x": 4,
+        "y": 3
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 3
+      },
+      "to": {
+        "x": 4,
+        "y": 0
+      }
+    },
+    {
+      "from": {
+        "x": 8,
+        "y": 7
+      },
+      "to": {
+        "x": 7,
+        "y": 3
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 3
+      },
+      "to": {
+        "x": 7,
+        "y": 0
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 7
+      },
+      "to": {
+        "x": 7,
+        "y": 3
+      }
+    },
+    {
+      "from": {
+        "x": 8,
+        "y": 7
+      },
+      "to": {
+        "x": 4,
+        "y": 3
+      }
+    },
+    {
+      "from": {
+        "x": 4,
+        "y": 3
+      },
+      "to": {
+        "x": 7,
+        "y": 0
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 3
+      },
+      "to": {
+        "x": 4,
+        "y": 0
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 11
+      },
+      "to": {
+        "x": 10,
+        "y": 9
+      }
+    }
+  ],
+  "timestamp": "2025-06-30T15:05:32.798Z"
+}

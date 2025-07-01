@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Tree Builder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .instructions {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .instructions h2 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .instructions p {
+            margin: 5px 0;
+        }
+        #canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            cursor: crosshair;
+        }
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #fileInput {
+            display: none;
+        }
+        .description-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 300px;
+        }
+        .description-popup h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .description-popup textarea {
+            width: 100%;
+            height: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+        }
+        .description-popup .buttons {
+            margin-top: 15px;
+            text-align: right;
+        }
+        .description-popup button {
+            margin-left: 10px;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="instructions">
+            <h2>Grid Canvas App</h2>
+            <p>Click on the grid to place or remove squares</p>
+            <p><strong>Hold CTRL + Click</strong> two black squares to connect them with a line</p>
+            <p><strong>Hold SHIFT + Click</strong> a black square to add/edit its description</p>
+        </div>
+        
+        <canvas id="canvas" width="400" height="400"></canvas>
+        
+        <div class="button-container">
+            <button id="exportBtn">Export to JSON</button>
+            <button id="loadBtn">Load JSON</button>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const exportBtn = document.getElementById('exportBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const fileInput = document.getElementById('fileInput');
+        
+        const GRID_SIZE = 12;
+        const CELL_SIZE = canvas.width / GRID_SIZE;
+        
+        // Grid state - true means square is placed
+        let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
+        
+        // Connections - array of connections between squares
+        let connections = [];
+        
+        // Node descriptions - object with position keys
+        let nodeDescriptions = {};
+        
+        // Selection state for connecting squares
+        let selectedSquare = null;
+        
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw connections first (so they appear behind squares)
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 2;
+            for (let connection of connections) {
+                const x1 = connection.from.x * CELL_SIZE + CELL_SIZE / 2;
+                const y1 = connection.from.y * CELL_SIZE + CELL_SIZE / 2;
+                const x2 = connection.to.x * CELL_SIZE + CELL_SIZE / 2;
+                const y2 = connection.to.y * CELL_SIZE + CELL_SIZE / 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                // Vertical lines
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, canvas.height);
+                ctx.stroke();
+                
+                // Horizontal lines
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(canvas.width, i * CELL_SIZE);
+                ctx.stroke();
+            }
+            
+            // Draw filled squares
+            ctx.fillStyle = '#333';
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    if (grid[row][col]) {
+                        ctx.fillRect(
+                            col * CELL_SIZE + 1,
+                            row * CELL_SIZE + 1,
+                            CELL_SIZE - 2,
+                            CELL_SIZE - 2
+                        );
+                    }
+                }
+            }
+            
+            // Draw description indicators (small dots)
+            ctx.fillStyle = '#ff4444';
+            for (let key in nodeDescriptions) {
+                const [x, y] = key.split(',').map(Number);
+                if (grid[y][x]) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        x * CELL_SIZE + CELL_SIZE - 5,
+                        y * CELL_SIZE + 5,
+                        3,
+                        0,
+                        2 * Math.PI
+                    );
+                    ctx.fill();
+                }
+            }
+            
+            // Highlight selected square
+            if (selectedSquare) {
+                ctx.strokeStyle = '#007bff';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(
+                    selectedSquare.x * CELL_SIZE + 1,
+                    selectedSquare.y * CELL_SIZE + 1,
+                    CELL_SIZE - 2,
+                    CELL_SIZE - 2
+                );
+            }
+        }
+        
+        function showDescriptionPopup(x, y) {
+            const key = `${x},${y}`;
+            const currentDescription = nodeDescriptions[key] || '';
+            
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'overlay';
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.className = 'description-popup';
+            popup.innerHTML = `
+                <h3>Node Description (${x}, ${y})</h3>
+                <textarea id="descriptionText" placeholder="Enter description for this node...">${currentDescription}</textarea>
+                <div class="buttons">
+                    <button id="cancelDesc">Cancel</button>
+                    <button id="saveDesc">Save</button>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            document.body.appendChild(popup);
+            
+            const textarea = document.getElementById('descriptionText');
+            const cancelBtn = document.getElementById('cancelDesc');
+            const saveBtn = document.getElementById('saveDesc');
+            
+            textarea.focus();
+            textarea.select();
+            
+            function closePopup() {
+                document.body.removeChild(overlay);
+                document.body.removeChild(popup);
+            }
+            
+            cancelBtn.addEventListener('click', closePopup);
+            overlay.addEventListener('click', closePopup);
+            
+            saveBtn.addEventListener('click', () => {
+                const description = textarea.value.trim();
+                if (description) {
+                    nodeDescriptions[key] = description;
+                } else {
+                    delete nodeDescriptions[key];
+                }
+                closePopup();
+                drawGrid();
+            });
+            
+            // Handle Enter key to save
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    saveBtn.click();
+                }
+            });
+        }
+        
+        function handleCanvasClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const col = Math.floor(x / CELL_SIZE);
+            const row = Math.floor(y / CELL_SIZE);
+            
+            if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
+                if (event.shiftKey) {
+                    // SHIFT + Click: Description mode
+                    if (grid[row][col]) { // Only add description to existing squares
+                        showDescriptionPopup(col, row);
+                    }
+                } else if (event.ctrlKey) {
+                    // CTRL + Click: Connection mode
+                    if (grid[row][col]) { // Only connect existing squares
+                        const clickedSquare = { x: col, y: row };
+                        
+                        if (!selectedSquare) {
+                            // First square selected
+                            selectedSquare = clickedSquare;
+                        } else {
+                            // Second square selected - create connection
+                            if (selectedSquare.x !== clickedSquare.x || selectedSquare.y !== clickedSquare.y) {
+                                // Check if connection already exists
+                                const connectionExists = connections.some(conn => 
+                                    (conn.from.x === selectedSquare.x && conn.from.y === selectedSquare.y &&
+                                     conn.to.x === clickedSquare.x && conn.to.y === clickedSquare.y) ||
+                                    (conn.from.x === clickedSquare.x && conn.from.y === clickedSquare.y &&
+                                     conn.to.x === selectedSquare.x && conn.to.y === selectedSquare.y)
+                                );
+                                
+                                if (!connectionExists) {
+                                    connections.push({
+                                        from: { ...selectedSquare },
+                                        to: { ...clickedSquare }
+                                    });
+                                }
+                            }
+                            selectedSquare = null; // Clear selection
+                        }
+                    }
+                } else {
+                    // Normal click: Toggle square
+                    selectedSquare = null; // Clear any selection
+                    grid[row][col] = !grid[row][col];
+                    
+                    // If removing a square, remove all its connections and description
+                    if (!grid[row][col]) {
+                        connections = connections.filter(conn => 
+                            !(conn.from.x === col && conn.from.y === row) &&
+                            !(conn.to.x === col && conn.to.y === row)
+                        );
+                        
+                        // Remove description
+                        const key = `${col},${row}`;
+                        delete nodeDescriptions[key];
+                    }
+                }
+                drawGrid();
+            }
+        }
+        
+        function exportToJSON() {
+            const squares = [];
+            
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    if (grid[row][col]) {
+                        const key = `${col},${row}`;
+                        const square = { x: col, y: row };
+                        
+                        if (nodeDescriptions[key]) {
+                            square.description = nodeDescriptions[key];
+                        }
+                        
+                        squares.push(square);
+                    }
+                }
+            }
+            
+            const exportData = {
+                gridSize: GRID_SIZE,
+                squares: squares,
+                connections: connections,
+                timestamp: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'grid-design.json';
+            link.click();
+        }
+        
+        function loadFromJSON(jsonData) {
+            try {
+                const data = JSON.parse(jsonData);
+                
+                // Reset current state
+                grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
+                connections = [];
+                nodeDescriptions = {};
+                selectedSquare = null;
+                
+                // Load squares
+                if (data.squares) {
+                    data.squares.forEach(square => {
+                        if (square.x >= 0 && square.x < GRID_SIZE && square.y >= 0 && square.y < GRID_SIZE) {
+                            grid[square.y][square.x] = true;
+                            
+                            // Load description if it exists
+                            if (square.description) {
+                                const key = `${square.x},${square.y}`;
+                                nodeDescriptions[key] = square.description;
+                            }
+                        }
+                    });
+                }
+                
+                // Load connections
+                if (data.connections) {
+                    connections = data.connections.filter(conn => 
+                        conn.from && conn.to &&
+                        conn.from.x >= 0 && conn.from.x < GRID_SIZE &&
+                        conn.from.y >= 0 && conn.from.y < GRID_SIZE &&
+                        conn.to.x >= 0 && conn.to.x < GRID_SIZE &&
+                        conn.to.y >= 0 && conn.to.y < GRID_SIZE
+                    );
+                }
+                
+                drawGrid();
+                alert('JSON loaded successfully!');
+            } catch (error) {
+                alert('Error loading JSON: ' + error.message);
+            }
+        }
+        
+        // Event listeners
+        canvas.addEventListener('click', handleCanvasClick);
+        exportBtn.addEventListener('click', exportToJSON);
+        
+        loadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    loadFromJSON(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Initial draw
+        drawGrid();
+    </script>
+</body>
+</html>

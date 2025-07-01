@@ -51,11 +51,6 @@ export class ShipSelectionGridComponent {
 
     // Async init
     this.loadTiles();
-
-    // Log discovered and unlocked ships
-    const playerShipCollection = PlayerShipCollection.getInstance();
-    console.log('[ShipSelectionGridComponent] Discovered ships:', playerShipCollection.getDiscoveredShips());
-    console.log('[ShipSelectionGridComponent] Unlocked ships:', playerShipCollection.getUnlockedShips());
   }
 
   private async loadTiles(): Promise<void> {

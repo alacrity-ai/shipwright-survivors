@@ -37,6 +37,11 @@ const crtStyle = {
   }
 };
 
+const BACKGROUND_TILE_WIDTH = 1024 * getUniformScaleFactor();   // assuming 512px image width
+const BACKGROUND_TILE_HEIGHT = 1024 * getUniformScaleFactor();  // assuming 512px image height
+const BACKGROUND_SCROLL_SPEED = 60;  // pixels per second
+const BACKGROUND_SCROLL_DIRECTION = { x: 1, y: 0 }; // vertical scroll
+
 export class ShipSelectionSceneManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
@@ -44,10 +49,17 @@ export class ShipSelectionSceneManager {
   private gamepadNavManager: GamepadMenuInteractionManager;
 
   private mission: MissionDefinition | null;
+  
   private backgroundImage: HTMLImageElement | null = null;
+  private backgroundScrollOffsetY: number = 0;
+  private backgroundScrollOffsetX: number = 0;
 
   private buttons: UIButton[];
   private launchButton: UIButton | null = null;
+
+  private uiCtx: CanvasRenderingContext2D;
+  private overlayCtx: CanvasRenderingContext2D;
+  private bgCtx: CanvasRenderingContext2D;
 
   private shipSelectionMenu: ShipSelectionMenu;
 
@@ -62,6 +74,10 @@ export class ShipSelectionSceneManager {
     this.inputManager = inputManager;
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
     this.mission = mission;
+
+    this.uiCtx = this.canvasManager.getContext('ui');
+    this.overlayCtx = this.canvasManager.getContext('overlay');
+    this.bgCtx = this.canvasManager.getContext('background');
 
     this.shipSelectionMenu = new ShipSelectionMenu(this.inputManager);
 
@@ -92,7 +108,7 @@ export class ShipSelectionSceneManager {
       const scale = getUniformScaleFactor();
       this.launchButton = {
         x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
-        y: this.canvasManager.getContext('ui').canvas.height - (70 * scale),
+        y: this.canvasManager.getContext('ui').canvas.height - (58 * scale),
         width: 360,
         height: 40,
         label: `Launch "${this.mission.name}"`,
@@ -109,6 +125,7 @@ export class ShipSelectionSceneManager {
       };
     }
 
+    audioManager.playMusic({ file: 'assets/sounds/music/track_11_loadout.mp3' });
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
@@ -132,6 +149,13 @@ export class ShipSelectionSceneManager {
     const scale = getUniformScaleFactor();
     this.inputManager.updateFrame();
     this.gamepadNavManager.update();
+
+    // Scroll background image
+    this.backgroundScrollOffsetX += BACKGROUND_SCROLL_DIRECTION.x * BACKGROUND_SCROLL_SPEED * dt;
+    this.backgroundScrollOffsetY += BACKGROUND_SCROLL_DIRECTION.y * BACKGROUND_SCROLL_SPEED * dt;
+
+    this.backgroundScrollOffsetX %= BACKGROUND_TILE_WIDTH;
+    this.backgroundScrollOffsetY %= BACKGROUND_TILE_HEIGHT;
 
     // Handle Gamepad input
     if (this.inputManager.isUsingGamepad?.()) {
@@ -206,33 +230,62 @@ export class ShipSelectionSceneManager {
     }
 
     this.shipSelectionMenu.update(dt);
-  };
+  }
 
   private render = () => {
     const scale = getUniformScaleFactor();
     this.canvasManager.clearAll();
 
-    const bgCtx = this.canvasManager.getContext('background');
-    const uiCtx = this.canvasManager.getContext('ui');
-    const overlayCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 
     if (this.backgroundImage) {
-      bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
+      this.drawScrollingBackgroundImage(
+        this.bgCtx,
+        this.backgroundImage,
+        this.backgroundScrollOffsetX,
+        this.backgroundScrollOffsetY
+      );
     }
 
     for (const btn of this.buttons) {
-      drawButton(uiCtx, btn, scale);
+      drawButton(this.uiCtx, btn, scale);
     }
 
     if (this.launchButton) {
-      drawButton(uiCtx, this.launchButton, scale);
+      drawButton(this.uiCtx, this.launchButton, scale);
     }
 
-    this.shipSelectionMenu.render(uiCtx, overlayCtx);
+    this.shipSelectionMenu.render(this.uiCtx, this.overlayCtx);
 
     if (!this.inputManager.isUsingGamepad()) {
-      drawCursor(uiCtx, getCrosshairCursorSprite(), x, y, scale);
+      drawCursor(this.overlayCtx, getCrosshairCursorSprite(), x, y, scale);
     }
-  };
+  }
+
+  private drawScrollingBackgroundImage(
+    ctx: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    offsetX: number,
+    offsetY: number
+  ): void {
+    const { width: canvasWidth, height: canvasHeight } = ctx.canvas;
+
+    const tileWidth = BACKGROUND_TILE_WIDTH;
+    const tileHeight = BACKGROUND_TILE_HEIGHT;
+
+    const repeatX = Math.ceil(canvasWidth / tileWidth) + 1;
+    const repeatY = Math.ceil(canvasHeight / tileHeight) + 1;
+
+    for (let y = 0; y < repeatY; y++) {
+      for (let x = 0; x < repeatX; x++) {
+        ctx.drawImage(
+          image,
+          x * tileWidth - offsetX,
+          y * tileHeight - offsetY,
+          tileWidth,
+          tileHeight
+        );
+      }
+    }
+  }
 }

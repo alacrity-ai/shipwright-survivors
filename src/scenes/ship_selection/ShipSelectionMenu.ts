@@ -11,7 +11,12 @@ import { PreviewShipComponent } from './components/PreviewShipComponent';
 import { ShipSelectionGridComponent } from './components/ShipSelectionGridComponent';
 import { EquippedArtifactsComponent } from './components/EquippedArtifactsComponent';
 import { ShipDetailsComponent } from './components/ShipDetailsComponent';
+import { ShipSkillTreeUIController } from '@/game/ship/skills/ui/ShipSkillTreeUIController';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { 
+  initializeShipSkillTreeSpriteCache, 
+  destroyShipSkillTreeSpriteCache 
+} from '@/game/ship/skills/icons/StarterShipSkillIconSpriteCache';
 
 const crtStyle = {
   borderRadius: 10,
@@ -40,24 +45,32 @@ export class ShipSelectionMenu {
   private colorLeftButton: UIButton;
   private colorRightButton: UIButton;
 
-  // Owned components
+  // === Owned components
+  // Ship preview
   private previewComponent: PreviewShipComponent;
   private lastPreviewedFilepath: string | null = null;
-
+  // Ship selection grid
   private gridComponent: ShipSelectionGridComponent;
+  // Ship Equippable Artifacts
   private artifactsComponent: EquippedArtifactsComponent;
+  // Ship Details
   private detailsComponent: ShipDetailsComponent;
+  // Ship Skill Tree:
+  private skillTreeController: ShipSkillTreeUIController;
 
   constructor(inputManager: InputManager) {
     this.canvasManager = CanvasManager.getInstance();
     this.inputManager = inputManager;
 
+    // Initialize caches
+    initializeShipSkillTreeSpriteCache();
+
     const scale = getUniformScaleFactor();
     const viewportWidth = this.canvasManager.getCanvas('ui').width;
     const viewportHeight = this.canvasManager.getCanvas('ui').height;
 
-    this.windowWidth = 1000 * scale;
-    this.windowHeight = 500 * scale;
+    this.windowWidth = 1200 * scale;
+    this.windowHeight = 560 * scale;
     this.windowX = (viewportWidth / 2) - (this.windowWidth / 2);
     this.windowY = (viewportHeight / 2) - (this.windowHeight / 2);
 
@@ -110,6 +123,27 @@ export class ShipSelectionMenu {
       }
     };
 
+    // Skill Tree
+    console.log('[ShipSelectionMenu] Initializing skill tree controller');
+    this.skillTreeController = new ShipSkillTreeUIController(inputManager);
+
+    // Compute and apply render bounds
+    const skillTreeWidth = 360;
+    const skillTreeHeight = 320;
+
+    const skillTreeX1 = 880 * scale;
+    const skillTreeY1 = 250 * scale;
+    const skillTreeX2 = skillTreeX1 + skillTreeWidth;
+    const skillTreeY2 = skillTreeY1 + skillTreeHeight;
+
+    this.skillTreeController.setRenderBounds(
+      skillTreeX1,
+      skillTreeY1,
+      skillTreeX2,
+      skillTreeY2,
+      0.5 * scale
+    );
+
     // Instantiate components
     this.previewComponent = new PreviewShipComponent();
     this.gridComponent = new ShipSelectionGridComponent(inputManager);
@@ -127,6 +161,11 @@ export class ShipSelectionMenu {
       this.lastPreviewedFilepath = selected.filepath;
       this.previewComponent.setPreviewShip(selected);
       this.detailsComponent.setShip(selected);
+      this.skillTreeController.setShip(selected);
+    }
+
+    if (selected) {
+      this.skillTreeController.update(dt);
     }
 
     // Color button logic
@@ -138,6 +177,7 @@ export class ShipSelectionMenu {
     handleButtonInteraction(this.colorRightButton, mouseX, mouseY, clicked, scale);
 
     // Update components
+    // CALL UPDATE OF SHIP SKILL TREE CONTROLLER HERE
     this.previewComponent.update(dt);
     this.gridComponent.update();
     this.artifactsComponent.update();
@@ -216,6 +256,7 @@ export class ShipSelectionMenu {
     });
 
     // === Components ===
+    this.skillTreeController.render();
     this.previewComponent.render(uiCtx);
     this.gridComponent.render(uiCtx);
     this.artifactsComponent.render(uiCtx);
@@ -237,6 +278,7 @@ export class ShipSelectionMenu {
   }
 
   destroy(): void {
+    destroyShipSkillTreeSpriteCache();
     this.previewComponent.destroy();
   }
 }

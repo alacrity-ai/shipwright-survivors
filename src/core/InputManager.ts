@@ -288,7 +288,7 @@ export class InputManager {
 
   public wasRightClicked(): boolean {
     if (this.inputDisabled) return false;
-    return this.wasKeyJustPressed('MouseRight');
+    return this.wasKeyJustPressed('MouseRight') || this.wasActionJustPressed('cancel');
   }
 
   public wasMouseMoved(): boolean {

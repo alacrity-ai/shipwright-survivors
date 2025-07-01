@@ -159,7 +159,7 @@ export class PassivesMenuSceneManager {
     // === Debugging ===
     // TODO : Remove on launch
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
-      PlayerPassiveManager.getInstance().addPassivePoints(1);
+      PlayerPassiveManager.getInstance().addPassivePoints(1000);
     }
     if (this.inputManager.wasKeyJustPressed('KeyR')) {
       PlayerPassiveManager.getInstance().refundAll();

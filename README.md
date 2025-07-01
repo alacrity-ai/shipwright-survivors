@@ -97,6 +97,7 @@ STEAM CHECKLIST:
 - [ ] Steamdeck Verified! required.
 - [ ] Steampage
 - [ ] Steam SDK integrated
+- [ ] Localization?
 - [ ] Steam achievements
 - [ ] Demo Prepared and ready to launch
 - [ ] Trailer created
@@ -105,19 +106,18 @@ DEMO ROADMAP:
 What's needed to get to Demo:
 - [ ] Mini intro before tutorial, static "Shipwright! Shipwright! Listen ... Trust the robot, he doesn't know it yet.. But"
 - [ ] Tutorial Rewrite
-- [ ] Player death state
 - [ ] Controller Support
   - [ ] Menus (Need navtree)
 - [ ] Incidents (Make at least 10 or so incidents)
-- [ ] 5 Missions - each tested thoroughly for smooth flow
+- [ ] 3 Missions - each tested thoroughly for smooth flow
   - [ ] Sub objectives in each mission, e.g. in the galaxy select
-- [ ] Starter ships, unlockable, and loadout menu on mission select
 - [ ] Basic breakroom dialogue
-- [ ] Passive system fleshed out a bit, polished, stats actually effect game.  Datacores from Entropium.
 - [ ] Planet merchants, trade blocks for other blocks, entropium, etc. unlockables
 - [ ] Demo End splash (List what's coming)
 - [ ] Titlescreen polish / rework
-- [ ] Laser polish, add heat seeking missles.
+- [ ] Laser polish firing sound
+- [ ] Engine sound on gamepad use
+- [ ] Add 5 more weapons
 
 TUTORIAL TODOS:
   - [ ] Start with NO HUD visible
@@ -135,35 +135,28 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
-  - [x] Mission1 needs a planet, and perhaps slightly shorter waves with one additional in the middle
-    - [x] Planet icon on minimap needs to scale to match world dimensions
-  - [ ] Unlockable Ship Blueprint Pickups
-  - [x] Ship Selection Menu, with Core Unlocks (After blueprint acquired)
-  - [ ] Make Additional starter ships:
-    - [x] One that starts with seeker missiles, a bit slower?
-    - [ ] One that starts with haloblade, no turrets?
-    - [ ] One that starts with explosive lance
-    - [ ] One that starts with lasers
-  - [ ] Verify that GL2 blocksprite cache is being cleared on the entityfx layer before entering runtime to avoid leaks
-  - [ ] Verify ship select menu isn't leaking resources in any way
-  - [ ] Further enhancements:
-    - [ ] Add ship skill trees (nodes purchaseable by cores).  Support X shapes, Y shapes etc.  Decision trees.
-    - [x] Add ship color customization (Backend already present) in ship select menu
-
-  - [x] Levelup Menu
-    - [x] Consume mouse input (No fire after selecting an option)
-    - [x] Don't allow opening of any menus or escape (probably input manager disable input)
-    - [x] Menu should have a brief opening phase, to avoid instantly choosing something
-    - [x] Selection of an item should have visual feedback, then a closing phase
-  - [x] Add a Incident that triggers: All entropium and repair orbs on the map flies toward the player and is absorbed
+  - [ ] Passive menu needs to use GamepadNavMap
+  - [ ] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)
+  - [ ] Gamepad - Press select to toggle to the block queue. d-pad left and right to cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
+  - [ ] Ship Selection:
+    - [ ] Add artifacts
+      - [ ] Droppable item
+      - [ ] Artifact equip in loadout menu
+      - [ ] Artifact stat tooltip/description
+      - [ ] PlayerArtifactStore / Registry / Effects (use Powerup system as reference)
+    - [ ] Add ship skill trees (Nodes) with decision trees, e.g. Y shape, or X shape (Purchaseable with Cores)
+      - [ ] Store skill unlocks in PlayerShipCollection?
+      - [ ] Ship skill tree Registry, Effects (use Powerup system as reference)
+    - [ ] Unify gathering aggregate powerups/ship skills/artifact effects with a single command
+    - [ ] Unlockable Ship Blueprint Pickups
+    - [ ] Verify that GL2 blocksprite cache is being cleared on the entityfx layer before entering runtime to avoid leaks
+    - [ ] Verify ship select menu isn't leaking resources in any way
 
   - [ ] To prevent wave buildup, on each wave transition, expire enemies (FIFO) beyond certain cap.
   - [ ] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
   - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
-    - [x] Move planets and background rendering to new unifiedgl2 layer. 
     - [ ] Move explosions (block explosion) to gl2
-    - [x] Move block placement animations to gl2
     - [ ] Cleanup all unused canvases/layers.
   - [ ] Controller Support: Make buttons work with D-Pad on joystick using Navlinks controlling the virtualMouse position.
     - [ ] Menu: Ergonomically abstract button elements to be accessible via controller.
@@ -240,9 +233,6 @@ BUGS:
 ### Things to Explore:
   - [ ] "Town Portal" - Back to the planet? 
   - [ ] Add autofire option?
-
-### Small Things:
-  - [x] Turret shots vanish too fast, they should only vanish right at the end
 
 ## 📝 Commands
 

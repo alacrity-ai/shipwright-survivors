@@ -1,0 +1,328 @@
+{
+  "gridSize": 12,
+  "squares": [
+    {
+      "x": 5,
+      "y": 1,
+      "description": "haloBladeDetonateOnHit: true"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "description": "haloBladeDamage: 5"
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "description": "haloBladeDamage: 5"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "description": "haloBladeFreezeOnHit: true"
+    },
+    {
+      "x": 5,
+      "y": 4,
+      "description": "haloBladeDamage: 5"
+    },
+    {
+      "x": 9,
+      "y": 4,
+      "description": "haloBladeSplitBlades: true"
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "description": "haloBladeSize: 0.25"
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "description": "startingBlocks: ['haloBlade1']"
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "description": "startingBlocks: ['haloBlade1']"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "description": "haloBladeOrbitRadius: 200"
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "description": "haloBladeSize: 0.25"
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "description": "haloBladeDamage: 5"
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "description": "haloBladeOrbitRadius: 200"
+    },
+    {
+      "x": 3,
+      "y": 10,
+      "description": "haloBladeSize: 0.25"
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "description": "haloBladeOrbitRadius: 200"
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "description": "haloBladeDamage: 5"
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "x": 5,
+        "y": 11
+      },
+      "to": {
+        "x": 5,
+        "y": 8
+      }
+    },
+    {
+      "from": {
+        "x": 5,
+        "y": 8
+      },
+      "to": {
+        "x": 3,
+        "y": 6
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 6
+      },
+      "to": {
+        "x": 5,
+        "y": 4
+      }
+    },
+    {
+      "from": {
+        "x": 5,
+        "y": 4
+      },
+      "to": {
+        "x": 7,
+        "y": 6
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 6
+      },
+      "to": {
+        "x": 5,
+        "y": 8
+      }
+    },
+    {
+      "from": {
+        "x": 5,
+        "y": 4
+      },
+      "to": {
+        "x": 5,
+        "y": 1
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 6
+      },
+      "to": {
+        "x": 1,
+        "y": 4
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 6
+      },
+      "to": {
+        "x": 3,
+        "y": 2
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 6
+      },
+      "to": {
+        "x": 7,
+        "y": 2
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 6
+      },
+      "to": {
+        "x": 9,
+        "y": 4
+      }
+    },
+    {
+      "from": {
+        "x": 1,
+        "y": 4
+      },
+      "to": {
+        "x": 3,
+        "y": 2
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 2
+      },
+      "to": {
+        "x": 5,
+        "y": 1
+      }
+    },
+    {
+      "from": {
+        "x": 5,
+        "y": 1
+      },
+      "to": {
+        "x": 7,
+        "y": 2
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 2
+      },
+      "to": {
+        "x": 9,
+        "y": 4
+      }
+    },
+    {
+      "from": {
+        "x": 9,
+        "y": 4
+      },
+      "to": {
+        "x": 10,
+        "y": 6
+      }
+    },
+    {
+      "from": {
+        "x": 10,
+        "y": 6
+      },
+      "to": {
+        "x": 9,
+        "y": 8
+      }
+    },
+    {
+      "from": {
+        "x": 9,
+        "y": 8
+      },
+      "to": {
+        "x": 7,
+        "y": 10
+      }
+    },
+    {
+      "from": {
+        "x": 7,
+        "y": 10
+      },
+      "to": {
+        "x": 5,
+        "y": 11
+      }
+    },
+    {
+      "from": {
+        "x": 5,
+        "y": 11
+      },
+      "to": {
+        "x": 3,
+        "y": 10
+      }
+    },
+    {
+      "from": {
+        "x": 3,
+        "y": 10
+      },
+      "to": {
+        "x": 1,
+        "y": 8
+      }
+    },
+    {
+      "from": {
+        "x": 1,
+        "y": 8
+      },
+      "to": {
+        "x": 0,
+        "y": 6
+      }
+    },
+    {
+      "from": {
+        "x": 0,
+        "y": 6
+      },
+      "to": {
+        "x": 1,
+        "y": 4
+      }
+    },
+    {
+      "from": {
+        "x": 1,
+        "y": 8
+      },
+      "to": {
+        "x": 3,
+        "y": 6
+      }
+    },
+    {
+      "from": {
+        "x": 9,
+        "y": 8
+      },
+      "to": {
+        "x": 7,
+        "y": 6
+      }
+    }
+  ],
+  "timestamp": "2025-06-30T14:27:06.864Z"
+}
