@@ -135,11 +135,23 @@ TUTORIAL TODOS:
     - [ ] Introduce Block Rotation
 
 TODOS:
+  - [ ] Investigate if minimap icons are cached, if not, cache them
+
   - [ ] Todos, add difficulty level selection to mission selection.
-    - [ ] Difficulty scaling should scale enemy quantity, and enemy power.
+    - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
     - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
   - [ ] Plugin ship SkillTree effects to game systems
+    - [x] SW-1
+    - [ ] Vanguard
+    - [ ] Monarch
+    - [ ] Halo
+    - [ ] Godhand
   - [ ] Add unlockable ships to each vendor so that every ship of the 5 is possible to unlock in game.
+    - [x] Halo
+    - [x] Monarch
+    - [ ] Godhand
+    - [ ] Vanguard
+  - [ ] Add randomness to trade tradepost trades, create some helper that generates pairs, probability tiers, put blueprints as static unlocks, if unlocked, then occupy with 3 trades.
 
   - [x] Integrate tradepost registry entries in PlanetRegistry definitions
     - [x] Add all the existing tradeposts to the existing planets
