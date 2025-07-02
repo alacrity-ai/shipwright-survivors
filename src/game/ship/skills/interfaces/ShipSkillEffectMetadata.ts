@@ -2,42 +2,42 @@
 
 export interface ShipSkillEffectMetadata {
   // SW-1 Nodes
-  turretDamage?: number;
-  turretProjectileSpeed?: number;
-  turretCriticalChance?: number;
-  turretPenetratingShots?: boolean;
-  turretSplitShots?: boolean;
+  turretDamage?: number; // Flat // Implemented
+  turretProjectileSpeed?: number; // Flat // Implemented
+  turretCriticalChance?: number; // Percentage // Implemented
+  turretPenetratingShots?: boolean; // Implemented
+  turretSplitShots?: boolean; // Implemented
   
   // Vanguard Nodes
   igniteOnSeekerMissileExplosion?: boolean;
-  seekerMissileExplosionRadius?: number;
-  seekerMissileDamage?: number;
-  doubleSeekerMissileShotChance?: number;
+  seekerMissileExplosionRadius?: number; // Flat
+  seekerMissileDamage?: number; // Flat
+  doubleSeekerMissileShotChance?: number; // Percentage
   timeFreezeOnSeekerMissileExplosion?: boolean;
 
   // Monarch Nodes
   explosiveLanceGrappling?: boolean;
   explosiveLanceLifesteal?: boolean;
-  explosiveLanceDamage?: number;
+  explosiveLanceDamage?: number; // Flat
   explosiveLanceElectrocution?: boolean;
-  explosiveLanceFiringRate?: number;
-  explosiveLanceRange?: number;
+  explosiveLanceFiringRate?: number; // Percentage
+  explosiveLanceRange?: number; // Percentage
 
   // Halo Nodes
-  haloBladeSplitBlades?: boolean;
+  haloBladeSplitBlades?: boolean; 
   haloBladeDetonateOnHit?: boolean;
   haloBladeFreezeOnHit?: boolean;
-  haloBladeDamage?: number;
-  haloBladeSize?: number;
-  haloBladeOrbitRadius?: number;
+  haloBladeDamage?: number; // Flat
+  haloBladeSize?: number; // Percentage
+  haloBladeOrbitRadius?: number; // Flat
 
   // Godhand Nodes
-  laserDamage?: number;
-  laserBeamWidth?: number;
-  laserEfficiency?: number;
+  laserDamage?: number; // Flat
+  laserBeamWidth?: number; // Flat
+  laserEfficiency?: number; // Percentage
   laserShieldPenetration?: boolean;
   laserTargeting?: boolean;
 
   // Universal Nodes
-  startingBlocks?: string[];
+  startingBlocks?: string[]; // Implemented
 }

@@ -1,6 +1,5 @@
 // src/game/player/PlayerShipSkillTreeManager.ts
 
-import type { StarterShipSkillTree } from '@/game/ship/skills/interfaces/StarterShipSkillTree';
 import { getStarterShipSkillTree } from '@/game/ship/skills/registry/StarterShipSkillTreeRegistry';
 
 export class PlayerShipSkillTreeManager {

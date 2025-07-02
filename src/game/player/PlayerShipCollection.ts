@@ -1,6 +1,8 @@
 // src/game/player/PlayerShipCollection.ts
 
 import { ShipColorPreset } from '@/game/ship/utils/shipColorHelpers';
+import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
+import { getAggregatedSkillEffects } from '../ship/skills/runtime/UnlockedShipSkillTreeResolver';
 
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
 
@@ -44,6 +46,11 @@ export class PlayerShipCollection {
 
   getActiveShip(): CollectableShipDefinition | null {
     return this.activeShip;
+  }
+
+  getSkillEffectsForActiveShip(): ShipSkillEffectMetadata {
+    if (!this.activeShip) return {};
+    return getAggregatedSkillEffects(this.activeShip.name);
   }
 
   getActiveShipFilepath(): string {

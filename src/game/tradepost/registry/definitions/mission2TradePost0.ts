@@ -8,7 +8,7 @@ export const mission2TradePost0: TradePost = {
     {
       item: {
         type: 'ship',
-        id: 'Monarch',
+        id: 'monarch',
         wants: ['explosiveLance1', 'explosiveLance1', 'explosiveLance1']
       },
       quantity: 1

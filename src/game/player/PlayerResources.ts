@@ -1,6 +1,8 @@
 // src/game/player/PlayerResources.ts
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
+import type { Ship } from '@/game/ship/Ship';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 
 export class PlayerResources {
   private static instance: PlayerResources;
@@ -35,6 +37,10 @@ export class PlayerResources {
 
   public enqueueBlock(blockType: BlockType): void {
     this.blockQueue.push(blockType);
+  }
+
+  public enqueueBlocks(blockTypes: BlockType[]): void {
+    this.blockQueue.push(...blockTypes);
   }
 
   public enqueueBlockToFront(blockType: BlockType): void {
@@ -86,5 +92,13 @@ export class PlayerResources {
   public postMissionClear(): void {
     this.blockQueue = [];
     this.onCurrencyChangeCallbacks.clear();
+  }
+
+  // Enqueue Starting Blocks Helper
+  public enqueueSkillTreeStartingBlocks(ship: Ship): void {
+    const startingBlocks = ship.getSkillEffects().startingBlocks;
+    if (!startingBlocks) return;
+    const blockTypes = startingBlocks.map((id) => getBlockType(id)!);
+    this.enqueueBlocks(blockTypes);
   }
 }

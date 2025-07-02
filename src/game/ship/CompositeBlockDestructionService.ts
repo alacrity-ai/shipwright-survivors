@@ -18,6 +18,7 @@ import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes
 
 export type DestructionCause =
   | 'projectile'
+  | 'turret'
   | 'collision'
   | 'bomb'
   | 'laser'

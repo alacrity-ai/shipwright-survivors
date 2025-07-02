@@ -8,7 +8,9 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
+import { getAggregatedSkillEffects } from '@/game/ship/skills/runtime/UnlockedShipSkillTreeResolver';
 import { repairBlockViaLifesteal } from '../pickups/helpers/repairAllBlocksWithHealing';
 import { Camera } from '@/core/Camera';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
@@ -36,8 +38,10 @@ export class CombatService {
     block: BlockInstance, // The block receiving the damage
     coord: GridCoord,
     damage: number,
-    cause: 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' | 'reflected' = 'scripted',
-    lightFlash: boolean = true
+    cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' | 'reflected' = 'scripted',
+    lightFlash: boolean = true,
+    baseCriticalChance: number = 0,
+    baseCriticalMultiplier: number = 1.5
   ): boolean {
     if (block.indestructible) return false;
 
@@ -116,13 +120,22 @@ export class CombatService {
       reflectOnDamagePercent = 0,
     } = isEntityShip ? entity.getPowerupBonus() : {};
     
-    const {
+    let {
       critChance = 0,
       critMultiplier = 1,
       lifeStealOnCrit = false,
       critLifeStealPercent = 0,
       reflectCanCrit = false,
     } = isSourceShip ? source.getPowerupBonus() : {};
+
+    // === Special Turret Skilltree Crit Exception
+    if (cause === 'turret' && isSourcePlayer) {
+      const playerShipId = PlayerShipCollection.getInstance().getActiveShip()?.name;
+      if (!playerShipId) return false;
+      const { turretCriticalChance = 0 } = getAggregatedSkillEffects(playerShipId);
+      critChance += turretCriticalChance;
+      if (critMultiplier < 1.5) critMultiplier = 1.5;
+    }
 
     // === Apply crit chance
     const isReflected = cause === 'reflected';

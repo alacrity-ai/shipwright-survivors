@@ -11,7 +11,9 @@ import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/
 import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladeProperties';
 import type { PassiveId } from '@/game/player/PlayerPassiveManager';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
+import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
 
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
 import { PowerupEffectMetadata } from '../powerups/types/PowerupMetadataTypes';
 import { PlayerPassiveManager } from '../player/PlayerPassiveManager';
@@ -102,6 +104,12 @@ export class Ship extends CompositeBlockObject {
 
   public getPassiveBonus(id: PassiveId): number {
     return this.getPassiveManager()?.getPassiveBonus(id) ?? 1.0;
+  }
+
+  // == Get Skilltree Bonuses
+  public getSkillEffects(): ShipSkillEffectMetadata {
+    if (!this.isPlayerShip) return {};
+    return PlayerShipCollection.getInstance().getSkillEffectsForActiveShip();
   }
 
   // == Affixes system

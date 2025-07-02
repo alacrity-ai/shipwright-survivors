@@ -378,6 +378,9 @@ export class EngineRuntime {
     this.weaponSystem = weapons; // Weapon system needed for update() loop
     this.utilitySystem = utility; // Utility system needed for update() loop
 
+    // Enqueue starting blocks from Ship Skill Tree if applicable
+    PlayerResources.getInstance().enqueueSkillTreeStartingBlocks(this.ship);
+
     // Player controller (input)
     this.playerController = new PlayerControllerSystem(this.camera!, this.inputManager, this.cursorRenderer, this.ship);
 
@@ -1069,6 +1072,7 @@ export class EngineRuntime {
     this.incidentOrchestrator!.destroy();
     this.destructionService.destroy();
     this.tradePostMenu.destroy();
+    this.projectileSystem.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

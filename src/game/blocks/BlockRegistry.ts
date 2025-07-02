@@ -242,11 +242,11 @@ const blockTypes: Record<string, BlockType> = {
       canFire: true,
       fire: {
         fireRate: 0.6,
-        fireType: 'bullet',
+        fireType: 'turret',
         fireDamage: 10,
         projectileSpeed: 600,
         lifetime: 1.8,
-        accuracy: 0.65
+        accuracy: 0.65,
       } 
     },
     category: 'weapon',
@@ -267,7 +267,7 @@ const blockTypes: Record<string, BlockType> = {
       canFire: true,
       fire: {
         fireRate: 0.8,
-        fireType: 'bullet',
+        fireType: 'turret',
         fireDamage: 16,
         projectileSpeed: 700,
         lifetime: 2.2,
@@ -292,7 +292,7 @@ const blockTypes: Record<string, BlockType> = {
       canFire: true,
       fire: {
         fireRate: 1.2,
-        fireType: 'bullet',
+        fireType: 'turret',
         fireDamage: 20,
         projectileSpeed: 800,
         lifetime: 2.2,
@@ -317,7 +317,7 @@ const blockTypes: Record<string, BlockType> = {
       canFire: true,
       fire: {
         fireRate: 1.4,
-        fireType: 'bullet',
+        fireType: 'turret',
         fireDamage: 28,
         projectileSpeed: 900,
         lifetime: 2.2,

@@ -10,4 +10,7 @@ export interface Projectile {
   life: number; // in seconds
   ownerShipId: string;  // reference to the ship ID that fired the projectile
   ownerFaction: Faction;
+  split: boolean;
+  penetrate: boolean;
+  hitShipIds: Set<string>; // Keeps track of ships hit by this projectile
 }

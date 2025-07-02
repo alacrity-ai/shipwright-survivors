@@ -182,7 +182,11 @@ private spawnTurretProjectile(
 
   const aimX = Math.cos(angle);
   const aimY = Math.sin(angle);
-  const baseSpeed = fire.projectileSpeed ?? 300;
+  let baseSpeed = fire.projectileSpeed ?? 300;
+
+  // === Skilltree bonus
+  const { turretProjectileSpeed = 0, turretSplitShots = false, turretPenetratingShots = false } = ship.getSkillEffects();
+  baseSpeed += turretProjectileSpeed;
 
   // === Raw velocity with ship motion added
   const shipVel = transform.velocity;
@@ -196,6 +200,10 @@ private spawnTurretProjectile(
     vx += aimX * correction;
     vy += aimY * correction;
   }
+
+  // Add extra base damage from passive
+  const { turretDamage = 0 } = ship.getSkillEffects();
+  let baseDamage = fire.fireDamage! + turretDamage;
 
   if (this.fireSoundTimer > 4) {
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
@@ -214,17 +222,17 @@ private spawnTurretProjectile(
     { x: worldX, y: worldY },
     { x: vx, y: vy },
     fire.fireType!,
-    fire.fireDamage! * damageBonus,
+    baseDamage * damageBonus,
     fire.lifetime ?? 2,
     1, // accuracy already applied
     ship.id,
     ship.getFaction(),
     particleColors,
-    'delayed'
+    'delayed',
+    turretSplitShots,
+    turretPenetratingShots,
   );
 }
-
-
 
   public render(dt: number): void {}
 }
