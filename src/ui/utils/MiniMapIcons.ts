@@ -275,17 +275,6 @@ export class MiniMapIcons {
     const crateX = center - crateSize / 2;
     const crateY = center - crateSize / 2;
 
-    // // Background glow
-    // const glowRadius = size * 0.48;
-    // const gradient = ctx.createRadialGradient(center, center, 0, center, center, glowRadius);
-    // gradient.addColorStop(0, '#ffdd55');
-    // gradient.addColorStop(1, '#ffaa00');
-
-    // ctx.fillStyle = gradient;
-    // ctx.beginPath();
-    // ctx.arc(center, center, glowRadius, 0, Math.PI * 2);
-    // ctx.fill();
-
     // Crate base
     ctx.fillStyle = '#8b5a2b'; // dark wood
     ctx.strokeStyle = '#5c4033'; // border

@@ -55,6 +55,10 @@ export interface EventTypes {
   'minimap:show': undefined;
   'minimap:hide': undefined;
 
+  // Screen edge indicators (NEW!)
+  'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
+  'indicator:remove': { id: string };
+
   // Camera events
   'camera:shake': { strength: number; duration: number; frequency?: number };
 

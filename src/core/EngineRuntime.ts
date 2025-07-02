@@ -39,6 +39,7 @@ import { WavesOverlay } from '@/ui/overlays/WavesOverlay';
 import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
+import { ScreenEdgeIndicatorManager } from '@/ui/overlays/indicators/ScreenEdgeIndicatorManager';
 
 import { 
   addPostProcessEffect, 
@@ -146,6 +147,7 @@ export class EngineRuntime {
   private pauseMenu: PauseMenu | null = null;
   private hud: HudOverlay | null = null;
   private miniMap: MiniMap | null = null;
+  private screenEdgeIndicatorManager: ScreenEdgeIndicatorManager;
 
   private canvasManager: CanvasManager;
   private camera: Camera | null = null;
@@ -264,6 +266,9 @@ export class EngineRuntime {
     
     // === Cursor
     this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
+
+    // === Screen edge indicator
+    this.screenEdgeIndicatorManager = new ScreenEdgeIndicatorManager();
 
     // === Ship Builder (For Edit  Mode)
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
@@ -507,6 +512,7 @@ export class EngineRuntime {
       this.laserSystem,
       this.hud,
       this.miniMap,
+      this.screenEdgeIndicatorManager,
       this.explosionSystem,
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
@@ -1073,6 +1079,7 @@ export class EngineRuntime {
     this.destructionService.destroy();
     this.tradePostMenu.destroy();
     this.projectileSystem.destroy();
+    this.screenEdgeIndicatorManager.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

@@ -5,9 +5,14 @@ import { getDistance, getRandomWorldCoordinates } from '@/shared/vectorUtils';
 
 import { audioManager } from '@/audio/Audio';
 
+import { MiniMapIcons, type IconType } from '@/ui/utils/MiniMapIcons';
+import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
+
 import type { IncidentScript } from './IncidentScript';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { IncidentRuntimeContext } from './IncidentRuntimeContext';
+import { get } from 'http';
+import { getUniformScaleFactor } from '@/config/view';
 
 /**
  * Abstract base class for all incident scripts.
@@ -69,6 +74,10 @@ export abstract class BaseIncidentScript implements IncidentScript {
     if (icon) {
       reportMinimapMarker({ id: this.id, icon, x, y });
       this.minimapRegistered = true;
+      
+      // Create a screen edge indicator
+      const iconImage = MiniMapIcons.createIcon(icon as IconType, 32); // Size is noop here
+      createScreenEdgeIndicator(this.id, x, y, { icon: iconImage });
     }
   }
 
@@ -143,6 +152,7 @@ export abstract class BaseIncidentScript implements IncidentScript {
     }
 
     if (this.minimapRegistered) {
+      removeScreenEdgeIndicator(this.id);
       clearMinimapMarker(this.id);
       this.minimapRegistered = false;
     }
@@ -161,6 +171,7 @@ export abstract class BaseIncidentScript implements IncidentScript {
   public destroy(): void {
     if (this.minimapRegistered) {
       clearMinimapMarker(this.id);
+      removeScreenEdgeIndicator(this.id);
       this.minimapRegistered = false;
     }
   }
