@@ -6,6 +6,8 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
 import { createBlockDropDecisionMenuCoachMark } from '@/rendering/coachmarks/helpers/createBlockDropDecisionMenuCoachMark';
 
@@ -101,6 +103,12 @@ export class BlockDropDecisionMenu implements Menu {
   private pause: () => void;
   private resume: () => void;
 
+  // Button Locks
+  private attachLocked: boolean = false;
+  private attachAllLocked: boolean = false;
+  private refineLocked: boolean = false;
+  private rollLocked: boolean = false;
+
   constructor(
     private readonly inputManager: InputManager,
     shipBuilderEffects: ShipBuilderEffectsSystem,
@@ -112,6 +120,17 @@ export class BlockDropDecisionMenu implements Menu {
     this.resume = resume;
     this.initialize();
 
+    GlobalEventBus.on('blockdropdecision:attach:lock', this.handleLockAttach);
+    GlobalEventBus.on('blockdropdecision:attach:unlock', this.handleUnlockAttach);
+    GlobalEventBus.on('blockdropdecision:attach-all:lock', this.handleLockAttachAll);
+    GlobalEventBus.on('blockdropdecision:attach-all:unlock', this.handleUnlockAttachAll);
+    GlobalEventBus.on('blockdropdecision:refine:lock', this.handleLockRefine);
+    GlobalEventBus.on('blockdropdecision:refine:unlock', this.handleUnlockRefine);
+    GlobalEventBus.on('blockdropdecision:roll:lock', this.handleLockRoll);
+    GlobalEventBus.on('blockdropdecision:roll:unlock', this.handleUnlockRoll);
+    GlobalEventBus.on('blockdropdecision:lock-all', this.handleLockAll);
+    GlobalEventBus.on('blockdropdecision:unlock-all', this.handleUnlockAll);
+
     GlobalEventBus.on('blockqueue:request-place', this.handleBlockQueueRequest);
     GlobalEventBus.on('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
   }
@@ -119,6 +138,52 @@ export class BlockDropDecisionMenu implements Menu {
   setPlayerShip(ship: Ship): void {
     this.ship = ship;
   }
+
+  private handleLockAll = (): void => {
+    this.attachAllLocked = true;
+    this.attachLocked = true;
+    this.refineLocked = true;
+    this.rollLocked = true;
+  };
+
+  private handleUnlockAll = (): void => {
+    this.attachAllLocked = false;
+    this.attachLocked = false;
+    this.refineLocked = false;
+    this.rollLocked = false;
+  };
+
+  private handleLockAttach = (): void => {
+    this.attachLocked = true;
+  };
+
+  private handleUnlockAttach = (): void => {
+    this.attachLocked = false;
+  };
+
+  private handleLockAttachAll = (): void => {
+    this.attachAllLocked = true;
+  };
+
+  private handleUnlockAttachAll = (): void => {
+    this.attachAllLocked = false;
+  };
+
+  private handleLockRefine = (): void => {
+    this.refineLocked = true;
+  };
+
+  private handleUnlockRefine = (): void => {
+    this.refineLocked = false;
+  };
+
+  private handleLockRoll = (): void => {
+    this.rollLocked = true;
+  };
+
+  private handleUnlockRoll = (): void => {
+    this.rollLocked = false;
+  };
 
   private initialize(): void {
     this.inputManager.setGamepadCursorOverrideEnabled(false);
@@ -451,6 +516,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   private handleRefine(): void {
+    if (this.refineLocked) return;
+
     const current = this.getCurrentBlockType();
     if (!current) return;
 
@@ -466,6 +533,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   private handleAutoplace(): void {
+    if (this.attachLocked) return;
+
     const current = this.getCurrentBlockType();
     if (!current || !this.ship) return;
 
@@ -484,6 +553,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   public async autoPlaceAll(): Promise<void> {
+    if (this.attachAllLocked) return;
+
     if (this.isAutoPlacingAll) return; // Prevent re-entry
 
     this.isAutoPlacingAll = true;
@@ -533,6 +604,8 @@ export class BlockDropDecisionMenu implements Menu {
   }
 
   private handleRoll(): void {
+    if (this.rollLocked) return;
+
     const queue = PlayerResources.getInstance().getBlockQueue();
     const current = this.getCurrentBlockType();
 
@@ -617,62 +690,61 @@ export class BlockDropDecisionMenu implements Menu {
     }
   }
 
-private handleBlockQueueRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
-  if (!this.ship) return;
+  private handleBlockQueueRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
+    if (!this.ship) return;
 
-  const fullQueue = PlayerResources.getInstance().getBlockQueue();
+    const fullQueue = PlayerResources.getInstance().getBlockQueue();
 
-  if (index < 0 || index >= fullQueue.length) {
-    console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
-    return;
-  }
+    if (index < 0 || index >= fullQueue.length) {
+      console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
+      return;
+    }
 
-  const block = fullQueue[index];
-  if (block.id !== blockTypeId) {
-    console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
-    return;
-  }
+    const block = fullQueue[index];
+    if (block.id !== blockTypeId) {
+      console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
+      return;
+    }
 
-  const archetype = getArchetypeById('interceptor');
-  const success = autoPlaceBlock(this.ship, block, this.shipBuilderEffects, archetype ?? undefined);
+    const archetype = getArchetypeById('interceptor');
+    const success = autoPlaceBlock(this.ship, block, this.shipBuilderEffects, archetype ?? undefined);
 
-  if (!success) {
-    audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
-    return;
-  }
+    if (!success) {
+      audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+      return;
+    }
 
-  PlayerResources.getInstance().removeBlockAt(index);
-  missionResultStore.incrementBlockPlacedCount();
-  audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+    PlayerResources.getInstance().removeBlockAt(index);
+    missionResultStore.incrementBlockPlacedCount();
+    audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
 
-  if (this.open) this.rebuildInternalQueueFromGlobal();
-};
+    if (this.open) this.rebuildInternalQueueFromGlobal();
+  };
 
 
-private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
-  if (!this.ship) return;
+  private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
+    if (!this.ship) return;
 
-  const fullQueue = PlayerResources.getInstance().getBlockQueue();
+    const fullQueue = PlayerResources.getInstance().getBlockQueue();
 
-  if (index < 0 || index >= fullQueue.length) {
-    console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
-    return;
-  }
+    if (index < 0 || index >= fullQueue.length) {
+      console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
+      return;
+    }
 
-  const block = fullQueue[index];
-  if (block.id !== blockTypeId) {
-    console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
-    return;
-  }
+    const block = fullQueue[index];
+    if (block.id !== blockTypeId) {
+      console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
+      return;
+    }
 
-  PlayerExperienceManager.getInstance().addEntropium(block.cost ?? 0);
-  PlayerResources.getInstance().removeBlockAt(index);
-  audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
-  missionResultStore.incrementBlockRefinedCount();
+    PlayerExperienceManager.getInstance().addEntropium(block.cost ?? 0);
+    PlayerResources.getInstance().removeBlockAt(index);
+    audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
+    missionResultStore.incrementBlockRefinedCount();
 
-  if (this.open) this.rebuildInternalQueueFromGlobal();
-};
-
+    if (this.open) this.rebuildInternalQueueFromGlobal();
+  };
 
   render(ctx: CanvasRenderingContext2D): void {
     if (this.animationPhase === null && !this.open) return;
@@ -695,18 +767,7 @@ private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: 
       y: scaledWindowY,
       width: scaledWindowWidth,
       height: scaledWindowHeight,
-      options: {
-        borderRadius: 12,
-        alpha: 0.6,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
+      options: DEFAULT_CONFIG.window.options,
     });
 
     // === Retrieve current and queue directly from global ===
@@ -783,10 +844,10 @@ private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: 
 
     // Buttons only if active
     if (this.animationPhase === 'open' || current) {
-      drawButton(ctx, this.refineButton, scale);
-      drawButton(ctx, this.autoplaceButton, scale);
-      drawButton(ctx, this.randomRollButton, scale);
-      drawButton(ctx, this.autoPlaceAllButton, scale);
+      drawButton(ctx, { ...this.refineButton, disabled: this.refineLocked }, scale);
+      drawButton(ctx, { ...this.autoplaceButton, disabled: this.attachLocked }, scale);
+      drawButton(ctx, { ...this.randomRollButton, disabled: this.rollLocked }, scale);
+      drawButton(ctx, { ...this.autoPlaceAllButton, disabled: this.attachAllLocked }, scale);
     }
   }
 
@@ -828,7 +889,6 @@ private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: 
   }
 
   private getMenuTargetZoom(): number {
-    // Empirically tuned constant * uniform scale
     return 0.5 * getUniformScaleFactor();
   }
 
@@ -850,5 +910,15 @@ private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: 
     this.nextBlockPreviewRenderer = null;
     GlobalEventBus.off('blockqueue:request-place', this.handleBlockQueueRequest);
     GlobalEventBus.off('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
+    GlobalEventBus.off('blockdropdecision:attach:lock', this.handleLockAttach);
+    GlobalEventBus.off('blockdropdecision:attach:unlock', this.handleUnlockAttach);
+    GlobalEventBus.off('blockdropdecision:attach-all:lock', this.handleLockAttachAll);
+    GlobalEventBus.off('blockdropdecision:attach-all:unlock', this.handleUnlockAttachAll);
+    GlobalEventBus.off('blockdropdecision:refine:lock', this.handleLockRefine);
+    GlobalEventBus.off('blockdropdecision:refine:unlock', this.handleUnlockRefine);
+    GlobalEventBus.off('blockdropdecision:roll:lock', this.handleLockRoll);
+    GlobalEventBus.off('blockdropdecision:roll:unlock', this.handleUnlockRoll);
+    GlobalEventBus.off('blockdropdecision:lock-all', this.handleLockAll);
+    GlobalEventBus.off('blockdropdecision:unlock-all', this.handleUnlockAll);
   }
 }

@@ -8,11 +8,9 @@ export function createScreenEdgeIndicator(
   worldY: number,
   options?: { color?: string; icon?: HTMLImageElement | HTMLCanvasElement }
 ): void {
-  console.log('[ScreenEdgeIndicatorReporter] Creating indicator with id: ', id);
   GlobalEventBus.emit('indicator:create', { id, worldX, worldY, ...options });
 }
 
 export function removeScreenEdgeIndicator(id: string): void {
-  console.log('[ScreenEdgeIndicatorReporter] Removing indicator with id: ', id);
   GlobalEventBus.emit('indicator:remove', { id });
 }

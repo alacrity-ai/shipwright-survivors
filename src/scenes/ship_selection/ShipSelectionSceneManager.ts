@@ -1,5 +1,7 @@
 // src/scenes/ship_selection/ShipSelectionSceneManager.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
@@ -28,19 +30,7 @@ import { scale } from '@/systems/galaxymap/webgl/matrixUtils';
 
 const BACKGROUND_PATH = 'assets/backgrounds/background_2_00.png';
 
-const crtStyle = {
-  borderRadius: 10,
-  alpha: 0.85,
-  borderColor: '#00ff00',
-  textFont: '18px monospace',
-  backgroundGradient: {
-    type: 'linear' as const,
-    stops: [
-      { offset: 0, color: '#002200' },
-      { offset: 1, color: '#001500' }
-    ]
-  }
-};
+const crtStyle = DEFAULT_CONFIG.button.style;
 
 const BACKGROUND_TILE_WIDTH = 1024 * getUniformScaleFactor();   // assuming 512px image width
 const BACKGROUND_TILE_HEIGHT = 1024 * getUniformScaleFactor();  // assuming 512px image height

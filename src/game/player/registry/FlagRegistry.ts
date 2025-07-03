@@ -41,6 +41,15 @@ export const FlagRegistry = {
   'mission.intro-briefing.complete': {
     description: 'Marks the intro briefing as completed.',
   },
+  'mission.intro-briefing.tradepost-closed': {
+    description: 'Marks the tradepost as closed.',
+  },
+  'mission.intro-briefing.powerupMenuOpened': {
+    description: 'Marks the powerup menu as opened.',
+  },
+  'mission.intro-briefing.powerupMenuClosed': {
+    description: 'Marks the powerup menu as closed.',
+  },
   'hub.mission-computer.unlocked': {
     description: 'Unlocks the mission computer in the hub.',
   },

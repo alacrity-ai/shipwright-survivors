@@ -8,8 +8,8 @@ export const mission1TradePost0: TradePost = {
     {
       item: {
         type: 'block',
-        id: 'turret2',
-        wants: ['turret1', 'turret1', 'turret1']
+        id: 'turret1',
+        wants: ['hull1', 'hull1', 'hull1']
       },
       quantity: 5
     }

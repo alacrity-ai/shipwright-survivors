@@ -121,18 +121,18 @@ What's needed to get to Demo:
 
 TUTORIAL TODOS:
   - [ ] Start with NO HUD visible
-    - [ ] Refine messages to not mention direct keyboard commands as we now have coachmarks.
-    - [ ] Introduce Radar
-    - [ ] Introduce Health
-    - [ ] Introduce Energy?? (Maybe hide this until you get an energy block then do a mini tutorial)
-    - [ ] Introduce Afterburner
+    - [x] Refine messages to not mention direct keyboard commands as we now have coachmarks.
+    - [x] Introduce Radar
+    - [x] Introduce Health
+    - [x] Introduce Afterburner
     - [x] Introduce Weapons
     - [x] Introduce Movement/Afterburner
     - [x] Introduce Block Placement
-    - [ ] Introduce Block Upgrading
-    - [ ] Introduce Block Refinement
-    - [ ] Introduce Block Removal
-    - [ ] Introduce Block Rotation
+    - [x] Tradeposts
+    - [ ] Introduce waves, speed up the map
+    - [ ] Unique background and planet for this map
+    - [ ] Speed up wave spawning rate to make it more fun, enemies more focused on player, all hunters
+
 
 TODOS:
   - [ ] Investigate if minimap icons are cached, if not, cache them
@@ -152,6 +152,10 @@ TODOS:
     - [ ] Godhand
     - [ ] Vanguard
   - [ ] Add randomness to trade tradepost trades, create some helper that generates pairs, probability tiers, put blueprints as static unlocks, if unlocked, then occupy with 3 trades.
+
+  - [ ] Debriefing menu needs more refinement:
+    - [ ] Add breakdown of all damage done by which weapons
+    - [ ] Stretch: Add a breakdown of all achievements / sidequests??? 
 
   - [x] Integrate tradepost registry entries in PlanetRegistry definitions
     - [x] Add all the existing tradeposts to the existing planets

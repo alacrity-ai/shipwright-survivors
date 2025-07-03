@@ -1,5 +1,7 @@
 // src/game/tradepost/TradePostMenu.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
@@ -8,9 +10,12 @@ import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
+import { flags } from '@/game/player/PlayerFlagManager';
+
 import { GlobalEventBus } from '@/core/EventBus';
 
 import { pauseRuntime, resumeRuntime } from '@/core/interfaces/events/RuntimeReporter';
+import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 
 import type { TradePostInstance } from './interfaces/TradePostInstance';
 import { TradePostRegistry } from './registry/TradePostRegistry';
@@ -63,18 +68,8 @@ export class TradePostMenu {
       onClick: () => {
         this.closeMenu();
       },
-      style: {
-        borderRadius: 10,
-        alpha: 0.9,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
+      style: { textFont: `${13 * getUniformScaleFactor()}px monospace` },
+      ...DEFAULT_CONFIG.button.style,
     };
   }
 
@@ -145,6 +140,10 @@ export class TradePostMenu {
     const rect = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
     btn.isHovered = isMouseOverRect(x, y, rect, 1.0);
 
+    if (btn.isHovered) {
+      reportOverlayInteracting();
+    }
+
     if (clicked && btn.isHovered) {
       btn.onClick();
     }
@@ -167,18 +166,7 @@ export class TradePostMenu {
       y: this.windowY,
       width: this.windowWidth,
       height: this.windowHeight,
-      options: {
-        alpha: 0.9,
-        borderRadius: 12,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
+      options: DEFAULT_CONFIG.window.options,
     });
 
     // === Title ===
@@ -212,6 +200,7 @@ export class TradePostMenu {
 
   closeMenu(): void {
     resumeRuntime(); // Resume runtime after closing trade post menu
+    flags.set('mission.intro-briefing.tradepost-closed'); // Set flag to indicate that the tradepost has been closed for tutorial
     this.open = false;
     this.navManager.clearNavMap();
   }

@@ -1,5 +1,6 @@
 // src/scenes/ship_selection/ShipSelectionMenu.ts
 
+import { DEFAULT_CONFIG as UI_CONFIG, type UIConfig } from '@/config/ui';
 import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
@@ -23,19 +24,6 @@ import {
   destroyShipSkillTreeSpriteCache 
 } from '@/game/ship/skills/icons/StarterShipSkillIconSpriteCache';
 
-const crtStyle = {
-  borderRadius: 10,
-  alpha: 0.85,
-  borderColor: '#00ff00',
-  textFont: `18px monospace`,
-  backgroundGradient: {
-    type: 'linear' as const,
-    stops: [
-      { offset: 0, color: '#002200' },
-      { offset: 1, color: '#001500' }
-    ]
-  }
-};
 
 export class ShipSelectionMenu {
   private canvasManager: CanvasManager;
@@ -49,6 +37,8 @@ export class ShipSelectionMenu {
 
   private colorLeftButton: UIButton;
   private colorRightButton: UIButton;
+
+  private config: UIConfig = UI_CONFIG;
 
   // === Owned components
   // Ship preview
@@ -66,6 +56,7 @@ export class ShipSelectionMenu {
   constructor(inputManager: InputManager) {
     this.canvasManager = CanvasManager.getInstance();
     this.inputManager = inputManager;
+    this.config = UI_CONFIG;
 
     // Initialize caches
     initializeShipSkillTreeSpriteCache();
@@ -103,10 +94,7 @@ export class ShipSelectionMenu {
         collection.cycleSelectedColor(-1);
         this.previewComponent.updateColor();
       },
-      style: {
-        ...crtStyle,
-        textFont: `18px monospace`
-      }
+      style: this.config.button.style
     };
 
     this.colorRightButton = {
@@ -122,10 +110,7 @@ export class ShipSelectionMenu {
         collection.cycleSelectedColor(1);
         this.previewComponent.updateColor();
       },
-      style: {
-        ...crtStyle,
-        textFont: `18px monospace`
-      }
+      style: this.config.button.style
     };
 
     // Skill Tree
@@ -209,18 +194,7 @@ export class ShipSelectionMenu {
       y: this.windowY,
       width: this.windowWidth,
       height: this.windowHeight,
-      options: {
-        alpha: 0.92,
-        borderRadius: 12,
-        borderColor: '#00ff33',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#001a00' },
-            { offset: 1, color: '#000f00' }
-          ]
-        }
-      }
+      options: this.config.window.options
     });
 
     // === Title ===

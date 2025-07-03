@@ -20,4 +20,6 @@ export type InputAction =
   | 'cancel'
   | 'pause'
   | 'zoomIn'
-  | 'zoomOut';
+  | 'zoomOut'
+  | 'showHud'
+  | 'hideHud';

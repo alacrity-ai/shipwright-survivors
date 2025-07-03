@@ -2,6 +2,14 @@
 
 import { GlobalEventBus } from '@/core/EventBus';
 
+export function disablePickupDrops(): void {
+  GlobalEventBus.emit('pickup:disableDrops', undefined);
+}
+
+export function enablePickupDrops(): void {
+  GlobalEventBus.emit('pickup:enableDrops', undefined);
+}
+
 export function reportPickupCollected(typeId: string): void {
   GlobalEventBus.emit('pickup:collected', { typeId });
 }

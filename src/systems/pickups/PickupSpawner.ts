@@ -14,6 +14,8 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 export class PickupSpawner {
   private pickupSystem: PickupSystem;
 
+  private pickupDropsDisabled: boolean = false;
+
   constructor(pickupSystem: PickupSystem) {
     this.pickupSystem = pickupSystem;
 
@@ -22,9 +24,19 @@ export class PickupSpawner {
     GlobalEventBus.on('pickup:spawn:repair', this.handleSpawnRepairPickup);
     GlobalEventBus.on('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor);
     GlobalEventBus.on('pickup:spawn:shipBlueprint', this.handleSpawnShipBlueprint);
+    GlobalEventBus.on('pickup:disableDrops', this.handleDisableDrops);
+    GlobalEventBus.on('pickup:enableDrops', this.handleEnableDrops);
   }
 
   // === Event Handlers ===
+
+  private handleDisableDrops = (): void => {
+    this.pickupDropsDisabled = true;
+  };
+
+  private handleEnableDrops = (): void => {
+    this.pickupDropsDisabled = false;
+  };
 
   private handleSpawnBlockPickup = ({
     x,
@@ -100,11 +112,15 @@ export class PickupSpawner {
     GlobalEventBus.off('pickup:spawn:repair', this.handleSpawnRepairPickup);
     GlobalEventBus.off('pickup:spawn:quantumAttractor', this.handleSpawnQuantumAttractor);
     GlobalEventBus.off('pickup:spawn:shipBlueprint', this.handleSpawnShipBlueprint);
+    GlobalEventBus.off('pickup:disableDrops', this.handleDisableDrops);
+    GlobalEventBus.off('pickup:enableDrops', this.handleEnableDrops);
   }
 
   // === Block destruction hooks ===
 
   spawnPickupOnBlockDestruction(block: BlockInstance): void {
+    if (this.pickupDropsDisabled) return;
+
     const blockType = block.type;
 
     const baseDropRate = blockType.dropRate ?? 0;

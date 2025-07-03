@@ -1,3 +1,5 @@
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import type { StarterShipSkillTree } from '@/game/ship/skills/interfaces/StarterShipSkillTree';
 import type { PositionedSkillNode } from '@/game/ship/skills/interfaces/PositionedSkillNode';
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
@@ -149,18 +151,20 @@ export class ShipSkillTreeUIRenderer {
     toUnlocked: boolean,
     maxReached: boolean
   ): { color: string; widthMultiplier: number } {
+    const { primaryColor, hoverColor, accentColor, disabledColor } = DEFAULT_CONFIG.general;
+
     if (fromUnlocked && toUnlocked) {
       // Always green if both ends are unlocked
-      return { color: '#00ff66', widthMultiplier: 4 };
+      return { color: accentColor, widthMultiplier: 4 };
     }
 
     if ((fromUnlocked || toUnlocked) && !maxReached) {
       // White if partially unlocked and player can still unlock more
-      return { color: '#003f19', widthMultiplier: 4 };
+      return { color: primaryColor, widthMultiplier: 4 };
     }
 
     // Otherwise (locked-locked, or max reached): gray
-    return { color: '#444444', widthMultiplier: 4 };
+    return { color: disabledColor, widthMultiplier: 4 };
   }
 
   private drawConnectionLine(
@@ -220,23 +224,24 @@ export class ShipSkillTreeUIRenderer {
       ? NODE_RADIUS_MAJOR * scale
       : NODE_RADIUS_MINOR * scale;
     const size = radius * NODE_SIZE_FACTOR;
+    const { hoverColor, accentColor, primaryColor, disabledColor } = DEFAULT_CONFIG.general;
 
     ctx.save();
 
     if (hovered) {
-      ctx.strokeStyle = '#ffff88';
+      ctx.strokeStyle = hoverColor;
       ctx.lineWidth = 4 * scale;
     } else if (unlocked) {
-      ctx.strokeStyle = '#00ff66';
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = 4 * scale;
     } else if (selected) {
-      ctx.strokeStyle = '#44ff44';
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = 4 * scale;
     } else if (unlockable) {
-      ctx.strokeStyle = '#003f19';
+      ctx.strokeStyle = primaryColor;
       ctx.lineWidth = 4 * scale;
     } else {
-      ctx.strokeStyle = '#555555';
+      ctx.strokeStyle = disabledColor;
       ctx.lineWidth = 4 * scale;
     }
 

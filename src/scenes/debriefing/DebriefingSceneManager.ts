@@ -7,6 +7,8 @@ import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { AnimatedLabel } from '@/ui/components/AnimatedLabel';
 import { calculateCoresEarnedDetailed } from '@/scenes/debriefing/helpers/calculateCores';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -116,18 +118,9 @@ export class DebriefingSceneManager {
     const screenW = getViewportWidth();
     const screenH = getViewportHeight();
 
-    const crtStyle = {
-      borderRadius: 10,
-      alpha: 0.85,
-      borderColor: '#00ff00',
+    const crtStyle = { 
+      ...DEFAULT_CONFIG.button.style,
       textFont: `${Math.round(18 * scale)}px monospace`,
-      backgroundGradient: {
-        type: 'linear' as const,
-        stops: [
-          { offset: 0, color: '#002200' },
-          { offset: 1, color: '#001500' }
-        ]
-      }
     };
 
     this.buttons = [

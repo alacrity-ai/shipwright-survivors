@@ -726,7 +726,7 @@ export class EngineRuntime {
     }
 
     // Debug keys 
-    if (this.inputManager.wasKeyJustPressed('Backquote')) {
+    if (this.inputManager.wasKeyJustPressed('Slash')) {
       PlayerSettingsManager.getInstance().toggleDebugMode();
     }
 
@@ -875,6 +875,7 @@ export class EngineRuntime {
     // Update input manager
     this.inputManager.updateFrame();
     this.hud!.update(dt); // BlockQueueDisplayManager is here
+    this.tradePostMenu.update(dt);
 
     // All updatables
     if (!this.isPaused) {
@@ -882,7 +883,6 @@ export class EngineRuntime {
     }
 
     // Always update these systems regardless of pause state
-    this.tradePostMenu.update(dt);
     this.powerupSelectionMenu.update(dt);
     this.shipBuilderEffects.update(dt);
     this.missionDialogueManager!.update(dt);
@@ -974,6 +974,7 @@ export class EngineRuntime {
       throw new Error('EngineRuntime: Cannot start before initialization');
     }
 
+    this.mission.onStart?.();
     this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     this.gameLoop.start();
@@ -983,7 +984,7 @@ export class EngineRuntime {
     setTimeout(() => {
       this.inputManager.enableAllActions();
       this.missionDialogueManager!.initialize();
-    }, 4200);
+    }, 3400);
   }
 
   public handlePlayerLevelUp() {

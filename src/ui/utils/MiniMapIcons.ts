@@ -6,7 +6,8 @@ export type IconType =
 'skullAndBones' | 
 'treasure' |
 'purpleVortex' |
-'quantumAttractor';
+'quantumAttractor' |
+'planet';
 
 export class MiniMapIcons {
   /**
@@ -41,11 +42,36 @@ export class MiniMapIcons {
       case 'quantumAttractor':
         this.drawQuantumAttractorIcon(ctx, size);
         break;
+      case 'planet':
+        this.drawPlanetIcon(ctx, size);
+        break;
     }
 
     return canvas;
   }
   
+  private static drawPlanetIcon(ctx: CanvasRenderingContext2D, size: number): void {
+    const center = size / 2;
+    const radius = size * 0.4;
+    
+    // Draw planet
+    ctx.fillStyle = '#0000ff';
+    ctx.beginPath();
+    ctx.arc(center, center, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw rings
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = size * 0.05;
+    ctx.beginPath();
+    ctx.arc(center, center, radius * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(center, center, radius * 1.4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
   private static drawQuantumAttractorIcon(ctx: CanvasRenderingContext2D, size: number): void {
     const center = size / 2;
     const radius = size * 0.4;

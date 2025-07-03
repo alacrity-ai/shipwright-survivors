@@ -1,5 +1,7 @@
 // src/scenes/hub/GalaxyMapSceneManager.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
@@ -21,19 +23,7 @@ import type { MissionDefinition } from '@/game/missions/types/MissionDefinition'
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_galaxy-map.png';
 
-const crtStyle = {
-  borderRadius: 10,
-  alpha: 0.85,
-  borderColor: '#00ff00',
-  textFont: '18px monospace',
-  backgroundGradient: {
-    type: 'linear' as const,
-    stops: [
-      { offset: 0, color: '#002200' },
-      { offset: 1, color: '#001500' }
-    ]
-  }
-};
+const crtStyle = DEFAULT_CONFIG.button.style;
 
 export class GalaxyMapSceneManager {
   private canvasManager: CanvasManager;

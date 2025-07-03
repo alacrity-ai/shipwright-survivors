@@ -14,6 +14,7 @@ import type { InputManager } from '@/core/InputManager';
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
 import { TradePostItemsTooltipRenderer } from './TradePostItemTooltipRenderer';
 import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
+import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 
 export class TradePostItemsList {
   private instance: TradePostInstance;
@@ -99,6 +100,7 @@ export class TradePostItemsList {
       };
 
       if (isMouseOverRect(mx, my, outputRect, 1.0)) {
+        reportOverlayInteracting();
         this.hoveredIndex = i;
         this.hoveredType = 'output';
 

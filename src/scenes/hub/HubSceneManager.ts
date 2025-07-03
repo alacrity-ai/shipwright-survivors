@@ -1,5 +1,7 @@
 // src/scenes/hub/HubSceneManager.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
@@ -67,19 +69,7 @@ export class HubSceneManager {
         audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
         sceneManager.fadeToScene('title');
       },
-      style: {
-        borderRadius: 10,
-        alpha: 0.85,
-        borderColor: '#00ff00',
-        textFont: '18px monospace',
-        backgroundGradient: {
-          type: 'linear' as const,
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
+      style: DEFAULT_CONFIG.button.style
     };
   }
 

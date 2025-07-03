@@ -3,6 +3,8 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { SkillNode } from '@/game/ship/skills/interfaces/SkillNode';
 import { drawLabel } from '@/ui/primitives/UILabel';
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -41,11 +43,21 @@ export class ShipSkillTreeTooltipRenderer {
     const boxX = anchorX - boxWidth - 64 * uiScale;
     const boxY = anchorY - boxHeight / 2;
 
+    const { 
+      blackColor, 
+      infoTextColor, 
+      hoverColor, 
+      accentColor, 
+      warningColor, 
+      disabledColor, 
+      statColor 
+    } = DEFAULT_CONFIG.general;
+
     // === Background ===
     ctx.save();
     ctx.globalAlpha = 0.92;
-    ctx.fillStyle = '#001100';
-    ctx.strokeStyle = '#00ff00';
+    ctx.fillStyle = blackColor;
+    ctx.strokeStyle = accentColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 10 * uiScale);
@@ -64,7 +76,7 @@ export class ShipSkillTreeTooltipRenderer {
       name,
       {
         font: `${24}px monospace`,
-        color: nodeSize === 'major' ? '#cc66ff' : '#00ff00',
+        color: nodeSize === 'major' ? '#cc66ff' : accentColor,
         glow: true,
       },
       uiScale
@@ -78,7 +90,7 @@ export class ShipSkillTreeTooltipRenderer {
       description,
       {
         font: `${18}px monospace`,
-        color: '#cccccc',
+        color: infoTextColor,
       },
       uiScale
     );
@@ -103,7 +115,7 @@ export class ShipSkillTreeTooltipRenderer {
         `Refund (${actionButton})`,
         {
           font: `${18}px monospace`,
-          color: '#aaff88',
+          color: accentColor,
         },
         uiScale
       );
@@ -116,8 +128,8 @@ export class ShipSkillTreeTooltipRenderer {
 
       const canAfford = metaManager.canAfford(cost);
       const costColor = hasEnoughMastery
-        ? (canAfford ? '#ffaa00' : '#666666') // Yellow if afford, gray if not
-        : '#555555'; // Dimmed if mastery too low
+        ? (canAfford ? hoverColor : disabledColor) // Yellow if afford, gray if not
+        : disabledColor; // Dimmed if mastery too low
 
       drawLabel(
         ctx,
@@ -132,7 +144,7 @@ export class ShipSkillTreeTooltipRenderer {
       );
       currentY += LINE_SPACING * uiScale;
 
-      const masteryColor = hasEnoughMastery ? '#88ff88' : '#ff4444';
+      const masteryColor = hasEnoughMastery ? accentColor : warningColor;
       drawLabel(
         ctx,
         labelX,
@@ -156,7 +168,7 @@ export class ShipSkillTreeTooltipRenderer {
         formatted,
         {
           font: `${18}px monospace`,
-          color: '#8888ff',
+          color: statColor,
         },
         uiScale
       );

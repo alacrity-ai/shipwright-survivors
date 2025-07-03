@@ -9,6 +9,8 @@ import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { Ship } from '@/game/ship/Ship';
 
+import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
+
 import { GlobalEventBus } from '@/core/EventBus';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
@@ -20,6 +22,9 @@ export class PlayerControllerSystem {
   private isEnginePlaying = false;
   private lastFiringModeSwitchTime: number = -Infinity;
   private isOverlayInteracting = false;
+  private hudHidden = false;
+
+  private unlockingInteraction = false;
 
   constructor(
     private readonly camera: Camera,
@@ -36,7 +41,15 @@ export class PlayerControllerSystem {
   };
 
   private onOverlayNotInteracting = () => {
-    this.isOverlayInteracting = false;
+    // TODO : This is very jenky
+    if (!this.unlockingInteraction) {
+      this.unlockingInteraction = true;
+      // Run this in 100ms
+      setTimeout(() => {
+        this.isOverlayInteracting = false;
+        this.unlockingInteraction = false;
+      }, 100);
+    }
   };
 
   public getIntent(): ShipIntent {
@@ -170,6 +183,17 @@ export class PlayerControllerSystem {
     }
 
     this.onOverlayNotInteracting();
+
+    // Hiding and showing hud
+    if (this.inputManager.wasActionJustPressed('showHud')) {
+      if (this.hudHidden) {
+        emitHudShowAll();
+        this.hudHidden = false;
+      } else {
+        emitHudHideAll();
+        this.hudHidden = true;
+      }
+    }
 
     return {
       movement: movementIntent,

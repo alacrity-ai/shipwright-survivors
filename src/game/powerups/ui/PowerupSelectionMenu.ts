@@ -1,5 +1,7 @@
 // src/game/powerups/ui/PowerupSelectionMenu.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
@@ -13,6 +15,7 @@ import { audioManager } from '@/audio/Audio';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+import { flags } from '@/game/player/PlayerFlagManager';
 
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
 import type { InputManager } from '@/core/InputManager';
@@ -67,6 +70,8 @@ export class PowerupSelectionMenu implements Menu {
   }
 
   openMenu(): void {
+    flags.set('mission.intro-briefing.powerupMenuOpened');
+
     const scale = getUniformScaleFactor();
     const viewportWidth = this.canvasManager.getCanvas('ui').width;
 
@@ -208,6 +213,7 @@ export class PowerupSelectionMenu implements Menu {
         if (this.animatedX >= this.canvasManager.getCanvas('ui').width) {
           this.closeMenu();
           if (this.choice) {
+            flags.set('mission.intro-briefing.powerupMenuClosed');
             this.onSelect(this.choice);
           }
         }
@@ -253,16 +259,8 @@ export class PowerupSelectionMenu implements Menu {
       width: this.windowWidth,
       height: this.windowHeight,
       options: {
+        ...DEFAULT_CONFIG.window.options,
         alpha: windowAlpha,
-        borderRadius: 14,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
       }
     });
 
@@ -317,7 +315,7 @@ export class PowerupSelectionMenu implements Menu {
 
       // Hover background or selection highlight
       if (i === this.hoveredIndex && this.state === 'open') {
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.15)';
+        ctx.fillStyle = DEFAULT_CONFIG.general.backgroundColor;
         ctx.fillRect(rectX + offsetX, rectY + offsetY, scaledWidth, scaledHeight);
       } else if (isSelected) {
         // Selection made glow effect

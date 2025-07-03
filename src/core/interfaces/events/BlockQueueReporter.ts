@@ -13,3 +13,11 @@ export function requestPlaceBlockFromQueue(index: number, blockTypeId: string): 
 export function requestRefineBlockFromQueue(index: number, blockTypeId: string): void {
   GlobalEventBus.emit('blockqueue:request-refine', { index, blockTypeId });
 }
+
+export function lockBlockQueue(): void {
+  GlobalEventBus.emit('blockqueue:lock', undefined);
+}
+
+export function unlockBlockQueue(): void {
+  GlobalEventBus.emit('blockqueue:unlock', undefined);
+}

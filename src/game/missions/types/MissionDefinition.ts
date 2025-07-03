@@ -33,6 +33,7 @@ export interface MissionDefinition {
   sceneLighting?: SceneLightingRGBA;
   requiredFlag?: FlagKey; // Flag required to enter this mission
   missionPortrait?: string | null;
+  onStart?: () => void;
 }
 
 export type SceneLightingRGBA = [number, number, number, number];

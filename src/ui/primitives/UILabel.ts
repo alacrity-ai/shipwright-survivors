@@ -1,5 +1,7 @@
 // src/ui/primitives/UILabel.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 type LabelSegment = {
   text: string;
   color?: string;
@@ -36,13 +38,13 @@ export function drawLabel(
   uiScale: number = 1.0
 ): void {
   const {
-    font = '12px monospace',
+    font = `12px ${DEFAULT_CONFIG.general.font}`,
     align = 'left',
     alpha = 1.0,
     shadowBlur = 0,
     shadowColor = '',
     glow = false,
-    color = '#00ff00',
+    color = DEFAULT_CONFIG.general.textColor,
   } = options ?? {};
 
   // Scale font size numerically if present
@@ -60,7 +62,7 @@ export function drawLabel(
   // === Apply glow/shadow ===
   if (glow) {
     ctx.shadowBlur = 6 * uiScale;
-    ctx.shadowColor = '#00ff00';
+    ctx.shadowColor = DEFAULT_CONFIG.general.glowColor;
   } else if (shadowBlur > 0 && shadowColor) {
     ctx.shadowBlur = shadowBlur * uiScale;
     ctx.shadowColor = shadowColor;

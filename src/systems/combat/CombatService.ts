@@ -131,10 +131,13 @@ export class CombatService {
     // === Special Turret Skilltree Crit Exception
     if (cause === 'turret' && isSourcePlayer) {
       const playerShipId = PlayerShipCollection.getInstance().getActiveShip()?.name;
-      if (!playerShipId) return false;
-      const { turretCriticalChance = 0 } = getAggregatedSkillEffects(playerShipId);
-      critChance += turretCriticalChance;
-      if (critMultiplier < 1.5) critMultiplier = 1.5;
+      if (playerShipId) {
+        const { turretCriticalChance = 0 } = getAggregatedSkillEffects(playerShipId);
+        critChance += turretCriticalChance;
+        if (critMultiplier < 1.5) critMultiplier = 1.5;
+      } else {
+        console.warn('[CombatService] No active player ship ID found; skipping turret crit bonus.');
+      }
     }
 
     // === Apply crit chance
@@ -147,10 +150,8 @@ export class CombatService {
 
     // === Apply flat damage reduction
     damage *= (1 - flatDamageReductionPercent);
-
     // === Apply affix-based block durability reduction
     damage /= (affixes?.blockDurabilityMulti ?? 1);
-
     // === Enforce minimum damage if not immune
     const isCockpit = block.type.metatags?.includes('cockpit');
     const isImmune = isCockpit && Math.random() < cockpitInvulnChance;
@@ -161,7 +162,6 @@ export class CombatService {
       damage = Math.max(damage, 1);
       damage = Math.floor(damage); // Round down to nearest integer
     }
-
     // If crit, determine lifesteal amount
     if (isCriticalHit && lifeStealOnCrit && isSourceShip) {
       const lifestealAmount = Math.max(Math.floor(damage * critLifeStealPercent), 1);

@@ -1,5 +1,7 @@
 // src/scenes/title/TitleScreenManager.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
 import { InputManager } from '@/core/InputManager';
@@ -85,19 +87,7 @@ export class TitleScreenManager {
     const height = 60;
     const spacing = 10;
 
-    const sharedStyle = {
-      borderRadius: 10,
-      alpha: 1,
-      borderColor: '#00ff00',
-      textFont: '18px monospace',
-      backgroundGradient: {
-        type: 'linear' as const,
-        stops: [
-          { offset: 0, color: '#002200' },
-          { offset: 1, color: '#001500' }
-        ]
-      }
-    };
+    const sharedStyle = DEFAULT_CONFIG.button.style;
 
     const backButtonStyle = {
       borderRadius: 10,
@@ -214,20 +204,6 @@ export class TitleScreenManager {
     const height = 60;
     const spacing = 10;
 
-    const sharedStyle = {
-      borderRadius: 10,
-      alpha: 1,
-      borderColor: '#00ff00',
-      textFont: '18px monospace',
-      backgroundGradient: {
-        type: 'linear' as const,
-        stops: [
-          { offset: 0, color: '#002200' },
-          { offset: 1, color: '#001500' }
-        ]
-      }
-    };
-
     const buttons: UIButton[] = [];
 
     for (let slot = 0; slot < 3; slot++) {
@@ -264,8 +240,8 @@ export class TitleScreenManager {
             sceneManager.fadeToScene('mission');
           }
         },
-        style: sharedStyle,
-        // 👇 Attach slot index for animation
+        style: DEFAULT_CONFIG.button.style,
+        // Attach slot index for animation
         slotIndex: slot
       } as UIButton & { slotIndex: number });
 
@@ -283,17 +259,7 @@ export class TitleScreenManager {
             this.confirmingDeleteSlot = slot;
             this.createConfirmationButtons();
           },
-          style: {
-            ...sharedStyle,
-            borderColor: '#ff0000',
-            backgroundGradient: {
-              type: 'linear',
-              stops: [
-                { offset: 0, color: '#220000' },
-                { offset: 1, color: '#110000' }
-              ]
-            }
-          },
+          style: DEFAULT_CONFIG.button.style,
           slotIndex: slot // 👇 Needed so delete button animates with its row
         } as UIButton & { slotIndex: number });
       }
@@ -332,18 +298,7 @@ export class TitleScreenManager {
           this.confirmingDeleteSlot = null;
           this.confirmationButtons = [];
         },
-        style: {
-          borderRadius: 6,
-          borderColor: '#00ff00',
-          textFont: '16px monospace',
-          backgroundGradient: {
-            type: 'linear',
-            stops: [
-              { offset: 0, color: '#003300' },
-              { offset: 1, color: '#001900' }
-            ]
-          }
-        }
+        style: DEFAULT_CONFIG.button.style
       },
       {
         x: confirmX + scaledHorizontalSpacing,
@@ -485,7 +440,7 @@ export class TitleScreenManager {
       const fontSize = 14 * uiScale;
       uiCtx.fillStyle = '#ff4444';
       uiCtx.font = `${Math.round(fontSize)}px monospace`;
-      uiCtx.fillText('Erase this save file?', 300 * uiScale, 320 * uiScale);
+      uiCtx.fillText('Erase this save file?', 360 * uiScale, 320 * uiScale);
 
       // Did I accidently put this here when we should be rendering the delete confirmation buttons?
       for (const button of this.confirmationButtons) {

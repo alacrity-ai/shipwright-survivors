@@ -7,6 +7,8 @@ import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves
 import { waveDefinitions as waveSet3 } from '@/game/waves/missions/Mission3Waves';
 import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves';
 
+import { emitHudHideAll } from '@/core/interfaces/events/HudReporter';
+
 export const missionRegistry: Record<string, MissionDefinition> = {
   mission_editor: {
     id: 'mission_editor',
@@ -53,6 +55,10 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     planets: [
       { name: 'Voidia', x: -5000, y: -6000 },
     ],
+    onStart: () => {
+      // Hide UI
+      emitHudHideAll();
+    },
   },
   mission_002: {
     id: 'mission_002',

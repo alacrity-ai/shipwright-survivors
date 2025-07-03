@@ -9,6 +9,9 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   brake:            { keys: ['KeyS'], gamepadButtons: ['leftTrigger'] },
   powerSlide:       { keys: [], gamepadButtons: [] }, // Deprecated
 
+  hideHud:          { keys: ['Backquote'], gamepadButtons: ['leftStickButton'] },
+  showHud:          { keys: ['Backquote'], gamepadButtons: ['leftStickButton'] },
+
   rotateLeft:       { keys: ['KeyA'], gamepadButtons: [] },
   rotateRight:      { keys: ['KeyD'], gamepadButtons: [] },
   strafeLeft:       { keys: ['KeyQ'], gamepadButtons: ['dpadLeft'] },

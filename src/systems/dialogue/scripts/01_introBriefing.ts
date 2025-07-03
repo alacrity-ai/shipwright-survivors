@@ -3,7 +3,28 @@
 import type { DialogueScript } from '@/systems/dialogue/interfaces/DialogueScript';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
+import { MiniMapIcons } from '@/ui/utils/MiniMapIcons';
 import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
+import { disablePickupDrops, enablePickupDrops } from '@/core/interfaces/events/PickupSpawnReporter';
+import { lockBlockQueue, unlockBlockQueue } from '@/core/interfaces/events/BlockQueueReporter';
+import { lockAllButtons, unlockAttachButton } from '@/core/interfaces/events/BlockDropDecisionMenuReporter';
+import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
+import { 
+  emitHudHideAll, 
+  emitHudShowAll,
+  emitBlockQueueShow,
+  emitHudShow,
+  emitMinimapShow,
+  emitExperienceBarShow
+ } from '@/core/interfaces/events/HudReporter';
+
+import { isWithinRange } from '@/systems/ai/helpers/ShipUtils';
+
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
@@ -17,6 +38,7 @@ import { createToggleFiringModeCoachMark } from '@/rendering/coachmarks/helpers/
 import { createAimCoachMark } from '@/rendering/coachmarks/helpers/createAimCoachMark';
 import { createFirePrimaryCoachMark } from '@/rendering/coachmarks/helpers/createFirePrimaryCoachMark';
 import { createMoveCoachMark } from '@/rendering/coachmarks/helpers/createMoveCoachMark';
+import { createOpenTradePostCoachMark } from '@/rendering/coachmarks/helpers/createOpenTradePostCoachMark';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 import { audioManager } from '@/audio/Audio';
@@ -50,7 +72,18 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
+          // Disable Actions
           inputManager.disableAllActions();
+
+          // Disable Pickup Drops
+          disablePickupDrops();
+          
+          // Unlock starter ship and set as active ship
+          const playerShipCollection = PlayerShipCollection.getInstance();
+          playerShipCollection.discover('SW-1 Standard Issue');
+          playerShipCollection.unlock('SW-1 Standard Issue');
+          const sw1Definition = ShipBlueprintRegistry.getByName('sw1');
+          playerShipCollection.setActiveShip(sw1Definition!);
         },
       },
       {
@@ -72,14 +105,10 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         text: "Neural activity meets minimum viable contractor threshold. Initiating pre-flight checks.",
       },
       {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Activating Engine Systems. Please do remain stationary until accidents are formally authorized.",
-      },
-      {
         type: 'command',
         run: () => {
           audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx');
+          shakeCamera(10, 1, 10);
         },
       },
       {
@@ -89,7 +118,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Thruster interface enabled. W, A, S, D keys mapped—pending your keyboard competency certification...',
+        text: 'Thruster interface enabled. Please engage your mobility system to pass competency certification...',
       },
       {
         type: 'command',
@@ -144,7 +173,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Now engage your Afterburner with Left Shift. Or Left Bumper, if you're using a thumb-calibrated stick.",
+        text: "Supersonic priveleges granted. Engage your afterburner to confirm.",
       },
       {
         type: 'command',
@@ -158,7 +187,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           return new Promise<void>((resolve) => {
             const waitForInput = () => {
               if (inputManager.isActionPressed('afterburner')) {
-                coachMarkManager.clear();
                 resolve();
               } else {
                 requestAnimationFrame(waitForInput);
@@ -173,7 +201,269 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: "Acceleration spike detected. Try not to hit anything valuable—like me.",
       },
+      // Clear coachmarks
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
+        },
+      },
       // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // Excellent, I am now activating your radar system
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Excellent. I am now activating your radar system. Please remain still while I calibrate your peripheral vision...",
+      },
+      // Play sound effect
+      {
+        type: 'command',
+        run: () => {
+          audioManager.play('assets/sounds/sfx/ship/system_enable_00.wav', 'sfx');
+        },
+      },
+      // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // Show minimap
+      {
+        type: 'command',
+        run: () => {
+          emitMinimapShow();
+          // Add ScreenEdge indicator at planet coordinates
+          const iconImage = MiniMapIcons.createIcon('planet', 32); // Size is noop here
+          createScreenEdgeIndicator('planet', -5000, -6000, { icon: iconImage });
+        },
+      },
+      // Destination has been marked on your radar, Proceed to coordinates for weapon system training
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Destination has been marked on your radar. Proceed to coordinates for weapon system training.",
+      },
+      // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // Try not to crash into too many spatial bodies during your trip
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Try not to crash into too many spatial bodies during your trip. It's not good for your health.",
+      },
+      // Verify player has reached destination
+      {
+        type: 'command',
+        run: () => {
+          return awaitCondition(() => (isWithinRange(playerShip.getTransform().position, { x: -5000, y: -6000 }, 1400)));
+        },
+      },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Trading Post reached! Please hold while I add some initial salvage to your queue.",
+      },
+      // Show the block queue
+      {
+        type: 'command',
+        run: () => {
+          emitBlockQueueShow();
+          lockBlockQueue();
+        },
+      },
+      {
+        type: 'command',
+        run: () => {
+          PlayerResources.getInstance().enqueueBlockToFront(getBlockType('hull1')!);
+          audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+          const { x, y } = playerShip.getTransform().position;
+          createLightFlash(x, y, 300, 1.0, 0.4, '#ffffff');
+          shakeCamera(10, 1, 10);
+        },
+      },
+      // Wait 200ms
+      {
+        type: 'pause',
+        durationMs: 200,
+      },
+      // Enqueue the same block again
+      {
+        type: 'command',
+        run: () => {
+          PlayerResources.getInstance().enqueueBlockToFront(getBlockType('hull1')!);
+          audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+          const { x, y } = playerShip.getTransform().position;
+          createLightFlash(x, y, 300, 1.0, 0.4, '#ffffff');
+          shakeCamera(10, 1, 10);
+        },
+      },
+      // Wait 200ms
+      {
+        type: 'pause',
+        durationMs: 200,
+      },
+      // Enqueue the same block again
+      {
+        type: 'command',
+        run: () => {
+          PlayerResources.getInstance().enqueueBlockToFront(getBlockType('hull1')!);
+          audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+          const { x, y } = playerShip.getTransform().position;
+          createLightFlash(x, y, 300, 1.0, 0.4, '#ffffff');
+          shakeCamera(10, 1, 10);
+        },
+      },
+      // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
+      // Create coachmark for transmission
+      {
+        type: 'command',
+        run: () => {
+          createOpenTradePostCoachMark(coachMarkManager, 200, 400);
+        },
+      },
+      // Unlock player input
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableAction('firePrimary');
+        },
+      },
+      // Instruct player to purchase a turret with their salvage
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Purchase a Turret from the Tradepost to arm your ship.",
+      },
+      // Wait for block count to be less than 3, indicating that they traded at the trade post, and that they have closed it
+      {
+        type: 'command',
+        run: () => {
+          return awaitCondition(() => (flags.has('mission.intro-briefing.tradepost-closed') && playerResources.getBlockCount() < 3));
+        },
+      },
+      // Disable firePrimary
+      {
+        type: 'command',
+        run: () => {
+          inputManager.disableAction('firePrimary');
+        },
+      },
+      // Clear coach mark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
+        },
+      },
+      {
+        type: 'command',
+        run: () => {
+          createOpenBlockMenuCoachMark(coachMarkManager, 200, 400);
+        },
+      },
+      // Instruct player to open the ship builder console
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Open the ship builder console to attach your new Turret.",
+      },
+      // Unlock the input action
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableAction('openShipBuilder');
+          lockAllButtons(); // Lock all the buttons in the shipbuilder menu, but the attach button
+          unlockAttachButton();
+        },
+      },
+      // Wait for the ship builder to be opened
+      {
+        type: 'command',
+        run: () => {
+          return new Promise<void>((resolve) => {
+            const waitForInput = () => {
+              if (inputManager.wasActionJustPressed('openShipBuilder')) {
+                resolve();
+              } else {
+                requestAnimationFrame(waitForInput);
+              }
+            };
+            waitForInput();
+          });
+        },
+      },
+      // Clear ScreenEdge indicator
+      {
+        type: 'command',
+        run: () => {
+          removeScreenEdgeIndicator('planet');
+        },
+      },
+      // Clear coachmarks
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
+        },
+      },
+      // Instruct the player to place the block using the attach button
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Use the 'Attach' button to place the block on your ship.",
+      },
+      // Unlock fireprimary
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableAction('firePrimary');
+        },
+      },
+      // Verify that a block has been attached
+      {
+        type: 'command',
+        run: () => {
+          return awaitCondition(() => missionResultStore.get().blockPlacedCount >= 1);
+        },
+      },
+      // Lock fire primary
+      {
+        type: 'command',
+        run: () => {
+          inputManager.disableAction('firePrimary');
+        },
+      },
+      // Give some sarcastic encouragement like "Wow! You placed a block... I am impressed"
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Block placement confirmed. Your ship's structural integrity has been bolstered.",
+      },
+      // Clear coachmark
+      {
+        type: 'command',
+        run: () => {
+          coachMarkManager.clear();
+        },
+      },
+      // Unlock the block queue
+      {
+        type: 'command',
+        run: () => {
+          unlockBlockQueue();
+        },
+      },
       {
         type: 'pause',
         durationMs: 300,
@@ -206,12 +496,14 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           coachMarkManager.clear();
+          audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
+          shakeCamera(10, 1, 10);
         },
       },
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Please Left-click to discharge kinetic discouragement...",
+        text: "Weapon controls enabled. discharge kinetic discouragement...",
       },
       {
         type: 'command',
@@ -259,7 +551,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Press X to toggle between firing modes. 'Synced' for sustained fire, 'Sequence' for burst fire.",
+        text: "Demonstrate ability to toggle firing mode. 'Synced' for sustained fire, 'Sequence' for burst fire.",
       },
       // Make sure KeyX is enabled
       {
@@ -306,7 +598,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Use the scroll wheel or R/T to zoom in and out. Don't break it.",
+        text: "Demonstrate usage of your viewport zoom controls...",
       },
       // Scrollsheel mouse coachmark
       {
@@ -360,7 +652,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Zoom functionality confirmed. Your biomechanics are improving... Slightly.",
+        text: "Zoom functionality confirmed. Your biomechanics are improving...",
       },
       {
         type: 'command',
@@ -389,6 +681,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'pause',
         durationMs: 3000,
       },
+      // Unlock drops
+      {
+        type: 'command',
+        run: () => {
+          enablePickupDrops();
+        },
+      },
       // Hide UI
       {
         type: 'hideUI',
@@ -406,138 +705,31 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Enemy presence reduced. Efficiency confirmed. Continue extraction until Entropium reserves reach acceptable thresholds.',
+        text: 'Enemy presence reduced. Efficiency confirmed.',
       },
-      // Wait for PlayerResources.getInstance().getBlockCount() to be greater than 0
-      {
-        type: 'command',
-        run: () => {
-          return awaitCondition(() => playerResources.getBlockCount() >= 1);
-        },
-      },
-      // Notify user that they have gathered a block
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Block acquisition confirmed. Your first salvage target has been neutralized.',
-      },
-      // Wait 300ms
-      {
-        type: 'pause',
-        durationMs: 300,
-      },
-      // Notify the user to press Tab to activity the builder module
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Press Tab to access the shipbuilding module.',
-      },
-      // Show Tab Key Coachmark
-      {
-        type: 'command',
-        run: () => {
-          createOpenBlockMenuCoachMark(coachMarkManager, 200, 400);
-        },
-      },
-      // Unlock the tab key
-      {
-        type: 'command',
-        run: () => {
-          inputManager.enableAction('openShipBuilder');
-        },
-      },
-      {
-        type: 'command',
-        run: () => {
-          return new Promise<void>((resolve) => {
-            const waitForInput = () => {
-              if (inputManager.wasActionJustPressed('openShipBuilder')) {
-                resolve();
-              } else {
-                requestAnimationFrame(waitForInput);
-              }
-            };
-            waitForInput();
-          });
-        },
-      },
-      // Hide the coachmark
-      {
-        type: 'command',
-        run: () => {
-          coachMarkManager.clear();
-        },
-      },
-      // Lock the Tab key for safety (avoid early exit)
-      {
-        type: 'command',
-        run: () => {
-          inputManager.disableAction('openShipBuilder');
-        },
-      },
-      // Instruct the user to place a block by clicking on the ship, or to refine it into Entropium
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Place the block on the ship by clicking on the ship. Alternatively, refine the block into Entropium by clicking on the refine button.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Wait for missionResultStore.get().blockRefinedCount to be greater than 0, or missionResultStore.get().blockPlacedCount to be greater than 0
-      {
-        type: 'command',
-        run: () => {
-          return awaitCondition(() => missionResultStore.get().blockRefinedCount >= 1 || missionResultStore.get().blockPlacedCount >= 1);
-        },
-      },
-      // Notify the user that they have placed or refined the block
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Block placement or refinement confirmed. Your ship\'s structural integrity has been bolstered.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Unlock Tab and escape
-      {
-        type: 'command',
-        run: () => {
-          inputManager.enableAction('openShipBuilder');
-          inputManager.enableAction('pause');
-        },
-      },
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'While you have at least one block, press Tab to place more blocks.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Notify the user that they can sell blocks with right click, and flip block direction with spacebar,
-      // Two lines, first discussing right click and selling, second discussing flipping with spacebar
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'TIP: Right-click on any block on your ship to sell. Press Spacebar to rotate a block before placing.',
-        options: {
-          side: 'right',
-        },
-      },
-      // Pause 300ms
-      {
-        type: 'pause',
-        durationMs: 300,
-      },
-      // Notify user to gather entropium to meet their quota
       {
         type: 'line',
         speakerId: 'carl',
         text: `Gather Entropium to meet your quota. Your current target is ${PlayerExperienceManager.getInstance().getEntropiumForNextLevel()} units.`,
         options: {
           side: 'right',
+        },
+      },
+      // Show experience bar
+      {
+        type: 'command',
+        run: () => {
+          emitExperienceBarShow();
+          inputManager.enableAllActions();
+        },
+      },
+      // Update flags to prevent softlock on death
+      {
+        type: 'command',
+        run: () => {
+          flags.set('mission.intro-briefing.complete');
+          flags.set('mission.mission_002.unlocked');
+          flags.set('mission.mission_003_00.unlocked');
         },
       },
       // Hide UI
@@ -547,7 +739,14 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => PlayerExperienceManager.getInstance().getEntropium() >= PlayerExperienceManager.getInstance().getEntropiumForNextLevel());
+          return awaitCondition(() => flags.has('mission.intro-briefing.powerupMenuOpened'));
+        },
+      },
+      // Lock all input
+      {
+        type: 'command',
+        run: () => {
+          inputManager.disableAllActions();
         },
       },
       // Show UI
@@ -557,179 +756,36 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Entropium extraction threshold reached. Your contract remains marginally unbroken.',
-      },
-      // Notify user that Entropium has many uses, but for now he will not divulge it
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Entropium has many uses. For now, know that it is the lifeblood of Deep Void operations.',
+        text: 'You have been granted a powerup license. Select a powerup to activate.',
       },
       // Wait 1000ms
       {
         type: 'pause',
-        durationMs: 300,
+        durationMs: 200,
       },
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx');
-      //   },
-      // },
-      // // Dialogue prompting user that ship building module has been activated and to press Tab
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Shipbuilding module activated. Press Tab to access the module.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // // Unlock tab key
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     inputManager.enableKey('Tab');
-      //   },
-      // },
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     return new Promise<void>((resolve) => {
-      //       const waitForInput = () => {
-      //         if (inputManager.wasKeyJustPressed('Tab')) {
-      //           resolve();
-      //         } else {
-      //           requestAnimationFrame(waitForInput);
-      //         }
-      //       };
-      //       waitForInput();
-      //     });
-      //   },
-      // },
-      // // Prompt the user to place a block on the ship
-      // // Lock the tab key so the user can't close the menu early
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     inputManager.disableKey('Escape');
-      //     inputManager.disableKey('Tab');
-      //   },
-      // },
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Place a block on the ship by clicking on the block in the menu and then clicking on the ship.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     return awaitCondition(() => missionResultStore.get().blockPlacedCount >= 1);
-      //   },
-      // },
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Block placement confirmed.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // // Instruct the user to rotate the block by pressing spacebar
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Demonstrate your ability to rotate the block by pressing the Spacebar.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     return new Promise<void>((resolve) => {
-      //       const waitForInput = () => {
-      //         if (inputManager.wasKeyJustPressed('Space')) {
-      //           resolve();
-      //         } else {
-      //           requestAnimationFrame(waitForInput);
-      //         }
-      //       };
-      //       waitForInput();
-      //     });
-      //   },
-      // },
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Rotation confirmed.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // // Sarcastic compliment on the user's ability to rotate the block
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'You rotated the block. I am... impressed.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // // Blocks can also be removed with right click (No check, just instruction)
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Blocks can be removed by right-clicking on them. You will be refunded for half the original cost.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // // Wait 1500ms
-      // {
-      //   type: 'pause',
-      //   durationMs: 1500,
-      // },
-      // // Instruct user to close the shipbuilding menu with Tab or Escape
-      // {
-      //   type: 'line',
-      //   speakerId: 'carl',
-      //   text: 'Close the shipbuilding menu by pressing Tab or Escape.',
-      //   options: {
-      //     side: 'right',
-      //   },
-      // },
-      // // Unlock escape and tab keys
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     inputManager.enableKey('Tab');
-      //     inputManager.enableKey('Escape');
-      //   },
-      // },
-      // {
-      //   type: 'command',
-      //   run: () => {
-      //     return new Promise<void>((resolve) => {
-      //       const waitForInput = () => {
-      //         if (inputManager.wasKeyJustPressed('Tab') || inputManager.wasKeyJustPressed('Escape')) {
-      //           resolve();
-      //         } else {
-      //           requestAnimationFrame(waitForInput);
-      //         }
-      //       };
-      //       waitForInput();
-      //     });
-      //   },
-      // },
-      // Prompt user to defeat all incoming waves in order to receive permission to return to headquarters
+      // Enable all input
+      {
+        type: 'command',
+        run: () => {
+          inputManager.enableAllActions();
+        },
+      },
+      // Wait for powerup to be selected
+      {
+        type: 'command',
+        run: () => {
+          return awaitCondition(() => flags.has('mission.intro-briefing.powerupMenuClosed'));
+        },
+      },
+      // Wait 200ms
+      {
+        type: 'pause',
+        durationMs: 200,
+      },
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Survive incoming waves in order to receive permission to return to headquarters.',
+        text: 'Survive all incoming waves in order to receive permission to return to headquarters.',
       },
       // Snarky final remark
       {
@@ -745,6 +801,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       // Hide UI
       {
         type: 'hideUI',
+      },
+      // Show all hud
+      {
+        type: 'command',
+        run: () => {
+          emitHudShowAll();
+        },
       },
       // Wait until wave spawner is on boss wave
       {
@@ -816,14 +879,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           console.log('Added passive point!')
           PlayerPassiveManager.getInstance().addPassivePoints(1);
-        },
-      },
-      {
-        type: 'command',
-        run: () => {
-          flags.set('mission.intro-briefing.complete');
-          flags.set('mission.mission_002.unlocked');
-          flags.set('mission.mission_003_00.unlocked');
         },
       },
       // Show UI

@@ -139,10 +139,10 @@ export class ProjectileSystem {
       life: lifetime,
       ownerShipId,
       ownerFaction,
-      particle,
       split,
       penetrate,
       hitShipIds: this.acquireHitSet(),
+      particle,
     });
   }
 
@@ -191,6 +191,10 @@ export class ProjectileSystem {
 
         if (p.hitShipIds.has(obj.id)) continue;
 
+        // Record the hit BEFORE applying damage
+        p.hitShipIds.add(obj.id);
+
+        // Apply damage
         this.combatService.applyDamageToBlock(
           obj,
           ownerShipInstance,
@@ -201,11 +205,10 @@ export class ProjectileSystem {
         );
 
         if (p.penetrate) {
-          p.hitShipIds.add(obj.id);
-          break;
+          break; // continue checking for additional targets this frame
         } else {
           if (p.split) {
-            const remainingLife = p.life
+            const remainingLife = p.life;
 
             const angle1 = Math.random() * 2 * Math.PI;
             const angle2 = angle1 + Math.PI + (Math.random() - 0.5);
@@ -222,14 +225,14 @@ export class ProjectileSystem {
             };
 
             const hitSet = this.acquireHitSet();
-            hitSet.add(obj.id);
+            hitSet.add(obj.id); // Ensure inherited split tracks the initial hit
 
             this.emitSplitProjectile(p.position, newVelocity1, p, remainingLife, hitSet);
             this.emitSplitProjectile(p.position, newVelocity2, p, remainingLife, hitSet);
           }
 
           toRemove.add(p);
-          break;
+          break; // stop processing this projectile after hit
         }
       }
     }

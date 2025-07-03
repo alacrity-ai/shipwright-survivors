@@ -7,7 +7,8 @@ import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
 import { addPostProcessEffect, removePostProcessEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 import { flags } from '@/game/player/PlayerFlagManager';
-import { hideCursor, showCursor } from '@/core/interfaces/events/CursorReporter';
+
+import { DEFAULT_CONFIG } from '@/config/ui';
 
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
@@ -28,8 +29,8 @@ export class PauseMenu implements Menu {
   // Window position constants
   private readonly windowX = 120;
   private readonly windowY = 100;
-  private readonly windowWidth = 220;
-  private readonly windowHeight = 240;
+  private readonly windowWidth = 240;
+  private readonly windowHeight = 260;
 
   // Button size constants
   private readonly buttonWidth = 140;
@@ -47,17 +48,9 @@ export class PauseMenu implements Menu {
     this.navManager = new GamepadMenuInteractionManager(inputManager);
 
     // Style definitions
-    this.sharedStyle = {
-      borderRadius: 10,
-      alpha: 0.9,
-      borderColor: '#00ff00',
-      backgroundGradient: {
-        type: 'linear' as const,
-        stops: [
-          { offset: 0, color: '#002200' },
-          { offset: 1, color: '#001500' }
-        ]
-      }
+    this.sharedStyle = { 
+      ...DEFAULT_CONFIG.button.style,
+      textFont: '12px monospace'  
     };
 
     this.disabledStyle = {
@@ -164,18 +157,7 @@ export class PauseMenu implements Menu {
       width: this.windowWidth,
       height: this.windowHeight,
       uiScale: scale,
-      options: {
-        alpha: 0.5,
-        borderRadius: 12,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
+      options: DEFAULT_CONFIG.window.options
     });
 
     drawLabel(

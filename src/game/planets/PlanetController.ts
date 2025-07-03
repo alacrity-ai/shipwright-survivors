@@ -6,6 +6,8 @@ import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/Dialog
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import { openTradepostMenu } from '@/core/interfaces/events/TradePostReporter';
 
+import { flags } from '@/game/player/PlayerFlagManager';
+
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
@@ -106,8 +108,8 @@ export class PlanetController {
     ctx: CanvasRenderingContext2D, 
     overlayCtx: CanvasRenderingContext2D, 
     dialogueCtx: CanvasRenderingContext2D): void {
-
-    // NOTE: Actual planet rendering occurs in the PlanetPass of the UnifiedSceneRendererGL  
+    
+    if (!flags.has('mission.intro-briefing.complete')) return;
 
     const {
       inDrawingRange,

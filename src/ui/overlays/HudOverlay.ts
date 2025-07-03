@@ -68,10 +68,12 @@ export class HudOverlay {
   }
 
   render(dt: number): void {
+    // === Block Queue Display ===
+    this.blockQueueDisplayManager.render();
+    this.experienceBar.render();
+    
     if (this.hidden) return;
     if (!this.ship) return;
-
-    this.experienceBar.render();
 
     const scale = getUniformScaleFactor();
     const ctx = this.canvasManager.getContext('ui');
@@ -203,15 +205,13 @@ export class HudOverlay {
         chromaticAberration: false,
       }
     }, performance.now());
-
-    // === Block Queue Display ===
-    this.blockQueueDisplayManager.render();
   }
 
   destroy(): void {
     GlobalEventBus.off('hud:hide', this.onHide);
     GlobalEventBus.off('hud:show', this.onShow);
     this.experienceBar.destroy();
+    this.blockQueueDisplayManager.destroy();
   }
 
   public hide(): void {

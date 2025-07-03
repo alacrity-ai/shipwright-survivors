@@ -54,6 +54,10 @@ export interface EventTypes {
   'hud:hide': undefined;
   'minimap:show': undefined;
   'minimap:hide': undefined;
+  'blockqueue:show': undefined;
+  'blockqueue:hide': undefined;
+  'experiencebar:show': undefined;
+  'experiencebar:hide': undefined;
 
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
@@ -73,10 +77,26 @@ export interface EventTypes {
   'cursor:restore': undefined;
   'cursor:hide': undefined;
   'cursor:show': undefined;
-  // Gamepad cursor hiding (to separate logic from an actual cursor hide for cutscenes etc)
+
   // Gamepad cursor hiding should be used when the gamepad is the input device and we're in a menu
   'cursor:gamepad:hide': undefined; 
   'cursor:gamepad:show': undefined;
+
+  // Block Drop Decision Menu
+  'blockdropdecision:refine:lock': undefined;
+  'blockdropdecision:refine:unlock': undefined;
+  'blockdropdecision:attach-all:lock': undefined;
+  'blockdropdecision:attach-all:unlock': undefined;
+  'blockdropdecision:attach:lock': undefined;
+  'blockdropdecision:attach:unlock': undefined;
+  'blockdropdecision:roll:lock': undefined;
+  'blockdropdecision:roll:unlock': undefined;
+  'blockdropdecision:lock-all': undefined;
+  'blockdropdecision:unlock-all': undefined;
+
+  // Block Queue
+  'blockqueue:lock': undefined;
+  'blockqueue:unlock': undefined;
 
   // UI Events
   'ui:overlay:interacting': undefined;
@@ -121,6 +141,8 @@ export interface EventTypes {
   'incident:clear': { tag: string };
 
   // Pickups
+  'pickup:disableDrops': undefined;
+  'pickup:enableDrops': undefined;
   'pickup:collected': { typeId: string; };
   'pickup:spawn:block': {
     x: number;

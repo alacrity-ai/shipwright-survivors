@@ -1,11 +1,13 @@
 // src/ui/hud/BlockQueueDisplayManager.ts
 
-import type { CanvasManager } from '@/core/CanvasManager';
+import { CanvasManager } from '@/core/CanvasManager';
 import type { PlayerResources } from '@/game/player/PlayerResources';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { InputManager } from '@/core/InputManager';
 
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
+
+import { GlobalEventBus } from '@/core/EventBus';
 
 import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
 import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
@@ -50,7 +52,13 @@ export class BlockQueueDisplayManager {
   private readonly PULSE_SCALE_AMPLITUDE = 0.06;
   private readonly PULSE_BRIGHTNESS_AMPLITUDE = 0.25;
 
+  private ctx: CanvasRenderingContext2D;
+  private canvas: HTMLCanvasElement;
+
   private cursorRestored = false;
+
+  private hidden = false;
+  private locked = false;
 
   // Cached layout variables (computed by resize)
   private cardWidth: number = 0;
@@ -68,12 +76,20 @@ export class BlockQueueDisplayManager {
 
   private hoveredCardIndex: number | null = null;
 
+  private boundHandleShow: () => void;
+  private boundHandleHide: () => void;
+  private boundHandleLock: () => void;
+  private boundHandleUnlock: () => void;
+
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly playerResources: PlayerResources,
     private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
     private readonly inputManager: InputManager
   ) {
+    this.ctx = CanvasManager.getInstance().getContext('ui');
+    this.canvas = this.ctx.canvas;
+
     const defaultBlockType = getBlockType('hull0')!;
     this.blockPreviewRenderer = new BlockPreviewRenderer(
       defaultBlockType,
@@ -81,6 +97,24 @@ export class BlockQueueDisplayManager {
       this.MINI_BLOCK_SPIN_SPEED * 1.5
     );
     this.resize(); // Precompute layout
+
+    this.boundHandleShow = this.handleShow.bind(this);
+    this.boundHandleHide = this.handleHide.bind(this);
+    this.boundHandleLock = this.handleLock.bind(this);
+    this.boundHandleUnlock = this.handleUnlock.bind(this);
+
+    GlobalEventBus.on('blockqueue:show', this.boundHandleShow);
+    GlobalEventBus.on('blockqueue:hide', this.boundHandleHide);
+    GlobalEventBus.on('blockqueue:lock', this.boundHandleLock);
+    GlobalEventBus.on('blockqueue:unlock', this.boundHandleUnlock);
+  }
+
+  private handleLock(): void {
+    this.locked = true;
+  }
+
+  private handleUnlock(): void {
+    this.locked = false;
   }
 
   /** Call this on resolution change or scale change */
@@ -216,8 +250,8 @@ export class BlockQueueDisplayManager {
       const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
       this.xOffsets[i] += step;
     }
-  
-    if (this.hoveredCardIndex !== null) {
+
+    if (this.hoveredCardIndex !== null && !this.locked) {
       if (this.inputManager.wasMouseClicked()) {
         const block = blockQueue[this.hoveredCardIndex];
         if (block) {
@@ -233,8 +267,10 @@ export class BlockQueueDisplayManager {
   }
 
   render(): void {
-    const ctx = this.canvasManager.getContext('ui');
-    const canvas = ctx.canvas;
+    if (this.hidden) return;
+
+    const canvas = this.canvas;
+    const ctx = this.ctx;
     const scale = getUniformScaleFactor();
 
     const distanceFromBottom = Math.floor(54 * scale);
@@ -434,6 +470,19 @@ export class BlockQueueDisplayManager {
         );
       }
     }
+  }
+
+  public handleHide(): void {
+    this.hidden = true;
+  }
+
+  public handleShow(): void {
+    this.hidden = false;
+  }
+
+  public destroy(): void {
+    GlobalEventBus.off('blockqueue:show', this.boundHandleShow);
+    GlobalEventBus.off('blockqueue:hide', this.boundHandleHide);
   }
 
   // Public API

@@ -5,13 +5,19 @@ import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { getUniformScaleFactor } from '@/config/view';
 
+
 export class PlayerExperienceBar {
   private currentEntropium = 0;
   private entropiumForNextLevel = 100;
   private level = 1;
   private glowTimer = 0;
 
+  private hidden = false;
+
   private readonly textManager: FloatingTextManager;
+
+  private boundHandleHide: () => void;
+  private boundHandleShow: () => void;
 
   constructor(textManager: FloatingTextManager) {
     const xp = PlayerExperienceManager.getInstance();
@@ -21,8 +27,13 @@ export class PlayerExperienceBar {
 
     this.textManager = textManager;
 
+    this.boundHandleHide = this.handleHide.bind(this);
+    this.boundHandleShow = this.handleShow.bind(this);
+
     GlobalEventBus.on('player:entropium:added', this.onEntropiumAdded);
     GlobalEventBus.on('player:entropium:levelup', this.onLevelUp);
+    GlobalEventBus.on('experiencebar:hide', this.boundHandleHide);
+    GlobalEventBus.on('experiencebar:show', this.boundHandleShow);
   }
 
   private onEntropiumAdded = ({ amount }: { amount: number }): void => {
@@ -70,6 +81,8 @@ export class PlayerExperienceBar {
   }
 
   public render(): void {
+    if (this.hidden) return;
+
     const ctx = CanvasManager.getInstance().getContext('ui');
     const scale = getUniformScaleFactor();
 
@@ -110,8 +123,18 @@ export class PlayerExperienceBar {
     }, performance.now());
   }
 
+  public handleHide(): void {
+    this.hidden = true;
+  }
+
+  public handleShow(): void {
+    this.hidden = false;
+  }
+
   public destroy(): void {
     GlobalEventBus.off('player:entropium:added', this.onEntropiumAdded);
     GlobalEventBus.off('player:entropium:levelup', this.onLevelUp);
+    GlobalEventBus.off('experiencebar:hide', this.boundHandleHide);
+    GlobalEventBus.off('experiencebar:show', this.boundHandleShow);
   }
 }

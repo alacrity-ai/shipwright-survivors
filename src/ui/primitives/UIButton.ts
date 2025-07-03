@@ -1,5 +1,7 @@
 // src/ui/primitives/UIButton.ts
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { audioManager } from '@/audio/Audio';
 import { brightenColor } from '@/shared/colorUtils';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -40,17 +42,25 @@ export function drawButton(
   ctx: CanvasRenderingContext2D,
   button: UIButton,
   uiScale: number = 1.0,
-  fontSize: number = 13
+  fontSize: number = 13,
 ): void {
   const {
     x, y, width, height, label, isHovered, style = {}, disabled = false
   } = button;
 
+  const { 
+    textColor: defaultTextColor, 
+    accentColor, 
+    disabledColor,
+    infoTextColor,
+    backgroundColor: defaultBackgroundColor,
+   } = DEFAULT_CONFIG.general;
+
   const {
     borderRadius = 6,
-    backgroundColor,
-    borderColor = '#666',
-    textColor = '#fff',
+    backgroundColor = defaultBackgroundColor,
+    borderColor = accentColor,
+    textColor = defaultTextColor,
     textFont = `${fontSize}px monospace`,
     alpha = 1.0,
     backgroundGradient
@@ -64,8 +74,8 @@ export function drawButton(
   );
 
   const effectiveAlpha = disabled ? 0.4 : alpha;
-  const effectiveBorderColor = disabled ? '#444' : borderColor;
-  const effectiveTextColor = disabled ? '#888' : textColor;
+  const effectiveBorderColor = disabled ? disabledColor : borderColor;
+  const effectiveTextColor = disabled ? infoTextColor : textColor;
 
   ctx.save();
   ctx.globalAlpha = effectiveAlpha;
@@ -88,7 +98,7 @@ export function drawButton(
 
     const effectiveStops = stops.map(stop => ({
       offset: stop.offset,
-      color: disabled ? '#111' : (isHovered ? brightenColor(stop.color, 0.4) : stop.color)
+      color: disabled ? infoTextColor : (isHovered ? brightenColor(stop.color, 0.3) : stop.color)
     }));
 
     for (const stop of effectiveStops) {
@@ -99,7 +109,7 @@ export function drawButton(
   } else {
     fillStyle = disabled
       ? '#111'
-      : (isHovered ? '#333' : backgroundColor ?? '#222');
+      : (isHovered ? infoTextColor : backgroundColor ?? disabledColor);
   }
 
   // === Draw Background ===
