@@ -15,6 +15,7 @@ export interface MissionResultData {
   blockRefinedCount: number;
   blocksCollected: number;
   wavesCleared: number;
+  totalWaves: number;
   incidentsCompleted: number;
   massAchieved: number;
   shipsDiscovered: string[];
@@ -37,6 +38,7 @@ class MissionResultStore {
       blockRefinedCount: 0,
       blocksCollected: 0,
       wavesCleared: 0,
+      totalWaves: 0,
       incidentsCompleted: 0,
       massAchieved: 0,
       shipsDiscovered: [],
@@ -68,7 +70,7 @@ class MissionResultStore {
     GlobalEventBus.emit('camera:shake', {
       strength: 10,
       duration: 0.2,
-      frequency: 10,
+      frequency: 15,
     });
 
     this.result!.enemiesDestroyed += by;
@@ -82,6 +84,11 @@ class MissionResultStore {
   public incrementWavesCleared(by = 1) {
     this.ensureInitialized();
     this.result!.wavesCleared += by;
+  }
+
+  public setTotalWaves(total = 1) {
+    this.ensureInitialized();
+    this.result!.totalWaves = total;
   }
 
   public incrementIncidentsCompleted(by = 1) {

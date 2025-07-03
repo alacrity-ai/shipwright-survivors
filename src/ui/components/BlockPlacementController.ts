@@ -1,4 +1,3 @@
-import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { Ship } from '@/game/ship/Ship';
@@ -7,7 +6,6 @@ import type { Camera } from '@/core/Camera';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import { drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils';
 import { BLOCK_SIZE } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
 import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
@@ -139,7 +137,7 @@ export class BlockPlacementController {
 
     if (existingBlock) {
       const isSafe = this.ship.isDeletionSafe(coord);
-      const sprite = getGL2BlockSprite(existingBlock.type.id, DamageLevel.NONE);
+      const sprite = getGL2BlockSprite(existingBlock.type, DamageLevel.NONE);
 
       GlobalSpriteRequestBus.add({
         texture: sprite.base,
@@ -151,7 +149,8 @@ export class BlockPlacementController {
         rotation: this.getCorrectedRotation(transform.rotation, existingBlock.type.id),
       });
     } else {
-      const sprite = getGL2BlockSprite(blockId, DamageLevel.NONE);
+      if (!blockType) return;
+      const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
 
       GlobalSpriteRequestBus.add({
         texture: sprite.base,

@@ -90,15 +90,15 @@ export class DebriefingSceneManager {
     const totalEarned = Object.values(detailed).reduce((sum, v) => sum + v, 0);
     PlayerMetaCurrencyManager.getInstance().addMetaCurrency(totalEarned);
 
-    // === Award Mastery XP (only on victory) ===
+    // === Award Mastery XP (Proportional to waves cleared) ===
     const collection = PlayerShipCollection.getInstance();
     const activeShip = collection.getActiveShip();
-    const masteryXpAwarded = 100;
 
-    const didEarnMasteryXp =
-      this.missionResult === 'victory' &&
-      !!activeShip &&
-      collection.getExperienceForLevel(collection.getShipMasteryLevel(activeShip.name)) > 0;
+    const wavesCleared = missionResultStore.get().wavesCleared;
+    const totalWaves = missionResultStore.get().totalWaves - 1;
+    const masteryXpAwarded = Math.floor(100 * (wavesCleared / totalWaves));
+
+    const didEarnMasteryXp = !!activeShip && totalWaves > 0 && masteryXpAwarded > 0;
 
     this.didEarnMasteryXp = didEarnMasteryXp;
 

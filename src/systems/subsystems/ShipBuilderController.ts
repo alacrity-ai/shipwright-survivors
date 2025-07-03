@@ -83,9 +83,6 @@ export class ShipBuilderController {
       this.lastBlockId = blockId;
     }
 
-    const blockType = getBlockSprite(blockId);
-    if (!blockType) return;
-
     const blockCost = getBlockCost(blockId);
     if (blockCost === undefined) return;
 
@@ -160,7 +157,7 @@ export class ShipBuilderController {
     if (tool === ShipBuilderTool.REPAIR) {
       const hoveredBlock = this.ship.getBlock(coord);
       if (hoveredBlock) {
-        const sprite = getGL2BlockSprite(hoveredBlock.type.id, DamageLevel.NONE);
+        const sprite = getGL2BlockSprite(hoveredBlock.type, DamageLevel.NONE);
         GlobalSpriteRequestBus.add({
           texture: sprite.base,
           worldX,
@@ -181,7 +178,7 @@ export class ShipBuilderController {
       if (existingBlock) {
         const isSafe = this.ship.isDeletionSafe(coord);
         const overlayColor = isSafe ? DamageLevel.NONE : DamageLevel.HEAVY;
-        const sprite = getGL2BlockSprite(existingBlock.type.id, overlayColor);
+        const sprite = getGL2BlockSprite(existingBlock.type, overlayColor);
 
         GlobalSpriteRequestBus.add({
           texture: sprite.base,
@@ -194,7 +191,9 @@ export class ShipBuilderController {
         });
       } else {
         // Show the block we're placing itself as a preview over the cursor
-        const sprite = getGL2BlockSprite(blockId, DamageLevel.NONE);
+        const blockType = getBlockType(blockId);
+        if (!blockType) return;
+        const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
 
         GlobalSpriteRequestBus.add({
           texture: sprite.base,

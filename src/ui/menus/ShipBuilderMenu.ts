@@ -244,7 +244,7 @@ export class ShipBuilderMenu implements Menu {
         const isSelected = this.selectedBlockId === block.id;
         const isUnlocked = techManager.isUnlocked(block.id);
 
-        const sprite = getBlockSprite(block.id);
+        const sprite = getBlockSprite(block);
         drawBlockTile(ctx, {
           x,
           y,

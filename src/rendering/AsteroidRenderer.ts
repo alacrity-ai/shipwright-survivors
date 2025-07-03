@@ -49,7 +49,7 @@ export class AsteroidRenderer {
           sprite = getAsteroidBlockSprite(block.type.id, damageLevel);
         } else {
           damageLevel = getDamageLevel(block.hp, block.type.armor ?? 1);
-          sprite = getBlockSprite(block.type.id, damageLevel);
+          sprite = getBlockSprite(block.type, damageLevel);
         }
 
         const px = coord.x * BLOCK_SIZE;

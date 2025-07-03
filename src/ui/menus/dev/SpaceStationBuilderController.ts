@@ -17,7 +17,7 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 import { getHoveredGridCoord, isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
 import { getRepairCost } from '@/systems/subsystems/utils/BlockRepairUtils';
 import { audioManager } from '@/audio/Audio';
-import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 
 export class SpaceStationBuilderController {
   private rotation: number = 0;
@@ -67,9 +67,6 @@ export class SpaceStationBuilderController {
       this.rotation = 0;
       this.lastBlockId = blockId;
     }
-
-    const blockType = getBlockSprite(blockId);
-    if (!blockType) return;
 
     const blockCost = getBlockCost(blockId);
     if (blockCost === undefined) return;
@@ -162,7 +159,10 @@ export class SpaceStationBuilderController {
         const isSafe = this.spaceStation.isDeletionSafe(coord);
         drawBlockDeletionHighlight(ctx, isSafe);
       } else {
-        const sprite = getBlockSprite(blockId);
+        const blockType = getBlockType(blockId);
+        if (!blockType) return;
+
+        const sprite = getBlockSprite(blockType);
         ctx.save();
         ctx.rotate(this.rotation * Math.PI / 180);
         ctx.globalAlpha = 0.6;

@@ -63,6 +63,9 @@ export class Ship extends CompositeBlockObject {
   private strafingRight: boolean = false;
   private affixes: ShipAffixes = {};
 
+  // Check to see if the ship has or had engines ever
+  private hadEngines: boolean = false;
+
   // === Rasterization Cache ===
   private rasterizedTexture: WebGLTexture | null = null;
   private rasterizedTextureOffset: { x: number; y: number } = { x: 0, y: 0 };
@@ -154,6 +157,13 @@ export class Ship extends CompositeBlockObject {
 
   public getAfterburnerAccelMultiplier(): number {
     return this.afterburnerComponent?.getAccelerationMultiplier() ?? 1;
+  }
+
+  // Returns true if the ship has engines and has ever had engines
+  // NOTE: If the ship never had engines, this will also return true
+  public getHasAtleastOneOriginalEngine(): boolean {
+    if (!this.hadEngines) return true;
+    return this.engineBlocks.size > 0 && this.hadEngines;
   }
 
   // Light
@@ -651,6 +661,7 @@ export class Ship extends CompositeBlockObject {
     // Engine blocks
     if (block.type.metatags?.includes('engine')) {
       this.engineBlocks.add(block);
+      this.hadEngines = true;
     }
 
     // Fins

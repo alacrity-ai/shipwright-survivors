@@ -1056,6 +1056,35 @@ const blockTypes: Record<string, BlockType> = {
     dropRate: 0.1,
     metatags: ['haloBlade']
   },
+  npcseeker0: {
+    id: 'npcseeker0',
+    tier: 0,
+    name: 'NPC Seeker Mk 0',
+    armor: 70,
+    mass: 80,
+    cost: 400,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.2,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 3,
+        explosionRadiusBlocks: 2,
+        projectileSpeed: 400,
+        turningPower: 0.08,
+        targetingRange: 4000,
+        lifetime: 6.0,
+        seekerForwardFire: true,
+      } 
+    },
+    sprite: 'heatSeeker0',
+    category: 'system',
+    subcategory: 'heatSeeker',
+    dropRate: 0.42,
+    blockDropOverride: 'heatSeeker1',
+    metatags: ['heatSeeker']
+  },
   heatSeeker0: {
     id: 'heatSeeker0',
     tier: 0,
@@ -1080,7 +1109,7 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker0',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18,
+    dropRate: 0.28,
     metatags: ['heatSeeker']
   },
   heatSeeker1: {
@@ -1107,7 +1136,7 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker1',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18,
+    dropRate: 0.28,
     metatags: ['heatSeeker']
   },
   heatSeeker2: {
@@ -1134,7 +1163,7 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker2',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18,
+    dropRate: 0.28,
     metatags: ['heatSeeker']
   },
   heatSeeker3: {
@@ -1161,7 +1190,7 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker3',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18,
+    dropRate: 0.28,
     metatags: ['heatSeeker']
   },
   heatSeeker4: {
@@ -1188,7 +1217,7 @@ const blockTypes: Record<string, BlockType> = {
     sprite: 'heatSeeker4',
     category: 'weapon',
     subcategory: 'heatSeeker',
-    dropRate: 0.18,
+    dropRate: 0.28,
     metatags: ['heatSeeker']
   },
   fuelTank0: {

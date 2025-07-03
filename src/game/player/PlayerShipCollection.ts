@@ -6,6 +6,15 @@ import { getAggregatedSkillEffects } from '../ship/skills/runtime/UnlockedShipSk
 
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
 
+const levelExpArr = [
+  100,
+  200,
+  300,
+  400,
+  500,
+  600,
+]
+
 /**
  * Represents the persistent collection of starter ships the player has discovered or unlocked.
  * Ships must be discovered before they are eligible for unlocking via metacurrency.
@@ -22,7 +31,7 @@ export class PlayerShipCollection {
 
   // XP required to go from level N to N+1
   private static getXpThresholdForLevel(level: number): number {
-    return level * 100;
+    return levelExpArr[level] ?? 100;
   }
 
   private shipMasteryMap: Map<string, { masteryLevel: number; experience: number }> = new Map();
@@ -77,7 +86,7 @@ export class PlayerShipCollection {
 
     // Initialize mastery if not present
     if (!this.shipMasteryMap.has(shipName)) {
-      this.shipMasteryMap.set(shipName, { masteryLevel: 1, experience: 0 });
+      this.shipMasteryMap.set(shipName, { masteryLevel: 0, experience: 0 });
     }
   }
 
@@ -104,7 +113,7 @@ export class PlayerShipCollection {
 
   public addExperience(shipName: string, xp: number): void {
     if (!this.shipMasteryMap.has(shipName)) {
-      this.shipMasteryMap.set(shipName, { masteryLevel: 1, experience: 0 });
+      this.shipMasteryMap.set(shipName, { masteryLevel: 0, experience: 0 });
     }
 
     const state = this.shipMasteryMap.get(shipName)!;
@@ -123,7 +132,7 @@ export class PlayerShipCollection {
 
   public levelUpShip(shipName: string): void {
     if (!this.shipMasteryMap.has(shipName)) {
-      this.shipMasteryMap.set(shipName, { masteryLevel: 1, experience: 0 });
+      this.shipMasteryMap.set(shipName, { masteryLevel: 0, experience: 0 });
     }
 
     const state = this.shipMasteryMap.get(shipName)!;

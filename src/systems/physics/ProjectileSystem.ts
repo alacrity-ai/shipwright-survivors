@@ -7,8 +7,8 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
-import type { Faction } from '@/game/interfaces/types/Faction';
 
+import { Faction } from '@/game/interfaces/types/Faction';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 
@@ -119,6 +119,16 @@ export class ProjectileSystem {
     split = false,
     penetrate = false,
   ): void {
+
+    const lightColorOverride = ownerFaction === Faction.Enemy ? '#ff0000' : undefined;
+
+    const ship = ShipRegistry.getInstance().getById(ownerShipId);
+    if (ship?.getFaction() === Faction.Enemy) {
+      const affixes = ship?.getAffixes() ?? {};
+      velocity.x *= affixes.projectileSpeedMulti ?? 1;
+      velocity.y *= affixes.projectileSpeedMulti ?? 1;
+    }
+
     const particle = this.particleManager.emitParticle(origin, {
       colors: particleColors ?? ['#ffff88', '#ffaa00', '#ffcc33'],
       baseSpeed: 0,
@@ -129,6 +139,7 @@ export class ProjectileSystem {
       lightRadiusScalar: 20,
       lightIntensity: 0.8,
       fadeMode,
+      lightColorOverride,
     });
 
     this.projectiles.push({
@@ -210,25 +221,31 @@ export class ProjectileSystem {
           if (p.split) {
             const remainingLife = p.life;
 
-            const angle1 = Math.random() * 2 * Math.PI;
-            const angle2 = angle1 + Math.PI + (Math.random() - 0.5);
+            // Base random angle
+            const baseAngle = Math.random() * 2 * Math.PI;
 
+            // Compute speed based on original velocity, amplify as before
             const speed = Math.hypot(p.velocity.x * 1.5, p.velocity.y * 1.5);
 
-            const newVelocity1 = {
-              x: Math.cos(angle1) * speed,
-              y: Math.sin(angle1) * speed,
-            };
-            const newVelocity2 = {
-              x: Math.cos(angle2) * speed,
-              y: Math.sin(angle2) * speed,
-            };
+            // Generate 3 evenly spaced angles: base, base + 120°, base + 240°
+            const angles = [
+              baseAngle,
+              baseAngle + (2 * Math.PI) / 3, // +120°
+              baseAngle + (4 * Math.PI) / 3, // +240°
+            ];
 
+            // Acquire shared hitSet so all split projectiles track the same initial hit
             const hitSet = this.acquireHitSet();
-            hitSet.add(obj.id); // Ensure inherited split tracks the initial hit
+            hitSet.add(obj.id);
 
-            this.emitSplitProjectile(p.position, newVelocity1, p, remainingLife, hitSet);
-            this.emitSplitProjectile(p.position, newVelocity2, p, remainingLife, hitSet);
+            // Emit three split projectiles
+            for (const angle of angles) {
+              const velocity = {
+                x: Math.cos(angle) * speed,
+                y: Math.sin(angle) * speed,
+              };
+              this.emitSplitProjectile(p.position, velocity, p, remainingLife, hitSet);
+            }
           }
 
           toRemove.add(p);

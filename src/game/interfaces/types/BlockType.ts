@@ -19,4 +19,5 @@ export interface BlockType {
   dropRate?: number;
   placementSound?: string;
   metatags?: string[];
+  blockDropOverride?: string;
 }

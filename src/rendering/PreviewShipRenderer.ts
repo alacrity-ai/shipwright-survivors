@@ -1,4 +1,4 @@
-// src/rendering/PreviewShipRendererGL.ts
+// src/rendering/PreviewShipRenderer.ts
 
 import type { PreviewShip } from '@/game/ship/PreviewShip';
 import { BLOCK_SIZE } from '@/config/view';
@@ -125,7 +125,7 @@ export class PreviewShipRendererGL {
 
       const maxHp = block.type.armor ?? 1;
       const damageLevel = getDamageLevel(block.hp, maxHp);
-      const sprite = getGL2BlockSprite(block.type.id, damageLevel);
+      const sprite = getGL2BlockSprite(block.type, damageLevel);
 
       const localX = coord.x * BLOCK_SIZE;
       const localY = coord.y * BLOCK_SIZE;

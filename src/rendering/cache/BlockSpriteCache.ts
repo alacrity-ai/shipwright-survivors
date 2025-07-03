@@ -2,6 +2,8 @@
 
 import { BLOCK_SIZE } from '@/config/view';
 
+import type { BlockType } from '@/game/interfaces/types/BlockType';
+
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 import { renderLaserWeapon } from './blockRenderers/laserBlockRenderer';
@@ -943,14 +945,14 @@ export function getDamageLevel(currentHp: number, maxHp: number): DamageLevel {
   return DamageLevel.HEAVY;
 }
 
-export function getBlockSprite(typeId: string, level: DamageLevel = DamageLevel.NONE): BlockSprite {
-  const entry = spriteCache.get(typeId);
-  if (!entry) throw new Error(`Block sprite not cached: ${typeId}`);
+export function getBlockSprite(blockType: BlockType, level: DamageLevel = DamageLevel.NONE): BlockSprite {
+  const entry = spriteCache.get(blockType.sprite);
+  if (!entry) throw new Error(`Block sprite not cached: ${blockType.sprite}`);
   return entry[level];
 }
 
-export function getGL2BlockSprite(typeId: string, level: DamageLevel = DamageLevel.NONE): GLBlockSprite {
-  const entry = gl2SpriteCache.get(typeId);
-  if (!entry) throw new Error(`GL2 block sprite not cached: ${typeId}`);
+export function getGL2BlockSprite(blockType: BlockType, level: DamageLevel = DamageLevel.NONE): GLBlockSprite {
+  const entry = gl2SpriteCache.get(blockType.sprite);
+  if (!entry) throw new Error(`GL2 block sprite not cached: ${blockType.sprite}`);
   return entry[level];
 }

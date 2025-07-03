@@ -2,9 +2,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '../AIControllerSystem';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 
-import { getDistance } from '../helpers/VectorUtils';
 import { BaseAIState } from './BaseAIState';
-import { isWithinRange } from '../helpers/ShipUtils';
 import { approachTarget } from '../steering/SteeringHelper';
 import { AttackState } from './AttackState';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -19,6 +17,10 @@ export class SeekTargetState extends BaseAIState {
   constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
     super(controller, ship);
     this.target = target;
+
+    const params = controller.getBehaviorProfile().params ?? {};
+    this.engagementRange = params.engagementRange ?? 1200;
+    this.disengagementRange = params.disengagementRange ?? 5000;
   }
 
   public override onEnter(): void {

@@ -11,6 +11,7 @@ export function drawMasteryLevel(
 
   // === Define styles by level ===
   const styles: Record<number, { fill: string; border: string; text: string }> = {
+    0: { fill: '#111111', border: '#2a2a2a', text: '#888888' },
     1: { fill: '#222222', border: '#444444', text: '#ffffff' },
     2: { fill: '#114422', border: '#228833', text: '#ffffff' },
     3: { fill: '#113366', border: '#2255aa', text: '#ffffff' },

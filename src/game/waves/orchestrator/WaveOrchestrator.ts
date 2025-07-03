@@ -47,11 +47,11 @@ export class WaveOrchestrator implements IUpdatable {
     this.hasSpawnedFirstWave = false;
     this.activeWave = null;
     this.pendingWavePromise = null;
+    missionResultStore.setTotalWaves(this.waves.length);
   }
 
   public update(dt: number): void {
     if (!this.isRunning || this.isPaused) return;
-
     if (this.pendingWavePromise) return;
 
     if (!this.hasSpawnedFirstWave) {
@@ -66,20 +66,21 @@ export class WaveOrchestrator implements IUpdatable {
 
     if (this.currentWaveIndex >= this.waves.length) return;
 
-    // Get the current active wave definition - use activeWave if available
     const currentWaveDef = this.activeWave?.getWave() || this.waves[this.currentWaveIndex - 1];
     const interval = currentWaveDef.duration ?? this.defaultWaveInterval;
 
     if (interval !== Infinity) {
       this.elapsedTime += dt;
       if (this.elapsedTime >= interval) {
+        missionResultStore.incrementWavesCleared(); // Award wave completion
         this.pendingWavePromise = this.spawnNextWave().then(() => {
           this.pendingWavePromise = null;
         });
       }
     } else {
-      // For infinite-duration waves (bosses), progress once complete
+      // For infinite-duration waves (e.g. bosses), wait for completion signal
       if (this.isActiveWaveCompleted()) {
+        missionResultStore.incrementWavesCleared(); // Award wave completion
         this.pendingWavePromise = this.spawnNextWave().then(() => {
           this.pendingWavePromise = null;
         });
@@ -87,10 +88,9 @@ export class WaveOrchestrator implements IUpdatable {
     }
   }
 
+
   private async spawnNextWave(): Promise<void> {
     if (this.currentWaveIndex >= this.waves.length) return;
-
-    missionResultStore.incrementWavesCleared();
 
     const def = this.waves[this.currentWaveIndex];
     this.activeWave = await this.executor.execute(def, this.currentWaveIndex);

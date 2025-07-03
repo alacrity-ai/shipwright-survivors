@@ -425,6 +425,7 @@ export const waveDefinitions: WaveDefinition[] = [
           thrustPowerMulti: 4.0,
           turnPowerMulti: 1.2,
           fireRateMulti: 3.0,
+          projectileSpeedMulti: 2.5,
         },
       },
     ],

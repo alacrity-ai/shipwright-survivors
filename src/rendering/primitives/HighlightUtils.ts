@@ -2,6 +2,7 @@
 
 import { BLOCK_SIZE } from '@/config/view';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 
 const highlightCache = new Map<string, HTMLCanvasElement>();
 
@@ -15,7 +16,10 @@ export function drawBlockHighlightWithMask(
   let cached = highlightCache.get(cacheKey);
 
   if (!cached) {
-    const sprite = getBlockSprite(blockId);
+    const blockType = getBlockType(blockId);
+    if (!blockType) return;
+
+    const sprite = getBlockSprite(blockType);
     const base = sprite.base;
     if (!base) return;
 

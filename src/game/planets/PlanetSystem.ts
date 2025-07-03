@@ -8,7 +8,6 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
-import type { PlanetInstance } from '@/rendering/unified/passes/PlanetPass';
 
 import { PlanetController } from './PlanetController';
 import { PlanetFactory } from './PlanetFactory';

@@ -55,7 +55,7 @@ export class ShipRasterizationService {
     // === Step 4: Draw all blocks ===
     for (const [coord, block] of blocks) {
       const damage = getDamageLevel(block.hp, block.type.armor ?? 1);
-      const sprite = getBlockSprite(block.type.id, damage);
+      const sprite = getBlockSprite(block.type, damage);
 
       const pixelX = coord.x * BLOCK_SIZE;
       const pixelY = coord.y * BLOCK_SIZE;

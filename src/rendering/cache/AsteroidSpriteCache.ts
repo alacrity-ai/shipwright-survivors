@@ -12,6 +12,7 @@ import {
  } from '@/rendering/cache/asteroidBlockRenderers/facetRockBlockRenderer';
 
 import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
+import { BlockType } from '@/game/interfaces/types/BlockType';
 
 // --- Damage Level Enum ---
 
@@ -219,10 +220,10 @@ export function getAsteroidBlockSprite(
 }
 
 export function getGL2AsteroidBlockSprite(
-  typeId: string,
+  blockType: BlockType,
   level: AsteroidDamageLevel = AsteroidDamageLevel.NONE
 ): GLAsteroidSprite {
-  const entry = gl2AsteroidSpriteCache.get(typeId);
-  if (!entry) throw new Error(`GL2 asteroid sprite not cached: ${typeId}`);
+  const entry = gl2AsteroidSpriteCache.get(blockType.sprite);
+  if (!entry) throw new Error(`GL2 asteroid sprite not cached: ${blockType.sprite}`);
   return entry[level];
 }

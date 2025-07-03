@@ -10,6 +10,7 @@ import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { Grid } from '@/systems/physics/Grid';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
+import { Faction } from '@/game/interfaces/types/Faction';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { findNearestTarget, findRandomTargetInRange } from '@/systems/ai/helpers/ShipUtils';
@@ -38,6 +39,7 @@ interface ActiveSeekerMissile {
   velocityMagnitudeInitial: number;
   framesSinceTargetUpdate: number;
   lastKnownTargetPosition: { x: number; y: number } | null;
+  ownerFaction: Faction;
 }
 
 const SPEED_GROWTH_FACTOR = 1.8; // Final speed = initial * this
@@ -94,10 +96,16 @@ export class HeatSeekerBackend implements WeaponBackend {
       const dy = ty - worldY;
       const targetAngle = Math.atan2(dy, dx);
 
-      // Choose left or right perpendicular launch (90° offset)
-      const side = Math.random() < 0.5 ? -1 : 1;
-      const launchAngle = targetAngle + side * Math.PI / 2;
 
+      let launchAngle: number;
+      if (fire.seekerForwardFire) {
+        // Fire straight forward
+        launchAngle = targetAngle;
+      } else {
+        // Choose left or right perpendicular launch (90° offset)
+        const side = Math.random() < 0.5 ? -1 : 1;
+        launchAngle = targetAngle + side * Math.PI / 2;
+      }
       const speed = fire.projectileSpeed ?? 250;
       const velocity = {
         x: Math.cos(launchAngle) * speed,
@@ -148,6 +156,7 @@ export class HeatSeekerBackend implements WeaponBackend {
         velocityMagnitudeInitial: Math.hypot(velocity.x, velocity.y),
         framesSinceTargetUpdate: 0,
         lastKnownTargetPosition: { x: tx, y: ty },
+        ownerFaction: ship.getFaction(),
       });
     }
 
@@ -231,7 +240,12 @@ export class HeatSeekerBackend implements WeaponBackend {
       missile.particle.y = missile.position.y;
 
       // Smoke trail (occasional)
-      const trailColor = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#ccc';
+      let trailColor: string;
+      if (missile.ownerFaction === Faction.Enemy) {
+        trailColor = '#FF0000';
+      } else {
+        trailColor = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#ccc';
+      }
       if (Math.random() < 0.3) {
         createLightFlash(
           missile.position.x,

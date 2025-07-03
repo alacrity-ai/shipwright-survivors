@@ -47,7 +47,7 @@ const ROTATION_SPEED = {
   shipBlueprint: 4,
 };
 
-const CULL_PADDING = 128;
+const CULL_PADDING = 0;
 
 const SPARK_OPTIONS: ParticleOptions = {
   colors: ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'],
@@ -87,6 +87,7 @@ export class PickupSystem {
   private timeSinceLastBlockPickup: number = 0;
 
   private destroyed = false;
+  private emitParticleBudget = 0;
 
   constructor(
     private readonly camera: Camera,
@@ -200,6 +201,11 @@ export class PickupSystem {
     });
 
     lightingOrchestrator.registerLight(light);
+
+    const blockDropOverride = blockType.blockDropOverride;
+    if (blockDropOverride) {
+      blockType = getBlockType(blockDropOverride)!;
+    }
 
     const newPickup: PickupInstance = {
       type: {
@@ -360,6 +366,8 @@ export class PickupSystem {
     const now = performance.now() / 1000;
     const shouldCull = !this.isQuantumAttractorActive();
 
+    this.emitParticleBudget = 0;
+
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const pickup = this.pickups[i];
       if (pickup.isPickedUp) continue;
@@ -385,8 +393,10 @@ export class PickupSystem {
 
       pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
 
-      if (emitParticles) {
+      // Only emit particles for the first 60 pickups
+      if (emitParticles && this.emitParticleBudget < 60) {
         let sparkColors: string[];
+        this.emitParticleBudget++;
         switch (pickup.type.category) {
           case 'block': {
             const blockTypeId = pickup.type.blockTypeId;
@@ -435,7 +445,9 @@ export class PickupSystem {
 
           case 'block':
             try {
-              const sprite = getGL2BlockSprite(pickup.type.blockTypeId!, DamageLevel.NONE);
+              const blockType = getBlockType(pickup.type.blockTypeId!);
+              if (!blockType) return null;
+              const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
               return sprite?.base ?? null;
             } catch (e) {
               console.error(`[PickupSystem] Failed to load block sprite for pickup: ${pickup.type.blockTypeId}`, e);

@@ -20,6 +20,7 @@ export interface ParticleOptions {
   light?: boolean;
   lightRadiusScalar?: number;
   lightIntensity?: number;
+  lightColorOverride?: string;
 
   randomDirection?: boolean;
   speedRange?: [number, number]; // Optional: overrides baseSpeed randomness
@@ -91,7 +92,7 @@ export class ParticleManager {
         x: particle.x,
         y: particle.y,
         radius: particle.size * (options.lightRadiusScalar ?? 3),
-        color: particle.color,
+        color: options.lightColorOverride ?? particle.color,
         intensity: options.lightIntensity ?? 1.0,
         life: particle.life,
         expires: true,

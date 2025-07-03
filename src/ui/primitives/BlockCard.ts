@@ -1,6 +1,7 @@
 // src/ui/primitives/drawBlockCard.ts
 
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache'; // To get block sprites by blocktype.id
+import { getBlockType } from '@/game/blocks/BlockRegistry';
 
 const blockCardCache = new Map<string, HTMLCanvasElement>();
 
@@ -93,7 +94,10 @@ export function drawBlockCard(options: DrawBlockCardOptions): void {
   ctx.drawImage(cachedCanvas, 0, 0, width, height);
 
   if (blockId) {
-    const sprite = getBlockSprite(blockId);
+    const blockType = getBlockType(blockId);
+    if (!blockType) return;
+
+    const sprite = getBlockSprite(blockType);
     const spriteSize = sprite.base.width;
     const padding = 4;
     const drawSize = width - 2 * padding;

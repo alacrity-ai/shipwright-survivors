@@ -38,7 +38,7 @@ export class BlockPreviewRenderer {
     BlockOverride: BlockType | null = null,
   ): void {
     const block = BlockOverride ?? this.blockType;
-    const sprite = getBlockSprite(block.id);
+    const sprite = getBlockSprite(block);
 
     const centerX = x + width / 2;
     const centerY = y + height / 2;

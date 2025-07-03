@@ -10,6 +10,7 @@ import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { GLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
 
+import { Faction } from '@/game/interfaces/types/Faction';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
 import { getGLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
@@ -140,6 +141,11 @@ export class HaloBladeBackend implements WeaponBackend {
           alpha: 1.0,
         });
         
+        // Emit particles 50% of the time
+        if (Math.random() > 0.5) continue;
+
+        // Determine if source ship is Faction.Enemy
+        const isEnemy = ship.getFaction() === Faction.Enemy;
         // Emit particle from orbiter blade
         this.particleManager.emitParticle(orbiter.position, {
           colors: [props.color, '#fff'],
@@ -150,6 +156,7 @@ export class HaloBladeBackend implements WeaponBackend {
           light: true,
           lightRadiusScalar: 32,
           lightIntensity: 0.7,
+          lightColorOverride: isEnemy ? '#ff0000' : undefined,
         });
       }
     }

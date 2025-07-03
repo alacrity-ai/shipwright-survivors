@@ -6,6 +6,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
+import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -294,7 +295,7 @@ export class CombatService {
       missionResultStore.incrementBlocksLost(1);
     }
 
-    // === Ship-only cockpit invariants ===
+    // === Ship-only destruction invariants ===
     if (entity instanceof Ship) {
       if (isCockpit) {
         this.destructionService.destroyEntity(entity, cause);
@@ -313,6 +314,8 @@ export class CombatService {
       const cockpitCoord = entity.getCockpitCoord?.();
       if (!cockpitCoord) return true;
 
+      const transform = entity.getTransform();
+
       // === Prune disconnected fragments ===
       const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
       const blockMap = entity.getBlockMap();
@@ -325,8 +328,8 @@ export class CombatService {
         const blockCoord = fromKey(coordKey);
 
         this.explosionSystem.createBlockExplosion(
-          entity.getTransform().position,
-          entity.getTransform().rotation,
+          transform.position,
+          transform.rotation,
           blockCoord,
           60 + Math.random() * 20,
           0.5 + Math.random() * 0.3,
@@ -341,42 +344,72 @@ export class CombatService {
 
       if (orphanCoords.length > 0) {
         entity.removeBlocks(orphanCoords, orphanBlocks);
-        if (entity instanceof Ship && entity.getIsPlayerShip?.()) {
+        if (entity.getIsPlayerShip?.()) {
           missionResultStore.incrementBlocksLost(orphanCoords.length);
         }
       }
 
-      // === Cockpit-only final fallback ===
-      const remainingBlocks = Array.from(entity.getBlockMap().values());
-      if (remainingBlocks.length === 1 && remainingBlocks[0].type.metatags?.includes('cockpit')) {
-        const lastCoord = entity.getCockpitCoord?.();
-        if (lastCoord) {
-          const cockpitBlock = remainingBlocks[0];
-
-          this.explosionSystem.createBlockExplosion(
-            entity.getTransform().position,
-            entity.getTransform().rotation,
-            lastCoord,
-            140,
-            1.2,
-            undefined,
-            DEFAULT_EXPLOSION_SPARK_PALETTE,
-          );
-
-          this.pickupSpawner.spawnPickupOnBlockDestruction(cockpitBlock);
-          entity.removeBlock(lastCoord);
-
-          this.destructionService.destroyEntity(entity, cause);
-
-          playSpatialSfx(entity, playerShip, {
-            file: 'assets/sounds/sfx/explosions/explosion_01.wav',
-            channel: 'sfx',
-            baseVolume: 0.8,
-            pitchRange: [1.0, 1.2],
-            volumeJitter: 0.2,
-          });
+      // === Non-player ship invariants ===
+      if (!entity.getIsPlayerShip()) {
+        // === Low-block-count fallback invariant ===
+        const remainingBlocks = Array.from(entity.getBlockMap().values());
+        if (remainingBlocks.length <= 5) {
+          return this.destroyEntireShipWithAllBlocks(entity, transform, cause);
+        }
+        // === Engine-loss invariant ===
+        if (!entity.getHasAtleastOneOriginalEngine?.()) {
+          return this.destroyEntireShipWithAllBlocks(entity, transform, cause);
         }
       }
+    }
+
+    return true;
+  }
+
+  private destroyEntireShipWithAllBlocks(
+    entity: CompositeBlockObject,
+    transform: { position: { x: number; y: number }; rotation: number },
+    cause: DestructionCause,
+  ): boolean {
+    if (!(entity instanceof Ship)) {
+      console.warn('[CombatService] Attempted to destroy non-Ship entity via destroyEntireShipWithAllBlocks');
+      return false;
+    }
+
+    const remainingCoords: GridCoord[] = [];
+    const remainingBlocks: BlockInstance[] = [];
+
+    for (const [coordKey, block] of entity.getBlockMap()) {
+      const coord = fromKey(coordKey);
+
+      this.explosionSystem.createBlockExplosion(
+        transform.position,
+        transform.rotation,
+        coord,
+        60 + Math.random() * 30,
+        0.7 + Math.random() * 0.3,
+        undefined,
+        DEFAULT_EXPLOSION_SPARK_PALETTE,
+      );
+
+      this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+      remainingCoords.push(coord);
+      remainingBlocks.push(block);
+    }
+
+    entity.removeBlocks(remainingCoords, remainingBlocks);
+    this.destructionService.destroyEntity(entity, cause);
+
+    playSpatialSfx(entity, ShipRegistry.getInstance().getPlayerShip(), {
+      file: 'assets/sounds/sfx/explosions/explosion_01.wav',
+      channel: 'sfx',
+      baseVolume: 0.8,
+      pitchRange: [1.0, 1.2],
+      volumeJitter: 0.2,
+    });
+
+    if (entity.getIsPlayerShip?.()) {
+      missionResultStore.incrementBlocksLost(remainingBlocks.length);
     }
 
     return true;

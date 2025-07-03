@@ -135,8 +135,9 @@ TUTORIAL TODOS:
 
 
 TODOS:
+  - [ ] Completely clearing a Vortex Incident should end it immediately
   - [ ] Investigate if minimap icons are cached, if not, cache them
-
+  - [ ] Opening save game in one resolution, then switching, breaks loading until refresh
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
     - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
@@ -251,6 +252,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] Levelup menu and block drop decision menu clash
   - [ ] If you levelup, and then get enough EXP for another levelup during the delay (before the levelup window pops up), you lose the powerup choice from the first levelup.  We need to queue all the levelups to make sure you get all the choices. This can be easy, just keep track of total powerups, and if you don't have as many as you do levels, then reopen the menu on close.
   - [ ] Changing resolution in game from a small resolution to a large messes up the background, I think we need to reinstantiate or cleanup the background renderer/system.  Maybe the image in the image cache as well.
   - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)

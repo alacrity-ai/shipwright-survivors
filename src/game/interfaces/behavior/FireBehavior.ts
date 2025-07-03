@@ -13,4 +13,5 @@ export interface FireBehavior {
   explosionRadiusBlocks?: number; // New
   turningPower?: number; // New
   targetingRange?: number; // New
+  seekerForwardFire?: boolean; // New
 }

@@ -58,7 +58,7 @@ export class MultiShipRenderer {
 
         const maxHp = block.type.armor ?? 1;
         const damageLevel = getDamageLevel(block.hp, maxHp);
-        const sprite = getBlockSprite(block.type.id, damageLevel);
+        const sprite = getBlockSprite(block.type, damageLevel);
 
         const localX = coord.x * BLOCK_SIZE;
         const localY = coord.y * BLOCK_SIZE;

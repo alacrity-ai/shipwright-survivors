@@ -45,11 +45,13 @@ export function getGL2BlockOrAsteroidSprite(
   typeId: string,
   damageLevel: DamageLevel
 ): GLBlockSprite | GLAsteroidSprite {
-  if (getBlockType(typeId)) {
-    return getGL2BlockSprite(typeId, damageLevel);
+  const blockType = getBlockType(typeId);
+  if (blockType) {
+    return getGL2BlockSprite(blockType, damageLevel);
   }
-  if (getAsteroidBlockType(typeId)) {
-    return getGL2AsteroidBlockSprite(typeId, mapDamageLevelToAsteroid(damageLevel));
+  const asteroidType = getAsteroidBlockType(typeId);
+  if (asteroidType) {
+    return getGL2AsteroidBlockSprite(asteroidType, mapDamageLevelToAsteroid(damageLevel));
   }
   throw new Error(`Unrecognized block typeId: ${typeId}`);
 }

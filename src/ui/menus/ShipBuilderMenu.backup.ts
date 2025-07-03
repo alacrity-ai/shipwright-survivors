@@ -186,7 +186,7 @@ export class ShipBuilderMenu implements Menu {
           x,
           y,
           size: TILE_SIZE,
-          sprite: getBlockSprite(block.id).base,
+          sprite: getBlockSprite(block).base,
           isHovered,
           isSelected,
           isLocked: !isUnlocked,
