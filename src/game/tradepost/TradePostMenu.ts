@@ -9,6 +9,7 @@ import { drawButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getUniformScaleFactor } from '@/config/view';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+import { audioManager } from '@/audio/Audio';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 
@@ -199,6 +200,7 @@ export class TradePostMenu {
   }
 
   closeMenu(): void {
+    audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx');
     resumeRuntime(); // Resume runtime after closing trade post menu
     flags.set('mission.intro-briefing.tradepost-closed'); // Set flag to indicate that the tradepost has been closed for tutorial
     this.open = false;

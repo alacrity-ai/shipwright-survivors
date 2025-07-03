@@ -41,6 +41,9 @@ export const FlagRegistry = {
   'mission.intro-briefing.complete': {
     description: 'Marks the intro briefing as completed.',
   },
+  'mission.intro-briefing.waveCleared': {
+    description: 'Marks the wave as cleared.',
+  },
   'mission.intro-briefing.tradepost-closed': {
     description: 'Marks the tradepost as closed.',
   },

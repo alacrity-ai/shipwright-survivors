@@ -9,6 +9,8 @@ import { getUniformScaleFactor } from '@/config/view';
 
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 
+import { audioManager } from '@/audio/Audio';
+
 import type { TradePostInstance } from './interfaces/TradePostInstance';
 import type { InputManager } from '@/core/InputManager';
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
@@ -114,6 +116,7 @@ export class TradePostItemsList {
 
         if (clicked && canAfford && quantity > 0) {
           this.instance.executeTransaction(i);
+          audioManager.play('assets/sounds/sfx/ui/gamblewin_02.wav', 'sfx');
         }
       }
 

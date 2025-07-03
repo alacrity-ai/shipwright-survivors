@@ -3,6 +3,7 @@
 import type { DialogueScript } from '@/systems/dialogue/interfaces/DialogueScript';
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
+import { spawnCurrencyExplosion } from '@/systems/pickups/helpers/spawnCurrencyExplosion';
 import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
@@ -10,7 +11,7 @@ import { MiniMapIcons } from '@/ui/utils/MiniMapIcons';
 import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
 import { disablePickupDrops, enablePickupDrops } from '@/core/interfaces/events/PickupSpawnReporter';
 import { lockBlockQueue, unlockBlockQueue } from '@/core/interfaces/events/BlockQueueReporter';
-import { lockAllButtons, unlockAttachButton } from '@/core/interfaces/events/BlockDropDecisionMenuReporter';
+import { lockAllButtons, unlockAttachButton, unlockAllButtons } from '@/core/interfaces/events/BlockDropDecisionMenuReporter';
 import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
 import { 
   emitHudHideAll, 
@@ -42,6 +43,13 @@ import { createOpenTradePostCoachMark } from '@/rendering/coachmarks/helpers/cre
 
 import { flags } from '@/game/player/PlayerFlagManager';
 import { audioManager } from '@/audio/Audio';
+
+import { GlobalEventBus } from '@/core/EventBus';
+import { spawnWave } from '@/core/interfaces/events/WaveSpawnReporter';
+import { v4 } from 'uuid';
+
+// Unique wave name
+const waveId = `dialogue-wave-${v4()}`;
 
 const playerResources = PlayerResources.getInstance();
 
@@ -284,8 +292,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           PlayerResources.getInstance().enqueueBlockToFront(getBlockType('hull1')!);
           audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
           const { x, y } = playerShip.getTransform().position;
-          createLightFlash(x, y, 300, 1.0, 0.4, '#ffffff');
-          shakeCamera(10, 1, 10);
+          createLightFlash(x, y, 600, 1.0, 0.4, '#ffffff');
         },
       },
       // Wait 200ms
@@ -300,8 +307,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           PlayerResources.getInstance().enqueueBlockToFront(getBlockType('hull1')!);
           audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
           const { x, y } = playerShip.getTransform().position;
-          createLightFlash(x, y, 300, 1.0, 0.4, '#ffffff');
-          shakeCamera(10, 1, 10);
+          createLightFlash(x, y, 600, 1.0, 0.4, '#ffffff');
         },
       },
       // Wait 200ms
@@ -316,8 +322,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           PlayerResources.getInstance().enqueueBlockToFront(getBlockType('hull1')!);
           audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
           const { x, y } = playerShip.getTransform().position;
-          createLightFlash(x, y, 300, 1.0, 0.4, '#ffffff');
-          shakeCamera(10, 1, 10);
+          createLightFlash(x, y, 600, 1.0, 0.4, '#ffffff');
         },
       },
       // Wait 300ms
@@ -471,7 +476,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Firing vector locked. Wiggle the mouse—yes, the rodent-shaped input relic—to express hostility.",
+        text: "Firing vector locked. Wiggle your aiming controls to express your hostility.",
       },
       {
         type: 'command',
@@ -657,62 +662,78 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          waveOrchestrator.start();
-        },
-      },
-      {
-        type: 'command',
-        run: () => {
           audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx');
         },
       },
       {
         type: 'line',
         speakerId: 'carl',
-        text: "Telemetry indicates unidentified salvage targets approaching. Classification: 'reclaimable liability clusters'.",
-      },
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Standard procedure: convert threats into revenue. Failure to do so may impact your survivability rating.",
-      },
-      // Wait 3000ms
-      {
-        type: 'pause',
-        durationMs: 3000,
-      },
-      // Unlock drops
-      {
-        type: 'command',
-        run: () => {
-          enablePickupDrops();
-        },
-      },
-      // Hide UI
-      {
-        type: 'hideUI',
+        text: "Telemetry indicates unidentified salvage targets approaching.",
       },
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => missionResultStore.get().enemiesDestroyed >= 1);
+          const waveTag = `intro_briefing_wave_${Date.now()}`;
+
+          // Track completion
+          let isComplete = false;
+          const handler = (data: { tag: string }) => {
+            if (data.tag === waveTag) {
+              isComplete = true;
+            }
+          };
+
+          GlobalEventBus.on('wave:completed', handler);
+          // Spawn the wave
+          spawnWave(waveTag, {
+            spawnDistribution: 'aroundPlayer',
+            duration: Infinity,
+            ships: [
+              { shipId: 'wave_0_00', count: 4, hunter: true, affixes: { thrustPowerMulti: 4.0, turnPowerMulti: 3.4 } },
+              { shipId: 'wave_0_01', count: 4, hunter: true, affixes: { thrustPowerMulti: 4.0, turnPowerMulti: 3.4 } },
+            ],
+            mods: [],
+            formations: [],
+          });
+
+          // Wait until it's cleared
+          return awaitCondition(() => {
+            if (isComplete) {
+              GlobalEventBus.off('wave:completed', handler); // clean up
+              return true;
+            }
+            return false;
+          });
         },
       },
-      // Show UI
-      {
-        type: 'showUI',
-      },
+      // Notify player that wave has been cleared
       {
         type: 'line',
         speakerId: 'carl',
-        text: 'Enemy presence reduced. Efficiency confirmed.',
+        text: "Salvage neutralized.",
       },
+      // Tell player that entropium is being rewarded for powerup demonstration
       {
         type: 'line',
         speakerId: 'carl',
-        text: `Gather Entropium to meet your quota. Your current target is ${PlayerExperienceManager.getInstance().getEntropiumForNextLevel()} units.`,
-        options: {
-          side: 'right',
+        text: "HQ has awarded you with a powerup demonstration. You will be granted 100 Entropium.",
+      },
+      // Create entropium explosion
+      {
+        type: 'command',
+        run: () => {
+          const { x, y } = playerShip.getTransform().position;
+          spawnCurrencyExplosion({
+            x,
+            y,
+            currencyType: 'entropium',
+            totalAmount: 100,
+            pickupCount: 8,
+            spreadRadius: 1600,
+            randomizeAmount: false,
+          });
+          shakeCamera(10, 1, 10);
+          audioManager.play('assets/sounds/sfx/magic/magic_poof.wav', 'sfx');
         },
       },
       // Show experience bar
@@ -720,21 +741,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           emitExperienceBarShow();
-          inputManager.enableAllActions();
         },
       },
-      // Update flags to prevent softlock on death
+      // Tell player to gather all entropium
       {
-        type: 'command',
-        run: () => {
-          flags.set('mission.intro-briefing.complete');
-          flags.set('mission.mission_002.unlocked');
-          flags.set('mission.mission_003_00.unlocked');
-        },
-      },
-      // Hide UI
-      {
-        type: 'hideUI',
+        type: 'line',
+        speakerId: 'carl',
+        text: "Gather all Entropium to confirm your account.",
       },
       {
         type: 'command',
@@ -782,6 +795,27 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'pause',
         durationMs: 200,
       },
+      // More hostiles detected
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Telemetry indicates additional salvage targets approaching.",
+      },
+      // Enable entropium drops
+      {
+        type: 'command',
+        run: () => {
+          enablePickupDrops();
+        },
+      },
+      // Start the waves
+      {
+        type: 'command',
+        run: () => {
+          waveOrchestrator.start();
+        },
+      },
+      // Prompt user to defeat all incoming waves in order to receive permission to return to headquarters
       {
         type: 'line',
         speakerId: 'carl',
@@ -792,6 +826,15 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'line',
         speakerId: 'carl',
         text: 'Remember: Always build toward revenue.',
+      },
+      // Update flags to prevent softlock on death
+      {
+        type: 'command',
+        run: () => {
+          flags.set('mission.intro-briefing.complete');
+          flags.set('mission.mission_002.unlocked');
+          flags.set('mission.mission_003_00.unlocked');
+        },
       },
       // Wait 1000ms
       {
@@ -807,6 +850,10 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           emitHudShowAll();
+          // Unlock all input
+          inputManager.enableAllActions();
+          // Unlock refine, attach, and attach all buttons
+          unlockAllButtons();
         },
       },
       // Wait until wave spawner is on boss wave
