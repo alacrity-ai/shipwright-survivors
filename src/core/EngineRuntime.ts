@@ -916,12 +916,13 @@ export class EngineRuntime {
       const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
       const visibleShips = this.shipCulling!.getVisibleShips();
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
-      const activeParticles = this.particleManager.getActiveParticles();
-      const persistentActiveParticles = this.persistentParticleManager.getActiveParticles();
+      const visibleParticles = [
+        ...this.particleManager.collectVisibleParticles(this.camera),
+        ...this.persistentParticleManager.collectVisibleParticles(this.camera),
+      ];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
 
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
-      const visibleParticles = [...activeParticles, ...persistentActiveParticles];
 
       if (this.ship) {
         this.ship.enqueueRenderRequest();
@@ -935,6 +936,7 @@ export class EngineRuntime {
         visibleParticles
       );
     }
+
 
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);
