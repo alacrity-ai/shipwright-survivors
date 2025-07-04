@@ -38,7 +38,7 @@ import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteR
 import { CanvasManager } from '@/core/CanvasManager';
 import { emitPlayerDefeat } from '@/core/interfaces/events/PlayerOutcomeReporter';
 
-type ShipDestroyedCallback = (ship: Ship) => void;
+type ShipDestroyedCallback = (ship: Ship, cause: string) => void;
 
 export class Ship extends CompositeBlockObject {
   private afterburnerComponent: AfterburnerComponent | null = null;
@@ -63,8 +63,12 @@ export class Ship extends CompositeBlockObject {
   private strafingRight: boolean = false;
   private affixes: ShipAffixes = {};
 
+  private tags: Set<string> = new Set();
+
   // Check to see if the ship has or had engines ever
   private hadEngines: boolean = false;
+
+  private destructionCause: string = 'combat'; // default fallback
 
   // === Rasterization Cache ===
   private rasterizedTexture: WebGLTexture | null = null;
@@ -113,6 +117,16 @@ export class Ship extends CompositeBlockObject {
   public getSkillEffects(): ShipSkillEffectMetadata {
     if (!this.isPlayerShip) return {};
     return PlayerShipCollection.getInstance().getSkillEffectsForActiveShip();
+  }
+
+  // == Tagging
+
+  public addTag(tag: string): void {
+    this.tags.add(tag);
+  }
+
+  public hasTag(tag: string): boolean {
+    return this.tags.has(tag);
   }
 
   // == Affixes system
@@ -856,7 +870,10 @@ export class Ship extends CompositeBlockObject {
     this.markRasterDirty();
   }
 
-  // What about this?
+  public setDestructionCause(cause: string): void {
+    this.destructionCause = cause;
+  }
+
   public destroyInstantly(): void {
     if (this.destroyed) return;
 
@@ -873,7 +890,7 @@ export class Ship extends CompositeBlockObject {
     this.cleanupAuraLight();
 
     for (const callback of this.destroyedListeners) {
-      callback(this);
+      callback(this, this.destructionCause);
     }
     this.destroyedListeners.length = 0;
     this.markRasterDirty();
@@ -881,10 +898,9 @@ export class Ship extends CompositeBlockObject {
     this.onDestroyed();
   }
 
-  // What about this? <----
   public onDestroyedCallback(callback: ShipDestroyedCallback): void {
     if (this.destroyed) {
-      callback(this);
+      callback(this, this.destructionCause);
       return;
     }
     this.destroyedListeners.push(callback);
@@ -904,7 +920,7 @@ export class Ship extends CompositeBlockObject {
     }
 
     for (const cb of this.destroyedListeners) {
-      cb(this);
+      cb(this, this.destructionCause);
     }
     this.destroyedListeners.length = 0;
     if (this.isPlayerShip) {

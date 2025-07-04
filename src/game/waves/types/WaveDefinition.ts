@@ -59,6 +59,20 @@ export interface WaveDefinition {
   lightingSettings?: waveLightingSettings;
   duration?: number; // undefined or Infinity means never auto-advance
   spawnDistribution: 'at' | 'random' | 'outer' | 'inner' | 'aroundPlayer' | 'aroundPlayerNear' | 'center';
-  atCoords?: { x: number; y: number, spreadRadius?: number }; // NEW SPREADRADIUS
+  atCoords?: { x: number; y: number; spreadRadius?: number };
   isBoss?: boolean;
+
+  /**
+   * If true, this wave uses a *quota maintenance model*.
+   * Instead of spawning once, enemies are continuously replenished offscreen to maintain counts.
+   */
+  sustainMode?: boolean;
+
+  /**
+   * Interval (in seconds) at which to re-evaluate quotas and spawn missing units.
+   * Only used when `sustainMode` is true.
+   * Defaults to 2 seconds if omitted.
+   */
+  spawnDelay?: number;
 }
+

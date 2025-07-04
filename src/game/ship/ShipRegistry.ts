@@ -28,7 +28,7 @@ export class ShipRegistry {
     this.shipIdMap.set(ship.id, ship);
   }
 
-  remove(ship: Ship): void {
+  remove(ship: Ship, cause: string = 'combat'): void {
     // NEW: Cleanup ship auralight explicitly
     ship.cleanupAuraLight();
     // NEW: Call destroy on ship explicitly

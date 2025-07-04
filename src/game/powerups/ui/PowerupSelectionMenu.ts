@@ -36,6 +36,8 @@ export class PowerupSelectionMenu implements Menu {
   private selectedNodes: PowerupNodeDefinition[] = [];
   private hoveredIndex: number = -1;
 
+  private levelUpsRemaining: number = 0;
+
   // State machine properties
   private state: MenuState = 'slidingIn';
   private transitionTimer: number = 0;
@@ -69,8 +71,10 @@ export class PowerupSelectionMenu implements Menu {
     this.navManager = new GamepadMenuInteractionManager(inputManager);
   }
 
-  openMenu(): void {
+  openMenu(levelUps: number = 1): void {
     flags.set('mission.intro-briefing.powerupMenuOpened');
+
+    this.levelUpsRemaining = levelUps;
 
     const scale = getUniformScaleFactor();
     const viewportWidth = this.canvasManager.getCanvas('ui').width;
@@ -89,6 +93,28 @@ export class PowerupSelectionMenu implements Menu {
     this.transitionTimer = 0;
     this.animatedX = -this.windowWidth;
 
+    this.updateNavPoints();
+  }
+
+  closeMenu(): void {
+    this.open = false;
+    this.navManager.clearNavMap();
+  }
+
+  isOpen(): boolean {
+    return this.open;
+  }
+
+  isBlocking(): boolean {
+    return true;
+  }
+
+  private isUsingGamepad(): boolean {
+    return InputDeviceTracker.getInstance().getLastUsed() === 'gamepad';
+  }
+
+  private updateNavPoints(): void {
+    const scale = getUniformScaleFactor();
     const navPoints = this.selectedNodes.map((node, i) => {
       const rectX = this.windowX + (10 * scale);
       const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
@@ -109,23 +135,6 @@ export class PowerupSelectionMenu implements Menu {
     } else {
       this.navManager.clearNavMap();
     }
-  }
-
-  closeMenu(): void {
-    this.open = false;
-    this.navManager.clearNavMap();
-  }
-
-  isOpen(): boolean {
-    return this.open;
-  }
-
-  isBlocking(): boolean {
-    return true;
-  }
-
-  private isUsingGamepad(): boolean {
-    return InputDeviceTracker.getInstance().getLastUsed() === 'gamepad';
   }
 
   update(dt: number): void {
@@ -192,7 +201,7 @@ export class PowerupSelectionMenu implements Menu {
               this.selectedIndex = i;
               this.state = 'selectionMade';
               this.transitionTimer = 0;
-              audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx');
+              audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx', { maxSimultaneous: 6 });
             }
             break;
           }
@@ -203,8 +212,21 @@ export class PowerupSelectionMenu implements Menu {
 
       case 'selectionMade':
         this.transitionTimer += dt;
-        if (this.transitionTimer >= this.SELECTION_ANIMATION_DURATION) { // wait briefly for animation
-          this.state = 'slidingOut';
+        if (this.transitionTimer >= this.SELECTION_ANIMATION_DURATION) {
+          if (this.levelUpsRemaining > 1) {
+            // === Queue next selection round ===
+            this.levelUpsRemaining--;
+            this.choice = null;
+            this.selectedIndex = -1;
+            this.hoveredIndex = -1;
+            this.transitionTimer = 0;
+            this.generateRandomSelection();
+            this.updateNavPoints();
+            this.state = 'open';
+          } else {
+            // === Final level-up completed, exit ===
+            this.state = 'slidingOut';
+          }
         }
         break;
 

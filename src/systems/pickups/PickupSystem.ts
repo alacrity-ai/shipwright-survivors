@@ -79,7 +79,7 @@ export class PickupSystem {
   private static readonly QUANTUM_ATTRACTOR_DURATION = 4.0;
   private static readonly QUANTUM_ATTRACTOR_RANGE_BOOST = 30000;
   private static readonly QUANTUM_ATTRACTOR_SPEED_MULTIPLIER = 5.0;
-  private quantumAttractorActiveUntil: number | null = null;
+  private quantumAttractorRemainingTime = 0;
 
   private currencyPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
   private blockPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
@@ -87,7 +87,6 @@ export class PickupSystem {
   private timeSinceLastBlockPickup: number = 0;
 
   private destroyed = false;
-  private emitParticleBudget = 0;
 
   constructor(
     private readonly camera: Camera,
@@ -309,17 +308,13 @@ export class PickupSystem {
   }
 
   private isQuantumAttractorActive(): boolean {
-    return this.quantumAttractorActiveUntil !== null &&
-          performance.now() / 1000 < this.quantumAttractorActiveUntil;
+    return this.quantumAttractorRemainingTime > 0;
   }
 
   private activateQuantumAttractor(): void {
-    this.quantumAttractorActiveUntil = performance.now() / 1000 + PickupSystem.QUANTUM_ATTRACTOR_DURATION;
+    this.quantumAttractorRemainingTime = PickupSystem.QUANTUM_ATTRACTOR_DURATION;
 
-    // Optional: global feedback
     shakeCamera(10, 3, 10);
-
-    // Optional: global sound
     audioManager.play('assets/sounds/sfx/magic/activate.wav', 'sfx', {
       volume: 1.0,
       pitch: 1.0,
@@ -348,14 +343,17 @@ export class PickupSystem {
     let attractionRange = baseAttractionRange + bonusRange;
     let attractionSpeedBoost = 1.0;
 
-    if (this.isQuantumAttractorActive()) {
+    if (this.quantumAttractorRemainingTime > 0) {
+      this.quantumAttractorRemainingTime -= dt;
       attractionRange += PickupSystem.QUANTUM_ATTRACTOR_RANGE_BOOST;
       attractionSpeedBoost = PickupSystem.QUANTUM_ATTRACTOR_SPEED_MULTIPLIER;
+      if (this.quantumAttractorRemainingTime <= 0) {
+        this.quantumAttractorRemainingTime = 0;
+      }
     }
 
     const attractionRangeSq = attractionRange * attractionRange;
     const pickupRadiusSq = PICKUP_RADIUS * PICKUP_RADIUS;
-    const emitParticles = Math.random() < 0.2;
 
     const viewport = this.camera.getViewportBounds();
     const minX = viewport.x - CULL_PADDING;
@@ -366,7 +364,8 @@ export class PickupSystem {
     const now = performance.now() / 1000;
     const shouldCull = !this.isQuantumAttractorActive();
 
-    this.emitParticleBudget = 0;
+    const emissionChance = Math.min(0.2, 30 / this.pickups.length); // 60 emissions per frame on average
+    const emitParticles = Math.random() < emissionChance;
 
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const pickup = this.pickups[i];
@@ -394,9 +393,8 @@ export class PickupSystem {
       pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
 
       // Only emit particles for the first 60 pickups
-      if (emitParticles && this.emitParticleBudget < 60) {
+      if (emitParticles) {
         let sparkColors: string[];
-        this.emitParticleBudget++;
         switch (pickup.type.category) {
           case 'block': {
             const blockTypeId = pickup.type.blockTypeId;

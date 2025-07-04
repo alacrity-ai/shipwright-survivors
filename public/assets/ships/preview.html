@@ -153,18 +153,18 @@
           originalBlockIndex: index // Track the original block index for rotation
         });
 
+        const id = block.id ?? '';
         let color = 'black';
 
-        const tags = block.type.metatags ?? [];
+        if (id.startsWith('cockpit')) color = 'blue';
+        else if (id.startsWith('fin')) color = 'gray';
+        else if (id.startsWith('turret')) color = 'red';
+        else if (id.startsWith('engine')) color = 'orange';
+        else if (id.startsWith('hull')) color = 'black';
+        else if (id.startsWith('laser')) color = 'red';
+        else if (id.startsWith('explosiveLance')) color = 'red';
+        else if (id.startsWith('haloBlade')) color = 'red';
 
-        if (tags.includes('cockpit')) color = 'blue';
-        else if (tags.includes('fin')) color = 'gray';
-        else if (tags.includes('turret')) color = 'red';
-        else if (tags.includes('engine')) color = 'orange';
-        else if (tags.includes('hull')) color = 'black';
-        else if (tags.includes('laser')) color = 'red';
-        else if (tags.includes('explosiveLance')) color = 'red';
-        else if (tags.includes('haloBlade')) color = 'red';
 
         ctx.fillStyle = color;
         ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);

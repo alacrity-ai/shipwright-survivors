@@ -36,11 +36,11 @@ const TIER2_AFFIXES: ShipAffixes = {
 };
 
 const TIER3_AFFIXES: ShipAffixes = {
-  thrustPowerMulti: 4.0,
-  turnPowerMulti: 3.0,
+  thrustPowerMulti: 2.0,
+  turnPowerMulti: 2.0,
   fireRateMulti: 2.5,
   projectileSpeedMulti: 2.5,
-  blockDurabilityMulti: 3.0,
+  blockDurabilityMulti: 2.0,
 };
 
 const cursedCargoTier1Params = {
@@ -170,11 +170,76 @@ const speedHuntersFormation = createSmallWedgeFormation(
 
 export const waveDefinitions: WaveDefinition[] = [
   {
+    sustainMode: true,
     duration: 60,
-    spawnDistribution: 'outer',
+    spawnDistribution: 'aroundPlayer',
     mods: [],
     ships: [
-      { shipId: 'wave_0_00', count: 20 },
+      // { shipId: 'wave_0_00', count: 12, affixes: FAST_AFFIXES },
+      // { shipId: 'mission_02/long_range_00', 
+      //   count: 4, 
+      //   hunter: true,
+      //   affixes: FAST_AFFIXES,
+      //   behaviorProfile: {
+      //     ...SiegeBehaviorProfile,
+      //     params: {
+      //       ...SiegeBehaviorProfile.params,
+      //       engagementRange: 2600,
+      //       siegeRange: 2600,
+      //       disengageRange: 5000,
+      //     },
+      //   },
+      // },
+      { shipId: 'ship_0_03', count: 4, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+    ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier1Params,
+      },
+      {
+        spawnChance: 1.0,
+        script: 'DimensionalPortalIncident',
+        options: {
+          maxDuration: 20,
+          tiers: [
+            [ // Tier 0: 0–4 kills
+              { shipId: 'wave_0_00', count: 4, hunter: true }
+            ],
+            [ // Tier 1: 5–9 kills
+              { shipId: 'wave_0_01', count: 4, hunter: true }
+            ],
+            [ // Tier 2: 10–14 kills
+              { shipId: 'wave_0_02', count: 4, hunter: true }
+            ],
+            [ // Tier 3: 15–19 kills
+              { shipId: 'wave_0_03', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 20+ kills
+              { shipId: 'wave_0_04', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 25+ kills
+              { shipId: 'ship_scrapper_4', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 30+ kills
+              { shipId: 'ship_scrapper_5', count: 4, hunter: true }
+            ],
+            [ // Tier 4+: 35+ kills
+              { shipId: 'ship_scrapper_6', count: 4, hunter: true }
+            ],
+          ],
+        },
+      }
+    ],
+  },
+  {
+    duration: 60,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',
+    mods: [],
+    ships: [
       { shipId: 'mission_02/long_range_00', 
         count: 4, 
         hunter: true,
@@ -183,19 +248,14 @@ export const waveDefinitions: WaveDefinition[] = [
           ...SiegeBehaviorProfile,
           params: {
             ...SiegeBehaviorProfile.params,
-            engagementRange: 2600,
-            siegeRange: 2600,
-            disengageRange: 5000,
+            engagementRange: 2000,
+            siegeRange: 2000,
+            disengageRange: 4000,
           },
         },
       },
-      { shipId: 'wave_0_02', count: 18, hunter: true },
-      { shipId: 'wave_0_03', count: 16, hunter: true },
-      { shipId: 'wave_0_04', count: 10, hunter: true },
-      { shipId: 'ship_0_station', count: 8 }
-    ],
-    formations: [
-      smallWedgeFormation,
+      { shipId: 'ship_0_03', count: 4, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],
     incidents: [
       {
@@ -240,30 +300,27 @@ export const waveDefinitions: WaveDefinition[] = [
   },
   {
     duration: 60,
-    spawnDistribution: 'outer',
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',
     mods: [],
     ships: [
-      { shipId: 'wave_0_00', count: 20 },
       { shipId: 'mission_02/long_range_00', 
-        count: 8, 
+        count: 4, 
         hunter: true,
         affixes: FAST_AFFIXES,
         behaviorProfile: {
           ...SiegeBehaviorProfile,
           params: {
             ...SiegeBehaviorProfile.params,
-            engagementRange: 2400,
-            siegeRange: 2400,
+            engagementRange: 2800,
+            siegeRange: 2800,
             disengageRange: 5000,
           },
         },
       },
-      { shipId: 'wave_0_02', count: 18, hunter: true },
-      { shipId: 'wave_0_03', count: 12, hunter: true },
-      { shipId: 'wave_0_04', count: 8, hunter: true },
-    ],
-    formations: [
-      mediumWedgeFormation,
+      { shipId: 'ship_0_03', count: 4, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'ship_scrapper_3', count: 8, hunter: true, affixes: FAST_AFFIXES },
     ],
     incidents: [
       {
@@ -278,100 +335,13 @@ export const waveDefinitions: WaveDefinition[] = [
           maxDuration: 20,
           tiers: [
             [ // Tier 0: 0–4 kills
-              { shipId: 'wave_0_00', count: 4, hunter: true }
+              { shipId: 'ship_scrapper_2', count: 6 }
             ],
             [ // Tier 1: 5–9 kills
-              { shipId: 'wave_0_01', count: 4, hunter: true }
+              { shipId: 'ship_scrapper_3', count: 6 }
             ],
             [ // Tier 2: 10–14 kills
-              { shipId: 'wave_0_02', count: 4, hunter: true }
-            ],
-            [ // Tier 3: 15–19 kills
-              { shipId: 'wave_0_03', count: 4, hunter: true }
-            ],
-            [ // Tier 4+: 20+ kills
-              { shipId: 'wave_0_04', count: 4, hunter: true }
-            ],
-            [ // Tier 4+: 25+ kills
-              { shipId: 'ship_scrapper_4', count: 4, hunter: true }
-            ],
-            [ // Tier 4+: 30+ kills
-              { shipId: 'ship_scrapper_5', count: 4, hunter: true }
-            ],
-            [ // Tier 4+: 35+ kills
-              { shipId: 'ship_scrapper_6', count: 4, hunter: true }
-            ],
-          ],
-        },
-      }
-    ],
-  },
-  {
-    duration: 60,
-    spawnDistribution: 'outer',
-    mods: [],
-    ships: [
-      { shipId: 'mission_02/long_range_00', 
-        count: 16, 
-        hunter: true,
-        affixes: FAST_AFFIXES,
-        behaviorProfile: {
-          ...SiegeBehaviorProfile,
-          params: {
-            ...SiegeBehaviorProfile.params,
-            engagementRange: 2800,
-            siegeRange: 2800,
-            disengageRange: 5000,
-          },
-        },
-      },
-      { shipId: 'mission_02/long_range_00', 
-        count: 12, 
-        hunter: true,
-        affixes: FAST_AFFIXES,
-        behaviorProfile: {
-          ...SiegeBehaviorProfile,
-          params: {
-            ...SiegeBehaviorProfile.params,
-            engagementRange: 2800,
-            siegeRange: 2800,
-            disengageRange: 5000,
-          },
-        },
-      },
-      { shipId: 'ship_0_03', count: 12, hunter: true },
-      { shipId: 'ship_0_04', count: 12, hunter: true },
-      { shipId: 'ship_0_station', count: 8 }
-    ],
-    formations: [
-      hourGlassFormation,
-    ],
-    incidents: [
-      {
-        spawnChance: 1.0,
-        script: 'CursedCargoIncident',
-        options: cursedCargoTier1Params,
-      },
-      {
-        spawnChance: 1.0,
-        script: 'CursedCargoIncident',
-        options: cursedCargoTier1Params,
-        delaySeconds: randomIntFromRange(10, 60),
-      },
-      {
-        spawnChance: 1.0,
-        script: 'DimensionalPortalIncident',
-        options: {
-          maxDuration: 20,
-          tiers: [
-            [ // Tier 0: 0–4 kills
-              { shipId: 'ship_scrapper_4', count: 6 }
-            ],
-            [ // Tier 1: 5–9 kills
-              { shipId: 'ship_scrapper_5', count: 6 }
-            ],
-            [ // Tier 2: 10–14 kills
-              { shipId: 'ship_scrapper_6', count: 6, hunter: true }
+              { shipId: 'ship_scrapper_4', count: 6, hunter: true }
             ],
             [ // Tier 3: 15–19 kills
               { shipId: 'mission_02/tier2_fighter_00', count: 6, hunter: true, affixes: TIER2_AFFIXES }
@@ -396,12 +366,13 @@ export const waveDefinitions: WaveDefinition[] = [
   },
   {
     duration: 60,
-    spawnDistribution: 'outer',    
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
       { shipId: 'ship_scrapper_0', count: 12, hunter: true },
       { shipId: 'mission_02/long_range_00', 
-        count: 12, 
+        count: 4, 
         hunter: true,
         affixes: FAST_AFFIXES,
         behaviorProfile: {
@@ -414,17 +385,12 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
       },
-      { shipId: 'ship_scrapper_2', count: 8, hunter: true, affixes: SUPER_FAST_AFFIXES },
-      { shipId: 'ship_scrapper_3', count: 6, hunter: true, affixes: FAST_AFFIXES },
-      { shipId: 'ship_scrapper_4', count: 5, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'ship_scrapper_5', count: 4, hunter: true, affixes: FAST_AFFIXES },
-      { shipId: 'ship_scrapper_6', count: 3, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_scrapper_2', count: 4, hunter: true, affixes: SUPER_FAST_AFFIXES },
+      { shipId: 'ship_scrapper_3', count: 4, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_scrapper_4', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'ship_scrapper_5', count: 2, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_scrapper_6', count: 2, hunter: true, affixes: FAST_AFFIXES },
       { shipId: 'ship_0_station', count: 4 }
-    ],
-    formations: [
-      cruiserLargeWedgeFormation,
-      killCrewFormation,
-      speedHuntersFormation
     ],
     incidents: [
       {
@@ -441,12 +407,12 @@ export const waveDefinitions: WaveDefinition[] = [
   },
   {
     duration: 30,
-    spawnDistribution: 'outer',    
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
-      { shipId: 'ship_scrapper_0', count: 12, hunter: true },
       { shipId: 'mission_02/long_range_00', 
-        count: 16, 
+        count: 6, 
         hunter: true,
         affixes: FAST_AFFIXES,
         behaviorProfile: {
@@ -459,11 +425,8 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
       },
-      { shipId: 'mission_02/tier2_fighter_00', count: 8, hunter: true, affixes: TIER2_AFFIXES },
+      { shipId: 'mission_02/tier2_sieger_00', count: 4, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'mission_02/tier3_station_00', count: 4, affixes: TIER2_AFFIXES }
-    ],
-    formations: [
-      siegerMeleeFormation,
     ],
     incidents: [
       {
@@ -476,10 +439,20 @@ export const waveDefinitions: WaveDefinition[] = [
   },
   {
     duration: 30,
-    spawnDistribution: 'outer',    
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
-      { shipId: 'ship_scrapper_0', count: 8, hunter: true },
+      { shipId: 'mission_02/tier2_sieger_00', count: 4, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/tier3_station_00', count: 4, affixes: TIER2_AFFIXES }
+    ],
+  },
+  {
+    duration: 30,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
       { shipId: 'mission_02/long_range_00', 
         count: 8, 
         hunter: true,
@@ -494,32 +467,46 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
       },
-      { shipId: 'mission_02/tier3_station_00', count: 8, affixes: TIER2_AFFIXES },
+      { shipId: 'mission_02/tier2_sieger_00', count: 4, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/tier3_station_00', count: 4, affixes: TIER2_AFFIXES },
     ],
-    formations: [
-      tier2MediumWedgeFormation
-    ]
   },
   {
     duration: 30,
-    spawnDistribution: 'outer',    
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
     mods: [],
-    ships: [],
-    formations: [
-      siegerMeleeFormation,
-    ]
+    ships: [
+      { shipId: 'mission_02/tier2_sieger_00', count: 8, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/tier3_station_00', count: 4, affixes: TIER2_AFFIXES },
+    ],
   },
   {
     duration: 30,
-    spawnDistribution: 'outer',    
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
+      { shipId: 'mission_02/tier2_fighter_00', count: 8, hunter: true, affixes: TIER2_AFFIXES }
+    ],
+    incidents: [
+      {
+        spawnChance: 1.0,
+        script: 'CursedCargoIncident',
+        options: cursedCargoTier2Params,
+        delaySeconds: randomIntFromRange(10, 60),
+      },
+    ],
+  },
+  {
+    duration: 30,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
       { shipId: 'mission_02/tier2_cruiser_00', count: 4, hunter: true, affixes: TIER3_AFFIXES },
-      { shipId: 'mission_02/tier2_cruiser_01', count: 4, hunter: true, affixes: TIER3_AFFIXES },
-      { shipId: 'mission_02/tier2_fighter_00', count: 8, hunter: true, affixes: TIER2_AFFIXES }
-    ],
-    formations: [
-      tier2cruiserLargeWedgeFormation,
+      { shipId: 'mission_02/tier2_cruiser_01', count: 6, hunter: true, affixes: TIER3_AFFIXES },
+      { shipId: 'mission_02/tier2_fighter_00', count: 6, hunter: true, affixes: TIER2_AFFIXES },
     ],
     incidents: [
       {
@@ -536,22 +523,26 @@ export const waveDefinitions: WaveDefinition[] = [
   },
   {
     duration: 30,
-    spawnDistribution: 'outer',    
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
-      { shipId: 'mission_02/tier2_fighter_00', count: 14, hunter: true, affixes: TIER2_AFFIXES },
+      { shipId: 'mission_02/tier2_sieger_00', count: 8, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'mission_02/tier2_cruiser_00', count: 4, hunter: true, affixes: TIER3_AFFIXES },
+      { shipId: 'mission_02/tier2_cruiser_01', count: 4, hunter: true, affixes: TIER3_AFFIXES },
+      { shipId: 'mission_02/tier2_fighter_00', count: 4, hunter: true, affixes: TIER2_AFFIXES }
     ],
-    formations: [
-      siegerMeleeFormation,
-      tier2cruiserLargeWedgeFormation,
-    ],
-    incidents: [
-      {
-        spawnChance: 1.0,
-        script: 'CursedCargoIncident',
-        options: cursedCargoTier2Params,
-        delaySeconds: randomIntFromRange(10, 60),
-      },
+  },
+  {
+    duration: 30,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
+      { shipId: 'mission_02/tier2_fighter_00', count: 8, hunter: true, affixes: TIER2_AFFIXES },
+      { shipId: 'mission_02/tier2_cruiser_01', count: 4, hunter: true, affixes: TIER3_AFFIXES },
+      { shipId: 'mission_02/tier3_station_00', count: 6, affixes: TIER2_AFFIXES },
+      { shipId: 'mission_02/tier2_sieger_00', count: 8, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
     ],
   },
   {
@@ -573,7 +564,7 @@ export const waveDefinitions: WaveDefinition[] = [
           },
         },
         affixes: {
-          blockDurabilityMulti: 15.0,
+          blockDurabilityMulti: 25.0,
           thrustPowerMulti: 4.0,
           turnPowerMulti: 0.8,
           fireRateMulti: 3.0,

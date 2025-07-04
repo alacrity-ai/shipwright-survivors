@@ -101,6 +101,7 @@ import { SpaceStation } from '@/game/entities/SpaceStation';
 
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
@@ -126,6 +127,12 @@ export class EngineRuntime {
   private gameLoop: GameLoop;
   private readonly boundUpdate = (dt: number) => this.update(dt);
   private readonly boundRender = (dt: number) => this.render(dt);
+  private readonly boundOnEntityDestroyed = (entity: CompositeBlockObject, cause: DestructionCause): void => {
+    if (entity instanceof Ship && this.waveOrchestrator) {
+      this.waveOrchestrator.notifyShipDestroyed(entity, cause);
+    }
+  };
+
   private boundHandleVictory = () => this.handlePlayerVictory();
   private boundHandleDefeat = () => this.handlePlayerFailure();
   private boundHandleLevelUp = () => this.handlePlayerLevelUp();
@@ -208,6 +215,8 @@ export class EngineRuntime {
   private renderables: IRenderable[] = [];
 
   private levelingUpAnimationTimer = 0;
+  private pendingLevelUps = 0;
+
   private isPaused = false;
   private isDestroyed = false;
 
@@ -463,11 +472,7 @@ export class EngineRuntime {
     );
 
     // Notify wave orchestrator when a ship is destroyed
-    this.destructionService.onEntityDestroyed((entity, _cause) => {
-      if (entity instanceof Ship) {
-        this.waveOrchestrator!.notifyShipDestroyed(entity);
-      }
-    });
+    this.destructionService.onEntityDestroyed(this.boundOnEntityDestroyed);
 
     // Dialogue Manager
     this.coachMarkManager = CoachMarkManager.getInstance();
@@ -672,8 +677,11 @@ export class EngineRuntime {
 
       if (this.levelingUpAnimationTimer <= 0) {
         this.levelingUpAnimationTimer = 0;
+
+        // Pause and open the menu only if this is the first pending level-up menu
         this.pause();
-        this.powerupSelectionMenu.openMenu();
+        this.powerupSelectionMenu.openMenu(this.pendingLevelUps);
+        this.pendingLevelUps = 0;
       }
     }
 
@@ -989,9 +997,16 @@ export class EngineRuntime {
 
   public handlePlayerLevelUp() {
     console.log("Player leveled up!");
-    this.inputManager.disableAction('pause');
-    this.inputManager.disableAction('openShipBuilder');
-    this.levelingUpAnimationTimer = 1.0;
+    this.pendingLevelUps++;
+
+    // Only disable actions + start timer if it's the *first* pending level-up
+    if (this.pendingLevelUps === 1) {
+      this.inputManager.disableAction('pause');
+      this.inputManager.disableAction('openShipBuilder');
+      this.levelingUpAnimationTimer = 1.0;
+    }
+
+    // Play animation and effects every time regardless
     this.particleManager.emitBurst(this.ship!.getTransform().position, 100, {
       colors: ['#FFFF00', '#EFBF04', '#FFFFFF', '#C2B067'],
       randomDirection: true,
@@ -1003,6 +1018,7 @@ export class EngineRuntime {
       lightRadiusScalar: 32,
       lightIntensity: 1.0,
     });
+
     audioManager.play('assets/sounds/sfx/debriefing/debriefing_addcores_00.wav', 'sfx', { maxSimultaneous: 10 });
     createLightFlash(this.ship!.getTransform().position.x, this.ship!.getTransform().position.y, 800, 1.0, 0.5, '#FFFF00');
     shakeCamera(10, 1, 10);
@@ -1056,6 +1072,7 @@ export class EngineRuntime {
     GlobalEventBus.off('player:entropium:levelup', this.boundHandleLevelUp);
     GlobalEventBus.off('runtime:pause', this.boundPause);
     GlobalEventBus.off('runtime:resume', this.boundResume);
+    this.destructionService.offEntityDestroyed(this.boundOnEntityDestroyed);
 
     // === Clean up singleton state ===
     this.waveOrchestrator!.destroy();

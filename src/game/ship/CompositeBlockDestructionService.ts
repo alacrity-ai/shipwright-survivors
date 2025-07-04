@@ -116,7 +116,12 @@ export class CompositeBlockDestructionService {
 
     entity.destroy();
 
-    if (cause === 'replaced') return;
+    if (cause === 'replaced') {
+      if (entity instanceof Ship) {
+        entity.setDestructionCause('replaced');
+      }
+      return;
+    } 
 
     const steps: BlockDestructionStep[] = [];
 

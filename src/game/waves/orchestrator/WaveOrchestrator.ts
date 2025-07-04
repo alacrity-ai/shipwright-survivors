@@ -69,6 +69,11 @@ export class WaveOrchestrator implements IUpdatable {
     const currentWaveDef = this.activeWave?.getWave() || this.waves[this.currentWaveIndex - 1];
     const interval = currentWaveDef.duration ?? this.defaultWaveInterval;
 
+    // === sustainMode support ===
+    if (currentWaveDef.sustainMode && this.activeWave) {
+      void this.activeWave.update(dt); // Fire-and-forget; internally throttled by spawnInterval
+    }
+
     if (interval !== Infinity) {
       this.elapsedTime += dt;
       if (this.elapsedTime >= interval) {
@@ -87,7 +92,6 @@ export class WaveOrchestrator implements IUpdatable {
       }
     }
   }
-
 
   private async spawnNextWave(): Promise<void> {
     if (this.currentWaveIndex >= this.waves.length) return;
@@ -134,8 +138,8 @@ export class WaveOrchestrator implements IUpdatable {
     return this.isPaused;
   }
 
-  public notifyShipDestroyed(ship: Ship): void {
-    this.activeWave?.notifyShipDestroyed(ship);
+  public notifyShipDestroyed(ship: Ship, cause: string = 'combat'): void {
+    this.activeWave?.notifyShipDestroyed(ship, cause);
   }
 
   public isBossWaveActive(): boolean {

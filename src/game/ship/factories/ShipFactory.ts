@@ -11,6 +11,7 @@ import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
 import { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
+import { SpaceStationBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { ShipGrid } from '@/game/ship/ShipGrid';
@@ -101,12 +102,18 @@ export class ShipFactory {
     let controller: AIControllerSystem | null = null;
 
     if (!isPlayerShip) {
+      let engineBlockCount = 0;
+      for (const _ of ship.getEngineBlocks()) {
+        engineBlockCount++;
+        if (engineBlockCount > 0) break; // short-circuit for performance
+      }
+
       const effectiveProfile =
         behaviorProfile ??
         (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
           ? BehaviorProfileRegistry[behaviorType]
           : undefined) ??
-        DefaultBehaviorProfile;
+        (engineBlockCount === 0 ? SpaceStationBehaviorProfile : DefaultBehaviorProfile);
 
       controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
 
@@ -193,12 +200,19 @@ export class ShipFactory {
     let controller: AIControllerSystem | null = null;
 
     if (!isPlayerShip) {
+      let engineBlockCount = 0;
+      for (const _ of ship.getEngineBlocks()) {
+        engineBlockCount++;
+        if (engineBlockCount > 0) break; // short-circuit for performance
+      }
+
       const effectiveProfile =
         behaviorProfile ??
         (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
           ? BehaviorProfileRegistry[behaviorType]
           : undefined) ??
-        DefaultBehaviorProfile;
+        (engineBlockCount === 0 ? SpaceStationBehaviorProfile : DefaultBehaviorProfile);
+
 
       controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
 
