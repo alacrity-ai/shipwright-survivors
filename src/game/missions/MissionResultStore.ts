@@ -19,6 +19,7 @@ export interface MissionResultData {
   incidentsCompleted: number;
   massAchieved: number;
   shipsDiscovered: string[];
+  bossDefeated: boolean;
 }
 
 class MissionResultStore {
@@ -42,6 +43,7 @@ class MissionResultStore {
       incidentsCompleted: 0,
       massAchieved: 0,
       shipsDiscovered: [],
+      bossDefeated: false,
     };
   }
 
@@ -64,6 +66,11 @@ class MissionResultStore {
   public incrementKillCount(by = 1) {
     this.ensureInitialized();
     this.result!.enemiesDestroyed += by;
+  }
+
+  public setBossDefeated(defeated = true) {
+    this.ensureInitialized();
+    this.result!.bossDefeated = defeated;
   }
 
   public incrementBlockCollectedCount(by = 1) {

@@ -156,6 +156,7 @@ export class WaveOrchestrator implements IUpdatable {
     if (this.currentWaveIndex >= this.waves.length) return;
 
     this.pendingWavePromise = this.spawnNextWave().then(() => {
+      missionResultStore.incrementWavesCleared();
       this.pendingWavePromise = null;
     });
   }

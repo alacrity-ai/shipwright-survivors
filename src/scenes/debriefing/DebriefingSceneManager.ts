@@ -22,6 +22,7 @@ import { FlyInLabel } from './entities/FlyInLabel';
 import { getUniformScaleFactor, getViewportHeight, getViewportWidth } from '@/config/view';
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
+import { MissionProgressBarController } from './result_bar/MissionProgressBarController';
 
 const BUTTON_WIDTH = 200;
 const BUTTON_HEIGHT = 50;
@@ -33,7 +34,7 @@ const ROW_SPACING_Y = 28;
 const BOX_WIDTH = 520;
 const BOX_HEIGHT = 60;
 
-type DebriefingPhase = 'reveal' | 'tally' | 'done';
+type DebriefingPhase = 'timeline' | 'reveal' | 'tally' | 'done';
 
 export class DebriefingSceneManager {
   private canvasManager: CanvasManager;
@@ -42,7 +43,9 @@ export class DebriefingSceneManager {
   private cursorRenderer: CursorRenderer;
   private gamepadNavManager: GamepadMenuInteractionManager;
 
-  private state: DebriefingPhase = 'reveal';
+  private missionBar: MissionProgressBarController;
+
+  private state: DebriefingPhase = 'timeline';
 
   private buttons: UIButton[];
 
@@ -61,10 +64,13 @@ export class DebriefingSceneManager {
   private totalCores: number = 0;
   private coresAdded: number = 0;
   private currentDecrement = 1;
-  private decrementAcceleration = 1.2;
+  private decrementAcceleration = 2.4;
+
+  private wavesCleared: number = 0;
+  private totalWaves: number = 0;
+  private bossDefeated: boolean = false;
 
   private headerLabel!: AnimatedLabel;
-  private subtitleLabel!: AnimatedLabel;
 
   private missionResult: string | null = null;
   private didEarnMasteryXp: boolean = false;
@@ -83,7 +89,22 @@ export class DebriefingSceneManager {
     this.cursorRenderer = new CursorRenderer(canvasManager, inputManager);
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
 
+    const scale = getUniformScaleFactor();
+    const screenW = getViewportWidth();
+    const screenH = getViewportHeight();
+
     this.missionResult = missionResultStore.get().outcome;
+
+    const raw = missionResultStore.get();
+    this.wavesCleared = raw.wavesCleared;
+    this.totalWaves = raw.totalWaves > 0 ? raw.totalWaves - 1 : 0;
+    this.bossDefeated = raw.bossDefeated;
+
+    // === Start mission progress timeline bar
+    this.missionBar = new MissionProgressBarController(
+      screenW / 2 - (200 * scale),
+      100 * scale
+    );
 
     // === Immediately credit meta currency ===
     const detailed = calculateCoresEarnedDetailed();
@@ -94,11 +115,9 @@ export class DebriefingSceneManager {
     const collection = PlayerShipCollection.getInstance();
     const activeShip = collection.getActiveShip();
 
-    const wavesCleared = missionResultStore.get().wavesCleared;
-    const totalWaves = missionResultStore.get().totalWaves - 1;
-    const masteryXpAwarded = Math.floor(100 * (wavesCleared / totalWaves));
+    const masteryXpAwarded = Math.floor(100 * (this.wavesCleared / this.totalWaves));
 
-    const didEarnMasteryXp = !!activeShip && totalWaves > 0 && masteryXpAwarded > 0;
+    const didEarnMasteryXp = !!activeShip && this.totalWaves > 0 && masteryXpAwarded > 0;
 
     this.didEarnMasteryXp = didEarnMasteryXp;
 
@@ -113,10 +132,6 @@ export class DebriefingSceneManager {
       audioManager.play('assets/sounds/sfx/debriefing/debriefing_failed_00.wav', 'sfx');
       audioManager.playMusic({ file: 'assets/sounds/music/track_06_mission4.mp3'});
     }
-    
-    const scale = getUniformScaleFactor();
-    const screenW = getViewportWidth();
-    const screenH = getViewportHeight();
 
     const crtStyle = { 
       ...DEFAULT_CONFIG.button.style,
@@ -149,7 +164,6 @@ export class DebriefingSceneManager {
     ];
 
     const headerText = 'Mission Debriefing';
-    const subtitleText = this.missionResult?.toUpperCase() ?? 'ERROR';
 
     this.headerLabel = new AnimatedLabel(
       headerText,
@@ -159,18 +173,6 @@ export class DebriefingSceneManager {
         align: 'center',
         font: `${Math.round(36)}px monospace`,
         color: '#00ff00',
-        glow: true
-      }
-    );
-
-    this.subtitleLabel = new AnimatedLabel(
-      subtitleText,
-      screenW / 2,
-      80 * scale,
-      {
-        align: 'center',
-        font: `${Math.round(24)}px monospace`,
-        color: this.missionResult === 'victory' ? '#00ff00' : '#ff0000',
         glow: true
       }
     );
@@ -280,8 +282,8 @@ export class DebriefingSceneManager {
     if (this.introDelayTimer > 0) {
       this.introDelayTimer -= dt;
       if (this.introDelayTimer <= 0) {
+        this.missionBar.triggerStart(this.wavesCleared, this.totalWaves, this.bossDefeated);        
         this.headerLabel.trigger();
-        this.subtitleLabel.trigger();
       }
       return;
     }
@@ -292,21 +294,36 @@ export class DebriefingSceneManager {
 
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
-
     handleButtonInteraction(this.buttons[0], x, y, clicked, scale);
 
+    // Always allow mission progress bar animation to continue
+    this.missionBar.update(dt);
+
+    if (this.state === 'timeline') {
+      this.headerLabel.update(dt);
+
+      // Transition only when the *fill* is done
+      if (this.missionBar.isComplete()) {
+        this.state = 'reveal';
+      }
+
+      return;
+    }
+
+    // === Phase: Reveal ===
     if (this.state === 'reveal') {
       this.updateReveal(dt);
-    } else if (this.state === 'tally') {
+    }
+
+    // === Phase: Tally ===
+    else if (this.state === 'tally') {
       this.updateTally(dt);
     }
 
     this.headerLabel.update(dt);
-    this.subtitleLabel.update(dt);
-
     for (const label of this.flyInLabels) label.update(dt);
     this.summaryBox?.update(dt);
-  };
+  }
 
   private updateReveal(dt: number) {
     this.labelRevealTimer -= dt;
@@ -320,14 +337,14 @@ export class DebriefingSceneManager {
         audioManager.play('assets/sounds/sfx/magic/collect_ship.wav', 'sfx', { maxSimultaneous: 4 });
         // Optionally trigger visual effects or screen pulse here
       } else {
-        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 5 });
-        audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_00.wav', 'sfx', { maxSimultaneous: 5 });
-        audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_01.wav', 'sfx', { maxSimultaneous: 5 });
+        audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 10 });
+        audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_00.wav', 'sfx', { maxSimultaneous: 10 });
+        audioManager.play('assets/sounds/sfx/debriefing/debriefing_whoosh_01.wav', 'sfx', { maxSimultaneous: 10 });
       }
 
       this.flyInLabels[this.nextLabelIndex].trigger();
       this.nextLabelIndex++;
-      this.labelRevealTimer = 1.0;
+      this.labelRevealTimer = 0.5;
     }
 
     if (
@@ -353,7 +370,7 @@ export class DebriefingSceneManager {
 
     this.totalCores = this.coresToAdd.reduce((a, b) => a + b, 0);
     this.tallyIndex = 0;
-    this.tallyTimer = 0.5;
+    this.tallyTimer = 0.25;
     this.currentDecrement = 1;
 
     this.flyInLabels.forEach(label => label.setActive(false));
@@ -411,7 +428,7 @@ export class DebriefingSceneManager {
       this.summaryBox?.addCore();
       this.coresAdded++;
       this.coresToAdd[this.tallyIndex]--;
-      this.tallyTimer = 0.15;
+      this.tallyTimer = 0.05;
       this.currentDecrement = 1;
     } else {
       audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 10 });
@@ -421,7 +438,7 @@ export class DebriefingSceneManager {
       if (this.tallyIndex < this.flyInLabels.length) {
         this.flyInLabels[this.tallyIndex].setActive(true);
       }
-      this.tallyTimer = 0.5;
+      this.tallyTimer = 0.25;
       this.currentDecrement = 1;
     }
   }
@@ -436,8 +453,19 @@ export class DebriefingSceneManager {
     const scale = getUniformScaleFactor();
 
     this.headerLabel.render(uiCtx, scale);
-    this.subtitleLabel.render(uiCtx, scale);
 
+    // === Mission Progress Bar Phase ===
+    if (
+      (this.state === 'timeline' ||
+      this.state === 'reveal' ||
+      this.state === 'tally' ||
+      this.state === 'done') &&
+      this.hasHeaderTriggered()
+    ) {
+      this.missionBar.render();
+    }
+
+    // Halt rendering of fly-in labels and summary box until title appears
     if (!this.hasHeaderFinished()) return;
 
     for (const label of this.flyInLabels) {
@@ -453,8 +481,12 @@ export class DebriefingSceneManager {
     this.cursorRenderer.render();
   };
 
+  private hasHeaderTriggered(): boolean {
+    return this.headerLabel.hasTriggered();
+  }
+
   private hasHeaderFinished(): boolean {
-    return this.headerLabel.hasCompleted() && this.subtitleLabel.hasCompleted();
+    return this.headerLabel.hasCompleted();
   }
 
   private skipToDone(): void {
@@ -471,7 +503,6 @@ export class DebriefingSceneManager {
 
     // Calculate remaining cores using original values minus what's already been added
     const totalOriginalCores = this.originalCoresToAdd.reduce((a, b) => a + b, 0);
-    const remainingCores = totalOriginalCores - this.coresAdded;
     
     // Add the remaining cores to the summary box
     this.summaryBox?.forceCoreCount(totalOriginalCores); // You may need to implement this if not already present

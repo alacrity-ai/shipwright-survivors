@@ -117,18 +117,6 @@ barController.render(); // renders to 'overlay' canvas
         
     - Emits pulse burst upon reaching
         
-
----
-
-## 🔊 Audio Integration (Optional)
-
-Hooks for SFX are **not included** by default. However, you can:
-
-- Intercept `tickPopFlags[i]` or `tickPulseTimers[i] === 0` in your controller or game logic.
-    
-- Trigger tick pop or crown SFX using `audioManager.play(...)`.
-    
-
 ---
 
 ## 🧼 Extensibility

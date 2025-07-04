@@ -3,6 +3,8 @@
 import { CanvasManager } from '@/core/CanvasManager';
 import { MissionProgressBarRenderer } from './MissionProgressBarRenderer';
 
+import { audioManager } from '@/audio/Audio';
+
 export type MissionProgressBarState = 'idle' | 'filling' | 'complete';
 
 export class MissionProgressBarController {
@@ -13,11 +15,11 @@ export class MissionProgressBarController {
   private didKillBoss: boolean = false;
 
   private progressRatio: number = 0;
-  private fillSpeed: number = 0.75;
+  private fillSpeed: number = 0.35;
   private currentWaveTick: number = 0;
   private tickPopFlags: boolean[] = [];
-  private tickPulseTimers: number[] = []; // NEW
-  private crownPulseTimer: number = -1;   // NEW: -1 means not triggered
+  private tickPulseTimers: number[] = [];
+  private crownPulseTimer: number = -1;
 
   private timeSinceStart: number = 0;
 
@@ -48,9 +50,8 @@ export class MissionProgressBarController {
     this.state = 'filling';
   }
 
-  public update(dt: number): void {
-    if (this.state !== 'filling') return;
-
+public update(dt: number): void {
+  if (this.state === 'filling') {
     this.timeSinceStart += dt;
     const targetRatio = Math.min(this.wavesCleared / this.totalWaves, 1.0);
 
@@ -61,7 +62,14 @@ export class MissionProgressBarController {
       const ticksToPop = Math.floor(this.progressRatio * this.totalWaves);
       while (this.currentWaveTick < ticksToPop) {
         this.tickPopFlags[this.currentWaveTick] = true;
-        this.tickPulseTimers[this.currentWaveTick] = 0; // Start pulse
+        this.tickPulseTimers[this.currentWaveTick] = 0;
+
+        const pitch = 1.0 + this.currentWaveTick * 0.05;
+        audioManager.play('assets/sounds/sfx/debriefing/progressbar_wave.wav', 'sfx', {
+          maxSimultaneous: 20,
+          pitch,
+        });
+
         this.currentWaveTick++;
       }
 
@@ -70,27 +78,32 @@ export class MissionProgressBarController {
 
         if (this.didKillBoss) {
           this.crownPulseTimer = 0;
+          audioManager.play('assets/sounds/sfx/debriefing/progressbar_bosskill.wav', 'sfx', {
+            maxSimultaneous: 4,
+          });
         }
-      }
-    }
-
-    // === Update pulse timers ===
-    for (let i = 0; i < this.tickPulseTimers.length; i++) {
-      if (this.tickPulseTimers[i] >= 0) {
-        this.tickPulseTimers[i] += dt;
-        if (this.tickPulseTimers[i] > 0.4) {
-          this.tickPulseTimers[i] = -1; // expire pulse
-        }
-      }
-    }
-
-    if (this.crownPulseTimer >= 0) {
-      this.crownPulseTimer += dt;
-      if (this.crownPulseTimer > 0.6) {
-        this.crownPulseTimer = -1; // expire crown pulse
       }
     }
   }
+
+  // === Always update animation timers, regardless of state ===
+  for (let i = 0; i < this.tickPulseTimers.length; i++) {
+    if (this.tickPulseTimers[i] >= 0) {
+      this.tickPulseTimers[i] += dt;
+      if (this.tickPulseTimers[i] > 0.4) {
+        this.tickPulseTimers[i] = -1;
+      }
+    }
+  }
+
+  if (this.crownPulseTimer >= 0) {
+    this.crownPulseTimer += dt;
+    if (this.crownPulseTimer > 0.6) {
+      this.crownPulseTimer = -1;
+    }
+  }
+}
+
 
   public render(): void {
     this.renderer.setRenderState({

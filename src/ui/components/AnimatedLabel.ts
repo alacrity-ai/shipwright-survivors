@@ -31,6 +31,10 @@ export class AnimatedLabel {
     this.triggered = true;
   }
 
+  public hasTriggered(): boolean {
+    return this.triggered;
+  }
+
   update(dt: number) {
     if (!this.triggered) return;
     this.timer += dt;

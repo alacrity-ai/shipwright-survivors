@@ -86,6 +86,9 @@ export class WaveExecutionContext {
     if (cause !== 'replaced') {
       shakeOnShipDestruction(ship);
       missionResultStore.incrementKillCount();
+      if (ship.hasTag('boss')) {
+        missionResultStore.setBossDefeated();
+      }
     }
 
     for (const [entry, group] of this.groupMap.entries()) {
