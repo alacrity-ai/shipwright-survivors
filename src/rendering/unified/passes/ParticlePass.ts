@@ -10,12 +10,19 @@ import { particleFrameBudgetMs } from '@/config/graphicsConfig';
 import particleVertSrc from '@/rendering/unified/shaders/particlePass.vert?raw';
 import particleFragSrc from '@/rendering/unified/shaders/particlePass.frag?raw';
 
+const colorCache = new Map<string, [number, number, number]>();
+
 function hexToRgb(hex: string): [number, number, number] {
-  if (hex.startsWith('#')) hex = hex.slice(1);
-  const r = parseInt(hex.slice(0, 2), 16) / 255;
-  const g = parseInt(hex.slice(2, 4), 16) / 255;
-  const b = parseInt(hex.slice(4, 6), 16) / 255;
-  return [r, g, b];
+  if (colorCache.has(hex)) return colorCache.get(hex)!;
+
+  let clean = hex.startsWith('#') ? hex.slice(1) : hex;
+  const r = parseInt(clean.slice(0, 2), 16) / 255;
+  const g = parseInt(clean.slice(2, 4), 16) / 255;
+  const b = parseInt(clean.slice(4, 6), 16) / 255;
+
+  const result: [number, number, number] = [r, g, b];
+  colorCache.set(hex, result);
+  return result;
 }
 
 export class ParticlePass {
