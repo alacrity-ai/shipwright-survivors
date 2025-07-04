@@ -118,11 +118,21 @@ export class Camera {
     };
   }
 
-  screenToWorld(sx: number, sy: number): { x: number; y: number } {
-    return {
-      x: sx / this.zoom + this.x,
-      y: sy / this.zoom + this.y,
-    };
+  /**
+   * Converts screen coordinates (in pixels) to world coordinates.
+   * If `out` is provided, writes into it instead of allocating a new object.
+   */
+  screenToWorld(sx: number, sy: number, out?: { x: number; y: number }): { x: number; y: number } {
+    const x = sx / this.zoom + this.x;
+    const y = sy / this.zoom + this.y;
+
+    if (out) {
+      out.x = x;
+      out.y = y;
+      return out;
+    }
+
+    return { x, y };
   }
 
   getOffset(): { x: number; y: number } {

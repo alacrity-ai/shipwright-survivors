@@ -492,7 +492,7 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
-    this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!);
+    this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!, this.particleManager);
     this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
     

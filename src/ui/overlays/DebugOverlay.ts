@@ -11,6 +11,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { InputManager } from '@/core/InputManager';
 import { getUniformScaleFactor } from '@/config/view';
+import { ParticleManager } from '@/systems/fx/ParticleManager';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -26,7 +27,8 @@ export class DebugOverlay {
     private readonly canvasManager: CanvasManager,
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
-    private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
+    private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>,
+    private readonly particleManager: ParticleManager
   ) {}
 
   render(dt: number): void {
@@ -34,22 +36,22 @@ export class DebugOverlay {
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
-    // === FPS CALCULATION ===
-    const instantaneousFps = 1 / dt;
-    const smoothingFactor = 0.05;
-    this.smoothedFps += (instantaneousFps - this.smoothedFps) * smoothingFactor;
-
     // === Label layout
     const x = canvas.width - 300;
     let y = 12;
     const lineHeight = 18;
 
     if (DEBUG_MODE) drawLabel(ctx, x, y, `DEBUG`); y += lineHeight;
-    drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
-    
-    const blocksInQueue = PlayerResources.getInstance().getBlockQueue().length;
-    drawLabel(ctx, x, y, `Blocks in Queue: ${blocksInQueue}`); y += lineHeight;
 
+    // === FPS CALCULATION ===
+    const instantaneousFps = 1 / dt;
+    const smoothingFactor = 0.05;
+    this.smoothedFps += (instantaneousFps - this.smoothedFps) * smoothingFactor;
+    drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
+
+    if (!DEBUG_MODE) return;
+
+    // === Lighting Metrics ===
     // Mouse Coords
     const mouse = this.inputManager.getMousePosition();
     const { x: mouseX, y: mouseY } = mouse;
@@ -61,8 +63,9 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Mouse (raw): ${mouseX.toFixed(0)}, ${mouseY.toFixed(0)}`); y += lineHeight;
     drawLabel(ctx, x, y, `Mouse (virtual): ${virtualMouseX.toFixed(0)}, ${virtualMouseY.toFixed(0)}`); y += lineHeight;
 
-
-    if (!DEBUG_MODE) return;
+    // === Visible particles ===
+    const visibleParticles = this.particleManager.collectVisibleParticles(Camera.getInstance());
+    drawLabel(ctx, x, y, `Particles: ${visibleParticles.length}`); y += lineHeight;
 
     const lightingOrch = LightingOrchestrator.getInstance();
     const allLights = lightingOrch.getActiveLights();

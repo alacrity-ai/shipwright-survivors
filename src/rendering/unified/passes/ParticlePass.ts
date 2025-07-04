@@ -10,17 +10,18 @@ import { particleFrameBudgetMs } from '@/config/graphicsConfig';
 import particleVertSrc from '@/rendering/unified/shaders/particlePass.vert?raw';
 import particleFragSrc from '@/rendering/unified/shaders/particlePass.frag?raw';
 
-const colorCache = new Map<string, [number, number, number]>();
+const colorCache = new Map<string, { r: number; g: number; b: number }>();
 
-function hexToRgb(hex: string): [number, number, number] {
+function hexToRgb(hex: string) {
   if (colorCache.has(hex)) return colorCache.get(hex)!;
 
-  let clean = hex.startsWith('#') ? hex.slice(1) : hex;
-  const r = parseInt(clean.slice(0, 2), 16) / 255;
-  const g = parseInt(clean.slice(2, 4), 16) / 255;
-  const b = parseInt(clean.slice(4, 6), 16) / 255;
+  const clean = hex.startsWith('#') ? hex.slice(1) : hex;
+  const result = {
+    r: parseInt(clean.slice(0, 2), 16) / 255,
+    g: parseInt(clean.slice(2, 4), 16) / 255,
+    b: parseInt(clean.slice(4, 6), 16) / 255,
+  };
 
-  const result: [number, number, number] = [r, g, b];
   colorCache.set(hex, result);
   return result;
 }
@@ -32,6 +33,7 @@ export class ParticlePass {
   private readonly quadBuffer: WebGLBuffer;
   private readonly instanceBuffer: WebGLBuffer;
 
+  private dataBuffer: Float32Array = new Float32Array(70000);
   private frameBudgetMs: number = particleFrameBudgetMs;
 
   constructor(gl: WebGL2RenderingContext, cameraUBO: WebGLBuffer) {
@@ -52,27 +54,26 @@ export class ParticlePass {
 
     // Instance buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    const stride = 7 * 4;
+    const strideBytes = 7 * 4;
 
     gl.enableVertexAttribArray(1); // aParticlePos
-    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, 0);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, strideBytes, 0);
     gl.vertexAttribDivisor(1, 1);
 
     gl.enableVertexAttribArray(2); // aSize
-    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, 8);
+    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, strideBytes, 8);
     gl.vertexAttribDivisor(2, 1);
 
     gl.enableVertexAttribArray(3); // aLifeRatio
-    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 12);
+    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, strideBytes, 12);
     gl.vertexAttribDivisor(3, 1);
 
     gl.enableVertexAttribArray(4); // aColor
-    gl.vertexAttribPointer(4, 3, gl.FLOAT, false, stride, 16);
+    gl.vertexAttribPointer(4, 3, gl.FLOAT, false, strideBytes, 16);
     gl.vertexAttribDivisor(4, 1);
 
     gl.bindVertexArray(null);
 
-    // === Bind camera UBO to binding point 0 ===
     const cameraBlockIndex = gl.getUniformBlockIndex(this.program, 'CameraMatrices');
     if (cameraBlockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(this.program, cameraBlockIndex, 0);
@@ -88,7 +89,12 @@ export class ParticlePass {
     if (particles.length === 0) return;
 
     const stride = 7;
-    const data = new Float32Array(particles.length * stride);
+    const requiredCapacity = particles.length * stride;
+    if (requiredCapacity > this.dataBuffer.length) {
+      this.dataBuffer = new Float32Array(requiredCapacity * 2);
+    }
+
+    const data = this.dataBuffer;
 
     const start = performance.now();
     let count = 0;
@@ -96,17 +102,25 @@ export class ParticlePass {
     for (; count < particles.length; count++) {
       const p = particles[count];
       const base = count * stride;
-      const [r, g, b] = hexToRgb(p.color);
-      data.set([p.x, p.y, p.size, p.renderAlpha ?? 1.0, r, g, b], base);
+      const color = hexToRgb(p.color);
+
+      data[base + 0] = p.x;
+      data[base + 1] = p.y;
+      data[base + 2] = p.size;
+      data[base + 3] = p.renderAlpha ?? 1.0;
+      data[base + 4] = color.r;
+      data[base + 5] = color.g;
+      data[base + 6] = color.b;
 
       if (performance.now() - start > this.frameBudgetMs) break;
     }
 
     if (count === 0) return;
 
-    const upload = data.subarray(0, count * stride);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, upload, gl.DYNAMIC_DRAW);
+    const bytesToUpload = count * stride * 4; // 4 bytes per float
+    gl.bufferData(gl.ARRAY_BUFFER, bytesToUpload, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.dataBuffer, 0, count * stride);
 
     gl.useProgram(this.program);
     gl.enable(gl.BLEND);

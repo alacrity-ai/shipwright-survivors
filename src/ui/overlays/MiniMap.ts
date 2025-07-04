@@ -31,6 +31,9 @@ export class MiniMap {
   private scanlineOffset = 0;
   private lastFrameTime = 0;
 
+  private projectionScaleX = 1;
+  private projectionScaleY = 1;
+
   private incidentMarkers = new Map<string, { x: number; y: number; icon: string }>();
   private iconCache = new Map<string, HTMLCanvasElement>();
   
@@ -67,6 +70,7 @@ export class MiniMap {
     this.margin = Math.floor(this.baseMargin * this.scale);
 
     this.initializeStaticCache();
+    this.resize(getUniformScaleFactor());
 
     this.enemyMarkers = {
       passive: this.createEnemyDot('#3399ff'),
@@ -107,6 +111,10 @@ export class MiniMap {
     this.width = Math.floor(this.baseWidth * this.scale);
     this.height = Math.floor(this.baseHeight * this.scale);
     this.margin = Math.floor(this.baseMargin * this.scale);
+
+    const padding = Math.floor(20 * this.scale);
+    this.projectionScaleX = (this.width - padding) / getWorldWidth();
+    this.projectionScaleY = (this.height - padding) / getWorldHeight();
 
     this.initializeStaticCache();
     this.resetAllCaches();
@@ -208,18 +216,14 @@ export class MiniMap {
     }
 
     // === Coordinate projection helper ===
-    const WORLD_WIDTH = getWorldWidth();
-    const WORLD_HEIGHT = getWorldHeight();
-    const WORLD_CENTER = getWorldCenter();
-    const scaleX = (this.width - Math.floor(20 * this.scale)) / WORLD_WIDTH;
-    const scaleY = (this.height - Math.floor(20 * this.scale)) / WORLD_HEIGHT;
+    const offset = Math.floor(10 * this.scale);
+    const halfWorldWidth = getWorldWidth() / 2;
+    const halfWorldHeight = getWorldHeight() / 2;
 
     const project = (worldPos: { x: number; y: number }) => {
-      const relX = worldPos.x - WORLD_CENTER.x + WORLD_WIDTH / 2;
-      const relY = worldPos.y - WORLD_CENTER.y + WORLD_HEIGHT / 2;
       return {
-        x: x + Math.floor(10 * this.scale) + relX * scaleX,
-        y: y + Math.floor(10 * this.scale) + relY * scaleY
+        x: x + offset + (worldPos.x + halfWorldWidth) * this.projectionScaleX,
+        y: y + offset + (worldPos.y + halfWorldHeight) * this.projectionScaleY,
       };
     };
 
@@ -227,7 +231,7 @@ export class MiniMap {
     this.drawPlanets(ctx, project);
 
     // === Draw ships (simplified) ===
-    this.drawShips(ctx, project);
+    this.drawPlayerShip(ctx, project);
 
     // === Draw incidents ===
     for (const { x: worldX, y: worldY, icon } of this.incidentMarkers.values()) {
@@ -243,6 +247,22 @@ export class MiniMap {
     // === Minimal status indicator ===
     this.drawStatusIndicator(ctx, x, y);
 
+    ctx.restore();
+  }
+
+  private drawPlayerShip(ctx: CanvasRenderingContext2D, project: (pos: { x: number; y: number }) => { x: number; y: number }): void {
+    if (!this.player) return;
+
+    const playerPos = project(this.player.getTransform().position);
+    const playerRotation = this.player.getTransform().rotation;
+
+    // === Draw Player (diamond with orientation, rasterized) ===
+    ctx.save();
+    ctx.globalAlpha = 1.0;
+    ctx.translate(playerPos.x, playerPos.y);
+    ctx.rotate(playerRotation);
+    const playerMarkerHalfSize = Math.floor(8 * this.scale);
+    ctx.drawImage(this.playerMarker, -playerMarkerHalfSize, -playerMarkerHalfSize); // Centered draw
     ctx.restore();
   }
 
@@ -367,14 +387,12 @@ export class MiniMap {
     }
   }
 
+  // Deprecated: No longer used, TODO: Maybe draw incident enemies or bosses
   private drawShips(
     ctx: CanvasRenderingContext2D,
     project: (pos: { x: number; y: number }) => { x: number; y: number }
   ): void {
     if (!this.player) return;
-
-    const playerPos = project(this.player.getTransform().position);
-    const playerRotation = this.player.getTransform().rotation;
 
     // === Draw Enemies (blit pre-rendered canvases) ===
     for (const [controller, ship] of this.aiOrchestrator.getAllControllers()) {
@@ -395,15 +413,6 @@ export class MiniMap {
       const enemyMarkerHalfSize = Math.floor(4 * this.scale);
       ctx.drawImage(markerCanvas, px - enemyMarkerHalfSize, py - enemyMarkerHalfSize); // Center on dot
     }
-
-    // === Draw Player (diamond with orientation, rasterized) ===
-    ctx.save();
-    ctx.globalAlpha = 1.0;
-    ctx.translate(playerPos.x, playerPos.y);
-    ctx.rotate(playerRotation);
-    const playerMarkerHalfSize = Math.floor(8 * this.scale);
-    ctx.drawImage(this.playerMarker, -playerMarkerHalfSize, -playerMarkerHalfSize); // Centered draw
-    ctx.restore();
   }
 
   private createPlanetDot(color: string): HTMLCanvasElement {

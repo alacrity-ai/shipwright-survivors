@@ -76,8 +76,8 @@ export class PickupSystem {
   private static readonly MAX_PICKUP_PITCH = 2.2;
   private static readonly PITCH_RESET_DELAY = 3.2; // seconds
 
-  private static readonly QUANTUM_ATTRACTOR_DURATION = 4.0;
-  private static readonly QUANTUM_ATTRACTOR_RANGE_BOOST = 30000;
+  private static readonly QUANTUM_ATTRACTOR_DURATION = 6.0;
+  private static readonly QUANTUM_ATTRACTOR_RANGE_BOOST = 36000;
   private static readonly QUANTUM_ATTRACTOR_SPEED_MULTIPLIER = 5.0;
   private quantumAttractorRemainingTime = 0;
 

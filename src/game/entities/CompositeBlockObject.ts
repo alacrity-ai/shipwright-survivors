@@ -115,11 +115,24 @@ export abstract class CompositeBlockObject {
     return result;
   }
 
+  /**
+ * Returns all [coord, block] pairs.
+ * This allocates and should not be used in performance-sensitive paths.
+ */
   public getAllBlocks(): [GridCoord, BlockInstance][] {
     if (this.cachedBlockList === null) {
       this.cachedBlockList = Array.from(this.blocks.values()).map(({ coord, block }) => [coord, block]);
     }
     return this.cachedBlockList;
+  }
+
+  /**
+   * Calls the provided callback for each [coord, block] in this object without allocating.
+   */
+  public forEachBlock(callback: (coord: GridCoord, block: BlockInstance) => void): void {
+    for (const { coord, block } of this.blocks.values()) {
+      callback(coord, block);
+    }
   }
 
   public invalidateBlockCache(): void {

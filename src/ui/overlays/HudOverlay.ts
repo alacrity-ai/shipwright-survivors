@@ -12,7 +12,6 @@ import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
-import { drawLabel } from '@/ui/primitives/UILabel';
 import { getUniformScaleFactor } from '@/config/view';
 
 import { GlobalEventBus } from '@/core/EventBus';
@@ -34,6 +33,24 @@ export class HudOverlay {
   private previousEntropium: number = 0;
   private experienceBar: PlayerExperienceBar;
 
+  // === Canvas Caches ===
+  private fuelBarCacheCanvas: HTMLCanvasElement;
+  private fuelBarCacheCtx: CanvasRenderingContext2D;
+  private energyBarCacheCanvas: HTMLCanvasElement;
+  private energyBarCacheCtx: CanvasRenderingContext2D;
+  private speedBarCacheCanvas: HTMLCanvasElement;
+  private speedBarCacheCtx: CanvasRenderingContext2D;
+  private firingModeCacheCanvas: HTMLCanvasElement;
+  private firingModeCacheCtx: CanvasRenderingContext2D;
+
+  // === Invalidation State ===
+  private lastFuel = -1;
+  private lastFuelMax = -1;
+  private lastEnergy = -1;
+  private lastEnergyMax = -1;
+  private lastSpeed = -1;
+  private lastFiringMode: any = null;
+
   constructor(
     private readonly canvasManager: CanvasManager,
     private readonly floatingTextManager: FloatingTextManager,
@@ -44,18 +61,38 @@ export class HudOverlay {
     GlobalEventBus.on('hud:show', this.onShow);
 
     this.experienceBar = new PlayerExperienceBar(floatingTextManager);
-    this.inputManager = inputManager;
     this.playerResources = PlayerResourcesSingleton.getInstance();
     this.entropium = PlayerExperienceManager.getInstance().getEntropium();
     this.previousEntropium = this.entropium;
 
-    // Pass through the blockDropDecisionMenu
     this.blockQueueDisplayManager = new BlockQueueDisplayManager(
       this.canvasManager,
       this.playerResources,
       this.blockDropDecisionMenu,
       this.inputManager
     );
+
+    const scale = getUniformScaleFactor();
+
+    this.fuelBarCacheCanvas = document.createElement('canvas');
+    this.fuelBarCacheCanvas.width = 140 * scale;
+    this.fuelBarCacheCanvas.height = 32 * scale;
+    this.fuelBarCacheCtx = this.fuelBarCacheCanvas.getContext('2d')!;
+
+    this.energyBarCacheCanvas = document.createElement('canvas');
+    this.energyBarCacheCanvas.width = 140 * scale;
+    this.energyBarCacheCanvas.height = 32 * scale;
+    this.energyBarCacheCtx = this.energyBarCacheCanvas.getContext('2d')!;
+
+    this.speedBarCacheCanvas = document.createElement('canvas');
+    this.speedBarCacheCanvas.width = 32 * scale;
+    this.speedBarCacheCanvas.height = 140 * scale;
+    this.speedBarCacheCtx = this.speedBarCacheCanvas.getContext('2d')!;
+
+    this.firingModeCacheCanvas = document.createElement('canvas');
+    this.firingModeCacheCanvas.width = 140 * scale;
+    this.firingModeCacheCanvas.height = 40 * scale;
+    this.firingModeCacheCtx = this.firingModeCacheCanvas.getContext('2d')!;
   }
 
   public setPlayerShip(ship: Ship): void {
@@ -68,96 +105,103 @@ export class HudOverlay {
   }
 
   render(dt: number): void {
-    // === Block Queue Display ===
     this.blockQueueDisplayManager.render();
     this.experienceBar.render();
-    
-    if (this.hidden) return;
-    if (!this.ship) return;
+
+    if (this.hidden || !this.ship) return;
 
     const scale = getUniformScaleFactor();
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
-    const { velocity } = this.ship.getTransform();
-    // const blocks = this.ship.getAllBlocks();
-    const currentHp = Math.floor(this.ship.getCockpitHp() ?? 0);
-    const maxHp = Math.floor(this.ship.getCockpit()?.type.armor ?? 1);
+    const barWidth = Math.floor(120 * scale);
+    const barHeight = Math.floor(12 * scale);
+    const y = canvas.height - Math.floor(24 * scale);
+    const toggleX = Math.floor(64 * scale);
+
+    const velocity = this.ship.getTransform().velocity;
     const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+    const quantizedSpeed = Math.round(speed);
 
     const energyComponent = this.ship.getEnergyComponent();
     const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
     const maxEnergy = Math.floor(energyComponent?.getMax() ?? 0);
 
-    const barWidth = Math.floor(120 * scale);
-    const barHeight = Math.floor(12 * scale);
-    const spacing = Math.floor(20 * scale);
-    const totalWidth = barWidth * 2 + spacing;
-    const baseX = Math.floor((canvas.width - totalWidth) / 2);
-    const y = canvas.height - Math.floor(24 * scale);
+    const afterburnerComponent = this.ship.getAfterburnerComponent();
+    const afterburnerValue = afterburnerComponent?.getCurrent() ?? 0;
+    const afterburnerMax = afterburnerComponent?.getMax() ?? 1;
 
-    const toggleWidth = Math.floor(120 * scale);
-    const toggleHeight = Math.floor(24 * scale);
-    const toggleX = Math.floor(64 * scale);
-    const toggleY = y - Math.floor(70 * scale);
+    const firingMode = this.ship.getFiringMode();
 
     // === Afterburner Fuel Bar ===
-    const afterburnerComponent = this.ship.getAfterburnerComponent();
-    const afterburnerValue = afterburnerComponent ? afterburnerComponent.getCurrent() : 0;
-    const afterburnerMax = afterburnerComponent ? afterburnerComponent.getMax() : 1;
+    if (afterburnerValue !== this.lastFuel || afterburnerMax !== this.lastFuelMax) {
+      this.lastFuel = afterburnerValue;
+      this.lastFuelMax = afterburnerMax;
 
-    drawUIResourceBar(ctx, {
-      x: toggleX,
-      y: y - Math.floor(24 * scale),
-      width: barWidth,
-      height: barHeight,
-      value: afterburnerValue / afterburnerMax,
-      label: `${Math.floor(afterburnerValue)} / ${afterburnerMax}`,
-      style: {
-        barColor: '#ffcc00',
-        borderColor: '#ffee88',
-        backgroundColor: '#221800',
-        glow: true,
-        textColor: '#ffffaa',
-        font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
-        scanlineIntensity: 0.3,
-        chromaticAberration: true,
-        phosphorDecay: true,
-        cornerBevel: true,
-        warningThreshold: 0.25,
-        criticalThreshold: 0.1,
-        warningColor: '#ffaa00',
-        criticalColor: '#ff0040',
-        animated: true,
-      }
-    }, performance.now());
+      this.fuelBarCacheCtx.clearRect(0, 0, this.fuelBarCacheCanvas.width, this.fuelBarCacheCanvas.height);
+
+      drawUIResourceBar(this.fuelBarCacheCtx, {
+        x: 10,
+        y: 10,
+        width: barWidth,
+        height: barHeight,
+        value: afterburnerValue / afterburnerMax,
+        label: `${Math.floor(afterburnerValue)} / ${afterburnerMax}`,
+        style: {
+          barColor: '#ffcc00',
+          borderColor: '#ffee88',
+          backgroundColor: '#221800',
+          glow: true,
+          textColor: '#ffffaa',
+          font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
+          scanlineIntensity: 0.3,
+          chromaticAberration: true,
+          phosphorDecay: true,
+          cornerBevel: true,
+          warningThreshold: 0.25,
+          criticalThreshold: 0.1,
+          warningColor: '#ffaa00',
+          criticalColor: '#ff0040',
+          animated: true,
+        }
+      }, performance.now());
+    }
+    ctx.drawImage(this.fuelBarCacheCanvas, toggleX - 10, y - Math.floor(24 * scale) - 10);
 
     // === Energy Bar ===
-    drawUIResourceBar(ctx, {
-      x: toggleX,
-      y: y,
-      width: barWidth,
-      height: barHeight,
-      value: maxEnergy > 0 ? energy / maxEnergy : 1,
-      label: `${Math.round(energy)} / ${maxEnergy}`,
-      style: {
-        barColor: '#0af',
-        borderColor: '#6cf',
-        backgroundColor: '#003',
-        glow: true,
-        textColor: '#9cf',
-        font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
-        scanlineIntensity: 0.25,
-        chromaticAberration: true,
-        phosphorDecay: true,
-        cornerBevel: true,
-        warningThreshold: 0.25,
-        criticalThreshold: 0.1,
-        warningColor: '#ffaa00',
-        criticalColor: '#ff0040',
-        animated: true,
-      }
-    }, performance.now());
+    if (energy !== this.lastEnergy || maxEnergy !== this.lastEnergyMax) {
+      this.lastEnergy = energy;
+      this.lastEnergyMax = maxEnergy;
+
+      this.energyBarCacheCtx.clearRect(0, 0, this.energyBarCacheCanvas.width, this.energyBarCacheCanvas.height);
+
+      drawUIResourceBar(this.energyBarCacheCtx, {
+        x: 10,
+        y: 10,
+        width: barWidth,
+        height: barHeight,
+        value: maxEnergy > 0 ? energy / maxEnergy : 1,
+        label: `${Math.round(energy)} / ${maxEnergy}`,
+        style: {
+          barColor: '#0af',
+          borderColor: '#6cf',
+          backgroundColor: '#003',
+          glow: true,
+          textColor: '#9cf',
+          font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
+          scanlineIntensity: 0.25,
+          chromaticAberration: true,
+          phosphorDecay: true,
+          cornerBevel: true,
+          warningThreshold: 0.25,
+          criticalThreshold: 0.1,
+          warningColor: '#ffaa00',
+          criticalColor: '#ff0040',
+          animated: true,
+        }
+      }, performance.now());
+    }
+    ctx.drawImage(this.energyBarCacheCanvas, toggleX - 10, y - 10);
 
     // === Speed Bar (Vertical) ===
     const speedBarHeight = Math.floor(120 * scale);
@@ -165,46 +209,59 @@ export class HudOverlay {
     const speedBarX = Math.floor(32 * scale);
     const speedBarY = y - speedBarHeight + Math.floor(14 * scale);
 
-    drawUIVerticalResourceBar(ctx, {
-      x: speedBarX,
-      y: speedBarY,
-      width: speedBarWidth,
-      height: speedBarHeight,
-      value: speed,
-      maxValue: 2000,
-      style: {
-        barColor: '#00ff41',
-        backgroundColor: '#001100',
-        borderColor: '#00aa33',
-        glow: true,
-        textColor: '#00ff88',
-        showLabel: true,
-        unit: 'm/s',
-      }
-    });
+    if (quantizedSpeed !== this.lastSpeed) {
+      this.lastSpeed = quantizedSpeed;
+
+      this.speedBarCacheCtx.clearRect(0, 0, this.speedBarCacheCanvas.width, this.speedBarCacheCanvas.height);
+
+      drawUIVerticalResourceBar(this.speedBarCacheCtx, {
+        x: 10,
+        y: 10,
+        width: speedBarWidth,
+        height: speedBarHeight,
+        value: quantizedSpeed,
+        maxValue: 2000,
+        style: {
+          barColor: '#00ff41',
+          backgroundColor: '#001100',
+          borderColor: '#00aa33',
+          glow: true,
+          textColor: '#00ff88',
+          showLabel: true,
+          unit: 'm/s',
+        }
+      });
+    }
+    ctx.drawImage(this.speedBarCacheCanvas, speedBarX - 10, speedBarY - 10);
 
     // === Firing Mode Toggle ===
+    if (firingMode !== this.lastFiringMode) {
+      this.lastFiringMode = firingMode;
 
-    drawFiringModeToggle(ctx, {
-      x: toggleX,
-      y: y - Math.floor(62 * scale),
-      mode: this.ship.getFiringMode(),
-      style: {
-        width: toggleWidth,
-        height: toggleHeight,
-        backgroundColor: '#000a00',
-        borderColor: '#00ff41',
-        activeColor: '#00ff41',
-        inactiveColor: '#001a00',
-        textColor: '#00ff41',
-        glowColor: '#00ff41',
-        font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
-        glow: true,
-        animated: true,
-        scanlineIntensity: 0.3,
-        chromaticAberration: false,
-      }
-    }, performance.now());
+      this.firingModeCacheCtx.clearRect(0, 0, this.firingModeCacheCanvas.width, this.firingModeCacheCanvas.height);
+
+      drawFiringModeToggle(this.firingModeCacheCtx, {
+        x: 10,
+        y: 10,
+        mode: firingMode,
+        style: {
+          width: Math.floor(120 * scale),
+          height: Math.floor(24 * scale),
+          backgroundColor: '#000a00',
+          borderColor: '#00ff41',
+          activeColor: '#00ff41',
+          inactiveColor: '#001a00',
+          textColor: '#00ff41',
+          glowColor: '#00ff41',
+          font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
+          glow: true,
+          animated: true,
+          scanlineIntensity: 0.3,
+          chromaticAberration: false,
+        }
+      }, performance.now());
+    }
+    ctx.drawImage(this.firingModeCacheCanvas, toggleX - 10, y - Math.floor(62 * scale) - 10);
   }
 
   destroy(): void {
