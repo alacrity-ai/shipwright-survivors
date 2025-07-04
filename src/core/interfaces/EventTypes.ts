@@ -58,13 +58,17 @@ export interface EventTypes {
   'blockqueue:hide': undefined;
   'experiencebar:show': undefined;
   'experiencebar:hide': undefined;
+  'firingmode:show': undefined;
+  'firingmode:hide': undefined;
+  'meters:show': undefined;
+  'meters:hide': undefined;
 
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
   'indicator:remove': { id: string };
 
   // Camera events
-  'camera:shake': { strength: number; duration: number; frequency?: number };
+  'camera:shake': { strength: number; duration: number; frequency?: number, tag?: string };
 
   // Player events
   'player:firemode:changed': { mode: FiringMode };

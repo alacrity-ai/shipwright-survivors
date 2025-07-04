@@ -136,7 +136,7 @@ TUTORIAL TODOS:
 
 TODOS:
   - [ ] Completely clearing a Vortex Incident should end it immediately
-  - [ ] Investigate if minimap icons are cached, if not, cache them
+  - [x] Investigate if minimap icons are cached, if not, cache them
   - [ ] Opening save game in one resolution, then switching, breaks loading until refresh
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
@@ -167,8 +167,8 @@ TODOS:
   - [x] Fix black ship skilltree icons
 
   - [ ] Passive menu needs to use GamepadNavMap
-  - [ ] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)
-  - [ ] Gamepad - Press select to toggle to the block queue. d-pad left and right to cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
+  - [x] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)
+  - [ ] Gamepad - Press d-pad left and right to toggle (timer) cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
   - [ ] Ship Selection:
     - [ ] Add artifacts
       - [ ] Droppable item
@@ -252,10 +252,10 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
-  - [ ] Tutorial Gamepad for Zoom Controls.  Not registering input, need to use D-Pad coachmark
+  - [x] Tutorial Gamepad for Zoom Controls.  Not registering input, need to use D-Pad coachmark
   - [ ] Starting a new game, after having quit to main menu from another game does not work. Playerflags needs clear?
   - [ ] Levelup menu and block drop decision menu clash
-  - [ ] If you levelup, and then get enough EXP for another levelup during the delay (before the levelup window pops up), you lose the powerup choice from the first levelup.  We need to queue all the levelups to make sure you get all the choices. This can be easy, just keep track of total powerups, and if you don't have as many as you do levels, then reopen the menu on close.
+  - [x] If you levelup, and then get enough EXP for another levelup during the delay (before the levelup window pops up), you lose the powerup choice from the first levelup.  We need to queue all the levelups to make sure you get all the choices. This can be easy, just keep track of total powerups, and if you don't have as many as you do levels, then reopen the menu on close.
   - [ ] Changing resolution in game from a small resolution to a large messes up the background, I think we need to reinstantiate or cleanup the background renderer/system.  Maybe the image in the image cache as well.
   - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
@@ -263,11 +263,15 @@ BUGS:
 
 
 REFINEMENT:
+  - [x] Screenshake not normalized to resolution, shakes way harder on 1080p than 4k.
+    - [x] Smooth / reduce excessive screenshake when killing many enemies
+  - [x] Floating text needs to be centered above entropium exp bar when gaining entropium
+  - [ ] Clearcolor/Shaders when boss enters
   - [ ] Show percent completion in mission summary. 
   - [ ] Show damage break down in mission summary
   - [ ] Big ship destruction sound always happening, randomly choose 3 sounds or so
   - [ ] Lifesteal needs a cooldown
-  - [ ] Add persistent tag to all Incident Spawned entities, and bosses
+  - [x] Add persistent tag to all Incident Spawned entities, and bosses
 
 ### Things to Explore:
   - [ ] "Town Portal" - Back to the planet? 

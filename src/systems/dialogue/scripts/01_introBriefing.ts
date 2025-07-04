@@ -14,7 +14,9 @@ import { lockBlockQueue, unlockBlockQueue } from '@/core/interfaces/events/Block
 import { lockAllButtons, unlockAttachButton, unlockAllButtons } from '@/core/interfaces/events/BlockDropDecisionMenuReporter';
 import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
 import { 
-  emitHudHideAll, 
+  emitHudHideAll,
+  emitFiringModeShow,
+  emitMetersShow, 
   emitHudShowAll,
   emitBlockQueueShow,
   emitHudShow,
@@ -31,7 +33,6 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
-import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 import { createAfterBurnerCoachMark } from '@/rendering/coachmarks/helpers/createAfterBurnerCoachMark';
 import { createOpenBlockMenuCoachMark } from '@/rendering/coachmarks/helpers/createOpenBlockMenuCoachMark';
@@ -40,6 +41,7 @@ import { createAimCoachMark } from '@/rendering/coachmarks/helpers/createAimCoac
 import { createFirePrimaryCoachMark } from '@/rendering/coachmarks/helpers/createFirePrimaryCoachMark';
 import { createMoveCoachMark } from '@/rendering/coachmarks/helpers/createMoveCoachMark';
 import { createOpenTradePostCoachMark } from '@/rendering/coachmarks/helpers/createOpenTradePostCoachMark';
+import { createZoomCoachMark } from '@/rendering/coachmarks/helpers/createZoomCoachMark';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 import { audioManager } from '@/audio/Audio';
@@ -117,6 +119,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx');
           shakeCamera(10, 1, 10);
+          emitMetersShow();
         },
       },
       {
@@ -558,6 +561,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: "Demonstrate ability to toggle firing mode. 'Synced' for sustained fire, 'Sequence' for burst fire.",
       },
+      // Show hud
+      {
+        type: 'command',
+        run: () => {
+          emitHudShow();
+        },
+      },
       // Make sure KeyX is enabled
       {
         type: 'command',
@@ -609,20 +619,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          coachMarkManager.createScreenCoachMark(
-            '',
-            200, 400,
-            {
-              type: 'mouse',
-              interactionMode: 'scroll',
-              width: 60,
-              height: 90,
-              borderColor: '#00FFFF',
-              fillColor: '#001122',
-              highlightColor: '#00FFFF',
-              duration: Infinity,
-            }
-          );
+          createZoomCoachMark(coachMarkManager, 200, 400);
         },
       },  
       {
@@ -635,7 +632,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
                 inputManager.wasScrollWheelDown() || 
                 inputManager.isKeyPressed('KeyR') || 
                 inputManager.isKeyPressed('KeyT') ||
-                (inputManager.isLeftTriggerPressed() && inputManager.isRightStickMoved())
+                (inputManager.wasGamepadAliasJustPressed('dpadUp') || inputManager.wasGamepadAliasJustPressed('dpadDown'))
               ) {
                 resolve();
               } else {

@@ -12,7 +12,14 @@ export class ScreenShakeController {
   private offsetX: number = 0;
   private offsetY: number = 0;
 
-  trigger(strength: number, duration: number, frequency: number = 30): void {
+  private static readonly DEFAULT_TAG = 'default';
+  private readonly tagCooldowns: Map<string, number> = new Map();
+  private readonly tagCooldownDurations: Map<string, number> = new Map([
+    ['enemyDestruction', 0.8], // In seconds
+    ['default', 0],            // No cooldown by default
+  ]);
+
+  trigger(strength: number, duration: number, frequency: number = 30, tag: string = 'default'): void {
     this.strength = strength;
     this.duration = duration;
     this.maxDuration = duration; // Store original duration
@@ -21,6 +28,27 @@ export class ScreenShakeController {
     // Use different phases for X and Y to avoid diagonal-only shaking
     this.phaseX = Math.random() * Math.PI * 2;
     this.phaseY = Math.random() * Math.PI * 2;
+  }
+
+  /**
+   * Triggers a screen shake only if the tag is not on cooldown.
+   * Returns true if the shake was applied.
+   */
+  public triggerIfAllowed(
+    strength: number,
+    duration: number,
+    frequency: number = 30,
+    tag: string = ScreenShakeController.DEFAULT_TAG
+  ): boolean {
+    const now = performance.now() / 1000;
+    const lastTime = this.tagCooldowns.get(tag) ?? -Infinity;
+    const cooldown = this.tagCooldownDurations.get(tag) ?? 0;
+
+    if (now - lastTime < cooldown) return false;
+
+    this.tagCooldowns.set(tag, now);
+    this.trigger(strength, duration, frequency, tag);
+    return true;
   }
 
   update(dt: number): void {
@@ -61,3 +89,4 @@ export class ScreenShakeController {
     this.offsetY = 0;
   }
 }
+

@@ -71,13 +71,10 @@ export class Camera {
 
     // Apply screen shake to camera position and zoom
     const shakeOffset = this.screenShake.getOffset();
-    this.x += shakeOffset.x / this.zoom; // Convert screen space to world space
-    this.y += shakeOffset.y / this.zoom;
-    
-    // // Optional: Apply shake to zoom for more dramatic effect
-    // const shakeIntensity = Math.sqrt(shakeOffset.x * shakeOffset.x + shakeOffset.y * shakeOffset.y);
-    // const zoomShake = (shakeIntensity / 100) * 0.02; // Adjust multiplier as needed
-    // this.zoom += zoomShake;
+    const pxToWorld = getUniformScaleFactor() / this.zoom;
+
+    this.x += shakeOffset.x * pxToWorld;
+    this.y += shakeOffset.y * pxToWorld;
 
     // === Zoom interpolation ===
     if (this.zoomAnimationTarget !== null) {
@@ -229,8 +226,8 @@ export class Camera {
     this.viewportHeight = newHeight;
   }
 
-  private readonly handleShakeEvent = ({ strength, duration, frequency }: EventTypes['camera:shake']) => {
-    this.screenShake.trigger(strength, duration, frequency);
+  private readonly handleShakeEvent = ({ strength, duration, frequency, tag }: EventTypes['camera:shake']) => {
+    this.screenShake.triggerIfAllowed(strength, duration, frequency, tag);
   };
 
   private cleanup(): void {

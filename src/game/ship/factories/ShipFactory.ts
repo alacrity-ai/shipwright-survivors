@@ -133,6 +133,7 @@ export class ShipFactory {
 
     ship.hideAllBlocks();
     ship.updateBlockPositions();
+    ship.setInitialMass(ship.getTotalMass());
 
     const auraLightColor = isPlayerShip ? '#ADD8E6' : '#ff0000';
     const auraLightOptions: AuraLightOptions = {
@@ -231,6 +232,7 @@ export class ShipFactory {
 
     ship.hideAllBlocks();
     ship.updateBlockPositions();
+    ship.setInitialMass(ship.getTotalMass());
 
     const auraLightColor = isPlayerShip ? '#ADD8E6' : '#ff0000';
     const auraLightOptions: AuraLightOptions = {

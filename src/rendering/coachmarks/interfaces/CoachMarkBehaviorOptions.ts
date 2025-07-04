@@ -10,7 +10,8 @@ export type CoachMarkType =
   'gamepadFaceButtons' |
   'gamepadFaceButton' |
   'gamepadSticks' |
-  'gamepadShoulders';
+  'gamepadShoulders' | 
+  'gamepadDpad';
 
 interface BaseCoachMarkBehaviorOptions {
   duration?: number;
@@ -110,7 +111,6 @@ export interface GamepadSticksCoachMarkBehavior extends BaseCoachMarkBehaviorOpt
   highlightColor?: string;
 }
 
-// inside CoachMarkBehaviorOptions.ts
 export type GamepadShoulderButton = 'leftBumper' | 'rightBumper' | 'leftTrigger' | 'rightTrigger';
 
 export interface GamepadShoulderButtonsCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
@@ -121,6 +121,17 @@ export interface GamepadShoulderButtonsCoachMarkBehavior extends BaseCoachMarkBe
   borderColor?: string;
   fillColor?: string;
   highlightColor?: string;
+}
+
+export type DPadDirection = 'up' | 'down' | 'left' | 'right';
+
+export interface GamepadDPadCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
+  type: 'gamepadDpad';
+  size?: number;
+  borderColor?: string;
+  fillColor?: string;
+  highlightColor?: string;
+  highlightDirections?: DPadDirection[];
 }
 
 // === Unified Union ===
@@ -134,5 +145,6 @@ export type CoachMarkBehaviorOptions =
   | GamepadFaceButtonsCoachMarkBehavior
   | GamepadFaceButtonCoachMarkBehavior
   | GamepadSticksCoachMarkBehavior
-  | GamepadShoulderButtonsCoachMarkBehavior;
+  | GamepadShoulderButtonsCoachMarkBehavior
+  | GamepadDPadCoachMarkBehavior;
 

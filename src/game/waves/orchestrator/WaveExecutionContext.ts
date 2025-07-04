@@ -10,6 +10,8 @@ import type { WaveModifiersApplier } from '@/game/waves/executor/WaveModifiersAp
 
 import { GlobalEnemyCullingSystem } from '@/systems/culling/GlobalEnemyCullingSystem';
 
+import { shakeOnShipDestruction } from '@/game/waves/orchestrator/helpers/shakeOnShipDestruction';
+
 import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { getDistance } from '@/shared/vectorUtils';
@@ -82,6 +84,7 @@ export class WaveExecutionContext {
     this.allShips.delete(ship);
 
     if (cause !== 'replaced') {
+      shakeOnShipDestruction(ship);
       missionResultStore.incrementKillCount();
     }
 
@@ -172,16 +175,6 @@ export class WaveExecutionContext {
     this.enemyCullingSystem.update(dt);
 
     for (const group of this.groupMap.values()) {
-      // // Cull ships that are too far
-      // for (const ship of [...group.remaining]) {
-      //   const shipPos = ship.getTransform().position;
-      //   const dist = getDistance(playerPos, shipPos);
-      //   if (dist > MAX_THREAT_DISTANCE) {
-      //     ship.setDestructionCause('replaced');
-      //     destroyEntityExternally(ship, 'replaced');
-      //   }
-      // }
-
       // Replenish quota
       const desiredCount = group.entry.count ?? 0;
       const currentCount = group.remaining.size;

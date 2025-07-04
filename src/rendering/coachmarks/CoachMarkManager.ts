@@ -15,6 +15,7 @@ import { GamepadFaceButtonsCoachMark } from '@/rendering/coachmarks/entities/Gam
 import { GamePadFaceButtonCoachMark } from '@/rendering/coachmarks/entities/GamepadFaceButtonCoachMark';
 import { GamepadSticksCoachMark } from '@/rendering/coachmarks/entities/GamepadSticksCoachMark';
 import { GamepadShoulderButtonsCoachMark } from '@/rendering/coachmarks/entities/GamepadShoulderButtonsCoachMark';
+import { GamepadDPadCoachMark } from '@/rendering/coachmarks/entities/GamepadDpadCoachMark';
 
 import type {
   CoachMarkBehaviorOptions,
@@ -27,7 +28,8 @@ import type {
   GamepadFaceButtonsCoachMarkBehavior,
   GamepadSticksCoachMarkBehavior,
   GamepadShoulderButtonsCoachMarkBehavior,
-  GamepadFaceButtonCoachMarkBehavior
+  GamepadFaceButtonCoachMarkBehavior,
+  GamepadDPadCoachMarkBehavior
 } from '@/rendering/coachmarks/interfaces/CoachMarkBehaviorOptions';
 
 import { CanvasManager } from '@/core/CanvasManager';
@@ -122,6 +124,9 @@ export class CoachMarkManager {
         break;
       case 'gamepadShoulders':
         entity = new GamepadShoulderButtonsCoachMark(resolver, behavior as GamepadShoulderButtonsCoachMarkBehavior);
+        break;
+      case 'gamepadDpad':
+        entity = new GamepadDPadCoachMark(resolver, behavior as GamepadDPadCoachMarkBehavior);
         break;
       default: {
         const exhaustiveCheck: never = behavior;

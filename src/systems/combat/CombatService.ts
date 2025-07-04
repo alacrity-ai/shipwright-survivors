@@ -304,7 +304,7 @@ export class CombatService {
           file: 'assets/sounds/sfx/explosions/explosion_01.wav',
           channel: 'sfx',
           baseVolume: 0.8,
-          pitchRange: [1.0, 1.2],
+          pitchRange: [0.9, 1.4],
           volumeJitter: 0.2,
         });
 
@@ -404,7 +404,7 @@ export class CombatService {
       file: 'assets/sounds/sfx/explosions/explosion_01.wav',
       channel: 'sfx',
       baseVolume: 0.8,
-      pitchRange: [1.0, 1.2],
+      pitchRange: [0.9, 1.4],
       volumeJitter: 0.2,
     });
 

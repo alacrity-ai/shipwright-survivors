@@ -58,21 +58,21 @@ export class PlayerExperienceBar {
 
     const scale = getUniformScaleFactor();
     const ctx = CanvasManager.getInstance().getContext('ui');
-    const screenX = Math.floor(900 * scale) + Math.floor(80 * scale);
-    const y = ctx.canvas.height - Math.floor(24 * scale);
+    const screenX = Math.floor(550 * scale) + Math.floor(80 * scale);
+    const y = ctx.canvas.height - Math.floor(100 * scale);
     const screenY = y - Math.floor(12 * scale);
 
     this.textManager?.createScreenText(
       `+${amount}`,
       screenX,
       screenY,
-      12,
+      14,
       'monospace',
       1,
       100,
       1.0,
       '#FFD700',
-      { impactScale: 1.5 },
+      { impactScale: 2.0 },
       'currency'
     );
 

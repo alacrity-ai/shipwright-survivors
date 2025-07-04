@@ -67,6 +67,7 @@ export class Ship extends CompositeBlockObject {
 
   // Check to see if the ship has or had engines ever
   private hadEngines: boolean = false;
+  private initialMass: number = 0;
 
   private destructionCause: string = 'combat'; // default fallback
 
@@ -178,6 +179,14 @@ export class Ship extends CompositeBlockObject {
   public getHasAtleastOneOriginalEngine(): boolean {
     if (!this.hadEngines) return true;
     return this.engineBlocks.size > 0 && this.hadEngines;
+  }
+
+  public getInitialMass(): number {
+    return this.initialMass;
+  }
+
+  public setInitialMass(mass: number): void {
+    this.initialMass = mass;
   }
 
   // Light
