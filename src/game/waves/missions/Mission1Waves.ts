@@ -175,21 +175,6 @@ export const waveDefinitions: WaveDefinition[] = [
     spawnDistribution: 'aroundPlayer',
     mods: [],
     ships: [
-      // { shipId: 'wave_0_00', count: 12, affixes: FAST_AFFIXES },
-      // { shipId: 'mission_02/long_range_00', 
-      //   count: 4, 
-      //   hunter: true,
-      //   affixes: FAST_AFFIXES,
-      //   behaviorProfile: {
-      //     ...SiegeBehaviorProfile,
-      //     params: {
-      //       ...SiegeBehaviorProfile.params,
-      //       engagementRange: 2600,
-      //       siegeRange: 2600,
-      //       disengageRange: 5000,
-      //     },
-      //   },
-      // },
       { shipId: 'ship_0_03', count: 4, hunter: true, affixes: FAST_AFFIXES },
       { shipId: 'ship_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
     ],

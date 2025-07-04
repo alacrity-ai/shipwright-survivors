@@ -36,7 +36,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'Shipwright Second-Class',
     dialogue: 'intro-briefing',
     waves: waveSet0,
-    dropMultiplier: 1.0,
+    dropMultiplier: 2.0,
     environmentSettings: {
       backgroundId: 'background_4_00.png',
       gravity: 0,
@@ -46,7 +46,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
     },
-    enemyPower: 0.5,
+    enemyPower: 0.25,
     waveDensity: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
     passiveReward: 1,

@@ -689,8 +689,8 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
             spawnDistribution: 'aroundPlayer',
             duration: Infinity,
             ships: [
-              { shipId: 'wave_0_00', count: 4, hunter: true, affixes: { thrustPowerMulti: 4.0, turnPowerMulti: 3.4 } },
-              { shipId: 'wave_0_01', count: 4, hunter: true, affixes: { thrustPowerMulti: 4.0, turnPowerMulti: 3.4 } },
+              { shipId: 'wave_0_00', count: 4, hunter: true, affixes: { thrustPowerMulti: 5.0, turnPowerMulti: 3.4 } },
+              { shipId: 'wave_0_01', count: 4, hunter: true, affixes: { thrustPowerMulti: 5.0, turnPowerMulti: 3.4 } },
             ],
             mods: [],
             formations: [],
