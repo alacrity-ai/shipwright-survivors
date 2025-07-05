@@ -116,7 +116,7 @@ export class TradePostItemsList {
 
         if (clicked && canAfford && quantity > 0) {
           this.instance.executeTransaction(i);
-          audioManager.play('assets/sounds/sfx/ui/gamblewin_02.wav', 'sfx');
+          audioManager.play('assets/sounds/sfx/ui/gamblewin_02.wav', 'sfx', { maxSimultaneous: 10 });
         }
       }
 

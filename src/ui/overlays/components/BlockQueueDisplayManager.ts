@@ -9,6 +9,8 @@ import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporte
 
 import { GlobalEventBus } from '@/core/EventBus';
 
+import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
+
 import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
 import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
@@ -33,6 +35,8 @@ function getStyleIdFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' 
 
 export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
+  private readonly placeAllBlocksButton: PlaceAllBlocksButton;
+
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
   private readonly BLOCK_CULLING_THRESHOLD = 30;
@@ -90,6 +94,11 @@ export class BlockQueueDisplayManager {
     this.ctx = CanvasManager.getInstance().getContext('ui');
     this.canvas = this.ctx.canvas;
 
+    this.placeAllBlocksButton = new PlaceAllBlocksButton(
+      this.canvas,
+      this.inputManager
+    );
+
     const defaultBlockType = getBlockType('hull0')!;
     this.blockPreviewRenderer = new BlockPreviewRenderer(
       defaultBlockType,
@@ -139,9 +148,14 @@ export class BlockQueueDisplayManager {
 
     this.cardSpacing = this.cardWidth + this.cardMarginX;
     this.fanBaseX = this.windowX + this.windowMarginX;
+
+    // Resize the Place All Blocks Button
+    this.placeAllBlocksButton.resize();
   }
 
   public update(dt: number): void {
+    this.placeAllBlocksButton.update(dt);
+
     const blockQueue = this.playerResources.getBlockQueue();
     if (blockQueue.length === 0) {
       this.floatOffsets.length = 0;
@@ -151,6 +165,7 @@ export class BlockQueueDisplayManager {
     }
 
     this.blockPreviewRenderer.update(dt);
+
     const hovered = this.blockDropDecisionMenu.getHoveredButton();
 
     while (this.floatOffsets.length < blockQueue.length) this.floatOffsets.push(0);
@@ -268,6 +283,9 @@ export class BlockQueueDisplayManager {
 
   render(): void {
     if (this.hidden) return;
+
+    // Render the Place All Blocks Button
+    this.placeAllBlocksButton.render(this.ctx);
 
     const canvas = this.canvas;
     const ctx = this.ctx;

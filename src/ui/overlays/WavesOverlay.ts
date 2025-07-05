@@ -9,6 +9,13 @@ import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { getUniformScaleFactor } from '@/config/view';
 import type { Ship } from '@/game/ship/Ship';
 
+// Utility to format seconds as mm:ss
+function formatElapsedTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
 export class WavesOverlay {
   private readonly onHide = () => this.hide();
   private readonly onShow = () => this.show();
@@ -23,6 +30,9 @@ export class WavesOverlay {
 
   private lastWave = -1;
   private lastCountdown = -1;
+  private lastElapsedTime = -1;
+
+  private elapsedSampleTimer = 0;
 
   private lastBossCurrent = -1;
   private lastBossMax = -1;
@@ -41,7 +51,7 @@ export class WavesOverlay {
 
     this.overlayCacheCanvas = document.createElement('canvas');
     this.overlayCacheCanvas.width = 400 * scale;
-    this.overlayCacheCanvas.height = 60 * scale;
+    this.overlayCacheCanvas.height = 80 * scale;
     this.overlayCacheCtx = this.overlayCacheCanvas.getContext('2d')!;
 
     this.bossBarCacheCanvas = document.createElement('canvas');
@@ -67,13 +77,28 @@ export class WavesOverlay {
     const wave = this.waveOrchestrator.getCurrentWaveNumber();
     const countdown = Math.ceil(this.waveOrchestrator.getTimeUntilNextWave());
     const isBoss = this.waveOrchestrator.isBossWaveActive();
-
     const scale = getUniformScaleFactor();
 
+    // === Throttled Elapsed Time Sampling ===
+    this.elapsedSampleTimer += 1 / 60;
+    let sampledElapsed = this.lastElapsedTime;
+
+    if (this.elapsedSampleTimer >= 1) {
+      sampledElapsed = Math.floor(this.waveOrchestrator.getTimeSinceFirstWaveStarted());
+      this.elapsedSampleTimer = 0;
+    }
+
+    const formattedTime = formatElapsedTime(sampledElapsed);
+
     // === Text Overlay Cache ===
-    if (wave !== this.lastWave || countdown !== this.lastCountdown) {
+    if (
+      wave !== this.lastWave ||
+      countdown !== this.lastCountdown ||
+      sampledElapsed !== this.lastElapsedTime
+    ) {
       this.lastWave = wave;
       this.lastCountdown = countdown;
+      this.lastElapsedTime = sampledElapsed;
 
       const octx = this.overlayCacheCtx;
       octx.clearRect(0, 0, this.overlayCacheCanvas.width, this.overlayCacheCanvas.height);
@@ -83,6 +108,9 @@ export class WavesOverlay {
       const lineHeight = 18 * scale;
 
       drawLabel(octx, x, y, `Wave: ${wave}`, {}, scale);
+      y += lineHeight;
+
+      drawLabel(octx, x, y, `Time: ${formattedTime}`, {}, scale);
       y += lineHeight;
 
       if (isBoss) {

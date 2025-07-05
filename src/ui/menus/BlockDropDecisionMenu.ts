@@ -133,6 +133,7 @@ export class BlockDropDecisionMenu implements Menu {
 
     GlobalEventBus.on('blockqueue:request-place', this.handleBlockQueueRequest);
     GlobalEventBus.on('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
+    GlobalEventBus.on('blockqueue:request-placeall', this.handleBlockQueuePlaceAllRequest);
   }
 
   setPlayerShip(ship: Ship): void {
@@ -603,6 +604,37 @@ export class BlockDropDecisionMenu implements Menu {
     this.clickedButton = 'autoPlaceAll';
   }
 
+  public async externalAutoPlaceAll(): Promise<void> {
+    const archetype = getArchetypeById('interceptor');
+    const delayBase = 300;
+    const delayMin = 10;
+    const decayRate = 0.9;
+
+    let delay = delayBase;
+
+    while (PlayerResources.getInstance().getBlockQueue().length > 0) {
+      if (!this.ship) return;
+
+      const current = this.getCurrentBlockType();
+      if (!current) break;
+
+      const success = autoPlaceBlock(this.ship, current, this.shipBuilderEffects, archetype ?? undefined);
+      if (!success) {
+        audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+        this.restoreButtons();
+        return;
+      }
+
+      PlayerResources.getInstance().dequeueBlock();
+      missionResultStore.incrementBlockPlacedCount();
+
+      // this.advanceQueueOrClose();
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.max(delay * decayRate, delayMin);
+    }
+  }
+
   private handleRoll(): void {
     if (this.rollLocked) return;
 
@@ -689,6 +721,11 @@ export class BlockDropDecisionMenu implements Menu {
       this.didAdvance = true;
     }
   }
+
+  // I NEED HELP HERE <---
+  private handleBlockQueuePlaceAllRequest = (): void => {
+    this.externalAutoPlaceAll();
+  };
 
   private handleBlockQueueRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
     if (!this.ship) return;
@@ -910,6 +947,7 @@ export class BlockDropDecisionMenu implements Menu {
     this.nextBlockPreviewRenderer = null;
     GlobalEventBus.off('blockqueue:request-place', this.handleBlockQueueRequest);
     GlobalEventBus.off('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
+    GlobalEventBus.off('blockqueue:request-placeall', this.handleBlockQueuePlaceAllRequest);
     GlobalEventBus.off('blockdropdecision:attach:lock', this.handleLockAttach);
     GlobalEventBus.off('blockdropdecision:attach:unlock', this.handleUnlockAttach);
     GlobalEventBus.off('blockdropdecision:attach-all:lock', this.handleLockAttachAll);

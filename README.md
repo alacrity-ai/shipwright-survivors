@@ -264,6 +264,7 @@ BUGS:
 
 
 REFINEMENT:
+  - [ ] Rework laser to target the closet target.. add a chain lightning passive
   - [ ] Increase your base entropium pull range based on your mass (do it at invalidate mass)
   - [ ] Decrease the amount of entropium that drops by 33%, increase the amount per drop to compensate
   - [ ] Cap the amount of particles per thruster (e.g. if more than N thrusters, cap them?), or rework thrust particles entirely to reduce particle system load

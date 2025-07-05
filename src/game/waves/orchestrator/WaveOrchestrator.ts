@@ -7,7 +7,6 @@ import type { WaveExecutionContext } from './WaveExecutionContext';
 import type { Ship } from '@/game/ship/Ship';
 
 import { GlobalEventBus } from '@/core/EventBus';
-
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 export class WaveOrchestrator implements IUpdatable {
@@ -16,7 +15,8 @@ export class WaveOrchestrator implements IUpdatable {
   private currentWaveIndex = 0;
   private hasSpawnedFirstWave = false;
 
-  private timeSinceStart = 0;
+  private timeBeforeFirstWave = 0;
+  private accumulatedTimeSinceStart = 0;
   private elapsedTime = 0;
 
   private readonly initialDelay = 10;
@@ -42,7 +42,8 @@ export class WaveOrchestrator implements IUpdatable {
   public start(): void {
     this.isRunning = true;
     this.currentWaveIndex = 0;
-    this.timeSinceStart = 0;
+    this.timeBeforeFirstWave = 0;
+    this.accumulatedTimeSinceStart = 0;
     this.elapsedTime = 0;
     this.hasSpawnedFirstWave = false;
     this.activeWave = null;
@@ -55,14 +56,17 @@ export class WaveOrchestrator implements IUpdatable {
     if (this.pendingWavePromise) return;
 
     if (!this.hasSpawnedFirstWave) {
-      this.timeSinceStart += dt;
-      if (this.timeSinceStart >= this.initialDelay) {
+      this.timeBeforeFirstWave += dt;
+      if (this.timeBeforeFirstWave >= this.initialDelay) {
         this.pendingWavePromise = this.spawnNextWave().then(() => {
           this.pendingWavePromise = null;
         });
       }
       return;
     }
+
+    // Accumulate total runtime since wave start
+    this.accumulatedTimeSinceStart += dt;
 
     if (this.currentWaveIndex >= this.waves.length) return;
 
@@ -77,15 +81,14 @@ export class WaveOrchestrator implements IUpdatable {
     if (interval !== Infinity) {
       this.elapsedTime += dt;
       if (this.elapsedTime >= interval) {
-        missionResultStore.incrementWavesCleared(); // Award wave completion
+        missionResultStore.incrementWavesCleared();
         this.pendingWavePromise = this.spawnNextWave().then(() => {
           this.pendingWavePromise = null;
         });
       }
     } else {
-      // For infinite-duration waves (e.g. bosses), wait for completion signal
       if (this.isActiveWaveCompleted()) {
-        missionResultStore.incrementWavesCleared(); // Award wave completion
+        missionResultStore.incrementWavesCleared();
         this.pendingWavePromise = this.spawnNextWave().then(() => {
           this.pendingWavePromise = null;
         });
@@ -100,7 +103,7 @@ export class WaveOrchestrator implements IUpdatable {
     this.activeWave = await this.executor.execute(def, this.currentWaveIndex);
     this.currentWaveIndex++;
     this.elapsedTime = 0;
-    this.hasSpawnedFirstWave = true; // Ensure we're past the initial delay phase
+    this.hasSpawnedFirstWave = true;
   }
 
   public getCurrentWaveNumber(): number {
@@ -111,15 +114,18 @@ export class WaveOrchestrator implements IUpdatable {
     if (!this.isRunning || this.isPaused || this.pendingWavePromise) return -1;
 
     if (!this.hasSpawnedFirstWave) {
-      return Math.ceil(this.initialDelay - this.timeSinceStart);
+      return Math.ceil(this.initialDelay - this.timeBeforeFirstWave);
     }
 
-    // Use the currently active wave definition
     const def = this.activeWave?.getWave() || this.waves[Math.max(0, this.currentWaveIndex - 1)];
     const interval = def?.duration ?? this.defaultWaveInterval;
     if (interval === Infinity) return -1;
 
     return Math.max(0, interval - this.elapsedTime);
+  }
+
+  public getTimeSinceFirstWaveStarted(): number {
+    return this.accumulatedTimeSinceStart;
   }
 
   public areAllWavesCompleted(): boolean {
@@ -166,13 +172,13 @@ export class WaveOrchestrator implements IUpdatable {
     return this.activeWave?.getBossShips() ?? [];
   }
 
-  // Event Handlers
-  private handleOneShotSpawn = async ({ tag, wave }: { tag: string; wave: WaveDefinition }): Promise<void> => {
-    if (this.singleShotWaves.has(tag)) return; // Avoid double-spawn
+  // === One-shot Wave Handlers ===
 
-    // Customize the aura light for one-shot waves
+  private handleOneShotSpawn = async ({ tag, wave }: { tag: string; wave: WaveDefinition }): Promise<void> => {
+    if (this.singleShotWaves.has(tag)) return;
+
     const ctx = await this.executor.execute(wave, -1, tag, {
-      color: '#aa66ff',   // Aesthetic violet tone (deep but vibrant)
+      color: '#aa66ff',
       radius: 400,
       intensity: 1.6,
     });

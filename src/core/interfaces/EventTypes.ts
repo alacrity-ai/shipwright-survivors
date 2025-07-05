@@ -193,4 +193,6 @@ export interface EventTypes {
     blockTypeId: string;
     index: number;
   };
+
+  'blockqueue:request-placeall': undefined;
 }

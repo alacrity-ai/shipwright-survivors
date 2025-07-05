@@ -2,6 +2,10 @@
 
 import { GlobalEventBus } from '@/core/EventBus';
 
+export function requestPlaceAllBlocksInQueue(): void {
+  GlobalEventBus.emit('blockqueue:request-placeall', undefined);
+}
+
 /**
  * Emits an intent to place a block from the player's block queue.
  * This does not guarantee placement — the receiving system must validate it.

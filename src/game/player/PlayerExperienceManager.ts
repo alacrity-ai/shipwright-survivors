@@ -104,18 +104,6 @@ export class PlayerExperienceManager {
 
   private getEntropiumRequirement(level: number): number {
     if (level <= 1) return 100;
-    if (level === 2) return 400;
-    if (level === 3) return 800;
-    if (level === 4) return 1200;
-    if (level === 5) return 1700;
-    if (level === 6) return 2200;
-    if (level === 7) return 2800;
-    if (level === 8) return 3600;
-    if (level === 9) return 4500;
-    if (level === 10) return 5000;
-    if (level === 11) return 5500;
-    if (level === 12) return 6000;
-    if (level === 13) return 6500;
-    return 7000; // fixed cost after level 10
+    return 500 * (level - 1);
   }
 }

@@ -17,6 +17,8 @@ import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import { flags } from '@/game/player/PlayerFlagManager';
 
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
 import type { InputManager } from '@/core/InputManager';
 import type { Menu } from '@/ui/interfaces/Menu';
@@ -52,11 +54,11 @@ export class PowerupSelectionMenu implements Menu {
   private windowHeight: number = BASE_WINDOW_HEIGHT;
   private rowHeight: number = BASE_ROW_HEIGHT;
 
-  private SLIDE_IN_SPEED = 6000;
-  private SLIDE_OUT_SPEED = 6000;
+  private SLIDE_IN_SPEED = 7000;
+  private SLIDE_OUT_SPEED = 8000;
   private OVERSHOOT_DISTANCE = 200;
   private CORRECTION_SPEED = 1000;
-  private SELECTION_ANIMATION_DURATION = 0.8;
+  private SELECTION_ANIMATION_DURATION = 0.5;
 
   // Gamepad support
   private navManager: GamepadMenuInteractionManager;
@@ -73,6 +75,7 @@ export class PowerupSelectionMenu implements Menu {
 
   openMenu(levelUps: number = 1): void {
     flags.set('mission.intro-briefing.powerupMenuOpened');
+    GlobalMenuReporter.getInstance().setMenuOpen('powerupSelectionMenu');
 
     this.levelUpsRemaining = levelUps;
 
@@ -97,6 +100,7 @@ export class PowerupSelectionMenu implements Menu {
   }
 
   closeMenu(): void {
+    GlobalMenuReporter.getInstance().setMenuClosed('powerupSelectionMenu');
     this.open = false;
     this.navManager.clearNavMap();
   }

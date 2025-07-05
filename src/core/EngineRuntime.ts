@@ -8,6 +8,7 @@ import { audioManager } from '@/audio/Audio';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
+import { GlobalMenuReporter } from './GlobalMenuReporter';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
@@ -1091,6 +1092,7 @@ export class EngineRuntime {
     MenuManager.getInstance().reset();
     CoachMarkManager.getInstance().clear();
     SpriteRendererGL.destroyInstance();
+    GlobalMenuReporter.getInstance().destroy();
 
     // Additional cleanup
     this.pickupSystem.destroy();
