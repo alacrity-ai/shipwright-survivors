@@ -16,12 +16,12 @@ import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { getTierFromBlockType } from '@/game/blocks/BlockRegistry';
 import { getAllBlocksInTier } from '@/game/blocks/BlockRegistry';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
-import { menuOpened, menuClosed } from '@/core/interfaces/events/MenuOpenReporter';
+import { menuOpened, menuClosed } from '@/core/interfaces/events/MenuOpenReporter'; // Deprecated
 import { PlayerResources } from '@/game/player/PlayerResources';
 
 import { GlobalEventBus } from '@/core/EventBus';
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
-// import { autoPlaceBlock } from '@/ui/menus/helpers/autoPlaceBlock'; // OLD METHOD
 import { autoPlaceBlockWithArchetype as autoPlaceBlock } from '@/systems/autoplacement/autoPlaceAdvanced';
 import { getArchetypeById } from '@/systems/autoplacement/ShipArchetypeSystem';
 
@@ -303,7 +303,8 @@ export class BlockDropDecisionMenu implements Menu {
     this.preOpenTimer = this.PRE_OPEN_DURATION;
     this.open = true;
 
-    menuOpened('blockDropDecisionMenu');
+    GlobalMenuReporter.getInstance().setMenuOpen('blockDropDecisionMenu');
+    menuOpened('blockDropDecisionMenu'); // Deprecated
   }
 
   enqueueBlock(blockType: BlockType): void {
@@ -324,7 +325,7 @@ export class BlockDropDecisionMenu implements Menu {
       this.animationPhase = 'sliding-out';
       Camera.getInstance().animateZoomTo(this.originalZoom);
       this.isAutoPlacingAll = false;
-      menuClosed('blockDropDecisionMenu');
+      menuClosed('blockDropDecisionMenu'); // Deprecated
       return;
     }
 
@@ -391,6 +392,7 @@ export class BlockDropDecisionMenu implements Menu {
           this.animationPhase = null;
           this.isAnimating = false;
           this.open = false;
+          GlobalMenuReporter.getInstance().setMenuClosed('blockDropDecisionMenu');
           this.blockPreviewRenderer = null;
           this.nextBlockPreviewRenderer = null;
           this.hoveredButton = null;
@@ -716,7 +718,7 @@ export class BlockDropDecisionMenu implements Menu {
       this.animationPhase = 'sliding-out';
       Camera.getInstance().animateZoomTo(this.originalZoom);
       this.isAutoPlacingAll = false;
-      menuClosed('blockDropDecisionMenu');
+      menuClosed('blockDropDecisionMenu'); // Deprecated
     } else {
       this.didAdvance = true;
     }
@@ -905,6 +907,7 @@ export class BlockDropDecisionMenu implements Menu {
     this.coachMarksVisible = false;
     CoachMarkManager.getInstance().clear();
     this.open = false;
+    GlobalMenuReporter.getInstance().setMenuClosed('blockDropDecisionMenu');
     this.nextBlockPreviewRenderer = null;
     menuClosed('blockDropDecisionMenu');
   }

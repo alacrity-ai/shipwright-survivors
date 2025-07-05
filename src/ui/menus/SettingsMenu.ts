@@ -7,6 +7,8 @@ import type { AudioChannel } from '@/audio/AudioManager';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Camera } from '@/core/Camera';
 
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+
 import { drawCheckbox, type UICheckbox } from '@/ui/primitives/UICheckBox';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
@@ -128,7 +130,10 @@ export class SettingsMenu implements Menu {
       label: 'Close',
       onClick: () => {
         const pauseMenu = this.menuManager.getMenu('pauseMenu');
-        if (pauseMenu) this.menuManager.transition(pauseMenu);
+        if (pauseMenu) {
+          GlobalMenuReporter.getInstance().setMenuClosed('settingsMenu');
+          this.menuManager.transition(pauseMenu)
+        }
       },
       style: {
         borderRadius: 10,
@@ -434,12 +439,14 @@ export class SettingsMenu implements Menu {
 
   openMenu(): void {
     this.open = true;
+    GlobalMenuReporter.getInstance().setMenuOpen('settingsMenu');
     this.inputManager.setGamepadMousemockingEnabled(true);
     this.inputManager.setGamepadCursorOverrideEnabled(false);
   }
 
   closeMenu(): void {
     this.open = false;
+    GlobalMenuReporter.getInstance().setMenuClosed('settingsMenu');
     this.inputManager.setGamepadMousemockingEnabled(true);
     this.inputManager.setGamepadCursorOverrideEnabled(true);
   }

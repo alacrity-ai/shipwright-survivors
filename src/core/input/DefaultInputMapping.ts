@@ -31,6 +31,8 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
 
   zoomIn:           { keys: ['WheelUp'], gamepadButtons: ['dpadUp'] },
   zoomOut:          { keys: ['WheelDown'], gamepadButtons: ['dpadDown'] },
+
+  placeAllBlocksButton: { keys: ['KeyE'], gamepadButtons: ['A'] },
 };
 
 /*

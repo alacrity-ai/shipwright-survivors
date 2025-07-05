@@ -4,6 +4,7 @@ export class GlobalMenuReporter {
   private static instance: GlobalMenuReporter | null = null;
 
   private openMenus: Set<string> = new Set();
+  private hoveredOverlays: Set<string> = new Set();
 
   private constructor() {
     // Singleton: disallow external instantiation
@@ -35,6 +36,41 @@ export class GlobalMenuReporter {
    */
   public isMenuOpen(tag: string): boolean {
     return this.openMenus.has(tag);
+  }
+
+  /**
+   * Returns true if any menu is currently open.
+   */
+  public isAnyMenuOpen(): boolean {
+    return this.openMenus.size > 0;
+  }
+
+  /**
+   * Mark the specified overlay tag as hovered.
+   */
+  public setOverlayHovered(tag: string): void {
+    this.hoveredOverlays.add(tag);
+  }
+
+  /**
+   * Mark the specified overlay tag as no longer hovered.
+   */
+  public setOverlayNotHovered(tag: string): void {
+    this.hoveredOverlays.delete(tag);
+  }
+
+  /**
+   * Returns true if the given overlay tag is currently hovered.
+   */
+  public isOverlayHovered(tag: string): boolean {
+    return this.hoveredOverlays.has(tag);
+  }
+
+  /**
+   * Returns true if any overlay is currently hovered.
+   */
+  public isAnyOverlayHovered(): boolean {
+    return this.hoveredOverlays.size > 0;
   }
 
   /**

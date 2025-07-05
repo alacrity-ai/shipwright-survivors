@@ -6,13 +6,9 @@ import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { InputManager } from '@/core/InputManager';
 
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
-
 import { GlobalEventBus } from '@/core/EventBus';
-
 import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
-
 import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
-import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { brightenColor } from '@/shared/colorUtils';
@@ -21,6 +17,7 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
 function getStyleIdFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' {
   switch (tier) {
@@ -369,10 +366,11 @@ export class BlockQueueDisplayManager {
       borderAlpha = Math.min(1.0, borderAlpha + 0.3);
       borderColor = brightenColor(borderColor, 0.2);
       setCursor('hovered');
-      reportOverlayInteracting();
+      GlobalMenuReporter.getInstance().setOverlayHovered('blockQueueDisplay');
       this.cursorRestored = false;
     } else {
       if (!this.cursorRestored) {
+        GlobalMenuReporter.getInstance().setOverlayNotHovered('blockQueueDisplay');
         this.cursorRestored = true;
         restoreCursor();
       }

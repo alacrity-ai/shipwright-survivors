@@ -11,6 +11,7 @@ import { flags } from '@/game/player/PlayerFlagManager';
 import { DEFAULT_CONFIG } from '@/config/ui';
 
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
 import type { MenuManager } from '@/ui/MenuManager';
 import type { UIButton } from '@/ui/primitives/UIButton';
@@ -94,7 +95,10 @@ export class PauseMenu implements Menu {
       label: 'Settings',
       onClick: () => {
         const settingsMenu = this.menuManager.getMenu('settingsMenu');
-        if (settingsMenu) this.menuManager.transition(settingsMenu);
+        if (settingsMenu) {
+          this.menuManager.transition(settingsMenu);
+          GlobalMenuReporter.getInstance().setMenuClosed('pauseMenu');
+        }
       },
       style: this.sharedStyle
     };
@@ -185,6 +189,7 @@ export class PauseMenu implements Menu {
   openMenu(): void {
     this.initialize();
     this.open = true;
+    GlobalMenuReporter.getInstance().setMenuOpen('pauseMenu');
     addPostProcessEffect('blackwhite');
 
     const usingGamepad = this.inputManager.isUsingGamepad?.() ?? false;
@@ -230,6 +235,7 @@ export class PauseMenu implements Menu {
 
   closeMenu(): void {
     this.open = false;
+    GlobalMenuReporter.getInstance().setMenuClosed('pauseMenu');
     removePostProcessEffect('blackwhite');
     this.navManager.clearNavMap();
   }

@@ -10,7 +10,6 @@ export interface UIMinimalistButton {
   height: number;
   label: string;
   isHovered: boolean;
-  isActive: boolean;
   onClick: () => void;
   iconCanvas?: HTMLCanvasElement;
   style?: {
@@ -19,7 +18,6 @@ export interface UIMinimalistButton {
     borderColor?: string;
     textColor?: string;
     highlightColor?: string;
-    pulse?: boolean;
     alpha?: number;
     fontSize?: number;
   };
@@ -29,7 +27,6 @@ export function drawMinimalistButton(
   ctx: CanvasRenderingContext2D,
   button: UIMinimalistButton,
   uiScale: number = 1.0,
-  animationTime: number = 0
 ): void {
   const {
     x,
@@ -38,7 +35,6 @@ export function drawMinimalistButton(
     height,
     label,
     isHovered,
-    isActive,
     iconCanvas,
     style = {},
   } = button;
@@ -48,8 +44,6 @@ export function drawMinimalistButton(
     fillColor = '#001122',
     borderColor = '#00FFFF',
     textColor = '#00FFFF',
-    highlightColor = '#00FFFF',
-    pulse = true,
     alpha = 1.0,
     fontSize = 16,
   } = style;
@@ -64,15 +58,12 @@ export function drawMinimalistButton(
   let effectiveFillColor = fillColor;
   let effectiveBorderColor = borderColor;
 
-  if (pulse && isActive) {
-    const sin = Math.sin(animationTime * Math.PI * 2 * 0.5); // 0.5Hz pulse
-    const normalized = 0.5 + 0.5 * sin;
-    effectiveBorderColor = applyAlpha(highlightColor, 0.3 + 0.4 * normalized);
-  } else if (isHovered) {
+  if (isHovered) {
     effectiveBorderColor = brightenColor(borderColor, 0.8);
     effectiveFillColor = brightenColor(fillColor, 0.3);
   }
 
+  // === Apply global alpha ===
   ctx.save();
   ctx.globalAlpha = alpha;
 
@@ -111,12 +102,4 @@ export function drawMinimalistButton(
   }
 
   ctx.restore();
-}
-
-function applyAlpha(hexColor: string, alpha: number): string {
-  const clamped = Math.max(0, Math.min(1, alpha));
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${clamped.toFixed(2)})`;
 }

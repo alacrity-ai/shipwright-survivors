@@ -11,6 +11,8 @@ import type { Ship } from '@/game/ship/Ship';
 
 import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
 
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+
 import { GlobalEventBus } from '@/core/EventBus';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
@@ -53,6 +55,29 @@ export class PlayerControllerSystem {
   };
 
   public getIntent(): ShipIntent {
+    // Early exit if menus or overlays are interacting
+    if (GlobalMenuReporter.getInstance().isAnyMenuOpen() || GlobalMenuReporter.getInstance().isAnyOverlayHovered()) return {
+      movement: {
+        thrustForward: false,
+        brake: false,
+        rotateLeft: false,
+        rotateRight: false,
+        strafeLeft: false,
+        strafeRight: false,
+        turnToAngle: undefined,
+        afterburner: false,
+      },
+      weapons: {
+        firePrimary: false,
+        fireSecondary: false,
+        aimAt: null,
+        firingMode: this.playerShip.getFiringMode(),
+      },
+      utility: {
+        toggleShields: false,
+      },
+    };
+
     // Update ship position in ship grid | TODO: Should go somewhere agnostic that is run every frame.
     ShipGrid.getInstance().updateShipPosition(this.playerShip);
 

@@ -54,19 +54,6 @@ export function getPlaceAllBlocksIcon(): HTMLCanvasElement {
     ctx.stroke();
   }
 
-  // Optional: downward arrow in the center-bottom
-  // ctx.beginPath();
-  // ctx.moveTo(32, 54);
-  // ctx.lineTo(26, 48);
-  // ctx.lineTo(30, 48);
-  // ctx.lineTo(30, 42);
-  // ctx.lineTo(34, 42);
-  // ctx.lineTo(34, 48);
-  // ctx.lineTo(38, 48);
-  // ctx.closePath();
-  // ctx.fillStyle = blockColor;
-  // ctx.fill();
-
   ctx.restore();
 
   cachedPlaceAllIconCanvas = canvas;
