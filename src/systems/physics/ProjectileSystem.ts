@@ -127,6 +127,7 @@ export class ProjectileSystem {
       const affixes = ship?.getAffixes() ?? {};
       velocity.x *= affixes.projectileSpeedMulti ?? 1;
       velocity.y *= affixes.projectileSpeedMulti ?? 1;
+      lifetime *= affixes.projectileLifetimeMulti ?? 1;
     }
 
     const particle = this.particleManager.emitParticle(origin, {

@@ -5,6 +5,8 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedBlockObject } from '@/systems/serialization/CompositeBlockObjectSerializer';
 
+import { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
+
 import { randomFromArray } from '@/shared/arrayUtils';
 import { Grid } from '@/systems/physics/Grid';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
@@ -113,6 +115,11 @@ export abstract class CompositeBlockObject {
       result.set(key, entry.block);
     }
     return result;
+  }
+
+  // --- Affixes Placeholder to avoid heavy use of typeOf
+  public getAffixes(): ShipAffixes {
+    return {};
   }
 
   /**

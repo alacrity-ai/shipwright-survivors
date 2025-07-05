@@ -3,7 +3,8 @@
 export interface ShipAffixes {
   fireRateMulti?: number;
   fireDamageMulti?: number; // Not implemented yet
-  projectileSpeedMulti?: number; // Not implemented yet
+  projectileSpeedMulti?: number;
+  projectileLifetimeMulti?: number;
   accuracyMulti?: number; // Not implemented yet
   energyCostMulti?: number; // Not implemented yet
   thrustPowerMulti?: number;
@@ -17,4 +18,5 @@ export interface ShipAffixes {
   rammingDamageInflictMultiplier?: number;
   rammingArmorMultiplier?: number;
   invulnerable?: boolean;
+  blockDropRateMulti?: number;
 }

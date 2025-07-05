@@ -8,8 +8,24 @@ export const mission2TradePost1: TradePost = {
     {
       item: {
         type: 'block',
-        id: 'engine3',
-        wants: ['engine1', 'engine1', 'engine1']
+        id: 'heatSeeker2',
+        wants: ['hull2', 'hull2', 'hull2']
+      },
+      quantity: 3
+    },
+    {
+      item: {
+        type: 'block',
+        id: 'explosiveLance2',
+        wants: ['fin2', 'fin2', 'fin2']
+      },
+      quantity: 3
+    },
+    {
+      item: {
+        type: 'block',
+        id: 'turret2',
+        wants: ['facetplate2', 'facetplate2', 'facetplate2']
       },
       quantity: 3
     }

@@ -140,7 +140,8 @@ export class CompositeBlockDestructionService {
             undefined,
             DEFAULT_EXPLOSION_SPARK_PALETTE
           );
-          this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+          const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
+          this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
         },
       });
     });
@@ -181,7 +182,8 @@ export class CompositeBlockDestructionService {
                   undefined,
                   DEFAULT_EXPLOSION_SPARK_PALETTE
                 );
-                this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+                const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
+                this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
               },
             });
           }

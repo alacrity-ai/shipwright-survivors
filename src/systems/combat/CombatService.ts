@@ -289,7 +289,8 @@ export class CombatService {
       maxSimultaneous: 3,
     });
 
-    this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+    const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;    
+    this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
     entity.removeBlock(coord);
     if (entity instanceof Ship && entity.getIsPlayerShip?.()) {
       missionResultStore.incrementBlocksLost(1);
@@ -337,7 +338,8 @@ export class CombatService {
           DEFAULT_EXPLOSION_SPARK_PALETTE,
         );
 
-        this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock);
+        const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;        
+        this.pickupSpawner.spawnPickupOnBlockDestruction(orphanBlock, blockDropRateMulti);
         orphanCoords.push(blockCoord);
         orphanBlocks.push(orphanBlock);
       }
@@ -392,7 +394,8 @@ export class CombatService {
         DEFAULT_EXPLOSION_SPARK_PALETTE,
       );
 
-      this.pickupSpawner.spawnPickupOnBlockDestruction(block);
+      const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;      
+      this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);      
       remainingCoords.push(coord);
       remainingBlocks.push(block);
     }

@@ -1,0 +1,158 @@
+{
+  "transform": {
+    "position": {
+      "x": 575.0679122000023,
+      "y": -504.6187576000016
+    },
+    "rotation": 0
+  },
+  "blocks": [
+    {
+      "id": "cockpit0",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "engine1",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 0,
+        "y": -2
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 180
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -2,
+        "y": 1
+      },
+      "rotation": 90
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 2,
+        "y": 1
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -2,
+        "y": 0
+      },
+      "rotation": 90
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -2,
+        "y": 2
+      },
+      "rotation": 180
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 2,
+        "y": 2
+      },
+      "rotation": 270
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 2,
+        "y": 0
+      },
+      "rotation": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -1,
+        "y": 2
+      },
+      "rotation": 180
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 1,
+        "y": 2
+      },
+      "rotation": 180
+    }
+  ],
+  "behavior": {
+    "type": "default"
+  }
+}

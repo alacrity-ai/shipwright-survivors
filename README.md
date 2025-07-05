@@ -252,6 +252,7 @@ TODOS:
     - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
     - [ ] Make better first boss.
 BUGS:
+  - [ ] If no waves are cleared (e.g. instant abandon), then progress bar in debriefing is stuck
   - [x] Tutorial Gamepad for Zoom Controls.  Not registering input, need to use D-Pad coachmark
   - [ ] Starting a new game, after having quit to main menu from another game does not work. Playerflags needs clear?
   - [ ] Levelup menu and block drop decision menu clash
@@ -263,6 +264,11 @@ BUGS:
 
 
 REFINEMENT:
+  - [ ] Increase your base entropium pull range based on your mass (do it at invalidate mass)
+  - [ ] Decrease the amount of entropium that drops by 33%, increase the amount per drop to compensate
+  - [ ] Cap the amount of particles per thruster (e.g. if more than N thrusters, cap them?), or rework thrust particles entirely to reduce particle system load
+  - [ ] Incident completion / cursed cargo completion sound is the same as leveling. fix that.
+  - [ ] Shouldn't be able to collide with enemies until they are finished spawning
   - [x] Screenshake not normalized to resolution, shakes way harder on 1080p than 4k.
     - [x] Smooth / reduce excessive screenshake when killing many enemies
   - [x] Floating text needs to be centered above entropium exp bar when gaining entropium

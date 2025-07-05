@@ -480,7 +480,7 @@ const blockTypes: Record<string, BlockType> = {
       fire: {
         fireType: 'laser',
         fireRate: 0,
-        energyCost: 0.15,
+        energyCost: 0.01,
         fireDamage: 1,
         projectileSpeed: 0,
         lifetime: 0, 
@@ -661,7 +661,7 @@ const blockTypes: Record<string, BlockType> = {
     mass: 40,
     behavior: {
       shieldEfficiency: 0.5,
-      shieldRadius: 2,
+      shieldRadius: 3,
       energyMaxIncrease: 30,
       shieldEnergyDrain: 1,
     },

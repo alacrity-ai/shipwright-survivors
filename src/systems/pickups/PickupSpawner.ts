@@ -118,7 +118,7 @@ export class PickupSpawner {
 
   // === Block destruction hooks ===
 
-  spawnPickupOnBlockDestruction(block: BlockInstance): void {
+  spawnPickupOnBlockDestruction(block: BlockInstance, blockDropRateMulti: number): void {
     if (this.pickupDropsDisabled) return;
 
     const blockType = block.type;
@@ -126,7 +126,7 @@ export class PickupSpawner {
     const baseDropRate = blockType.dropRate ?? 0;
     const missionMultiplier = missionLoader.getDropMultiplier();
     const passiveDropMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('block-drop-rate');
-    const effectiveDropRate = Math.min(baseDropRate * missionMultiplier * passiveDropMultiplier, 1.0);
+    const effectiveDropRate = Math.min(baseDropRate * missionMultiplier * passiveDropMultiplier * blockDropRateMulti, 1.0);
 
     const pickupPosition = {
       x: block.position?.x ?? 0,
