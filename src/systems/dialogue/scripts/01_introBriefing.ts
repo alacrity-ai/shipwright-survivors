@@ -14,8 +14,8 @@ import { lockBlockQueue, unlockBlockQueue } from '@/core/interfaces/events/Block
 import { lockAllButtons, unlockAttachButton, unlockAllButtons } from '@/core/interfaces/events/BlockDropDecisionMenuReporter';
 import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
 import { 
-  emitHudHideAll,
-  emitFiringModeShow,
+  emitAttachAllButtonShow,
+  emitAttachAllButtonHide,
   emitMetersShow, 
   emitHudShowAll,
   emitBlockQueueShow,
@@ -823,6 +823,13 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'line',
         speakerId: 'carl',
         text: 'Remember: Always build toward revenue.',
+      },
+      // emitAttachAllButtonShow
+      {
+        type: 'command',
+        run: () => {
+          emitAttachAllButtonShow();
+        },
       },
       // Update flags to prevent softlock on death
       {

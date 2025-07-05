@@ -58,6 +58,7 @@ export class BlockQueueDisplayManager {
 
   private cursorRestored = false;
 
+  private attachAllHidden = false;
   private hidden = false;
   private locked = false;
 
@@ -151,7 +152,9 @@ export class BlockQueueDisplayManager {
   }
 
   public update(dt: number): void {
-    this.placeAllBlocksButton.update(dt);
+    if (!this.attachAllHidden) {
+      this.placeAllBlocksButton.update(dt);
+    }
 
     const blockQueue = this.playerResources.getBlockQueue();
     if (blockQueue.length === 0) {
@@ -282,7 +285,9 @@ export class BlockQueueDisplayManager {
     if (this.hidden) return;
 
     // Render the Place All Blocks Button
-    this.placeAllBlocksButton.render(this.ctx);
+    if (!this.attachAllHidden) {
+      this.placeAllBlocksButton.render(this.ctx);
+    }
 
     const canvas = this.canvas;
     const ctx = this.ctx;
@@ -494,6 +499,14 @@ export class BlockQueueDisplayManager {
 
   public handleShow(): void {
     this.hidden = false;
+  }
+
+  public showAttachAllButton(): void {
+    this.attachAllHidden = false;
+  }
+
+  public hideAttachAllButton(): void {
+    this.attachAllHidden = true;
   }
 
   public destroy(): void {

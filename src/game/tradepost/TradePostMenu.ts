@@ -12,11 +12,10 @@ import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteracti
 import { audioManager } from '@/audio/Audio';
 
 import { flags } from '@/game/player/PlayerFlagManager';
-
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { GlobalEventBus } from '@/core/EventBus';
 
 import { pauseRuntime, resumeRuntime } from '@/core/interfaces/events/RuntimeReporter';
-import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 
 import type { TradePostInstance } from './interfaces/TradePostInstance';
 import { TradePostRegistry } from './registry/TradePostRegistry';
@@ -100,6 +99,7 @@ export class TradePostMenu {
     this.tradePostInstance = TradePostRegistry.getInstanceById(tradePostId);
     this.itemsList = new TradePostItemsList(this.tradePostInstance, this.inputManager);
     this.open = true;
+    GlobalMenuReporter.getInstance().setMenuOpen('tradePostMenu');
 
     this.resize();
     this.recomputeNavMap();
@@ -140,10 +140,6 @@ export class TradePostMenu {
     const btn = this.endTransmissionButton;
     const rect = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
     btn.isHovered = isMouseOverRect(x, y, rect, 1.0);
-
-    if (btn.isHovered) {
-      reportOverlayInteracting();
-    }
 
     if (clicked && btn.isHovered) {
       btn.onClick();
@@ -204,6 +200,7 @@ export class TradePostMenu {
     resumeRuntime(); // Resume runtime after closing trade post menu
     flags.set('mission.intro-briefing.tradepost-closed'); // Set flag to indicate that the tradepost has been closed for tutorial
     this.open = false;
+    GlobalMenuReporter.getInstance().setMenuClosed('tradePostMenu');
     this.navManager.clearNavMap();
   }
 

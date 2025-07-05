@@ -13,7 +13,6 @@ import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudRepo
 
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
-import { GlobalEventBus } from '@/core/EventBus';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
@@ -23,36 +22,14 @@ import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 export class PlayerControllerSystem {
   private isEnginePlaying = false;
   private lastFiringModeSwitchTime: number = -Infinity;
-  private isOverlayInteracting = false;
   private hudHidden = false;
-
-  private unlockingInteraction = false;
 
   constructor(
     private readonly camera: Camera,
     private readonly inputManager: InputManager,
     private readonly cursorRenderer: CursorRenderer,
     private readonly playerShip: Ship
-  ) {
-    GlobalEventBus.on('ui:overlay:interacting', this.onOverlayInteracting);
-    GlobalEventBus.on('ui:overlay:not-interacting', this.onOverlayNotInteracting);
-  }
-
-  private onOverlayInteracting = () => {
-    this.isOverlayInteracting = true;
-  };
-
-  private onOverlayNotInteracting = () => {
-    // TODO : This is very jenky
-    if (!this.unlockingInteraction) {
-      this.unlockingInteraction = true;
-      // Run this in 100ms
-      setTimeout(() => {
-        this.isOverlayInteracting = false;
-        this.unlockingInteraction = false;
-      }, 100);
-    }
-  };
+  ) {}
 
   public getIntent(): ShipIntent {
     // Early exit if menus or overlays are interacting
@@ -138,8 +115,8 @@ export class PlayerControllerSystem {
     };
 
     // === Weapon controls ===
-    const firePrimary = this.inputManager.isActionPressed('firePrimary') && !this.isOverlayInteracting;
-    const fireSecondary = this.inputManager.isActionPressed('fireSecondary') && !this.isOverlayInteracting;
+    const firePrimary = this.inputManager.isActionPressed('firePrimary')
+    const fireSecondary = this.inputManager.isActionPressed('fireSecondary')
 
     const playerPos = this.playerShip.getTransform().position;
     const rawGamepadAim = this.inputManager.getGamepadAimVector();
@@ -207,8 +184,6 @@ export class PlayerControllerSystem {
       createLightFlash(playerPos.x, playerPos.y, 520, 1.2, 0.4, lightColor);
     }
 
-    this.onOverlayNotInteracting();
-
     // Hiding and showing hud
     if (this.inputManager.wasActionJustPressed('showHud')) {
       if (this.hudHidden) {
@@ -233,7 +208,6 @@ export class PlayerControllerSystem {
   }
 
   public destroy(): void {
-    GlobalEventBus.off('ui:overlay:interacting', this.onOverlayInteracting);
-    GlobalEventBus.off('ui:overlay:not-interacting', this.onOverlayNotInteracting);
+    // Noop
   }
 }

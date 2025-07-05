@@ -14,8 +14,8 @@ export class PlaceAllBlocksButton {
   private isHovered = false;
   private isActive = false;
 
-  private readonly width = 42;
-  private readonly height = 42;
+  private readonly width = 44;
+  private readonly height = 44;
 
   private x: number = 0;
   private y: number = 0;
@@ -23,6 +23,8 @@ export class PlaceAllBlocksButton {
 
   private hoverSoundPlayed = false;
   private readonly pulseController = new ButtonPulseController(0.8, 3.0);
+  private readonly GlobalMenuReporter = GlobalMenuReporter.getInstance();
+  private readonly playerResources = PlayerResources.getInstance();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -42,7 +44,9 @@ export class PlaceAllBlocksButton {
   }
 
   public update(dt: number): void {
-    const blockCount = PlayerResources.getInstance().getBlockCount();
+    if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
+
+    const blockCount = this.playerResources.getBlockCount();
     this.pulseController.update(dt);
 
     // Reset activation if block queue is now empty
@@ -67,19 +71,20 @@ export class PlaceAllBlocksButton {
         audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 8 });
         this.hoverSoundPlayed = true;
       }
-      GlobalMenuReporter.getInstance().setOverlayHovered('placeAllBlocksButton');
+      this.GlobalMenuReporter.setOverlayHovered('placeAllBlocksButton');
 
       if (!this.isActive && this.inputManager.wasMouseClicked() && blockCount > 0) {
+        if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
         this.activate();
       }
     } else {
       this.hoverSoundPlayed = false;
-      GlobalMenuReporter.getInstance().setOverlayNotHovered('placeAllBlocksButton');
+      this.GlobalMenuReporter.setOverlayNotHovered('placeAllBlocksButton');
       restoreCursor();
     }
 
     if (!this.isActive && this.inputManager.wasActionJustPressed('placeAllBlocksButton')) {
-      if (GlobalMenuReporter.getInstance().isAnyMenuOpen()) return;
+      if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
       if (blockCount > 0) {
         this.activate();
       }
@@ -93,12 +98,19 @@ export class PlaceAllBlocksButton {
   }
 
   public render(ctx: CanvasRenderingContext2D): void {
-    const { x, y } = this.getPosition();
+    if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
 
-    const blockCount = PlayerResources.getInstance().getBlockCount();
+    const { x, y } = this.getPosition();
+    const blockCount = this.playerResources.getBlockCount();
+
     const baseAlpha = blockCount > 0 ? 1.0 : 0.3;
     const pulseAlpha = this.pulseController.getPulseAlphaMultiplier();
     const finalAlpha = baseAlpha * pulseAlpha;
+
+    const fillColor = '#001122';
+    const borderColor = '#00FFFF';
+    const textColor = '#00FFFF';
+    const highlightColor = '#00FFFF';
 
     drawMinimalistButton(ctx, {
       x,
@@ -110,11 +122,11 @@ export class PlaceAllBlocksButton {
       isHovered: this.isHovered,
       onClick: () => {}, // no-op: input is handled explicitly
       style: {
-        borderRadius: 6,
-        fillColor: '#001122',
-        borderColor: '#00FFFF',
-        textColor: '#00FFFF',
-        highlightColor: '#00FFFF',
+        borderRadius: 5 * this.scale,
+        fillColor,
+        borderColor,
+        textColor,
+        highlightColor,
         alpha: finalAlpha,
         fontSize: 24,
       }

@@ -71,7 +71,7 @@ export function drawMinimalistButton(
   ctx.beginPath();
   ctx.fillStyle = effectiveFillColor;
   ctx.strokeStyle = effectiveBorderColor;
-  ctx.lineWidth = 2 * uiScale;
+  ctx.lineWidth = 1 * uiScale;
   ctx.roundRect(x, y, scaledWidth, scaledHeight, r);
   ctx.fill();
   ctx.stroke();

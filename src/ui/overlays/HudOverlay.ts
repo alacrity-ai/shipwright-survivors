@@ -31,6 +31,8 @@ export class HudOverlay {
   private readonly onMetersShow = () => this.showMeters();
   private readonly onFiringModeHide = () => this.hideFiringMode();
   private readonly onFiringModeShow = () => this.showFiringMode();
+  private readonly onAttachAllButtonShow = () => this.blockQueueDisplayManager.showAttachAllButton();
+  private readonly onAttachAllButtonHide = () => this.blockQueueDisplayManager.hideAttachAllButton();
 
   private metersHidden: boolean = false;
   private firingModeHidden: boolean = false;
@@ -69,6 +71,8 @@ export class HudOverlay {
     GlobalEventBus.on('meters:show', this.onMetersShow);
     GlobalEventBus.on('firingmode:hide', this.onFiringModeHide);
     GlobalEventBus.on('firingmode:show', this.onFiringModeShow);
+    GlobalEventBus.on('attachAllButton:show', this.onAttachAllButtonShow);
+    GlobalEventBus.on('attachAllButton:hide', this.onAttachAllButtonHide);
 
     this.experienceBar = new PlayerExperienceBar(floatingTextManager);
     this.playerResources = PlayerResourcesSingleton.getInstance();
@@ -115,8 +119,8 @@ export class HudOverlay {
   }
 
   render(dt: number): void {
-    this.blockQueueDisplayManager.render();
     this.experienceBar.render();
+    this.blockQueueDisplayManager.render();
 
     if (!this.ship) return;
 
@@ -284,6 +288,8 @@ export class HudOverlay {
     GlobalEventBus.off('firingmode:show', this.onFiringModeShow);
     GlobalEventBus.off('hud:hide', this.onHide);
     GlobalEventBus.off('hud:show', this.onShow);
+    GlobalEventBus.off('attachAllButton:show', this.onAttachAllButtonShow);
+    GlobalEventBus.off('attachAllButton:hide', this.onAttachAllButtonHide);
     this.experienceBar.destroy();
     this.blockQueueDisplayManager.destroy();
   }

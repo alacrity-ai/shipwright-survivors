@@ -62,6 +62,8 @@ export interface EventTypes {
   'firingmode:hide': undefined;
   'meters:show': undefined;
   'meters:hide': undefined;
+  'attachAllButton:show': undefined;
+  'attachAllButton:hide': undefined;
 
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };

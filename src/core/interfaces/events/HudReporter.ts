@@ -10,6 +10,7 @@ export function emitHudHideAll(): void {
   GlobalEventBus.emit('experiencebar:hide', undefined);
   GlobalEventBus.emit('firingmode:hide', undefined);
   GlobalEventBus.emit('meters:hide', undefined);
+  GlobalEventBus.emit('attachAllButton:hide', undefined);
 }
 
 export function emitHudShowAll(): void {
@@ -20,8 +21,16 @@ export function emitHudShowAll(): void {
   GlobalEventBus.emit('experiencebar:show', undefined);
   GlobalEventBus.emit('firingmode:show', undefined);
   GlobalEventBus.emit('meters:show', undefined);
+  GlobalEventBus.emit('attachAllButton:show', undefined);
 }
 
+export function emitAttachAllButtonShow(): void {
+  GlobalEventBus.emit('attachAllButton:show', undefined);
+}
+
+export function emitAttachAllButtonHide(): void {
+  GlobalEventBus.emit('attachAllButton:hide', undefined);
+}
 
 export function emitFiringModeHide(): void {
   GlobalEventBus.emit('firingmode:hide', undefined);
