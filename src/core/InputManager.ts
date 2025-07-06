@@ -276,9 +276,17 @@ export class InputManager {
     return this.justReleasedKeys.has(code);
   }
 
-  public wasMouseClicked(): boolean {
+  public wasMouseClicked(physicalOnly: boolean = false): boolean {
     if (this.inputDisabled) return false;
-    return this.wasKeyJustPressed('MouseLeft') || this.wasActionJustPressed('select');
+
+    const mousePressed = this.wasKeyJustPressed('MouseLeft');
+
+    if (physicalOnly) {
+      return mousePressed; // Strict mode: ignore emulated inputs
+    }
+
+    // Default behavior includes both physical and abstract 'select'
+    return mousePressed || this.wasActionJustPressed('select');
   }
 
   public wasLeftClicked(): boolean {
@@ -286,9 +294,21 @@ export class InputManager {
     return this.wasKeyJustPressed('MouseLeft') || this.wasActionJustPressed('select');
   }
 
-  public wasRightClicked(): boolean {
+  /**
+   * Returns true if the right mouse button was just clicked.
+   * If `physicalOnly` is true, this ignores virtual/emulated inputs like gamepad 'B'.
+   */
+  public wasRightClicked(physicalOnly: boolean = false): boolean {
     if (this.inputDisabled) return false;
-    return this.wasKeyJustPressed('MouseRight') || this.wasActionJustPressed('cancel');
+
+    const mousePressed = this.wasKeyJustPressed('MouseRight');
+
+    if (physicalOnly) {
+      return mousePressed;
+    }
+
+    // Default behavior includes emulated input (e.g. 'cancel' action)
+    return mousePressed || this.wasActionJustPressed('cancel');
   }
 
   public wasMouseMoved(): boolean {

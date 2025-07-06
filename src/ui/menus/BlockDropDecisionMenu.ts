@@ -134,6 +134,7 @@ export class BlockDropDecisionMenu implements Menu {
     GlobalEventBus.on('blockqueue:request-place', this.handleBlockQueueRequest);
     GlobalEventBus.on('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
     GlobalEventBus.on('blockqueue:request-placeall', this.handleBlockQueuePlaceAllRequest);
+    GlobalEventBus.on('blockqueue:request-roll', this.handleBlockQueueRollRequest);
   }
 
   setPlayerShip(ship: Ship): void {
@@ -637,6 +638,67 @@ export class BlockDropDecisionMenu implements Menu {
     }
   }
 
+  private externalRoll(): void {
+    if (this.rollLocked) return;
+
+    const queue = PlayerResources.getInstance().getBlockQueue();
+    const current = this.getCurrentBlockType();
+
+    // Must have at least 3 total: current block + 2 in queue
+    if (!current || queue.length < 3) {
+      audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+      return;
+    }
+
+    // === Compute averaged base tier from 3 blocks ===
+    const sacrificeBlocks: BlockType[] = [
+      current,
+      queue[1],
+      queue[2],
+    ];
+
+    const baseTier = Math.floor(
+      sacrificeBlocks.reduce((sum, blockType) => sum + getTierFromBlockType(blockType), 0) / sacrificeBlocks.length
+    );
+
+    // === Determine reward tier with probabilities ===
+    let finalTier = baseTier;
+    const roll = Math.random();
+    if (roll < 0.02) {
+      finalTier = Math.min(baseTier + 2, 4);
+    } else if (roll < 0.15) {
+      finalTier = Math.min(baseTier + 1, 4);
+    }
+
+    const tierDelta = finalTier - baseTier;
+
+    const candidates = getAllBlocksInTier(finalTier);
+    if (!candidates.length) {
+      console.warn(`[handleRoll] No blocks found for tier ${finalTier}`);
+      return;
+    }
+
+    const rewardBlock = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // Dequeue current block and next 2
+    PlayerResources.getInstance().dequeueBlock(); // current
+    PlayerResources.getInstance().dequeueBlock(); // 1st in queue
+    PlayerResources.getInstance().dequeueBlock(); // 2nd in queue
+
+    // Enqueue reward block to front
+    PlayerResources.getInstance().enqueueBlockToFront(rewardBlock);
+
+    // === Tier-specific Audio Feedback ===
+    const soundMap: Record<number, string> = {
+      0: 'assets/sounds/sfx/ui/gamblewin_00.wav',
+      1: 'assets/sounds/sfx/ui/gamblewin_01.wav',
+      2: 'assets/sounds/sfx/ui/gamblewin_02.wav',
+    };
+
+    const soundPath = soundMap[tierDelta] ?? soundMap[0];
+    audioManager.play(soundPath, 'sfx', { maxSimultaneous: 5 });
+  }
+
   private handleRoll(): void {
     if (this.rollLocked) return;
 
@@ -724,9 +786,12 @@ export class BlockDropDecisionMenu implements Menu {
     }
   }
 
-  // I NEED HELP HERE <---
   private handleBlockQueuePlaceAllRequest = (): void => {
     this.externalAutoPlaceAll();
+  };
+
+  private handleBlockQueueRollRequest = (): void => {
+    this.handleRoll();
   };
 
   private handleBlockQueueRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
@@ -961,5 +1026,6 @@ export class BlockDropDecisionMenu implements Menu {
     GlobalEventBus.off('blockdropdecision:roll:unlock', this.handleUnlockRoll);
     GlobalEventBus.off('blockdropdecision:lock-all', this.handleLockAll);
     GlobalEventBus.off('blockdropdecision:unlock-all', this.handleUnlockAll);
+    GlobalEventBus.off('blockqueue:request-roll', this.handleBlockQueueRollRequest);
   }
 }

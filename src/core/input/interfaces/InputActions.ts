@@ -23,4 +23,7 @@ export type InputAction =
   | 'zoomOut'
   | 'showHud'
   | 'hideHud'
-  | 'placeAllBlocksButton';
+  | 'placeAllBlocksButton'
+  | 'rollBlocksButton'
+  | 'cycleBlockLeft'
+  | 'cycleBlockRight';

@@ -71,7 +71,7 @@ export function drawMinimalistButton(
   ctx.beginPath();
   ctx.fillStyle = effectiveFillColor;
   ctx.strokeStyle = effectiveBorderColor;
-  ctx.lineWidth = 1 * uiScale;
+  ctx.lineWidth = 0.25 * uiScale;
   ctx.roundRect(x, y, scaledWidth, scaledHeight, r);
   ctx.fill();
   ctx.stroke();
@@ -81,8 +81,8 @@ export function drawMinimalistButton(
     const iconWidth = iconCanvas.width * uiScale;
     const iconHeight = iconCanvas.height * uiScale;
 
-    const iconMaxWidth = scaledWidth * 0.6;
-    const iconMaxHeight = scaledHeight * 0.6;
+    const iconMaxWidth = scaledWidth * 0.75;
+    const iconMaxHeight = scaledHeight * 0.75;
 
     const scaleFactor = Math.min(iconMaxWidth / iconWidth, iconMaxHeight / iconHeight, 1);
 

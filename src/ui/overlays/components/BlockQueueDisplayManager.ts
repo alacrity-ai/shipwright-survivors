@@ -5,19 +5,25 @@ import type { PlayerResources } from '@/game/player/PlayerResources';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import type { InputManager } from '@/core/InputManager';
 
+import { audioManager } from '@/audio/Audio';
+
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
 import { GlobalEventBus } from '@/core/EventBus';
-import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
 import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { brightenColor } from '@/shared/colorUtils';
 import { getUniformScaleFactor } from '@/config/view';
+
 import { drawLabel } from '@/ui/primitives/UILabel';
-import { drawWindow } from '@/ui/primitives/WindowBox';
+import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
+
 import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+
+import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
+import { RollBlocksButton } from '@/ui/overlays/components/RollBlocksButton';
 
 function getStyleIdFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' {
   switch (tier) {
@@ -33,6 +39,7 @@ function getStyleIdFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' 
 export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
   private readonly placeAllBlocksButton: PlaceAllBlocksButton;
+  private readonly rollBlocksButton: RollBlocksButton;
 
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
@@ -43,6 +50,9 @@ export class BlockQueueDisplayManager {
   private readonly xOffsets: number[] = [];
   private readonly pulseTimers: number[] = [];
 
+  private isDPadNavigationMode = false;
+  private dpadHoveredIndex: number | null = null;
+
   private readonly FLOAT_SPEED = 120;
   private readonly FLOAT_HEIGHT = 10;
   private readonly MOUSE_HOVER_HEIGHT = 72;
@@ -52,6 +62,13 @@ export class BlockQueueDisplayManager {
   private readonly PULSE_SPEED = 4;
   private readonly PULSE_SCALE_AMPLITUDE = 0.06;
   private readonly PULSE_BRIGHTNESS_AMPLITUDE = 0.25;
+
+  private dpadLeftHoldFrames = 0;
+  private dpadRightHoldFrames = 0;
+  private lastRepeatMoveFrame = -1;
+  private readonly DPAD_REPEAT_INITIAL_DELAY = 40;   // frames (≈1/3 sec at 60fps)
+  private readonly DPAD_REPEAT_INTERVAL = 10;        // frames per repeat (6/sec)
+  private _repeatCooldown = 0;
 
   private ctx: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
@@ -93,6 +110,11 @@ export class BlockQueueDisplayManager {
     this.canvas = this.ctx.canvas;
 
     this.placeAllBlocksButton = new PlaceAllBlocksButton(
+      this.canvas,
+      this.inputManager
+    );
+
+    this.rollBlocksButton = new RollBlocksButton(
       this.canvas,
       this.inputManager
     );
@@ -149,11 +171,13 @@ export class BlockQueueDisplayManager {
 
     // Resize the Place All Blocks Button
     this.placeAllBlocksButton.resize();
+    this.rollBlocksButton.resize();
   }
 
   public update(dt: number): void {
     if (!this.attachAllHidden) {
       this.placeAllBlocksButton.update(dt);
+      this.rollBlocksButton.update(dt);
     }
 
     const blockQueue = this.playerResources.getBlockQueue();
@@ -166,7 +190,7 @@ export class BlockQueueDisplayManager {
 
     this.blockPreviewRenderer.update(dt);
 
-    const hovered = this.blockDropDecisionMenu.getHoveredButton();
+    const hovered = this.getIntentionFromHover();
 
     while (this.floatOffsets.length < blockQueue.length) this.floatOffsets.push(0);
     while (this.floatOffsets.length > blockQueue.length) this.floatOffsets.pop();
@@ -176,9 +200,8 @@ export class BlockQueueDisplayManager {
     while (this.xOffsets.length > blockQueue.length) this.xOffsets.pop();
 
     const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
-    const isRollHovered = hovered === 'roll';
+    const isRollHovered = (hovered === 'roll' || this.rollBlocksButton.getIsHovered());
 
-    // Adjust card spacing for overflow
     if (blockQueue.length > this.cardColumns) {
       const availableWidth = this.windowWidth - (this.windowMarginX * 2);
       this.cardSpacing = (availableWidth - this.cardWidth) / (blockQueue.length - 1);
@@ -186,26 +209,30 @@ export class BlockQueueDisplayManager {
       this.cardSpacing = this.cardWidth + this.cardMarginX;
     }
 
-    // === Mouse Hover Detection (single block) ===
-    this.hoveredCardIndex = null;
-    for (let i = blockQueue.length - 1; i >= 0; i--) {
-      let cardX: number;
-      if (isRollHovered && i <= 2) {
-        const fanOffsetX = this.xOffsets[i] ?? 0;
-        cardX = this.fanBaseX + fanOffsetX;
-      } else {
-        cardX = this.windowX + this.windowMarginX + i * this.cardSpacing;
-      }
-      const cardY = this.windowY + this.windowMarginY;
+    // === Hover Detection (Mouse or Gamepad) ===
+    if (this.isDPadNavigationMode) {
+      this.hoveredCardIndex = this.dpadHoveredIndex;
+    } else {
+      this.hoveredCardIndex = null;
+      for (let i = blockQueue.length - 1; i >= 0; i--) {
+        let cardX: number;
+        if (isRollHovered && i <= 2) {
+          const fanOffsetX = this.xOffsets[i] ?? 0;
+          cardX = this.fanBaseX + fanOffsetX;
+        } else {
+          cardX = this.windowX + this.windowMarginX + i * this.cardSpacing;
+        }
+        const cardY = this.windowY + this.windowMarginY;
 
-      if (
-        mouseX >= cardX &&
-        mouseX <= cardX + this.cardWidth &&
-        mouseY >= cardY &&
-        mouseY <= cardY + this.cardHeight
-      ) {
-        this.hoveredCardIndex = i;
-        break;
+        if (
+          mouseX >= cardX &&
+          mouseX <= cardX + this.cardWidth &&
+          mouseY >= cardY &&
+          mouseY <= cardY + this.cardHeight
+        ) {
+          this.hoveredCardIndex = i;
+          break;
+        }
       }
     }
 
@@ -266,18 +293,112 @@ export class BlockQueueDisplayManager {
       this.xOffsets[i] += step;
     }
 
-    if (this.hoveredCardIndex !== null && !this.locked) {
-      if (this.inputManager.wasMouseClicked()) {
+    // === Mouse Click Handling (Physical Only) ===
+    if (!this.isDPadNavigationMode && this.hoveredCardIndex !== null && !this.locked) {
+      if (this.inputManager.wasMouseClicked(true)) {
         const block = blockQueue[this.hoveredCardIndex];
         if (block) {
           requestPlaceBlockFromQueue(this.hoveredCardIndex, block.id);
         }
-      } else if (this.inputManager.wasRightClicked()) {
+      } else if (this.inputManager.wasRightClicked(true)) {
         const block = blockQueue[this.hoveredCardIndex];
         if (block) {
           requestRefineBlockFromQueue(this.hoveredCardIndex, block.id);
         }
       }
+    }
+
+    // === D-Pad Navigation Mode ===
+    const input = this.inputManager;
+
+    const pressedLeft = input.wasGamepadAliasJustPressed('dpadLeft');
+    const pressedRight = input.wasGamepadAliasJustPressed('dpadRight');
+    const pressedConfirm = input.wasGamepadAliasJustPressed('A');
+    const pressedCancel = input.wasGamepadAliasJustPressed('B');
+
+    const isLeftHeld = input.gamepadAliasIsPressed('dpadLeft');
+    const isRightHeld = input.gamepadAliasIsPressed('dpadRight');
+
+    if (!this.isDPadNavigationMode && (pressedLeft || pressedRight)) {
+      this.isDPadNavigationMode = true;
+      this.dpadHoveredIndex = 0;
+      this.placeAllBlocksButton.lock();
+      this.rollBlocksButton.lock();
+    } else if (this.isDPadNavigationMode) {
+      if (pressedCancel) {
+        this.isDPadNavigationMode = false;
+        this.dpadHoveredIndex = null;
+        this.dpadLeftHoldFrames = 0;
+        this.dpadRightHoldFrames = 0;
+        this.placeAllBlocksButton.unlock();
+        this.rollBlocksButton.unlock();
+      } else {
+        // === Update hold timers ===
+        if (isLeftHeld) {
+          this.dpadLeftHoldFrames++;
+        } else {
+          this.dpadLeftHoldFrames = 0;
+        }
+
+        if (isRightHeld) {
+          this.dpadRightHoldFrames++;
+        } else {
+          this.dpadRightHoldFrames = 0;
+        }
+
+        let shouldMoveLeft = false;
+        let shouldMoveRight = false;
+
+        if (pressedLeft) {
+          shouldMoveLeft = true;
+        } else if (this.dpadLeftHoldFrames > this.DPAD_REPEAT_INITIAL_DELAY) {
+          this.dpadLeftHoldFrames = this.DPAD_REPEAT_INITIAL_DELAY; // Clamp
+          this._repeatCooldown -= dt;
+          if (this._repeatCooldown <= 0) {
+            shouldMoveLeft = true;
+            this._repeatCooldown = 1 / 12; // 6 times per second
+          }
+        }
+
+        if (pressedRight) {
+          shouldMoveRight = true;
+          audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 16 });
+        } else if (this.dpadRightHoldFrames > this.DPAD_REPEAT_INITIAL_DELAY) {
+          this.dpadRightHoldFrames = this.DPAD_REPEAT_INITIAL_DELAY; // Clamp
+          this._repeatCooldown -= dt;
+          if (this._repeatCooldown <= 0) {
+            shouldMoveRight = true;
+            this._repeatCooldown = 1 / 12; // 6 times per second
+          }
+        }
+
+        if (this.dpadHoveredIndex !== null && blockQueue.length > 0) {
+          if (shouldMoveLeft) {
+            this.dpadHoveredIndex = (this.dpadHoveredIndex - 1 + blockQueue.length) % blockQueue.length;
+            audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 16 });
+          } else if (shouldMoveRight) {
+            this.dpadHoveredIndex = (this.dpadHoveredIndex + 1) % blockQueue.length;
+            audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 16 });
+          }
+        }
+
+        if (pressedConfirm && this.dpadHoveredIndex !== null && !GlobalMenuReporter.getInstance().isAnyMenuOpen()) {
+          const block = blockQueue[this.dpadHoveredIndex];
+          if (block) {
+            requestPlaceBlockFromQueue(this.dpadHoveredIndex, block.id);
+          }
+        }
+      }
+    }
+  }
+
+  private getIntentionFromHover(): 'roll' | 'refine' | 'autoplace' | 'autoPlaceAll' | null {
+    if (this.rollBlocksButton.getIsHovered()) {
+      return 'roll';
+    } else if (this.placeAllBlocksButton.getIsHovered()) {
+      return 'autoPlaceAll';
+    } else {
+      return this.blockDropDecisionMenu.getHoveredButton();
     }
   }
 
@@ -287,6 +408,7 @@ export class BlockQueueDisplayManager {
     // Render the Place All Blocks Button
     if (!this.attachAllHidden) {
       this.placeAllBlocksButton.render(this.ctx);
+      this.rollBlocksButton.render(this.ctx);
     }
 
     const canvas = this.canvas;
@@ -318,7 +440,7 @@ export class BlockQueueDisplayManager {
       mouseY >= windowY &&
       mouseY <= windowY + windowHeight;
 
-    const hovered = this.blockDropDecisionMenu.getHoveredButton();
+    const hovered = this.getIntentionFromHover();
     const blockQueue = this.playerResources.getBlockQueue();
     const blockCount = blockQueue.length;
 
@@ -331,7 +453,7 @@ export class BlockQueueDisplayManager {
       borderAlpha = 1.0;
       labelText = `Full: ${blockCount}/${this.MAXIMUM_CARDS}`;
     } else {
-      borderColor = blockCount > 0 ? '#00ff00' : '#003400';
+      borderColor = blockCount > 0 ? '#006666' : '#00FFFF';
       borderAlpha = 0.5;
       labelText = `Blocks: ${blockCount}`;
     }
@@ -359,7 +481,7 @@ export class BlockQueueDisplayManager {
           break;
         }
         case 'autoPlaceAll': {
-          labelText = `Attach ${blockCount} Blocks`;
+          labelText = `Attach ${blockCount}`;
           borderColor = '#66ff66';
           borderAlpha = 0.85;
           break;
@@ -381,21 +503,19 @@ export class BlockQueueDisplayManager {
       }
     }
 
-    const borderOptions = {
-      alpha: borderAlpha,
-      borderRadius: 12,
-      borderColor,
-      backgroundColor: '#00000000',
-    };
-
-    drawWindow({
+    drawMinimalistWindow(
       ctx,
-      x: windowX,
-      y: windowY,
-      width: windowWidth,
-      height: windowHeight,
-      options: borderOptions,
-    });
+      windowX,
+      windowY,
+      windowWidth,
+      windowHeight,
+      {
+        borderRadius: 8,
+        borderColor,
+        fillColor: '#001122',
+        alpha: borderAlpha,
+      }
+    );
 
     drawLabel(
       ctx,
@@ -495,6 +615,11 @@ export class BlockQueueDisplayManager {
 
   public handleHide(): void {
     this.hidden = true;
+    this.isDPadNavigationMode = false;
+    this.dpadHoveredIndex = null;
+
+    this.placeAllBlocksButton.unlock();
+    this.rollBlocksButton.unlock();
   }
 
   public handleShow(): void {

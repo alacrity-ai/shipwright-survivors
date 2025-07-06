@@ -14,8 +14,8 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
 
   rotateLeft:       { keys: ['KeyA'], gamepadButtons: [] },
   rotateRight:      { keys: ['KeyD'], gamepadButtons: [] },
-  strafeLeft:       { keys: ['KeyQ'], gamepadButtons: ['dpadLeft'] },
-  strafeRight:      { keys: ['KeyE'], gamepadButtons: ['dpadRight'] },
+  strafeLeft:       { keys: [], gamepadButtons: [] },
+  strafeRight:      { keys: [], gamepadButtons: [] },
 
   firePrimary:      { keys: ['MouseLeft'], gamepadButtons: ['rightBumper'] },
   fireSecondary:    { keys: ['MouseRight'], gamepadButtons: ['rightTrigger'] },
@@ -33,24 +33,8 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   zoomOut:          { keys: ['WheelDown'], gamepadButtons: ['dpadDown'] },
 
   placeAllBlocksButton: { keys: ['KeyE'], gamepadButtons: ['A'] },
-};
+  rollBlocksButton: { keys: ['KeyQ'], gamepadButtons: ['B'] },
 
-/*
-  | 'confirm'           // A button
-  | 'cancel'            // X button
-  | 'pause'             // Y button
-  | 'fire'              // RT (right trigger)
-  | 'secondary'         // B button
-  | 'leftBumper'        // LB
-  | 'rightBumper'       // RB
-  | 'leftTrigger'       // LT
-  | 'select'            // Back/View button
-  | 'start'             // Start/Menu button
-  | 'leftStickButton'   // Left stick click (L3)
-  | 'rightStickButton'  // Right stick click (R3)
-  | 'dpadUp'            // D-pad Up
-  | 'dpadDown'          // D-pad Down
-  | 'dpadLeft'          // D-pad Left
-  | 'dpadRight'         // D-pad Right
-  | 'home';             // Xbox/Guide button
-*/
+  cycleBlockLeft:   { keys: [], gamepadButtons: ['dpadLeft'] },
+  cycleBlockRight:  { keys: [], gamepadButtons: ['dpadRight'] },
+};

@@ -10,14 +10,17 @@ import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { Ship } from '@/game/ship/Ship';
 
 import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
-
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
-
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { audioManager } from '@/audio/Audio';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
+
+import {
+  EMPTY_WEAPON_INTENT,
+  EMPTY_UTILITY_INTENT
+} from '@/core/intent/interfaces/EmptyIntents';
 
 export class PlayerControllerSystem {
   private isEnginePlaying = false;
@@ -32,30 +35,24 @@ export class PlayerControllerSystem {
   ) {}
 
   public getIntent(): ShipIntent {
-    // Early exit if menus or overlays are interacting
-    if (GlobalMenuReporter.getInstance().isAnyMenuOpen() || GlobalMenuReporter.getInstance().isAnyOverlayHovered()) return {
-      movement: {
-        thrustForward: false,
-        brake: false,
-        rotateLeft: false,
-        rotateRight: false,
-        strafeLeft: false,
-        strafeRight: false,
-        turnToAngle: undefined,
-        afterburner: false,
-      },
-      weapons: {
-        firePrimary: false,
-        fireSecondary: false,
-        aimAt: null,
-        firingMode: this.playerShip.getFiringMode(),
-      },
-      utility: {
-        toggleShields: false,
-      },
-    };
+    // Call update
+    this.update();
 
-    // Update ship position in ship grid | TODO: Should go somewhere agnostic that is run every frame.
+    // Always allow movement, even when overlays/menus are open
+    const movement = this.getMovementIntent();
+
+    // Guard utility and weapon intents
+    const menuOpen = GlobalMenuReporter.getInstance().isAnyMenuOpen();
+    const overlayHovered = GlobalMenuReporter.getInstance().isAnyOverlayHovered();
+    const suppress = menuOpen || overlayHovered;
+
+    const weapons = suppress ? EMPTY_WEAPON_INTENT : this.getWeaponIntent();
+    const utility = suppress ? EMPTY_UTILITY_INTENT : this.getUtilityIntent();
+
+    return { movement, weapons, utility };
+  }
+
+  private getMovementIntent(): MovementIntent {
     ShipGrid.getInstance().updateShipPosition(this.playerShip);
 
     this.inputManager.setGamepadCursorOverrideEnabled(true);
@@ -64,7 +61,6 @@ export class PlayerControllerSystem {
     const leftStick = this.inputManager.getGamepadMovementVector();
     const leftStickMag = Math.hypot(leftStick.x, leftStick.y);
 
-    // Determine gamepad usage by direct inspection of stick state or last input
     const tracker = InputDeviceTracker.getInstance();
     const usingGamepad =
       tracker.getLastUsed() === 'gamepad' ||
@@ -72,7 +68,6 @@ export class PlayerControllerSystem {
       this.inputManager.getGamepadAimVector().x !== 0 ||
       this.inputManager.getGamepadAimVector().y !== 0;
 
-    // Reinforce gamepad as active device
     if (usingGamepad) {
       tracker.updateDevice('gamepad');
     }
@@ -83,17 +78,15 @@ export class PlayerControllerSystem {
 
     let thrustForward = false;
     if (!brake) {
-      if (usingGamepad) {
-        thrustForward = leftStickMag > 0.1;
-      } else {
-        thrustForward = this.inputManager.isActionPressed('thrustForward');
-      }
+      thrustForward = usingGamepad
+        ? leftStickMag > 0.1
+        : this.inputManager.isActionPressed('thrustForward');
     }
 
     const rawAfterburner = this.inputManager.isActionPressed('afterburner');
     const afterburner = thrustForward && rawAfterburner;
 
-    const movementIntent: MovementIntent = {
+    return {
       thrustForward,
       brake,
       rotateLeft:
@@ -113,10 +106,11 @@ export class PlayerControllerSystem {
         : undefined,
       afterburner,
     };
+  }
 
-    // === Weapon controls ===
-    const firePrimary = this.inputManager.isActionPressed('firePrimary')
-    const fireSecondary = this.inputManager.isActionPressed('fireSecondary')
+  private getWeaponIntent(): WeaponIntent {
+    const firePrimary = this.inputManager.isActionPressed('firePrimary');
+    const fireSecondary = this.inputManager.isActionPressed('fireSecondary');
 
     const playerPos = this.playerShip.getTransform().position;
     const rawGamepadAim = this.inputManager.getGamepadAimVector();
@@ -126,7 +120,7 @@ export class PlayerControllerSystem {
 
     const aimVector = hasGamepadAim
       ? this.normalize(rawGamepadAim.x, rawGamepadAim.y)
-      : usingGamepad
+      : InputDeviceTracker.getInstance().getLastUsed() === 'gamepad'
         ? {
             x: Math.cos(this.playerShip.getTransform().rotation - Math.PI / 2),
             y: Math.sin(this.playerShip.getTransform().rotation - Math.PI / 2),
@@ -143,29 +137,33 @@ export class PlayerControllerSystem {
           this.inputManager.getMousePosition().y
         );
 
-    const weaponIntent: WeaponIntent = {
-      firePrimary,
-      fireSecondary,
-      aimAt,
-      firingMode: this.playerShip.getFiringMode(),
-    };
-
-    // === Cursor logic ===
-    const anyFire = firePrimary || fireSecondary;
-    if (anyFire || hasGamepadAim) {
+    // Cursor visuals
+    if (firePrimary || fireSecondary || hasGamepadAim) {
       this.cursorRenderer.setTargetCrosshairCursor();
     } else {
       this.cursorRenderer.setDefaultCursor();
     }
 
-    // === Utility Controls ===
-    const toggleShields = this.inputManager.wasActionJustPressed('fireTertiary');
-
-    const utilityIntent: UtilityIntent = {
-      toggleShields,
+    return {
+      firePrimary,
+      fireSecondary,
+      aimAt,
+      firingMode: this.playerShip.getFiringMode(),
     };
+  }
 
-    // === Non-intent system actions ===
+  private getUtilityIntent(): UtilityIntent {
+    const toggleShields = this.inputManager.wasActionJustPressed('fireTertiary');
+    return { toggleShields };
+  }
+
+  private normalize(x: number, y: number): { x: number; y: number } {
+    const mag = Math.hypot(x, y);
+    return mag > 1e-5 ? { x: x / mag, y: y / mag } : { x: 0, y: 0 };
+  }
+
+  public update(): void {
+    console.log('[PlayerControllerSystem] Update called!')
     const now = performance.now();
     if (
       this.inputManager.wasActionJustPressed('switchFiringMode') &&
@@ -180,34 +178,18 @@ export class PlayerControllerSystem {
       this.playerShip.setFiringMode(newMode);
       audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
 
-      const lightColor = newMode === FiringMode.Synced ? '#00ffff' : '#ff0000';
-      createLightFlash(playerPos.x, playerPos.y, 520, 1.2, 0.4, lightColor);
+      const color = newMode === FiringMode.Synced ? '#00ffff' : '#ff0000';
+      const pos = this.playerShip.getTransform().position;
+      createLightFlash(pos.x, pos.y, 520, 1.2, 0.4, color);
     }
 
-    // Hiding and showing hud
     if (this.inputManager.wasActionJustPressed('showHud')) {
-      if (this.hudHidden) {
-        emitHudShowAll();
-        this.hudHidden = false;
-      } else {
-        emitHudHideAll();
-        this.hudHidden = true;
-      }
+      this.hudHidden = !this.hudHidden;
+      this.hudHidden ? emitHudHideAll() : emitHudShowAll();
     }
-
-    return {
-      movement: movementIntent,
-      weapons: weaponIntent,
-      utility: utilityIntent,
-    };
-  }
-
-  private normalize(x: number, y: number): { x: number; y: number } {
-    const mag = Math.hypot(x, y);
-    return mag > 1e-5 ? { x: x / mag, y: y / mag } : { x: 0, y: 0 };
   }
 
   public destroy(): void {
-    // Noop
+    // No-op for now
   }
 }

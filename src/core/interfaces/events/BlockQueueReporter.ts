@@ -6,6 +6,10 @@ export function requestPlaceAllBlocksInQueue(): void {
   GlobalEventBus.emit('blockqueue:request-placeall', undefined);
 }
 
+export function requestRollBlocksQueue(): void {
+  GlobalEventBus.emit('blockqueue:request-roll', undefined);
+}
+
 /**
  * Emits an intent to place a block from the player's block queue.
  * This does not guarantee placement — the receiving system must validate it.

@@ -1,20 +1,19 @@
-// src/ui/overlays/components/PlaceAllBlocksButton.ts
+// src/ui/overlays/components/RollBlocksButton.ts
 
 import { getUniformScaleFactor } from '@/config/view';
 import { drawMinimalistButton } from '@/ui/primitives/UIMinimalistButton';
 import { ButtonPulseController } from '@/ui/primitives/controllers/ButtonPulseController';
-import { requestPlaceAllBlocksInQueue } from '@/core/interfaces/events/BlockQueueReporter';
+import { requestRollBlocksQueue } from '@/core/interfaces/events/BlockQueueReporter';
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
-import { getPlaceAllBlocksIcon } from '@/ui/overlays/components/icons/placeAllButton';
+import { getRollBlocksIcon } from '@/ui/overlays/components/icons/rollBlocksButton';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { audioManager } from '@/audio/Audio';
 
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import { PlayerResources } from '@/game/player/PlayerResources';
 
-export class PlaceAllBlocksButton {
+export class RollBlocksButton {
   private isHovered = false;
-  private isActive = false;
 
   private readonly width = 44;
   private readonly height = 44;
@@ -44,7 +43,15 @@ export class PlaceAllBlocksButton {
   public resize(): void {
     this.scale = getUniformScaleFactor();
     this.y = this.canvas.height - Math.floor(54 * this.scale);
-    this.x = Math.floor(this.canvas.width / 2) - Math.floor(300 * this.scale);
+    this.x = Math.floor(this.canvas.width / 2) - Math.floor(354 * this.scale);
+  }
+
+  public lock(): void {
+    this.locked = true;
+  }
+
+  public unlock(): void {
+    this.locked = false;
   }
 
   public getIsHovered(): boolean {
@@ -56,12 +63,6 @@ export class PlaceAllBlocksButton {
 
     const blockCount = this.playerResources.getBlockCount();
     this.pulseController.update(dt);
-
-    // Reset activation if block queue is now empty
-    if (this.isActive && blockCount === 0) {
-      this.isActive = false;
-      this.pulseController.stopPulse();
-    }
 
     const mouse = this.inputManager.getMousePosition();
     const { x, y } = this.getPosition();
@@ -79,39 +80,26 @@ export class PlaceAllBlocksButton {
         audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 8 });
         this.hoverSoundPlayed = true;
       }
-      this.GlobalMenuReporter.setOverlayHovered('placeAllBlocksButton');
+      this.GlobalMenuReporter.setOverlayHovered('rollBlocksButton');
 
-      if (!this.isActive && this.inputManager.wasMouseClicked() && blockCount > 0) {
-        if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
+      if (this.inputManager.wasMouseClicked() && blockCount >= 3) {
         this.activate();
       }
     } else {
       this.hoverSoundPlayed = false;
-      this.GlobalMenuReporter.setOverlayNotHovered('placeAllBlocksButton');
+      this.GlobalMenuReporter.setOverlayNotHovered('rollBlocksButton');
       restoreCursor();
     }
 
-    if (!this.isActive && this.inputManager.wasActionJustPressed('placeAllBlocksButton')) {
-      if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
-      if (blockCount > 0) {
-        this.activate();
-      }
+    if (this.inputManager.wasActionJustPressed('rollBlocksButton') && blockCount >= 3) {
+      this.activate();
     }
-  }
-
-  public lock(): void {
-    this.locked = true;
-  }
-
-  public unlock(): void {
-    this.locked = false;
   }
 
   private activate(): void {
     if (this.locked) return;
-    requestPlaceAllBlocksInQueue();
-    this.isActive = true;
-    this.pulseController.startPulse(0.4, 1);
+    requestRollBlocksQueue();
+    this.pulseController.trigger(0.3, 1);
   }
 
   public render(ctx: CanvasRenderingContext2D): void {
@@ -120,7 +108,7 @@ export class PlaceAllBlocksButton {
     const { x, y } = this.getPosition();
     const blockCount = this.playerResources.getBlockCount();
 
-    const baseAlpha = blockCount > 0 ? 1.0 : 0.3;
+    const baseAlpha = blockCount >= 3 ? 1.0 : 0.3;
     const pulseAlpha = this.pulseController.getPulseAlphaMultiplier();
     const finalAlpha = baseAlpha * pulseAlpha;
 
@@ -134,10 +122,10 @@ export class PlaceAllBlocksButton {
       y,
       width: this.width,
       height: this.height,
-      iconCanvas: getPlaceAllBlocksIcon(),
+      iconCanvas: getRollBlocksIcon(),
       label: '',
       isHovered: this.isHovered,
-      onClick: () => {}, // no-op: input is handled explicitly
+      onClick: () => {}, // input handled explicitly
       style: {
         borderRadius: 5 * this.scale,
         fillColor,

@@ -99,6 +99,16 @@ export interface EventTypes {
   'blockdropdecision:roll:unlock': undefined;
   'blockdropdecision:lock-all': undefined;
   'blockdropdecision:unlock-all': undefined;
+  'blockqueue:request-place': {
+    blockTypeId: string;
+    index: number;
+  };
+  'blockqueue:request-refine': {
+    blockTypeId: string;
+    index: number;
+  };
+  'blockqueue:request-placeall': undefined;
+  'blockqueue:request-roll': undefined;
 
   // Block Queue
   'blockqueue:lock': undefined;
@@ -184,17 +194,4 @@ export interface EventTypes {
     entity: CompositeBlockObject;
     cause: DestructionCause;
   };
-
-  // UI-triggered block placement from BlockQueueDisplayManager
-  'blockqueue:request-place': {
-    blockTypeId: string;
-    index: number;
-  };
-
-  'blockqueue:request-refine': {
-    blockTypeId: string;
-    index: number;
-  };
-
-  'blockqueue:request-placeall': undefined;
 }

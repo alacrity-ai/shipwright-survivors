@@ -264,6 +264,7 @@ BUGS:
 
 
 REFINEMENT:
+  - [ ] Engine sound needs to play on gamepad movement
   - [ ] Rework laser to target the closet target.. add a chain lightning passive
   - [ ] Increase your base entropium pull range based on your mass (do it at invalidate mass)
   - [ ] Decrease the amount of entropium that drops by 33%, increase the amount per drop to compensate
