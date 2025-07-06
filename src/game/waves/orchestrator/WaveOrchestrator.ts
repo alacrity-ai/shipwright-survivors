@@ -19,7 +19,7 @@ export class WaveOrchestrator implements IUpdatable {
   private accumulatedTimeSinceStart = 0;
   private elapsedTime = 0;
 
-  private readonly initialDelay = 10;
+  private initialDelay = 10;
   private readonly defaultWaveInterval = 120;
 
   private isRunning = false;
@@ -39,7 +39,7 @@ export class WaveOrchestrator implements IUpdatable {
     this.waves = waves;
   }
 
-  public start(): void {
+  public start(instantly: boolean = false): void {
     this.isRunning = true;
     this.currentWaveIndex = 0;
     this.timeBeforeFirstWave = 0;
@@ -48,6 +48,9 @@ export class WaveOrchestrator implements IUpdatable {
     this.hasSpawnedFirstWave = false;
     this.activeWave = null;
     this.pendingWavePromise = null;
+    if (instantly) {
+      this.initialDelay = 0;
+    }
     missionResultStore.setTotalWaves(this.waves.length);
   }
 

@@ -45,7 +45,8 @@ export async function getStarterShip(
   explosionSystem: ExplosionSystem,
   collisionSystem: BlockObjectCollisionSystem,
   constructionAnimator: ShipConstructionAnimatorService,
-  jsonFilename: string
+  jsonFilename: string,
+  createInstantly: boolean = false
 ): Promise<ShipResult> {
   const factory = new ShipFactory(
     grid,
@@ -70,7 +71,8 @@ export async function getStarterShip(
     Faction.Player,    // faction
     false,             // registerController
     false,             // unCullable
-    true               // isPlayerShip
+    true,               // isPlayerShip
+    createInstantly
   );
 
   const presetColor = PlayerShipCollection.getInstance().getSelectedColor();

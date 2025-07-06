@@ -1,6 +1,7 @@
 // src/scenes/title/TitleScreenManager.ts
 
 import { DEFAULT_CONFIG } from '@/config/ui';
+import { BUILD_VERSION } from '@/config/version';
 
 import { CanvasManager } from '@/core/CanvasManager';
 import { GameLoop } from '@/core/GameLoop';
@@ -13,14 +14,18 @@ import { SaveGameManager } from '@/core/save/saveGameManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
+import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawWindow } from '@/ui/primitives/WindowBox';
-import { loadImage } from '@/shared/imageCache';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
+import { WordRenderer } from '@/ui/primitives/controllers/WordRenderer';
+import { clearLetterCache } from '@/rendering/cache/Letters';
+
 import { isElectron } from '@/shared/isElectron';
 import { TitleScreenRuntime } from '@/core/TitleScreenRuntime';
-import { PlayerResources } from '@/game/player/PlayerResources';
+
+import { SettingsMenu } from '@/ui/menus/SettingsMenu';
 
 const TITLE_IMAGE_PATH = 'assets/title_screen.png';
 
@@ -43,6 +48,10 @@ export class TitleScreenManager {
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private titleScreenRuntime: TitleScreenRuntime | null = null;
+  private titleRenderer: WordRenderer | null = null;
+  private subtitleRenderer: WordRenderer | null = null;
+
+  private settingsMenu: SettingsMenu | null = null;
 
   private buttons: UIButton[] = [];
   private saveSlotButtons: UIButton[] = [];
@@ -65,13 +74,23 @@ export class TitleScreenManager {
     this.inputManager = inputManager;
     this.titleScreenRuntime = new TitleScreenRuntime();
 
-    this.titleScreenRuntime.initialize();
+    this.settingsMenu = new SettingsMenu(this.inputManager, null, this.canvasManager);
+
     this.buttons = this.createMainButtons();
+
+    const scale = getUniformScaleFactor();
+
+    this.titleRenderer = new WordRenderer(125 * scale, 100 * scale);
+    this.titleRenderer.setWord('SHIPWRIGHT');
+
+    this.subtitleRenderer = new WordRenderer(485 * scale, 200 * scale);
+    this.subtitleRenderer.setWord('SURVIVORS');
   }
 
   async start() {
     audioManager.playMusic({ file: 'assets/sounds/music/track_08_debriefing.mp3' });
     if (this.titleScreenRuntime) {
+      await this.titleScreenRuntime.initialize();
       this.titleScreenRuntime.start();
     }
     this.gameLoop.onUpdate(this.update);
@@ -82,6 +101,7 @@ export class TitleScreenManager {
   stop() {
     if (this.titleScreenRuntime) {
       this.titleScreenRuntime.destroy();
+      clearLetterCache();
     }
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
@@ -153,11 +173,11 @@ export class TitleScreenManager {
       y: baseY + (scaledVerticalSpacing * 1),
       width,
       height,
-      label: 'Credits',
+      label: 'Settings',
       isHovered: false,
       onClick: () => {
         audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
-        console.log('Credits clicked (not implemented)');
+        this.settingsMenu?.openMenu();
       },
       style: sharedStyle
     });
@@ -394,6 +414,8 @@ export class TitleScreenManager {
     for (const button of activeButtons) {
       handleButtonInteraction(button, x, y, click, uiScale);
     }
+
+    this.settingsMenu?.update();
   };
 
   private render = (_dt: number) => {
@@ -454,11 +476,22 @@ export class TitleScreenManager {
       uiCtx.font = `${Math.round(fontSize)}px monospace`;
       uiCtx.fillText('Erase this save file?', 360 * uiScale, 320 * uiScale);
 
-      // Did I accidently put this here when we should be rendering the delete confirmation buttons?
+      // Render confirmation buttons
       for (const button of this.confirmationButtons) {
         drawButton(uiCtx, button, uiScale);
       }
     }
+
+    // Render settings menu / title text
+    if (!this.settingsMenu?.isOpen()) {
+      this.titleRenderer!.render(uiCtx);
+      this.subtitleRenderer!.render(uiCtx);
+    } else {
+      this.settingsMenu?.render(uiCtx);
+    }
+
+    // Draw current build version label
+    drawLabel(uiCtx, 1220 * uiScale, 690 * uiScale, `v${BUILD_VERSION}`, { color: '#00FFFF' }, uiScale);
 
     const mouse = this.inputManager.getMousePosition();
     const cursor = getCrosshairCursorSprite();

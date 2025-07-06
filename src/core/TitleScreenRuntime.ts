@@ -9,6 +9,8 @@ import { GlobalMenuReporter } from './GlobalMenuReporter';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
+import { getStarterShip } from '@/game/ship/utils/PrefabHelpers';
+
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
@@ -19,14 +21,12 @@ import { initializeGL2AsteroidBlockSpriteCache, destroyGL2AsteroidBlockSpriteCac
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 
 import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
-import { SettingsMenu } from '@/ui/menus/SettingsMenu';
 import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 
 import { applyWarmCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
 import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
-import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
@@ -35,6 +35,8 @@ import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { LaserSystem } from '@/systems/physics/LaserSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
+
+import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { PlanetSystem } from '@/game/planets/PlanetSystem';
@@ -59,7 +61,7 @@ import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/Compo
 import { CompositeBlockObjectUpdateSystem } from '@/game/entities/systems/CompositeBlockObjectUpdateSystem';
 import { Grid } from '@/systems/physics/Grid';
 import { Ship } from '@/game/ship/Ship';
-
+import { Faction } from '@/game/interfaces/types/Faction';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 
@@ -79,7 +81,6 @@ export class TitleScreenRuntime {
   private isInitialized = false;
 
   private inputManager: InputManager;
-  private settingsMenu: SettingsMenu | null = null;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
 
   private canvasManager: CanvasManager;
@@ -97,6 +98,8 @@ export class TitleScreenRuntime {
   private shipGrid: ShipGrid | null = null;
   private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
 
+  private ship: Ship | null = null;
+
   private combatService: CombatService;
   private destructionService: CompositeBlockDestructionService;
   private projectileSystem: ProjectileSystem;
@@ -106,7 +109,6 @@ export class TitleScreenRuntime {
   private particleManager: ParticleManager;
   private persistentParticleManager: ParticleManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
-  private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
   private waveOrchestrator: WaveOrchestrator | null = null;
@@ -168,9 +170,6 @@ export class TitleScreenRuntime {
     this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
     this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
     this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.persistentParticleManager);
-    
-    // === Cursor
-    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
 
     // === Block Drop Decision Menu TODO : pickupSystem depends on this
     this.blockDropDecisionMenu = new BlockDropDecisionMenu(
@@ -237,9 +236,6 @@ export class TitleScreenRuntime {
     this.shipCulling = new ShipCullingSystem();
     this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid!);
 
-    // Menus
-    this.settingsMenu = new SettingsMenu(this.inputManager, null, this.canvasManager, this.camera!);
-
     // Energy Recharge System: Single instance used by all ships
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
 
@@ -304,6 +300,27 @@ export class TitleScreenRuntime {
       this.incidentOrchestrator,
     ];
 
+    const { ship } = await getStarterShip(
+      this.grid!,
+      this.shipRegistry,
+      this.particleManager,
+      this.projectileSystem,
+      this.laserSystem,
+      this.combatService,
+      this.explosionSystem,
+      this.collisionSystem,
+      this.shipConstructionAnimator,
+      'player/ship_00',
+      true
+    );
+
+    this.ship = ship;
+    this.ship.setFaction(Faction.Enemy);
+    this.pickupSystem.setPlayerShip(this.ship);
+    this.blockDropDecisionMenu.setPlayerShip(this.ship);
+    this.shipConstructionAnimator.setPlayerShip(this.ship);
+    this.aiOrchestrator.registerPlayerShip(this.ship);
+
     this.isInitialized = true;
   }
 
@@ -349,15 +366,36 @@ export class TitleScreenRuntime {
     if (!this.isInitialized) return;
     if (this.isDestroyed) return;
 
+    const cam = Camera.getInstance();
+
+    // === WASD input panning ===
+    const moveSpeed = 20 / cam.getZoom(); // scaled to zoom
+    const { x, y } = cam.getTarget();
+
+    let nextX = x;
+    let nextY = y;
+
+    if (this.inputManager.isKeyPressed('KeyA')) {
+      nextX -= moveSpeed;
+      console.log(cam.getTarget());
+    }
+    if (this.inputManager.isKeyPressed('KeyD')) {
+      nextX += moveSpeed;
+    }
+    if (this.inputManager.isKeyPressed('KeyW')) {
+      nextY -= moveSpeed;
+    }
+    if (this.inputManager.isKeyPressed('KeyS')) {
+      nextY += moveSpeed;
+    }
+
+    cam.setTarget(nextX, nextY);
+
     // Clear input consumed inputs
     this.inputManager.clearConsumedActions();
 
     // === Shader Special FX
     this.unifiedSceneRenderer!.update(dt);
-
-    if (this.settingsMenu!.isOpen()) {
-      this.settingsMenu!.update();
-    }
 
     // === Camera ===
     try {
@@ -414,12 +452,6 @@ export class TitleScreenRuntime {
         visibleParticles
       );
     }
-
-    if (this.settingsMenu!.isOpen()) {
-      this.settingsMenu!.render(this.canvasManager.getContext('ui'));
-    }
-
-    this.cursorRenderer.render();
   };
 
   public async load(): Promise<void> {
@@ -434,10 +466,15 @@ export class TitleScreenRuntime {
       throw new Error('TitleScreenRuntime: Cannot start before initialization');
     }
 
+    missionResultStore.initialize();
     this.mission.onStart?.();
 
     this.asteroidSpawner!.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
+  
+    this.waveOrchestrator!.start(true);
+
+    this.camera!.setTarget(-5877, -3244);
     applyWarmCinematicEffect();
   }
 
@@ -472,7 +509,6 @@ export class TitleScreenRuntime {
     this.projectileSystem.destroy();
 
     // Optional: clear UI menus, overlays
-    this.cursorRenderer.destroy();
     this.explosionSystem.destroy();
     this.particleManager.destroy();
     this.lightingOrchestrator.destroy();

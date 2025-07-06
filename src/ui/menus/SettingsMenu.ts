@@ -5,7 +5,8 @@ import type { InputManager } from '@/core/InputManager';
 import type { MenuManager } from '@/ui/MenuManager';
 import type { AudioChannel } from '@/audio/AudioManager';
 import type { CanvasManager } from '@/core/CanvasManager';
-import type { Camera } from '@/core/Camera';
+
+import { Camera } from '@/core/Camera';
 
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
@@ -71,8 +72,8 @@ export class SettingsMenu implements Menu {
 
   private resolutionDropdown: CRTDropDown | null = null;
 
-  private windowX = 120;
-  private windowY = 80;
+  private windowX = 920;
+  private windowY = 420;
   private windowHeight = 460;
   private windowWidth = 440;
 
@@ -95,11 +96,11 @@ export class SettingsMenu implements Menu {
 
   private margin = 20;
 
-  constructor(inputManager: InputManager, menuManager: MenuManager | null, canvasManager: CanvasManager, camera: Camera) {
+  constructor(inputManager: InputManager, menuManager: MenuManager | null, canvasManager: CanvasManager) {
     this.inputManager = inputManager;
     this.menuManager = menuManager;
     this.canvasManager = canvasManager;
-    this.camera = camera;
+    this.camera = Camera.getInstance();
 
     // Initialize UI elements
     this.initialize();
@@ -117,7 +118,7 @@ export class SettingsMenu implements Menu {
     const scaledButtonWidth = this.buttonWidth * uiScale;
     const scaledButtonHeight = this.buttonHeight * uiScale;
 
-    const baseX = 160;
+    const baseX = this.windowX + scaledMargin;
     const baseY = this.windowY + scaledMargin + scaledHeaderHeight;
 
     // Close button on Bottom right of window

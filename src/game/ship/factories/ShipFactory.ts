@@ -54,7 +54,8 @@ export class ShipFactory {
     private readonly explosionSystem: ExplosionSystem,
     private readonly collisionSystem: BlockObjectCollisionSystem,
     private readonly shipConstructionAnimator: ShipConstructionAnimatorService,
-    private readonly orchestrator?: AIOrchestratorSystem // ← now optional
+    private readonly orchestrator?: AIOrchestratorSystem, // ← now optional
+    private readonly createInstantly?: boolean
   ) {}
 
   public async createShip(
@@ -67,7 +68,8 @@ export class ShipFactory {
     faction: Faction = Faction.Enemy,
     registerController: boolean = true,
     unCullable: boolean = false,
-    isPlayerShip: boolean = false
+    isPlayerShip: boolean = false,
+    createInstantly: boolean = false
   ): Promise<{ ship: Ship; controller: AIControllerSystem | null, emitter: ThrusterEmitter, movement: MovementSystem, weapons: WeaponSystem, utility: UtilitySystem }> {
     const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid, faction, isPlayerShip);
 
@@ -141,7 +143,12 @@ export class ShipFactory {
       radius: 96,
       intensity: 0.8
     };
-    this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
+
+    if (!createInstantly) {
+      this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
+    }
+
+    // this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 
     return { ship, controller, emitter, movement, weapons, utility };
   }

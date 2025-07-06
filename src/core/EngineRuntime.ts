@@ -414,7 +414,7 @@ export class EngineRuntime {
     this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid!);
 
     // Menus
-    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager, this.camera!);
+    this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager);
     this.pauseMenu = new PauseMenu(
       this.inputManager,
       this.handlePlayerFailure.bind(this),

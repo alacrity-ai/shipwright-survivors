@@ -240,14 +240,14 @@ export class WaveExecutor {
     }
 
     // === UI / Music ===
-    if (tag === undefined) {
-      this.popupMessageSystem.displayMessage(`Wave ${waveIndex + 1}`, {
-        color: '#00ff00',
-        duration: 5,
-        glow: true,
-        font: '28px monospace',
-      });
-    }
+    // if (tag === undefined) {
+    //   this.popupMessageSystem.displayMessage(`Wave ${waveIndex + 1}`, {
+    //     color: '#00ff00',
+    //     duration: 5,
+    //     glow: true,
+    //     font: '28px monospace',
+    //   });
+    // }
 
     if (wave.music) {
       audioManager.playMusic(wave.music);

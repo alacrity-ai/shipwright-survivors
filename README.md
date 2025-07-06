@@ -264,6 +264,8 @@ BUGS:
 
 
 REFINEMENT:
+  - [ ] Add game logo to Titlescreen, floating in the background, could be made out of blocks, could get blasted on game start? lol
+  - [ ] Add loading indicator or splashscreens to cover the titlescreen as it loads??
   - [ ] Add panning camera to title screen, with formation spawning
   - [ ] Verify that titlescreen runtime isn't leaking
   - [ ] Engine sound needs to play on gamepad movement

@@ -1,6 +1,7 @@
 // src/game/missions/MissionRegistry.ts
 
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+import { waveDefinitions as titleScreenWaves } from '@/game/waves/missions/TitleScreenWaves';
 import { waveDefinitions as waveSet0 } from '@/game/waves/missions/Mission0Waves';
 import { waveDefinitions as waveSet1 } from '@/game/waves/missions/Mission1Waves';
 import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves';
@@ -34,13 +35,13 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   titlescreen: {
     id: 'titlescreen',
     name: 'Title Screen',
-    waves: waveSet0,
+    waves: titleScreenWaves,
     dropMultiplier: 2.0,
     environmentSettings: {
-      backgroundId: 'background_4_00.png',
+      backgroundId: 'background_10_00.png',
       gravity: 0,
-      worldWidth: 16000,
-      worldHeight: 16000,
+      worldWidth: 9000,
+      worldHeight: 9000,
     },
     // music: {
     //   file: 'assets/sounds/music/track_02_mission1.mp3',
@@ -49,7 +50,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waveDensity: 1,
     missionPortrait: null,
     planets: [
-      { name: 'Voidia', x: -5000, y: -6000 },
+      { name: 'Ferrust', x: -2600, y: 3000 },
+      { name: 'Gilipe', x: 3400, y: -2000 },
     ],
     // onStart: () => {
     //   emitHudHideAll();
