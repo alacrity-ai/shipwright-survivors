@@ -92,6 +92,7 @@ export class RollBlocksButton {
     }
 
     if (this.inputManager.wasActionJustPressed('rollBlocksButton') && blockCount >= 3) {
+      if (this.GlobalMenuReporter.isAnyMenuOpen()) return;
       this.activate();
     }
   }

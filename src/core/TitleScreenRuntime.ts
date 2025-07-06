@@ -25,6 +25,8 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 
 import { applyWarmCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
@@ -72,11 +74,11 @@ import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
 
 export class TitleScreenRuntime {
-  private readonly boundOnEntityDestroyed = (entity: CompositeBlockObject, cause: DestructionCause): void => {
-    if (entity instanceof Ship && this.waveOrchestrator) {
-      this.waveOrchestrator.notifyShipDestroyed(entity, cause);
-    }
-  };
+  // private readonly boundOnEntityDestroyed = (entity: CompositeBlockObject, cause: DestructionCause): void => {
+  //   if (entity instanceof Ship && this.waveOrchestrator) {
+  //     this.waveOrchestrator.notifyShipDestroyed(entity, cause);
+  //   }
+  // };
 
   private isInitialized = false;
 
@@ -273,7 +275,7 @@ export class TitleScreenRuntime {
     );
 
     // Notify wave orchestrator when a ship is destroyed
-    this.destructionService.onEntityDestroyed(this.boundOnEntityDestroyed);
+    // this.destructionService.onEntityDestroyed(this.boundOnEntityDestroyed);
 
     // Planet System
     this.planetSystem = new PlanetSystem(null, this.inputManager, this.camera!, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
@@ -474,7 +476,10 @@ export class TitleScreenRuntime {
   
     this.waveOrchestrator!.start(true);
 
-    this.camera!.setTarget(-5877, -3244);
+    const x = -1877 * getUniformScaleFactor();
+    const y = -244 * getUniformScaleFactor();
+    this.camera!.setTarget(x, y);
+    this.camera!.setToMinZoom();
     applyWarmCinematicEffect();
   }
 
@@ -488,11 +493,15 @@ export class TitleScreenRuntime {
     this.isDestroyed = true;
 
     // === Dispose of Eventbus Listeners ===
-    this.destructionService.offEntityDestroyed(this.boundOnEntityDestroyed);
+    console.log('Destroying: destructionService');
+    // this.destructionService.offEntityDestroyed(this.boundOnEntityDestroyed);
 
     // === Clean up singleton state ===
+    console.log('Destroying: waveOrchestrator');
     this.waveOrchestrator!.destroy();
+    console.log('Destroying: shipRegistry');
     this.shipRegistry.clear();
+    console.log('Destroying: aiOrchestrator');
     this.aiOrchestrator.clear();
     ShieldEffectsSystem.getInstance().clear();
     ShipGrid.getInstance().destroy();
@@ -507,6 +516,7 @@ export class TitleScreenRuntime {
     this.incidentOrchestrator!.destroy();
     this.destructionService.destroy();
     this.projectileSystem.destroy();
+    this.blockDropDecisionMenu.destroy();
 
     // Optional: clear UI menus, overlays
     this.explosionSystem.destroy();

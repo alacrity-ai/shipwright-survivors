@@ -415,6 +415,7 @@ export class EngineRuntime {
 
     // Menus
     this.settingsMenu = new SettingsMenu(this.inputManager, this.menuManager, this.canvasManager);
+    this.settingsMenu.lockResolution();
     this.pauseMenu = new PauseMenu(
       this.inputManager,
       this.handlePlayerFailure.bind(this),

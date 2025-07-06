@@ -11,6 +11,7 @@ import { audioManager } from '@/audio/Audio';
 
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
 
 export class PlaceAllBlocksButton {
   private isHovered = false;
@@ -34,8 +35,9 @@ export class PlaceAllBlocksButton {
     private readonly canvas: HTMLCanvasElement,
     private readonly inputManager: {
       getMousePosition: () => { x: number; y: number };
-      wasMouseClicked: () => boolean;
+      wasMouseClicked: (handlePhysicalInputs: boolean) => boolean;
       wasActionJustPressed: (alias: InputAction) => boolean;
+      wasGamepadAliasJustPressed: (alias: GamepadButtonAlias) => boolean;
     }
   ) {
     this.resize();
@@ -81,7 +83,7 @@ export class PlaceAllBlocksButton {
       }
       this.GlobalMenuReporter.setOverlayHovered('placeAllBlocksButton');
 
-      if (!this.isActive && this.inputManager.wasMouseClicked() && blockCount > 0) {
+      if (!this.isActive && this.inputManager.wasMouseClicked(true) && blockCount > 0) {
         if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
         this.activate();
       }
@@ -91,8 +93,9 @@ export class PlaceAllBlocksButton {
       restoreCursor();
     }
 
+    // Handle gamepad input
     if (!this.isActive && this.inputManager.wasActionJustPressed('placeAllBlocksButton')) {
-      if (this.GlobalMenuReporter.isMenuOpen('blockDropDecisionMenu')) return;
+      if (this.GlobalMenuReporter.isAnyMenuOpen()) return;
       if (blockCount > 0) {
         this.activate();
       }
@@ -109,6 +112,7 @@ export class PlaceAllBlocksButton {
 
   private activate(): void {
     if (this.locked) return;
+    console.log('Requesting Block Placement!')
     requestPlaceAllBlocksInQueue();
     this.isActive = true;
     this.pulseController.startPulse(0.4, 1);

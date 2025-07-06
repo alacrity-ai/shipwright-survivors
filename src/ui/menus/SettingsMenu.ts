@@ -10,6 +10,8 @@ import { Camera } from '@/core/Camera';
 
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 import { drawCheckbox, type UICheckbox } from '@/ui/primitives/UICheckBox';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
@@ -17,8 +19,9 @@ import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getDropdownHoverInfo } from '@/ui/menus/helpers/getDropdownHoverInfo';
 
-import { getUniformScaleFactor } from '@/config/view';
+import { reportResolutionChange } from '@/core/interfaces/events/ResolutionChangeReporter';
 
+import { getUniformScaleFactor } from '@/config/view';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
 import { drawLabel } from '@/ui/primitives/UILabel';
@@ -52,7 +55,6 @@ const volumeSetters: Record<string, (v: number) => void> = {
   dialogue: (v) => PlayerSettingsManager.getInstance().setDialogueVolume(v),
 };
 
-
 export class SettingsMenu implements Menu {
   private inputManager: InputManager;
   private menuManager: MenuManager | null = null;
@@ -72,13 +74,13 @@ export class SettingsMenu implements Menu {
 
   private resolutionDropdown: CRTDropDown | null = null;
 
-  private windowX = 920;
-  private windowY = 420;
+  private windowX = 450;
+  private windowY = 120;
   private windowHeight = 460;
   private windowWidth = 440;
 
   private headerStartY = 20;
-  private headerStartX = 80;
+  private headerStartX = 60;
   private headerHeight = 40;
   private headerItemWidth = 80;
   private headerHorizontalPadding = 12;
@@ -91,6 +93,11 @@ export class SettingsMenu implements Menu {
   private dropdownWidth = 120;
   private dropdownHeight = 28;
   private checkboxSize = 14;
+
+  private resolutionLocked: boolean = false;
+
+  private baseX: number = 0;
+  private baseY: number = 0;
 
   private itemVerticalSpacing = 40;
 
@@ -108,24 +115,22 @@ export class SettingsMenu implements Menu {
 
   initialize(): void {
     const settings = PlayerSettingsManager.getInstance();
+    SaveGameManager.loadSettings();
 
     const uiScale = getUniformScaleFactor();
     const scaledMargin = this.margin * uiScale;
     const scaledHeaderHeight = this.headerHeight * uiScale;
     const scaledItemVerticalSpacing = this.itemVerticalSpacing * uiScale;
     const scaledWindowHeight = this.windowHeight * uiScale;
-    const scaledWindowWidth = this.windowWidth * uiScale;
-    const scaledButtonWidth = this.buttonWidth * uiScale;
-    const scaledButtonHeight = this.buttonHeight * uiScale;
 
-    const baseX = this.windowX + scaledMargin;
-    const baseY = this.windowY + scaledMargin + scaledHeaderHeight;
+    this.baseX = (this.windowX * uiScale) + scaledMargin;
+    this.baseY = (this.windowY * uiScale) + scaledMargin + scaledHeaderHeight + (30 * uiScale);
 
     // Close button on Bottom right of window
     // The buttons origin is its center
     this.closeButton = {
-      x: this.windowX + scaledWindowWidth - (scaledButtonWidth) - scaledMargin,
-      y: this.windowY + scaledWindowHeight - (scaledButtonHeight) - scaledMargin,
+      x: this.baseX + (150 * uiScale),
+      y: this.baseY + scaledWindowHeight - (140 * uiScale),
       width: this.buttonWidth,
       height: this.buttonHeight,
       label: 'Close',
@@ -143,12 +148,12 @@ export class SettingsMenu implements Menu {
       style: {
         borderRadius: 10,
         alpha: 0.8,
-        borderColor: '#00ff00',
+        borderColor: DEFAULT_CONFIG.button.style.borderColor,
         backgroundGradient: {
           type: 'linear',
           stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
+            { offset: 0, color: DEFAULT_CONFIG.button.style.backgroundGradient.stops[0].color },
+            { offset: 1, color: DEFAULT_CONFIG.button.style.backgroundGradient.stops[1].color }
           ]
         }
       }
@@ -162,14 +167,14 @@ export class SettingsMenu implements Menu {
     this.volumeSliders = volumeDefs.map((def, i) => {
       const key = def.kind === 'master' ? 'master' : def.channel;
       return {
-        x: baseX,
-        y: baseY + i * scaledItemVerticalSpacing,
+        x: this.baseX,
+        y: this.baseY + i * scaledItemVerticalSpacing,
         width: this.sliderWidth,
         height: this.sliderHeight,
         value: volumeGetters[key](),
         onChange: (v: number) => {
           volumeSetters[key](v);
-          SaveGameManager.getInstance().saveSettings();
+          SaveGameManager.saveSettings();
         },
       };
     });
@@ -177,41 +182,41 @@ export class SettingsMenu implements Menu {
     // == Display Tab
     // Particle Checkbox is (first) top most item in column in its tab
     this.particleCheckbox = {
-      x: baseX,
-      y: baseY,
+      x: this.baseX,
+      y: this.baseY,
       size: this.checkboxSize,
       label: 'Particles Enabled',
       checked: settings.isParticlesEnabled(),
       onToggle: (val) => {
         this.particleCheckbox!.checked = val;
         settings.setParticlesEnabled(val);
-        SaveGameManager.getInstance().saveSettings();
+        SaveGameManager.saveSettings();
       }
     };
 
     this.lightingCheckbox = {
-      x: baseX,
-      y: baseY + scaledItemVerticalSpacing,
+      x: this.baseX,
+      y: this.baseY + scaledItemVerticalSpacing,
       size: this.checkboxSize,
       label: 'Lighting Enabled',
       checked: settings.isLightingEnabled(),
       onToggle: (val) => {
         this.lightingCheckbox!.checked = val;
         settings.setLightingEnabled(val);
-        SaveGameManager.getInstance().saveSettings();
+        SaveGameManager.saveSettings();
       }
     };
 
     this.collisionsCheckbox = {
-      x: baseX,
-      y: baseY + scaledItemVerticalSpacing * 2,
+      x: this.baseX,
+      y: this.baseY + scaledItemVerticalSpacing * 2,
       size: this.checkboxSize,
       label: 'Collisions Enabled',
       checked: settings.isCollisionsEnabled(),
       onToggle: (val) => {
         this.collisionsCheckbox!.checked = val;
         settings.setCollisionsEnabled(val);
-        SaveGameManager.getInstance().saveSettings();
+        SaveGameManager.saveSettings();
       }
     };
 
@@ -225,8 +230,8 @@ export class SettingsMenu implements Menu {
     ];
 
     this.resolutionDropdown = {
-      x: baseX,
-      y: baseY + scaledItemVerticalSpacing * 3,
+      x: this.baseX,
+      y: this.baseY + scaledItemVerticalSpacing * 3,
       width: this.dropdownWidth,
       height: this.dropdownHeight,
       items: resolutionItems,
@@ -236,14 +241,12 @@ export class SettingsMenu implements Menu {
         const [wStr, hStr] = item.value.split('x');
         settings.setViewportWidth(parseInt(wStr, 10));
         settings.setViewportHeight(parseInt(hStr, 10));
-        applyViewportResolution(this.canvasManager, this.camera);
-        SaveGameManager.getInstance().saveSettings();
-        this.initialize();
+        SaveGameManager.saveSettings();
+        reportResolutionChange(settings.getViewportWidth(), settings.getViewportHeight());
       },
       style: {
-        backgroundColor: '#001100',
-        borderColor: '#00ff41',
-        textColor: '#00ff41',
+        borderColor: DEFAULT_CONFIG.window.options.borderColor,
+        textColor: DEFAULT_CONFIG.general.textColor,
         glow: true,
         chromaticAberration: true,
         alpha: 1.0,
@@ -259,11 +262,15 @@ export class SettingsMenu implements Menu {
 
     const scaledHeaderItemWidth = this.headerItemWidth * scale;
     const scaledHeaderHorizontalPadding = this.headerHorizontalPadding * scale;
+    const scaledheaderStartX = this.headerStartX * scale;
+    const scaledheaderStartY = this.headerStartY * scale;
+    const scaledWindowX = this.windowX * scale;
+    const scaledWindowY = this.windowY * scale;
 
     // === Tab click logic ===
     if (clicked) {
-      const baseX = this.headerStartX + this.windowX;
-      const baseY = this.headerStartY + this.windowY;
+      const baseX = scaledheaderStartX + scaledWindowX;
+      const baseY = scaledheaderStartY + scaledWindowY;
       const tabRects = [
         { tab: 'display', label: 'General' },
         { tab: 'volume', label: 'Volume' },
@@ -320,20 +327,22 @@ export class SettingsMenu implements Menu {
 
     // === Resolution dropdown ===
     const dd = this.resolutionDropdown;
-    if (dd) {
-      const { isHovered, hoverIndex } = getDropdownHoverInfo(dd, mouse, scale);
-      dd.isHovered = isHovered;
-      dd.hoverIndex = hoverIndex;
+    if (!this.resolutionLocked) {
+      if (dd) {
+        const { isHovered, hoverIndex } = getDropdownHoverInfo(dd, mouse, scale);
+        dd.isHovered = isHovered;
+        dd.hoverIndex = hoverIndex;
 
-      if (clicked && isHovered && hoverIndex === undefined) {
-        dd.isOpen = !dd.isOpen;
-      }
+        if (clicked && isHovered && hoverIndex === undefined) {
+          dd.isOpen = !dd.isOpen;
+        }
 
-      if (dd.isOpen && typeof hoverIndex === 'number') {
-        if (clicked) {
-          dd.selectedIndex = hoverIndex;
-          dd.isOpen = false;
-          dd.onSelect?.(dd.items[hoverIndex]);
+        if (dd.isOpen && typeof hoverIndex === 'number') {
+          if (clicked) {
+            dd.selectedIndex = hoverIndex;
+            dd.isOpen = false;
+            dd.onSelect?.(dd.items[hoverIndex]);
+          }
         }
       }
     }
@@ -356,25 +365,21 @@ export class SettingsMenu implements Menu {
     const scaledHeaderItemWidth = this.headerItemWidth * scale;
     const scaledHeaderHorizontalPadding = this.headerHorizontalPadding * scale;
 
+    const scaledWindowX = this.windowX * scale;
+    const scaledWindowY = this.windowY * scale;
+    const scaledWindowWidth = this.windowWidth * scale;
+    const scaledWindowHeight = this.windowHeight * scale;
+    const scaledHeaderX = this.headerStartX * scale;
+    const scaledHeaderY = this.headerStartY * scale;
+
     drawWindow({
       ctx,
-      x: this.windowX,
-      y: this.windowY,
-      width: this.windowWidth,
-      height: this.windowHeight,
-      uiScale: scale,
-      options: {
-        alpha: 0.6,
-        borderRadius: 12,
-        borderColor: '#00ff00',
-        backgroundGradient: {
-          type: 'linear',
-          stops: [
-            { offset: 0, color: '#002200' },
-            { offset: 1, color: '#001500' }
-          ]
-        }
-      }
+      x: scaledWindowX,
+      y: scaledWindowY,
+      width: scaledWindowWidth,
+      height: scaledWindowHeight,
+      // uiScale: scale,
+      options: DEFAULT_CONFIG.window.options
     });
 
     // === Tab Labels ===
@@ -388,13 +393,13 @@ export class SettingsMenu implements Menu {
     tabs.forEach((tabInfo, index) => {
       drawLabel(
         ctx,
-        this.headerStartX + this.windowX + index * (scaledHeaderItemWidth + scaledHeaderHorizontalPadding),
-        this.headerStartY + this.windowY + (this.headerVerticalPadding * scale),
+        scaledHeaderX + scaledWindowX + index * (scaledHeaderItemWidth + scaledHeaderHorizontalPadding),
+        scaledHeaderY + scaledWindowY + (this.headerVerticalPadding * scale),
         tabInfo.label,
         {
           font: '16px monospace',
           align: 'left',
-          color: this.activeTab === tabInfo.tab ? '#6f6' : '#888',
+          color: this.activeTab === tabInfo.tab ? DEFAULT_CONFIG.general.accentColor : DEFAULT_CONFIG.general.infoTextColor,
         },
         scale
       );
@@ -405,7 +410,22 @@ export class SettingsMenu implements Menu {
       drawCheckbox(ctx, this.particleCheckbox!, scale);
       drawCheckbox(ctx, this.lightingCheckbox!, scale);
       drawCheckbox(ctx, this.collisionsCheckbox!, scale);
-      drawCRTDropDown(ctx, this.resolutionDropdown!, scale, 'Resolution');
+      if (this.resolutionLocked) {
+        drawLabel(
+          ctx,
+          this.resolutionDropdown!.x,
+          this.resolutionDropdown!.y + 6 * scale, // slight vertical adjustment for better centering
+          'Resolution can be changed from the Title Screen',
+          {
+            font: '14px monospace',
+            align: 'left',
+            color: '#888',
+          },
+          scale
+        );
+      } else {
+        drawCRTDropDown(ctx, this.resolutionDropdown!, scale, 'Resolution');
+      }
 
     } else if (this.activeTab === 'volume') {
       for (let i = 0; i < this.volumeSliders.length; i++) {
@@ -417,8 +437,8 @@ export class SettingsMenu implements Menu {
     } else if (this.activeTab === 'controls') {
       drawLabel(
         ctx,
-        this.windowX + this.margin * scale,
-        this.windowY + 100 * scale,
+        500 * scale,
+        300 * scale,
         'Controls tab coming soon...',
         { font: '14px monospace', align: 'left', color: '#ccc' },
         scale
@@ -427,8 +447,8 @@ export class SettingsMenu implements Menu {
     } else if (this.activeTab === 'keybinds') {
       drawLabel(
         ctx,
-        this.windowX + this.margin * scale,
-        this.windowY + 100 * scale,
+        500 * scale,
+        300 * scale,
         'Keybinds tab coming soon...',
         { font: '14px monospace', align: 'left', color: '#ccc' },
         scale
@@ -454,6 +474,14 @@ export class SettingsMenu implements Menu {
     GlobalMenuReporter.getInstance().setMenuClosed('settingsMenu');
     this.inputManager.setGamepadMousemockingEnabled(true);
     this.inputManager.setGamepadCursorOverrideEnabled(true);
+  }
+
+  lockResolution(): void {
+    this.resolutionLocked = true;
+  }
+
+  unlockResolution(): void {
+    this.resolutionLocked = false;
   }
 
   isBlocking(): boolean {

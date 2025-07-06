@@ -34,11 +34,6 @@ export default function App() {
     // === Apply canvas dimensions immediately
     applyViewportResolution(canvasManager);
 
-    // === Subscribe to resolution changes
-    settings.onResolutionChange(() => {
-      applyViewportResolution(canvasManager);
-    });
-
     // === Audio unlock on first pointer input ===
     const unlock = () => {
       audioManager.unlock();

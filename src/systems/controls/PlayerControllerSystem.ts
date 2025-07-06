@@ -163,7 +163,6 @@ export class PlayerControllerSystem {
   }
 
   public update(): void {
-    console.log('[PlayerControllerSystem] Update called!')
     const now = performance.now();
     if (
       this.inputManager.wasActionJustPressed('switchFiringMode') &&

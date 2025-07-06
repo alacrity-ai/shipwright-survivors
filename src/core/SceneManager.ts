@@ -12,6 +12,13 @@ import { BreakroomSceneManager } from '@/scenes/hub/BreakRoomSceneManager';
 import { DebriefingSceneManager } from '@/scenes/debriefing/DebriefingSceneManager';
 import { ShipSelectionSceneManager } from '@/scenes/ship_selection/ShipSelectionSceneManager';
 
+import { SaveGameManager } from '@/core/save/saveGameManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+import { applyViewportResolution } from '@/shared/applyViewportResolution';
+import { Camera } from '@/core/Camera';
+
+import { GlobalEventBus } from '@/core/EventBus';
+
 import { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 
 import { audioManager } from '@/audio/Audio';
@@ -56,22 +63,46 @@ class SceneManager {
     const fadeManager = FadeManager.getInstance();
     this.gameLoop.onRender(() => fadeManager.render());
     this.gameLoop.onUpdate(() => fadeManager.update());
+
+    GlobalEventBus.on('resolution:changed', this.onResolutionChanged);
   }
 
-  private ensureCanvasManager(): CanvasManager {
-    if (!this.canvasManager) {
-      this.canvasManager = CanvasManager.getInstance();
+  private readonly onResolutionChanged = () => {
+    if (this.currentScene !== 'title') return;
+
+    // Stop current scene and cleanup
+    if (this.activeSceneManager) {
+      this.activeSceneManager.stop();
+      this.activeSceneManager = null;
     }
-    return this.canvasManager;
+
+    this.destroyTransientManagers();
+    
+    const res = SaveGameManager.getFirstAvailableResolution();
+    const settings = PlayerSettingsManager.getInstance();
+    settings.setViewportWidth(res.width);
+    settings.setViewportHeight(res.height);
+    const canvasManager = CanvasManager.getInstance();
+    
+    // === Apply canvas dimensions immediately
+    applyViewportResolution(canvasManager);
+    // Reinitialize title scene with fresh CanvasManager and InputManager
+    const mgr = new TitleScreenManager(
+      this.ensureCanvasManager(),
+      this.gameLoop,
+      this.ensureInputManager()
+    );
+    mgr.start();
+    this.activeSceneManager = mgr;
+  };
+
+  private ensureCanvasManager(): CanvasManager {
+    return CanvasManager.getInstance();
   }
 
   private ensureInputManager(): InputManager {
-    if (!this.inputManager) {
-      if (!this.canvasManager) {
-        this.canvasManager = this.ensureCanvasManager();
-      }
-      this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
-    }
+    this.canvasManager = this.ensureCanvasManager();
+    this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
     return this.inputManager;
   }
 

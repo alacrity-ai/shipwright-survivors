@@ -204,6 +204,44 @@ export class Camera {
     this.skipSmoothingThisFrame = true;
   }
 
+  public setToMaxZoom(): void {
+    const uiScale = getUniformScaleFactor();
+    const scaledMaxZoom = 0.5 * uiScale;
+
+    const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+    this.zoom = scaledMaxZoom;
+    const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+    const dx = centerBefore.x - centerAfter.x;
+    const dy = centerBefore.y - centerAfter.y;
+
+    this.x += dx;
+    this.y += dy;
+    this.targetX += dx;
+    this.targetY += dy;
+
+    this.skipSmoothingThisFrame = true;
+  }
+
+  public setToMinZoom(): void {
+    const uiScale = getUniformScaleFactor();
+    const scaledMinZoom = 0.15 * uiScale;
+
+    const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+    this.zoom = scaledMinZoom;
+    const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+    const dx = centerBefore.x - centerAfter.x;
+    const dy = centerBefore.y - centerAfter.y;
+
+    this.x += dx;
+    this.y += dy;
+    this.targetX += dx;
+    this.targetY += dy;
+
+    this.skipSmoothingThisFrame = true;
+  }
+
   public animateZoomTo(target: number, speed: number = 0.025): void {
     const uiScale = getUniformScaleFactor();
     const scaledMinZoom = 0.15 * uiScale;

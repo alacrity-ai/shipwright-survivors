@@ -19,6 +19,8 @@ import { drawWindow } from '@/ui/primitives/WindowBox';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 import { WordRenderer } from '@/ui/primitives/controllers/WordRenderer';
 import { clearLetterCache } from '@/rendering/cache/Letters';
 
@@ -26,8 +28,6 @@ import { isElectron } from '@/shared/isElectron';
 import { TitleScreenRuntime } from '@/core/TitleScreenRuntime';
 
 import { SettingsMenu } from '@/ui/menus/SettingsMenu';
-
-const TITLE_IMAGE_PATH = 'assets/title_screen.png';
 
 function hasSaveData(slot: number): boolean {
   return !!localStorage.getItem(`save${slot}`);
@@ -44,7 +44,6 @@ const WINDOW_WIDTH = 320;
 const WINDOW_HEIGHT = 120;
 
 export class TitleScreenManager {
-  private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private titleScreenRuntime: TitleScreenRuntime | null = null;
@@ -52,6 +51,8 @@ export class TitleScreenManager {
   private subtitleRenderer: WordRenderer | null = null;
 
   private settingsMenu: SettingsMenu | null = null;
+
+  private scale = getUniformScaleFactor();
 
   private buttons: UIButton[] = [];
   private saveSlotButtons: UIButton[] = [];
@@ -69,21 +70,19 @@ export class TitleScreenManager {
     gameLoop: GameLoop,
     inputManager: InputManager
   ) {
-    this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
     this.titleScreenRuntime = new TitleScreenRuntime();
 
-    this.settingsMenu = new SettingsMenu(this.inputManager, null, this.canvasManager);
+    this.settingsMenu = new SettingsMenu(this.inputManager, null, CanvasManager.getInstance());
+    // this.settingsMenu.lockResolution();
 
     this.buttons = this.createMainButtons();
 
-    const scale = getUniformScaleFactor();
-
-    this.titleRenderer = new WordRenderer(125 * scale, 100 * scale);
+    this.titleRenderer = new WordRenderer(125 * this.scale, 100 * this.scale);
     this.titleRenderer.setWord('SHIPWRIGHT');
 
-    this.subtitleRenderer = new WordRenderer(485 * scale, 200 * scale);
+    this.subtitleRenderer = new WordRenderer(495 * this.scale, 200 * this.scale);
     this.subtitleRenderer.setWord('SURVIVORS');
   }
 
@@ -101,14 +100,21 @@ export class TitleScreenManager {
   stop() {
     if (this.titleScreenRuntime) {
       this.titleScreenRuntime.destroy();
-      clearLetterCache();
     }
+
+    clearLetterCache();
+
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
+
+    this.settingsMenu?.closeMenu();
+    this.saveSlotButtons = [];
+    this.confirmationButtons = [];
+    this.buttons = [];
   }
 
   private createMainButtons(): UIButton[] {
-    const uiScale = getUniformScaleFactor();
+    const uiScale = this.scale;
     const baseX = 40;
     const baseY = 460 * uiScale;
     const width = 200;
@@ -225,7 +231,7 @@ export class TitleScreenManager {
   }
 
   private createSaveSlotButtons(): UIButton[] {
-    const uiScale = getUniformScaleFactor();
+    const uiScale = this.scale;
     const baseX = 260;
     const baseY = 460 * uiScale;
     const width = 260;
@@ -297,7 +303,7 @@ export class TitleScreenManager {
   }
 
   private createConfirmationButtons(): void {
-    const uiScale = getUniformScaleFactor();
+    const uiScale = this.scale;
     const scaledWindowX = WINDOW_X * uiScale;
     const scaledWindowY = WINDOW_Y * uiScale;
     const confirmX = scaledWindowX + (40 * uiScale); // 40
@@ -361,7 +367,7 @@ export class TitleScreenManager {
     }
     
     // Handle sliding animation
-    const uiScale = getUniformScaleFactor();
+    const uiScale = this.scale;
 
     const scaledSlotSlideSpeed = SLOT_SLIDE_SPEED * uiScale;
     const scaledSlotOvershoot = SLOT_OVERSHOOT * uiScale;
@@ -407,9 +413,27 @@ export class TitleScreenManager {
     const { x, y } = this.inputManager.getMousePosition();
     const click = this.inputManager.wasMouseClicked();
 
+    // Handle play/back button interaction
+    handleButtonInteraction(this.buttons[0], x, y, click, uiScale);
+
+    if (!this.showingSaveSlots) {
+    // Handle settings button interaction
+      handleButtonInteraction(this.buttons[1], x, y, click, uiScale);
+
+      // Handle editor button interaction
+      handleButtonInteraction(this.buttons[2], x, y, click, uiScale);
+
+      // Handle Quit button interaction
+      // TODO : When editor removed, this will need to be > 2
+      if (this.buttons.length > 3) {
+        handleButtonInteraction(this.buttons[3], x, y, click, uiScale);
+      }
+    }
+
+    // Handle save slot button interaction or delete save prompt buttons
     const activeButtons = this.confirmingDeleteSlot !== null
       ? this.confirmationButtons
-      : [...this.buttons, ...this.saveSlotButtons];
+      : this.saveSlotButtons;
 
     for (const button of activeButtons) {
       handleButtonInteraction(button, x, y, click, uiScale);
@@ -419,11 +443,11 @@ export class TitleScreenManager {
   };
 
   private render = (_dt: number) => {
-    this.canvasManager.clearAll();
+    CanvasManager.getInstance().clearAll();
 
-    const uiScale = getUniformScaleFactor();
-    const bgCtx = this.canvasManager.getContext('background');
-    const uiCtx = this.canvasManager.getContext('ui');
+    const uiScale = this.scale;
+    const bgCtx = CanvasManager.getInstance().getContext('background');
+    const uiCtx = CanvasManager.getInstance().getContext('ui');
 
     // Render the Titlescreen Runtime
     if (this.titleScreenRuntime) {
@@ -431,8 +455,21 @@ export class TitleScreenManager {
     }
 
     // Always render main buttons (Play/Back and Credits)
-    for (const button of this.buttons) {
-      drawButton(uiCtx, button, uiScale);
+
+    // Play/Back button
+    drawButton(uiCtx, this.buttons[0], uiScale);
+
+    if (!this.showingSaveSlots) {
+      // Settings button
+      drawButton(uiCtx, this.buttons[1], uiScale);
+
+      // Editor button
+      drawButton(uiCtx, this.buttons[2], uiScale);
+
+      // Quit button // TODO : When editor removed, this will need to be > 2
+      if (this.buttons.length > 3) {
+        drawButton(uiCtx, this.buttons[3], uiScale);
+      }
     }
 
     // Render save slot buttons when showing save slots

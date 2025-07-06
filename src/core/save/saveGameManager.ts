@@ -1,3 +1,5 @@
+// src/core/save/saveGameManager.ts
+
 import { flags } from '@/game/player/PlayerFlagManager';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
@@ -9,7 +11,7 @@ import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeMan
 export interface SaveGameData {
   flags: string[];
   unlockedBlockIds: string[];
-  settings?: string; // JSON stringified settings blob
+  // settings?: string; // Deprecated — settings are now stored globally
   passives?: any;
   metaCurrency?: any;
   version?: number;
@@ -18,6 +20,7 @@ export interface SaveGameData {
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
+const PLAYER_SETTINGS_KEY = 'playerSettings';
 
 export class SaveGameManager {
   private static instance: SaveGameManager;
@@ -65,7 +68,6 @@ export class SaveGameManager {
     const data: SaveGameData = {
       flags: JSON.parse(flags.toJSON()),
       unlockedBlockIds: JSON.parse(PlayerTechnologyManager.getInstance().toJSON()),
-      settings: PlayerSettingsManager.getInstance().toJSON(),
       passives: JSON.parse(PlayerPassiveManager.getInstance().toJSON()),
       metaCurrency: JSON.parse(PlayerMetaCurrencyManager.getInstance().toJSON()),
       ships: PlayerShipCollection.getInstance().toJSON(),
@@ -74,6 +76,7 @@ export class SaveGameManager {
     };
 
     this.writeData(data);
+    SaveGameManager.saveSettings();
     localStorage.setItem(LAST_SAVE_SLOT_KEY, String(this.saveSlot));
   }
 
@@ -81,9 +84,7 @@ export class SaveGameManager {
     const data = this.loadData();
     flags.fromJSON(JSON.stringify(data.flags ?? []));
     PlayerTechnologyManager.getInstance().fromJSON(JSON.stringify(data.unlockedBlockIds ?? []));
-    if (data.settings) {
-      PlayerSettingsManager.getInstance().fromJSON(data.settings);
-    }
+    SaveGameManager.loadSettings();
     if (data.passives) {
       PlayerPassiveManager.getInstance().fromJSON(JSON.stringify(data.passives));
     }
@@ -110,31 +111,22 @@ export class SaveGameManager {
 
   public static getFirstAvailableResolution(): { width: number; height: number } {
     const DEFAULT_RESOLUTION = { width: 1920, height: 1080 };
-    const lastSlot = SaveGameManager.getLastSaveSlot();
-
-    if (lastSlot !== null) {
-      const key = `save${lastSlot}`;
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        try {
-          const data = JSON.parse(raw) as SaveGameData;
-          if (data.settings) {
-            const settings = JSON.parse(data.settings);
-            const width = parseInt(settings.viewportWidth);
-            const height = parseInt(settings.viewportHeight);
-            if (
-              Number.isFinite(width) && width > 0 &&
-              Number.isFinite(height) && height > 0
-            ) {
-              return { width, height };
-            }
-          }
-        } catch (e) {
-          console.warn(`Failed to parse save data from last slot ${lastSlot}:`, e);
+    const raw = localStorage.getItem(PLAYER_SETTINGS_KEY);
+    if (raw) {
+      try {
+        const settings = JSON.parse(raw);
+        const width = parseInt(settings.viewportWidth);
+        const height = parseInt(settings.viewportHeight);
+        if (
+          Number.isFinite(width) && width > 0 &&
+          Number.isFinite(height) && height > 0
+        ) {
+          return { width, height };
         }
+      } catch (e) {
+        console.warn(`Failed to parse global settings:`, e);
       }
     }
-
     return DEFAULT_RESOLUTION;
   }
 
@@ -158,10 +150,9 @@ export class SaveGameManager {
     this.writeData(data);
   }
 
-  public saveSettings(): void {
-    const data = this.loadData();
-    data.settings = PlayerSettingsManager.getInstance().toJSON();
-    this.writeData(data);
+  public static saveSettings(): void {
+    const settings = PlayerSettingsManager.getInstance().toJSON();
+    localStorage.setItem(PLAYER_SETTINGS_KEY, settings);
   }
 
   public savePassives(): void {
@@ -200,10 +191,10 @@ export class SaveGameManager {
     PlayerTechnologyManager.getInstance().fromJSON(JSON.stringify(data.unlockedBlockIds ?? []));
   }
 
-  public loadSettings(): void {
-    const data = this.loadData();
-    if (data.settings) {
-      PlayerSettingsManager.getInstance().fromJSON(data.settings);
+  public static loadSettings(): void {
+    const raw = localStorage.getItem(PLAYER_SETTINGS_KEY);
+    if (raw) {
+      PlayerSettingsManager.getInstance().fromJSON(raw);
     }
   }
 
@@ -233,5 +224,11 @@ export class SaveGameManager {
     if (data.shipSkillTrees) {
       PlayerShipSkillTreeManager.getInstance().fromJSON(data.shipSkillTrees);
     }
+  }
+
+  // === GLOBAL SETTINGS UTILITY ===
+
+  public static clearSettings(): void {
+    localStorage.removeItem(PLAYER_SETTINGS_KEY);
   }
 }
