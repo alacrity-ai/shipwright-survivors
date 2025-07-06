@@ -143,6 +143,38 @@ export class Camera {
     };
   }
 
+  public moveToward(position: { x: number; y: number }, t: number): void {
+    const tx = position.x - (this.viewportWidth / 2) / this.zoom;
+    const ty = position.y - (this.viewportHeight / 2) / this.zoom;
+
+    this.x = this.x + (tx - this.x) * t;
+    this.y = this.y + (ty - this.y) * t;
+
+    this.targetX = this.x;
+    this.targetY = this.y;
+  }
+
+  public lerpZoom(targetZoom: number, t: number): void {
+    const uiScale = getUniformScaleFactor();
+    const scaledMinZoom = 0.15 * uiScale;
+    const scaledMaxZoom = 0.5 * uiScale;
+
+    const clampedTarget = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, targetZoom));
+    const newZoom = this.zoom + (clampedTarget - this.zoom) * t;
+
+    const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+    this.zoom = newZoom;
+    const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+    const dx = centerBefore.x - centerAfter.x;
+    const dy = centerBefore.y - centerAfter.y;
+
+    this.x += dx;
+    this.y += dy;
+    this.targetX += dx;
+    this.targetY += dy;
+  }
+
   adjustZoom(delta: number): void {
     const baseFactor = 1.08;
     const scrollSteps = Math.max(-1, Math.min(1, delta));

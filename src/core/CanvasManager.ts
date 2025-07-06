@@ -2,6 +2,8 @@
 
 import { getViewportWidth, getViewportHeight } from '@/config/view';
 
+import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
+
 export type CanvasLayer =
   | 'background'
   | 'entities'
@@ -32,6 +34,8 @@ export class CanvasManager {
 
   private canvases: Record<CanvasLayer, HTMLCanvasElement> = {} as any;
   private contexts: Record<CanvasLayer, CanvasRenderingContext2D> = {} as any;
+
+  private unifiedRenderer: UnifiedSceneRendererGL | null = null;
 
   private constructor() {
     performance.mark('canvasManager-init-start');
@@ -179,6 +183,16 @@ export class CanvasManager {
       width: getViewportWidth(),
       height: getViewportHeight()
     };
+  }
+
+  public setUnifiedRenderer(renderer: UnifiedSceneRendererGL): void {
+    this.unifiedRenderer = renderer;
+  }
+
+  public clearUnifiedRenderer(): void {
+    if (!this.unifiedRenderer) return;
+    this.unifiedRenderer.destroy()
+    this.unifiedRenderer = null;
   }
 
   public resize(): void {

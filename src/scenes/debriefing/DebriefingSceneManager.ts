@@ -263,6 +263,7 @@ export class DebriefingSceneManager {
   }
 
   stop() {
+    this.canvasManager.clearUnifiedRenderer();
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();

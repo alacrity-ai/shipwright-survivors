@@ -14,6 +14,7 @@ import { drawBlockCard } from '@/ui/primitives/BlockCard';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { brightenColor } from '@/shared/colorUtils';
 import { getUniformScaleFactor } from '@/config/view';
+import { getStyleIdFromTier } from '@/ui/utils/getStyleIdFromTier';
 
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
@@ -24,17 +25,6 @@ import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
 import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
 import { RollBlocksButton } from '@/ui/overlays/components/RollBlocksButton';
-
-function getStyleIdFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' {
-  switch (tier) {
-    case 0: return 'gray';
-    case 1: return 'gray';
-    case 2: return 'green';
-    case 3: return 'blue';
-    case 4: return 'purple';
-    default: return 'gray';
-  }
-}
 
 export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;

@@ -31,6 +31,30 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       file: null,
     }
   },
+  titlescreen: {
+    id: 'titlescreen',
+    name: 'Title Screen',
+    waves: waveSet0,
+    dropMultiplier: 2.0,
+    environmentSettings: {
+      backgroundId: 'background_4_00.png',
+      gravity: 0,
+      worldWidth: 16000,
+      worldHeight: 16000,
+    },
+    // music: {
+    //   file: 'assets/sounds/music/track_02_mission1.mp3',
+    // },
+    enemyPower: 1,
+    waveDensity: 1,
+    missionPortrait: null,
+    planets: [
+      { name: 'Voidia', x: -5000, y: -6000 },
+    ],
+    // onStart: () => {
+    //   emitHudHideAll();
+    // },
+  },
   mission_001: {
     id: 'mission_001',
     name: 'Shipwright Second-Class',

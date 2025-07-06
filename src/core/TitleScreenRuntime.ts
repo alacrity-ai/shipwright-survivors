@@ -1,0 +1,521 @@
+// src/core/TitleScreenRuntime.ts
+
+import { Camera } from './Camera';
+import { getViewportWidth, getViewportHeight } from '@/config/view';
+import { CanvasManager } from './CanvasManager';
+import { InputManager } from './InputManager';
+import { applyViewportResolution } from '@/shared/applyViewportResolution';
+import { GlobalMenuReporter } from './GlobalMenuReporter';
+
+import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
+
+import { missionLoader } from '@/game/missions/MissionLoader';
+import { missionRegistry } from '@/game/missions/MissionRegistry';
+import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+import { initializeGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
+import { initializeGLPickupSpriteCache, destroyGLPickupSpriteCache } from '@/rendering/cache/PickupSpriteCache';
+import { initializeGLProjectileSpriteCache, destroyGLProjectileSpriteCache } from '@/rendering/cache/ProjectileSpriteCache';
+import { initializeGL2AsteroidBlockSpriteCache, destroyGL2AsteroidBlockSpriteCache } from '@/rendering/cache/AsteroidSpriteCache';
+import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
+
+import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
+import { SettingsMenu } from '@/ui/menus/SettingsMenu';
+import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
+
+import { applyWarmCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
+
+import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
+import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
+import { CursorRenderer } from '@/rendering/CursorRenderer';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
+import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
+
+import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
+import { LaserSystem } from '@/systems/physics/LaserSystem';
+import { PickupSystem } from '@/systems/pickups/PickupSystem';
+import { ParticleManager } from '@/systems/fx/ParticleManager';
+
+import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
+import { PlanetSystem } from '@/game/planets/PlanetSystem';
+import { PickupSpawner } from '@/systems/pickups/PickupSpawner';
+import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
+import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
+import { WaveOrchestratorFactory } from '@/game/waves/WaveOrchestratorFactory';
+import { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
+import { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
+import { AsteroidSpawningSystem } from '@/game/spawners/AsteroidSpawningSystem';
+
+import { CombatService } from '@/systems/combat/CombatService';
+import { EnergyRechargeSystem } from '@/game/ship/systems/EnergyRechargeSystem';
+
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { ShipCullingSystem } from '@/game/ship/systems/ShipCullingSystem';
+import { ShipGrid } from '@/game/ship/ShipGrid';
+import { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
+import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
+import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
+import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/CompositeBlockObjectCullingSystem';
+import { CompositeBlockObjectUpdateSystem } from '@/game/entities/systems/CompositeBlockObjectUpdateSystem';
+import { Grid } from '@/systems/physics/Grid';
+import { Ship } from '@/game/ship/Ship';
+
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
+import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
+
+import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
+import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
+import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
+import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
+
+
+export class TitleScreenRuntime {
+  private readonly boundOnEntityDestroyed = (entity: CompositeBlockObject, cause: DestructionCause): void => {
+    if (entity instanceof Ship && this.waveOrchestrator) {
+      this.waveOrchestrator.notifyShipDestroyed(entity, cause);
+    }
+  };
+
+  private isInitialized = false;
+
+  private inputManager: InputManager;
+  private settingsMenu: SettingsMenu | null = null;
+  private blockDropDecisionMenu: BlockDropDecisionMenu;
+
+  private canvasManager: CanvasManager;
+  private camera: Camera | null = null;
+
+  private mission: MissionDefinition
+  private shipRegistry = ShipRegistry.getInstance();
+  private blockObjectRegistry = CompositeBlockObjectRegistry.getInstance();
+  private shipCulling: ShipCullingSystem | null = null;
+  private blockObjectCulling: CompositeBlockObjectCullingSystem | null = null;
+  private blockObjectUpdate: CompositeBlockObjectUpdateSystem | null = null;
+  private aiOrchestrator: AIOrchestratorSystem;
+
+  private grid: Grid | null = null;
+  private shipGrid: ShipGrid | null = null;
+  private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
+
+  private combatService: CombatService;
+  private destructionService: CompositeBlockDestructionService;
+  private projectileSystem: ProjectileSystem;
+  private laserSystem: LaserSystem;
+  private pickupSystem: PickupSystem;
+  private pickupSpawner: PickupSpawner;
+  private particleManager: ParticleManager;
+  private persistentParticleManager: ParticleManager;
+  private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
+  private cursorRenderer: CursorRenderer;
+  private floatingTextManager: FloatingTextManager;
+  private shipConstructionAnimator: ShipConstructionAnimatorService;
+  private waveOrchestrator: WaveOrchestrator | null = null;
+  private incidentOrchestrator: IncidentOrchestrator | null = null;
+  private asteroidSpawner: AsteroidSpawningSystem | null = null;
+  private popupMessageSystem: PopupMessageSystem | null = null;
+  private lightingOrchestrator: LightingOrchestrator;
+
+  private collisionSystem: BlockObjectCollisionSystem;
+  private planetSystem: PlanetSystem | null = null;
+  private energyRechargeSystem: EnergyRechargeSystem | null = null;
+  private explosionSystem: ExplosionSystem;
+  private shipBuilderEffects: ShipBuilderEffectsSystem;
+  private screenEffects: ScreenEffectsSystem;
+
+  private updatables: IUpdatable[] = [];
+  private fixedUpdatables: IUpdatable[] = [];
+  private dynamicUpdatables: IUpdatable[] = [];
+  private renderables: IRenderable[] = [];
+
+  private isPaused = false;
+  private isDestroyed = false;
+
+  constructor() {
+    this.canvasManager = CanvasManager.getInstance();
+    this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
+    this.grid = new Grid();  // Initialize global grid
+    this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
+    this.shipGrid = ShipGrid.getInstance();
+    this.objectGrid = new CompositeBlockObjectGrid(3000);
+
+    // Initialize GL caches
+    initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    initializeGLPickupSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    initializeGL2AsteroidBlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2')); // Just added this
+
+    // Resolution fix for electron
+    applyViewportResolution(this.canvasManager, this.camera);
+
+    // Persistent UI
+    this.popupMessageSystem = new PopupMessageSystem();
+  
+    // Lighting System
+    this.lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    // Particle System
+    this.particleManager = new ParticleManager(this.lightingOrchestrator);
+    // Particle System which runs regardless of game pause
+    this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator);
+
+    ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
+
+    // === Run the titlescreen mission
+    missionLoader.setMission(missionRegistry.titlescreen);
+    this.mission = missionLoader.getMission();
+
+    // Initialize ExplosionSystem and ScreenEffectsSystem
+    this.explosionSystem = new ExplosionSystem(this.canvasManager, this.camera, this.particleManager, this.lightingOrchestrator);
+    this.screenEffects = new ScreenEffectsSystem(this.canvasManager);
+    this.shipBuilderEffects = new ShipBuilderEffectsSystem(this.persistentParticleManager);
+    
+    // === Cursor
+    this.cursorRenderer = new CursorRenderer(this.canvasManager, this.inputManager);
+
+    // === Block Drop Decision Menu TODO : pickupSystem depends on this
+    this.blockDropDecisionMenu = new BlockDropDecisionMenu(
+      this.inputManager, 
+      this.shipBuilderEffects,
+      this.pause.bind(this), 
+      this.resume.bind(this)
+    );
+
+    // === AI Orchestrator
+    this.aiOrchestrator = new AIOrchestratorSystem();
+
+    // === Construct PickupSystem and PickupSpawner ===
+    this.pickupSystem = new PickupSystem(
+      this.camera, 
+      this.particleManager, 
+      this.screenEffects, 
+      this.popupMessageSystem,
+      this.shipBuilderEffects,
+      this.blockDropDecisionMenu
+    );
+    this.pickupSpawner = new PickupSpawner(this.pickupSystem);
+
+    // === Destruction and Combat Services
+    this.destructionService = new CompositeBlockDestructionService(
+      this.explosionSystem,
+      this.pickupSpawner,
+      this.shipRegistry,
+      this.aiOrchestrator,
+    );
+    
+    this.floatingTextManager = new FloatingTextManager();
+    this.combatService = new CombatService(
+      this.explosionSystem,
+      this.pickupSpawner,
+      this.destructionService,
+      this.shipBuilderEffects,
+      this.floatingTextManager,
+    );
+    
+    // Collision System
+    this.collisionSystem = new BlockObjectCollisionSystem(this.combatService);
+
+    this.projectileSystem = new ProjectileSystem(
+      this.canvasManager,
+      this.grid,
+      this.combatService,
+      this.particleManager,
+    );
+    // Laser system (Single instance shared by all ships)
+    this.laserSystem = new LaserSystem(
+      this.canvasManager,
+      this.camera,
+      this.grid,
+      this.combatService,
+    );
+    this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.shipBuilderEffects);
+
+    // this.registerLoopHandlers();
+  }
+
+  public async initialize(): Promise<void> {
+    // Register culling systems
+    this.shipCulling = new ShipCullingSystem();
+    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid!);
+
+    // Menus
+    this.settingsMenu = new SettingsMenu(this.inputManager, null, this.canvasManager, this.camera!);
+
+    // Energy Recharge System: Single instance used by all ships
+    this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
+
+    // Renderers
+    this.unifiedSceneRenderer = new UnifiedSceneRendererGL(this.camera!, this.inputManager);
+    this.unifiedSceneRenderer.setAmbientLight([0.4, 0.4, 0.4]);
+    this.unifiedSceneRenderer.setBackgroundImage(this.mission.environmentSettings?.backgroundId ?? null);
+
+    // Additional Update Systems
+    this.blockObjectUpdate = new CompositeBlockObjectUpdateSystem(this.blockObjectRegistry);
+
+    // == Enemy Wave Spawning System and Incident System
+    this.incidentOrchestrator = new IncidentOrchestrator({
+      canvasManager: this.canvasManager,
+      camera: this.camera!,
+      inputManager: this.inputManager,
+      aiOrchestrator: this.aiOrchestrator,
+      popupMessageSystem: this.popupMessageSystem!,
+    });
+
+    this.waveOrchestrator = WaveOrchestratorFactory.create(
+      this.mission.waves,
+      this.grid!,
+      this.shipRegistry,
+      this.aiOrchestrator,
+      this.particleManager,
+      this.projectileSystem,
+      this.laserSystem,
+      this.combatService,
+      this.explosionSystem,
+      this.collisionSystem,
+      this.shipConstructionAnimator,
+      this.incidentOrchestrator,
+      this.popupMessageSystem!
+    );
+
+    // Notify wave orchestrator when a ship is destroyed
+    this.destructionService.onEntityDestroyed(this.boundOnEntityDestroyed);
+
+    // Planet System
+    this.planetSystem = new PlanetSystem(null, this.inputManager, this.camera!, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
+    this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
+
+    // AsteroidSpawner
+    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid!, this.blockObjectRegistry, this.objectGrid!);
+
+    // All systems that need to be updated every frame
+    this.initializeFixedUpdatables();
+    this.updatables = [...this.fixedUpdatables, ...this.dynamicUpdatables];
+
+    // All systems that need to be rendered every frame
+    this.renderables = [
+      this.laserSystem,
+      this.explosionSystem,
+      ShieldEffectsSystem.getInstance(),
+      this.screenEffects,
+      this.popupMessageSystem!,
+      this.shipConstructionAnimator,
+      this.planetSystem,
+      this.aiOrchestrator,
+      this.floatingTextManager,
+      this.incidentOrchestrator,
+    ];
+
+    this.isInitialized = true;
+  }
+
+  private initializeFixedUpdatables(): void {
+    this.fixedUpdatables = [
+      this.projectileSystem,
+      this.laserSystem,
+      this.particleManager,
+      this.persistentParticleManager,
+      this.aiOrchestrator,
+      this.blockObjectUpdate!,
+      this.destructionService,
+      this.explosionSystem,
+      ShieldEffectsSystem.getInstance(),
+      this.screenEffects,
+      this.pickupSystem,
+      this.waveOrchestrator!,
+      this.energyRechargeSystem!,
+      this.popupMessageSystem!,
+      this.shipConstructionAnimator,
+      this.planetSystem!,
+      this.lightingOrchestrator,
+      this.incidentOrchestrator!
+    ];
+  }
+
+  // private registerLoopHandlers() {
+  //   this.gameLoop.onUpdate(this.boundUpdate);
+  //   this.gameLoop.onRender(this.boundRender);
+  // }
+
+  private pause() {
+    this.isPaused = true;
+    this.waveOrchestrator!.pause();
+  }
+
+  private resume() {
+    this.isPaused = false;
+    this.waveOrchestrator!.resume();
+  }
+
+  public update = (dt: number) => {
+    if (!this.isInitialized) return;
+    if (this.isDestroyed) return;
+
+    // Clear input consumed inputs
+    this.inputManager.clearConsumedActions();
+
+    // === Shader Special FX
+    this.unifiedSceneRenderer!.update(dt);
+
+    if (this.settingsMenu!.isOpen()) {
+      this.settingsMenu!.update();
+    }
+
+    // === Camera ===
+    try {
+      if (!this.camera) {
+        return;
+      }
+      this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
+      this.camera.update(dt);
+    } catch (error) {
+      console.error("Error getting ship transform:", error);
+    }
+
+    // Update input manager
+    this.inputManager.updateFrame();
+
+    // All updatables
+    if (!this.isPaused) {
+      this.updatables.forEach(system => system.update(dt)); // PlayerControllerSystem is here
+    }
+
+    // Always update these systems regardless of pause state
+    this.shipBuilderEffects.update(dt);
+    this.floatingTextManager.update(dt);
+    this.persistentParticleManager.update(dt);
+  };
+
+  public render = (dt: number) => {
+    this.canvasManager.clearLayer('fx');
+    this.canvasManager.clearLayer('particles');
+    this.canvasManager.clearLayer('ui');
+    this.canvasManager.clearLayer('overlay');
+    this.canvasManager.clearLayer('dialogue');
+
+    this.renderables.forEach(system => system.render(dt));
+
+    // Render all graphics through Unified Rendering Pipeline
+    if (this.camera) {
+      const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
+      const visibleShips = this.shipCulling!.getVisibleShips();
+      const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
+      const visibleParticles = [
+        ...this.particleManager.collectVisibleParticles(this.camera),
+        ...this.persistentParticleManager.collectVisibleParticles(this.camera),
+      ];
+      const spriteRequests = GlobalSpriteRequestBus.getAndClear();
+
+      const visibleObjects = [...visibleBlockObjects, ...visibleShips];
+
+      this.unifiedSceneRenderer!.render(
+        this.camera,
+        visibleObjects,
+        visibleLights,
+        spriteRequests,
+        visibleParticles
+      );
+    }
+
+    if (this.settingsMenu!.isOpen()) {
+      this.settingsMenu!.render(this.canvasManager.getContext('ui'));
+    }
+
+    this.cursorRenderer.render();
+  };
+
+  public async load(): Promise<void> {
+    await Promise.all([]);
+  }
+
+  /**
+   * Starts the title screen loop and initializes the "titlescreen" standin mission.
+  **/
+  public start() {
+    if (!this.isInitialized) {
+      throw new Error('TitleScreenRuntime: Cannot start before initialization');
+    }
+
+    this.mission.onStart?.();
+
+    this.asteroidSpawner!.spawnFieldById('asteroid-field-01');
+    this.inputManager.disableAllActions();
+    applyWarmCinematicEffect();
+  }
+
+  /**
+  * Destroys the runtime and all associated systems.
+  * Must be called when ending the runtime to avoid leakage.
+  **/
+  public destroy(): void {
+    console.log("TitleScreenRuntime: Performing cleanup before scene transition.");
+    if (this.isDestroyed) return;
+    this.isDestroyed = true;
+
+    // === Dispose of Eventbus Listeners ===
+    this.destructionService.offEntityDestroyed(this.boundOnEntityDestroyed);
+
+    // === Clean up singleton state ===
+    this.waveOrchestrator!.destroy();
+    this.shipRegistry.clear();
+    this.aiOrchestrator.clear();
+    ShieldEffectsSystem.getInstance().clear();
+    ShipGrid.getInstance().destroy();
+    BlockToObjectIndex.clear();
+    Camera.destroy();
+    SpriteRendererGL.destroyInstance();
+    GlobalMenuReporter.getInstance().destroy();
+
+    // Additional cleanup
+    this.pickupSystem.destroy();
+    this.pickupSpawner.destroy();
+    this.incidentOrchestrator!.destroy();
+    this.destructionService.destroy();
+    this.projectileSystem.destroy();
+
+    // Optional: clear UI menus, overlays
+    this.cursorRenderer.destroy();
+    this.explosionSystem.destroy();
+    this.particleManager.destroy();
+    this.lightingOrchestrator.destroy();
+
+    this.unifiedSceneRenderer!.destroy();
+
+    // TODO : Destroy GL2 blocksprite cache?? Leaving undestroyed for use by Debriefing Scene
+    destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    destroyGLPickupSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+    destroyGL2AsteroidBlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
+
+    // Clear rendering and update lists
+    this.updatables.length = 0;
+    this.renderables.length = 0;
+
+    // Clear event listeners from global input systems
+    this.inputManager.destroy();
+
+    // Null references (defensive)
+    this.camera = null;
+    this.grid = null;
+    this.shipGrid = null;
+    this.objectGrid = null;
+    this.shipCulling = null;
+    this.blockObjectCulling = null;
+    this.blockObjectUpdate = null;
+    this.waveOrchestrator = null;
+    this.incidentOrchestrator = null;
+    this.asteroidSpawner = null;
+    this.unifiedSceneRenderer = null;
+
+    console.log("Titlescreen Runtime: Cleanup complete.");
+  }
+}
+
+/*
+GOAL / TODOS:
+
+Create a "mission" for the title screen
+Create a "wave" for the title screen, with formations that roam around
+Create a cameraCutsceneController or something to move the camera around sans a player ship
+Make sure that the settings menu is openable via "escape", an event (better) triggered in the titlescreen menu
+
+Question: Does the titlescreen scene manager own this runtime? Or does this runtime own the titlescreen scene manager?
+Answer: The title screen scene manager should own this runtime, essentially using it as a background layer, and displaying its normal options above it
+*/

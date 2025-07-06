@@ -12,7 +12,7 @@ export const PlanetFactory = {
     name: string,
     x: number,
     y: number,
-    playerShip: Ship,
+    playerShip: Ship | null,
     inputManager: InputManager,
     camera: Camera,
     waveOrchestrator: WaveOrchestrator

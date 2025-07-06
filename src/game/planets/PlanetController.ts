@@ -26,7 +26,7 @@ export class PlanetController {
   constructor(
     private readonly x: number,
     private readonly y: number,
-    private readonly playerShip: Ship,
+    private readonly playerShip: Ship | null,
     private readonly inputManager: InputManager,
     private readonly camera: Camera,
     private readonly definition: PlanetDefinition,
@@ -45,6 +45,14 @@ export class PlanetController {
     dx: number;
     dy: number;
   } {
+    if (!this.playerShip) return {
+      inDrawingRange: false,
+      inTransmissionRange: false,
+      inInteractionRange: false,
+      dx: 0,
+      dy: 0,
+    };
+
     const px = this.playerShip.getTransform().position.x;
     const py = this.playerShip.getTransform().position.y;
 
@@ -76,7 +84,8 @@ export class PlanetController {
     // update planet atmosphere animation
     this.renderer.update(dt);
 
-    // Example: later trigger dialogue or highlight UI
+    if (!this.playerShip) return;
+
     if (inInteractionRange && (this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('A')) && !this.isInteracting) {
       // TODO : Perhaps open tradepost through dialogue and remove this priority system where we directly open menu
       if (this.definition.tradePostId) {

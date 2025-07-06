@@ -19,6 +19,7 @@ import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
 import { isElectron } from '@/shared/isElectron';
+import { TitleScreenRuntime } from '@/core/TitleScreenRuntime';
 import { PlayerResources } from '@/game/player/PlayerResources';
 
 const TITLE_IMAGE_PATH = 'assets/title_screen.png';
@@ -41,7 +42,7 @@ export class TitleScreenManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
-  private backgroundImage: HTMLImageElement | null = null;
+  private titleScreenRuntime: TitleScreenRuntime | null = null;
 
   private buttons: UIButton[] = [];
   private saveSlotButtons: UIButton[] = [];
@@ -62,19 +63,26 @@ export class TitleScreenManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+    this.titleScreenRuntime = new TitleScreenRuntime();
 
+    this.titleScreenRuntime.initialize();
     this.buttons = this.createMainButtons();
   }
 
   async start() {
     audioManager.playMusic({ file: 'assets/sounds/music/track_08_debriefing.mp3' });
-    this.backgroundImage = await loadImage(TITLE_IMAGE_PATH);
+    if (this.titleScreenRuntime) {
+      this.titleScreenRuntime.start();
+    }
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
   }
 
   stop() {
+    if (this.titleScreenRuntime) {
+      this.titleScreenRuntime.destroy();
+    }
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
   }
@@ -231,12 +239,12 @@ export class TitleScreenManager {
           saveManager.changeSlot(slot);
 
           if (hasData) {
-            saveManager.loadAll();
             this.stop();
+            saveManager.loadAll();
             sceneManager.fadeToScene('hub');
           } else {
-            missionLoader.setMission(missionRegistry['mission_001']);
             this.stop();
+            missionLoader.setMission(missionRegistry['mission_001']);
             sceneManager.fadeToScene('mission');
           }
         },
@@ -267,7 +275,6 @@ export class TitleScreenManager {
 
     return buttons;
   }
-
 
   private createConfirmationButtons(): void {
     const uiScale = getUniformScaleFactor();
@@ -329,6 +336,10 @@ export class TitleScreenManager {
   }
 
   private update = (_dt: number) => {
+    if (this.titleScreenRuntime) {
+      this.titleScreenRuntime.update(_dt);
+    }
+    
     // Handle sliding animation
     const uiScale = getUniformScaleFactor();
 
@@ -392,8 +403,9 @@ export class TitleScreenManager {
     const bgCtx = this.canvasManager.getContext('background');
     const uiCtx = this.canvasManager.getContext('ui');
 
-    if (this.backgroundImage) {
-      bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
+    // Render the Titlescreen Runtime
+    if (this.titleScreenRuntime) {
+      this.titleScreenRuntime.render(_dt);
     }
 
     // Always render main buttons (Play/Back and Credits)

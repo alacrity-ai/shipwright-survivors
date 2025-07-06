@@ -54,7 +54,7 @@ const volumeSetters: Record<string, (v: number) => void> = {
 
 export class SettingsMenu implements Menu {
   private inputManager: InputManager;
-  private menuManager: MenuManager;
+  private menuManager: MenuManager | null = null;
   private canvasManager: CanvasManager;
   private camera: Camera;
   private activeTab: SettingsTab = 'display';
@@ -95,7 +95,7 @@ export class SettingsMenu implements Menu {
 
   private margin = 20;
 
-  constructor(inputManager: InputManager, menuManager: MenuManager, canvasManager: CanvasManager, camera: Camera) {
+  constructor(inputManager: InputManager, menuManager: MenuManager | null, canvasManager: CanvasManager, camera: Camera) {
     this.inputManager = inputManager;
     this.menuManager = menuManager;
     this.canvasManager = canvasManager;
@@ -129,10 +129,14 @@ export class SettingsMenu implements Menu {
       height: this.buttonHeight,
       label: 'Close',
       onClick: () => {
-        const pauseMenu = this.menuManager.getMenu('pauseMenu');
-        if (pauseMenu) {
-          GlobalMenuReporter.getInstance().setMenuClosed('settingsMenu');
-          this.menuManager.transition(pauseMenu)
+        if (this.menuManager) {
+          const pauseMenu = this.menuManager.getMenu('pauseMenu');
+          if (pauseMenu) {
+            GlobalMenuReporter.getInstance().setMenuClosed('settingsMenu');
+            this.menuManager.transition(pauseMenu)
+          }
+        } else {
+          this.closeMenu();
         }
       },
       style: {

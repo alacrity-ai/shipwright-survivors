@@ -20,7 +20,7 @@ export class PlanetSystem {
   private readonly dialogueCtx: CanvasRenderingContext2D;
 
   constructor(
-    private readonly playerShip: Ship,
+    private readonly playerShip: Ship | null,
     private readonly inputManager: InputManager,
     private readonly camera: Camera,
     private readonly canvasManager: CanvasManager,

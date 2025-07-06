@@ -264,6 +264,8 @@ BUGS:
 
 
 REFINEMENT:
+  - [ ] Add panning camera to title screen, with formation spawning
+  - [ ] Verify that titlescreen runtime isn't leaking
   - [ ] Engine sound needs to play on gamepad movement
   - [ ] Rework laser to target the closet target.. add a chain lightning passive
   - [ ] Increase your base entropium pull range based on your mass (do it at invalidate mass)

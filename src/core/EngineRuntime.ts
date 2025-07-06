@@ -536,6 +536,8 @@ export class EngineRuntime {
       this.tradePostMenu,
     ];
 
+    this.canvasManager.setUnifiedRenderer(this.unifiedSceneRenderer!);
+
     this.isInitialized = true;
   }
 
@@ -1057,6 +1059,10 @@ export class EngineRuntime {
     }, timeoutMs);
   }
 
+  public getRenderer(): UnifiedSceneRendererGL {
+    return this.unifiedSceneRenderer!;
+  }
+
   /**
   * Destroys the runtime and all associated systems.
   * Always called when returning to the Hub zone.
@@ -1113,6 +1119,7 @@ export class EngineRuntime {
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();
     this.playerController!.destroy();
+    // this.unifiedSceneRenderer!.destroy(); // TODO: do we need this? Defer the destroy so we can leave the final image on screen
 
     // TODO : Destroy GL2 blocksprite cache?? Leaving undestroyed for use by Debriefing Scene
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -1146,9 +1153,9 @@ export class EngineRuntime {
     this.waveOrchestrator = null;
     this.incidentOrchestrator = null;
     this.asteroidSpawner = null;
-    this.unifiedSceneRenderer = null;
     this.missionDialogueManager = null;
     this.spaceStationBuilderMenu = null;
+    this.unifiedSceneRenderer = null;
 
     console.log("EngineRuntime: Cleanup complete.");
   }
