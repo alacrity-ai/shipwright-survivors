@@ -14,12 +14,25 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-bootstrapGlobalGuards();
-initializeProjectileSpriteCache();
-initializeBlockSpriteCache();
-initializePickupSpriteCache();
-initializeAsteroidBlockSpriteCache();
+(async () => {
+  // === Global guards and initialization
+  bootstrapGlobalGuards();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-    <App />
-);
+  // === Parallelized cache preloading
+  await Promise.all([
+    initializeProjectileSpriteCache(),
+    initializeBlockSpriteCache(),
+    initializePickupSpriteCache(),
+    initializeAsteroidBlockSpriteCache(),
+  ]);
+
+  // === Mount React application
+  ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
+
+  // === Fade out splash screen, then remove it
+  const splash = document.getElementById('splash-screen');
+  if (splash) {
+    splash.classList.add('fade-out');
+    setTimeout(() => splash.remove(), 400); // Match CSS transition duration
+  }
+})();
