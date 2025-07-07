@@ -12,6 +12,8 @@ import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteracti
 import { getUniformScaleFactor } from '@/config/view';
 import { loadImage } from '@/shared/imageCache';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawLabel } from '@/ui/primitives/UILabel';
@@ -21,21 +23,25 @@ import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 import { initializeGL2BlockSpriteCache, destroyGL2BlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 
+import { ArtifactCollectionUIController } from '@/game/ship/artifacts/ui/ArtifactCollectionUIController'; // WE WILL NEED TO INTEGRATE THIS
 import { ShipSelectionMenu } from '@/scenes/ship_selection/ShipSelectionMenu';
+
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
-import { scale } from '@/systems/galaxymap/webgl/matrixUtils';
+import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 
 const BACKGROUND_PATH = 'assets/backgrounds/background_2_00.png';
 
 const crtStyle = DEFAULT_CONFIG.button.style;
 
-const BACKGROUND_TILE_WIDTH = 1024 * getUniformScaleFactor();   // assuming 512px image width
-const BACKGROUND_TILE_HEIGHT = 1024 * getUniformScaleFactor();  // assuming 512px image height
-const BACKGROUND_SCROLL_SPEED = 60;  // pixels per second
-const BACKGROUND_SCROLL_DIRECTION = { x: 1, y: 0 }; // vertical scroll
+const BACKGROUND_TILE_WIDTH = 1024 * getUniformScaleFactor();
+const BACKGROUND_TILE_HEIGHT = 1024 * getUniformScaleFactor();
+const BACKGROUND_SCROLL_SPEED = 60;
+const BACKGROUND_SCROLL_DIRECTION = { x: 1, y: 0 };
+
+type ShipSelectionUIMode = 'ship-selection' | 'artifact-collection';
 
 export class ShipSelectionSceneManager {
   private canvasManager: CanvasManager;
@@ -43,14 +49,24 @@ export class ShipSelectionSceneManager {
   private inputManager: InputManager;
   private gamepadNavManager: GamepadMenuInteractionManager;
 
+  private uiMode: ShipSelectionUIMode = 'ship-selection';
+  private artifactCollectionController: ArtifactCollectionUIController | null = null;
+  private artifactCollectionSlotIndex: 0 | 1 | 2 | null = null;
+
   private mission: MissionDefinition | null;
-  
+
+  private windowX: number;
+  private windowY: number;
+  private windowWidth: number;
+  private windowHeight: number;
+
   private backgroundImage: HTMLImageElement | null = null;
   private backgroundScrollOffsetY: number = 0;
   private backgroundScrollOffsetX: number = 0;
 
   private buttons: UIButton[];
   private launchButton: UIButton | null = null;
+  private closeCollectionButton: UIButton | null = null;
 
   private skillTreeNavActive: boolean = false;
 
@@ -71,6 +87,14 @@ export class ShipSelectionSceneManager {
     this.inputManager = inputManager;
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
     this.mission = mission;
+
+    const scale = getUniformScaleFactor();
+    const viewportWidth = this.canvasManager.getCanvas('ui').width;
+    const viewportHeight = this.canvasManager.getCanvas('ui').height;
+    this.windowWidth = 1200 * scale;
+    this.windowHeight = 560 * scale;
+    this.windowX = (viewportWidth / 2) - (this.windowWidth / 2);
+    this.windowY = (viewportHeight / 2) - (this.windowHeight / 2);
 
     this.uiCtx = this.canvasManager.getContext('ui');
     this.overlayCtx = this.canvasManager.getContext('overlay');
@@ -94,7 +118,32 @@ export class ShipSelectionSceneManager {
         style: crtStyle
       }
     ];
+
+    GlobalEventBus.on('ui:artifacts:collection-opened', this.handleOpenArtifactsCollection);
+    GlobalEventBus.on('ui:artifacts:collection-closed', this.handleCloseArtifactsCollection);
   }
+
+  private handleOpenArtifactsCollection = ({ slotIndex }: { slotIndex: 0 | 1 | 2 }) => {
+    this.uiMode = 'artifact-collection';
+    this.artifactCollectionSlotIndex = slotIndex;
+
+    const ship = this.getSelectedShip();
+    this.artifactCollectionController = new ArtifactCollectionUIController(
+      this.inputManager,
+      ship.name,
+      slotIndex
+    );
+
+    this.shipSelectionMenu.clearPreviewRenderer();
+    this.rebuildNavMap(getUniformScaleFactor());
+  };
+
+  private handleCloseArtifactsCollection = () => {
+    this.uiMode = 'ship-selection';
+    this.artifactCollectionController = null;
+    this.artifactCollectionSlotIndex = null;
+    this.rebuildNavMap(getUniformScaleFactor());
+  };
 
   launchMission(): void {
     if (!this.mission) return;
@@ -107,12 +156,20 @@ export class ShipSelectionSceneManager {
   }
 
   async start() {
+    // DEBUG UNLOCK ARTIFACTS
+    const artifacts = PlayerArtifactsManager.getInstance();
+    artifacts.unlockArtifact('fortification-module');
+    artifacts.unlockArtifact('heatseeker-targeting-module');
+    artifacts.unlockArtifact('unstable-thruster');
+    artifacts.unlockArtifact('reflector-plate');
+    artifacts.unlockArtifact('solar-capacitor');
+
     initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
 
     this.backgroundImage = await loadImage(BACKGROUND_PATH);
+    const scale = getUniformScaleFactor();
 
     if (this.mission) {
-      const scale = getUniformScaleFactor();
       this.launchButton = {
         x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
         y: this.canvasManager.getContext('ui').canvas.height - (58 * scale),
@@ -127,6 +184,20 @@ export class ShipSelectionSceneManager {
         style: crtStyle
       };
     }
+
+    this.closeCollectionButton = {
+      x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
+      y: this.canvasManager.getContext('ui').canvas.height - (58 * scale),
+      width: 360,
+      height: 40,
+      label: 'Close',
+      isHovered: false,
+      wasHovered: false,
+      onClick: () => {
+        this.handleCloseArtifactsCollection();
+      },
+      style: crtStyle
+    };
 
     audioManager.playMusic({ file: 'assets/sounds/music/track_11_loadout.mp3' });
     this.gameLoop.onUpdate(this.update);
@@ -145,7 +216,7 @@ export class ShipSelectionSceneManager {
         radius: 16,
         fontSize: 12,
         textColor: '#FFFFFF',
-        fillColor: '#f9d600',       // Yellow
+        fillColor: '#f9d600',
         borderColor: '#a58d00',
         highlightColor: '#ffff66',
         duration: Infinity,
@@ -160,6 +231,9 @@ export class ShipSelectionSceneManager {
     this.gamepadNavManager.clearNavMap();
     destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
     CoachMarkManager.getInstance().clear();
+
+    GlobalEventBus.off('ui:artifacts:collection-opened', this.handleOpenArtifactsCollection); // Needs to handle the options
+    GlobalEventBus.off('ui:artifacts:collection-closed', this.handleCloseArtifactsCollection);
   }
 
   private getSelectedShip(): CollectableShipDefinition {
@@ -180,23 +254,37 @@ export class ShipSelectionSceneManager {
     this.backgroundScrollOffsetX %= BACKGROUND_TILE_WIDTH;
     this.backgroundScrollOffsetY %= BACKGROUND_TILE_HEIGHT;
 
+    // === Mouse interaction ===
+    const { x, y } = this.inputManager.getMousePosition();
+    let clicked = this.inputManager.wasMouseClicked();
+
+    // === Artifact Collection Mode ===
+    if (this.uiMode === 'artifact-collection') {
+      this.artifactCollectionController?.update();
+
+      if (this.closeCollectionButton) {
+        handleButtonInteraction(this.closeCollectionButton, x, y, clicked, scale);
+      }
+      clicked = false;
+    }
+
     // === Gamepad bumper ship cycling ===
-  if (this.inputManager.isUsingGamepad?.()) {
-    let cycled = false;
+    if (this.inputManager.isUsingGamepad?.()) {
+      let cycled = false;
 
-    if (this.inputManager.wasGamepadAliasJustPressed('leftBumper')) {
-      this.shipSelectionMenu.cycleSelectedShip(-1);
-      cycled = true;
-    } else if (this.inputManager.wasGamepadAliasJustPressed('rightBumper')) {
-      this.shipSelectionMenu.cycleSelectedShip(1);
-      cycled = true;
-    }
+      if (this.inputManager.wasGamepadAliasJustPressed('leftBumper')) {
+        this.shipSelectionMenu.cycleSelectedShip(-1);
+        cycled = true;
+      } else if (this.inputManager.wasGamepadAliasJustPressed('rightBumper')) {
+        this.shipSelectionMenu.cycleSelectedShip(1);
+        cycled = true;
+      }
 
-    if (cycled) {
-      this.shipSelectionMenu.update(0); // force sync update
-      this.rebuildNavMap(scale);
+      if (cycled) {
+        this.shipSelectionMenu.update(0); // Crucial force update
+        this.rebuildNavMap(scale);
+      }
     }
-  }
 
     // === Handle nav mode toggle ===
     if (this.inputManager.wasGamepadAliasJustPressed('Y')) {
@@ -230,10 +318,6 @@ export class ShipSelectionSceneManager {
       this.launchMission();
     }
 
-    // === Mouse interaction ===
-    const { x, y } = this.inputManager.getMousePosition();
-    const clicked = this.inputManager.wasMouseClicked();
-
     for (const btn of this.buttons) {
       handleButtonInteraction(btn, x, y, clicked, scale);
     }
@@ -261,34 +345,57 @@ export class ShipSelectionSceneManager {
       );
     }
 
-    for (const btn of this.buttons) {
-      drawButton(this.uiCtx, btn, scale);
-    }
+    // === Artifact Collection Mode ===
+    if (this.uiMode === 'artifact-collection') {
+      this.artifactCollectionController?.render();
 
-    if (this.launchButton) {
-      drawButton(this.uiCtx, this.launchButton, scale);
-    }
+      drawLabel(
+        this.uiCtx,
+        this.windowX + this.windowWidth / 2,
+        this.windowY - 40 * scale,
+        'Artifact Collection',
+        {
+          font: `${20 * scale}px monospace`,
+          align: 'center',
+          glow: true
+        }
+      );
 
-    this.shipSelectionMenu.render(this.uiCtx, this.overlayCtx);
+      if (this.closeCollectionButton) {
+        drawButton(this.uiCtx, this.closeCollectionButton, scale);
+      }
+    } else {
+      // Back button
+      for (const btn of this.buttons) {
+        drawButton(this.uiCtx, btn, scale);
+      }
+
+      // Launch Button
+      if (this.launchButton) {
+        drawButton(this.uiCtx, this.launchButton, scale);
+      }
+
+      this.shipSelectionMenu.render(this.uiCtx, this.overlayCtx);
+
+      // Draw Coachmark Label
+      if (InputDeviceTracker.getInstance().getLastUsed() === 'gamepad') {
+        const label = this.skillTreeNavActive ? 'Select Ship' : 'Assign Skill Points';
+        CoachMarkManager.getInstance().render();
+        drawLabel(
+          this.uiCtx,
+          996 * scale,
+          668 * scale,
+          label,
+          {
+            font: `${16 * scale}px monospace`,
+            align: 'left',
+          }
+        );
+      }
+    }
 
     if (!this.inputManager.isUsingGamepad()) {
       drawCursor(this.overlayCtx, getCrosshairCursorSprite(), x, y, scale);
-    }
-
-    // Draw Coachmark Label
-    if (InputDeviceTracker.getInstance().getLastUsed() === 'gamepad') {
-      const label = this.skillTreeNavActive ? 'Select Ship' : 'Assign Skill Points';
-      CoachMarkManager.getInstance().render();
-      drawLabel(
-        this.uiCtx,
-        996 * scale,
-        668 * scale,
-        label,
-        {
-          font: `${16 * scale}px monospace`,
-          align: 'left',
-        }
-      );
     }
   }
 

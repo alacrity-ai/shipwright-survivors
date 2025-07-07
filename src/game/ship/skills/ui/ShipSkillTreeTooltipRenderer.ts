@@ -1,3 +1,5 @@
+// src/game/ship/skills/ui/ShipSkillTreeTooltipRenderer.ts
+
 import { CanvasManager } from '@/core/CanvasManager';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import type { SkillNode } from '@/game/ship/skills/interfaces/SkillNode';

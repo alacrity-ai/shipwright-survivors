@@ -58,6 +58,10 @@ export class PreviewShipComponent {
     }
   }
 
+  public clearRenderer(): void {
+    this.renderer.clear();
+  }
+
   public destroy(): void {
     this.renderer.destroy();
     this.destroyPreviewShip();

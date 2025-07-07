@@ -13,8 +13,10 @@ import type { PassiveId } from '@/game/player/PlayerPassiveManager';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
 import type { StatusEffect, StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
+import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/ArtifactEffectMetadata';
 
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { PlayerArtifactsManager } from '../player/PlayerArtifactsManager';
 import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
 import { PowerupEffectMetadata } from '../powerups/types/PowerupMetadataTypes';
 import { PlayerPassiveManager } from '../player/PlayerPassiveManager';
@@ -121,6 +123,20 @@ export class Ship extends CompositeBlockObject {
   public getSkillEffects(): ShipSkillEffectMetadata {
     if (!this.isPlayerShip) return {};
     return PlayerShipCollection.getInstance().getSkillEffectsForActiveShip();
+  }
+
+  // == Get Artifact Bonuses
+  public getArtifactEffects(): ArtifactEffectMetadata {
+    if (!this.isPlayerShip) return {};
+    return PlayerShipCollection.getInstance().getArtifactEffectsForActiveShip();
+  }
+
+  // === Ergonomic Aggregation of Modifiers from Skills and Artifacts
+  public getTotalModifiers(): ArtifactEffectMetadata & ShipSkillEffectMetadata {
+    return {
+      ...this.getSkillEffects(),
+      ...this.getArtifactEffects(),
+    };
   }
 
   // == Tagging

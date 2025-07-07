@@ -1,8 +1,3 @@
-const DEFAULT_BORDER_COLOR = '#00FFFF';
-const DEFAULT_FILL_COLOR = '#001122';
-const DEFAULT_LINE_WIDTH = 2;
-const DEFAULT_BORDER_RADIUS = 8;
-
 // src/ui/primitives/UIMinimalistWindow.ts
 
 export interface MinimalistWindowOptions {

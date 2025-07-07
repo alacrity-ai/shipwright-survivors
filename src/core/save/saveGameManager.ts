@@ -7,6 +7,7 @@ import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
+import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 
 export interface SaveGameData {
   flags: string[];
@@ -17,6 +18,7 @@ export interface SaveGameData {
   version?: number;
   ships?: string;
   shipSkillTrees?: string;
+  artifacts?: string;
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
@@ -72,6 +74,7 @@ export class SaveGameManager {
       metaCurrency: JSON.parse(PlayerMetaCurrencyManager.getInstance().toJSON()),
       ships: PlayerShipCollection.getInstance().toJSON(),
       shipSkillTrees: PlayerShipSkillTreeManager.getInstance().toJSON(),
+      artifacts: PlayerArtifactsManager.getInstance().toJSON(),
       version: 1,
     };
 
@@ -96,6 +99,9 @@ export class SaveGameManager {
     }
     if (data.shipSkillTrees) {
       PlayerShipSkillTreeManager.getInstance().fromJSON(data.shipSkillTrees);
+    }
+    if (data.artifacts) {
+      PlayerArtifactsManager.getInstance().fromJSON(data.artifacts);
     }
   }
 
@@ -179,6 +185,12 @@ export class SaveGameManager {
     this.writeData(data);
   }
 
+  public saveArtifacts(): void {
+    const data = this.loadData();
+    data.artifacts = PlayerArtifactsManager.getInstance().toJSON();
+    this.writeData(data);
+  }
+
   // === LOAD METHODS ===
 
   public loadFlags(): void {
@@ -223,6 +235,13 @@ export class SaveGameManager {
     const data = this.loadData();
     if (data.shipSkillTrees) {
       PlayerShipSkillTreeManager.getInstance().fromJSON(data.shipSkillTrees);
+    }
+  }
+
+  public loadArtifacts(): void {
+    const data = this.loadData();
+    if (data.artifacts) {
+      PlayerArtifactsManager.getInstance().fromJSON(data.artifacts);
     }
   }
 

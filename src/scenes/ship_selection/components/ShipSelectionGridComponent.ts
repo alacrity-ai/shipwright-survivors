@@ -100,28 +100,40 @@ export class ShipSelectionGridComponent {
     const mouse = this.inputManager.getMousePosition();
     const click = this.inputManager.wasMouseClicked();
 
-    for (const tile of this.tiles) {
+    let anyHovered = false;
+
+    for (let i = 0; i < this.tiles.length; i++) {
+      const tile = this.tiles[i];
       tile.isHovered =
         mouse.x >= tile.x &&
         mouse.x <= tile.x + this.tileSize &&
         mouse.y >= tile.y &&
         mouse.y <= tile.y + this.tileSize;
 
-      if (tile.isHovered && this.hoveredTileIndex !== this.tiles.indexOf(tile)) {
-        audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 4 });
-        this.hoveredTileIndex = this.tiles.indexOf(tile);
-      }
+      if (tile.isHovered) {
+        anyHovered = true;
 
-      if (tile.isHovered && click && tile.shipDef) {
-        audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 4 });
-        this.selectedShipDef = tile.shipDef;
-
-        for (const other of this.tiles) {
-          other.isSelected = false;
+        if (this.hoveredTileIndex !== i) {
+          audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 4 });
+          this.hoveredTileIndex = i;
         }
 
-        tile.isSelected = true;
+        if (click && tile.shipDef) {
+          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 4 });
+          this.selectedShipDef = tile.shipDef;
+
+          for (const other of this.tiles) {
+            other.isSelected = false;
+          }
+
+          tile.isSelected = true;
+        }
       }
+    }
+
+    // Clear hovered index if mouse is over no tile
+    if (!anyHovered) {
+      this.hoveredTileIndex = null;
     }
   }
 
@@ -152,6 +164,11 @@ export class ShipSelectionGridComponent {
 
   getSelectedShip(): CollectableShipDefinition | null {
     return this.selectedShipDef;
+  }
+
+  getHoveredShip(): CollectableShipDefinition | null {
+    if (this.hoveredTileIndex === null) return null;
+    return this.tiles[this.hoveredTileIndex]?.shipDef ?? null;
   }
 
   getGridButtons(): {

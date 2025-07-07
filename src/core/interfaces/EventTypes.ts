@@ -118,6 +118,11 @@ export interface EventTypes {
   'ui:overlay:interacting': undefined;
   'ui:overlay:not-interacting': undefined;
 
+  // Artifact Collection
+  'ui:artifacts:collection-opened': { slotIndex: 0 | 1 | 2 };
+  'ui:artifacts:collection-closed': undefined;
+  'ui:artifacts:equipped': { shipName: string; slotIndex: 0 | 1 | 2; artifactId: string };
+
   // Resolution
   'resolution:changed': { width: number; height: number };
 

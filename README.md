@@ -135,6 +135,9 @@ TUTORIAL TODOS:
 
 
 TODOS:
+  - [ ] Add gamepad navmap controls for equippable items
+    - [ ] Need to check if an item is already equipped to another ship, and show Equipped on "Vanguard" in the tooltip
+      - [ ] If already equipped, when we click on it, we need to unequip it from the the ship it's equipped on
   - [ ] Completely clearing a Vortex Incident should end it immediately
   - [x] Investigate if minimap icons are cached, if not, cache them
   - [ ] Opening save game in one resolution, then switching, breaks loading until refresh

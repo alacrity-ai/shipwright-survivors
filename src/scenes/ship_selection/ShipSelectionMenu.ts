@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG as UI_CONFIG, type UIConfig } from '@/config/ui';
 import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawWindow } from '@/ui/primitives/WindowBox';
+import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawMasteryLevel } from '@/ui/primitives/UIMasteryBadge';
 import { handleButtonInteraction, drawButton, type UIButton } from '@/ui/primitives/UIButton';
@@ -15,7 +16,7 @@ import type { CollectableShipDefinition } from '@/game/ship/interfaces/Collectab
 import { PreviewShipComponent } from './components/PreviewShipComponent';
 import { ShipSelectionGridComponent } from './components/ShipSelectionGridComponent';
 import { EquippedArtifactsComponent } from './components/EquippedArtifactsComponent';
-import { ShipDetailsComponent } from './components/ShipDetailsComponent';
+import { ShipTooltipRenderer } from './components/ShipTooltipRenderer'; // Added
 import { ShipSkillTreeUIController } from '@/game/ship/skills/ui/ShipSkillTreeUIController';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
@@ -48,8 +49,8 @@ export class ShipSelectionMenu {
   private gridComponent: ShipSelectionGridComponent;
   // Ship Equippable Artifacts
   private artifactsComponent: EquippedArtifactsComponent;
-  // Ship Details
-  private detailsComponent: ShipDetailsComponent;
+  // Ship Tooltips
+  private tooltipRenderer: ShipTooltipRenderer;
   // Ship Skill Tree:
   private skillTreeController: ShipSkillTreeUIController;
 
@@ -137,12 +138,8 @@ export class ShipSelectionMenu {
     // Instantiate components
     this.previewComponent = new PreviewShipComponent();
     this.gridComponent = new ShipSelectionGridComponent(inputManager);
-    this.artifactsComponent = new EquippedArtifactsComponent();
-    this.detailsComponent = new ShipDetailsComponent();
-
-    // DEBUG: Log discovered ships
-    const discoveredShips = PlayerShipCollection.getInstance().getDiscoveredShips();
-    console.log('[ShipSelectionMenu] Discovered ships:', discoveredShips);
+    this.artifactsComponent = new EquippedArtifactsComponent(this.inputManager);
+    this.tooltipRenderer = new ShipTooltipRenderer();
   } 
 
   getSelectedShip(): CollectableShipDefinition | null {
@@ -162,7 +159,7 @@ export class ShipSelectionMenu {
     if (selected && selected.filepath !== this.lastPreviewedFilepath) {
       this.lastPreviewedFilepath = selected.filepath;
       this.previewComponent.setPreviewShip(selected);
-      this.detailsComponent.setShip(selected);
+      // this.detailsComponent.setShip(selected); REMOVED
       this.skillTreeController.setShip(selected);
     }
 
@@ -179,23 +176,15 @@ export class ShipSelectionMenu {
     handleButtonInteraction(this.colorRightButton, mouseX, mouseY, clicked, scale);
 
     // Update components
-    // CALL UPDATE OF SHIP SKILL TREE CONTROLLER HERE
     this.previewComponent.update(dt);
     this.gridComponent.update(dt);
-    this.artifactsComponent.update();
+    this.artifactsComponent.update(dt);
   }
 
   render(uiCtx: CanvasRenderingContext2D, _overlayCtx: CanvasRenderingContext2D): void {
     const scale = getUniformScaleFactor();
 
-    drawWindow({
-      ctx: uiCtx,
-      x: this.windowX,
-      y: this.windowY,
-      width: this.windowWidth,
-      height: this.windowHeight,
-      options: this.config.window.options
-    });
+    drawMinimalistWindow(uiCtx, this.windowX, this.windowY, this.windowWidth, this.windowHeight, { ...this.config.window.options, alpha: 0.5 });
 
     // === Title ===
     drawLabel(
@@ -210,11 +199,23 @@ export class ShipSelectionMenu {
       }
     );
 
+    // === Ship Tooltip Rendering ===
+    const hoveredShip = this.gridComponent.getHoveredShip();
+    if (hoveredShip) {
+      const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
+      this.tooltipRenderer.renderTooltip(
+        hoveredShip,
+        mouseX,
+        mouseY,
+        scale
+      );
+    }
+
     // === Preview Ship Name ===
     const selected = this.gridComponent.getSelectedShip();
     if (selected) {
       const centerX = this.windowX + this.windowWidth / 2;
-      const previewTopY = this.windowY + 32 * scale; // Adjust to match actual preview component Y offset
+      const previewTopY = this.windowY + 32 * scale;
       // Name
       drawLabel(
         uiCtx,
@@ -305,8 +306,7 @@ export class ShipSelectionMenu {
     this.skillTreeController.render();
     this.previewComponent.render(uiCtx);
     this.gridComponent.render(uiCtx);
-    this.artifactsComponent.render(uiCtx);
-    this.detailsComponent.render(uiCtx, this.windowX + this.windowWidth - (200 * scale), this.windowY + (32 * scale));
+    this.artifactsComponent.render(uiCtx, selected?.name);
   }
 
   getColorButtons(): [UIButton, UIButton] {
@@ -321,6 +321,10 @@ export class ShipSelectionMenu {
     isEnabled: boolean;
   }[] {
     return this.gridComponent.getGridButtons();
+  }
+
+  clearPreviewRenderer(): void {
+    this.previewComponent.clearRenderer();
   }
 
   destroy(): void {

@@ -196,7 +196,7 @@ export class ShipSkillTreeUIController {
           this.scale
         );
 
-        this.tooltipRenderer.renderTooltip(node.node, x, y, this.scale, this.currentShip.name);
+        this.tooltipRenderer.renderTooltip(node.node, x, y, this.scale * 1.25, this.currentShip.name);
       }
     }
   }
