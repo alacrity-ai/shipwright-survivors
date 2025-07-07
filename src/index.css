@@ -44,7 +44,7 @@ canvas {
 }
 
 #splash-screen img {
-  width: 128px;
+  width: 512px;
   height: auto;
   margin-bottom: 16px;
   filter: drop-shadow(0 0 8px cyan);
