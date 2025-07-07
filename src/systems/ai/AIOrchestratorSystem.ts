@@ -150,7 +150,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
 
     // === 1. Update ship grid occupancy (every frame) ===
     for (const [controller, ship] of this.controllerToShipMap) {
-      ShipGrid.getInstance().updateShipPosition(ship);
+      ShipGrid.getInstance().updateShipPosition(ship, dt);
     }
 
     // === 2. Manage relevant controllers set ===

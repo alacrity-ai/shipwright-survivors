@@ -551,7 +551,7 @@ export class EngineRuntime {
       update: (dt: number) => {
         if (!this.ship) return;
 
-        const intent: ShipIntent = this.playerController!.getIntent();
+        const intent: ShipIntent = this.playerController!.getIntent(dt);
         this.movement!.setIntent(intent.movement);
         this.weaponSystem!.setIntent(intent.weapons);
         this.utilitySystem!.setIntent(intent.utility);

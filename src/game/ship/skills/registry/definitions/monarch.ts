@@ -88,7 +88,7 @@ export const monarchSkillTree: StarterShipSkillTree = {
       node: {
         id: 'lifesteal-lance',
         name: 'Vampiric Lance',
-        description: 'Lance detonation restores health',
+        description: 'Increased Repair Orb Drop Rate',
         icon: 'icon-lance-lifesteal',
         nodeSize: 'major',
         cost: 300,

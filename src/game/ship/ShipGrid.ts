@@ -112,7 +112,9 @@ export class ShipGrid {
     this.shipToCellMap.delete(ship.id);
   }
 
-  public updateShipPosition(ship: Ship): void {
+  public updateShipPosition(ship: Ship, dt: number): void {
+    ship.updateStatusEffects(dt);
+
     const transform = ship.getTransform();
     if (!transform) return;
 

@@ -12,6 +12,7 @@ import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladePr
 import type { PassiveId } from '@/game/player/PlayerPassiveManager';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
+import type { StatusEffect, StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
 
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
@@ -62,6 +63,8 @@ export class Ship extends CompositeBlockObject {
   private strafingLeft: boolean = false;
   private strafingRight: boolean = false;
   private affixes: ShipAffixes = {};
+
+  private statusEffects: Map<StatusEffectType, StatusEffect> = new Map();
 
   private tags: Set<string> = new Set();
 
@@ -137,6 +140,38 @@ export class Ship extends CompositeBlockObject {
 
   public setAffixes(affixes: ShipAffixes): void {
     this.affixes = affixes;
+  }
+
+  // === Status Effects
+
+  public addStatusEffect(type: StatusEffectType, duration: number, intensity?: number): void {
+    const existing = this.statusEffects.get(type);
+    if (!existing || duration > existing.duration) {
+      this.statusEffects.set(type, { type, duration, intensity });
+    }
+  }
+
+  public removeStatusEffect(type: StatusEffectType): void {
+    this.statusEffects.delete(type);
+  }
+
+  public hasStatusEffect(type: StatusEffectType): boolean {
+    return this.statusEffects.has(type);
+  }
+
+  public getStatusEffect(type: StatusEffectType): StatusEffect | undefined {
+    return this.statusEffects.get(type);
+  }
+
+  // Should be called every frame
+  public updateStatusEffects(dt: number): void {
+    for (const [type, effect] of this.statusEffects.entries()) {
+      effect.duration -= dt;
+      if (effect.duration <= 0) {
+        this.statusEffects.delete(type);
+        // Optionally trigger expiration logic here
+      }
+    }
   }
 
   // == Powerups system

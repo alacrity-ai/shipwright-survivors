@@ -40,6 +40,8 @@ interface ActiveSeekerMissile {
   framesSinceTargetUpdate: number;
   lastKnownTargetPosition: { x: number; y: number } | null;
   ownerFaction: Faction;
+  igniteOnSeekerMissileExplosion: boolean;
+  timeFreezeOnSeekerMissileExplosion: boolean;
 }
 
 const SPEED_GROWTH_FACTOR = 1.8; // Final speed = initial * this
@@ -60,23 +62,27 @@ export class HeatSeekerBackend implements WeaponBackend {
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     this.frameCounter++;
-    
+
     const plan = ship.getFiringPlan().filter(p => p.block.type.behavior?.fire?.fireType === 'heatSeeker');
     if (plan.length === 0) return;
 
     const fireRequested = intent?.firePrimary ?? false;
     let fireRateBonus = ship.getPassiveBonus('heat-seeker-firing-rate');
-    // Powerup bonuses
     const { fireRateMultiplier = 0 } = ship.getPowerupBonus();
-
-    // Aggregate Bonus (Additive)
     fireRateBonus += fireRateMultiplier;
+
+    const {
+      seekerMissileDamage = 0,
+      seekerMissileExplosionRadius = 0,
+      doubleSeekerMissileShotChance = 0,
+      igniteOnSeekerMissileExplosion = false,
+      timeFreezeOnSeekerMissileExplosion = false,
+    } = ship.getSkillEffects();
 
     for (const seeker of plan) {
       const fire = seeker.block.type.behavior!.fire!;
       seeker.timeSinceLastShot += dt;
       if (!fireRequested || seeker.timeSinceLastShot < seeker.fireCooldown / fireRateBonus) continue;
-
       seeker.timeSinceLastShot = 0;
 
       const coord = seeker.coord;
@@ -96,68 +102,77 @@ export class HeatSeekerBackend implements WeaponBackend {
       const dy = ty - worldY;
       const targetAngle = Math.atan2(dy, dx);
 
+      const fireMissile = (angle: number) => {
+        const speed = fire.projectileSpeed ?? 250;
+        const velocity = {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+        };
 
-      let launchAngle: number;
-      if (fire.seekerForwardFire) {
-        // Fire straight forward
-        launchAngle = targetAngle;
-      } else {
-        // Choose left or right perpendicular launch (90° offset)
-        const side = Math.random() < 0.5 ? -1 : 1;
-        launchAngle = targetAngle + side * Math.PI / 2;
-      }
-      const speed = fire.projectileSpeed ?? 250;
-      const velocity = {
-        x: Math.cos(launchAngle) * speed,
-        y: Math.sin(launchAngle) * speed,
+        const ttl = fire.lifetime ?? 4.0;
+        const turningPower = (fire.turningPower ?? 0) * TURNING_POWER_COMPENSATION;
+        const color = BLOCK_TIER_COLORS[seeker.block.type.tier] ?? '#ccc';
+
+        const particle = this.particleManager.emitParticle({ x: worldX, y: worldY }, {
+          colors: [color],
+          baseSpeed: 0,
+          sizeRange: [2, 2],
+          lifeRange: [ttl, ttl + 0.2],
+          velocity,
+          light: true,
+          lightRadiusScalar: 16,
+          lightIntensity: 2.0,
+        });
+
+        playSpatialSfx(ship, ShipRegistry.getInstance().getPlayerShip(), {
+          file: 'assets/sounds/sfx/weapons/missile_00.wav',
+          channel: 'sfx',
+          baseVolume: 0.75,
+          pitchRange: [1.0, 1.25],
+          volumeJitter: 0.05,
+          maxSimultaneous: 5,
+        });
+
+        this.activeMissiles.push({
+          position: { x: worldX, y: worldY },
+          velocity,
+          fireDamage: fire.fireDamage ?? 1,
+          explosionDamage: (fire.explosionDamage ?? 0) + seekerMissileDamage,
+          explosionRadius: (fire.explosionRadiusBlocks ?? 0) + seekerMissileExplosionRadius,
+          ttl,
+          age: 0,
+          targetShip: target,
+          ownerShipId: ship.id,
+          particle,
+          firingBlockId: seeker.block.type.id,
+          turningPower,
+          exploded: false,
+          targetingRange: fire.targetingRange ?? 1000,
+          turningPowerInitial: turningPower,
+          velocityMagnitudeInitial: Math.hypot(velocity.x, velocity.y),
+          framesSinceTargetUpdate: 0,
+          lastKnownTargetPosition: { x: tx, y: ty },
+          ownerFaction: ship.getFaction(),
+          igniteOnSeekerMissileExplosion,
+          timeFreezeOnSeekerMissileExplosion,
+        });
       };
 
-      const ttl = fire.lifetime ?? 4.0;
-      const baseTurningPower = fire.turningPower ?? 0;
-      const compensatedTurningPower = baseTurningPower * TURNING_POWER_COMPENSATION;
-      const color = BLOCK_TIER_COLORS[seeker.block.type.tier] ?? '#ccc';
-
-      const particle = this.particleManager.emitParticle({ x: worldX, y: worldY }, {
-        colors: [color],
-        baseSpeed: 0,
-        sizeRange: [2, 2],
-        lifeRange: [ttl, ttl + 0.2],
-        velocity,
-        light: true,
-        lightRadiusScalar: 16,
-        lightIntensity: 2.0,
-      });
-
-      playSpatialSfx(ship, ShipRegistry.getInstance().getPlayerShip(), {
-        file: 'assets/sounds/sfx/weapons/missile_00.wav',
-        channel: 'sfx',
-        baseVolume: 0.75,
-        pitchRange: [1.0, 1.25],
-        volumeJitter: 0.05,
-        maxSimultaneous: 5,
-      });
-
-      this.activeMissiles.push({
-        position: { x: worldX, y: worldY },
-        velocity,
-        fireDamage: fire.fireDamage ?? 12,
-        explosionDamage: fire.explosionDamage ?? 24,
-        explosionRadius: fire.explosionRadiusBlocks ?? 2,
-        ttl,
-        age: 0,
-        targetShip: target,
-        ownerShipId: ship.id,
-        particle,
-        firingBlockId: seeker.block.type.id,
-        turningPower: compensatedTurningPower,
-        exploded: false,
-        targetingRange: fire.targetingRange ?? 1000,
-        turningPowerInitial: compensatedTurningPower,
-        velocityMagnitudeInitial: Math.hypot(velocity.x, velocity.y),
-        framesSinceTargetUpdate: 0,
-        lastKnownTargetPosition: { x: tx, y: ty },
-        ownerFaction: ship.getFaction(),
-      });
+      const isDoubleShot = Math.random() < doubleSeekerMissileShotChance;
+      if (fire.seekerForwardFire) {
+        // Straight forward (possibly double forward)
+        fireMissile(targetAngle);
+        if (isDoubleShot) fireMissile(targetAngle);
+      } else {
+        // Perpendicular (left/right) or double symmetrical
+        if (isDoubleShot) {
+          fireMissile(targetAngle + Math.PI / 2);
+          fireMissile(targetAngle - Math.PI / 2);
+        } else {
+          const side = Math.random() < 0.5 ? -1 : 1;
+          fireMissile(targetAngle + side * Math.PI / 2);
+        }
+      }
     }
 
     this.updateMissiles(dt, ship);
@@ -320,6 +335,14 @@ export class HeatSeekerBackend implements WeaponBackend {
     }
 
     if (!centerCoord) return;
+
+    // Apply status effects if applicable
+    if (missile.igniteOnSeekerMissileExplosion) {
+      missile.targetShip.addStatusEffect('ignite', 5.0, 1.0);
+    }
+    if (missile.timeFreezeOnSeekerMissileExplosion) {
+      missile.targetShip.addStatusEffect('frozen', 5.0, 1.0);
+    }
 
     let damageBonus = sourceShip.getPassiveBonus('heat-seeker-damage');
     const { baseDamageMultiplier = 0 } = sourceShip.getPowerupBonus();

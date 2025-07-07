@@ -9,19 +9,19 @@ export interface ShipSkillEffectMetadata {
   turretSplitShots?: boolean; // Implemented
   
   // Vanguard Nodes
-  igniteOnSeekerMissileExplosion?: boolean;
-  seekerMissileExplosionRadius?: number; // Flat
-  seekerMissileDamage?: number; // Flat
-  doubleSeekerMissileShotChance?: number; // Percentage
-  timeFreezeOnSeekerMissileExplosion?: boolean;
+  igniteOnSeekerMissileExplosion?: boolean; // Implemented in Backend
+  seekerMissileExplosionRadius?: number; // Flat // Implemented
+  seekerMissileDamage?: number; // Flat // Implemented
+  doubleSeekerMissileShotChance?: number; // Percentage // Implemented
+  timeFreezeOnSeekerMissileExplosion?: boolean; // Implemented in Backend
 
   // Monarch Nodes
   explosiveLanceGrappling?: boolean;
-  explosiveLanceLifesteal?: boolean;
-  explosiveLanceDamage?: number; // Flat
-  explosiveLanceElectrocution?: boolean;
-  explosiveLanceFiringRate?: number; // Percentage
-  explosiveLanceRange?: number; // Percentage
+  explosiveLanceLifesteal?: boolean; // Implemented
+  explosiveLanceDamage?: number; // Flat // Implemented
+  explosiveLanceElectrocution?: boolean; // Implemented in backend
+  explosiveLanceFiringRate?: number; // Percentage // Implemented
+  explosiveLanceRange?: number; // Flat // Implemented
 
   // Halo Nodes
   haloBladeSplitBlades?: boolean; 

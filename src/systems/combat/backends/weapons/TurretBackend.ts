@@ -147,92 +147,92 @@ export class TurretBackend implements WeaponBackend {
     }
   }
 
-private spawnTurretProjectile(
-  ship: Ship,
-  transform: BlockEntityTransform,
-  turret: WeaponFiringPlanEntry,
-  target: TargetPoint,
-  damageBonus: number,
-  accuracyBonus: number
-): void {
-  const { coord, block } = turret;
+  private spawnTurretProjectile(
+    ship: Ship,
+    transform: BlockEntityTransform,
+    turret: WeaponFiringPlanEntry,
+    target: TargetPoint,
+    damageBonus: number,
+    accuracyBonus: number
+  ): void {
+    const { coord, block } = turret;
 
-  const localX = coord.x * 32;
-  const localY = coord.y * 32;
-  const cos = Math.cos(transform.rotation);
-  const sin = Math.sin(transform.rotation);
-  const worldX = transform.position.x + localX * cos - localY * sin;
-  const worldY = transform.position.y + localX * sin + localY * cos;
+    const localX = coord.x * 32;
+    const localY = coord.y * 32;
+    const cos = Math.cos(transform.rotation);
+    const sin = Math.sin(transform.rotation);
+    const worldX = transform.position.x + localX * cos - localY * sin;
+    const worldY = transform.position.y + localX * sin + localY * cos;
 
-  const fire = block.type.behavior!.fire!;
-  const turretId = block.type.id;
-  const particleColors = TURRET_COLOR_PALETTES[turretId] ?? TURRET_COLOR_PALETTES['turret0'];
+    const fire = block.type.behavior!.fire!;
+    const turretId = block.type.id;
+    const particleColors = TURRET_COLOR_PALETTES[turretId] ?? TURRET_COLOR_PALETTES['turret0'];
 
-  const dx = target.x - worldX;
-  const dy = target.y - worldY;
-  const mag = Math.sqrt(dx * dx + dy * dy);
-  if (mag === 0) return;
+    const dx = target.x - worldX;
+    const dy = target.y - worldY;
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    if (mag === 0) return;
 
-  // === Compute aim direction + spread
-  let angle = Math.atan2(dy, dx);
-  const spread = (1 - (fire.accuracy ?? 1) * accuracyBonus) * (Math.PI / 8);
-  if (spread > 0) {
-    angle += (Math.random() * 2 - 1) * spread;
+    // === Compute aim direction + spread
+    let angle = Math.atan2(dy, dx);
+    const spread = (1 - (fire.accuracy ?? 1) * accuracyBonus) * (Math.PI / 8);
+    if (spread > 0) {
+      angle += (Math.random() * 2 - 1) * spread;
+    }
+
+    const aimX = Math.cos(angle);
+    const aimY = Math.sin(angle);
+    let baseSpeed = fire.projectileSpeed ?? 300;
+
+    // === Skilltree bonus
+    const { turretProjectileSpeed = 0, turretSplitShots = false, turretPenetratingShots = false } = ship.getSkillEffects();
+    baseSpeed += turretProjectileSpeed;
+
+    // === Raw velocity with ship motion added
+    const shipVel = transform.velocity;
+    let vx = aimX * baseSpeed + shipVel.x;
+    let vy = aimY * baseSpeed + shipVel.y;
+
+    // === Clamp projected velocity to never go below baseSpeed along aim vector
+    const projectedSpeed = vx * aimX + vy * aimY; // dot(finalVel, aimDir)
+    if (projectedSpeed < baseSpeed) {
+      const correction = baseSpeed - projectedSpeed;
+      vx += aimX * correction;
+      vy += aimY * correction;
+    }
+
+    // Add extra base damage from passive
+    const { turretDamage = 0 } = ship.getSkillEffects();
+    let baseDamage = fire.fireDamage! + turretDamage;
+
+    if (this.fireSoundTimer > 4) {
+      const playerShip = ShipRegistry.getInstance().getPlayerShip();
+      playSpatialSfx(ship, playerShip, {
+        file: 'assets/sounds/sfx/weapons/turret_03.wav',
+        channel: 'sfx',
+        pitchRange: [0.7, 1.4],
+        volumeJitter: 0.2,
+        baseVolume: 1.0,
+        maxSimultaneous: 10,
+      });
+      this.fireSoundTimer = 0;
+    }
+
+    this.projectileSystem.spawnProjectileWithVelocity(
+      { x: worldX, y: worldY },
+      { x: vx, y: vy },
+      fire.fireType!,
+      baseDamage * damageBonus,
+      fire.lifetime ?? 2,
+      1, // accuracy already applied
+      ship.id,
+      ship.getFaction(),
+      particleColors,
+      'delayed',
+      turretSplitShots,
+      turretPenetratingShots,
+    );
   }
-
-  const aimX = Math.cos(angle);
-  const aimY = Math.sin(angle);
-  let baseSpeed = fire.projectileSpeed ?? 300;
-
-  // === Skilltree bonus
-  const { turretProjectileSpeed = 0, turretSplitShots = false, turretPenetratingShots = false } = ship.getSkillEffects();
-  baseSpeed += turretProjectileSpeed;
-
-  // === Raw velocity with ship motion added
-  const shipVel = transform.velocity;
-  let vx = aimX * baseSpeed + shipVel.x;
-  let vy = aimY * baseSpeed + shipVel.y;
-
-  // === Clamp projected velocity to never go below baseSpeed along aim vector
-  const projectedSpeed = vx * aimX + vy * aimY; // dot(finalVel, aimDir)
-  if (projectedSpeed < baseSpeed) {
-    const correction = baseSpeed - projectedSpeed;
-    vx += aimX * correction;
-    vy += aimY * correction;
-  }
-
-  // Add extra base damage from passive
-  const { turretDamage = 0 } = ship.getSkillEffects();
-  let baseDamage = fire.fireDamage! + turretDamage;
-
-  if (this.fireSoundTimer > 4) {
-    const playerShip = ShipRegistry.getInstance().getPlayerShip();
-    playSpatialSfx(ship, playerShip, {
-      file: 'assets/sounds/sfx/weapons/turret_03.wav',
-      channel: 'sfx',
-      pitchRange: [0.7, 1.4],
-      volumeJitter: 0.2,
-      baseVolume: 1.0,
-      maxSimultaneous: 10,
-    });
-    this.fireSoundTimer = 0;
-  }
-
-  this.projectileSystem.spawnProjectileWithVelocity(
-    { x: worldX, y: worldY },
-    { x: vx, y: vy },
-    fire.fireType!,
-    baseDamage * damageBonus,
-    fire.lifetime ?? 2,
-    1, // accuracy already applied
-    ship.id,
-    ship.getFaction(),
-    particleColors,
-    'delayed',
-    turretSplitShots,
-    turretPenetratingShots,
-  );
-}
 
   public render(dt: number): void {}
 }

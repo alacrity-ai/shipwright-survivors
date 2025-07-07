@@ -118,7 +118,7 @@ export class PickupSpawner {
 
   // === Block destruction hooks ===
 
-  spawnPickupOnBlockDestruction(block: BlockInstance, blockDropRateMulti: number): void {
+  spawnPickupOnBlockDestruction(block: BlockInstance, blockDropRateMulti: number, repairOrbDropRateMulti: number = 0): void {
     if (this.pickupDropsDisabled) return;
 
     const blockType = block.type;
@@ -140,7 +140,7 @@ export class PickupSpawner {
 
     // === Sub-drop: Repair or Currency
     if (Math.random() < 0.2) {
-      const repairOrbChance = 0.07 * PlayerPassiveManager.getInstance().getPassiveBonus('repair-orb-drop-rate');
+      const repairOrbChance = 0.07 * (PlayerPassiveManager.getInstance().getPassiveBonus('repair-orb-drop-rate') + repairOrbDropRateMulti);
 
       if (Math.random() < repairOrbChance) {
         const repairAmount = this.getRepairAmountForBlock(block);

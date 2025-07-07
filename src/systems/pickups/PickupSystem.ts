@@ -364,7 +364,7 @@ export class PickupSystem {
     const now = performance.now() / 1000;
     const shouldCull = !this.isQuantumAttractorActive();
 
-    const emissionChance = Math.min(0.2, 30 / this.pickups.length); // 60 emissions per frame on average
+    const emissionChance = Math.min(0.1, 10 / this.pickups.length);
     const emitParticles = Math.random() < emissionChance;
 
     for (let i = this.pickups.length - 1; i >= 0; i--) {

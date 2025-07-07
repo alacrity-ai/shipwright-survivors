@@ -1,7 +1,6 @@
 // src/systems/combat/backends/ExplosiveLanceBackend.ts
 
 import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
-import type { Ship } from '@/game/ship/Ship';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
@@ -11,7 +10,10 @@ import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { Grid } from '@/systems/physics/Grid';
+import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
+import type { ExtraDamageOptions } from '@/systems/combat/CombatService';
 
+import { Ship } from '@/game/ship/Ship';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
@@ -55,6 +57,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     private readonly particleManager: ParticleManager,
     private readonly grid: Grid,
     private readonly explosionSystem: ExplosionSystem,
+    private readonly projectileSystem: ProjectileSystem
   ) {}
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
@@ -65,9 +68,15 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const fireRequested = intent?.firePrimary ?? false;
 
     let fireRateBonus = ship.getPassiveBonus('explosive-lance-firing-rate');
+    const { explosiveLanceFiringRate = 0, explosiveLanceDamage = 0, explosiveLanceRange = 0 } = ship.getSkillEffects()
     const { fireRateMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus += fireRateMultiplier;
-    const radiusBonus = ship.getPassiveBonus('explosive-lance-radius');
+    fireRateBonus += (fireRateMultiplier + explosiveLanceFiringRate);
+
+    let radiusBonus = ship.getPassiveBonus('explosive-lance-radius');
+
+    const { baseDamageMultiplier = 1 } = ship.getPowerupBonus();
+    const totalDamageBonus = baseDamageMultiplier;
+
 
     for (let i = plan.length - 1; i >= 0; i--) {
       const lance = plan[i];
@@ -79,7 +88,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       lance.timeSinceLastShot = 0;
 
       const fire = lance.block.type.behavior!.fire!;
-      const lifetime = fire.lifetime ?? 1.5;
+      const lifetime = fire.lifetime! + (explosiveLanceRange * 0.001);
       const coord = lance.coord;
       const cos = Math.cos(transform.rotation);
       const sin = Math.sin(transform.rotation);
@@ -136,7 +145,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         position: { x: worldX, y: worldY },
         velocity: { x: vx, y: vy },
         fireDamage: fire.fireDamage ?? 10,
-        explosionDamage: fire.explosionDamage ?? 30,
+        explosionDamage: (fire.explosionDamage! * totalDamageBonus) + explosiveLanceDamage,
         explosionRadius: (fire.explosionRadiusBlocks ?? 2) * radiusBonus,
         detonationDelay: fire.detonationDelayMs! / 1000,
         elapsed: 0,
@@ -160,9 +169,6 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
   private updateLances(dt: number, ship: Ship): void {
     const exploded = new Set<ActiveExplosiveLance>();
-
-    const { baseDamageMultiplier = 1 } = ship.getPowerupBonus();
-    const totalDamageBonus = baseDamageMultiplier;
 
     for (const lance of this.activeLances) {
       lance.age += dt;
@@ -246,6 +252,13 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               lance.targetShip = compositeBlockObject;
               lance.coord = coord;
 
+              // Electrocute if applies
+              if (ship.getSkillEffects().explosiveLanceElectrocution) {
+                if (compositeBlockObject instanceof Ship) {
+                  compositeBlockObject.addStatusEffect('electrocuted', 8, 1);
+                }
+              }
+
               // Anchor offset relative to ship at moment of impact
               const shipPos = compositeBlockObject.getTransform().position;
               lance.anchorOffset = {
@@ -283,7 +296,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
                 ship,
                 block,
                 coord,
-                lance.fireDamage * totalDamageBonus,
+                lance.fireDamage,
                 'explosiveLance',
               );
               if (wasDestroyed) {
@@ -307,12 +320,17 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     // Cleanup Light
     LightingOrchestrator.getInstance().removeLight(lance.light.id);
 
-    const blocks = lance.targetShip.getBlocksWithinGridDistance(lance.coord, lance.explosionRadius);
+    const blocks = lance.targetShip.getBlocksWithinGridDistance(
+      lance.coord,
+      lance.explosionRadius
+    );
+
     let firstBlockDetonated = false;
     for (const block of blocks) {
       const coord = lance.targetShip.getBlockCoord(block);
       if (coord) {
         if (!firstBlockDetonated) {
+          // === Light Flash at impact ===
           createLightFlash(
             lance.targetShip.getTransform().position.x,
             lance.targetShip.getTransform().position.y,
@@ -321,15 +339,51 @@ export class ExplosiveLanceBackend implements WeaponBackend {
             0.4,
             EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]?.[0] ?? '#ccc'
           );
-          this.particleManager.emitBurst(lance.position, 24, {
-            colors: EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#ccc', '#aaa', '#888'],
-            baseSpeed: 1200,
-            sizeRange: [2, 4],
-            lifeRange: [0.5, 0.8],
-            fadeOut: true,
-          });
+
+          // === Emit radial projectiles ===
+          const origin = { x: lance.position.x, y: lance.position.y };
+          const speed = 1400; // high velocity
+          const damage = lance.explosionDamage;
+          const life = 0.8; // short-lived but high-speed
+
+          const colorPalette =
+            EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#ccc', '#aaa', '#888'];
+
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+
+            const projectile = this.projectileSystem.spawnProjectileWithVelocity(
+              origin,
+              { x: vx, y: vy },
+              'explosiveLance',
+              damage,
+              life,
+              1, // accuracy
+              ship.id,
+              ship.getFaction(),
+              colorPalette,
+              'linear',
+              false, // split
+              false  // penetrate
+            );
+
+            // Prepopulate hitShipIds with the ship we just hit to prevent immediate re-hit
+            projectile.hitShipIds.add(lance.targetShip.id);
+          }
+
           firstBlockDetonated = true;
         }
+
+        // Determine if we have extra health drops skill
+        const { explosiveLanceLifesteal = false } = ship.getSkillEffects();
+
+        const extraOptions: ExtraDamageOptions = {
+          repairOrbDropRateMulti: explosiveLanceLifesteal ? 0.3 : 0
+        };
+
+        // === Apply Damage ===
         this.combatService.applyDamageToBlock(
           lance.targetShip,
           ship,
@@ -337,6 +391,10 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           coord,
           lance.explosionDamage,
           'explosiveLanceAoE',
+          true,
+          0,
+          1.5,
+          extraOptions
         );
       }
     }

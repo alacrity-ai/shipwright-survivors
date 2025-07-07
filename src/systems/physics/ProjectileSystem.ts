@@ -49,7 +49,7 @@ export class ProjectileSystem {
     ownerFaction: Faction,
     particleColors?: string[],
     fadeMode?: 'linear' | 'delayed',
-  ): void {
+  ): Projectile | undefined {
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
     const mag = Math.sqrt(dx * dx + dy * dy);
@@ -64,7 +64,7 @@ export class ProjectileSystem {
     const vx = Math.cos(angle) * speed;
     const vy = Math.sin(angle) * speed;
 
-    this.emitProjectile(
+    return this.emitProjectile(
       origin,
       { x: vx, y: vy },
       type,
@@ -90,8 +90,8 @@ export class ProjectileSystem {
     fadeMode?: 'linear' | 'delayed',
     split = false,
     penetrate = false,
-  ): void {
-    this.emitProjectile(
+  ): Projectile {
+    return this.emitProjectile(
       origin,
       velocity,
       type,
@@ -118,7 +118,7 @@ export class ProjectileSystem {
     fadeMode?: 'linear' | 'delayed',
     split = false,
     penetrate = false,
-  ): void {
+  ): Projectile {
 
     const lightColorOverride = ownerFaction === Faction.Enemy ? '#ff0000' : undefined;
 
@@ -143,7 +143,7 @@ export class ProjectileSystem {
       lightColorOverride,
     });
 
-    this.projectiles.push({
+    const projectile = {
       position: { x: origin.x, y: origin.y },
       velocity: { x: velocity.x, y: velocity.y },
       type,
@@ -155,7 +155,10 @@ export class ProjectileSystem {
       penetrate,
       hitShipIds: this.acquireHitSet(),
       particle,
-    });
+    };
+
+    this.projectiles.push(projectile);
+    return projectile;
   }
 
   update(dt: number) {

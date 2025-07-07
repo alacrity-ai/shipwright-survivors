@@ -219,7 +219,7 @@ export class ShipSkillTreeTooltipRenderer {
       timeFreezeOnSeekerMissileExplosion: 'Freeze on Explosion',
 
       explosiveLanceGrappling: 'Grappling Lance',
-      explosiveLanceLifesteal: 'Lifesteal',
+      explosiveLanceLifesteal: 'Extra Repair Orbs',
       explosiveLanceDamage: 'Lance Damage',
       explosiveLanceElectrocution: 'Electrocute',
       explosiveLanceFiringRate: 'Firing Rate',

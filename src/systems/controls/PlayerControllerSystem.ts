@@ -34,12 +34,12 @@ export class PlayerControllerSystem {
     private readonly playerShip: Ship
   ) {}
 
-  public getIntent(): ShipIntent {
+  public getIntent(dt: number): ShipIntent {
     // Call update
     this.update();
 
     // Always allow movement, even when overlays/menus are open
-    const movement = this.getMovementIntent();
+    const movement = this.getMovementIntent(dt);
 
     // Guard utility and weapon intents
     const menuOpen = GlobalMenuReporter.getInstance().isAnyMenuOpen();
@@ -52,8 +52,8 @@ export class PlayerControllerSystem {
     return { movement, weapons, utility };
   }
 
-  private getMovementIntent(): MovementIntent {
-    ShipGrid.getInstance().updateShipPosition(this.playerShip);
+  private getMovementIntent(dt: number): MovementIntent {
+    ShipGrid.getInstance().updateShipPosition(this.playerShip, dt);
 
     this.inputManager.setGamepadCursorOverrideEnabled(true);
 

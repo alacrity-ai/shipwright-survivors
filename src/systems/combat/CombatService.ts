@@ -24,6 +24,10 @@ import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
+export interface ExtraDamageOptions {
+  repairOrbDropRateMulti?: number;
+}
+
 export class CombatService {
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -42,7 +46,8 @@ export class CombatService {
     cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' | 'reflected' = 'scripted',
     lightFlash: boolean = true,
     baseCriticalChance: number = 0,
-    baseCriticalMultiplier: number = 1.5
+    baseCriticalMultiplier: number = 1.5,
+    extraOptions: ExtraDamageOptions = {}
   ): boolean {
     if (block.indestructible) return false;
 
@@ -290,7 +295,7 @@ export class CombatService {
     });
 
     const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;    
-    this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
+    this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti, extraOptions.repairOrbDropRateMulti);
     entity.removeBlock(coord);
     if (entity instanceof Ship && entity.getIsPlayerShip?.()) {
       missionResultStore.incrementBlocksLost(1);
