@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import { useEffect, useState } from 'react';
 import { sceneManager, type Scene } from '@/core/SceneManager';
 import { MissionRuntimeScreen } from '@/scenes/MissionRuntimeScreen';
@@ -8,6 +10,7 @@ import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { SaveGameManager } from '@/core/save/saveGameManager';
 import { checkWebGLSupport } from '@/lighting/webgl/helpers/checkWebGLSupport';
 import { CanvasManager } from '@/core/CanvasManager';
+import { FadeManager } from '@/rendering/FadeManager';
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
@@ -47,7 +50,8 @@ export default function App() {
     // === Kick off first scene after mount
     setTimeout(() => {
       sceneManager.setScene('title');
-    }, 0);
+      FadeManager.getInstance().fadeFromBlackAfterDelay(2000, 3000); // 3s hold, 0.8s fade-in
+    }, 100);
 
     return () => unsubscribe();
   }, []);
@@ -64,6 +68,7 @@ export default function App() {
       <canvas id="overlay-canvas" />
       <canvas id="dialogue-canvas" />
       <canvas id="gl2fx-canvas" />
+      <canvas id="fade-canvas" />
       {scene === 'mission' && <MissionRuntimeScreen />}
     </div>
   );

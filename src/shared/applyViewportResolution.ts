@@ -29,6 +29,7 @@ export function applyViewportResolution(
     'dialogue-canvas',
     'unifiedgl2-canvas',
     'gl2fx-canvas',
+    'fade-canvas'
   ];
 
   for (const id of canvasIds) {

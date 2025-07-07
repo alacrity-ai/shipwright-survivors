@@ -19,8 +19,6 @@ import { drawWindow } from '@/ui/primitives/WindowBox';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
-import { GlobalEventBus } from '@/core/EventBus';
-
 import { WordRenderer } from '@/ui/primitives/controllers/WordRenderer';
 import { clearLetterCache } from '@/rendering/cache/Letters';
 
@@ -81,13 +79,15 @@ export class TitleScreenManager {
 
     this.titleRenderer = new WordRenderer(125 * this.scale, 100 * this.scale);
     this.titleRenderer.setWord('SHIPWRIGHT');
+    this.titleRenderer.setBreathingPulse();
 
     this.subtitleRenderer = new WordRenderer(495 * this.scale, 200 * this.scale);
     this.subtitleRenderer.setWord('SURVIVORS');
+    this.subtitleRenderer.setBreathingPulse();
   }
 
   async start() {
-    audioManager.playMusic({ file: 'assets/sounds/music/track_08_debriefing.mp3' });
+    audioManager.playMusic({ file: 'assets/sounds/music/track_00_title.mp3' });
     if (this.titleScreenRuntime) {
       await this.titleScreenRuntime.initialize();
       this.titleScreenRuntime.start();
@@ -442,7 +442,7 @@ export class TitleScreenManager {
     this.settingsMenu?.update();
   };
 
-  private render = (_dt: number) => {
+  private render = (dt: number) => {
     CanvasManager.getInstance().clearAll();
 
     const uiScale = this.scale;
@@ -451,7 +451,7 @@ export class TitleScreenManager {
 
     // Render the Titlescreen Runtime
     if (this.titleScreenRuntime) {
-      this.titleScreenRuntime.render(_dt);
+      this.titleScreenRuntime.render(dt);
     }
 
     // Always render main buttons (Play/Back and Credits)
@@ -521,8 +521,8 @@ export class TitleScreenManager {
 
     // Render settings menu / title text
     if (!this.settingsMenu?.isOpen()) {
-      this.titleRenderer!.render(uiCtx);
-      this.subtitleRenderer!.render(uiCtx);
+      this.titleRenderer!.render(uiCtx, dt);
+      this.subtitleRenderer!.render(uiCtx, dt);
     } else {
       this.settingsMenu?.render(uiCtx);
     }

@@ -57,6 +57,10 @@ export class WaveExecutionContext {
   public trackShip(ship: Ship, controller: AIControllerSystem, origin: WaveShipEntry): void {
     this.allShips.add(ship);
 
+    if (this.wave.isBoss || origin.shipId?.startsWith('boss_')) {
+      ship.addTag('boss');
+    }
+
     let group = this.groupMap.get(origin);
     if (!group) {
       group = {

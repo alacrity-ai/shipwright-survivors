@@ -77,7 +77,7 @@ class SceneManager {
     }
 
     this.destroyTransientManagers();
-    
+
     const res = SaveGameManager.getFirstAvailableResolution();
     const settings = PlayerSettingsManager.getInstance();
     settings.setViewportWidth(res.width);
@@ -232,7 +232,6 @@ class SceneManager {
 
   public fadeToScene(scene: Scene, options?: SceneOptions): void {
     const fadeManager = FadeManager.getInstance();
-    if (fadeManager.isFadeInProgress()) return;
     fadeManager.startFade(() => this.setScene(scene, options));
   }
 }

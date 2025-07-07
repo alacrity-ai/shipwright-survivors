@@ -517,6 +517,7 @@ export class TitleScreenRuntime {
     this.destructionService.destroy();
     this.projectileSystem.destroy();
     this.blockDropDecisionMenu.destroy();
+    this.waveOrchestrator!.destroy();
 
     // Optional: clear UI menus, overlays
     this.explosionSystem.destroy();

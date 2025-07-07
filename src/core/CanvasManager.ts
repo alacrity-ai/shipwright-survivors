@@ -14,7 +14,8 @@ export type CanvasLayer =
   | 'overlay'
   | 'dialogue'
   | 'unifiedgl2'
-  | 'gl2fx';
+  | 'gl2fx'
+  | 'fade';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
@@ -26,7 +27,8 @@ const LAYER_IDS: Record<CanvasLayer, string> = {
   overlay: 'overlay-canvas',
   dialogue: 'dialogue-canvas',
   unifiedgl2: 'unifiedgl2-canvas',
-  gl2fx: 'gl2fx-canvas'
+  gl2fx: 'gl2fx-canvas',
+  fade: 'fade-canvas'
 };
 
 export class CanvasManager {
@@ -102,6 +104,7 @@ export class CanvasManager {
       case 'gl2fx': return 10;
       case 'overlay': return 11;
       case 'dialogue': return 12;
+      case 'fade': return 13;
     }
   }
 
@@ -166,6 +169,7 @@ export class CanvasManager {
 
   public clearAll() {
     for (const layer of Object.keys(this.contexts) as CanvasLayer[]) {
+      if (layer === 'fade') continue;
       this.clearLayer(layer);
     }
   }
