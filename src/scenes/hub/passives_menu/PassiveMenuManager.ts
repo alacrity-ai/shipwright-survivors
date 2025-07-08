@@ -92,6 +92,16 @@ export class PassiveMenuManager {
         this.scrollOffset = 0;
       }
     }
+    
+    // Scroll down a fixed amount for each right bumper press
+    if (this.inputManager.wasGamepadAliasJustPressed('rightBumper')) {
+      this.scrollOffset = Math.min(this.scrollOffset + scrollSpeed, maxScroll);
+    }
+
+    // Scroll up a fixed amount for each left bumper press
+    if (this.inputManager.wasGamepadAliasJustPressed('leftBumper')) {
+      this.scrollOffset = Math.max(0, this.scrollOffset - scrollSpeed);
+    }
 
     if (mouseReleased) {
       this.isDraggingThumb = false;

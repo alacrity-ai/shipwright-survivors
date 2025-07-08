@@ -74,11 +74,11 @@ export interface MouseCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
   highlightColor?: string;
 }
 
-export type GamepadFaceButton = 'A' | 'B' | 'X' | 'Y' | 'View'| 'Menu';
+export type CoreGamepadFaceButton = 'A' | 'B' | 'X' | 'Y'
 
 export interface GamepadFaceButtonsCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
   type: 'gamepadFaceButtons';
-  highlightButton?: GamepadFaceButton; // Optional pulse target
+  highlightButton?: CoreGamepadFaceButton; // Optional pulse target
   radius?: number; // base circle size
   borderColor?: string;
   fillColor?: string;
@@ -86,6 +86,8 @@ export interface GamepadFaceButtonsCoachMarkBehavior extends BaseCoachMarkBehavi
   textColor?: string;
   fontSize?: number;
 }
+
+export type GamepadFaceButton = 'A' | 'B' | 'X' | 'Y' | 'View'| 'Menu';
 
 export interface GamepadFaceButtonCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
   type: 'gamepadFaceButton';
