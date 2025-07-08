@@ -120,35 +120,16 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TUTORIAL TODOS:
-  - [ ] Start with NO HUD visible
-    - [x] Refine messages to not mention direct keyboard commands as we now have coachmarks.
-    - [x] Introduce Radar
-    - [x] Introduce Health
-    - [x] Introduce Afterburner
-    - [x] Introduce Weapons
-    - [x] Introduce Movement/Afterburner
-    - [x] Introduce Block Placement
-    - [x] Tradeposts
-    - [ ] Introduce waves, speed up the map
-    - [ ] Unique background and planet for this map
-    - [ ] Speed up wave spawning rate to make it more fun, enemies more focused on player, all hunters
+  - [ ] Unique background and planet for this map
 
 
 TODOS:
-  - [ ] Blockdrop Decision menu NEEDS to be closeable!!!
-  - [ ] Somehow we need to limit the amount of light flashes that can occur on one ship at any given time - or on one block?
-  - [x] Add gamepad navmap controls for equippable items
   - [ ] Play specific sound effect when equipping artifact (per tier)
-    - [x] Need to check if an item is already equipped to another ship, and show Equipped on "Vanguard" in the tooltip
-      - [x] If already equipped, when we click on it, we need to unequip it from the the ship it's equipped on
   - [ ] Completely clearing a Vortex Incident should end it immediately
-  - [x] Investigate if minimap icons are cached, if not, cache them
-  - [x] Opening save game in one resolution, then switching, breaks loading until refresh
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
     - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
   - [ ] Plugin ship SkillTree effects to game systems
-    - [x] SW-1
     - [ ] Vanguard
     - [ ] Monarch
     - [ ] Halo
@@ -164,40 +145,11 @@ TODOS:
     - [ ] Add breakdown of all damage done by which weapons
     - [ ] Stretch: Add a breakdown of all achievements / sidequests??? 
 
-  - [x] Integrate tradepost registry entries in PlanetRegistry definitions
-    - [x] Add all the existing tradeposts to the existing planets
-  - [x] Ship blueprints droppable
-  - [x] Add acquisition of ship mastery levels in mission debriefing.  1 level clear = 100xp?
-  - [x] Add purchasing of a discovered ship in the ship selection menu
-  - [x] Add mastery level requirement to ShipSkillTreeNode, to make the tooltip more clear.
-  - [x] Fix black ship skilltree icons
-
-  - [ ] Passive menu needs to use GamepadNavMap
-  - [x] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)
-  - [x] Gamepad - Press d-pad left and right to toggle (timer) cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
-  - [ ] Ship Selection:
-    - [x] Add artifacts
-      - [ ] Droppable item
-      - [ ] Artifact equip in loadout menu
-      - [ ] Artifact stat tooltip/description
-      - [ ] PlayerArtifactStore / Registry / Effects (use Powerup system as reference)
-    - [ ] Unify gathering aggregate powerups/ship skills/artifact effects with a single command
-    - [x] Unlockable Ship Blueprint Pickups
-    - [ ] Verify that GL2 blocksprite cache is being cleared on the entityfx layer before entering runtime to avoid leaks
-    - [ ] Verify ship select menu isn't leaking resources in any way
-
-  - [x] To prevent wave buildup, on each wave transition, expire enemies (FIFO) beyond certain cap.
-  - [x] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
+  - [ ] Passive Computer menu needs to use GamepadNavMap
   - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
-    - [ ] Move explosions (block explosion) to gl2
     - [ ] Cleanup all unused canvases/layers.
-  - [x] Controller Support: Make buttons work with D-Pad on joystick using Navlinks controlling the virtualMouse position.
-    - [x] Menu: Ergonomically abstract button elements to be accessible via controller.
-    - [x] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
   - [x] Galaxy Map
-    - [x] Completed planets have some kind of indicator/mark
-    - [x] Basic description when hovered
     - [ ] Additional Descriptions when Selected
       - [ ] Description box of objectives / Unlockables
       - [ ] Alternate mission arrows with a (. . . (.) . .) tab selector at bottom.
@@ -205,17 +157,9 @@ TODOS:
     - [ ] Multiple acts / views (change perspective for more planets)
     - [ ] Better background / CRT effect
     - [ ] Planet textures
-  - [ ] Radar Enhancements
-    - [ ] Hover over radar makes it opaque
-    - [ ] Add animated "LOOK HERE!" Arrow indicators that can be triggered via event hub
-  - [ ] BlockDropSelectionMenu
-    - [ ] Be able to close the BlockDropSelectionMenu with ESC/Tab
-    - [ ] Be able to upgrade block to the next tier by placing it on top of another block of the same type.
   - [ ] Make a cockpit backend, each selectable ship will have their own cockpit weapon.
     - [ ] Move the default cockpit1 weapon to the cockpit backend
     - [ ] Make player cockpits specific: cockpitPlayer0, cockpitPlayer1, etc.
-  - [ ] Screen edge indicators (e.g. showing objectives on the map, minibosses, etc): compliments radar
-  - [ ] Make enemy wave spawn notifications more gameified and obvious. Big warning center screen + sounds, blinking countdown, and perhaps notifications when wave spawner is paused, e.g. in an event.
   - [x] Lots of Random Events things to discover in a run:
     - [ ] Enemy Spawner: When triggered, spawns a bunch of enemies, destroying it gives reward
     - [ ] Healing beacons : destroying it drops a bunch of HP
@@ -232,15 +176,6 @@ TODOS:
       - [ ] Ancient Data Vault: Requires collecting 3 keys scattered across the map?
       - [ ] Challenge Modifier Node: Choose a challenge mod for a bonus, e.g. 30% entropium gain.
       - [ ] Orbiting Debris Field (Many asteroids)
-  - [ ] Move 2d Canvas to webgl:
-    - [ ] ExplosionSystem
-  - [ ] Add the concept of a selectable startship
-    - [ ] Upon returning to base, you are given 2 additional starter ships
-    - [ ] Starter ships will have implicit bonuses per ship, e.g.
-      - [ ] Starter ship 1: Engines add 20% more speed
-      - [ ] Starter ship 2: Projectiles only fire forward
-      - [ ] Starter ship 3: Turrets have 20% more damage
-  - [ ] Add settings menu to the titlescreen
   - [ ] Multilingual support, use this technique:
       ``` 
       import { tr } from '@/i18n/template';
@@ -253,46 +188,25 @@ TODOS:
       ``` And then keep the other language definitions for intro-briefing.line1 in another file
       - [ ] Also allow Quitting directly from this menu if we're in electron
   - [ ] Add click-to-move movement option (Instead of WASD)
-  - [ ] Improve initial mission tutorial:
-    - [ ] Handle block rotation, refinement, autoplace, and place explicitly (Lock buttons if needed, give blocks if needed)
-    - [ ] Handle incident interaction, e.g. where spending entropium is a thing. Maybe a merchant incident.
-    - [ ] Make better first boss.
+  - [ ] Make better first boss.
 BUGS:
   - [ ] If no waves are cleared (e.g. instant abandon), then progress bar in debriefing is stuck
-  - [x] Tutorial Gamepad for Zoom Controls.  Not registering input, need to use D-Pad coachmark
   - [ ] Starting a new game, after having quit to main menu from another game does not work. Playerflags needs clear?
   - [ ] Levelup menu and block drop decision menu clash
-  - [x] If you levelup, and then get enough EXP for another levelup during the delay (before the levelup window pops up), you lose the powerup choice from the first levelup.  We need to queue all the levelups to make sure you get all the choices. This can be easy, just keep track of total powerups, and if you don't have as many as you do levels, then reopen the menu on close.
-  - [ ] Changing resolution in game from a small resolution to a large messes up the background, I think we need to reinstantiate or cleanup the background renderer/system.  Maybe the image in the image cache as well.
-  - [ ] Post processing layer not properly invalidating on Resolution change (bloom is blurry on change)
   - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
 
 
 REFINEMENT:
-  - [ ] Add game logo to Titlescreen, floating in the background, could be made out of blocks, could get blasted on game start? lol
-  - [ ] Add loading indicator or splashscreens to cover the titlescreen as it loads??
-  - [ ] Add panning camera to title screen, with formation spawning
-  - [ ] Verify that titlescreen runtime isn't leaking
   - [ ] Engine sound needs to play on gamepad movement
   - [ ] Rework laser to target the closet target.. add a chain lightning passive
-  - [ ] Increase your base entropium pull range based on your mass (do it at invalidate mass)
-  - [ ] Decrease the amount of entropium that drops by 33%, increase the amount per drop to compensate
-  - [ ] Cap the amount of particles per thruster (e.g. if more than N thrusters, cap them?), or rework thrust particles entirely to reduce particle system load
   - [ ] Incident completion / cursed cargo completion sound is the same as leveling. fix that.
-  - [ ] Shouldn't be able to collide with enemies until they are finished spawning
-  - [x] Screenshake not normalized to resolution, shakes way harder on 1080p than 4k.
-    - [x] Smooth / reduce excessive screenshake when killing many enemies
-  - [x] Floating text needs to be centered above entropium exp bar when gaining entropium
   - [ ] Clearcolor/Shaders when boss enters
-  - [ ] Show percent completion in mission summary. 
   - [ ] Show damage break down in mission summary
   - [ ] Big ship destruction sound always happening, randomly choose 3 sounds or so
   - [ ] Lifesteal needs a cooldown
-  - [x] Add persistent tag to all Incident Spawned entities, and bosses
 
 ### Things to Explore:
-  - [ ] "Town Portal" - Back to the planet? 
   - [ ] Add autofire option?
 
 ## 📝 Commands

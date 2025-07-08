@@ -113,6 +113,7 @@ export interface EventTypes {
   // Block Queue
   'blockqueue:lock': undefined;
   'blockqueue:unlock': undefined;
+  'blockqueue:cancel-interaction': undefined;
 
   // UI Events
   'ui:overlay:interacting': undefined;

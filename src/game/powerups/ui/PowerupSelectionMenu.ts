@@ -18,6 +18,7 @@ import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteracti
 import { flags } from '@/game/player/PlayerFlagManager';
 
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+import { cancelBlockQueueInteraction } from '@/core/interfaces/events/BlockQueueReporter';
 
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
 import type { InputManager } from '@/core/InputManager';
@@ -76,6 +77,7 @@ export class PowerupSelectionMenu implements Menu {
   openMenu(levelUps: number = 1): void {
     flags.set('mission.intro-briefing.powerupMenuOpened');
     GlobalMenuReporter.getInstance().setMenuOpen('powerupSelectionMenu');
+    cancelBlockQueueInteraction();
 
     this.levelUpsRemaining = levelUps;
 

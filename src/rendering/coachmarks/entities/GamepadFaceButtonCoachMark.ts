@@ -37,9 +37,9 @@ export class GamePadFaceButtonCoachMark extends CoachMarkEntity {
     const highlightColor = this.behavior.highlightColor ?? '#00FFFF';
     const textColor = this.behavior.textColor ?? '#FFFFFF';
 
-    const sin = Math.sin(this.animationTimer * this.pulseFrequencyHz * Math.PI * 2); // range -1 to 1
-    const normalized = 0.5 + 0.5 * sin; // range 0 to 1
-    const pulse = this.pulseMinAlpha + normalized * (this.pulseMaxAlpha - this.pulseMinAlpha); // range min to max
+    const sin = Math.sin(this.animationTimer * this.pulseFrequencyHz * Math.PI * 2);
+    const normalized = 0.5 + 0.5 * sin;
+    const pulse = this.pulseMinAlpha + normalized * (this.pulseMaxAlpha - this.pulseMinAlpha);
     const effectiveFill = applyAlpha(highlightColor, pulse);
 
     ctx.save();
@@ -54,16 +54,56 @@ export class GamePadFaceButtonCoachMark extends CoachMarkEntity {
     ctx.fill();
     ctx.stroke();
 
-    // Button label
+    // Label rendering
+    const label = this.behavior.label;
     ctx.fillStyle = textColor;
-    ctx.font = `${Math.round(fontSize)}px monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.behavior.label, 0, 0);
+
+    if (label === 'View') {
+      drawViewIcon(ctx, radius * 0.4, scale);
+    } else if (label === 'Menu') {
+      drawMenuIcon(ctx, radius * 0.5, scale);
+    } else {
+      ctx.font = `${Math.round(fontSize)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 0, 0);
+    }
 
     ctx.restore();
   }
 }
+
+function drawViewIcon(ctx: CanvasRenderingContext2D, size: number, scale: number) {
+  const offset = 4 * scale;
+
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeStyle = ctx.strokeStyle; // use current stroke style
+
+  // Top-left rectangle (back)
+  ctx.beginPath();
+  ctx.rect(-size * 0.5 - offset, -size * 0.5 - offset, size, size);
+  ctx.stroke();
+
+  // Bottom-right rectangle (front)
+  ctx.beginPath();
+  ctx.rect(-size * 0.5 + offset, -size * 0.5 + offset, size, size);
+  ctx.stroke();
+}
+
+function drawMenuIcon(ctx: CanvasRenderingContext2D, width: number, scale: number) {
+  const height = 2 * scale;
+  const spacing = 6 * scale;
+
+  ctx.fillStyle = ctx.strokeStyle;
+
+  for (let i = -1; i <= 1; i++) {
+    const y = i * spacing;
+    ctx.beginPath();
+    ctx.rect(-width * 0.5, y - height * 0.5, width, height);
+    ctx.fill();
+  }
+}
+
 
 // Shared utility
 function applyAlpha(hexColor: string, alpha: number): string {

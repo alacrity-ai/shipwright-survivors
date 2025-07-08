@@ -74,7 +74,7 @@ export interface MouseCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
   highlightColor?: string;
 }
 
-export type GamepadFaceButton = 'A' | 'B' | 'X' | 'Y';
+export type GamepadFaceButton = 'A' | 'B' | 'X' | 'Y' | 'View'| 'Menu';
 
 export interface GamepadFaceButtonsCoachMarkBehavior extends BaseCoachMarkBehaviorOptions {
   type: 'gamepadFaceButtons';
