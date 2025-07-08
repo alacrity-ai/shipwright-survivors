@@ -1,7 +1,7 @@
 // src/rendering/coachmarks/entities/GamepadFaceButtonsCoachMark.ts
 
 import { CoachMarkEntity, CoachMarkPositionResolver } from '@/rendering/coachmarks/CoachMarkEntity';
-import type { GamepadFaceButtonsCoachMarkBehavior, GamepadFaceButton } from '@/rendering/coachmarks/interfaces/CoachMarkBehaviorOptions';
+import type { GamepadFaceButtonsCoachMarkBehavior, CoreGamepadFaceButton } from '@/rendering/coachmarks/interfaces/CoachMarkBehaviorOptions';
 import { getUniformScaleFactor } from '@/config/view';
 
 export class GamepadFaceButtonsCoachMark extends CoachMarkEntity {
@@ -34,7 +34,7 @@ export class GamepadFaceButtonsCoachMark extends CoachMarkEntity {
     const textColor = this.behavior.textColor ?? '#FFFFFF';
 
     const pulse = 0.5 + 0.5 * Math.sin(this.animationTimer * Math.PI * 2); // 0–1
-    const highlight = (btn: GamepadFaceButton): string =>
+    const highlight = (btn: CoreGamepadFaceButton): string =>
       this.behavior.highlightButton === btn
         ? applyAlpha(highlightColor, pulse)
         : fillColor;
@@ -55,14 +55,14 @@ export class GamepadFaceButtonsCoachMark extends CoachMarkEntity {
     const faceRadius = radius * 0.25;
     const offset = radius * 0.5;
 
-    const buttonPositions: Record<GamepadFaceButton, [number, number]> = {
+    const buttonPositions: Record<CoreGamepadFaceButton, [number, number]> = {
       'Y': [0, -offset],
       'A': [0, offset],
       'X': [-offset, 0],
       'B': [offset, 0],
     };
 
-    const drawButton = (label: GamepadFaceButton) => {
+    const drawButton = (label: CoreGamepadFaceButton) => {
       const [bx, by] = buttonPositions[label];
       ctx.beginPath();
       ctx.fillStyle = highlight(label);

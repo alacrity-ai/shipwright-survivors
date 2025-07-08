@@ -27,6 +27,10 @@ export class InputDeviceTracker {
     return this.lastUsed;
   }
 
+  public gamepadLastUsed(): boolean {
+    return this.lastUsed === 'gamepad';
+  }
+
   public getLastUsedTimestamp(): number {
     return this.lastUsedTimestamp;
   }

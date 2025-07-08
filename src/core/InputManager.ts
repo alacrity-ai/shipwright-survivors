@@ -33,7 +33,8 @@ export class InputManager {
   private inputDisabled = false;
 
   private virtualMouse: { x: number; y: number } = { x: 0, y: 0 };
-  private readonly VIRTUAL_MOUSE_SPEED = 150 * getUniformScaleFactor(); // pixels/sec at full stick deflection
+  private VIRTUAL_MOUSE_SPEED = 150 * getUniformScaleFactor(); // pixels/sec at full stick deflection
+  private VIRTUAL_MOUSE_SPEED_DEFAULT = 150 * getUniformScaleFactor();
 
   private leftStickDisabled = false;
   private rightStickDisabled = false;
@@ -63,6 +64,14 @@ export class InputManager {
 
   public enableInput(): void {
     this.inputDisabled = false;
+  }
+
+  public setVirtualMouseSpeed(speed: number): void {
+    this.VIRTUAL_MOUSE_SPEED = speed * getUniformScaleFactor();
+  }
+
+  public setVirtualMouseSpeedToDefault(): void {
+    this.VIRTUAL_MOUSE_SPEED = this.VIRTUAL_MOUSE_SPEED_DEFAULT;
   }
 
   public getMousePosition(): { x: number; y: number } {

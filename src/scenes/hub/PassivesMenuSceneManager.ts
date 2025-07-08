@@ -109,10 +109,21 @@ export class PassivesMenuSceneManager {
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
 
+    // Center virtual mouse position
+    this.inputManager.setVirtualMousePosition(
+      this.canvasManager.getContext('ui').canvas.width / 2,
+      this.canvasManager.getContext('ui').canvas.height / 2
+    );
+    // Set virtual mouse speed/sensitivity low
+    this.inputManager.setVirtualMouseSpeed(80);
+
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
   }
 
   stop() {
+    // set virtual mouse speed default
+    this.inputManager.setVirtualMouseSpeedToDefault();
+
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
   }
@@ -146,13 +157,9 @@ export class PassivesMenuSceneManager {
       handleButtonInteraction(btn, x, y, clicked, getUniformScaleFactor());
     }
 
-    // === Debugging ===
-    // TODO : Remove on launch
-    if (this.inputManager.wasKeyJustPressed('KeyP')) {
-      PlayerPassiveManager.getInstance().addPassivePoints(1000);
-    }
-    if (this.inputManager.wasKeyJustPressed('KeyR')) {
-      PlayerPassiveManager.getInstance().refundAll();
+    // If 'B' gamepad alias pressed, activate the button[0] onclick to leave
+    if (this.inputManager.wasActionJustPressed('cancel')) {
+      this.buttons[0].onClick?.();
     }
 
     this.passiveMenuManager.update();
