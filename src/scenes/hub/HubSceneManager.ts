@@ -87,7 +87,7 @@ export class HubSceneManager {
 
     const zones = Object.entries(INTERACTION_ZONES_VIRTUAL);
     for (const [key, rect] of zones) {
-      if (!flags.has(INTERACTION_FLAGS[key as keyof typeof INTERACTION_FLAGS])) continue;
+      // if (!flags.has(INTERACTION_FLAGS[key as keyof typeof INTERACTION_FLAGS])) continue;
 
       const scaled = scaleRect(rect);
       const centerX = scaled.x + scaled.width / 2;
@@ -108,9 +108,13 @@ export class HubSceneManager {
 
       navPoints.push(point);
 
-      // Set default to the galaxy map navpoint if found
-      if (key === 'map') {
+      // Set default to the galaxy map navpoint if found and enabled, otherwise set to terminal
+      if (flags.has(INTERACTION_FLAGS.map) && key === 'map') {
         defaultNavPoint = point;
+      } else {
+        if (flags.has(INTERACTION_FLAGS.terminal) && key === 'terminal') {
+          defaultNavPoint = point;
+        }
       }
     }
 
@@ -216,33 +220,6 @@ export class HubSceneManager {
     if (this.inputManager.isUsingGamepad?.()) {
       if (!this.gamepadNavManager.hasNavMap()) {
         this.buildNavMap();
-      }
-
-      const { x, y } = this.gamepadNavManager.getCurrentGridPosition();
-      const hovered = this.gamepadNavManager['findNavPoint'](x, y); // if `findNavPoint` is private, promote it to protected or expose
-
-      const clicked = this.inputManager.wasGamepadAliasJustPressed('A');
-
-      if (clicked && hovered) {
-        const pointKey = Object.entries(INTERACTION_ZONES_VIRTUAL).find(([key, rect]) => {
-          const scaled = scaleRect(rect);
-          const centerX = scaled.x + scaled.width / 2;
-          const centerY = scaled.y + scaled.height / 2;
-          return Math.abs(centerX - hovered.screenX) < 1 && Math.abs(centerY - hovered.screenY) < 1;
-        })?.[0];
-
-        if (pointKey) {
-          if (pointKey === 'terminal') {
-            this.stop();
-            sceneManager.fadeToScene('passives');
-          } else if (pointKey === 'map') {
-            this.stop();
-            sceneManager.fadeToScene('galaxy');
-          } else if (pointKey === 'breakroom') {
-            this.stop();
-            sceneManager.fadeToScene('breakroom');
-          }
-        }
       }
 
       if (this.inputManager.wasGamepadAliasJustPressed('B')) {

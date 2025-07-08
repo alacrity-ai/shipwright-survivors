@@ -12,6 +12,7 @@ import { audioManager } from '@/audio/Audio';
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 export class PlaceAllBlocksButton {
   private isHovered = false;
@@ -96,7 +97,7 @@ export class PlaceAllBlocksButton {
     // Handle gamepad input
     if (!this.isActive && this.inputManager.wasActionJustPressed('placeAllBlocksButton')) {
       if (this.GlobalMenuReporter.isAnyMenuOpen()) return;
-      if (this.GlobalMenuReporter.hasSpecialBlocker('planet-interaction-overlay')) return;
+      if (this.GlobalMenuReporter.hasSpecialBlocker('planet-interaction-overlay') && InputDeviceTracker.getInstance().gamepadLastUsed()) return;
       if (blockCount > 0) {
         this.activate();
       }
