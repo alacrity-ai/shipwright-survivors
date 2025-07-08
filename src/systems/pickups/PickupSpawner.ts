@@ -138,7 +138,7 @@ export class PickupSpawner {
       return;
     }
 
-    // === Sub-drop: Repair or Currency
+    // First check if a sub-drop should occur
     if (Math.random() < 0.2) {
       const repairOrbChance = 0.07 * (PlayerPassiveManager.getInstance().getPassiveBonus('repair-orb-drop-rate') + repairOrbDropRateMulti);
 
@@ -146,13 +146,12 @@ export class PickupSpawner {
         const repairAmount = this.getRepairAmountForBlock(block);
         this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
       } else {
-        let currencyAmount = this.getCurrencyAmountForBlock(block);
-
-        // Passive bonus to entropium gain
-        const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
-        currencyAmount = Math.floor(currencyAmount * currencyMultiplier);
-
-        this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
+        if (Math.random() < 0.8) {
+          let currencyAmount = this.getCurrencyAmountForBlock(block);
+          const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
+          currencyAmount = Math.floor(currencyAmount * currencyMultiplier);
+          this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
+        }
       }
     }
   }
@@ -162,8 +161,8 @@ export class PickupSpawner {
     const tier = getTierFromBlockId(id);
 
     const tierToBaseValue: Record<number, number> = {
-      0: 10, 1: 20, 2: 35, 3: 50, 4: 75, 5: 100,
-      6: 120, 7: 120, 8: 120, 9: 120, 10: 120,
+      0: 15, 1: 35, 2: 60, 3: 80, 4: 120, 5: 200,
+      6: 250, 7: 250, 8: 250, 9: 250, 10: 250,
     };
 
     const base = tierToBaseValue[tier] ?? 0;

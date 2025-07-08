@@ -338,7 +338,7 @@ export class PickupSystem {
     }
 
     const shipPosition = this.playerShip.getTransform().position;
-    const baseAttractionRange = 600;
+    const baseAttractionRange = 700;
     const bonusRange = this.playerShip.getTotalHarvestRate() * PICKUP_RANGE_PER_HARVEST_UNIT;
     let attractionRange = baseAttractionRange + bonusRange;
     let attractionSpeedBoost = 1.0;
@@ -464,7 +464,7 @@ export class PickupSystem {
         let height = BLOCK_SIZE;
 
         if (pickup.type.category === 'currency') {
-          const scale = BASE_PICKUP_SCALE + Math.log2(pickup.currencyAmount + 1) / 5;
+          const scale = BASE_PICKUP_SCALE + Math.log2(pickup.currencyAmount + 1) / 7;
           width *= scale;
           height *= scale;
         } else if (pickup.type.category === 'repair') {
