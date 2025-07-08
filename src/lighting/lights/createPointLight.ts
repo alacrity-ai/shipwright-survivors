@@ -45,7 +45,7 @@ const INTENSITY_FACTOR = 0.25;
 /**
  * Creates a PointLightInstance with flexible parameters.
  */
-export function createPointLight(config: PointLightConfig): PointLightInstance {
+export function createPointLight(config: PointLightConfig, tag?: string): PointLightInstance {
 
   // Mutate config intesity with INTENSITY_FACTOR
   config.intensity = config.intensity ? config.intensity * INTENSITY_FACTOR : INTENSITY_FACTOR;
@@ -76,6 +76,7 @@ export function createPointLight(config: PointLightConfig): PointLightInstance {
     expires,
     type: 'point',
     fadeMode,
+    tag,
   };
 
   return instance;

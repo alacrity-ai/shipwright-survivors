@@ -132,6 +132,7 @@ export class CompositeBlockDestructionService {
         delay,
         callback: () => {
           this.explosionSystem.createBlockExplosion(
+            entity.id,
             transform.position,
             transform.rotation,
             coord,
@@ -174,6 +175,7 @@ export class CompositeBlockDestructionService {
               delay,
               callback: () => {
                 this.explosionSystem.createBlockExplosion(
+                  entity.id,
                   transform.position,
                   transform.rotation,
                   coord,

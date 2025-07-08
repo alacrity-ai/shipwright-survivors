@@ -43,6 +43,8 @@ export interface LightInstance {
   animationPhase?: number; // between 0–1, updated by orchestrator if animated
 
   fadeMode?: LightFadeMode; // linear or delayed fade
+
+  tag?: string;
 }
 
 /** Specialized light with radial falloff */
@@ -77,6 +79,8 @@ export interface BeamLightInstance {
   animationPhase?: number;
 
   fadeMode?: LightFadeMode;
+
+  tag?: string;
 }
 
 

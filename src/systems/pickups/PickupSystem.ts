@@ -557,7 +557,6 @@ export class PickupSystem {
 
     // Pickup Flash
     const playerPos = this.playerShip.getTransform().position;
-    const lightingOrchestrator = LightingOrchestrator.getInstance();
 
     let flashColor = PICKUP_FLASH_COLORS[pickup.type.category] ?? '#ffffff';
 
@@ -566,17 +565,17 @@ export class PickupSystem {
       flashColor = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? flashColor;
     }
 
-    const pickupFlash = createPointLight({
-      x: playerPos.x,
-      y: playerPos.y,
-      radius: 320 + Math.random() * 100,
-      color: flashColor,
-      intensity: 1.2,
-      life: 0.5, // short flash (in ms if you're using ms convention)
-      expires: true,
-    });
+    createLightFlash(
+      playerPos.x,
+      playerPos.y,
+      320 + Math.random() * 100,
+      1.2,
+      0.5,
+      flashColor,
+      'pickup-currency'
+    );
 
-    lightingOrchestrator.registerLight(pickupFlash);
+    // lightingOrchestrator.registerLight(pickupFlash);
     let playedSound = false;
 
     // === Handle pickup effects by category ===
@@ -618,7 +617,7 @@ export class PickupSystem {
       // Flash ship based on block tier
       const tier = getTierFromBlockId(pickup.type.blockTypeId);
       const flashColor = BLOCK_TIER_COLORS[tier] ?? ['#fff'];
-      createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, flashColor);
+      createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, flashColor, `blockPickup-${pickup.type.blockTypeId}`);
 
       // Enqueue into drop decision menu
       const blockType = getBlockType(pickup.type.blockTypeId)!;
@@ -667,7 +666,7 @@ export class PickupSystem {
           glow: true,
         });
       }
-      createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#00FFFF');
+      createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#00FFFF', `shipBlueprint-${pickup.shipId}`);
     } else {
       console.warn('Unhandled pickup category or malformed pickup:', pickup);
     }

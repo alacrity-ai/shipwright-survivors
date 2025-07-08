@@ -4,6 +4,7 @@ import { SHIELD_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { createPointLight } from '@/lighting/lights/createPointLight';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { ensureHexColor } from '@/shared/colorUtils';
 import { randomFromArray } from '@/shared/arrayUtils';
 
@@ -47,34 +48,34 @@ export class ExplosionSystem {
 
   // Create an explosion at the given world position
   createExplosion(
+    entityId: string,
     position: { x: number; y: number },
     size: number = 60,
     life: number = 0.6,
     color?: string,
     sparkPalette?: string[],
-    lightOptions?: LightExplosionOptions
+    lightOptions?: LightExplosionOptions,
   ): void {
     this.particleManager.emitBurst(position, 10 + Math.floor(size / 10), {
       colors: sparkPalette,
-      baseSpeed: 200,
+      baseSpeed: 420,
       sizeRange: [1, 3],
       lifeRange: [0.4, 1],
       fadeOut: true
     });
 
-    if (this.lightingOrchestrator && PlayerSettingsManager.getInstance().isLightingEnabled() && lightOptions) {
+    if (lightOptions) {
       const hexColor = ensureHexColor(color);
-      const light = createPointLight({
-        x: position.x,
-        y: position.y,
-        radius: size * (lightOptions.lightRadiusScalar ?? 5),
-        color: lightOptions.lightColor ?? hexColor,
-        intensity: lightOptions.lightIntensity ?? 0.3,
-        life: life * (lightOptions.lightLifeScalar ?? 1.0),
-        expires: true,
-      });
 
-      this.lightingOrchestrator.registerLight(light);
+      createLightFlash(
+        position.x,
+        position.y,
+        size * (lightOptions.lightRadiusScalar ?? 5),
+        lightOptions.lightIntensity ?? 0.3,
+        life * (lightOptions.lightLifeScalar ?? 1.0),
+        lightOptions.lightColor ?? hexColor,
+        `explosion-${entityId}`
+      );
     }
 
     this.explosions.push({
@@ -89,6 +90,7 @@ export class ExplosionSystem {
 
   // Create an explosion at a block's position within a ship
   createBlockExplosion(
+    entityId: string,
     shipPosition: { x: number; y: number },
     shipRotation: number,
     blockCoord: GridCoord,
@@ -114,7 +116,7 @@ export class ExplosionSystem {
     const worldY = shipPosition.y + rotatedY;
     
     // Create the explosion
-    this.createExplosion({ x: worldX, y: worldY }, size, life, color, sparkPalette, lightOptions);
+    this.createExplosion(entityId, { x: worldX, y: worldY }, size, life, color, sparkPalette, lightOptions);
   }
 
   createShieldDeflection(
@@ -134,7 +136,7 @@ export class ExplosionSystem {
         }
       : undefined;
 
-    this.createExplosion(position, 34, 0.3, explosionColor, sparkPalette, resolvedLightOptions);
+    this.createExplosion(sourceId, position, 34, 0.3, explosionColor, sparkPalette, resolvedLightOptions);
   }
 
   update(dt: number): void {

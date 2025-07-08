@@ -9,6 +9,8 @@ import type {
 let nextLightId = 0;
 let _instance: LightingOrchestrator | null = null;
 
+export const MAXIMUM_LIGHTS_PER_TAG = 10;
+
 /**
  * Central controller for active light instances.
  * Handles registration, lifecycle management, spatial culling, and pooling.
@@ -16,6 +18,8 @@ let _instance: LightingOrchestrator | null = null;
 export class LightingOrchestrator {
   private lights = new Map<string, AnyLightInstance>();
   private lightPool: PointLightInstance[] = [];
+
+  private tagMap: Map<string, Set<string>> = new Map();
 
   private cachedVisibleLights: AnyLightInstance[] = [];
   private lastCameraBounds: { x: number; y: number; width: number; height: number } | null = null;
@@ -36,15 +40,52 @@ export class LightingOrchestrator {
 
   registerLight(light: AnyLightInstance): void {
     if (!light.id) light.id = `light_${nextLightId++}`;
+
+    // Enforce tag-based cap
+    if (light.tag) {
+      let set = this.tagMap.get(light.tag);
+      if (!set) {
+        set = new Set();
+        this.tagMap.set(light.tag, set);
+      } else if (set.size >= MAXIMUM_LIGHTS_PER_TAG) {
+        return; // Cap reached — silently ignore
+      }
+      set.add(light.id);
+    }
+
     this.lights.set(light.id, light);
     this.lightsDirty = true;
   }
 
   removeLight(id: string): void {
     const light = this.lights.get(id);
-    if (light) this.recycleLight(light);
+    if (light) {
+      this.recycleLight(light);
+
+      // Remove from tag map
+      if (light.tag) {
+        const set = this.tagMap.get(light.tag);
+        set?.delete(id);
+        if (set?.size === 0) this.tagMap.delete(light.tag);
+      }
+    }
+
     this.lights.delete(id);
     this.lightsDirty = true;
+  }
+
+  public getTagLightCount(tag: string): number {
+    const set = this.tagMap.get(tag);
+    return set ? set.size : 0;
+  }
+
+  private removeTagAssociation(light: AnyLightInstance): void {
+    if (!light.tag) return;
+    const set = this.tagMap.get(light.tag);
+    set?.delete(light.id);
+    if (set?.size === 0) {
+      this.tagMap.delete(light.tag);
+    }
   }
 
   clear(): void {
@@ -52,6 +93,7 @@ export class LightingOrchestrator {
       this.recycleLight(light);
     }
     this.lights.clear();
+    this.tagMap.clear();
     this.lightsDirty = true;
   }
 
@@ -60,6 +102,7 @@ export class LightingOrchestrator {
       if (light.life !== undefined && light.maxLife !== undefined) {
         light.life -= dt;
         if (light.expires && light.life <= 0) {
+          this.removeTagAssociation(light);
           this.recycleLight(light);
           this.lights.delete(id);
           this.lightsDirty = true;
@@ -80,6 +123,7 @@ export class LightingOrchestrator {
       // Optional: insert per-frame animation logic here
     }
   }
+
 
   /**
    * Computes or returns memoized list of visible lights within the camera viewport.
@@ -174,6 +218,7 @@ export class LightingOrchestrator {
       light.life = undefined;
       light.maxLife = undefined;
       light.animationPhase = undefined;
+      light.tag = undefined;
       this.lightPool.push(light);
     }
   }

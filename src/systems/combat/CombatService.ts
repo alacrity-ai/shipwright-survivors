@@ -229,12 +229,13 @@ export class CombatService {
 
       if (shouldExplode) {
         this.explosionSystem.createExplosion(
+          entity.id,
           block.position,
           20,
           0.3,
           undefined,
           DEFAULT_EXPLOSION_SPARK_PALETTE,
-          lightOptions
+          lightOptions,
         );
       }
 
@@ -276,6 +277,7 @@ export class CombatService {
     }
 
     this.explosionSystem.createBlockExplosion(
+      entity.id,
       entity.getTransform().position,
       entity.getTransform().rotation,
       coord,
@@ -334,6 +336,7 @@ export class CombatService {
         const blockCoord = fromKey(coordKey);
 
         this.explosionSystem.createBlockExplosion(
+          entity.id,
           transform.position,
           transform.rotation,
           blockCoord,
@@ -390,6 +393,7 @@ export class CombatService {
       const coord = fromKey(coordKey);
 
       this.explosionSystem.createBlockExplosion(
+        entity.id,
         transform.position,
         transform.rotation,
         coord,

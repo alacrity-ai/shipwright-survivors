@@ -315,7 +315,8 @@ export class HeatSeekerBackend implements WeaponBackend {
       420,
       0.8,
       0.3,
-      color
+      color,
+      `heatSeeker-${missile.targetShip.id}`
     );
 
     let centerCoord: GridCoord | null = null;

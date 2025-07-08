@@ -44,18 +44,24 @@ export function rgbaToHex(r: number, g: number, b: number, a: number = 255): str
   return a === 255 ? `#${rHex}${gHex}${bHex}` : `#${rHex}${gHex}${bHex}${aHex}`;
 }
 
+const colorMemo = new Map<string, string>();
+
 export function ensureHexColor(color: string | undefined): string {
   if (!color) return '#ffffff';
   if (color.startsWith('#')) return color;
 
+  const cached = colorMemo.get(color);
+  if (cached) return cached;
+
   try {
-    return rgbaStringToHex(color);
+    const hex = rgbaStringToHex(color);
+    colorMemo.set(color, hex);
+    return hex;
   } catch (e) {
     console.warn('[ExplosionSystem] Invalid color format, defaulting to white:', color);
     return '#ffffff';
   }
 }
-
 
 export function rgbaStringToHex(css: string): string {
   const match = css.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([.\d]+))?\)/i);

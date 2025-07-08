@@ -3,6 +3,8 @@
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
+import { MAXIMUM_LIGHTS_PER_TAG } from '@/lighting/LightingOrchestrator';
+
 /**
  * Creates and registers a short-lived point light flash at the given position.
  */
@@ -12,17 +14,31 @@ export function createLightFlash(
   radius: number = 300,
   intensity: number = 1,
   life: number = 0.5,
-  color: string = '#ffffff'
+  color: string = '#ffffff',
+  tag?: string
 ): void {
-  const light = createPointLight({
-    x,
-    y,
-    radius,
-    intensity,
-    life,
-    color,
-    expires: true,
-  });
+  const orchestrator = LightingOrchestrator.getInstance();
 
-  LightingOrchestrator.getInstance().registerLight(light);
+  if (tag) {
+    const count = orchestrator.getTagLightCount(tag);
+    if (count >= MAXIMUM_LIGHTS_PER_TAG) {
+      return;
+    }
+  }
+
+  const light = createPointLight(
+    {
+      x,
+      y,
+      radius,
+      intensity,
+      life,
+      color,
+      expires: true,
+    },
+    tag
+  );
+
+  orchestrator.registerLight(light);
 }
+

@@ -127,7 +127,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         intensity: 0.9,
         life: lifetime + 0.4,
         expires: true,
-      });
+      }, `explosive-lance-${ship.id}`);
       LightingOrchestrator.getInstance().registerLight(light);
 
       // Play spatial sfx
@@ -337,7 +337,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
             lance.explosionRadius * 24,
             0.8,
             0.4,
-            EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]?.[0] ?? '#ccc'
+            EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]?.[0] ?? '#cccccc',
+            `explosiveLance-${lance.targetShip.id}`
           );
 
           // === Emit radial projectiles ===
@@ -347,7 +348,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           const life = 0.8; // short-lived but high-speed
 
           const colorPalette =
-            EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#ccc', '#aaa', '#888'];
+            EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#cccccc', '#aaaaaa', '#888888'];
 
           for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
