@@ -49,7 +49,7 @@ export function handleMenuInput({
       }
     }
     if (blockDropDecisionMenu.isOpen()) {
-      return;
+      blockDropDecisionMenu.closeMenu();
     } else if (!settingsMenu.isOpen() && !pauseMenu.isOpen() && !shipBuilderMenu.isOpen() && !blockDropDecisionMenu.isOpen()) {
       console.log('Attempting to open blockDropDecisionMenu...')
     // if (blockDropDecisionMenu.hasBlocksInQueue()) {

@@ -24,7 +24,7 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
 
   switchFiringMode: { keys: ['KeyX'], gamepadButtons: ['X'] },
   openMenu:         { keys: ['Escape'], gamepadButtons: ['start'] },
-  openShipBuilder:  { keys: ['Tab'], gamepadButtons: ['Y'] },
+  openShipBuilder:  { keys: ['Tab'], gamepadButtons: ['select'] },
   select:           { keys: ['Enter'], gamepadButtons: ['A'] },
   cancel:           { keys: ['Escape'], gamepadButtons: ['B'] },
   pause:            { keys: ['Escape'], gamepadButtons: ['start'] },

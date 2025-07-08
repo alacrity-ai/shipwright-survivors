@@ -29,3 +29,7 @@ export function lockBlockQueue(): void {
 export function unlockBlockQueue(): void {
   GlobalEventBus.emit('blockqueue:unlock', undefined);
 }
+
+export function cancelBlockQueueInteraction(): void {
+  GlobalEventBus.emit('blockqueue:cancel-interaction', undefined);
+}

@@ -16,10 +16,10 @@ export function createOpenBlockMenuCoachMark(
       screenX,
       screenY,
       {
-        type: 'gamepadFaceButtons',
-        highlightButton: 'Y',
+        type: 'gamepadFaceButton',
+        label: 'View',
         radius: 50,
-        fontSize: 18,
+        fontSize: 24,
         borderColor: '#00FFFF',
         fillColor: '#001122',
         highlightColor: '#00FFFF',

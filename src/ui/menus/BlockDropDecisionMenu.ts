@@ -21,6 +21,7 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 
 import { GlobalEventBus } from '@/core/EventBus';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+import { resumeRuntime } from '@/core/interfaces/events/RuntimeReporter';
 
 import { autoPlaceBlockWithArchetype as autoPlaceBlock } from '@/systems/autoplacement/autoPlaceAdvanced';
 import { getArchetypeById } from '@/systems/autoplacement/ShipArchetypeSystem';
@@ -457,22 +458,22 @@ export class BlockDropDecisionMenu implements Menu {
     }
 
     // === Gamepad support ===
-    if (this.inputManager.wasActionJustPressed('switchFiringMode') || this.inputManager.wasKeyJustPressed('KeyA')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('X') || this.inputManager.wasKeyJustPressed('KeyA')) {
       this.refineButton.onClick();
       this.clickedButton = 'refine';
     }
 
-    if (this.inputManager.wasActionJustPressed('select') || this.inputManager.wasKeyJustPressed('KeyS')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('A') || this.inputManager.wasKeyJustPressed('KeyS')) {
       this.autoplaceButton.onClick();
       this.clickedButton = 'autoplace';
     }
 
-    if (this.inputManager.wasActionJustPressed('openShipBuilder') || this.inputManager.wasKeyJustPressed('KeyW')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('Y') || this.inputManager.wasKeyJustPressed('KeyW')) {
       this.randomRollButton.onClick();
       this.clickedButton = 'roll';
     }
 
-    if (this.inputManager.wasActionJustPressed('cancel') || this.inputManager.wasKeyJustPressed('KeyD')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('B') || this.inputManager.wasKeyJustPressed('KeyD')) {
       this.autoPlaceAllButton.onClick();
       this.clickedButton = 'autoPlaceAll';
     }
@@ -780,7 +781,7 @@ export class BlockDropDecisionMenu implements Menu {
       this.animationPhase = 'sliding-out';
       Camera.getInstance().animateZoomTo(this.originalZoom);
       this.isAutoPlacingAll = false;
-      menuClosed('blockDropDecisionMenu'); // Deprecated
+      menuClosed('blockDropDecisionMenu');
     } else {
       this.didAdvance = true;
     }
@@ -971,10 +972,12 @@ export class BlockDropDecisionMenu implements Menu {
   closeMenu(): void {
     this.coachMarksVisible = false;
     CoachMarkManager.getInstance().clear();
-    this.open = false;
-    GlobalMenuReporter.getInstance().setMenuClosed('blockDropDecisionMenu');
-    this.nextBlockPreviewRenderer = null;
+    this.isAnimating = true;
+    this.animationPhase = 'sliding-out';
+    Camera.getInstance().animateZoomTo(this.originalZoom);
+    this.isAutoPlacingAll = false;
     menuClosed('blockDropDecisionMenu');
+    // resumeRuntime();
   }
 
   isBlocking(): boolean {

@@ -7,6 +7,8 @@ import type { InputManager } from '@/core/InputManager';
 
 import { audioManager } from '@/audio/Audio';
 
+import { flags } from '@/game/player/PlayerFlagManager';
+
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
 import { GlobalEventBus } from '@/core/EventBus';
 import { requestPlaceBlockFromQueue, requestRefineBlockFromQueue } from '@/core/interfaces/events/BlockQueueReporter';
@@ -89,6 +91,7 @@ export class BlockQueueDisplayManager {
   private boundHandleHide: () => void;
   private boundHandleLock: () => void;
   private boundHandleUnlock: () => void;
+  private boundCancelInteraction: () => void;
 
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -121,11 +124,13 @@ export class BlockQueueDisplayManager {
     this.boundHandleHide = this.handleHide.bind(this);
     this.boundHandleLock = this.handleLock.bind(this);
     this.boundHandleUnlock = this.handleUnlock.bind(this);
+    this.boundCancelInteraction = this.cancelInteraction.bind(this);
 
     GlobalEventBus.on('blockqueue:show', this.boundHandleShow);
     GlobalEventBus.on('blockqueue:hide', this.boundHandleHide);
     GlobalEventBus.on('blockqueue:lock', this.boundHandleLock);
     GlobalEventBus.on('blockqueue:unlock', this.boundHandleUnlock);
+    GlobalEventBus.on('blockqueue:cancel-interaction', this.boundCancelInteraction);
   }
 
   private handleLock(): void {
@@ -134,6 +139,19 @@ export class BlockQueueDisplayManager {
 
   private handleUnlock(): void {
     this.locked = false;
+  }
+
+  private cancelInteraction(): void {
+    if (!this.isDPadNavigationMode) return;
+
+    this.isDPadNavigationMode = false;
+    this.dpadHoveredIndex = null;
+    this.dpadLeftHoldFrames = 0;
+    this.dpadRightHoldFrames = 0;
+    this._repeatCooldown = 0;
+
+    this.placeAllBlocksButton.unlock();
+    this.rollBlocksButton.unlock();
   }
 
   /** Call this on resolution change or scale change */
@@ -310,6 +328,7 @@ export class BlockQueueDisplayManager {
     const isRightHeld = input.gamepadAliasIsPressed('dpadRight');
 
     if (!this.isDPadNavigationMode && (pressedLeft || pressedRight)) {
+      if (GlobalMenuReporter.getInstance().isMenuOpen('powerupSelectionMenu') || !flags.has('mission.intro-briefing.tradepost-closed')) return;
       this.isDPadNavigationMode = true;
       this.dpadHoveredIndex = 0;
       this.placeAllBlocksButton.lock();
@@ -627,6 +646,9 @@ export class BlockQueueDisplayManager {
   public destroy(): void {
     GlobalEventBus.off('blockqueue:show', this.boundHandleShow);
     GlobalEventBus.off('blockqueue:hide', this.boundHandleHide);
+    GlobalEventBus.off('blockqueue:lock', this.boundHandleLock);
+    GlobalEventBus.off('blockqueue:unlock', this.boundHandleUnlock);
+    GlobalEventBus.off('blockqueue:cancel-interaction', this.boundCancelInteraction);
   }
 
   // Public API
