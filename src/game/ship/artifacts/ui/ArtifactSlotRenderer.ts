@@ -27,7 +27,7 @@ export async function drawArtifactSlot(params: ArtifactSlotRenderParams): Promis
 
   // === Visual Theming ===
   const baseBorderColor = '#00FFFF';
-  const hoverBorderColor = '#33FFFF';
+  const hoverBorderColor = '#FFFFFF';
   const selectedBorderColor = '#00FFAA';
   const fillColor = '#001122';
 

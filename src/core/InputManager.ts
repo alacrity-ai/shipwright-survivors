@@ -6,6 +6,7 @@ import { DefaultInputMapping } from '@/core/input/DefaultInputMapping';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { isElectron } from '@/shared/isElectron';
 import { Camera } from './Camera';
+import { getUniformScaleFactor } from '@/config/view';
 
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import type { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
@@ -32,7 +33,7 @@ export class InputManager {
   private inputDisabled = false;
 
   private virtualMouse: { x: number; y: number } = { x: 0, y: 0 };
-  private readonly VIRTUAL_MOUSE_SPEED = 900; // pixels/sec at full stick deflection
+  private readonly VIRTUAL_MOUSE_SPEED = 150 * getUniformScaleFactor(); // pixels/sec at full stick deflection
 
   private leftStickDisabled = false;
   private rightStickDisabled = false;

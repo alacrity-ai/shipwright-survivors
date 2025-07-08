@@ -74,6 +74,7 @@ export class ShipSelectionSceneManager {
   private overlayCtx: CanvasRenderingContext2D;
   private bgCtx: CanvasRenderingContext2D;
 
+  private selectedShipIndex: number = 0;
   private shipSelectionMenu: ShipSelectionMenu;
 
   constructor(
@@ -125,6 +126,8 @@ export class ShipSelectionSceneManager {
 
   private handleOpenArtifactsCollection = ({ slotIndex }: { slotIndex: 0 | 1 | 2 }) => {
     this.uiMode = 'artifact-collection';
+    // this.selectedShipIndex = this.shipSelectionMenu.getSelectedIndex(); // Add this method
+    this.skillTreeNavActive = false;
     this.artifactCollectionSlotIndex = slotIndex;
 
     const ship = this.getSelectedShip();
@@ -297,15 +300,18 @@ export class ShipSelectionSceneManager {
 
     // === Handle gamepad nav setup ===
     if (this.inputManager.isUsingGamepad?.()) {
-      if (!this.gamepadNavManager.hasNavMap()) {
-        this.rebuildNavMap(scale);
-        if (!this.skillTreeNavActive) {
-          this.gamepadNavManager.setCurrentGridPosition(0, 1);
-        }
-      }
+if (!this.gamepadNavManager.hasNavMap()) {
+  this.rebuildNavMap(scale);
+}
+
 
       if (!this.skillTreeNavActive && this.inputManager.wasGamepadAliasJustPressed('B')) {
-        this.gamepadNavManager.setCurrentGridPosition(0, 0);
+        if (this.uiMode === 'artifact-collection') {
+          this.handleCloseArtifactsCollection();
+          this.gamepadNavManager.setCurrentGridPosition(0, 1);
+        } else {
+          this.gamepadNavManager.setCurrentGridPosition(0, 0);
+        }
       }
 
     } else {
@@ -379,7 +385,7 @@ export class ShipSelectionSceneManager {
 
       // Draw Coachmark Label
       if (InputDeviceTracker.getInstance().getLastUsed() === 'gamepad') {
-        const label = this.skillTreeNavActive ? 'Select Ship' : 'Assign Skill Points';
+        const label = this.skillTreeNavActive ? 'Select Ship' : 'Choose Loadout';
         CoachMarkManager.getInstance().render();
         drawLabel(
           this.uiCtx,
@@ -400,63 +406,93 @@ export class ShipSelectionSceneManager {
   }
 
   private rebuildNavMap(scale: number): void {
-    if (this.skillTreeNavActive) {
-      const skillTreePoints = this.shipSelectionMenu.getSkillTreeNavPoints();
-      this.gamepadNavManager.setNavMap(skillTreePoints);
-
-      const firstEnabled = skillTreePoints.find(p => p.isEnabled);
-      if (firstEnabled) {
-        this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
-      }
-
-    } else {
-      const navPoints = [];
-
-      // Back button
-      const backButton = this.buttons[0];
-      navPoints.push({
-        gridX: 0,
-        gridY: 0,
-        screenX: backButton.x + (backButton.width * scale) / 2,
-        screenY: backButton.y + (backButton.height * scale) / 2,
-        isEnabled: true,
-      });
-
-      // Color buttons
-      const [leftColorBtn, rightColorBtn] = this.shipSelectionMenu.getColorButtons();
-      navPoints.push({
-        gridX: 0,
-        gridY: 6,
-        screenX: leftColorBtn.x + (leftColorBtn.width * scale) / 2,
-        screenY: leftColorBtn.y + (leftColorBtn.height * scale) / 2,
-        isEnabled: true,
-      });
-      navPoints.push({
-        gridX: 1,
-        gridY: 6,
-        screenX: rightColorBtn.x + (rightColorBtn.width * scale) / 2,
-        screenY: rightColorBtn.y + (rightColorBtn.height * scale) / 2,
-        isEnabled: true,
-      });
-
-      // Launch button
-      if (this.launchButton) {
-        navPoints.push({
-          gridX: 0,
-          gridY: 7,
-          screenX: this.launchButton.x + (this.launchButton.width * scale) / 2,
-          screenY: this.launchButton.y + (this.launchButton.height * scale) / 2,
-          isEnabled: true,
-        });
-      }
-
-      // Grid buttons
-      navPoints.push(...this.shipSelectionMenu.getGridButtons());
-
+    if (this.uiMode === 'artifact-collection' && this.artifactCollectionController) {
+      const navPoints = this.artifactCollectionController.getNavPoints();
       this.gamepadNavManager.setNavMap(navPoints);
+
       const firstEnabled = navPoints.find(p => p.isEnabled);
       if (firstEnabled) {
         this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
+      }
+
+    } else if (this.uiMode === 'ship-selection') {
+      if (this.skillTreeNavActive) {
+        const skillTreePoints = this.shipSelectionMenu.getSkillTreeNavPoints();
+        const equipSlotPoints = this.shipSelectionMenu.getArtifactEquipNavPoints();
+
+        // Offset skill tree nodes vertically to sit below equip slots
+        const offsetSkillTreePoints = skillTreePoints.map(p => ({
+          ...p,
+          gridY: p.gridY + 1
+        }));
+
+        const combined = [...equipSlotPoints, ...offsetSkillTreePoints];
+        this.gamepadNavManager.setNavMap(combined);
+
+        const firstEnabled = combined.find(p => p.isEnabled);
+        if (firstEnabled) {
+          this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
+        }
+
+      } else {
+        const navPoints = [];
+
+        // Back button
+        const backButton = this.buttons[0];
+        navPoints.push({
+          gridX: 0,
+          gridY: 0,
+          screenX: backButton.x + (backButton.width * scale) / 2,
+          screenY: backButton.y + (backButton.height * scale) / 2,
+          isEnabled: true,
+        });
+
+        // Color buttons
+        const [leftColorBtn, rightColorBtn] = this.shipSelectionMenu.getColorButtons();
+        navPoints.push({
+          gridX: 0,
+          gridY: 6,
+          screenX: leftColorBtn.x + (leftColorBtn.width * scale) / 2,
+          screenY: leftColorBtn.y + (leftColorBtn.height * scale) / 2,
+          isEnabled: true,
+        });
+        navPoints.push({
+          gridX: 1,
+          gridY: 6,
+          screenX: rightColorBtn.x + (rightColorBtn.width * scale) / 2,
+          screenY: rightColorBtn.y + (rightColorBtn.height * scale) / 2,
+          isEnabled: true,
+        });
+
+        // Launch button
+        const launchGridX = 0;
+        const launchGridY = 7;
+        let launchButtonExists = false;
+
+        if (this.launchButton) {
+          navPoints.push({
+            gridX: launchGridX,
+            gridY: launchGridY,
+            screenX: this.launchButton.x + (this.launchButton.width * scale) / 2,
+            screenY: this.launchButton.y + (this.launchButton.height * scale) / 2,
+            isEnabled: true,
+          });
+          launchButtonExists = true;
+        }
+
+        // Grid buttons
+        navPoints.push(...this.shipSelectionMenu.getGridButtons());
+
+        this.gamepadNavManager.setNavMap(navPoints);
+
+        if (launchButtonExists) {
+          this.gamepadNavManager.setCurrentGridPosition(launchGridX, launchGridY);
+        } else {
+          const firstEnabled = navPoints.find(p => p.isEnabled);
+          if (firstEnabled) {
+            this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
+          }
+        }
       }
     }
   }

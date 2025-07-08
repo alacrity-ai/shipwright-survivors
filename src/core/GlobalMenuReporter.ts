@@ -5,6 +5,7 @@ export class GlobalMenuReporter {
 
   private openMenus: Set<string> = new Set();
   private hoveredOverlays: Set<string> = new Set();
+  private specialBlockers: Set<string> = new Set();
 
   private constructor() {
     // Singleton: disallow external instantiation
@@ -15,6 +16,22 @@ export class GlobalMenuReporter {
       GlobalMenuReporter.instance = new GlobalMenuReporter();
     }
     return GlobalMenuReporter.instance;
+  }
+
+  public setSpecialBlocker(tag: string): void {
+    this.specialBlockers.add(tag);
+  }
+
+  public clearSpecialBlocker(tag: string): void {
+    this.specialBlockers.delete(tag);
+  }
+
+  public hasSpecialBlocker(tag: string): boolean {
+    return this.specialBlockers.has(tag);
+  }
+
+  public isSpecialBlocked(): boolean {
+    return this.specialBlockers.size > 0;
   }
 
   /**

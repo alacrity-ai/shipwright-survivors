@@ -50,7 +50,7 @@ export default function App() {
     // === Kick off first scene after mount
     setTimeout(() => {
       sceneManager.setScene('title');
-      FadeManager.getInstance().fadeFromBlackAfterDelay(2000, 3000); // 3s hold, 0.8s fade-in
+      FadeManager.getInstance().fadeFromBlackAfterDelay(800, 3000);
     }, 100);
 
     return () => unsubscribe();

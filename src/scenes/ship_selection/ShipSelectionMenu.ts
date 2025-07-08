@@ -150,6 +150,10 @@ export class ShipSelectionMenu {
     return this.skillTreeController.getNavPoints();
   }
 
+  public getArtifactEquipNavPoints(): NavPoint[] {
+    return this.artifactsComponent.getNavPoints();
+  }
+
   public cycleSelectedShip(direction: 1 | -1): void {
     this.gridComponent.cycleSelectedShip(direction);
   }

@@ -303,7 +303,7 @@ export class BlockQueueDisplayManager {
 
     const pressedLeft = input.wasGamepadAliasJustPressed('dpadLeft');
     const pressedRight = input.wasGamepadAliasJustPressed('dpadRight');
-    const pressedConfirm = input.wasGamepadAliasJustPressed('A');
+    const pressedConfirm = input.wasGamepadAliasJustPressed('A') && !GlobalMenuReporter.getInstance().hasSpecialBlocker('planet-interaction-overlay');
     const pressedCancel = input.wasGamepadAliasJustPressed('B');
 
     const isLeftHeld = input.gamepadAliasIsPressed('dpadLeft');

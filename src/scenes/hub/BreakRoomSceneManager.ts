@@ -100,6 +100,10 @@ export class BreakroomSceneManager {
       return;
     }
 
+    if (this.inputManager.wasGamepadAliasJustPressed('B')) {
+      this.buttons[0].onClick?.();
+    }
+
     handleButtonInteraction(this.buttons[0], x, y, clicked, getUniformScaleFactor());
   };
 

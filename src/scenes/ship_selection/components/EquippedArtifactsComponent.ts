@@ -3,6 +3,7 @@
 import { ArtifactEquipUIController } from '@/game/ship/artifacts/ui/ArtifactEquipUIController';
 import type { InputManager } from '@/core/InputManager';
 import { CanvasManager } from '@/core/CanvasManager';
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
 export class EquippedArtifactsComponent {
   private inputManager: InputManager;
@@ -13,6 +14,10 @@ export class EquippedArtifactsComponent {
     this.inputManager = inputManager;
     this.canvasManager = CanvasManager.getInstance();
     this.controller = new ArtifactEquipUIController(inputManager);
+  }
+
+  public getNavPoints(): NavPoint[] {
+    return this.controller.getNavPoints();
   }
 
   public update(dt: number): void {

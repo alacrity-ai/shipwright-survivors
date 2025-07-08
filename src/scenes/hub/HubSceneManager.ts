@@ -21,6 +21,9 @@ import { drawCursor, getCrosshairCursorSprite, getHoveredCursorSprite } from '@/
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+import { NavPoint } from '@/core/input/interfaces/NavMap';
+
 import { scaleRect } from '@/config/virtualResolution';
 
 const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
@@ -46,6 +49,8 @@ export class HubSceneManager {
 
   private isHoveringInteraction = false;
 
+  private gamepadNavManager: GamepadMenuInteractionManager;
+
   private quitButton: UIButton;
 
   constructor(
@@ -56,6 +61,8 @@ export class HubSceneManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+
+    this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
 
     this.quitButton = {
       x: 20,
@@ -71,6 +78,49 @@ export class HubSceneManager {
       },
       style: DEFAULT_CONFIG.button.style
     };
+  }
+
+  private buildNavMap(): void {
+    const navPoints: NavPoint[] = [];
+
+    let defaultNavPoint: NavPoint | null = null;
+
+    const zones = Object.entries(INTERACTION_ZONES_VIRTUAL);
+    for (const [key, rect] of zones) {
+      if (!flags.has(INTERACTION_FLAGS[key as keyof typeof INTERACTION_FLAGS])) continue;
+
+      const scaled = scaleRect(rect);
+      const centerX = scaled.x + scaled.width / 2;
+      const centerY = scaled.y + scaled.height / 2;
+
+      let gridX = 0;
+      let gridY = 0;
+      if (key === 'map') gridX = 1;
+      if (key === 'breakroom') gridX = 2;
+
+      const point: NavPoint = {
+        gridX,
+        gridY,
+        screenX: centerX,
+        screenY: centerY,
+        isEnabled: true,
+      };
+
+      navPoints.push(point);
+
+      // Set default to the galaxy map navpoint if found
+      if (key === 'map') {
+        defaultNavPoint = point;
+      }
+    }
+
+    this.gamepadNavManager.setNavMap(navPoints);
+
+    // Prefer the galaxy map navpoint; fall back to first available
+    const target = defaultNavPoint ?? navPoints.find(p => p.isEnabled);
+    if (target) {
+      this.gamepadNavManager.setCurrentGridPosition(target.gridX, target.gridY);
+    }
   }
 
   async start() {
@@ -103,6 +153,8 @@ export class HubSceneManager {
         this.dialogueQueueManager.startScript(script);
       }
     }
+
+    this.buildNavMap();
   }
 
   stop() {
@@ -159,18 +211,47 @@ export class HubSceneManager {
 
     handleButtonInteraction(this.quitButton, m.x, m.y, clicked, getUniformScaleFactor());
 
-    // TODO: DEBUG - Remove in release
-    if (this.inputManager.wasKeyJustPressed('Digit0')) {
-      const playerShipCollection = PlayerShipCollection.getInstance();
-      playerShipCollection.discover('Vanguard');
-      playerShipCollection.unlock('Vanguard');
-      playerShipCollection.discover('Monarch');
-      playerShipCollection.unlock('Monarch');
-      playerShipCollection.discover('Halo Mk I');
-      playerShipCollection.unlock('Halo Mk I');
-      playerShipCollection.discover('Godhand Prototype');
-      playerShipCollection.unlock('Godhand Prototype');
-      audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+    this.gamepadNavManager.update();
+
+    if (this.inputManager.isUsingGamepad?.()) {
+      if (!this.gamepadNavManager.hasNavMap()) {
+        this.buildNavMap();
+      }
+
+      const { x, y } = this.gamepadNavManager.getCurrentGridPosition();
+      const hovered = this.gamepadNavManager['findNavPoint'](x, y); // if `findNavPoint` is private, promote it to protected or expose
+
+      const clicked = this.inputManager.wasGamepadAliasJustPressed('A');
+
+      if (clicked && hovered) {
+        const pointKey = Object.entries(INTERACTION_ZONES_VIRTUAL).find(([key, rect]) => {
+          const scaled = scaleRect(rect);
+          const centerX = scaled.x + scaled.width / 2;
+          const centerY = scaled.y + scaled.height / 2;
+          return Math.abs(centerX - hovered.screenX) < 1 && Math.abs(centerY - hovered.screenY) < 1;
+        })?.[0];
+
+        if (pointKey) {
+          if (pointKey === 'terminal') {
+            this.stop();
+            sceneManager.fadeToScene('passives');
+          } else if (pointKey === 'map') {
+            this.stop();
+            sceneManager.fadeToScene('galaxy');
+          } else if (pointKey === 'breakroom') {
+            this.stop();
+            sceneManager.fadeToScene('breakroom');
+          }
+        }
+      }
+
+      if (this.inputManager.wasGamepadAliasJustPressed('B')) {
+        this.quitButton.onClick?.();
+      }
+    } else {
+      if (this.gamepadNavManager.hasNavMap()) {
+        this.gamepadNavManager.clearNavMap();
+      }
     }
   };
 

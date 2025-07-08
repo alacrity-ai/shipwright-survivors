@@ -67,6 +67,13 @@ export class PlayerArtifactsManager {
   }
 
   /**
+   * Returns an iterable of [shipName, equippedArtifacts] tuples.
+   */
+  public getAllEquippedArtifactEntries(): Iterable<[string, [string?, string?, string?]]> {
+    return this.equippedArtifactsByShipName.entries();
+  }
+
+  /**
    * Returns the ship name if the artifact is equipped on any ship.
    */
   public findEquippedShipForArtifact(artifactId: string): string | null {

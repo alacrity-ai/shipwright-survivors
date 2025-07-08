@@ -19,6 +19,9 @@ import { drawWindow } from '@/ui/primitives/WindowBox';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+
 import { WordRenderer } from '@/ui/primitives/controllers/WordRenderer';
 import { clearLetterCache } from '@/rendering/cache/Letters';
 
@@ -48,6 +51,8 @@ export class TitleScreenManager {
   private titleRenderer: WordRenderer | null = null;
   private subtitleRenderer: WordRenderer | null = null;
 
+  private gamepadNavManager: GamepadMenuInteractionManager;
+
   private settingsMenu: SettingsMenu | null = null;
 
   private scale = getUniformScaleFactor();
@@ -71,6 +76,7 @@ export class TitleScreenManager {
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
     this.titleScreenRuntime = new TitleScreenRuntime();
+    this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
 
     this.settingsMenu = new SettingsMenu(this.inputManager, null, CanvasManager.getInstance());
     // this.settingsMenu.lockResolution();
@@ -84,6 +90,81 @@ export class TitleScreenManager {
     this.subtitleRenderer = new WordRenderer(495 * this.scale, 200 * this.scale);
     this.subtitleRenderer.setWord('SURVIVORS');
     this.subtitleRenderer.setBreathingPulse();
+  }
+
+  private buildNavMap(): void {
+    const scale = this.scale;
+    const navPoints: NavPoint[] = [];
+
+    if (this.confirmingDeleteSlot !== null) {
+      // === Confirmation popup ===
+      for (let i = 0; i < this.confirmationButtons.length; i++) {
+        const btn = this.confirmationButtons[i];
+        navPoints.push({
+          gridX: i,
+          gridY: 0,
+          screenX: btn.x + (btn.width * scale) / 2,
+          screenY: btn.y + (btn.height * scale) / 2,
+          isEnabled: true,
+        });
+      }
+    } else if (this.showingSaveSlots) {
+  // === Save slots + delete + back button
+  for (const btn of this.saveSlotButtons) {
+    const slot = (btn as UIButton & { slotIndex: number }).slotIndex;
+    const yOffset = this.saveSlotYOffsets[slot] ?? 0;
+    const centerX = btn.x + (btn.width * scale) / 2;
+    const centerY = btn.y + (btn.height * scale) / 2 + yOffset;
+
+    let gridX: number;
+    if (btn.label === 'X') {
+      gridX = 2;
+    } else {
+      gridX = 1;
+    }
+
+    navPoints.push({
+      gridX,
+      gridY: slot,
+      screenX: centerX,
+      screenY: centerY,
+      isEnabled: true,
+    });
+  }
+
+  // Back button always at (0,0)
+  const backBtn = this.buttons[0];
+  navPoints.push({
+    gridX: 0,
+    gridY: 0,
+    screenX: backBtn.x + (backBtn.width * scale) / 2,
+    screenY: backBtn.y + (backBtn.height * scale) / 2,
+    isEnabled: true,
+  });
+} else {
+      // === Main buttons (Play, Settings, Editor, Quit)
+      for (let i = 0; i < this.buttons.length; i++) {
+        const btn = this.buttons[i];
+        navPoints.push({
+          gridX: 0,
+          gridY: i,
+          screenX: btn.x + (btn.width * scale) / 2,
+          screenY: btn.y + (btn.height * scale) / 2,
+          isEnabled: true,
+        });
+      }
+    }
+
+    this.gamepadNavManager.setNavMap(navPoints);
+
+    const firstEnabled = navPoints.find(p => p.isEnabled);
+    if (firstEnabled) {
+      this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
+    }
+  }
+
+  private shouldAllowNavBuild(): boolean {
+    return !this.isAnimatingSlots && !this.settingsMenu?.isOpen();
   }
 
   async start() {
@@ -156,7 +237,10 @@ export class TitleScreenManager {
           // Animate sliding down
           this.saveSlotAnimationPhase = 'sliding-down';
           this.isAnimatingSlots = true;
-          
+          if (this.shouldAllowNavBuild()) {
+            this.buildNavMap();
+          }
+
           // Delay actual hide/removal until animation completes
         } else {
           // Animate sliding up
@@ -168,6 +252,9 @@ export class TitleScreenManager {
           this.showingSaveSlots = true;
           this.saveSlotButtons = this.createSaveSlotButtons();
           this.buttons = this.createMainButtons(); // update label to "Back"
+          if (this.shouldAllowNavBuild()) {
+            this.buildNavMap();
+          }
         }
       },
       style: this.showingSaveSlots ? backButtonStyle : sharedStyle
@@ -299,6 +386,9 @@ export class TitleScreenManager {
       }
     }
 
+    if (this.shouldAllowNavBuild()) {
+      this.buildNavMap();
+    }
     return buttons;
   }
 
@@ -330,6 +420,9 @@ export class TitleScreenManager {
           }
           this.confirmingDeleteSlot = null;
           this.confirmationButtons = [];
+          if (this.shouldAllowNavBuild()) {
+            this.buildNavMap();
+          }
         },
         style: DEFAULT_CONFIG.button.style
       },
@@ -344,6 +437,9 @@ export class TitleScreenManager {
           audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
           this.confirmingDeleteSlot = null;
           this.confirmationButtons = [];
+          if (this.shouldAllowNavBuild()) {
+            this.buildNavMap();
+          }
         },
         style: {
           borderRadius: 6,
@@ -359,6 +455,9 @@ export class TitleScreenManager {
         }
       }
     ];
+    if (this.shouldAllowNavBuild()) {
+      this.buildNavMap();
+    }
   }
 
   private update = (_dt: number) => {
@@ -375,37 +474,96 @@ export class TitleScreenManager {
     const scaledSlotStartYOffset = SLOT_START_Y_OFFSET * uiScale;
 
     if (this.isAnimatingSlots) {
-      if (this.saveSlotAnimationPhase === 'sliding-up') {
-        for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
-          this.saveSlotYOffsets[i] -= scaledSlotSlideSpeed;
-        }
-        if (this.saveSlotYOffsets[0] <= -scaledSlotOvershoot) {
-          this.saveSlotAnimationPhase = 'settling';
-        }
-      } else if (this.saveSlotAnimationPhase === 'settling') {
-        for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
-          this.saveSlotYOffsets[i] += scaledSlotSettleSpeed;
-          if (this.saveSlotYOffsets[i] > 0) this.saveSlotYOffsets[i] = 0;
-        }
-        if (this.saveSlotYOffsets.every(offset => offset === 0)) {
-          this.isAnimatingSlots = false;
-          this.saveSlotAnimationPhase = null;
-        } 
-      } else if (this.saveSlotAnimationPhase === 'sliding-down') {
+      switch (this.saveSlotAnimationPhase) {
+        case 'sliding-up': {
+          let transitioned = false;
           for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
-            this.saveSlotYOffsets[i] += scaledSlotSlideSpeed;
+            this.saveSlotYOffsets[i] -= scaledSlotSlideSpeed;
+            if (this.saveSlotYOffsets[i] <= -scaledSlotOvershoot) {
+              transitioned = true;
+            }
           }
 
-          if (this.saveSlotYOffsets[0] >= scaledSlotStartYOffset) {
-            // Finalize: hide save slots after animation completes
+          if (transitioned) {
+            this.saveSlotAnimationPhase = 'settling';
+          }
+          break;
+        }
+
+        case 'settling': {
+          let allSettled = true;
+          for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
+            this.saveSlotYOffsets[i] += scaledSlotSettleSpeed;
+            if (this.saveSlotYOffsets[i] > 0) {
+              this.saveSlotYOffsets[i] = 0;
+            } else {
+              allSettled = false;
+            }
+          }
+
+          if (allSettled) {
+            this.saveSlotAnimationPhase = null;
+            this.isAnimatingSlots = false;
+            if (this.shouldAllowNavBuild()) {
+              this.buildNavMap(); // safe to build nav after animation completes
+            }
+          }
+          break;
+        }
+
+        case 'sliding-down': {
+          let allSlidDown = true;
+          for (let i = 0; i < this.saveSlotYOffsets.length; i++) {
+            this.saveSlotYOffsets[i] += scaledSlotSlideSpeed;
+            if (this.saveSlotYOffsets[i] < scaledSlotStartYOffset) {
+              allSlidDown = false;
+            }
+          }
+
+          if (allSlidDown) {
+            // Finalize hide transition
             this.isAnimatingSlots = false;
             this.saveSlotAnimationPhase = null;
             this.showingSaveSlots = false;
             this.saveSlotButtons = [];
-            this.buttons = this.createMainButtons(); // update label to "Play"
-            this.saveSlotYOffsets = [0, 0, 0]; // Reset
+            this.buttons = this.createMainButtons();
+            this.saveSlotYOffsets = [0, 0, 0];
+
+            if (this.shouldAllowNavBuild()) {
+              this.buildNavMap(); // rebuild nav for main buttons
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    if (!this.settingsMenu?.isOpen()) {
+      this.gamepadNavManager.update();
+
+      if (this.inputManager.isUsingGamepad?.()) {
+        if (!this.gamepadNavManager.hasNavMap()) {
+          if (this.shouldAllowNavBuild()) {
+            this.buildNavMap();
           }
         }
+
+        if (this.inputManager.wasGamepadAliasJustPressed('B')) {
+          if (this.confirmingDeleteSlot !== null) {
+            this.confirmingDeleteSlot = null;
+            this.confirmationButtons = [];
+            if (this.shouldAllowNavBuild()) {
+              this.buildNavMap();
+            }
+          } else if (this.showingSaveSlots) {
+            this.buttons[0].onClick?.(); // Simulate "Back"
+          }
+        }
+      } else {
+        if (this.gamepadNavManager.hasNavMap()) {
+          this.gamepadNavManager.clearNavMap();
+        }
+      }
     }
 
     this.inputManager.updateFrame();
@@ -532,6 +690,14 @@ export class TitleScreenManager {
 
     const mouse = this.inputManager.getMousePosition();
     const cursor = getCrosshairCursorSprite();
-    drawCursor(uiCtx, cursor, mouse.x, mouse.y, uiScale);
+
+    if (!this.inputManager.isUsingGamepad?.() || this.settingsMenu?.isOpen()) {
+      drawCursor(uiCtx, cursor, mouse.x, mouse.y, uiScale);
+    }
+
+    if (!this.settingsMenu?.isOpen()) {
+      this.inputManager.setGamepadMousemockingEnabled(false);
+      this.inputManager.setGamepadCursorOverrideEnabled(false);
+    }
   };
 }

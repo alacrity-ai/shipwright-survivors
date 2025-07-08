@@ -17,16 +17,29 @@ import { getAssetPath } from '@/shared/assetHelpers';
 import { loadImage } from '@/shared/imageCache';
 
 import { GalaxyMapController } from '@/systems/galaxymap/GalaxyMapController';
-
+import { missionUnlocked } from '@/systems/galaxymap/helpers/missionUnlocked';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
-import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+
+import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_galaxy-map.png';
-
 const crtStyle = DEFAULT_CONFIG.button.style;
+
+const PLANET_COORDS_UNSCALED = [
+  { x: 262, y: 293, missionId: 'mission_005_00' },
+  { x: 321, y: 504, missionId: 'mission_002' },
+  { x: 645, y: 363, missionId: 'mission_006_00' },
+  { x: 816, y: 198, missionId: 'mission_004_00' },
+  { x: 991, y: 337, missionId: 'mission_003_00' },
+];
+
+
+const LOADOUT_BUTTON_COORD = { x: 643, y: 519 };
 
 export class GalaxyMapSceneManager {
   private canvasManager: CanvasManager;
+  private overlayCtx: CanvasRenderingContext2D;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private galaxyMapController: GalaxyMapController;
@@ -41,15 +54,19 @@ export class GalaxyMapSceneManager {
 
   private buttons: UIButton[];
 
+  private gamepadNavManager: GamepadMenuInteractionManager;
+
   constructor(
     canvasManager: CanvasManager,
     gameLoop: GameLoop,
     inputManager: InputManager
   ) {
     this.canvasManager = canvasManager;
+    this.overlayCtx = canvasManager.getContext('overlay');
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
     this.galaxyMapController = new GalaxyMapController(canvasManager, inputManager);
+    this.gamepadNavManager = new GamepadMenuInteractionManager(inputManager);
 
     this.buttons = [
       {
@@ -77,12 +94,56 @@ export class GalaxyMapSceneManager {
     this.gameLoop.start();
     audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
     audioManager.play('assets/sounds/sfx/ui/galaxymap_00.wav', 'sfx', { maxSimultaneous: 1 });
+
+    this.buildNavMap(); // initialize nav map
   }
 
   stop() {
     this.galaxyMapController.destroy();
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
+    this.gamepadNavManager.clearNavMap();
+  }
+
+  private buildNavMap(): void {
+    const scale = getUniformScaleFactor();
+    const navPoints: NavPoint[] = [];
+
+    const selected = this.galaxyMapController.getSelectedLocation();
+
+    if (selected) {
+      // === Zoomed in, show nav only for launch button
+      navPoints.push({
+        gridX: 0,
+        gridY: 0,
+        screenX: LOADOUT_BUTTON_COORD.x * scale,
+        screenY: LOADOUT_BUTTON_COORD.y * scale,
+        isEnabled: true
+      });
+    } else {
+      // === Not zoomed in, nav between *unlocked* planets only
+      let unlockedIndex = 0;
+      for (const coord of PLANET_COORDS_UNSCALED) {
+        if (!missionUnlocked(coord.missionId)) continue;
+
+        navPoints.push({
+          gridX: unlockedIndex % 3,
+          gridY: Math.floor(unlockedIndex / 3),
+          screenX: coord.x * scale,
+          screenY: coord.y * scale,
+          isEnabled: true
+        });
+
+        unlockedIndex++;
+      }
+    }
+
+    this.gamepadNavManager.setNavMap(navPoints);
+
+    const first = navPoints.find(p => p.isEnabled);
+    if (first) {
+      this.gamepadNavManager.setCurrentGridPosition(first.gridX, first.gridY);
+    }
   }
 
   private update = () => {
@@ -134,15 +195,47 @@ export class GalaxyMapSceneManager {
             this.currentlyLoadingPortraitId = null;
           });
         }
+
+        this.buildNavMap(); // Rebuild nav when zoomed in
       }
 
-      // Handle button interaction only if it's visible
       if (this.selectedLocationLaunchButton) {
         handleButtonInteraction(this.selectedLocationLaunchButton, x, y, clicked, scale);
       }
     } else {
+      if (this.currentMissionId) {
+        this.buildNavMap(); // Rebuild nav when zoomed out
+      }
       this.selectedLocationLaunchButton = null;
       this.currentMissionId = null;
+    }
+
+    // === Gamepad handling ===
+    this.gamepadNavManager.update();
+
+    if (this.inputManager.isUsingGamepad?.()) {
+      if (!this.gamepadNavManager.hasNavMap()) {
+        this.buildNavMap();
+      }
+
+      const { x: gx, y: gy } = this.gamepadNavManager.getCurrentGridPosition();
+      const active = this['findNavPoint']?.(gx, gy) ?? null;
+
+      const selected = this.galaxyMapController.getSelectedLocation();
+
+      if (this.inputManager.wasGamepadAliasJustPressed('B')) {
+        if (selected) {
+          this.galaxyMapController.setSelectedLocation(null);
+          audioManager.play('assets/sounds/sfx/ui/cancel_00.wav', 'sfx', { maxSimultaneous: 1 });
+          this.buildNavMap();
+        } else {
+          this.buttons[0].onClick?.(); // Back button
+        }
+      }
+    } else {
+      if (this.gamepadNavManager.hasNavMap()) {
+        this.gamepadNavManager.clearNavMap();
+      }
     }
   };
 
@@ -158,6 +251,31 @@ export class GalaxyMapSceneManager {
     }
 
     this.galaxyMapController.render();
+
+    // === Hovered label rendering ===
+    const hovered = this.galaxyMapController.getHoveredLocation();
+    const selected = this.galaxyMapController.getSelectedLocation();
+
+    if (hovered && !selected) {
+      const hoveredMissionId = hovered.missionId;
+      const match = PLANET_COORDS_UNSCALED.find(p => p.missionId === hoveredMissionId);
+      if (match) {
+        const labelX = match.x * scale;
+        const labelY = match.y * scale;
+
+        drawLabel(
+          this.overlayCtx,
+          labelX,
+          labelY,
+          hovered.name,
+          {
+            font: `${20 * scale}px monospace`,
+            align: 'center',
+            color: DEFAULT_CONFIG.general.accentColor
+          }
+        );
+      }
+    }
 
     for (const btn of this.buttons) {
       drawButton(uiCtx, btn, scale);
@@ -198,13 +316,18 @@ export class GalaxyMapSceneManager {
     }
 
     let cursor = getCrosshairCursorSprite();
-    const hovered = this.galaxyMapController.getHoveredLocation();
-    const selected = this.galaxyMapController.getSelectedLocation();
 
     if ((hovered && !selected) || this.selectedLocationLaunchButton?.isHovered) {
       cursor = getHoveredCursorSprite();
     }
 
-    drawCursor(uiCtx, cursor, x, y, scale);
+    if (!this.inputManager.isUsingGamepad?.()) {
+      drawCursor(uiCtx, cursor, x, y, scale);
+    }
   };
+
+  // Helper (optionally promote `findNavPoint` to a protected util or delegate to manager)
+  private findNavPoint(x: number, y: number): NavPoint | undefined {
+    return (this.gamepadNavManager as any).findNavPoint?.(x, y); // fallback if private
+  }
 }

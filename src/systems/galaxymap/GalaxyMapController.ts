@@ -213,6 +213,26 @@ export class GalaxyMapController {
   }
 
   public getHoveredLocation(): LocationDefinition | null {
+    console.log('[GalaxyMapController] getHoveredLocation', this.hoveredLocation);
     return this.hoveredLocation;
+  }
+
+  public getLocationByIndex(index: number): LocationDefinition | null {
+    const unlocked = this.locations.filter(loc => missionUnlocked(loc.missionId));
+    return unlocked[index] ?? null;
+  }
+
+  public setSelectedLocation(loc: LocationDefinition | null): void {
+    if (loc && missionUnlocked(loc.missionId)) {
+      this.selectedLocation = loc;
+      this.camera.focusOnLocation(loc);
+      audioManager.play('assets/sounds/sfx/ui/planetselect_01.wav', 'sfx', { maxSimultaneous: 2 });
+    } else {
+      if (this.selectedLocation) {
+        audioManager.play('assets/sounds/sfx/ui/planetselect_00.wav', 'sfx', { maxSimultaneous: 2 });
+      }
+      this.selectedLocation = null;
+      this.camera.resetView();
+    }
   }
 }

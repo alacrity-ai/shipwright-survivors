@@ -48,6 +48,10 @@ export class GamepadMenuInteractionManager {
     this.snapToCursor();
   }
 
+  public getCurrentGridPosition(): { x: number; y: number } {
+    return { x: this.cursorX, y: this.cursorY };
+  }
+
   /**
    * Handles directional navigation and selection based on gamepad input.
    * Should be called once per frame.

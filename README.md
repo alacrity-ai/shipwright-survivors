@@ -135,12 +135,15 @@ TUTORIAL TODOS:
 
 
 TODOS:
-  - [ ] Add gamepad navmap controls for equippable items
-    - [ ] Need to check if an item is already equipped to another ship, and show Equipped on "Vanguard" in the tooltip
-      - [ ] If already equipped, when we click on it, we need to unequip it from the the ship it's equipped on
+  - [ ] Blockdrop Decision menu NEEDS to be closeable!!!
+  - [ ] Somehow we need to limit the amount of light flashes that can occur on one ship at any given time - or on one block?
+  - [x] Add gamepad navmap controls for equippable items
+  - [ ] Play specific sound effect when equipping artifact (per tier)
+    - [x] Need to check if an item is already equipped to another ship, and show Equipped on "Vanguard" in the tooltip
+      - [x] If already equipped, when we click on it, we need to unequip it from the the ship it's equipped on
   - [ ] Completely clearing a Vortex Incident should end it immediately
   - [x] Investigate if minimap icons are cached, if not, cache them
-  - [ ] Opening save game in one resolution, then switching, breaks loading until refresh
+  - [x] Opening save game in one resolution, then switching, breaks loading until refresh
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
     - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
@@ -171,30 +174,30 @@ TODOS:
 
   - [ ] Passive menu needs to use GamepadNavMap
   - [x] Tutorial Mission Revamp (Make it better, it's also unwinnable currently)
-  - [ ] Gamepad - Press d-pad left and right to toggle (timer) cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
+  - [x] Gamepad - Press d-pad left and right to toggle (timer) cycle through blocks, and A to attach. Should work in and out of BlockDropDecisionMenu.
   - [ ] Ship Selection:
-    - [ ] Add artifacts
+    - [x] Add artifacts
       - [ ] Droppable item
       - [ ] Artifact equip in loadout menu
       - [ ] Artifact stat tooltip/description
       - [ ] PlayerArtifactStore / Registry / Effects (use Powerup system as reference)
     - [ ] Unify gathering aggregate powerups/ship skills/artifact effects with a single command
-    - [ ] Unlockable Ship Blueprint Pickups
+    - [x] Unlockable Ship Blueprint Pickups
     - [ ] Verify that GL2 blocksprite cache is being cleared on the entityfx layer before entering runtime to avoid leaks
     - [ ] Verify ship select menu isn't leaking resources in any way
 
-  - [ ] To prevent wave buildup, on each wave transition, expire enemies (FIFO) beyond certain cap.
-  - [ ] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
+  - [x] To prevent wave buildup, on each wave transition, expire enemies (FIFO) beyond certain cap.
+  - [x] Add a second instance of postprocessing layer that is always on passthrough except during sepia after mission.
   - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
   - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
     - [ ] Move explosions (block explosion) to gl2
     - [ ] Cleanup all unused canvases/layers.
-  - [ ] Controller Support: Make buttons work with D-Pad on joystick using Navlinks controlling the virtualMouse position.
-    - [ ] Menu: Ergonomically abstract button elements to be accessible via controller.
-    - [ ] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
-  - [ ] Galaxy Map
-    - [ ] Completed planets have some kind of indicator/mark
-    - [ ] Basic description when hovered
+  - [x] Controller Support: Make buttons work with D-Pad on joystick using Navlinks controlling the virtualMouse position.
+    - [x] Menu: Ergonomically abstract button elements to be accessible via controller.
+    - [x] Expose indicators to buttons ergonomically that show the button binding with a button/key indicator
+  - [x] Galaxy Map
+    - [x] Completed planets have some kind of indicator/mark
+    - [x] Basic description when hovered
     - [ ] Additional Descriptions when Selected
       - [ ] Description box of objectives / Unlockables
       - [ ] Alternate mission arrows with a (. . . (.) . .) tab selector at bottom.

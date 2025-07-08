@@ -12,6 +12,8 @@ import { reportArtifactsCollectionOpened } from '@/core/interfaces/events/Artifa
 import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
 
 import type { InputManager } from '@/core/InputManager';
+import type { NavPoint } from '@/core/input/interfaces/NavMap';
+
 import { audioManager } from '@/audio/Audio';
 
 const SLOT_SIZE = 76;
@@ -47,6 +49,23 @@ export class ArtifactEquipUIController {
       const y = this.scaledOriginY;
       this.slots.push({ x, y, isHovered: false });
     }
+  }
+
+  public getNavPoints(): NavPoint[] {
+    const points: NavPoint[] = [];
+
+    for (let i = 0; i < this.slots.length; i++) {
+      const slot = this.slots[i];
+      points.push({
+        gridX: i,           // 0, 1, 2
+        gridY: 0,           // Top row
+        screenX: slot.x + this.scaledSlotSize / 2,
+        screenY: slot.y + this.scaledSlotSize / 2,
+        isEnabled: true     // Always allow selection
+      });
+    }
+
+    return points;
   }
 
   setShipName(shipName: string): void {
@@ -130,7 +149,7 @@ export class ArtifactEquipUIController {
     const boxWidth = 360 * uiScale;
     const boxHeight = 2 * 36 * uiScale + 2 * 24 * uiScale;
 
-    const boxX = anchorX - (392 * uiScale);
+    const boxX = anchorX - (440 * uiScale);
     const boxY = anchorY - boxHeight / 2;
 
     // === Background ===

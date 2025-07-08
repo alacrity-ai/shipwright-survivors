@@ -7,7 +7,7 @@ import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptReg
 import { openTradepostMenu } from '@/core/interfaces/events/TradePostReporter';
 
 import { flags } from '@/game/player/PlayerFlagManager';
-
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
@@ -30,7 +30,9 @@ export class PlanetController {
     private readonly inputManager: InputManager,
     private readonly camera: Camera,
     private readonly definition: PlanetDefinition,
-    private readonly waveOrchestrator: WaveOrchestrator
+    private readonly waveOrchestrator: WaveOrchestrator,
+
+    private interactionLatched: boolean = false
   ) {
     // Initialize renderer (Only now renders overlay information)
     this.renderer = new PlanetOverlayRenderer(definition.name);
@@ -86,30 +88,42 @@ export class PlanetController {
 
     if (!this.playerShip) return;
 
-    if (inInteractionRange && (this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('A')) && !this.isInteracting) {
-      // TODO : Perhaps open tradepost through dialogue and remove this priority system where we directly open menu
-      if (this.definition.tradePostId) {
-        this.isInteracting = true;
-        openTradepostMenu(this.definition.tradePostId);
-        return;
-      } else {
-        this.isInteracting = true;
-        const script = getDialogueScript(this.definition.interactionDialogueId, { 
-          inputManager: this.inputManager, 
-          playerShip: this.playerShip, 
-          waveOrchestrator: this.waveOrchestrator });
-        if (script) {
-          this.dialogueQueueManager.startScript(script);
+    if (inInteractionRange) {
+      if (!this.interactionLatched) {
+        this.interactionLatched = true;
+        GlobalMenuReporter.getInstance().setSpecialBlocker('planet-interaction-overlay');
+      }
+      if ((this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('A')) && !this.isInteracting) {
+        // TODO : Perhaps open tradepost through dialogue and remove this priority system where we directly open menu
+        if (this.definition.tradePostId) {
+          this.isInteracting = true;
+          openTradepostMenu(this.definition.tradePostId);
+          return;
+        } else {
+          this.isInteracting = true;
+          const script = getDialogueScript(this.definition.interactionDialogueId, { 
+            inputManager: this.inputManager, 
+            playerShip: this.playerShip, 
+            waveOrchestrator: this.waveOrchestrator });
+          if (script) {
+            this.dialogueQueueManager.startScript(script);
+          }
         }
       }
-    }
-    if (this.dialogueQueueManager.isRunning()) {
-      this.dialogueQueueManager.update(dt);
-      if (this.inputManager.wasMouseClicked()) {
-        this.dialogueQueueManager.skipOrAdvance();
+
+      if (this.dialogueQueueManager.isRunning()) {
+        this.dialogueQueueManager.update(dt);
+        if (this.inputManager.wasMouseClicked()) {
+          this.dialogueQueueManager.skipOrAdvance();
+        }
+      } else {
+        this.isInteracting = false;
       }
     } else {
-      this.isInteracting = false;
+      if (this.interactionLatched) {
+        this.interactionLatched = false;
+        GlobalMenuReporter.getInstance().clearSpecialBlocker('planet-interaction-overlay');
+      }
     }
   }
 

@@ -96,6 +96,7 @@ export class PlaceAllBlocksButton {
     // Handle gamepad input
     if (!this.isActive && this.inputManager.wasActionJustPressed('placeAllBlocksButton')) {
       if (this.GlobalMenuReporter.isAnyMenuOpen()) return;
+      if (this.GlobalMenuReporter.hasSpecialBlocker('planet-interaction-overlay')) return;
       if (blockCount > 0) {
         this.activate();
       }
