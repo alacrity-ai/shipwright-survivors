@@ -350,10 +350,7 @@ export class HeatSeekerBackend implements WeaponBackend {
     damageBonus += baseDamageMultiplier;
 
     const blocks = missile.targetShip.getBlocksWithinGridDistance(centerCoord, missile.explosionRadius);
-    for (const block of blocks) {
-      const coord = missile.targetShip.getBlockCoord(block);
-      if (!coord) continue;
-
+    for (const [coord, block] of blocks) {
       this.combatService.applyDamageToBlock(
         missile.targetShip,
         sourceShip,

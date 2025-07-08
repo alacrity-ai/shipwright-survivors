@@ -20,8 +20,11 @@ export class LightingOrchestrator {
   private lightPool: PointLightInstance[] = [];
 
   private tagMap: Map<string, Set<string>> = new Map();
+  private tagSetPool: Set<string>[] = [];
 
   private cachedVisibleLights: AnyLightInstance[] = [];
+  private visibleLightsScratch: AnyLightInstance[] = [];
+
   private lastCameraBounds: { x: number; y: number; width: number; height: number } | null = null;
   private lightsDirty = true;
 
@@ -45,7 +48,7 @@ export class LightingOrchestrator {
     if (light.tag) {
       let set = this.tagMap.get(light.tag);
       if (!set) {
-        set = new Set();
+        set = this.tagSetPool.pop() ?? new Set();
         this.tagMap.set(light.tag, set);
       } else if (set.size >= MAXIMUM_LIGHTS_PER_TAG) {
         return; // Cap reached — silently ignore
@@ -66,7 +69,10 @@ export class LightingOrchestrator {
       if (light.tag) {
         const set = this.tagMap.get(light.tag);
         set?.delete(id);
-        if (set?.size === 0) this.tagMap.delete(light.tag);
+        if (set && set.size === 0) {
+          this.tagMap.delete(light.tag);
+          this.tagSetPool.push(set); // Pool the emptied set
+        }
       }
     }
 
@@ -83,8 +89,9 @@ export class LightingOrchestrator {
     if (!light.tag) return;
     const set = this.tagMap.get(light.tag);
     set?.delete(light.id);
-    if (set?.size === 0) {
+    if (set && set.size === 0) {
       this.tagMap.delete(light.tag);
+      this.tagSetPool.push(set);
     }
   }
 
@@ -93,6 +100,12 @@ export class LightingOrchestrator {
       this.recycleLight(light);
     }
     this.lights.clear();
+
+    for (const set of this.tagMap.values()) {
+      set.clear();
+      this.tagSetPool.push(set);
+    }
+
     this.tagMap.clear();
     this.lightsDirty = true;
   }
@@ -119,15 +132,9 @@ export class LightingOrchestrator {
           light.animationPhase = ratio;
         }
       }
-
-      // Optional: insert per-frame animation logic here
     }
   }
 
-
-  /**
-   * Computes or returns memoized list of visible lights within the camera viewport.
-   */
   collectVisibleLights(camera: Camera): AnyLightInstance[] {
     const bounds = camera.getViewportBounds();
 
@@ -147,28 +154,37 @@ export class LightingOrchestrator {
     const top = bounds.y;
     const bottom = bounds.y + bounds.height;
 
-    this.cachedVisibleLights = Array.from(this.lights.values()).filter(light => {
+    const visible = this.visibleLightsScratch;
+    visible.length = 0;
+
+    for (const light of this.lights.values()) {
       switch (light.type) {
         case 'directional':
-          return true;
+          visible.push(light);
+          break;
         case 'point':
         case 'spot': {
           const { x, y, radius } = light;
-          return (
+          if (
             x + radius > left &&
             x - radius < right &&
             y + radius > top &&
             y - radius < bottom
-          );
+          ) {
+            visible.push(light);
+          }
+          break;
         }
         default:
-          return true;
+          visible.push(light);
+          break;
       }
-    });
+    }
 
-    this.lastCameraBounds = bounds;
+    this.cachedVisibleLights = visible.slice(); // safe return
+    this.lastCameraBounds = this.lastCameraBounds || { x: 0, y: 0, width: 0, height: 0 };
+    Object.assign(this.lastCameraBounds, bounds);
     this.lightsDirty = false;
-
     return this.cachedVisibleLights;
   }
 
@@ -241,6 +257,8 @@ export class LightingOrchestrator {
 
     this.lightPool.length = 0;
     this.cachedVisibleLights.length = 0;
+    this.visibleLightsScratch.length = 0;
+    this.tagSetPool.length = 0;
     this.lastCameraBounds = null;
 
     _instance = null;

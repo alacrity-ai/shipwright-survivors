@@ -10,21 +10,21 @@ import { particleFrameBudgetMs } from '@/config/graphicsConfig';
 import particleVertSrc from '@/rendering/unified/shaders/particlePass.vert?raw';
 import particleFragSrc from '@/rendering/unified/shaders/particlePass.frag?raw';
 
-const colorCache = new Map<string, { r: number; g: number; b: number }>();
+// const colorCache = new Map<string, { r: number; g: number; b: number }>();
 
-function hexToRgb(hex: string) {
-  if (colorCache.has(hex)) return colorCache.get(hex)!;
+// function hexToRgb(hex: string) {
+//   if (colorCache.has(hex)) return colorCache.get(hex)!;
 
-  const clean = hex.startsWith('#') ? hex.slice(1) : hex;
-  const result = {
-    r: parseInt(clean.slice(0, 2), 16) / 255,
-    g: parseInt(clean.slice(2, 4), 16) / 255,
-    b: parseInt(clean.slice(4, 6), 16) / 255,
-  };
+//   const clean = hex.startsWith('#') ? hex.slice(1) : hex;
+//   const result = {
+//     r: parseInt(clean.slice(0, 2), 16) / 255,
+//     g: parseInt(clean.slice(2, 4), 16) / 255,
+//     b: parseInt(clean.slice(4, 6), 16) / 255,
+//   };
 
-  colorCache.set(hex, result);
-  return result;
-}
+//   colorCache.set(hex, result);
+//   return result;
+// }
 
 export class ParticlePass {
   private readonly gl: WebGL2RenderingContext;
@@ -32,6 +32,8 @@ export class ParticlePass {
   private readonly vao: WebGLVertexArrayObject;
   private readonly quadBuffer: WebGLBuffer;
   private readonly instanceBuffer: WebGLBuffer;
+
+  private instanceBufferCapacity: number = 0;
 
   private dataBuffer: Float32Array = new Float32Array(70000);
   private frameBudgetMs: number = particleFrameBudgetMs;
@@ -102,15 +104,13 @@ export class ParticlePass {
     for (; count < particles.length; count++) {
       const p = particles[count];
       const base = count * stride;
-      const color = hexToRgb(p.color);
-
       data[base + 0] = p.x;
       data[base + 1] = p.y;
       data[base + 2] = p.size;
       data[base + 3] = p.renderAlpha ?? 1.0;
-      data[base + 4] = color.r;
-      data[base + 5] = color.g;
-      data[base + 6] = color.b;
+      data[base + 4] = p.r;
+      data[base + 5] = p.g;
+      data[base + 6] = p.b;
 
       if (performance.now() - start > this.frameBudgetMs) break;
     }
@@ -118,8 +118,13 @@ export class ParticlePass {
     if (count === 0) return;
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    const bytesToUpload = count * stride * 4; // 4 bytes per float
-    gl.bufferData(gl.ARRAY_BUFFER, bytesToUpload, gl.DYNAMIC_DRAW);
+    const requiredBytes = count * stride * 4;
+
+    if (requiredBytes > this.instanceBufferCapacity) {
+      gl.bufferData(gl.ARRAY_BUFFER, requiredBytes * 2, gl.DYNAMIC_DRAW); // Grow
+      this.instanceBufferCapacity = requiredBytes * 2;
+    }
+
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.dataBuffer, 0, count * stride);
 
     gl.useProgram(this.program);

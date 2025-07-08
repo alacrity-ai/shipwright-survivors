@@ -57,7 +57,7 @@ export class ShieldComponent {
 
       const coveredBlocks = this.ownerShip.getBlocksWithinGridDistance(emitterCoord, gridRadius);
 
-      for (const block of coveredBlocks) {
+      for (const [, block] of coveredBlocks) {
         this.protectedBlocks.add(block);
 
         const existingEfficiency = block.shieldEfficiency ?? 0;

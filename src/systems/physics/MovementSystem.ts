@@ -45,6 +45,13 @@ const AFTERBURNER_TURNING_MULTIPLIER = 1.4; // Extra turning assist while afterb
 const AFTERBURNER_RAMP_UP_RATE = 3.5; // How fast afterburner ramps up (per second)
 const AFTERBURNER_RAMP_DOWN_RATE = 1.5; // How fast afterburner ramps down (per second)
 
+const FALLBACK_DIRECTIONS = {
+  forward: [0, -1],
+  strafeLeft: [-1, 0],
+  strafeRight: [1, 0],
+} as const;
+
+
 export class MovementSystem {
   private readonly fallbackThrustPower = 10;
   private readonly baseThrust = 5;
@@ -52,6 +59,15 @@ export class MovementSystem {
 
   private afterburnerCharge = 0; // 0.0 to 1.0, tracks how "charged up" the afterburner is
   private wasAfterburnerActiveLastFrame = false; // (declare once at class level)
+
+  private readonly thrustGroups: Record<
+    ThrustDirection,
+    Array<{ coord: GridCoord; power: number; rotation: number }>
+  > = {
+    forward: [],
+    strafeLeft: [],
+    strafeRight: [],
+  };
 
   private currentIntent: MovementIntent = {
     thrustForward: false,
@@ -80,25 +96,7 @@ export class MovementSystem {
   public getAfterburnerCharge(): number {
     return this.afterburnerCharge;
   }
-
-  private rotateVector(x: number, y: number, angleRad: number): { x: number; y: number } {
-    const cos = Math.cos(angleRad);
-    const sin = Math.sin(angleRad);
-    return {
-      x: x * cos - y * sin,
-      y: x * sin + y * cos
-    };
-  }
-
-  private getBlockThrustDirection(blockRotationDeg: number): { x: number; y: number } {
-    const blockFacingRad = blockRotationDeg * (Math.PI / 180);
-    
-    const thrustX = Math.sin(blockFacingRad);
-    const thrustY = -Math.cos(blockFacingRad);
-    
-    return { x: thrustX, y: thrustY };
-  }
-
+  
   private updateAfterburnerCharge(dt: number): boolean {
     const afterburner = this.ship.getAfterburnerComponent();
     const intentActive = this.currentIntent.afterburner ?? false;
@@ -141,6 +139,12 @@ export class MovementSystem {
     };
   }
 
+  private clearThrustGroups(): void {
+    this.thrustGroups.forward.length = 0;
+    this.thrustGroups.strafeLeft.length = 0;
+    this.thrustGroups.strafeRight.length = 0;
+  }
+
   public update(dt: number): void {
     const transform = this.ship.getTransform();
     const { position, velocity } = transform;
@@ -175,11 +179,8 @@ export class MovementSystem {
     const mass = this.ship.getTotalMass();
     const angularScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), ANGULAR_MASS_SCALE_EXPONENT));
 
-    const thrustGroups: Record<ThrustDirection, { coord: GridCoord; power: number; rotation: number }[]> = {
-      forward: [],
-      strafeLeft: [],
-      strafeRight: [],
-    };
+    this.clearThrustGroups();
+    const thrustGroups = this.thrustGroups;
 
     let rawTurnPower = BASE_TURN_POWER;
 
@@ -256,17 +257,26 @@ export class MovementSystem {
 
     // === Braking logic
     if (brake) {
-      const speed = Math.hypot(velocity.x, velocity.y);
-      if (speed > 0) {
-        const vxNorm = velocity.x / speed;
-        const vyNorm = velocity.y / speed;
-        const allThrusters = [...thrustGroups.forward, ...thrustGroups.strafeLeft, ...thrustGroups.strafeRight];
-        const totalThrustPower = allThrusters.reduce((sum, t) => sum + t.power, 0) + this.fallbackThrustPower;
+      const vx = velocity.x;
+      const vy = velocity.y;
+      const speedSq = vx * vx + vy * vy;
+
+      if (speedSq > 0.0001) {
+        const speed = Math.sqrt(speedSq);
+        const vxNorm = vx / speed;
+        const vyNorm = vy / speed;
+
+        const totalThrustPower =
+          this.fallbackThrustPower +
+          thrustGroups.forward.reduce((sum, t) => sum + t.power, 0) +
+          thrustGroups.strafeLeft.reduce((sum, t) => sum + t.power, 0) +
+          thrustGroups.strafeRight.reduce((sum, t) => sum + t.power, 0);
+
         const brakingForce = totalThrustPower * dt * BRAKING_FORCE_MULTIPLIER;
 
-        const newVx = velocity.x - vxNorm * brakingForce;
-        const newVy = velocity.y - vyNorm * brakingForce;
-        const dot = newVx * velocity.x + newVy * velocity.y;
+        const newVx = vx - vxNorm * brakingForce;
+        const newVy = vy - vyNorm * brakingForce;
+        const dot = newVx * vx + newVy * vy;
 
         if (dot < 0) {
           velocity.x = 0;
@@ -332,15 +342,9 @@ export class MovementSystem {
     const cosRot = Math.cos(transform.rotation);
     const sinRot = Math.sin(transform.rotation);
 
-    const fallbackDir = (() => {
-      switch (thrustDirection) {
-        case 'forward': return { x: 0, y: -1 };
-        case 'strafeLeft': return { x: -1, y: 0 };
-        case 'strafeRight': return { x: 1, y: 0 };
-      }
-    })();
-    const fallbackX = fallbackDir.x * cosRot - fallbackDir.y * sinRot;
-    const fallbackY = fallbackDir.x * sinRot + fallbackDir.y * cosRot;
+    const [fx, fy] = FALLBACK_DIRECTIONS[thrustDirection];
+    const fallbackX = fx * cosRot - fy * sinRot;
+    const fallbackY = fx * sinRot + fy * cosRot;
 
     // === Fallback Thrust ===
     const fallbackPower = this.fallbackThrustPower;
@@ -352,16 +356,7 @@ export class MovementSystem {
     const totalEngineThrust = thrusters.reduce((sum, t) => sum + t.power, 0);
     const totalThrustPower = (totalEngineThrust + fallbackPower) * this.ship.getPassiveBonus('engine-thrust');
 
-    const baseMaxSpeed = (() => {
-      if (engineCount <= DIMINISHING_START) return totalThrustPower * SPEED_PER_THRUST_UNIT;
-
-      const basePower = (totalThrustPower / engineCount) * DIMINISHING_START;
-      const excessEngines = engineCount - DIMINISHING_START;
-      const excessPowerPerEngine = totalThrustPower / engineCount;
-      const effectivenessMultiplier = 1 / (1 + DIMINISHING_RATE * excessEngines);
-      const diminishedExcessPower = excessPowerPerEngine * excessEngines * effectivenessMultiplier;
-      return (basePower + diminishedExcessPower) * SPEED_PER_THRUST_UNIT;
-    })();
+    const baseMaxSpeed = computeBaseMaxSpeed(totalThrustPower, engineCount);
 
     const mass = this.ship.getTotalMass();
     const speedScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
@@ -475,7 +470,6 @@ export class MovementSystem {
     const ownerShip = shipRegistry.getById(ownerShipId);
 
     // === Determine SFX based on tier
-    // TODO : Get specific sounds
     let soundFile = 'assets/sounds/sfx/explosions/afterburner_00.wav';
     if (wasSuperPulse) {
       soundFile = 'assets/sounds/sfx/ui/sub_00.wav';
@@ -527,4 +521,20 @@ export class MovementSystem {
       });
     }
   }
+}
+
+function computeBaseMaxSpeed(
+  totalThrustPower: number,
+  engineCount: number
+): number {
+  if (engineCount <= DIMINISHING_START) {
+    return totalThrustPower * SPEED_PER_THRUST_UNIT;
+  }
+
+  const basePower = (totalThrustPower / engineCount) * DIMINISHING_START;
+  const excessEngines = engineCount - DIMINISHING_START;
+  const excessPowerPerEngine = totalThrustPower / engineCount;
+  const effectivenessMultiplier = 1 / (1 + DIMINISHING_RATE * excessEngines);
+  const diminishedExcessPower = excessPowerPerEngine * excessEngines * effectivenessMultiplier;
+  return (basePower + diminishedExcessPower) * SPEED_PER_THRUST_UNIT;
 }

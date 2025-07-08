@@ -2,14 +2,18 @@
 
 import { FloatingTextEntity, FloatingTextPositionResolver } from '@/rendering/floatingtext/interfaces/FloatingTextEntity';
 import { CanvasManager } from '@/core/CanvasManager';
+import { getUniformScaleFactor } from '@/config/view';
+
 import type { FloatingTextBehaviorOptions } from '@/rendering/floatingtext/interfaces/FloatingTextBehaviorOptions';
 import type { Camera } from '@/core/Camera';
 
+const ADDITIONAL_FONT_SIZE_MULTIPLIER = 1.25;
 
 export class FloatingTextManager {
   private floatingTexts: FloatingTextEntity[] = [];
   private canvasManager: CanvasManager;
   private ctx: CanvasRenderingContext2D;
+  private scale: number;
 
   // Channel tracking
   private channelMap: Map<string, { entity: FloatingTextEntity; lastUpdate: number }> = new Map();
@@ -18,6 +22,7 @@ export class FloatingTextManager {
   constructor() {
     this.canvasManager = CanvasManager.getInstance();
     this.ctx = this.canvasManager.getContext('ui');
+    this.scale = getUniformScaleFactor() * ADDITIONAL_FONT_SIZE_MULTIPLIER;
   }
 
   public update(dt: number): void {
@@ -116,7 +121,7 @@ export class FloatingTextManager {
     const entity = new FloatingTextEntity(
       text,
       getPosition,
-      fontSize,
+      fontSize * this.scale,
       fontFamily,
       life,
       speed,

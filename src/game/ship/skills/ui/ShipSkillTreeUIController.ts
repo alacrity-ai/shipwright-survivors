@@ -116,6 +116,7 @@ export class ShipSkillTreeUIController {
       }
 
       metaManager.addMetaCurrency(refundAmount);
+      PlayerShipCollection.getInstance().clearCachedModifiers();
       console.log('[ShipSkillTreeUIController] Refunded node:', nodeId);
       audioManager.play('assets/sounds/sfx/ui/gamblewin_00.wav', 'sfx', { maxSimultaneous: 8 });
       return;
@@ -146,6 +147,7 @@ export class ShipSkillTreeUIController {
       }
 
       metaManager.subtractMetaCurrency(node.cost);
+      PlayerShipCollection.getInstance().clearCachedModifiers();
       const success = playerTreeManager.acquireNode(shipId, nodeId);
 
       if (!success) {
