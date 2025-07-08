@@ -9,14 +9,20 @@ export interface Particle {
   vy: number;
   size: number;
   life: number;
-  color: string;
   speed: number;
 
-  // Optional visual fields
+  // Primary visual field
+  color: string;
+
+  // Precomputed RGB for rendering (avoids per-frame hex parsing)
+  r: number;
+  g: number;
+  b: number;
+
+  // Optional rendering logic
   initialLife?: number;
   fadeOut?: boolean;
   fadeMode?: FadeMode;
   renderAlpha?: number;
-
   lightId?: string;
 }

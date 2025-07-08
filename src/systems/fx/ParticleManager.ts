@@ -26,6 +26,22 @@ export interface ParticleOptions {
   speedRange?: [number, number];
 }
 
+const colorCache = new Map<string, { r: number; g: number; b: number }>();
+
+function hexToRgb(hex: string) {
+  if (colorCache.has(hex)) return colorCache.get(hex)!;
+
+  const clean = hex.startsWith('#') ? hex.slice(1) : hex;
+  const result = {
+    r: parseInt(clean.slice(0, 2), 16) / 255,
+    g: parseInt(clean.slice(2, 4), 16) / 255,
+    b: parseInt(clean.slice(4, 6), 16) / 255,
+  };
+
+  colorCache.set(hex, result);
+  return result;
+}
+
 const PARTICLE_SCALE = 3;
 
 export class ParticleManager {
@@ -137,7 +153,14 @@ export class ParticleManager {
     particle.fadeOut = options.fadeOut ?? false;
     particle.fadeMode = options.fadeMode ?? 'linear';
     particle.renderAlpha = 1.0;
-    particle.color = colors[randomIntInclusive(0, colors.length - 1)];
+
+    const chosenColor = colors[randomIntInclusive(0, colors.length - 1)];
+    const { r, g, b } = hexToRgb(chosenColor);
+
+    particle.color = chosenColor;
+    particle.r = r;
+    particle.g = g;
+    particle.b = b;
 
     if (this.lightingOrchestrator && options.light) {
       const light = createPointLight({
@@ -296,6 +319,7 @@ export class ParticleManager {
     return this.particlePool.pop() || {
       x: 0, y: 0, vx: 0, vy: 0,
       size: 1, life: 1, color: '#fff', speed: 0,
+      r: 1, g: 1, b: 1,
     };
   }
 
@@ -320,6 +344,10 @@ export class ParticleManager {
     p.fadeOut = undefined;
     p.fadeMode = undefined;
     p.renderAlpha = undefined;
+
+    p.r = 1;
+    p.g = 1;
+    p.b = 1;
 
     this.particlePool.push(p);
   }

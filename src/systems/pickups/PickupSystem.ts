@@ -1,4 +1,9 @@
-// src/systems/pickups/PickupSystem.ts
+// // src/systems/pickups/PickupSystem.ts
+
+
+
+
+// Refactored GC-optimized PickupSystem
 
 import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { BLOCK_SIZE } from '@/config/view';
@@ -31,9 +36,8 @@ import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
-
 const BASE_PICKUP_SCALE = 0.5;
-const BASE_BLOCK_PICKUP_SCALE = 2.0
+const BASE_BLOCK_PICKUP_SCALE = 2.0;
 
 const PICKUP_RADIUS = 16;
 const PICKUP_RANGE_PER_HARVEST_UNIT = 48;
@@ -52,7 +56,7 @@ const CULL_PADDING = 0;
 const SPARK_OPTIONS: ParticleOptions = {
   colors: ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'],
   baseSpeed: 50,
-  sizeRange: [1, 2.5],   // further refined
+  sizeRange: [1, 2.5],
   lifeRange: [1, 2],
   fadeOut: true,
 };
@@ -70,11 +74,10 @@ export class PickupSystem {
   private shipBuilderEffects: ShipBuilderEffectsSystem;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
 
-  // === Pitch progression tuning ===
   private static readonly BASE_PICKUP_PITCH = 0.8;
   private static readonly PICKUP_PITCH_INCREMENT = 0.05;
   private static readonly MAX_PICKUP_PITCH = 2.2;
-  private static readonly PITCH_RESET_DELAY = 3.2; // seconds
+  private static readonly PITCH_RESET_DELAY = 3.2;
 
   private static readonly QUANTUM_ATTRACTOR_DURATION = 6.0;
   private static readonly QUANTUM_ATTRACTOR_RANGE_BOOST = 36000;
@@ -88,6 +91,10 @@ export class PickupSystem {
 
   private destroyed = false;
 
+  // === GC optimization fields ===
+  private blockSpriteCache = new Map<string, WebGLTexture | null>();
+  private readonly tempVec = { x: 0, y: 0 };
+
   constructor(
     private readonly camera: Camera,
     sparkManager: ParticleManager,
@@ -97,12 +104,82 @@ export class PickupSystem {
     blockDropDecisionMenu: BlockDropDecisionMenu
   ) {
     this.playerResources = PlayerResources.getInstance();
-    this.sparkManager = sparkManager
+    this.sparkManager = sparkManager;
     this.screenEffects = screenEffects;
     this.popupMessageSystem = popupMessageSystem;
     this.shipBuilderEffects = shipBuilderEffects;
     this.blockDropDecisionMenu = blockDropDecisionMenu;
   }
+
+  // === GC-optimized helpers ===
+
+  private removePickupFromArray(pickup: PickupInstance, arr: PickupInstance[]): void {
+    const index = arr.indexOf(pickup);
+    if (index !== -1) arr.splice(index, 1);
+  }
+
+  private resolvePickupTexture(pickup: PickupInstance): WebGLTexture | null {
+    try {
+      switch (pickup.type.category) {
+        case 'currency':
+        case 'repair':
+        case 'quantumAttractor':
+        case 'shipBlueprint':
+          return getGLPickupSprite(pickup.type.id).texture;
+
+        case 'block':
+          const id = pickup.type.blockTypeId!;
+          if (this.blockSpriteCache.has(id)) {
+            return this.blockSpriteCache.get(id)!;
+          }
+          const blockType = getBlockType(id);
+          if (!blockType) {
+            this.blockSpriteCache.set(id, null);
+            return null;
+          }
+          const tex = getGL2BlockSprite(blockType, DamageLevel.NONE)?.base ?? null;
+          this.blockSpriteCache.set(id, tex);
+          return tex;
+
+        default:
+          console.warn(`[PickupSystem] Unhandled pickup category: ${pickup.type.category}`);
+          return null;
+      }
+    } catch (e) {
+      console.error(`[PickupSystem] Failed to resolve texture for ${pickup.type.id}`, e);
+      return null;
+    }
+  }
+
+  private computeAttraction(shipX: number, shipY: number, pickup: PickupInstance, attractionSpeedBoost: number, attractionRangeSq: number): boolean {
+    this.tempVec.x = shipX - pickup.position.x;
+    this.tempVec.y = shipY - pickup.position.y;
+    const dx = this.tempVec.x;
+    const dy = this.tempVec.y;
+    const distSq = dx * dx + dy * dy;
+
+    if (distSq > attractionRangeSq) return false;
+
+    const normalizedDistanceSq = distSq / attractionRangeSq;
+    const attractionMultiplier = (1 - normalizedDistanceSq) ** PICKUP_ATTRACTION_EXPONENT;
+    const speed = ATTRACTION_SPEED * attractionMultiplier * attractionSpeedBoost;
+
+    const invLen = 1.0 / Math.sqrt(distSq);
+    const nx = dx * invLen;
+    const ny = dy * invLen;
+
+    pickup.position.x += nx * speed;
+    pickup.position.y += ny * speed;
+
+    const light = pickup.lightId ? LightingOrchestrator.getInstance().getLightById?.(pickup.lightId) : null;
+    if (light && light.type === 'point') {
+      light.x = pickup.position.x;
+      light.y = pickup.position.y;
+    }
+
+    return distSq < PICKUP_RADIUS * PICKUP_RADIUS;
+  }
+
 
   setPlayerShip(ship: Ship): void {
     this.playerShip = ship;
@@ -353,16 +430,14 @@ export class PickupSystem {
     }
 
     const attractionRangeSq = attractionRange * attractionRange;
-    const pickupRadiusSq = PICKUP_RADIUS * PICKUP_RADIUS;
+    const now = performance.now() / 1000;
+    const shouldCull = !this.isQuantumAttractorActive();
 
     const viewport = this.camera.getViewportBounds();
     const minX = viewport.x - CULL_PADDING;
     const minY = viewport.y - CULL_PADDING;
     const maxX = viewport.x + viewport.width + CULL_PADDING;
     const maxY = viewport.y + viewport.height + CULL_PADDING;
-
-    const now = performance.now() / 1000;
-    const shouldCull = !this.isQuantumAttractorActive();
 
     const emissionChance = Math.min(0.16, 10 / this.pickups.length);
     const emitParticles = Math.random() < emissionChance;
@@ -371,28 +446,29 @@ export class PickupSystem {
       const pickup = this.pickups[i];
       if (pickup.isPickedUp) continue;
 
-      // === TTL Expiry Check ===
+      // === TTL Expiry ===
       if (pickup.ttl !== undefined && now - pickup.spawnTime >= pickup.ttl) {
         if (pickup.lightId) {
           LightingOrchestrator.getInstance().removeLight(pickup.lightId);
         }
 
         this.pickups.splice(i, 1);
-        this.blockPickups = this.blockPickups.filter(p => p !== pickup);
-        this.resourcePickups = this.resourcePickups.filter(p => p !== pickup);
+        this.removePickupFromArray(pickup, this.blockPickups);
+        this.removePickupFromArray(pickup, this.resourcePickups);
         continue;
       }
 
       const px = pickup.position.x;
       const py = pickup.position.y;
-      
-      if (shouldCull) {
-        if (px < minX || px > maxX || py < minY || py > maxY) continue;
+
+      if (shouldCull && (px < minX || px > maxX || py < minY || py > maxY)) {
+        continue;
       }
 
+      // === Rotation ===
       pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
 
-      // Only emit particles for the first 60 pickups
+      // === Particle Emission ===
       if (emitParticles) {
         let sparkColors: string[];
         switch (pickup.type.category) {
@@ -411,7 +487,7 @@ export class PickupSystem {
             break;
           case 'currency':
           default:
-            sparkColors = ['#ffcc00', '#ffaa00', '#ff8800', '#cc6600'];
+            sparkColors = SPARK_OPTIONS.colors!;
             break;
         }
 
@@ -424,107 +500,56 @@ export class PickupSystem {
         });
       }
 
-      const dx = shipPosition.x - pickup.position.x;
-      const dy = shipPosition.y - pickup.position.y;
-      const distSq = dx * dx + dy * dy;
-
-      const textureEntry = (() => {
-        switch (pickup.type.category) {
-          case 'currency':
-          case 'quantumAttractor':
-          case 'shipBlueprint':
-          case 'repair':
-            try {
-              return getGLPickupSprite(pickup.type.id).texture;
-            } catch (e) {
-              console.error(`[PickupSystem] Missing GL sprite for pickup: ${pickup.type.id}`, e);
-              return null;
-            }
-
-          case 'block':
-            try {
-              const blockType = getBlockType(pickup.type.blockTypeId!);
-              if (!blockType) return null;
-              const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
-              return sprite?.base ?? null;
-            } catch (e) {
-              console.error(`[PickupSystem] Failed to load block sprite for pickup: ${pickup.type.blockTypeId}`, e);
-              return null;
-            }
-
-          default:
-            console.warn(`[PickupSystem] Unhandled pickup category: ${pickup.type.category}`);
-            return null;
-        }
-      })();
-
-      if (textureEntry) {
-        let alpha = 1.0;
+      // === Texture Resolve ===
+      const texture = this.resolvePickupTexture(pickup);
+      if (texture) {
         let width = BLOCK_SIZE;
         let height = BLOCK_SIZE;
 
-        if (pickup.type.category === 'currency') {
-          const scale = BASE_PICKUP_SCALE + Math.log2(pickup.currencyAmount + 1) / 7;
-          width *= scale;
-          height *= scale;
-        } else if (pickup.type.category === 'repair') {
-          const scale = BASE_PICKUP_SCALE + Math.log2(pickup.repairAmount + 1) / 5;
-          width *= scale;
-          height *= scale;
-        } else if (pickup.type.category === 'block') {
-          width *= BASE_BLOCK_PICKUP_SCALE;
-          height *= BASE_BLOCK_PICKUP_SCALE;
-        } else if (pickup.type.category === 'quantumAttractor') {
-          width = 176;
-          height = 176;
-        } else if (pickup.type.category === 'shipBlueprint') {
-          width = 176;
-          height = 176;
+        switch (pickup.type.category) {
+          case 'currency': {
+            const scale = BASE_PICKUP_SCALE + Math.log2(pickup.currencyAmount + 1) / 7;
+            width *= scale;
+            height *= scale;
+            break;
+          }
+          case 'repair': {
+            const scale = BASE_PICKUP_SCALE + Math.log2(pickup.repairAmount + 1) / 5;
+            width *= scale;
+            height *= scale;
+            break;
+          }
+          case 'block':
+            width *= BASE_BLOCK_PICKUP_SCALE;
+            height *= BASE_BLOCK_PICKUP_SCALE;
+            break;
+          case 'quantumAttractor':
+          case 'shipBlueprint':
+            width = 176;
+            height = 176;
+            break;
         }
 
         GlobalSpriteRequestBus.add({
-          texture: textureEntry,
-          worldX: pickup.position.x,
-          worldY: pickup.position.y,
+          texture,
+          worldX: px,
+          worldY: py,
           widthPx: width,
           heightPx: height,
-          alpha: alpha,
+          alpha: 1.0,
           rotation: pickup.rotation,
         });
       }
 
-      if (distSq > attractionRangeSq) continue;
-
-      // If the pickup is a block
+      // === Pickup logic ===
       if (pickup.type.category === 'block') {
-        const playerResources = PlayerResources.getInstance();
-        const maxQueueSize = playerResources.getMaxBlockQueueSize();
-        const currentQueueSize = playerResources.getBlockCount();
-
-        if (currentQueueSize >= maxQueueSize) continue;
+        const current = this.playerResources.getBlockCount();
+        const max = this.playerResources.getMaxBlockQueueSize();
+        if (current >= max) continue;
       }
 
-      const normalizedDistanceSq = distSq / attractionRangeSq;
-      const attractionMultiplier = Math.pow(1 - normalizedDistanceSq, PICKUP_ATTRACTION_EXPONENT);
-      const attractionSpeed = ATTRACTION_SPEED * attractionMultiplier * attractionSpeedBoost;
-
-      const distance = Math.sqrt(distSq);
-      const nx = dx / distance;
-      const ny = dy / distance;
-
-      pickup.position.x += nx * attractionSpeed;
-      pickup.position.y += ny * attractionSpeed;
-
-      if (pickup.lightId) {
-        const lightingOrchestrator = LightingOrchestrator.getInstance();
-        const light = lightingOrchestrator.getLightById?.(pickup.lightId);
-        if (light && light.type === 'point') {
-          light.x = pickup.position.x;
-          light.y = pickup.position.y;
-        }
-      }
-
-      if (distSq < pickupRadiusSq) {
+      const pickedUp = this.computeAttraction(shipPosition.x, shipPosition.y, pickup, attractionSpeedBoost, attractionRangeSq);
+      if (pickedUp) {
         this.collectPickup(pickup);
       }
     }
@@ -535,140 +560,132 @@ export class PickupSystem {
 
     pickup.isPickedUp = true;
 
-    // === Remove associated light if it exists ===
-    if (pickup.lightId) {
-      const lightingOrchestrator = LightingOrchestrator.getInstance();
-      lightingOrchestrator.removeLight(pickup.lightId);
-    }
+    const lighting = LightingOrchestrator.getInstance();
+    if (pickup.lightId) lighting.removeLight(pickup.lightId);
 
-    // === Remove from all relevant arrays ===
-    const removeFrom = (list: PickupInstance[]) => {
-      const idx = list.indexOf(pickup);
-      if (idx !== -1) list.splice(idx, 1);
-    };
-
-    removeFrom(this.pickups);
-
+    this.removePickupFromArray(pickup, this.pickups);
     if (pickup.type.category === 'block') {
-      removeFrom(this.blockPickups);
+      this.removePickupFromArray(pickup, this.blockPickups);
     } else {
-      removeFrom(this.resourcePickups);
+      this.removePickupFromArray(pickup, this.resourcePickups);
     }
 
-    // Pickup Flash
     const playerPos = this.playerShip.getTransform().position;
 
     let flashColor = PICKUP_FLASH_COLORS[pickup.type.category] ?? '#ffffff';
-
     if (pickup.type.category === 'block' && pickup.type.blockTypeId) {
       const tier = getTierFromBlockId(pickup.type.blockTypeId);
       flashColor = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? flashColor;
     }
 
-    createLightFlash(
-      playerPos.x,
-      playerPos.y,
-      320 + Math.random() * 100,
-      1.2,
-      0.5,
-      flashColor,
-      'pickup-currency'
-    );
+    createLightFlash(playerPos.x, playerPos.y, 320 + Math.random() * 100, 1.2, 0.5, flashColor, 'pickup-currency');
 
-    // lightingOrchestrator.registerLight(pickupFlash);
     let playedSound = false;
 
-    // === Handle pickup effects by category ===
-    if (pickup.type.category === 'currency') {
-      const amount = pickup.currencyAmount;
-      PlayerExperienceManager.getInstance().addEntropium(amount);
-      missionResultStore.addEntropium(amount);
+    switch (pickup.type.category) {
+      case 'currency': {
+        const amount = pickup.currencyAmount;
+        PlayerExperienceManager.getInstance().addEntropium(amount);
+        missionResultStore.addEntropium(amount);
 
-      playedSound = await audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', {
-        volume: 1.25,
-        pitch: this.currencyPickupPitch + 0.25,
-        maxSimultaneous: 8,
-      });
-      if (playedSound) {
-        this.timeSinceLastCurrencyPickup = 0;
-
-        this.currencyPickupPitch = Math.min(
-          this.currencyPickupPitch + PickupSystem.PICKUP_PITCH_INCREMENT,
-          PickupSystem.MAX_PICKUP_PITCH
-        );
-      }
-    } else if (pickup.type.category === 'block' && pickup.type.blockTypeId) {
-      // Increment mission results
-      missionResultStore.incrementBlockCollectedCount();
-
-      playedSound = await audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', {
-        volume: 0.8,
-        pitch: this.blockPickupPitch,
-        maxSimultaneous: 8,
-      });
-      if (playedSound) {
-        this.timeSinceLastBlockPickup = 0;
-        this.blockPickupPitch = Math.min(
-          this.blockPickupPitch + PickupSystem.PICKUP_PITCH_INCREMENT,
-          PickupSystem.MAX_PICKUP_PITCH
-        );
-      }
-
-      // Flash ship based on block tier
-      const tier = getTierFromBlockId(pickup.type.blockTypeId);
-      const flashColor = BLOCK_TIER_COLORS[tier] ?? ['#fff'];
-      createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, flashColor, `blockPickup-${pickup.type.blockTypeId}`);
-
-      // Enqueue into drop decision menu
-      const blockType = getBlockType(pickup.type.blockTypeId)!;
-      this.blockDropDecisionMenu.enqueueBlock(getTier1BlockIfTier0(blockType));
-
-    } else if (pickup.type.category === 'repair') {
-      const amount = pickup.repairAmount;
-      repairAllBlocksWithHealing(this.playerShip, amount, this.shipBuilderEffects);
-
-      audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', {
-        maxSimultaneous: 3,
-      });
-    } else if (pickup.type.id === 'quantumAttractor') {
-      reportPickupCollected('quantumAttractor');
-      createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#EFBF04');
-      this.activateQuantumAttractor();
-    } else if (pickup.type.category === 'shipBlueprint') {
-      // Need pickup logic here
-      if (!pickup.shipId) {
-        console.warn('Ship blueprint pickup missing ship ID:', pickup);
-        return;
-      }
-      const shipCollection = PlayerShipCollection.getInstance();
-
-      // If we already have this ship unlocked
-      if (shipCollection.isUnlocked(pickup.shipId)) {
-        audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', { maxSimultaneous: 8, });
-        this.popupMessageSystem.displayMessage(`${pickup.shipId} already Unlocked`, {
-          color: '#00FFFF',
-          duration: 5,
-          font: '28px monospace',
-          glow: true,
+        playedSound = await audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', {
+          volume: 1.25,
+          pitch: this.currencyPickupPitch + 0.25,
+          maxSimultaneous: 8,
         });
-      } else {
-        missionResultStore.addShipDiscovery(pickup.shipId);
-        shipCollection.discover(pickup.shipId);
-        shipCollection.unlock(pickup.shipId);
 
-        audioManager.play('assets/sounds/sfx/magic/collect_ship.wav', 'sfx', { maxSimultaneous: 8, });
-
-        // Popup message here
-        this.popupMessageSystem.displayMessage(`${pickup.shipId} Blueprint Discovered!`, {
-          color: '#00FFFF',
-          duration: 5,
-          font: '28px monospace',
-          glow: true,
-        });
+        if (playedSound) {
+          this.timeSinceLastCurrencyPickup = 0;
+          this.currencyPickupPitch = Math.min(
+            this.currencyPickupPitch + PickupSystem.PICKUP_PITCH_INCREMENT,
+            PickupSystem.MAX_PICKUP_PITCH
+          );
+        }
+        break;
       }
-      createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#00FFFF', `shipBlueprint-${pickup.shipId}`);
-    } else {
-      console.warn('Unhandled pickup category or malformed pickup:', pickup);
+
+      case 'block': {
+        const blockTypeId = pickup.type.blockTypeId;
+        if (!blockTypeId) break;
+
+        missionResultStore.incrementBlockCollectedCount();
+
+        playedSound = await audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx', {
+          volume: 0.8,
+          pitch: this.blockPickupPitch,
+          maxSimultaneous: 8,
+        });
+
+        if (playedSound) {
+          this.timeSinceLastBlockPickup = 0;
+          this.blockPickupPitch = Math.min(
+            this.blockPickupPitch + PickupSystem.PICKUP_PITCH_INCREMENT,
+            PickupSystem.MAX_PICKUP_PITCH
+          );
+        }
+
+        const tier = getTierFromBlockId(blockTypeId);
+        const flashColor = BLOCK_TIER_COLORS[tier] ?? ['#fff'];
+        createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, flashColor, `blockPickup-${blockTypeId}`);
+
+        const blockType = getBlockType(blockTypeId);
+        if (blockType) {
+          this.blockDropDecisionMenu.enqueueBlock(getTier1BlockIfTier0(blockType));
+        }
+        break;
+      }
+
+      case 'repair': {
+        repairAllBlocksWithHealing(this.playerShip, pickup.repairAmount, this.shipBuilderEffects);
+        audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', { maxSimultaneous: 3 });
+        break;
+      }
+
+      case 'shipBlueprint': {
+        const shipId = pickup.shipId;
+        if (!shipId) {
+          console.warn('Ship blueprint pickup missing ship ID:', pickup);
+          return;
+        }
+
+        const shipCollection = PlayerShipCollection.getInstance();
+
+        if (shipCollection.isUnlocked(shipId)) {
+          audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', { maxSimultaneous: 8 });
+          this.popupMessageSystem.displayMessage(`${shipId} already Unlocked`, {
+            color: '#00FFFF',
+            duration: 5,
+            font: '28px monospace',
+            glow: true,
+          });
+        } else {
+          missionResultStore.addShipDiscovery(shipId);
+          shipCollection.discover(shipId);
+          shipCollection.unlock(shipId);
+
+          audioManager.play('assets/sounds/sfx/magic/collect_ship.wav', 'sfx', { maxSimultaneous: 8 });
+
+          this.popupMessageSystem.displayMessage(`${shipId} Blueprint Discovered!`, {
+            color: '#00FFFF',
+            duration: 5,
+            font: '28px monospace',
+            glow: true,
+          });
+        }
+
+        createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#00FFFF', `shipBlueprint-${shipId}`);
+        break;
+      }
+
+      default: {
+        if (pickup.type.id === 'quantumAttractor') {
+          reportPickupCollected('quantumAttractor');
+          createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#EFBF04');
+          this.activateQuantumAttractor();
+        } else {
+          console.warn('Unhandled pickup category or malformed pickup:', pickup);
+        }
+      }
     }
   }
 
@@ -678,17 +695,21 @@ export class PickupSystem {
 
     const lighting = LightingOrchestrator.getInstance();
 
-    for (const pickup of this.pickups) {
-      if (pickup.lightId) {
-        lighting.removeLight(pickup.lightId);
-      }
+    // Efficient light removal loop
+    for (let i = 0; i < this.pickups.length; i++) {
+      const lightId = this.pickups[i].lightId;
+      if (lightId) lighting.removeLight(lightId);
     }
 
-    // Clear all arrays and nullify references
+    // Avoid replacing arrays (retain references)
     this.pickups.length = 0;
     this.blockPickups.length = 0;
     this.resourcePickups.length = 0;
 
+    // Clear sprite cache if long-lived system
+    this.blockSpriteCache.clear();
+
+    // Clear player ship reference
     this.playerShip = null;
   }
 }
