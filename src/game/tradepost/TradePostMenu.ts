@@ -145,6 +145,10 @@ export class TradePostMenu {
       btn.onClick();
     }
 
+    if (this.inputManager.wasActionJustPressed('cancel')) {
+      this.closeMenu();
+    }
+
     if (this.itemsList) {
       this.itemsList.update(dt);
     }
