@@ -4,6 +4,7 @@ import type { InputManager } from '@/core/InputManager';
 import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/ArtifactDefinition';
 import { getAllArtifacts } from '@/game/ship/artifacts/registry/ArtifactRegistry';
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { ArtifactTooltipRenderer } from './ArtifactTooltipRenderer';
 import { reportArtifactsCollectionClosed, reportArtifactEquipped } from '@/core/interfaces/events/ArtifactsCollectionReporter';
 import { ArtifactCollectionUIRenderer } from './ArtifactCollectionUIRenderer';
@@ -120,6 +121,7 @@ update(): void {
 
           // === Equip to the selected slot on the current ship ===
           manager.equipArtifact(this.currentShipName, this.slotIndex, artifactId);
+          PlayerShipCollection.getInstance().clearCachedModifiers();
           reportArtifactsCollectionClosed();
         }
       }

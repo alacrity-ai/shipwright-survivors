@@ -74,6 +74,7 @@ export class Ship extends CompositeBlockObject {
   private hadEngines: boolean = false;
   private initialMass: number = 0;
 
+  private constructed: boolean = false;
   private destructionCause: string = 'combat'; // default fallback
 
   // === Rasterization Cache ===
@@ -238,6 +239,15 @@ export class Ship extends CompositeBlockObject {
 
   public setInitialMass(mass: number): void {
     this.initialMass = mass;
+  }
+
+  // Constructed
+  public isConstructed(): boolean {
+    return this.constructed;
+  }
+
+  public setConstructed(constructed: boolean): void {
+    this.constructed = constructed;
   }
 
   // Light

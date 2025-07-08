@@ -26,6 +26,14 @@
 //   speedRange?: [number, number];
 // }
 
+// // Extended particle interface with grid tracking
+// interface ExtendedParticle extends Particle {
+//   gridX?: number;
+//   gridY?: number;
+//   gridKey?: number;
+//   staticFrames?: number; // Track how many frames particle has been in same cell
+// }
+
 // const colorCache = new Map<string, { r: number; g: number; b: number }>();
 
 // function hexToRgb(hex: string) {
@@ -43,25 +51,26 @@
 // }
 
 // const PARTICLE_SCALE = 3;
+// const GRID_SIZE_BITS = 7; // 128 = 2^7, allows us to use bit shifting
+// const GRID_SIZE = 1 << GRID_SIZE_BITS; // 128
+// const STATIC_THRESHOLD = 0.1; // Velocity threshold for considering particle "static"
+// const STATIC_SKIP_FRAMES = 4; // Skip grid updates for this many frames for static particles
 
 // export class ParticleManager {
-//   private activeParticles: Particle[] = [];
-//   private particlePool: Particle[] = [];
+//   private activeParticles: ExtendedParticle[] = [];
+//   private particlePool: ExtendedParticle[] = [];
 
 //   private readonly CULL_PADDING = 128;
-//   private readonly GRID_SIZE = 128;
-
 //   private readonly GRID_OFFSET = 32768;
 
-//   // Optimization 1: Use packed integer keys instead of string keys
-//   private readonly spatialGrid = new Map<number, Particle[]>();
-//   private particleToGridKey = new WeakMap<Particle, number>();
-
-//   private emissionAccumulator = 0;
-//   private cachedVisibleParticles: Particle[] = [];
+//   // Use regular Map with integer keys for better performance
+//   private readonly spatialGrid = new Map<number, ExtendedParticle[]>();
   
-//   // Optimization 3: Reuse scratch array to avoid allocations
-//   private readonly visibleScratch: Particle[] = [];
+//   private emissionAccumulator = 0;
+//   private cachedVisibleParticles: ExtendedParticle[] = [];
+  
+//   // Reuse scratch array to avoid allocations
+//   private readonly visibleScratch: ExtendedParticle[] = [];
   
 //   // Cache bounds object to avoid repeated allocations
 //   private readonly cachedBounds = { x: 0, y: 0, width: 0, height: 0 };
@@ -73,50 +82,62 @@
 //   private settingsCheckCounter = 0;
 //   private readonly SETTINGS_CHECK_INTERVAL = 60;
 
+//   // Batch arrays for efficient grid updates
+//   private particlesToReindex: ExtendedParticle[] = [];
+//   private frameCounter = 0;
+
 //   constructor(private readonly lightingOrchestrator: LightingOrchestrator) {
 //     this.playerSettingsManager = PlayerSettingsManager.getInstance();
 //     this.cachedParticlesEnabled = this.playerSettingsManager.isParticlesEnabled();
 //   }
 
-//   // Optimization 1: Pack grid coordinates into single integer
-//   private getGridKey(x: number, y: number): number {
-//     const gx = Math.floor(x / this.GRID_SIZE) + this.GRID_OFFSET;
-//     const gy = Math.floor(y / this.GRID_SIZE) + this.GRID_OFFSET;
-//     return (gx << 16) | gy;
+//   // Fast grid coordinate calculation using bit shifting
+//   private getGridCoords(x: number, y: number): [number, number] {
+//     const gx = Math.floor(x) >> GRID_SIZE_BITS;
+//     const gy = Math.floor(y) >> GRID_SIZE_BITS;
+//     return [gx, gy];
 //   }
 
-//   private addToGrid(p: Particle, key: number): void {
-//     this.particleToGridKey.set(p, key);
+//   // Pack grid coordinates into single integer
+//   private getGridKey(gx: number, gy: number): number {
+//     return ((gx + this.GRID_OFFSET) << 16) | (gy + this.GRID_OFFSET);
+//   }
+
+//   private addToGrid(p: ExtendedParticle, gx: number, gy: number): void {
+//     const key = this.getGridKey(gx, gy);
+//     p.gridX = gx;
+//     p.gridY = gy;
+//     p.gridKey = key;
+//     p.staticFrames = 0;
+    
 //     if (!this.spatialGrid.has(key)) {
 //       this.spatialGrid.set(key, []);
 //     }
 //     this.spatialGrid.get(key)!.push(p);
 //   }
 
-//   private removeFromGrid(p: Particle): void {
-//     const key = this.particleToGridKey.get(p);
-//     if (key !== undefined) {
-//       const bucket = this.spatialGrid.get(key);
+//   private removeFromGrid(p: ExtendedParticle): void {
+//     if (p.gridKey !== undefined) {
+//       const bucket = this.spatialGrid.get(p.gridKey);
 //       if (bucket) {
 //         const index = bucket.indexOf(p);
 //         if (index !== -1) bucket.splice(index, 1);
-//         if (bucket.length === 0) this.spatialGrid.delete(key);
+//         if (bucket.length === 0) this.spatialGrid.delete(p.gridKey);
 //       }
-//       this.particleToGridKey.delete(p);
 //     }
 //   }
 
 //   // Check if grid cell overlaps with view bounds
 //   private cellOverlapsView(gx: number, gy: number, left: number, right: number, top: number, bottom: number): boolean {
-//     const cellLeft = gx * this.GRID_SIZE;
-//     const cellRight = (gx + 1) * this.GRID_SIZE;
-//     const cellTop = gy * this.GRID_SIZE;
-//     const cellBottom = (gy + 1) * this.GRID_SIZE;
+//     const cellLeft = gx << GRID_SIZE_BITS;
+//     const cellRight = (gx + 1) << GRID_SIZE_BITS;
+//     const cellTop = gy << GRID_SIZE_BITS;
+//     const cellBottom = (gy + 1) << GRID_SIZE_BITS;
 
 //     return !(cellRight < left || cellLeft > right || cellBottom < top || cellTop > bottom);
 //   }
 
-//   private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
+//   private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): ExtendedParticle {
 //     const {
 //       colors = ['#00f', '#009', '#00a9f4', '#1e90ff'],
 //       sizeRange = [1, 4],
@@ -179,8 +200,11 @@
 //     }
 
 //     this.activeParticles.push(particle);
-//     const key = this.getGridKey(particle.x, particle.y);
-//     this.addToGrid(particle, key);
+    
+//     // Add to spatial grid
+//     const [gx, gy] = this.getGridCoords(particle.x, particle.y);
+//     this.addToGrid(particle, gx, gy);
+    
 //     this.particlesDirty = true;
 //     return particle;
 //   }
@@ -197,8 +221,33 @@
 //     for (let i = 0; i < toEmit; i++) this._createAndRegisterParticle(origin, options);
 //   }
 
-//   public emitParticle(origin: { x: number; y: number }, options: ParticleOptions = {}): Particle {
+//   public emitParticle(origin: { x: number; y: number }, options: ParticleOptions = {}): ExtendedParticle {
 //     return this._createAndRegisterParticle(origin, options);
+//   }
+
+//   // Optimized grid reindexing - only reindex particles that actually moved cells
+//   private reindexParticle(p: ExtendedParticle): void {
+//     const [newGX, newGY] = this.getGridCoords(p.x, p.y);
+    
+//     // Fast path: particle hasn't moved to a new cell
+//     if (p.gridX === newGX && p.gridY === newGY) {
+//       p.staticFrames = (p.staticFrames || 0) + 1;
+//       return;
+//     }
+
+//     // Remove from old cell
+//     this.removeFromGrid(p);
+    
+//     // Add to new cell
+//     this.addToGrid(p, newGX, newGY);
+//   }
+
+//   // Batch process particles that need reindexing
+//   private processBatchedReindexing(): void {
+//     for (const particle of this.particlesToReindex) {
+//       this.reindexParticle(particle);
+//     }
+//     this.particlesToReindex.length = 0;
 //   }
 
 //   update(dt: number): void {
@@ -208,14 +257,20 @@
 //     }
 
 //     if (!this.cachedParticlesEnabled) return;
+    
+//     this.frameCounter++;
 //     this.particlesDirty = true;
 
 //     const fadeThreshold = 0.10;
 //     const invFadeThreshold = 1.0 / fadeThreshold;
 
 //     let writeIndex = 0;
+//     this.particlesToReindex.length = 0;
+
 //     for (let i = 0; i < this.activeParticles.length; i++) {
 //       const p = this.activeParticles[i];
+      
+//       // Update position
 //       p.x += p.vx * dt;
 //       p.y += p.vy * dt;
 //       p.life -= dt;
@@ -225,6 +280,7 @@
 //         continue;
 //       }
 
+//       // Update associated light
 //       if (p.lightId) {
 //         const light = this.lightingOrchestrator.getLightById(p.lightId);
 //         if (light && (light.type === 'point' || light.type === 'spot')) {
@@ -233,6 +289,7 @@
 //         }
 //       }
 
+//       // Update alpha
 //       const lifeRatio = p.initialLife ? p.life / p.initialLife : 1.0;
 //       p.renderAlpha = p.fadeMode === 'delayed'
 //         ? (lifeRatio >= fadeThreshold ? 1.0 : lifeRatio * invFadeThreshold)
@@ -240,14 +297,28 @@
 
 //       this.activeParticles[writeIndex++] = p;
 
-//       // Reindex only if particle moved to a new cell
-//       this.reindexParticle(p);
+//       // Determine if particle needs grid reindexing
+//       const speed = Math.abs(p.vx) + Math.abs(p.vy);
+//       const isStatic = speed < STATIC_THRESHOLD;
+//       const staticFrames = p.staticFrames || 0;
+      
+//       // Skip grid updates for static particles every few frames
+//       if (isStatic && staticFrames > 0 && (staticFrames % STATIC_SKIP_FRAMES) !== 0) {
+//         p.staticFrames = staticFrames + 1;
+//         continue;
+//       }
+
+//       // Queue for reindexing
+//       this.particlesToReindex.push(p);
 //     }
 
 //     this.activeParticles.length = writeIndex;
+    
+//     // Process all reindexing in batch
+//     this.processBatchedReindexing();
 //   }
 
-//   public collectVisibleParticles(camera: Camera): Particle[] {
+//   public collectVisibleParticles(camera: Camera): ExtendedParticle[] {
 //     const raw = camera.getViewportBounds();
     
 //     // Reuse bounds object to avoid allocation
@@ -271,10 +342,10 @@
 //     const top = this.cachedBounds.y - pad;
 //     const bottom = this.cachedBounds.y + this.cachedBounds.height + pad;
 
-//     const minGX = Math.floor(left / this.GRID_SIZE);
-//     const maxGX = Math.floor(right / this.GRID_SIZE);
-//     const minGY = Math.floor(top / this.GRID_SIZE);
-//     const maxGY = Math.floor(bottom / this.GRID_SIZE);
+//     const minGX = Math.floor(left) >> GRID_SIZE_BITS;
+//     const maxGX = Math.floor(right) >> GRID_SIZE_BITS;
+//     const minGY = Math.floor(top) >> GRID_SIZE_BITS;
+//     const maxGY = Math.floor(bottom) >> GRID_SIZE_BITS;
 
 //     // Reuse scratch array
 //     const visible = this.visibleScratch;
@@ -287,7 +358,7 @@
 //           continue;
 //         }
 
-//         const key = this.getGridKey(gx * this.GRID_SIZE, gy * this.GRID_SIZE);
+//         const key = this.getGridKey(gx, gy);
 //         const bucket = this.spatialGrid.get(key);
 //         if (!bucket) continue;
 
@@ -315,15 +386,23 @@
 //     return this.cachedVisibleParticles;
 //   }
 
-//   private getParticle(): Particle {
-//     return this.particlePool.pop() || {
+//   private getParticle(): ExtendedParticle {
+//     const particle = this.particlePool.pop() || {
 //       x: 0, y: 0, vx: 0, vy: 0,
 //       size: 1, life: 1, color: '#fff', speed: 0,
 //       r: 1, g: 1, b: 1,
 //     };
+    
+//     // Reset grid tracking properties
+//     particle.gridX = undefined;
+//     particle.gridY = undefined;
+//     particle.gridKey = undefined;
+//     particle.staticFrames = undefined;
+    
+//     return particle;
 //   }
 
-//   public removeParticle(p: Particle): void {
+//   public removeParticle(p: ExtendedParticle): void {
 //     const idx = this.activeParticles.indexOf(p);
 //     if (idx !== -1) {
 //       this.activeParticles.splice(idx, 1);
@@ -332,7 +411,7 @@
 //     }
 //   }
 
-//   private recycleParticle(p: Particle): void {
+//   private recycleParticle(p: ExtendedParticle): void {
 //     this.removeFromGrid(p);
 
 //     if (p.lightId) {
@@ -340,25 +419,21 @@
 //       p.lightId = undefined;
 //     }
 
+//     // Reset all properties
 //     p.initialLife = undefined;
 //     p.fadeOut = undefined;
 //     p.fadeMode = undefined;
 //     p.renderAlpha = undefined;
+//     p.gridX = undefined;
+//     p.gridY = undefined;
+//     p.gridKey = undefined;
+//     p.staticFrames = undefined;
 
 //     p.r = 1;
 //     p.g = 1;
 //     p.b = 1;
 
 //     this.particlePool.push(p);
-//   }
-
-//   private reindexParticle(p: Particle): void {
-//     const oldKey = this.particleToGridKey.get(p);
-//     const newKey = this.getGridKey(p.x, p.y);
-//     if (newKey === oldKey) return;
-
-//     this.removeFromGrid(p);
-//     this.addToGrid(p, newKey);
 //   }
 
 //   public destroy(): void {
@@ -372,14 +447,14 @@
 //     this.particlePool.length = 0;
 //     this.cachedVisibleParticles.length = 0;
 //     this.visibleScratch.length = 0;
+//     this.particlesToReindex.length = 0;
 //     this.lastCameraBounds = null;
 //     this.spatialGrid.clear();
-//     this.particleToGridKey = new WeakMap();
 //     this.emissionAccumulator = 0;
 //     this.particlesDirty = true;
+//     this.frameCounter = 0;
 //   }
 // }
-
 
 // src/systems/fx/ParticleManager.ts
 
@@ -409,14 +484,6 @@ export interface ParticleOptions {
   speedRange?: [number, number];
 }
 
-// Extended particle interface with grid tracking
-interface ExtendedParticle extends Particle {
-  gridX?: number;
-  gridY?: number;
-  gridKey?: number;
-  staticFrames?: number; // Track how many frames particle has been in same cell
-}
-
 const colorCache = new Map<string, { r: number; g: number; b: number }>();
 
 function hexToRgb(hex: string) {
@@ -434,26 +501,16 @@ function hexToRgb(hex: string) {
 }
 
 const PARTICLE_SCALE = 3;
-const GRID_SIZE_BITS = 7; // 128 = 2^7, allows us to use bit shifting
-const GRID_SIZE = 1 << GRID_SIZE_BITS; // 128
-const STATIC_THRESHOLD = 0.1; // Velocity threshold for considering particle "static"
-const STATIC_SKIP_FRAMES = 4; // Skip grid updates for this many frames for static particles
 
 export class ParticleManager {
-  private activeParticles: ExtendedParticle[] = [];
-  private particlePool: ExtendedParticle[] = [];
+  private activeParticles: Particle[] = [];
+  private particlePool: Particle[] = [];
 
-  private readonly CULL_PADDING = 128;
-  private readonly GRID_OFFSET = 32768;
-
-  // Use regular Map with integer keys for better performance
-  private readonly spatialGrid = new Map<number, ExtendedParticle[]>();
-  
   private emissionAccumulator = 0;
-  private cachedVisibleParticles: ExtendedParticle[] = [];
+  private cachedVisibleParticles: Particle[] = [];
   
   // Reuse scratch array to avoid allocations
-  private readonly visibleScratch: ExtendedParticle[] = [];
+  private readonly visibleScratch: Particle[] = [];
   
   // Cache bounds object to avoid repeated allocations
   private readonly cachedBounds = { x: 0, y: 0, width: 0, height: 0 };
@@ -465,62 +522,12 @@ export class ParticleManager {
   private settingsCheckCounter = 0;
   private readonly SETTINGS_CHECK_INTERVAL = 60;
 
-  // Batch arrays for efficient grid updates
-  private particlesToReindex: ExtendedParticle[] = [];
-  private frameCounter = 0;
-
   constructor(private readonly lightingOrchestrator: LightingOrchestrator) {
     this.playerSettingsManager = PlayerSettingsManager.getInstance();
     this.cachedParticlesEnabled = this.playerSettingsManager.isParticlesEnabled();
   }
 
-  // Fast grid coordinate calculation using bit shifting
-  private getGridCoords(x: number, y: number): [number, number] {
-    const gx = Math.floor(x) >> GRID_SIZE_BITS;
-    const gy = Math.floor(y) >> GRID_SIZE_BITS;
-    return [gx, gy];
-  }
-
-  // Pack grid coordinates into single integer
-  private getGridKey(gx: number, gy: number): number {
-    return ((gx + this.GRID_OFFSET) << 16) | (gy + this.GRID_OFFSET);
-  }
-
-  private addToGrid(p: ExtendedParticle, gx: number, gy: number): void {
-    const key = this.getGridKey(gx, gy);
-    p.gridX = gx;
-    p.gridY = gy;
-    p.gridKey = key;
-    p.staticFrames = 0;
-    
-    if (!this.spatialGrid.has(key)) {
-      this.spatialGrid.set(key, []);
-    }
-    this.spatialGrid.get(key)!.push(p);
-  }
-
-  private removeFromGrid(p: ExtendedParticle): void {
-    if (p.gridKey !== undefined) {
-      const bucket = this.spatialGrid.get(p.gridKey);
-      if (bucket) {
-        const index = bucket.indexOf(p);
-        if (index !== -1) bucket.splice(index, 1);
-        if (bucket.length === 0) this.spatialGrid.delete(p.gridKey);
-      }
-    }
-  }
-
-  // Check if grid cell overlaps with view bounds
-  private cellOverlapsView(gx: number, gy: number, left: number, right: number, top: number, bottom: number): boolean {
-    const cellLeft = gx << GRID_SIZE_BITS;
-    const cellRight = (gx + 1) << GRID_SIZE_BITS;
-    const cellTop = gy << GRID_SIZE_BITS;
-    const cellBottom = (gy + 1) << GRID_SIZE_BITS;
-
-    return !(cellRight < left || cellLeft > right || cellBottom < top || cellTop > bottom);
-  }
-
-  private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): ExtendedParticle {
+  private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): Particle {
     const {
       colors = ['#00f', '#009', '#00a9f4', '#1e90ff'],
       sizeRange = [1, 4],
@@ -583,11 +590,6 @@ export class ParticleManager {
     }
 
     this.activeParticles.push(particle);
-    
-    // Add to spatial grid
-    const [gx, gy] = this.getGridCoords(particle.x, particle.y);
-    this.addToGrid(particle, gx, gy);
-    
     this.particlesDirty = true;
     return particle;
   }
@@ -604,33 +606,8 @@ export class ParticleManager {
     for (let i = 0; i < toEmit; i++) this._createAndRegisterParticle(origin, options);
   }
 
-  public emitParticle(origin: { x: number; y: number }, options: ParticleOptions = {}): ExtendedParticle {
+  public emitParticle(origin: { x: number; y: number }, options: ParticleOptions = {}): Particle {
     return this._createAndRegisterParticle(origin, options);
-  }
-
-  // Optimized grid reindexing - only reindex particles that actually moved cells
-  private reindexParticle(p: ExtendedParticle): void {
-    const [newGX, newGY] = this.getGridCoords(p.x, p.y);
-    
-    // Fast path: particle hasn't moved to a new cell
-    if (p.gridX === newGX && p.gridY === newGY) {
-      p.staticFrames = (p.staticFrames || 0) + 1;
-      return;
-    }
-
-    // Remove from old cell
-    this.removeFromGrid(p);
-    
-    // Add to new cell
-    this.addToGrid(p, newGX, newGY);
-  }
-
-  // Batch process particles that need reindexing
-  private processBatchedReindexing(): void {
-    for (const particle of this.particlesToReindex) {
-      this.reindexParticle(particle);
-    }
-    this.particlesToReindex.length = 0;
   }
 
   update(dt: number): void {
@@ -641,14 +618,12 @@ export class ParticleManager {
 
     if (!this.cachedParticlesEnabled) return;
     
-    this.frameCounter++;
     this.particlesDirty = true;
 
     const fadeThreshold = 0.10;
     const invFadeThreshold = 1.0 / fadeThreshold;
 
     let writeIndex = 0;
-    this.particlesToReindex.length = 0;
 
     for (let i = 0; i < this.activeParticles.length; i++) {
       const p = this.activeParticles[i];
@@ -679,113 +654,27 @@ export class ParticleManager {
         : lifeRatio;
 
       this.activeParticles[writeIndex++] = p;
-
-      // Determine if particle needs grid reindexing
-      const speed = Math.abs(p.vx) + Math.abs(p.vy);
-      const isStatic = speed < STATIC_THRESHOLD;
-      const staticFrames = p.staticFrames || 0;
-      
-      // Skip grid updates for static particles every few frames
-      if (isStatic && staticFrames > 0 && (staticFrames % STATIC_SKIP_FRAMES) !== 0) {
-        p.staticFrames = staticFrames + 1;
-        continue;
-      }
-
-      // Queue for reindexing
-      this.particlesToReindex.push(p);
     }
 
     this.activeParticles.length = writeIndex;
-    
-    // Process all reindexing in batch
-    this.processBatchedReindexing();
   }
 
-  public collectVisibleParticles(camera: Camera): ExtendedParticle[] {
-    const raw = camera.getViewportBounds();
-    
-    // Reuse bounds object to avoid allocation
-    this.cachedBounds.x = Math.floor(raw.x);
-    this.cachedBounds.y = Math.floor(raw.y);
-    this.cachedBounds.width = Math.floor(raw.width);
-    this.cachedBounds.height = Math.floor(raw.height);
-
-    const changed =
-      !this.lastCameraBounds ||
-      this.cachedBounds.x !== this.lastCameraBounds.x ||
-      this.cachedBounds.y !== this.lastCameraBounds.y ||
-      this.cachedBounds.width !== this.lastCameraBounds.width ||
-      this.cachedBounds.height !== this.lastCameraBounds.height;
-
-    if (!this.particlesDirty && !changed) return this.cachedVisibleParticles;
-
-    const pad = this.CULL_PADDING;
-    const left = this.cachedBounds.x - pad;
-    const right = this.cachedBounds.x + this.cachedBounds.width + pad;
-    const top = this.cachedBounds.y - pad;
-    const bottom = this.cachedBounds.y + this.cachedBounds.height + pad;
-
-    const minGX = Math.floor(left) >> GRID_SIZE_BITS;
-    const maxGX = Math.floor(right) >> GRID_SIZE_BITS;
-    const minGY = Math.floor(top) >> GRID_SIZE_BITS;
-    const maxGY = Math.floor(bottom) >> GRID_SIZE_BITS;
-
-    // Reuse scratch array
-    const visible = this.visibleScratch;
-    visible.length = 0;
-
-    for (let gx = minGX; gx <= maxGX; gx++) {
-      for (let gy = minGY; gy <= maxGY; gy++) {
-        // Skip cells that don't overlap with view
-        if (!this.cellOverlapsView(gx, gy, left, right, top, bottom)) {
-          continue;
-        }
-
-        const key = this.getGridKey(gx, gy);
-        const bucket = this.spatialGrid.get(key);
-        if (!bucket) continue;
-
-        for (const p of bucket) {
-          const { x, y, size } = p;
-          if (
-            x + size >= left &&
-            x - size <= right &&
-            y + size >= top &&
-            y - size <= bottom
-          ) {
-            visible.push(p);
-          }
-        }
-      }
-    }
-
-    this.cachedVisibleParticles = visible.slice(); // Create a copy for caching
-    
-    // Reuse one object and mutate
-    this.lastCameraBounds = this.lastCameraBounds || { x: 0, y: 0, width: 0, height: 0 };
-    Object.assign(this.lastCameraBounds, this.cachedBounds);
-
-    this.particlesDirty = false;
-    return this.cachedVisibleParticles;
+  public collectVisibleParticles(camera: Camera): Particle[] {
+    // Simply return all active particles - no spatial culling
+    return this.activeParticles;
   }
 
-  private getParticle(): ExtendedParticle {
+  private getParticle(): Particle {
     const particle = this.particlePool.pop() || {
       x: 0, y: 0, vx: 0, vy: 0,
       size: 1, life: 1, color: '#fff', speed: 0,
       r: 1, g: 1, b: 1,
     };
     
-    // Reset grid tracking properties
-    particle.gridX = undefined;
-    particle.gridY = undefined;
-    particle.gridKey = undefined;
-    particle.staticFrames = undefined;
-    
     return particle;
   }
 
-  public removeParticle(p: ExtendedParticle): void {
+  public removeParticle(p: Particle): void {
     const idx = this.activeParticles.indexOf(p);
     if (idx !== -1) {
       this.activeParticles.splice(idx, 1);
@@ -794,9 +683,7 @@ export class ParticleManager {
     }
   }
 
-  private recycleParticle(p: ExtendedParticle): void {
-    this.removeFromGrid(p);
-
+  private recycleParticle(p: Particle): void {
     if (p.lightId) {
       this.lightingOrchestrator.removeLight(p.lightId);
       p.lightId = undefined;
@@ -807,10 +694,6 @@ export class ParticleManager {
     p.fadeOut = undefined;
     p.fadeMode = undefined;
     p.renderAlpha = undefined;
-    p.gridX = undefined;
-    p.gridY = undefined;
-    p.gridKey = undefined;
-    p.staticFrames = undefined;
 
     p.r = 1;
     p.g = 1;
@@ -830,11 +713,8 @@ export class ParticleManager {
     this.particlePool.length = 0;
     this.cachedVisibleParticles.length = 0;
     this.visibleScratch.length = 0;
-    this.particlesToReindex.length = 0;
     this.lastCameraBounds = null;
-    this.spatialGrid.clear();
     this.emissionAccumulator = 0;
     this.particlesDirty = true;
-    this.frameCounter = 0;
   }
 }

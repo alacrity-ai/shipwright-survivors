@@ -29,13 +29,12 @@ export class BlockObjectCollisionSystem {
   constructor(private readonly combatService: CombatService) {}
 
   public resolveCollisions(movingObject: CompositeBlockObject): void {
-    if (!PlayerSettingsManager.getInstance().isCollisionsEnabled()) return;
-
     this._blockCache.clear(); // Critical to ensure per-frame freshness
 
     const nearbyObjects = this.getNearbyObjects(movingObject);
     for (const otherObject of nearbyObjects) {
       if (!this.aabbOverlap(movingObject, otherObject)) continue;
+      if (!otherObject.isConstructed()) continue;
 
       movingObject.setColliding(true);
       otherObject.setColliding(true);

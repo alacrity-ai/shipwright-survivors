@@ -42,6 +42,10 @@ export class PlayerShipCollection {
 
   private selectedColor: ShipColorPreset = ShipColorPreset.White;
 
+  private cachedSkillEffects: Record<string, ShipSkillEffectMetadata> = {};
+  private cachedArtifactEffects: Record<string, ArtifactEffectMetadata> = {};
+  private cachedTotalModifiers: Record<string, ShipSkillEffectMetadata & ArtifactEffectMetadata> = {};
+
   private constructor() {}
 
   static getInstance(): PlayerShipCollection {
@@ -61,22 +65,54 @@ export class PlayerShipCollection {
     return this.activeShip;
   }
 
-  getSkillEffectsForActiveShip(): ShipSkillEffectMetadata {
-    if (!this.activeShip) return {};
-    return getAggregatedSkillEffects(this.activeShip.name);
-  }
-
-  public getArtifactEffectsForActiveShip(): ArtifactEffectMetadata {
-    if (!this.activeShip) return {};
-    return getAggregatedArtifactEffects(this.activeShip.name);
-  }
-
   getActiveShipFilepath(): string {
     const filepath = this.activeShip?.filepath;
     if (!filepath) return 'player/ship_00';
     return filepath;
   }
 
+  // === Artifact and Skill tree handling (Cached)
+  // Must be cleared when equipping/unequipping or entering missiones
+
+  public clearCachedModifiers(): void {
+    this.cachedSkillEffects = {};
+    this.cachedArtifactEffects = {};
+    this.cachedTotalModifiers = {};
+  }
+
+  public getSkillEffectsForActiveShip(): ShipSkillEffectMetadata {
+    const id = this.activeShip?.name;
+    if (!id) return {};
+
+    if (!this.cachedSkillEffects[id]) {
+      this.cachedSkillEffects[id] = getAggregatedSkillEffects(id);
+    }
+    return this.cachedSkillEffects[id];
+  }
+
+  public getArtifactEffectsForActiveShip(): ArtifactEffectMetadata {
+    const id = this.activeShip?.name;
+    if (!id) return {};
+
+    if (!this.cachedArtifactEffects[id]) {
+      this.cachedArtifactEffects[id] = getAggregatedArtifactEffects(id);
+    }
+    return this.cachedArtifactEffects[id];
+  }
+
+  public getTotalModifiersForActiveShip(): ArtifactEffectMetadata & ShipSkillEffectMetadata {
+    const id = this.activeShip?.name;
+    if (!id) return {};
+
+    if (!this.cachedTotalModifiers[id]) {
+      this.cachedTotalModifiers[id] = {
+        ...this.getSkillEffectsForActiveShip(),
+        ...this.getArtifactEffectsForActiveShip(),
+      };
+    }
+    return this.cachedTotalModifiers[id];
+  }
+  
   // === Discover & Unlock ===
 
   discover(shipName: string): void {

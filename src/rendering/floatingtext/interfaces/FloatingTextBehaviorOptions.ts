@@ -2,7 +2,7 @@
 
 export interface FloatingTextBehaviorOptions {
   flashColor?: string;
-  impactScale?: number; // e.g., 1.5 for a "pop" effect at start
-  fadeOut?: boolean;    // Whether to fade or not
-  multiColor?: boolean; // NEW: Whether to cycle through colors 
+  impactScale?: number;
+  fadeOut?: boolean;
+  multiColor?: boolean; // NEW: Whether to cycle through colors <--- This stopped working
 }

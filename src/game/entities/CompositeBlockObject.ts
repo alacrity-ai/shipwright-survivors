@@ -68,6 +68,10 @@ export abstract class CompositeBlockObject {
     }
   }
 
+  public isConstructed(): boolean {
+    return true;
+  }
+
   /** Subclass must define entity update logic */
   public update(dt: number): void {};
 
@@ -154,29 +158,27 @@ export abstract class CompositeBlockObject {
     return this.blocks.get('0,0')?.block;
   }
 
-  // Do we need both this and findBlockCoord?
   public getBlockCoord(block: BlockInstance): GridCoord | null {
     return this.blockToCoordMap.get(block) ?? null;
   }
 
-  getBlocksWithinGridDistance(centerCoord: GridCoord, distance: number): BlockInstance[] {
-    const blocksInRange: BlockInstance[] = [];
-    
+  getBlocksWithinGridDistance(centerCoord: GridCoord, distance: number): Array<[GridCoord, BlockInstance]> {
+    const result: Array<[GridCoord, BlockInstance]> = [];
+
     for (const [_, block] of this.getAllBlocks()) {
       const blockCoord = this.getBlockCoord(block);
       if (!blockCoord) continue;
-      
+
       const dx = Math.abs(blockCoord.x - centerCoord.x);
       const dy = Math.abs(blockCoord.y - centerCoord.y);
-      
-      const gridDistance = Math.max(dx, dy); // Chebyshev (square coverage)
-      
+
+      const gridDistance = Math.max(dx, dy); // Chebyshev distance
       if (gridDistance <= distance) {
-        blocksInRange.push(block);
+        result.push([blockCoord, block]);
       }
     }
-    
-    return blocksInRange;
+
+    return result;
   }
 
   public hideAllBlocks(): void {
