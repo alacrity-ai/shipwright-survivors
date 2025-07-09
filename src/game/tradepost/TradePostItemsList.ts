@@ -18,17 +18,23 @@ import { TradePostItemsTooltipRenderer } from './TradePostItemTooltipRenderer';
 import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
 import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 
+import { getArtifactIconSprite } from '@/game/ship/artifacts/icons/ArtifactIconSpriteCache';
+import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
+import { ArtifactTooltipRenderer } from '@/game/ship/artifacts/ui/ArtifactTooltipRenderer';
+import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+
 export class TradePostItemsList {
   private instance: TradePostInstance;
   private inputManager: InputManager;
   private buttons: UIButton[] = [];
 
   private tooltipRenderer = new TradePostItemsTooltipRenderer();
+  private artifactRenderer = new ArtifactTooltipRenderer();
+
   private hoveredItem: { label: string; x: number; y: number } | null = null;
 
   private baseX = 0;
   private baseY = 0;
-
   private rowHeight = 0;
   private verticalSpacing = 0;
   private cardSize = 0;
@@ -86,6 +92,11 @@ export class TradePostItemsList {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       const item = entry.item;
+
+      if (item.type === 'artifact' && PlayerArtifactsManager.getInstance().isUnlocked(item.id)) {
+        continue; // Skip rendering this artifact if unlocked
+      }     
+
       const quantity = this.instance.getRemainingQuantity(i);
       const canAfford = this.instance.canAfford(i);
 
@@ -112,6 +123,10 @@ export class TradePostItemsList {
         } else if (item.type === 'ship') {
           const shipName = ShipBlueprintRegistry.getByName(item.id)?.name ?? item.id;
           this.hoveredItem = { label: shipName, x: mx, y: my };
+        } else if (item.type === 'artifact') {
+          const artifact = getArtifactById(item.id);
+          const label = artifact?.name ?? item.id;
+          this.hoveredItem = { label, x: mx, y: my };
         }
 
         if (clicked && canAfford && quantity > 0) {
@@ -150,6 +165,11 @@ export class TradePostItemsList {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       const item = entry.item;
+
+      if (item.type === 'artifact' && PlayerArtifactsManager.getInstance().isUnlocked(item.id)) {
+        continue; // Skip rendering this artifact if unlocked
+      }
+
       const quantity = this.instance.getRemainingQuantity(i);
       const canAfford = this.instance.canAfford(i);
 
@@ -184,6 +204,20 @@ export class TradePostItemsList {
           isSelected: false,
           isLocked: !canAfford,
         });
+      } else if (item.type === 'artifact') {
+        const artifact = getArtifactById(item.id);
+        const icon = artifact ? await getArtifactIconSprite(artifact.icon) : null;
+        if (icon) {
+          ctx.save();
+          ctx.globalAlpha = canAfford ? 1.0 : 0.3;
+          ctx.drawImage(icon, iconX, y, this.cardSize, this.cardSize);
+          if (isOutputHovered) {
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(iconX, y, this.cardSize, this.cardSize);
+          }
+          ctx.restore();
+        }
       }
 
       // === Render Wants (Required Blocks) ===
@@ -228,13 +262,27 @@ export class TradePostItemsList {
     }
 
     // === Tooltip Rendering ===
-    if (this.hoveredItem) {
-      this.tooltipRenderer.renderTooltip(
-        this.hoveredItem.x,
-        this.hoveredItem.y,
-        this.hoveredItem.label,
-        scale
-      );
+    if (this.hoveredItem && this.hoveredIndex >= 0) {
+      const hoveredEntry = this.instance.getAllEntries()[this.hoveredIndex];
+      const hoveredItem = hoveredEntry.item;
+
+      if (hoveredItem.type === 'artifact') {
+        this.artifactRenderer.renderTooltip(
+          hoveredItem.id,
+          this.hoveredItem.x,
+          this.hoveredItem.y,
+          scale,
+          'right',
+          null
+        );
+      } else {
+        this.tooltipRenderer.renderTooltip(
+          this.hoveredItem.x,
+          this.hoveredItem.y,
+          this.hoveredItem.label,
+          scale
+        );
+      }
     }
   }
 
@@ -250,12 +298,16 @@ export class TradePostItemsList {
     const rowSpacing = 100 * scale;
 
     for (let i = 0; i < entries.length; i++) {
+      const item = entries[i].item;
+      if (item.type === 'artifact' && PlayerArtifactsManager.getInstance().isUnlocked(item.id)) {
+        continue;
+      }
 
       navPoints.push({
         gridX: 0,
-        gridY: i,
+        gridY: navPoints.length,
         screenX: baseScreenX,
-        screenY: baseScreenY + (i * rowSpacing),
+        screenY: baseScreenY + (navPoints.length * rowSpacing),
         isEnabled: true,
       });
     }

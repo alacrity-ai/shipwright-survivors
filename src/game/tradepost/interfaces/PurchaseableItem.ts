@@ -17,4 +17,12 @@ export type PurchaseableItem =
       wants: string[];          // Required block type IDs
       label?: string;           // Optional override display label
       quantity?: number;        // Optional quantity (default 1)
+    }
+  | {
+      type: 'artifact';
+      id: string; // ArtifactDefinition.id
+      wants: string[];
+      label?: string;
+      quantity?: number; // Optional: whether stock-limited or infinite
     };
+

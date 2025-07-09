@@ -8,17 +8,18 @@ import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManag
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager'; // IMPORTED
 
 export interface SaveGameData {
   flags: string[];
   unlockedBlockIds: string[];
-  // settings?: string; // Deprecated — settings are now stored globally
   passives?: any;
   metaCurrency?: any;
   version?: number;
   ships?: string;
   shipSkillTrees?: string;
   artifacts?: string;
+  tradeposts?: string;
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
@@ -75,6 +76,7 @@ export class SaveGameManager {
       ships: PlayerShipCollection.getInstance().toJSON(),
       shipSkillTrees: PlayerShipSkillTreeManager.getInstance().toJSON(),
       artifacts: PlayerArtifactsManager.getInstance().toJSON(),
+      tradeposts: PlayerTradePostManager.getInstance().toJSON(),
       version: 1,
     };
 
@@ -102,6 +104,9 @@ export class SaveGameManager {
     }
     if (data.artifacts) {
       PlayerArtifactsManager.getInstance().fromJSON(data.artifacts);
+    }
+    if (data.tradeposts) {
+      PlayerTradePostManager.getInstance().fromJSON(data.tradeposts);
     }
   }
 
@@ -143,6 +148,12 @@ export class SaveGameManager {
   }
 
   // === SAVE METHODS ===
+
+  public saveTradePosts(): void {
+    const data = this.loadData();
+    data.tradeposts = PlayerTradePostManager.getInstance().toJSON();
+    this.writeData(data);
+  }
 
   public saveFlags(): void {
     const data = this.loadData();
@@ -192,6 +203,13 @@ export class SaveGameManager {
   }
 
   // === LOAD METHODS ===
+
+  public loadTradePosts(): void {
+    const data = this.loadData();
+    if (data.tradeposts) {
+      PlayerTradePostManager.getInstance().fromJSON(data.tradeposts);
+    }
+  }
 
   public loadFlags(): void {
     const data = this.loadData();

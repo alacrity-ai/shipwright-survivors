@@ -115,6 +115,8 @@ import { PlayerStats } from '@/game/player/PlayerStats';
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
+import { TradePostRegistry } from '@/game/tradepost/registry/TradePostRegistry';
+import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { flags } from '@/game/player/PlayerFlagManager';
 
 // Debug
@@ -123,6 +125,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { testActivePowerupEffectResolver } from '@/game/powerups/test/poweruptest';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
+import { eraseAllArtifacts } from '@/game/ship/artifacts/helpers/eraseAllArtifacts';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -749,12 +752,13 @@ export class EngineRuntime {
       spawnShipBlueprint(0, 0, 'Godhand Prototype');
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyM')) {
-      PlayerShipCollection.getInstance().addExperience('SW-1 Standard Issue', 100);
+    if (this.inputManager.wasKeyJustPressed('KeyT')) {
+      eraseAllArtifacts();
+      TradePostRegistry.clearInstances();
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyT')) {
-      this.tradePostMenu.openMenu('mission3-tradepost-0');
+    if (this.inputManager.wasKeyJustPressed('KeyM')) {
+      PlayerShipCollection.getInstance().addExperience('SW-1 Standard Issue', 100);
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
@@ -804,7 +808,8 @@ export class EngineRuntime {
       // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
-      const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
+      // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
+      const randomTypes = ['facetplate2', 'hull2', 'fin2'];
       for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -1039,6 +1044,7 @@ export class EngineRuntime {
 
     setTimeout(() => {
       missionResultStore.finalize('victory', this.gameLoop.getElapsedSeconds());
+      PlayerTradePostManager.getInstance().reset();
       this.destroy();
       sceneManager.setScene('debriefing');
     }, timeoutMs);

@@ -30,7 +30,6 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
-import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 
 const BACKGROUND_PATH = 'assets/backgrounds/background_2_00.png';
 
@@ -159,14 +158,6 @@ export class ShipSelectionSceneManager {
   }
 
   async start() {
-    // DEBUG UNLOCK ARTIFACTS
-    const artifacts = PlayerArtifactsManager.getInstance();
-    artifacts.unlockArtifact('fortification-module');
-    artifacts.unlockArtifact('heatseeker-targeting-module');
-    artifacts.unlockArtifact('unstable-thruster');
-    artifacts.unlockArtifact('reflector-plate');
-    artifacts.unlockArtifact('solar-capacitor');
-
     initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
 
     this.backgroundImage = await loadImage(BACKGROUND_PATH);

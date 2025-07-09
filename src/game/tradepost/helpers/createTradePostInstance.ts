@@ -6,6 +6,9 @@ import type { PurchaseableItem } from '@/game/tradepost/interfaces/PurchaseableI
 
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 
+import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
+
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -50,8 +53,41 @@ function consumeBlocks(required: string[]): boolean {
   return true;
 }
 
+// Weighted sampling without replacement using priority sampling
+function selectVisibleTradeItems(
+  entries: TradePostItemEntry[],
+  maxVisible: number
+): TradePostItemEntry[] {
+  const guaranteed = entries.filter(e => e.guaranteed);
+  const nonGuaranteed = entries.filter(e => !e.guaranteed);
+
+  const slotsRemaining = Math.max(0, maxVisible - guaranteed.length);
+
+  const keyed: { entry: TradePostItemEntry; priority: number }[] = [];
+
+  for (const entry of nonGuaranteed) {
+    const weight = entry.appearanceChance ?? 1.0;
+    if (weight <= 0) continue;
+
+    // Proper priority sampling — higher weight = more likely to be selected
+    const priority = -Math.log(Math.random()) / weight;
+    keyed.push({ entry, priority });
+  }
+
+  keyed.sort((a, b) => a.priority - b.priority);
+
+  const selected = keyed.slice(0, slotsRemaining).map(k => k.entry);
+
+  return [...guaranteed, ...selected];
+}
+
 export function createTradePostInstance(def: TradePost): TradePostInstance {
-  const stock: number[] = def.items.map(e => e.quantity);
+  const visibleItems = selectVisibleTradeItems(
+    def.items,
+    def.metaData?.maxVisibleItems ?? 3
+  );
+
+  const stock: number[] = visibleItems.map(e => e.quantity);
 
   return {
     id: def.id,
@@ -61,14 +97,22 @@ export function createTradePostInstance(def: TradePost): TradePostInstance {
     },
 
     canAfford(index: number): boolean {
-      const entry = def.items[index];
+      const entry = visibleItems[index];
       if (!entry || stock[index] <= 0) return false;
+
+      const { item } = entry;
+
+      // Artifact: skip if already unlocked
+      if (item.type === 'artifact' && PlayerArtifactsManager.getInstance().isUnlocked(item.id)) {
+        return false;
+      }
+
       const blockIds = PlayerResources.getInstance().getBlockQueue().map(b => b.id);
-      return multisetContains(blockIds, entry.item.wants);
+      return multisetContains(blockIds, item.wants);
     },
 
     executeTransaction(index: number): boolean {
-      const entry = def.items[index];
+      const entry = visibleItems[index];
       if (!entry || stock[index] <= 0) return false;
       if (!this.canAfford(index)) return false;
 
@@ -80,11 +124,20 @@ export function createTradePostInstance(def: TradePost): TradePostInstance {
       if (item.type === 'block') {
         const blockType = getBlockType(item.id);
         player.enqueueBlockToFront(blockType!);
+
       } else if (item.type === 'ship') {
         const collection = PlayerShipCollection.getInstance();
         missionResultStore.addShipDiscovery(item.id);
         collection.discover(item.id);
         collection.unlock(item.id);
+
+      } else if (item.type === 'artifact') {
+        const artifacts = PlayerArtifactsManager.getInstance();
+
+        // Guard against unlocking twice (redundant, but defensive)
+        if (!artifacts.isUnlocked(item.id)) {
+          artifacts.unlockArtifact(item.id);
+        }
       }
 
       stock[index] -= 1;
@@ -93,16 +146,16 @@ export function createTradePostInstance(def: TradePost): TradePostInstance {
 
     getAvailableItems() {
       const out: { entry: TradePostItemEntry; index: number }[] = [];
-      for (let i = 0; i < def.items.length; i++) {
+      for (let i = 0; i < visibleItems.length; i++) {
         if (this.canAfford(i)) {
-          out.push({ entry: def.items[i], index: i });
+          out.push({ entry: visibleItems[i], index: i });
         }
       }
       return out;
     },
 
     getAllEntries(): TradePostItemEntry[] {
-      return def.items;
+      return visibleItems;
     },
 
     getOriginalDefinition(): TradePost {

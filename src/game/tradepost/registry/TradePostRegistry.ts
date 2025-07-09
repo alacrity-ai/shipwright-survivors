@@ -3,6 +3,7 @@
 import type { TradePost } from '@/game/tradepost/interfaces/TradePost';
 import type { TradePostInstance } from '@/game/tradepost/interfaces/TradePostInstance';
 
+import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { createTradePostInstance } from '@/game/tradepost/helpers/createTradePostInstance';
 
 import { mission1TradePost0 } from './definitions/mission1TradePost0';
@@ -38,8 +39,22 @@ export const TradePostRegistry = {
     return Array.from(tradePostMap.values());
   },
 
+  /** Returns a persistent instance of the tradepost (randomized once per mission). */
   getInstanceById(id: string): TradePostInstance {
+    const manager = PlayerTradePostManager.getInstance();
+
+    const existing = manager.getInstanceById(id);
+    if (existing) return existing;
+
     const def = this.getById(id);
-    return createTradePostInstance(def);
+    const instance = createTradePostInstance(def);
+
+    manager.setInstanceById(id, instance);
+    return instance;
+  },
+
+  /** For testing or mission transitions. Clears all cached tradepost instances. */
+  clearInstances(): void {
+    PlayerTradePostManager.getInstance().reset();
   }
 };
