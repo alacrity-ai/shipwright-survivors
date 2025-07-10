@@ -2,12 +2,15 @@
 
 import { getArtifactIconSprite } from '@/game/ship/artifacts/icons/ArtifactIconSpriteCache';
 import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
+import { getRarityColor, getRarityColorDarkened } from '../helpers/getRarityColor';
+import { getUniformScaleFactor } from '@/config/view';
 
 interface ArtifactSlotRenderParams {
   ctx: CanvasRenderingContext2D;
   x: number;
   y: number;
   size: number;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
   iconKey?: string;
   isHovered: boolean;
   isSelected: boolean;
@@ -17,6 +20,7 @@ interface ArtifactSlotRenderParams {
 export async function drawArtifactSlot(params: ArtifactSlotRenderParams): Promise<void> {
   const {
     ctx, x, y, size,
+    rarity,
     iconKey,
     isHovered,
     isSelected,
@@ -25,9 +29,11 @@ export async function drawArtifactSlot(params: ArtifactSlotRenderParams): Promis
 
   ctx.save();
 
+  const scale = getUniformScaleFactor();
+
   // === Visual Theming ===
-  const baseBorderColor = '#00FFFF';
-  const hoverBorderColor = '#FFFFFF';
+  const baseBorderColor = getRarityColorDarkened(rarity) || '#00FFFF';
+  const hoverBorderColor = getRarityColor(rarity) || '#FFFFFF';
   const selectedBorderColor = '#00FFAA';
   const fillColor = '#001122';
 
@@ -45,6 +51,7 @@ export async function drawArtifactSlot(params: ArtifactSlotRenderParams): Promis
     borderColor,
     fillColor,
     alpha: borderAlpha,
+    borderWidth: 2 * scale,
   });
 
   // === Icon or Placeholder ===
@@ -59,7 +66,7 @@ export async function drawArtifactSlot(params: ArtifactSlotRenderParams): Promis
     // Draw subtle glowing placeholder ring
     ctx.beginPath();
     ctx.strokeStyle = '#005577';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2 * scale;
     ctx.arc(x + size / 2, y + size / 2, iconSize * 0.4, 0, Math.PI * 2);
     ctx.stroke();
   }

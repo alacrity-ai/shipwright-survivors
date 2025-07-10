@@ -6,7 +6,7 @@ export const fortificationModule: ArtifactDefinition = {
   id: 'fortification-module',
   name: 'Fortification Module',
   description: 'Increases maximum cockpit armor.',
-  icon: 'icon-fortification',
+  icon: 'icon-fortification-module',
   cost: 500,
   rarity: 'common',
   metadata: {

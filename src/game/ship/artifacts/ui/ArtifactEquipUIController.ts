@@ -111,6 +111,7 @@ export class ArtifactEquipUIController {
         x: this.slots[i].x,
         y: this.slots[i].y,
         size: this.scaledSlotSize,
+        rarity: artifact ? getArtifactById(artifact)?.rarity ?? 'common' : 'common',
         iconKey,
         isHovered: this.slots[i].isHovered,
         isSelected: false,
@@ -128,7 +129,7 @@ export class ArtifactEquipUIController {
         this.tooltipRenderer.renderTooltip(artifactId, mouse.x, mouse.y, uiScale, 'left', null);
       } else {
         const device = InputDeviceTracker.getInstance().getLastUsed();
-        const label = device === 'gamepad' ? 'Press A to Select Artifact' : 'Click to Select Artifact';
+        const label = device === 'gamepad' ? 'Press (A) to Select Artifact' : 'Click to Select Artifact';
 
         this.renderEmptyTooltip(ctx, mouse.x, mouse.y, uiScale, label);
       }

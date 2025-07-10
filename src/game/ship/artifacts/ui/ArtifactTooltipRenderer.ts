@@ -5,7 +5,7 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
 import { DEFAULT_CONFIG } from '@/config/ui';
 import { getRarityColor } from '@/game/ship/artifacts/helpers/getRarityColor';
-import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+import { formatLabel, formatValue } from '@/game/ship/artifacts/helpers/tooltipLabelHelpers';
 
 const BOX_PADDING = 24;
 const LINE_SPACING = 36;
@@ -29,7 +29,8 @@ export class ArtifactTooltipRenderer {
     anchorY: number,
     uiScale: number,
     position: 'left' | 'right' = 'right',
-    equippedOnShipName: string | null
+    equippedOnShipName: string | null,
+    locked: boolean = false
   ): void {
     const ctx = this.canvasManager.getContext('overlay');
     if (!ctx) return;
@@ -37,31 +38,33 @@ export class ArtifactTooltipRenderer {
     const artifact = getArtifactById(artifactId);
     if (!artifact) return;
 
-    const {
-      name,
-      description,
-      rarity,
-      metadata
-    } = artifact;
+    const { name, description, rarity, metadata } = artifact;
 
-    const { blackColor, infoTextColor, accentColor, statColor } = DEFAULT_CONFIG.general;
+    const {
+      blackColor,
+      infoTextColor,
+      accentColor: baseAccentColor,
+      statColor
+    } = DEFAULT_CONFIG.general;
+
+    const accentColor = locked ? '#666666' : baseAccentColor;
+    const dimmedTextColor = locked ? '#999999' : infoTextColor;
+    const nameColor = getRarityColor(rarity);
 
     uiScale *= 0.75;
 
     const metadataEntries = Object.entries(metadata);
 
-    // === Pre-calculate wrapped lines ===
+    // === Pre-calculate wrapped description ===
     ctx.save();
     ctx.font = BODY_FONT;
     const descriptionLines = this.wrapText(ctx, description, MAX_WIDTH - BOX_PADDING * 2);
     ctx.restore();
 
-    // === Compute dynamic height ===
+    // === Height Calculation ===
     const nameLineCount = 1;
     const wrappedLineCount = descriptionLines.length;
-    const wrappedHeight =
-      (wrappedLineCount - 1) * WRAPPED_LINE_SPACING + LINE_SPACING;
-
+    const wrappedHeight = (wrappedLineCount - 1) * WRAPPED_LINE_SPACING + LINE_SPACING;
     const metadataLineCount = metadataEntries.length;
 
     let totalHeight =
@@ -69,9 +72,8 @@ export class ArtifactTooltipRenderer {
       wrappedHeight +
       metadataLineCount * LINE_SPACING;
 
-    if (equippedOnShipName) {
-      totalHeight += LINE_SPACING; // extra room for equipped warning
-    }
+    if (equippedOnShipName) totalHeight += LINE_SPACING;
+    if (locked) totalHeight += LINE_SPACING;
 
     const boxWidth = MAX_WIDTH * uiScale;
     const boxHeight = (totalHeight + BOX_PADDING * 2) * uiScale;
@@ -102,24 +104,24 @@ export class ArtifactTooltipRenderer {
     // Name
     drawLabel(ctx, labelX, currentY, name, {
       font: NAME_FONT,
-      color: getRarityColor(rarity),
-      glow: true,
+      color: nameColor,
+      glow: !locked,
     }, uiScale);
 
     currentY += LINE_SPACING * uiScale;
 
-    // Description (wrapped, with reduced spacing)
+    // Description (wrapped)
     for (let i = 0; i < descriptionLines.length; i++) {
       drawLabel(ctx, labelX, currentY, descriptionLines[i], {
         font: BODY_FONT,
-        color: infoTextColor,
+        color: dimmedTextColor,
       }, uiScale);
       currentY += (i === descriptionLines.length - 1 ? LINE_SPACING : WRAPPED_LINE_SPACING) * uiScale;
     }
 
     // Metadata
     for (const [key, value] of metadataEntries) {
-      const label = `${this.formatLabel(key)}: ${this.formatValue(value)}`;
+      const label = `${formatLabel(key)}: ${formatValue(value)}`;
       drawLabel(ctx, labelX, currentY, label, {
         font: BODY_FONT,
         color: statColor,
@@ -127,7 +129,7 @@ export class ArtifactTooltipRenderer {
       currentY += LINE_SPACING * uiScale;
     }
 
-    // Equipped warning line
+    // Equipped warning
     if (equippedOnShipName) {
       drawLabel(ctx, labelX, currentY, `Equipped on "${equippedOnShipName}"`, {
         font: BODY_FONT,
@@ -135,70 +137,14 @@ export class ArtifactTooltipRenderer {
       }, uiScale);
       currentY += LINE_SPACING * uiScale;
     }
-  }
 
-  renderLockedTooltip(
-    anchorX: number,
-    anchorY: number,
-    uiScale: number,
-    position: 'left' | 'right' = 'right'
-  ): void {
-    const ctx = this.canvasManager.getContext('overlay');
-    if (!ctx) return;
-
-    const { blackColor, accentColor, infoTextColor } = DEFAULT_CONFIG.general;
-
-    uiScale *= 0.75;
-
-    const mysteryName = '????';
-    const mysteryDescription = 'This artifact has not yet been discovered.';
-    const descriptionLines = this.wrapText(ctx, mysteryDescription, MAX_WIDTH - BOX_PADDING * 2);
-
-    const wrappedLineCount = descriptionLines.length;
-    const wrappedHeight =
-      (wrappedLineCount - 1) * WRAPPED_LINE_SPACING + LINE_SPACING;
-
-    const totalHeight = LINE_SPACING + wrappedHeight;
-    const boxWidth = MAX_WIDTH * uiScale;
-    const boxHeight = (totalHeight + BOX_PADDING * 2) * uiScale;
-
-    const boxX =
-      position === 'left'
-        ? anchorX - boxWidth - 80 * uiScale
-        : anchorX + 80 * uiScale;
-
-    const boxY = anchorY - boxHeight / 2;
-
-    // === Background Box ===
-    ctx.save();
-    ctx.globalAlpha = 0.92;
-    ctx.fillStyle = blackColor;
-    ctx.strokeStyle = accentColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 10 * uiScale);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    // === Text Rendering ===
-    let currentY = boxY + BOX_PADDING * uiScale;
-    const labelX = boxX + BOX_PADDING * uiScale;
-
-    drawLabel(ctx, labelX, currentY, mysteryName, {
-      font: NAME_FONT,
-      color: '#888888',
-      glow: false,
-    }, uiScale);
-
-    currentY += LINE_SPACING * uiScale;
-
-    for (let i = 0; i < descriptionLines.length; i++) {
-      drawLabel(ctx, labelX, currentY, descriptionLines[i], {
+    // Locked warning
+    if (locked) {
+      drawLabel(ctx, labelX, currentY, `Not yet discovered`, {
         font: BODY_FONT,
-        color: infoTextColor,
+        color: '#AAAAAA',
       }, uiScale);
-      currentY += (i === descriptionLines.length - 1 ? LINE_SPACING : WRAPPED_LINE_SPACING) * uiScale;
+      currentY += LINE_SPACING * uiScale;
     }
   }
 
@@ -224,44 +170,5 @@ export class ArtifactTooltipRenderer {
 
     if (currentLine) lines.push(currentLine);
     return lines;
-  }
-
-  private formatLabel(key: string): string {
-    const map: Record<string, string> = {
-      maxHealthBonus: 'Max HP',
-      cockpitArmorBonus: 'Cockpit Armor',
-      energyRegenRate: 'Energy Regen',
-      entropiumPickupBonus: 'Entropium Bonus',
-      reviveOnDeath: 'Auto-Revive',
-      heatSeekersTargetNearest: 'Heat Seeker Targeting',
-      alwaysSuperPulse: 'Super Pulse Always',
-      startingBlocks: 'Starting Blocks',
-      chanceToReflectTurretProjectiles: 'Turret Reflect Chance',
-      solarCapacitorSpecial: 'Solar Explosion',
-    };
-    return map[key] ?? key;
-  }
-
-  private formatValue(value: unknown): string {
-    if (typeof value === 'boolean') {
-      return value ? '✓' : '✗';
-    }
-
-    if (typeof value === 'number') {
-      // Integers remain as-is
-      if (Number.isInteger(value)) {
-        return `${value}`;
-      }
-
-      // Render decimals as percentages (e.g., 0.15 → "15%")
-      const percentage = (value * 100).toFixed(1).replace(/\.0$/, '');
-      return `${percentage}%`;
-    }
-
-    if (Array.isArray(value)) {
-      return `[${value.join(', ')}]`;
-    }
-
-    return String(value);
   }
 }

@@ -21,6 +21,7 @@ export class ArtifactCollectionUIRenderer {
         x: slot.x,
         y: slot.y,
         size: slot.size,
+        rarity: slot.artifact?.rarity ?? 'common',
         iconKey: slot.artifact?.icon ?? undefined,
         isHovered: slot.isHovered,
         isSelected: slot.isSelected,

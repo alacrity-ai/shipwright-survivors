@@ -1,31 +1,30 @@
 export interface ArtifactEffectMetadata {
-  // Universal effects
-  cockpitArmorBonus?: number; // Flat
-  energyCapacityBonus?: number;
-  energyRegenRate?: number;
-  movementSpeedMultiplier?: number;
-  alwaysSuperPulse?: boolean;
-  blockRepairSpeed?: number;
-  blockDropRateBonus?: number;
-  entropiumPickupBonus?: number;
-
-  // Weapon-specific enhancements
-  turretFiringRate?: number;
-  turretDamageMultiplier?: number;
-  seekerTrackingBonus?: number;
-  heatSeekersTargetNearest?: boolean;
-  explosiveLanceStunChance?: number;
-  laserPiercingBonus?: number;
-
+  // Damage Universal
+  outgoingDamageMultiplier?: number; // Multiplies outgoing damage
+  incomingDamageMultiplier?: number; // Multiplies incoming damage
+  baseLifestealPercentage?: number;
+  criticalHitChanceBonus?: number;
+  criticalHitMultiplierBonus?: number;
+  damageScalingWithMass?: boolean;
+  
   // Defensive/Utility traits
-  shieldCapacityBonus?: number;
-  shieldRechargeRate?: number;
-  damageReflectionChance?: number;
+  cockpitArmorBonus?: number; // Flat
+  collisionDamageMitigationMultiplier?: number;
   chanceToReflectTurretProjectiles?: number;
-  reviveOnDeath?: boolean;
+  blockHP5s?: number;
+  radialKnockbackPulseInterval?: number;
+  periodicOneHitShieldInterval?: number;
+  blockSurvivalChance?: number;
+  blockDurabilityMultiplier?: number;
+
+  // Movement
+  thrustMultiplier?: number;
+
+  // Weapon specific
+  heatSeekersTargetNearest?: boolean;
 
   // Artifact-specific mechanics
-  spawnExtraDrone?: boolean;
+  alwaysSuperPulse?: boolean;
   attractPickupsInRadius?: number;
   deployTemporaryShieldOnHit?: boolean;
   solarCapacitorSpecial?: boolean;
@@ -33,5 +32,54 @@ export interface ArtifactEffectMetadata {
   // Start-up alterations
   startingBlocks?: string[]; // Injected blocks at ship spawn time
 
-  // Future slots reserved for status effects, passive triggers, etc.
+  // Gambling / Economy
+  blockGamblingUpgradeBias?: number;
+  tradePostPriceReduction?: number;
+  convertPlacedBlocksToEntropium?: boolean;
+  spawnRandomBlockInterval?: number;
+  blockDropRateBonus?: number;
+  entropiumPickupBonus?: number;
+  imprintFirstPlacedBlock?: boolean;
+  imprintDropBias?: number;
+  blockQueueUpgradeInterval?: number;
+  randomStartingBlockTier1?: boolean;
+  maximumBlockQueueSizeIncrease?: number;
+  pickupAttractionRangeIncrease?: number;
+
+  // Revive
+  reviveOnDeath?: boolean;
+  reviveBlockRetentionRatio?: number;
+
+  // Status
+  statusEffectOnSelfDurationMultiplier?: number;
+  reflectStatusEffectsToEnemies?: boolean;
+  damageToStatusedEnemiesMultiplier?: number;
+  inflictedStatusDurationMultiplier?: number;
+
+  // On kill / on damage effects
+  onKillHasteDuration?: number;
+  releaseShrapnelOnBlockDestruction?: boolean;
+
+  // Escorts
+  enemyRespawnAsEscortChance?: number;
+  escortDamageMultiplier?: number;
+  escortSpeedMultiplier?: number;
+  summonEidolonInterval?: number;
+  summonEidolonDuration?: number;
+
+  // Incidents
+  incidentSpawnRateMultiplier?: number;
+  incidentDamageMultiplier?: number;
+
+  // Negative
+  blockDecayRate?: number;
+  disableCriticalHits?: boolean;
+  disableStatusInfliction?: boolean;
+
+  // Unique
+  markedByFate?: boolean;
+  optionalBossSummonChance?: number;
+  onBlockDestroyedDamageBuff?: boolean;
+  convertDamageToOverTime?: boolean;
+
 }

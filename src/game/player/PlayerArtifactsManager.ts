@@ -1,7 +1,5 @@
 // src/player/PlayerArtifactsManager.ts
 
-import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/ArtifactDefinition';
-
 /**
  * Singleton responsible for managing:
  * - Artifact unlocks (globally)
@@ -94,10 +92,6 @@ export class PlayerArtifactsManager {
 
   public destroy(): void {
     this.reset();
-  }
-
-  public unlockAll(artifactIds: string[]): void {
-    artifactIds.forEach(id => this.unlockedArtifacts.add(id));
   }
 
   // === Serialization ===

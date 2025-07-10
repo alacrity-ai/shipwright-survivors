@@ -5,6 +5,7 @@ export interface MinimalistWindowOptions {
   borderColor?: string;
   fillColor?: string;
   alpha?: number;
+  borderWidth?: number;
 }
 
 /**
@@ -24,6 +25,7 @@ export function drawMinimalistWindow(
     borderColor = '#00FFFF',
     fillColor = '#001122',
     alpha = 1.0,
+    borderWidth = 2,
   } = options;
 
   ctx.save();
@@ -31,7 +33,7 @@ export function drawMinimalistWindow(
 
   ctx.fillStyle = fillColor;
   ctx.strokeStyle = borderColor;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = borderWidth;
 
   ctx.beginPath();
   ctx.roundRect(x, y, width, height, borderRadius);

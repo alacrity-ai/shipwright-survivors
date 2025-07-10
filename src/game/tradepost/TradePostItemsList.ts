@@ -117,6 +117,7 @@ export class TradePostItemsList {
         this.hoveredIndex = i;
         this.hoveredType = 'output';
 
+        // TODO : Sound specific to item type or tier unlocked
         if (item.type === 'block') {
           const label = this.tooltipRenderer.getBlockName(item.id);
           this.hoveredItem = { label, x: mx, y: my };

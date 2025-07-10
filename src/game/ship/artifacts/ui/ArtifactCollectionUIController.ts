@@ -59,6 +59,20 @@ export class ArtifactCollectionUIController {
     const registry = getAllArtifacts();
     const unlocked = new Set(PlayerArtifactsManager.getInstance().getUnlockedArtifacts());
 
+    // === Rarity sort order ===
+    const RARITY_ORDER: Record<ArtifactDefinition['rarity'], number> = {
+      common: 0,
+      rare: 1,
+      epic: 2,
+      legendary: 3,
+    };
+
+    // === Sort artifacts by rarity (common → legendary), then by name to stabilize order ===
+    const sortedArtifacts = [...registry].sort((a, b) => {
+      const rarityDiff = RARITY_ORDER[a.rarity] - RARITY_ORDER[b.rarity];
+      return rarityDiff !== 0 ? rarityDiff : a.name.localeCompare(b.name);
+    });
+
     const tileSize = SLOT_SIZE * this.scale;
     const spacing = SLOT_SPACING * this.scale;
 
@@ -67,7 +81,7 @@ export class ArtifactCollectionUIController {
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLUMNS; col++) {
         const index = row * COLUMNS + col;
-        const artifact = registry[index];
+        const artifact = sortedArtifacts[index];
 
         const x = GRID_ORIGIN_X * this.scale + col * (tileSize + spacing);
         const y = GRID_ORIGIN_Y * this.scale + row * (tileSize + spacing);
@@ -85,7 +99,7 @@ export class ArtifactCollectionUIController {
     }
   }
 
-update(): void {
+  update(): void {
     const mouse = this.inputManager.getMousePosition();
     const click = this.inputManager.wasMouseClicked();
     this.hoveredIndex = null;
@@ -145,29 +159,22 @@ update(): void {
     const columnIndex = this.hoveredIndex % COLUMNS;
     const position: 'left' | 'right' = columnIndex >= 4 ? 'left' : 'right';
 
-    if (slot.isUnlocked) {
-      const manager = PlayerArtifactsManager.getInstance();
-      const globallyEquippedShip = manager.findEquippedShipForArtifact(slot.artifact.id);
-      const equippedOnOtherShip = globallyEquippedShip && globallyEquippedShip !== this.currentShipName
+    const manager = PlayerArtifactsManager.getInstance();
+    const globallyEquippedShip = manager.findEquippedShipForArtifact(slot.artifact.id);
+    const equippedOnOtherShip =
+      globallyEquippedShip && globallyEquippedShip !== this.currentShipName
         ? globallyEquippedShip
         : null;
 
-      this.tooltipRenderer.renderTooltip(
-        slot.artifact.id,
-        mouse.x,
-        mouse.y,
-        this.scale,
-        position,
-        equippedOnOtherShip
-      );
-    } else {
-      this.tooltipRenderer.renderLockedTooltip(
-        mouse.x,
-        mouse.y,
-        this.scale,
-        position
-      );
-    }
+    this.tooltipRenderer.renderTooltip(
+      slot.artifact.id,
+      mouse.x,
+      mouse.y,
+      this.scale,
+      position,
+      equippedOnOtherShip,
+      !slot.isUnlocked // ← pass `locked: true` if not unlocked
+    );
   }
 
   setShipName(shipName: string): void {

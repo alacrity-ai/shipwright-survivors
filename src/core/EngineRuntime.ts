@@ -126,6 +126,8 @@ import { testActivePowerupEffectResolver } from '@/game/powerups/test/poweruptes
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
 import { eraseAllArtifacts } from '@/game/ship/artifacts/helpers/eraseAllArtifacts';
+import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtifacts';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -758,7 +760,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyM')) {
-      PlayerShipCollection.getInstance().addExperience('SW-1 Standard Issue', 100);
+      unlockAllArtifacts();
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyP')) {

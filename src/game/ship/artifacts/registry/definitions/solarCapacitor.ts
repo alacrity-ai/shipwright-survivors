@@ -8,7 +8,7 @@ export const solarCapacitor: ArtifactDefinition = {
   description: 'Radiate heavy solar damage outward after taking enough hits.',
   icon: 'icon-solar-capacitor',
   cost: 300,
-  rarity: 'legendary',
+  rarity: 'epic',
   metadata: {
     solarCapacitorSpecial: true,
   },
