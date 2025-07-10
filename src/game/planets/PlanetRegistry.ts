@@ -6,6 +6,7 @@ import { GilipePlanet } from '@/game/planets/definitions/planet_Gilipe';
 import { ArseaPlanet } from '@/game/planets/definitions/planet_Arsea';
 import { VoidiaPlanet } from '@/game/planets/definitions/planet_Voidia';
 import { SelkPlanet } from '@/game/planets/definitions/planet_Selk';
+import { DeimosPlanet } from '@/game/planets/definitions/planet_Deimos';
 import { SmallSun, MediumSun, LargeSun, HugeSun } from '@/game/planets/definitions/planet_Suns';
 
 const planetMap: Map<string, PlanetDefinition> = new Map();
@@ -23,6 +24,7 @@ registerPlanet(SelkPlanet);
 registerPlanet(FerrustPlanet);
 registerPlanet(GilipePlanet);
 registerPlanet(ArseaPlanet);
+registerPlanet(DeimosPlanet);
 registerPlanet(SmallSun);
 registerPlanet(MediumSun);
 registerPlanet(LargeSun);

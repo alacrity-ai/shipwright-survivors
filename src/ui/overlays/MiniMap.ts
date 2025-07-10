@@ -244,8 +244,8 @@ export class MiniMap {
     // === Minimal scanlines ===
     this.drawScanlines(ctx, x, y);
 
-    // === Minimal status indicator ===
-    this.drawStatusIndicator(ctx, x, y);
+    // // === Minimal status indicator ===
+    // this.drawStatusIndicator(ctx, x, y);
 
     ctx.restore();
   }
@@ -445,29 +445,29 @@ export class MiniMap {
     }
   }
 
-  private drawStatusIndicator(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    // Simple static status light - no pulsing
-    ctx.fillStyle = '#00ff41';
-    ctx.shadowColor = '#00ff41';
-    ctx.shadowBlur = Math.floor(4 * this.scale);
-    ctx.beginPath();
-    const statusRadius = Math.floor(3 * this.scale);
-    const statusOffset = Math.floor(10 * this.scale);
-    ctx.arc(x + this.width - statusOffset, y + statusOffset, statusRadius, 0, Math.PI * 2);
-    ctx.fill();
+  // private drawStatusIndicator(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  //   // Simple static status light - no pulsing
+  //   ctx.fillStyle = '#00ff41';
+  //   ctx.shadowColor = '#00ff41';
+  //   ctx.shadowBlur = Math.floor(4 * this.scale);
+  //   ctx.beginPath();
+  //   const statusRadius = Math.floor(3 * this.scale);
+  //   const statusOffset = Math.floor(10 * this.scale);
+  //   ctx.arc(x + this.width - statusOffset, y + statusOffset, statusRadius, 0, Math.PI * 2);
+  //   ctx.fill();
     
-    // Scale indicator only
-    const fontSize = Math.floor(8 * this.scale);
-    ctx.font = `${fontSize}px "Courier New", monospace`;
-    ctx.fillStyle = '#00ff4180';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'bottom';
-    ctx.shadowBlur = 0;
+  //   // Scale indicator only
+  //   const fontSize = Math.floor(8 * this.scale);
+  //   ctx.font = `${fontSize}px "Courier New", monospace`;
+  //   ctx.fillStyle = '#00ff4180';
+  //   ctx.textAlign = 'right';
+  //   ctx.textBaseline = 'bottom';
+  //   ctx.shadowBlur = 0;
     
-    const scaleText = '1:' + Math.floor(getWorldWidth() / this.width);
-    const textOffset = Math.floor(4 * this.scale);
-    ctx.fillText(scaleText, x + this.width - textOffset, y + this.height - textOffset);
-  }
+  //   const scaleText = '1:' + Math.floor(getWorldWidth() / this.width);
+  //   const textOffset = Math.floor(4 * this.scale);
+  //   ctx.fillText(scaleText, x + this.width - textOffset, y + this.height - textOffset);
+  // }
 
   // Call this when the minimap size or styling changes to invalidate cache
   public invalidateCache(): void {

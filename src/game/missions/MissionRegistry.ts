@@ -95,8 +95,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     environmentSettings: {
       backgroundId: 'background_9_00.png',
       gravity: 0,
-      worldWidth: 16000,
-      worldHeight: 16000,
+      worldWidth: 64000,
+      worldHeight: 64000,
     },
     music: {
       file: 'assets/sounds/music/track_02_mission1.mp3',
@@ -109,6 +109,10 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     missionPortrait: 'assets/characters/bosses/character_boss_wildjoe.png',
     planets: [
       { name: 'Selk', x: 0, y: 0 },
+      { name: 'Ferrust', x: -22600, y: 31000 },
+      { name: 'Gilipe', x: 30400, y: -12000 },
+      { name: 'Arsea', x: 10000, y: -20000 },
+      { name: 'Deimos', x: -12000, y: -24000 }
     ],
   },
   mission_003_00: {

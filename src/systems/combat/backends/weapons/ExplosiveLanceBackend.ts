@@ -219,7 +219,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         }
 
         lance.elapsed += dt;
-        if (lance.elapsed >= lance.detonationDelay) {
+        if (lance.elapsed >= lance.detonationDelay || lance.targetShip?.isDestroyed()) {
           this.explodeLance(lance, ship);
           exploded.add(lance);
         }
@@ -315,87 +315,85 @@ export class ExplosiveLanceBackend implements WeaponBackend {
   }
 
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship): void {
-    if (!lance.targetShip || !lance.coord) return;
-
-    // Cleanup Light
+    // Always remove visual light and particle
     LightingOrchestrator.getInstance().removeLight(lance.light.id);
+    this.particleManager.removeParticle(lance.particle);
 
-    const blocks = lance.targetShip.getBlocksWithinGridDistance(
-      lance.coord,
-      lance.explosionRadius
+    const origin = { x: lance.position.x, y: lance.position.y };
+    const speed = 1600;
+    const damage = lance.explosionDamage;
+    const life = 1.2;
+
+    const colorPalette =
+      EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??
+      ['#cccccc', '#aaaaaa', '#888888'];
+
+    // Emit radial projectiles
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+
+      const projectile = this.projectileSystem.spawnProjectileWithVelocity(
+        origin,
+        { x: vx, y: vy },
+        'explosiveLance',
+        damage,
+        life,
+        1,
+        ship.id,
+        ship.getFaction(),
+        colorPalette,
+        'delayed',
+        false,
+        true
+      );
+
+      if (lance.targetShip) {
+        projectile.hitShipIds.add(lance.targetShip.id);
+      }
+    }
+
+    // Light flash at point of impact (fallback to position if ship is gone)
+    const flashX = lance.targetShip?.getTransform().position.x ?? lance.position.x;
+    const flashY = lance.targetShip?.getTransform().position.y ?? lance.position.y;
+    createLightFlash(
+      flashX,
+      flashY,
+      lance.explosionRadius * 24,
+      0.8,
+      0.4,
+      colorPalette[0],
+      `explosiveLance-${lance.targetShip?.id ?? 'ambient'}`
     );
 
-    let firstBlockDetonated = false;
-    for (const [coord, block] of blocks) {
-      if (!firstBlockDetonated) {
-        // === Light Flash at impact ===
-        createLightFlash(
-          lance.targetShip.getTransform().position.x,
-          lance.targetShip.getTransform().position.y,
-          lance.explosionRadius * 24,
-          0.8,
-          0.4,
-          EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId]?.[0] ?? '#cccccc',
-          `explosiveLance-${lance.targetShip.id}`
-        );
-
-        // === Emit radial projectiles ===
-        const origin = { x: lance.position.x, y: lance.position.y };
-        const speed = 1400;
-        const damage = lance.explosionDamage;
-        const life = 0.8;
-
-        const colorPalette =
-          EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??
-          ['#cccccc', '#aaaaaa', '#888888'];
-
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2;
-          const vx = Math.cos(angle) * speed;
-          const vy = Math.sin(angle) * speed;
-
-          const projectile = this.projectileSystem.spawnProjectileWithVelocity(
-            origin,
-            { x: vx, y: vy },
-            'explosiveLance',
-            damage,
-            life,
-            1,
-            ship.id,
-            ship.getFaction(),
-            colorPalette,
-            'linear',
-            false,
-            false
-          );
-
-          projectile.hitShipIds.add(lance.targetShip.id);
-        }
-
-        firstBlockDetonated = true;
-      }
+    // If we have a valid, alive targetShip and coord, apply AoE damage
+    if (lance.targetShip && lance.coord && !lance.targetShip.isDestroyed()) {
+      const blocks = lance.targetShip.getBlocksWithinGridDistance(
+        lance.coord,
+        lance.explosionRadius
+      );
 
       const { explosiveLanceLifesteal = false } = ship.getSkillEffects();
-
       const extraOptions: ExtraDamageOptions = {
         repairOrbDropRateMulti: explosiveLanceLifesteal ? 0.3 : 0,
       };
 
-      this.combatService.applyDamageToBlock(
-        lance.targetShip,
-        ship,
-        block,
-        coord,
-        lance.explosionDamage,
-        'explosiveLanceAoE',
-        true,
-        0,
-        1.5,
-        extraOptions
-      );
+      for (const [coord, block] of blocks) {
+        this.combatService.applyDamageToBlock(
+          lance.targetShip,
+          ship,
+          block,
+          coord,
+          lance.explosionDamage,
+          'explosiveLanceAoE',
+          true,
+          0,
+          1.5,
+          extraOptions
+        );
+      }
     }
-
-    this.particleManager.removeParticle(lance.particle);
   }
 
   render(dt: number): void {}

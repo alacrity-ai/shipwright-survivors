@@ -1,4 +1,5 @@
-// src/game/planets/definitions/planet_Arsea.ts
+// src/game/planets/definitions/planet_Selk.ts
+
 import type { PlanetDefinition } from '../interfaces/PlanetDefinition';
 
 export const SelkPlanet: PlanetDefinition = {
