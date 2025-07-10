@@ -42,7 +42,7 @@ export interface ArtifactEffectMetadata {
   imprintFirstPlacedBlock?: boolean;
   imprintDropBias?: number;
   blockQueueUpgradeInterval?: number;
-  randomStartingBlockTier1?: boolean;
+  randomStartingBlockTier1Weapon?: boolean;
   maximumBlockQueueSizeIncrease?: number;
   pickupAttractionRangeIncrease?: number;
 

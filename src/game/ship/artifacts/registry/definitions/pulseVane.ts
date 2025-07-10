@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const pulseVane: ArtifactDefinition = {
   id: 'pulse-vane',
   name: 'Pulse Vane',
-  description: 'Emit radial knockback pulse every 10 seconds.',
+  description: 'Emit radial knockback pulse every <cyan>10</cyan> seconds.',
   icon: 'icon-pulse-vane',
   cost: 400,
   rarity: 'rare',

@@ -45,7 +45,7 @@ export function formatLabel(key: string): string {
     imprintFirstPlacedBlock: 'Imprint First Block',
     imprintDropBias: 'Imprint Bias',
     blockQueueUpgradeInterval: 'Queue Upgrade Interval',
-    randomStartingBlockTier1: 'Start with Tier 1 Block',
+    randomStartingBlockTier1Weapon: 'Start with additional Block',
     maximumBlockQueueSizeIncrease: 'Max Block Queue Size',
     pickupAttractionRangeIncrease: 'Pickup Attraction Range',
 

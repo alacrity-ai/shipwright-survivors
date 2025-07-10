@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const eidolonFrame: ArtifactDefinition = {
   id: 'eidolon-frame',
   name: 'Eidolon Frame',
-  description: 'Every 30s, a weak copy of your ship spawns as an escort for 10s.',
+  description: 'Every <cyan>30s</cyan>, a weakened copy of your ship spawns as an <yellow>Escort</yellow> for <cyan>10s</cyan>.',
   icon: 'icon-eidolon-frame',
   cost: 600,
   rarity: 'legendary',

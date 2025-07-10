@@ -827,7 +827,8 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit0')) {
-      PlayerExperienceManager.getInstance().addEntropium(1000);
+      PlayerExperienceManager.getInstance().addEntropium(10000);
+      missionResultStore.addEntropium(10000);
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyO')) {

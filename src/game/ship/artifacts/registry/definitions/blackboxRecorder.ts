@@ -5,10 +5,10 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const blackboxRecorder: ArtifactDefinition = {
   id: 'blackbox-recorder',
   name: 'Blackbox Recorder',
-  description: 'When a block is destroyed, gain stacking +5% damage (max +25%, lasts 5s).',
+  description: 'When a block is destroyed, gain stacking <cyan>+5%</cyan> damage (max <cyan>+25%</cyan>, lasts <cyan>5s</cyan>).',
   icon: 'icon-blackbox-recorder',
   cost: 500,
-  rarity: 'rare',
+  rarity: 'uncommon',
   metadata: {
     onBlockDestroyedDamageBuff: true,
   },

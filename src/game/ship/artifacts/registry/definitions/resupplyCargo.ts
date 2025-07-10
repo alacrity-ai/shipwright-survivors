@@ -5,11 +5,11 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const resupplyCargo: ArtifactDefinition = {
   id: 'resupply-cargo',
   name: 'Resupply Cargo',
-  description: 'Start with a random Tier 1 block in your queue.',
+  description: 'Start with a random <white>Mk I</white> <yellow>Weapon Block</yellow> in your queue.',
   icon: 'icon-resupply-cargo',
   cost: 150,
-  rarity: 'rare',
+  rarity: 'uncommon',
   metadata: {
-    randomStartingBlockTier1: true,
+    randomStartingBlockTier1Weapon: true,
   },
 };

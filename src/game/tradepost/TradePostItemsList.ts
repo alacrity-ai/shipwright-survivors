@@ -20,6 +20,7 @@ import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInte
 
 import { getArtifactIconSprite } from '@/game/ship/artifacts/icons/ArtifactIconSpriteCache';
 import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
+import { drawArtifactSlot } from '@/game/ship/artifacts/ui/ArtifactSlotRenderer';
 import { ArtifactTooltipRenderer } from '@/game/ship/artifacts/ui/ArtifactTooltipRenderer';
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 
@@ -207,17 +208,27 @@ export class TradePostItemsList {
         });
       } else if (item.type === 'artifact') {
         const artifact = getArtifactById(item.id);
-        const icon = artifact ? await getArtifactIconSprite(artifact.icon) : null;
-        if (icon) {
-          ctx.save();
-          ctx.globalAlpha = canAfford ? 1.0 : 0.3;
-          ctx.drawImage(icon, iconX, y, this.cardSize, this.cardSize);
-          if (isOutputHovered) {
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = '#ffffff';
+        if (artifact) {
+          await drawArtifactSlot({
+            ctx,
+            x: iconX,
+            y,
+            size: this.cardSize,
+            rarity: artifact.rarity,
+            iconKey: artifact.icon,
+            isHovered: isOutputHovered,
+            isSelected: false,
+            isEmpty: false,
+          });
+
+          // Optional: lower opacity overlay if unaffordable
+          if (!canAfford) {
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.fillStyle = '#000000';
             ctx.fillRect(iconX, y, this.cardSize, this.cardSize);
+            ctx.restore();
           }
-          ctx.restore();
         }
       }
 
@@ -265,23 +276,36 @@ export class TradePostItemsList {
     // === Tooltip Rendering ===
     if (this.hoveredItem && this.hoveredIndex >= 0) {
       const hoveredEntry = this.instance.getAllEntries()[this.hoveredIndex];
-      const hoveredItem = hoveredEntry.item;
 
-      if (hoveredItem.type === 'artifact') {
-        this.artifactRenderer.renderTooltip(
-          hoveredItem.id,
-          this.hoveredItem.x,
-          this.hoveredItem.y,
-          scale,
-          'right',
-          null
-        );
-      } else {
+      if (this.hoveredType === 'output') {
+        const hoveredOutput = hoveredEntry.item;
+        if (hoveredOutput.type === 'artifact') {
+          this.artifactRenderer.renderTooltip(
+            hoveredOutput.id,
+            this.hoveredItem.x,
+            this.hoveredItem.y,
+            scale,
+            'right',
+            null
+          );
+        } else {
+          this.tooltipRenderer.renderTooltip(
+            this.hoveredItem.x,
+            this.hoveredItem.y,
+            this.hoveredItem.label,
+            scale,
+            hoveredOutput.type === 'block' ? hoveredOutput.id : undefined
+          );
+        }
+      } else if (this.hoveredType === 'want') {
+        const wantId = hoveredEntry.item.wants[this.hoveredWantIndex];
+        const wantLabel = this.tooltipRenderer.getBlockName(wantId);
         this.tooltipRenderer.renderTooltip(
           this.hoveredItem.x,
           this.hoveredItem.y,
-          this.hoveredItem.label,
-          scale
+          wantLabel,
+          scale,
+          wantId
         );
       }
     }

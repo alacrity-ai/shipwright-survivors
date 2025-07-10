@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const coatedPlating: ArtifactDefinition = {
   id: 'coated-plating',
   name: 'Coated Plating',
-  description: 'Status effects are halved on you, but you cannot inflict them.',
+  description: '<green>Status Effects</green> are halved on you, but you cannot inflict them.',
   icon: 'icon-coated-plating',
   cost: 350,
   rarity: 'rare',

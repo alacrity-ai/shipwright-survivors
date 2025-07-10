@@ -5,10 +5,10 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const unstableThruster: ArtifactDefinition = {
   id: 'unstable-thruster',
   name: 'Unstable Thruster',
-  description: 'Overcharges your main thruster to always Super Pulse.',
+  description: 'Overcharges your main thruster to always <yellow>Super Pulse</yellow>.',
   icon: 'icon-unstable-thruster',
   cost: 300,
-  rarity: 'rare',
+  rarity: 'uncommon',
   metadata: {
     alwaysSuperPulse: true,
   },

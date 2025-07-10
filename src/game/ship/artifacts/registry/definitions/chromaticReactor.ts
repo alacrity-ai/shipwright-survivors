@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const chromaticReactor: ArtifactDefinition = {
   id: 'chromatic-reactor',
   name: 'Chromatic Reactor',
-  description: 'Every 30s, a random block in your queue upgrades a tier.',
+  description: 'Every <cyan>30s</cyan>, a random block in your queue upgrades a tier.',
   icon: 'icon-chromatic-reactor',
   cost: 500,
   rarity: 'epic',

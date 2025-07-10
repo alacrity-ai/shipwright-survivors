@@ -9,6 +9,6 @@ export interface ArtifactDefinition {
   icon: string;                      // Icon sprite key
   category?: string;                 // Optional grouping/tag for sorting (e.g., 'offense', 'utility')
   cost: number;                      // Metacurrency cost to unlock
-  rarity: 'common' | 'rare' | 'epic' | 'legendary'; // For drop/visual tiers
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'; // For drop/visual tiers
   metadata: ArtifactEffectMetadata; // Semantic payload applied at runtime
 }

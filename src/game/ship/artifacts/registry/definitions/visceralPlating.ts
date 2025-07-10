@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const visceralPlating: ArtifactDefinition = {
   id: 'visceral-plating',
   name: 'Visceral Plating',
-  description: 'Deal more damage. Take more damage.',
+  description: 'Deal <cyan>+50%</cyan> more damage. Take <red>+50%</red> more damage.',
   icon: 'icon-visceral-plating',
   cost: 300,
   rarity: 'legendary',

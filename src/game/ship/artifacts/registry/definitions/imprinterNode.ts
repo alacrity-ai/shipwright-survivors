@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const imprinterNode: ArtifactDefinition = {
   id: 'imprinter-node',
   name: 'Imprinter Node',
-  description: 'First block placed becomes imprinted; 20% of future drops match it.',
+  description: 'First block placed becomes imprinted; <cyan>20%</cyan> of future drops match it.',
   icon: 'icon-imprinter-node',
   cost: 450,
   rarity: 'epic',

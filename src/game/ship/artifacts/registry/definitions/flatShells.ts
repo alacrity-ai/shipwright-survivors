@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const flatShells: ArtifactDefinition = {
   id: 'flat-shells',
   name: 'Flat Shells',
-  description: 'Cannot critical hit, but gain +50% damage.',
+  description: 'Cannot <purple>Critical Hit</purple>, but gain <cyan>+50%</cyan> damage.',
   icon: 'icon-flat-shells',
   cost: 300,
   rarity: 'rare',

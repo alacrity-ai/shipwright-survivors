@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const cornucopiaModule: ArtifactDefinition = {
   id: 'cornucopia-module',
   name: 'Cornucopia Module',
-  description: '+25% block drop rate, -50% entropium drop rate.',
+  description: '<cyan>+25%</cyan> block drop rate, <red>-50%</red> entropium drop rate.',
   icon: 'icon-cornucopia-module',
   cost: 400,
   rarity: 'rare',

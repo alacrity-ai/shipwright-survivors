@@ -8,8 +8,8 @@ export const reflectorPlate: ArtifactDefinition = {
   description: 'Chance to reflect turret projectiles back to the attacker.',
   icon: 'icon-reflector-plate',
   cost: 300,
-  rarity: 'rare',
+  rarity: 'uncommon',
   metadata: {
-    chanceToReflectTurretProjectiles: 0.5,
+    chanceToReflectTurretProjectiles: 0.25,
   },
 };

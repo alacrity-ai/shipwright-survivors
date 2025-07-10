@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const rallyingDish: ArtifactDefinition = {
   id: 'rallying-dish',
   name: 'Rallying Dish',
-  description: 'Escorts become more aggressive.',
+  description: '<yellow>Escorts</yellow> become more aggressive.',
   icon: 'icon-rallying-dish',
   cost: 300,
   rarity: 'epic',

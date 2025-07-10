@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const magnetArray: ArtifactDefinition = {
   id: 'magnet-array',
   name: 'Magnet Array',
-  description: 'Slight attraction pickup radius increase.',
+  description: 'Slight attraction <yellow>Pickup Radius</yellow> increase.',
   icon: 'icon-magnet-array',
   cost: 300,
   rarity: 'common',

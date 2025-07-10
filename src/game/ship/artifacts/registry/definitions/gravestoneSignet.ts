@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const gravestoneSignet: ArtifactDefinition = {
   id: 'gravestone-signet',
   name: 'Gravestone Signet',
-  description: 'Defeated enemies may respawn as escorts.',
+  description: 'Defeated enemies may respawn as <yellow>Escorts</yellow>.',
   icon: 'icon-gravestone-signet',
   cost: 500,
   rarity: 'legendary',

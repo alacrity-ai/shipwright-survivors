@@ -5,10 +5,10 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const ashenDrive: ArtifactDefinition = {
   id: 'ashen-drive',
   name: 'Ashen Drive',
-  description: 'Damage scales with mass, up to 20%',
+  description: 'Damage scales with <green>Mass</green>, up to <cyan>20%</cyan>.',
   icon: 'icon-ashen-drive',
   cost: 450,
-  rarity: 'rare',
+  rarity: 'uncommon',
   metadata: {
     damageScalingWithMass: true,
   },

@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const midasApparatus: ArtifactDefinition = {
   id: 'midas-apparatus',
   name: 'Midas Apparatus',
-  description: 'Placed blocks are converted into entropium.',
+  description: 'Placed blocks are converted into <yellow>Entropium</yellow>.',
   icon: 'icon-midas-apparatus',
   cost: 500,
   rarity: 'epic',

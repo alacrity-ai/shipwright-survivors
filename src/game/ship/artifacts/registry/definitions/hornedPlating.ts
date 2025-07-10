@@ -5,10 +5,10 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const hornedPlating: ArtifactDefinition = {
   id: 'horned-plating',
   name: 'Horned Plating',
-  description: 'Greatly reduced collision damage taken.',
+  description: 'Greatly reduced <yellow>Collision Damage</yellow> taken.',
   icon: 'icon-horned-plating',
   cost: 300,
-  rarity: 'rare',
+  rarity: 'uncommon',
   metadata: {
     collisionDamageMitigationMultiplier: 0.5,
   },

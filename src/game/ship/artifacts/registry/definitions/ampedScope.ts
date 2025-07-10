@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const ampedScope: ArtifactDefinition = {
   id: 'amped-scope',
   name: 'Amped Scope',
-  description: 'Increased Critical Hit Chance and Critical Multiplier.',
+  description: 'Increased <purple>Critical Hit Chance</purple> and <purple>Critical Multiplier</purple>.',
   icon: 'icon-amped-scope',
   cost: 300,
   rarity: 'common',

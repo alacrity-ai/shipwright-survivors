@@ -6,10 +6,13 @@ import { getAllArtifacts } from '@/game/ship/artifacts/registry/ArtifactRegistry
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { ArtifactTooltipRenderer } from './ArtifactTooltipRenderer';
-import { reportArtifactsCollectionClosed, reportArtifactEquipped } from '@/core/interfaces/events/ArtifactsCollectionReporter';
+import { reportArtifactsCollectionClosed } from '@/core/interfaces/events/ArtifactsCollectionReporter';
 import { ArtifactCollectionUIRenderer } from './ArtifactCollectionUIRenderer';
 import { CanvasManager } from '@/core/CanvasManager';
 import { getUniformScaleFactor } from '@/config/view';
+
+import { playArtifactEquipSound } from '@/game/ship/artifacts/helpers/playEquipSound';
+import { audioManager } from '@/audio/Audio';
 
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
@@ -62,9 +65,10 @@ export class ArtifactCollectionUIController {
     // === Rarity sort order ===
     const RARITY_ORDER: Record<ArtifactDefinition['rarity'], number> = {
       common: 0,
-      rare: 1,
-      epic: 2,
-      legendary: 3,
+      uncommon: 1,
+      rare: 2,
+      epic: 3,
+      legendary: 4,
     };
 
     // === Sort artifacts by rarity (common → legendary), then by name to stabilize order ===
@@ -117,26 +121,32 @@ export class ArtifactCollectionUIController {
       if (slot.isHovered) {
         this.hoveredIndex = i;
 
-        if (click && slot.isUnlocked && slot.artifact) {
-          const artifactId = slot.artifact.id;
-          const manager = PlayerArtifactsManager.getInstance();
+        if (click) {
+          if (slot.isUnlocked && slot.artifact) {
+            const artifactId = slot.artifact.id;
+            const manager = PlayerArtifactsManager.getInstance();
 
-          // === Fully deduplicate artifact globally ===
-          for (const [shipName, equipped] of manager.getAllEquippedArtifactEntries()) {
-            for (let j = 0; j < equipped.length; j++) {
-              if (equipped[j] === artifactId) {
-                // Only unequip if it's not already in the intended target slot
-                if (shipName !== this.currentShipName || j !== this.slotIndex) {
-                  manager.unequipArtifact(shipName, j as 0 | 1 | 2);
+            // === Fully deduplicate artifact globally ===
+            for (const [shipName, equipped] of manager.getAllEquippedArtifactEntries()) {
+              for (let j = 0; j < equipped.length; j++) {
+                if (equipped[j] === artifactId) {
+                  // Only unequip if it's not already in the intended target slot
+                  if (shipName !== this.currentShipName || j !== this.slotIndex) {
+                    manager.unequipArtifact(shipName, j as 0 | 1 | 2);
+                  }
                 }
               }
             }
-          }
 
-          // === Equip to the selected slot on the current ship ===
-          manager.equipArtifact(this.currentShipName, this.slotIndex, artifactId);
-          PlayerShipCollection.getInstance().clearCachedModifiers();
-          reportArtifactsCollectionClosed();
+            // === Equip to the selected slot on the current ship ===
+            manager.equipArtifact(this.currentShipName, this.slotIndex, artifactId);
+            PlayerShipCollection.getInstance().clearCachedModifiers();
+            playArtifactEquipSound(slot.artifact.rarity);
+            reportArtifactsCollectionClosed();
+          } else {
+            // Artifact cannot be equipped
+            audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
+          }
         }
       }
     }
@@ -198,7 +208,7 @@ export class ArtifactCollectionUIController {
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i];
       const artifact = slot.artifact;
-      const isEnabled = slot.isUnlocked && !!artifact;
+      // const isEnabled = slot.isUnlocked && !!artifact;
 
       const col = i % COLUMNS;
       const row = Math.floor(i / COLUMNS);
@@ -208,7 +218,7 @@ export class ArtifactCollectionUIController {
         gridY: row,
         screenX: slot.x + slot.size / 2,
         screenY: slot.y + slot.size / 2,
-        isEnabled,
+        isEnabled: true, // Allow hovering over locked artifacts
       });
     }
 

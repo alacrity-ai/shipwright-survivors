@@ -10,7 +10,7 @@ interface ArtifactSlotRenderParams {
   x: number;
   y: number;
   size: number;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   iconKey?: string;
   isHovered: boolean;
   isSelected: boolean;

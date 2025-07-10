@@ -6,6 +6,10 @@ import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry
 import { DEFAULT_CONFIG } from '@/config/ui';
 import { getRarityColor } from '@/game/ship/artifacts/helpers/getRarityColor';
 import { formatLabel, formatValue } from '@/game/ship/artifacts/helpers/tooltipLabelHelpers';
+import {
+  drawRichWrappedText,
+  measureRichTextHeight,
+} from '../helpers/descriptionTextHelpers';
 
 const BOX_PADDING = 24;
 const LINE_SPACING = 36;
@@ -44,7 +48,7 @@ export class ArtifactTooltipRenderer {
       blackColor,
       infoTextColor,
       accentColor: baseAccentColor,
-      statColor
+      statColor,
     } = DEFAULT_CONFIG.general;
 
     const accentColor = locked ? '#666666' : baseAccentColor;
@@ -55,22 +59,19 @@ export class ArtifactTooltipRenderer {
 
     const metadataEntries = Object.entries(metadata);
 
-    // === Pre-calculate wrapped description ===
-    ctx.save();
-    ctx.font = BODY_FONT;
-    const descriptionLines = this.wrapText(ctx, description, MAX_WIDTH - BOX_PADDING * 2);
-    ctx.restore();
-
     // === Height Calculation ===
-    const nameLineCount = 1;
-    const wrappedLineCount = descriptionLines.length;
-    const wrappedHeight = (wrappedLineCount - 1) * WRAPPED_LINE_SPACING + LINE_SPACING;
-    const metadataLineCount = metadataEntries.length;
+    const wrappedHeight = measureRichTextHeight(
+      ctx,
+      description,
+      BODY_FONT,
+      MAX_WIDTH - BOX_PADDING * 2,
+      WRAPPED_LINE_SPACING
+    );
 
     let totalHeight =
-      nameLineCount * LINE_SPACING +
+      LINE_SPACING + // name
       wrappedHeight +
-      metadataLineCount * LINE_SPACING;
+      metadataEntries.length * LINE_SPACING;
 
     if (equippedOnShipName) totalHeight += LINE_SPACING;
     if (locked) totalHeight += LINE_SPACING;
@@ -102,73 +103,83 @@ export class ArtifactTooltipRenderer {
     const labelX = boxX + BOX_PADDING * uiScale;
 
     // Name
-    drawLabel(ctx, labelX, currentY, name, {
-      font: NAME_FONT,
-      color: nameColor,
-      glow: !locked,
-    }, uiScale);
+    drawLabel(
+      ctx,
+      labelX,
+      currentY,
+      name,
+      {
+        font: NAME_FONT,
+        color: nameColor,
+        glow: !locked,
+      },
+      uiScale
+    );
 
     currentY += LINE_SPACING * uiScale;
 
-    // Description (wrapped)
-    for (let i = 0; i < descriptionLines.length; i++) {
-      drawLabel(ctx, labelX, currentY, descriptionLines[i], {
-        font: BODY_FONT,
-        color: dimmedTextColor,
-      }, uiScale);
-      currentY += (i === descriptionLines.length - 1 ? LINE_SPACING : WRAPPED_LINE_SPACING) * uiScale;
-    }
+    // Description (wrapped, with rich color parsing)
+    drawRichWrappedText(
+      ctx,
+      labelX,
+      currentY,
+      description,
+      BODY_FONT,
+      dimmedTextColor,
+      MAX_WIDTH - BOX_PADDING * 2,
+      WRAPPED_LINE_SPACING,
+      uiScale
+    );
+
+    currentY += wrappedHeight * uiScale;
 
     // Metadata
     for (const [key, value] of metadataEntries) {
       const label = `${formatLabel(key)}: ${formatValue(value)}`;
-      drawLabel(ctx, labelX, currentY, label, {
-        font: BODY_FONT,
-        color: statColor,
-      }, uiScale);
+      drawLabel(
+        ctx,
+        labelX,
+        currentY,
+        label,
+        {
+          font: BODY_FONT,
+          color: statColor,
+        },
+        uiScale
+      );
       currentY += LINE_SPACING * uiScale;
     }
 
     // Equipped warning
     if (equippedOnShipName) {
-      drawLabel(ctx, labelX, currentY, `Equipped on "${equippedOnShipName}"`, {
-        font: BODY_FONT,
-        color: '#C7A45B',
-      }, uiScale);
+      drawLabel(
+        ctx,
+        labelX,
+        currentY,
+        `Equipped on "${equippedOnShipName}"`,
+        {
+          font: BODY_FONT,
+          color: '#C7A45B',
+        },
+        uiScale
+      );
       currentY += LINE_SPACING * uiScale;
     }
 
     // Locked warning
     if (locked) {
-      drawLabel(ctx, labelX, currentY, `Not yet discovered`, {
-        font: BODY_FONT,
-        color: '#AAAAAA',
-      }, uiScale);
+      drawLabel(
+        ctx,
+        labelX,
+        currentY,
+        `Not yet discovered`,
+        {
+          font: BODY_FONT,
+          color: '#AAAAAA',
+        },
+        uiScale
+      );
       currentY += LINE_SPACING * uiScale;
     }
-  }
-
-  private wrapText(
-    ctx: CanvasRenderingContext2D,
-    text: string,
-    maxWidth: number
-  ): string[] {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const { width } = ctx.measureText(testLine);
-      if (width > maxWidth) {
-        if (currentLine) lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-
-    if (currentLine) lines.push(currentLine);
-    return lines;
   }
 }

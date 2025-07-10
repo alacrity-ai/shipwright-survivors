@@ -93,7 +93,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet1,
     dropMultiplier: 1.0,
     environmentSettings: {
-      backgroundId: 'background_4_00.png',
+      backgroundId: 'background_9_00.png',
       gravity: 0,
       worldWidth: 16000,
       worldHeight: 16000,
@@ -108,7 +108,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     requiredFlag: 'mission.mission_002.unlocked',
     missionPortrait: 'assets/characters/bosses/character_boss_wildjoe.png',
     planets: [
-      { name: 'Voidia', x: -5000, y: -6000 },
+      { name: 'Selk', x: 0, y: 0 },
     ],
   },
   mission_003_00: {
@@ -118,7 +118,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet2,
     dropMultiplier: 1.0,
     environmentSettings: {
-      backgroundId: 'background_9_00.png',
+      backgroundId: 'background_10_00.png',
       gravity: 0,
       worldWidth: 9000,
       worldHeight: 9000,

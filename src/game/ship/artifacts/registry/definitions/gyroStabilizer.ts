@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const gyroStabilizer: ArtifactDefinition = {
   id: 'gyro-stabilizer',
   name: 'Gyro Stabilizer',
-  description: 'Slightly improves thruster speed.',
+  description: 'Slightly improves ship <yellow>Thrust</yellow>.',
   icon: 'icon-gyro-stabilizer',
   cost: 150,
   rarity: 'common',

@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const huntersCore: ArtifactDefinition = {
   id: 'hunters-core',
   name: "Hunter's Core",
-  description: 'Gain haste for 3s after destroying an enemy.',
+  description: 'Gain <green>Haste</green> for <cyan>3s</cyan> after destroying an enemy.',
   icon: 'icon-hunters-core',
   cost: 400,
   rarity: 'legendary',

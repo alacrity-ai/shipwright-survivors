@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const ankhProgram: ArtifactDefinition = {
   id: 'ankh-program',
   name: 'Ankh Program',
-  description: 'Revive once on death with half of your blocks.',
+  description: '<yellow>Revive</yellow> once on death with half of your blocks.',
   icon: 'icon-ankh-program',
   cost: 600,
   rarity: 'epic',

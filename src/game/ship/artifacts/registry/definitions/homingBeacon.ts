@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const homingBeacon: ArtifactDefinition = {
   id: 'homing-beacon',
   name: 'Homing Beacon',
-  description: 'Chance to summon the Severant.',
+  description: 'Chance to summon <red>The Severant</red>.',
   icon: 'icon-homing-beacon',
   cost: 500,
   rarity: 'legendary',

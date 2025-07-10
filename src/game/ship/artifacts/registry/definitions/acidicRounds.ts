@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const acidicRounds: ArtifactDefinition = {
   id: 'acidic-rounds',
   name: 'Acidic Rounds',
-  description: 'All damage is deferred over 5s, but deals 50% more total.',
+  description: 'All outgoing damage is deferred over <cyan>5s</cyan>, but deals <cyan>50%</cyan> more in total.',
   icon: 'icon-acidic-rounds',
   cost: 600,
   rarity: 'epic',

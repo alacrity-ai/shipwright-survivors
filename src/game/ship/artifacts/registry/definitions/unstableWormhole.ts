@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const unstableWormhole: ArtifactDefinition = {
   id: 'unstable-wormhole',
   name: 'Unstable Wormhole',
-  description: 'Every 20s, a random block is added to your ship.',
+  description: 'Every <cyan>20s</cyan>, a random block is added to your ship.',
   icon: 'icon-unstable-wormhole',
   cost: 450,
   rarity: 'legendary',

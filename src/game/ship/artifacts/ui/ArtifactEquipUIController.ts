@@ -90,7 +90,7 @@ export class ArtifactEquipUIController {
         this.hoveredSlotIndex = i;
 
         if (click && this.shipName) {
-          audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
+          audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 3 });
           console.log(`[ArtifactEquipUI] Clicked slot ${i} for ship "${this.shipName}"`);
           reportArtifactsCollectionOpened(i as 0 | 1 | 2);
         }

@@ -4,6 +4,8 @@ import { CanvasManager } from '@/core/CanvasManager';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 
+import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
+
 const PADDING = 12;
 const BOX_WIDTH = 240;
 const BOX_HEIGHT = 40;
@@ -23,7 +25,7 @@ export class TradePostItemsTooltipRenderer {
    * @param label the name to display
    * @param uiScale global UI scale
    */
-  renderTooltip(x: number, y: number, label: string, uiScale: number): void {
+  renderTooltip(x: number, y: number, label: string, uiScale: number, blockId?: string): void {
     const ctx = this.canvasManager.getContext('overlay');
     if (!ctx || !label) return;
 
@@ -44,7 +46,17 @@ export class TradePostItemsTooltipRenderer {
     ctx.stroke();
     ctx.restore();
 
-    // === Label ===
+    // === Resolve Color Based on Block Tier ===
+    let labelColor = '#00ff00'; // fallback
+    if (blockId) {
+      const block = getBlockType(blockId);
+      if (block) {
+        const tier = block.tier ?? 1;
+        labelColor = BLOCK_TIER_COLORS[tier] ?? labelColor;
+      }
+    }
+
+    // === Label Rendering ===
     drawLabel(
       ctx,
       boxX + PADDING * uiScale,
@@ -52,7 +64,7 @@ export class TradePostItemsTooltipRenderer {
       label,
       {
         font: `${16}px monospace`,
-        color: '#00ff00',
+        color: labelColor,
         align: 'left',
       },
       uiScale

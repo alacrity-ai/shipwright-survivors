@@ -224,13 +224,13 @@ export class ShipSkillTreeUIRenderer {
       ? NODE_RADIUS_MAJOR * scale
       : NODE_RADIUS_MINOR * scale;
     const size = radius * NODE_SIZE_FACTOR;
-    const { hoverColor, accentColor, primaryColor, disabledColor } = DEFAULT_CONFIG.general;
+    const { accentColor, primaryColor, disabledColor } = DEFAULT_CONFIG.general;
 
     ctx.save();
 
     if (hovered) {
-      ctx.strokeStyle = hoverColor;
-      ctx.lineWidth = 4 * scale;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 5 * scale;
     } else if (unlocked) {
       ctx.strokeStyle = accentColor;
       ctx.lineWidth = 4 * scale;

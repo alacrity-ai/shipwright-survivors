@@ -124,7 +124,6 @@ TUTORIAL TODOS:
 
 
 TODOS:
-  - [ ] Play specific sound effect when equipping artifact (per tier)
   - [ ] Completely clearing a Vortex Incident should end it immediately
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal

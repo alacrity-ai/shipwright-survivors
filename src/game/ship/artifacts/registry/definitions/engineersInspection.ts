@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const engineersInspection: ArtifactDefinition = {
   id: 'engineers-inspection',
   name: "Engineer's Inspection",
-  description: 'Blocks have a 5% more durability.',
+  description: 'Blocks have a <cyan>5%</cyan> more durability.',
   icon: 'icon-engineers-inspection',
   cost: 300,
   rarity: 'common',

@@ -6,6 +6,8 @@ import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/Dialog
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import { openTradepostMenu } from '@/core/interfaces/events/TradePostReporter';
 
+import { audioManager } from '@/audio/Audio';
+
 import { flags } from '@/game/player/PlayerFlagManager';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
@@ -94,9 +96,9 @@ export class PlanetController {
         GlobalMenuReporter.getInstance().setSpecialBlocker('planet-interaction-overlay');
       }
       if ((this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('A')) && !this.isInteracting) {
-        // TODO : Perhaps open tradepost through dialogue and remove this priority system where we directly open menu
         if (this.definition.tradePostId) {
           this.isInteracting = true;
+          audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
           openTradepostMenu(this.definition.tradePostId);
           return;
         } else {

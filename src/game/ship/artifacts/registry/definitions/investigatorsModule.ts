@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const investigatorsModule: ArtifactDefinition = {
   id: 'investigators-module',
   name: 'Investigator’s Module',
-  description: 'More incidents appear; you deal more damage to incident enemies.',
+  description: 'More <purple>Incidents</purple> appear; you deal more damage to <purple>Incident</purple> enemies.',
   icon: 'icon-investigators-module',
   cost: 400,
   rarity: 'epic',

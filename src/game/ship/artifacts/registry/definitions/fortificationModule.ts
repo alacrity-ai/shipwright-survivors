@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const fortificationModule: ArtifactDefinition = {
   id: 'fortification-module',
   name: 'Fortification Module',
-  description: 'Increases maximum cockpit armor.',
+  description: 'Increases maximum cockpit <yellow>Armor</yellow>.',
   icon: 'icon-fortification-module',
   cost: 500,
   rarity: 'common',

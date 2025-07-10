@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const echoChamber: ArtifactDefinition = {
   id: 'echo-chamber',
   name: 'Echo Chamber',
-  description: 'Status effects you apply last 50% longer.',
+  description: '<green>Status Effects</green> you apply last <cyan>50%</cyan> longer.',
   icon: 'icon-echo-chamber',
   cost: 400,
   rarity: 'common',

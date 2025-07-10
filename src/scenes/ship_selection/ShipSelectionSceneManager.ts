@@ -35,8 +35,8 @@ const BACKGROUND_PATH = 'assets/backgrounds/background_2_00.png';
 
 const crtStyle = DEFAULT_CONFIG.button.style;
 
-const BACKGROUND_TILE_WIDTH = 1024 * getUniformScaleFactor();
-const BACKGROUND_TILE_HEIGHT = 1024 * getUniformScaleFactor();
+const BACKGROUND_TILE_WIDTH = 3076 * getUniformScaleFactor();
+const BACKGROUND_TILE_HEIGHT = 3076 * getUniformScaleFactor();
 const BACKGROUND_SCROLL_SPEED = 60;
 const BACKGROUND_SCROLL_DIRECTION = { x: 1, y: 0 };
 
@@ -291,10 +291,9 @@ export class ShipSelectionSceneManager {
 
     // === Handle gamepad nav setup ===
     if (this.inputManager.isUsingGamepad?.()) {
-if (!this.gamepadNavManager.hasNavMap()) {
-  this.rebuildNavMap(scale);
-}
-
+      if (!this.gamepadNavManager.hasNavMap()) {
+        this.rebuildNavMap(scale);
+      }
 
       if (!this.skillTreeNavActive && this.inputManager.wasGamepadAliasJustPressed('B')) {
         if (this.uiMode === 'artifact-collection') {
@@ -315,16 +314,18 @@ if (!this.gamepadNavManager.hasNavMap()) {
       this.launchMission();
     }
 
-    for (const btn of this.buttons) {
-      handleButtonInteraction(btn, x, y, clicked, scale);
-    }
-
-    if (this.launchButton) {
-      handleButtonInteraction(this.launchButton, x, y, clicked, scale);
-    }
-
     // === Submenu update ===
-    this.shipSelectionMenu.update(dt);
+    if (this.uiMode === 'ship-selection') {
+      this.shipSelectionMenu.update(dt);
+    
+      for (const btn of this.buttons) {
+        handleButtonInteraction(btn, x, y, clicked, scale);
+      }
+
+      if (this.launchButton) {
+        handleButtonInteraction(this.launchButton, x, y, clicked, scale);
+      }
+    }
   }
 
   private render = () => {

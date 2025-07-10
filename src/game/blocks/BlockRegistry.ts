@@ -226,7 +226,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     category: 'system',
     subcategory: 'system',
-    dropRate: 0.3,
+    dropRate: 0.2,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']
   },
@@ -251,7 +251,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     category: 'weapon',
     subcategory: 'turret',
-    dropRate: 0.3,
+    dropRate: 0.2,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']
   },
@@ -301,7 +301,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     category: 'weapon',
     subcategory: 'turret',
-    dropRate: 0.15,
+    dropRate: 0.18,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']
   },
@@ -326,7 +326,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     category: 'weapon',
     subcategory: 'turret',
-    dropRate: 0.12,
+    dropRate: 0.16,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']
   },

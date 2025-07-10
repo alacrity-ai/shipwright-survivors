@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const growthSpores: ArtifactDefinition = {
   id: 'growth-spores',
   name: 'Growth Spores',
-  description: 'Blocks slowly regenerate durability over time.',
+  description: 'Blocks slowly <green>Regenerate Durability</green> over time.',
   icon: 'icon-growth-spores',
   cost: 350,
   rarity: 'common',

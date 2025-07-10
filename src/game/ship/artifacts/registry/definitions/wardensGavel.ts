@@ -5,7 +5,7 @@ import type { ArtifactDefinition } from '@/game/ship/artifacts/interfaces/Artifa
 export const wardensGavel: ArtifactDefinition = {
   id: 'wardens-gavel',
   name: "Warden's Gavel",
-  description: 'Deal +30% damage to enemies afflicted with status effects.',
+  description: 'Deal <cyan>+30%</cyan> damage to enemies afflicted with <green>Status Effects</green>.',
   icon: 'icon-wardens-gavel',
   cost: 400,
   rarity: 'legendary',
