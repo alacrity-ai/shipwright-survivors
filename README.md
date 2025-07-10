@@ -189,6 +189,7 @@ TODOS:
   - [ ] Add click-to-move movement option (Instead of WASD)
   - [ ] Make better first boss.
 BUGS:
+  - [ ] Verify if Quantum Attractor is also working for blocks, should just work for entropium
   - [ ] If no waves are cleared (e.g. instant abandon), then progress bar in debriefing is stuck
   - [ ] Starting a new game, after having quit to main menu from another game does not work. Playerflags needs clear?
   - [ ] Levelup menu and block drop decision menu clash

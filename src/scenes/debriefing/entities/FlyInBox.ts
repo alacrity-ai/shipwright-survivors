@@ -350,9 +350,9 @@ export class FlyInBox {
       const baseY = paddingY;
 
       // Calculate max float offset to determine composite canvas size
-      const maxFloatOffset = this.isFloating ? 5 * scale : 0;
+      const adjustY = 5 * scale;
       const compositeWidth = Math.ceil(actualTotalWidth + coreSize); // Extra space for core width
-      const compositeHeight = Math.ceil(coreSize + maxFloatOffset * 2); // Extra space for float range
+      const compositeHeight = Math.ceil(coreSize + adjustY * 2); // Extra space for float range
 
       // Get composite canvas and render all cores to it
       const compositeCtx = FlyInBox.getCompositeCanvas(compositeWidth, compositeHeight);
@@ -364,7 +364,7 @@ export class FlyInBox {
         const floatOffset = this.isFloating
           ? 4 * scale * Math.sin(this.floatTimer * 2 + i * 0.6)
           : 0;
-        const drawY = baseY + floatOffset - maxFloatOffset; // Offset by max float to center
+        const drawY = baseY + floatOffset - adjustY; // Offset by max float to center
 
         compositeCtx.drawImage(coreImage, drawX, drawY, coreSize, coreSize);
       }
@@ -377,7 +377,7 @@ export class FlyInBox {
       ctx.drawImage(
         FlyInBox.compositeCanvas!, 
         0, 0, compositeWidth, compositeHeight,
-        x + paddingX, y + paddingY - maxFloatOffset, compositeWidth, compositeHeight
+        x + paddingX, y + paddingY - adjustY, compositeWidth, compositeHeight
       );
     }
 
