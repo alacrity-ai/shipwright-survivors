@@ -329,8 +329,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       ['#cccccc', '#aaaaaa', '#888888'];
 
     // Emit radial projectiles
-    for (let i = 0; i < 12; i++) {
-      const angle = (i / 12) * Math.PI * 2;
+    const initialAngle = Math.random() * Math.PI * 2;
+    for (let i = 0; i < 16; i++) {
+      const angle = initialAngle + (i / 16) * Math.PI * 2;
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
 
@@ -338,7 +339,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         origin,
         { x: vx, y: vy },
         'explosiveLance',
-        damage,
+        damage * 3,
         life,
         1,
         ship.id,

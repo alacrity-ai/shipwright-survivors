@@ -40,11 +40,6 @@ export class WaveOrchestratorFactory {
     incidentOrchestrator: IncidentOrchestrator,
     popupMessageSystem: PopupMessageSystem
   ): WaveOrchestrator {
-    // const playerShip = shipRegistry.getPlayerShip();
-    // if (!playerShip) {
-    //   throw new Error('Player ship not found');
-    // }
-
     // === Build core factories
     const shipFactory = new ShipFactory(
       grid,

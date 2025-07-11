@@ -21,6 +21,7 @@ import { LightingPass } from '@/rendering/unified/passes/LightingPass';
 import { EntityPass } from '@/rendering/unified/passes/EntityPass';
 import { ParticlePass } from '@/rendering/unified/passes/ParticlePass';
 import { SpritePass } from '@/rendering/unified/passes/SpritePass';
+import { LightningPass, type LightningSegment } from '@/rendering/unified/passes/fx/LightningPass';
 import {
   PostProcessPass,
   type PostEffectName,
@@ -51,6 +52,10 @@ export class UnifiedSceneRendererGL {
 
   private readonly cameraUBO: WebGLBuffer;
 
+  // World space fx passes
+  private readonly worldFxPasses: { render(): void; destroy(): void }[] = [];
+  private readonly lightningPass: LightningPass;
+
   private readonly spriteGroups: Map<WebGLTexture, SpriteInstance[]> = new Map();
   private readonly clearedTextures: WebGLTexture[] = [];
 
@@ -75,6 +80,7 @@ export class UnifiedSceneRendererGL {
     this.cameraUBO = createCameraUBO(this.gl);
     this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, 0, this.cameraUBO);
 
+    // Primary Passes
     this.backgroundPass = new BackgroundPass(this.gl);
     this.planetPass = new PlanetPass(this.gl);
     this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
@@ -84,6 +90,9 @@ export class UnifiedSceneRendererGL {
     this.particlePass = new ParticlePass(this.gl, this.cameraUBO);
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
+
+    // World FX
+    this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
 
     this.sceneFramebuffer = this.gl.createFramebuffer()!;
     this.sceneTexture = this.gl.createTexture()!;
@@ -211,7 +220,8 @@ export class UnifiedSceneRendererGL {
     ships: CompositeBlockObject[],
     lights: AnyLightInstance[],
     sprites: SpriteRenderRequest[],
-    particles: Particle[]
+    particles: Particle[],
+    lightningSegments: LightningSegment[]
   ): void {
     const gl = this.gl;
 

@@ -73,6 +73,7 @@ export class Ship extends CompositeBlockObject {
 
   // Fast Travel
   private homeCoordinates: { x: number; y: number } = { x: 0, y: 0 };
+  private jumping: boolean = false;
 
   // Check to see if the ship has or had engines ever
   private hadEngines: boolean = false;
@@ -152,6 +153,14 @@ export class Ship extends CompositeBlockObject {
 
   public setHomeCoordinates(x: number, y: number): void {
     this.homeCoordinates = { x, y };
+  }
+
+  public isJumping(): boolean {
+    return this.jumping;
+  }
+
+  public setJumping(jumping: boolean): void {
+    this.jumping = jumping;
   }
 
   public jumpHome(): boolean {

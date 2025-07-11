@@ -67,11 +67,13 @@ export class CursedCargoIncident extends BaseIncidentScript {
             ...cursedCacheShip.affixes,
             invulnerable: true,
           },
+          noClip: true,
         }
       : {
           shipId: 'incidents/cursed_cargo/cursed_cargo_00',
           count: 1,
           affixes: { invulnerable: true },
+          noClip: true,
         };
 
     const wave: WaveDefinition = {
@@ -115,7 +117,7 @@ export class CursedCargoIncident extends BaseIncidentScript {
     GlobalEventBus.on('wave:completed', this.handleWaveCompleted);
     this.hasSpawnedAmbush = true;
 
-    this.context.popupMessageSystem.displayMessage('🚨 Ambush Incoming! 🚨', {
+    this.context.popupMessageSystem.displayMessage('Ambush Incoming!', {
       color: '#ff3333',
       duration: 5,
       font: '26px monospace',

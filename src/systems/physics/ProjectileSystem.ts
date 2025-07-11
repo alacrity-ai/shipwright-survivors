@@ -197,6 +197,7 @@ export class ProjectileSystem {
 
         const obj = BlockToObjectIndex.getObject(block);
         if (!obj) continue;
+        if (obj.isNoClip()) continue;
 
         const coord = obj.getBlockCoord(block);
         if (!coord) continue;

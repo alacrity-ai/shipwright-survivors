@@ -34,7 +34,7 @@ export class BlockObjectCollisionSystem {
     const nearbyObjects = this.getNearbyObjects(movingObject);
     for (const otherObject of nearbyObjects) {
       if (!this.aabbOverlap(movingObject, otherObject)) continue;
-      if (!otherObject.isConstructed()) continue;
+      if (!otherObject.isConstructed() || otherObject.isNoClip()) continue;
 
       movingObject.setColliding(true);
       otherObject.setColliding(true);

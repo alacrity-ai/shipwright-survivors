@@ -2,15 +2,24 @@
 
 import type { InputManager } from "@/core/InputManager";
 import type { ShipConstructionAnimatorService } from "@/game/ship/systems/ShipConstructionAnimatorService";
+import type { ParticleManager } from "@/systems/fx/ParticleManager";
+import type { Ship } from "@/game/ship/Ship";
+
 import { ShipRegistry } from "@/game/ship/ShipRegistry";
 import { FadeManager } from "@/rendering/FadeManager";
 import { purgeNonPlayerShips } from "@/systems/culling/purgeNonPlayerShips";
+import { audioManager } from "@/audio/Audio";
+import { JumpCastProgressPopup } from "@/game/jumpcast/JumpCastProgressPopup";
+
+import { shakeCamera } from "@/core/interfaces/events/CameraReporter";
+import { createLightFlash } from "@/lighting/helpers/createLightFlash";
 
 import { GlobalEventBus } from "@/core/EventBus";
 
 type JumpTarget = { x: number; y: number; rot?: number };
 
 enum JumpState {
+  Preparing       = "preparing",
   Idle            = "idle",
   Deconstructing  = "deconstructing",
   FadeOut         = "fade-out",
@@ -23,7 +32,11 @@ enum JumpState {
 export class JumpCastTransitionController {
   private readonly input: InputManager;
   private readonly animator: ShipConstructionAnimatorService;
+  private readonly particleManager: ParticleManager;
   private readonly fade = FadeManager.getInstance();
+  private readonly progressPopup: JumpCastProgressPopup;
+
+  private playerShip: Ship | null = null;
 
   private state: JumpState = JumpState.Idle;
   private stateTimer = 0;                    // ms remaining in current phase
@@ -47,9 +60,14 @@ export class JumpCastTransitionController {
   constructor(
     inputManager: InputManager,
     constructionAnimator: ShipConstructionAnimatorService,
+    particleManager: ParticleManager,
   ) {
     this.input    = inputManager;
     this.animator = constructionAnimator;
+    this.progressPopup = new JumpCastProgressPopup(this.input);
+    this.particleManager = particleManager;
+
+    this.playerShip = ShipRegistry.getInstance().getPlayerShip();
 
     GlobalEventBus.on('planet:interaction:options:disable-jump', this.handleDisableJump);
     GlobalEventBus.on('planet:interaction:options:enable-jump', this.handleEnableJump);
@@ -62,18 +80,21 @@ export class JumpCastTransitionController {
    */
   initiateJump(target: JumpTarget): boolean {
     if (this.state !== JumpState.Idle || !this.isJumpEnabled) return false;
+    this.playerShip = ShipRegistry.getInstance().getPlayerShip();
+    if (!this.playerShip) return false;
 
-    const playerShip = ShipRegistry.getInstance().getPlayerShip();
-    if (!playerShip) return false;
-
-    this.input.disableAllActions();
+    this.playerShip.setJumping(true);
     this.target = target;
 
-    // Begin deconstruction animation
-    this.animator.animateShipDeconstruction(playerShip);
-    this.state      = JumpState.Deconstructing;
-    this.stateTimer = 500; // match deconstruction anim length (ms)
+    // NEW – open progress UI
+    this.progressPopup.openMenu();
+    this.state      = JumpState.Preparing;
 
+    createLightFlash(this.playerShip.getTransform().position.x, this.playerShip.getTransform().position.y, 1200, 1.0, 0.4, '#ffffff');
+    audioManager.play('assets/sounds/sfx/ship/computing_00.wav', 'sfx', { maxSimultaneous: 4 });
+    shakeCamera(10, 1, 10);
+
+    // no timer yet – popup governs pacing
     return true;
   }
 
@@ -82,8 +103,10 @@ export class JumpCastTransitionController {
    * @param dt delta-time in seconds
    */
   update(dt: number): void {
-    // Update fade in parallel with any phase
+    if (!this.playerShip) return;
+
     this.fade.update();
+    this.progressPopup.update(dt);
 
     if (this.state === JumpState.Idle) return;
 
@@ -91,13 +114,41 @@ export class JumpCastTransitionController {
     this.stateTimer = Math.max(this.stateTimer - ms, 0);
 
     switch (this.state) {
+
+      case JumpState.Preparing: {
+        this.particleManager.emitBurst(this.playerShip.getTransform().position, 1, {
+          colors: ['#00FFFF', '#39AAAA', '#FFFFFF'],
+          randomDirection: true,
+          speedRange: [400, 800],
+          sizeRange: [1.0, 2.0],
+          lifeRange: [0.5, 1.0],
+          fadeOut: true,
+          light: true,
+          lightRadiusScalar: 32,
+          lightIntensity: 0.2,
+        });
+
+        if (this.progressPopup.timerComplete()) {
+          // Transition to deconstruction sequence
+          if (this.playerShip) {
+            this.playerShip.setNoClip(true);
+            this.input.disableAllActions();
+            this.animator.animateShipDeconstruction(this.playerShip);
+          }
+          this.state      = JumpState.Deconstructing;
+          this.stateTimer = 500;
+          this.progressPopup.closeMenu();          // close gracefully
+        } else if (!this.progressPopup.isOpen()) { // user canceled
+          audioManager.play('assets/sounds/sfx/ship/energy-shield-reverse_00.wav', 'sfx', { maxSimultaneous: 4 });
+          this.abortJump();
+        }
+        break;
+      }
+
       // === Deconstructing
       case JumpState.Deconstructing: {
-        const playerShip = ShipRegistry.getInstance().getPlayerShip();
-        if (!playerShip) break;
-
         // Wait until the service reports completion
-        const stillBusy = this.animator.isShipDeconstructing(playerShip);
+        const stillBusy = this.animator.isShipDeconstructing(this.playerShip);
         if (!stillBusy) {
           // Begin screen fade once the last block vanishes
           this.fade.startFade(() => {
@@ -134,9 +185,8 @@ export class JumpCastTransitionController {
           this.input.enableAllActions();
 
           // Set this to the new homepoint for the ship
-          const playerShip = ShipRegistry.getInstance().getPlayerShip();
-          if (playerShip && this.target) {
-            playerShip.setHomeCoordinates(this.target.x, this.target.y);
+          if (this.playerShip && this.target) {
+            this.playerShip.setHomeCoordinates(this.target.x, this.target.y);
           }
 
           this.state      = JumpState.Cooldown;
@@ -147,6 +197,8 @@ export class JumpCastTransitionController {
       case JumpState.Cooldown:
         if (this.stateTimer === 0) {
           this.state = JumpState.Idle;
+          this.playerShip?.setNoClip(false);
+          this.playerShip?.setJumping(false);
         }
         break;
     }
@@ -157,7 +209,8 @@ export class JumpCastTransitionController {
    * Invoke from the main render step.
    */
   render(): void {
-    this.fade.render();
+    // this.fade.render();
+    this.progressPopup.render();
   }
 
   /**
@@ -168,12 +221,11 @@ export class JumpCastTransitionController {
   }
 
   private teleportShip(): void {
-    const playerShip = ShipRegistry.getInstance().getPlayerShip();
-    if (!playerShip || !this.target) return;
+    if (!this.playerShip || !this.target) return;
 
     const { x, y, rot = 0 } = this.target;
 
-    playerShip.setTransform({
+    this.playerShip.setTransform({
       position: { x, y },
       velocity: { x: 0, y: 0 },      // halt linear motion
       rotation: rot,
@@ -184,12 +236,19 @@ export class JumpCastTransitionController {
   }
 
   private beginReconstruction(): void {
-    const playerShip = ShipRegistry.getInstance().getPlayerShip();
-    if (!playerShip) return;
+    if (!this.playerShip) return;
 
-    this.animator.animateShipConstruction(playerShip);
+    this.animator.animateShipConstruction(this.playerShip);
     this.state      = JumpState.Reconstructing;
     this.stateTimer = 500; // duration of construction anim (ms)
+  }
+
+  private abortJump(): void {
+    this.input.enableAllActions();
+    this.state      = JumpState.Idle;
+    this.stateTimer = 0;
+    this.target     = null;
+    this.playerShip?.setJumping(false);
   }
 
   public destroy(): void {

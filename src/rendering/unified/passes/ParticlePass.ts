@@ -10,22 +10,6 @@ import { particleFrameBudgetMs } from '@/config/graphicsConfig';
 import particleVertSrc from '@/rendering/unified/shaders/particlePass.vert?raw';
 import particleFragSrc from '@/rendering/unified/shaders/particlePass.frag?raw';
 
-// const colorCache = new Map<string, { r: number; g: number; b: number }>();
-
-// function hexToRgb(hex: string) {
-//   if (colorCache.has(hex)) return colorCache.get(hex)!;
-
-//   const clean = hex.startsWith('#') ? hex.slice(1) : hex;
-//   const result = {
-//     r: parseInt(clean.slice(0, 2), 16) / 255,
-//     g: parseInt(clean.slice(2, 4), 16) / 255,
-//     b: parseInt(clean.slice(4, 6), 16) / 255,
-//   };
-
-//   colorCache.set(hex, result);
-//   return result;
-// }
-
 export class ParticlePass {
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;

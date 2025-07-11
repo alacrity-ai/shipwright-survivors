@@ -69,7 +69,8 @@ export class ShipFactory {
     registerController: boolean = true,
     unCullable: boolean = false,
     isPlayerShip: boolean = false,
-    createInstantly: boolean = false
+    createInstantly: boolean = false,
+    noClip: boolean = false
   ): Promise<{ ship: Ship; controller: AIControllerSystem | null, emitter: ThrusterEmitter, movement: MovementSystem, weapons: WeaponSystem, utility: UtilitySystem }> {
     const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid, faction, isPlayerShip);
 
@@ -79,6 +80,7 @@ export class ShipFactory {
 
     ship.setAffixes(affixes);
     ship.setFaction(faction);
+    ship.setNoClip(noClip);
 
     const transform = ship.getTransform();
     transform.position.x = x;
@@ -163,7 +165,8 @@ export class ShipFactory {
     faction: Faction = Faction.Enemy,
     registerController: boolean = true,
     unCullable: boolean = false,
-    isPlayerShip: boolean = false
+    isPlayerShip: boolean = false,
+    noClip: boolean = false
   ): Promise<{
     ship: Ship;
     controller: AIControllerSystem | null;
@@ -187,6 +190,7 @@ export class ShipFactory {
 
     ship.setAffixes(affixes);
     ship.setFaction(faction);
+    ship.setNoClip(noClip);
 
     this.registry.add(ship);
     if (isPlayerShip) {

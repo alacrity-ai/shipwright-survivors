@@ -125,11 +125,9 @@ import { flags } from '@/game/player/PlayerFlagManager';
 // Debug
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { testActivePowerupEffectResolver } from '@/game/powerups/test/poweruptest';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
 import { eraseAllArtifacts } from '@/game/ship/artifacts/helpers/eraseAllArtifacts';
-import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtifacts';
 
 export class EngineRuntime {
@@ -332,6 +330,7 @@ export class EngineRuntime {
     this.jumpCastTransitionController = new JumpCastTransitionController(
       this.inputManager,
       this.shipConstructionAnimator,
+      this.particleManager,
     );
 
     // === Planet Menus
@@ -556,6 +555,7 @@ export class EngineRuntime {
       this.tradePostMenu,
       this.planetInteractionOptionsMenu,
       this.jumpCastMenu,
+      this.jumpCastTransitionController
     ];
 
     this.canvasManager.setUnifiedRenderer(this.unifiedSceneRenderer!);
@@ -619,7 +619,7 @@ export class EngineRuntime {
     // === 1. Cleanup Existing Ship ===
     if (this.ship) {
       this.ship.destroyInstantly();
-      this.destructionService.destroyEntity(this.ship, 'replaced'); // Instead of destroyInstantly
+      this.destructionService.destroyEntity(this.ship, 'replaced');
       this.shipRegistry.remove(this.ship);
       ShipGrid.getInstance().removeShip(this.ship);
       this.objectGrid?.remove(this.ship);
@@ -675,7 +675,6 @@ export class EngineRuntime {
 
     console.log(`[EngineRuntime] Ship successfully set from ${jsonData}`);
   }
-
 
   private registerLoopHandlers() {
     this.gameLoop.onUpdate(this.boundUpdate);
@@ -819,9 +818,9 @@ export class EngineRuntime {
       this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyH')) {
-      clearPostProcessEffects();
-    }
+    // if (this.inputManager.wasKeyJustPressed('KeyH')) {
+    //   clearPostProcessEffects();
+    // }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
@@ -1152,7 +1151,6 @@ export class EngineRuntime {
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();
     this.playerController!.destroy();
-    // this.unifiedSceneRenderer!.destroy(); // TODO: do we need this? Defer the destroy so we can leave the final image on screen
 
     // TODO : Destroy GL2 blocksprite cache?? Leaving undestroyed for use by Debriefing Scene
     destroyGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));

@@ -37,6 +37,8 @@ export abstract class CompositeBlockObject {
   protected blockColor: string | null = null;
   protected blockColorIntensity: number = 0.5;
 
+  protected noClip: boolean = false;
+
   private _lastTransformCheckX: number = NaN;
   private _lastTransformCheckY: number = NaN;
   private _lastTransformCheckRot: number = NaN; // optional
@@ -119,6 +121,16 @@ export abstract class CompositeBlockObject {
       result.set(key, entry.block);
     }
     return result;
+  }
+
+  // --- Clipping
+
+  public setNoClip(value: boolean): void {
+    this.noClip = value;
+  }
+
+  public isNoClip(): boolean {
+    return this.noClip;
   }
 
   // --- Affixes Placeholder to avoid heavy use of typeOf

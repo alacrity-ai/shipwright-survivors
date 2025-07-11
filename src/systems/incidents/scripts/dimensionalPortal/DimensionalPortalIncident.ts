@@ -60,6 +60,7 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
         shipId: 'incidents/dimensional_portal/portal_node',
         count: 1,
         affixes: { invulnerable: true },
+        noClip: true,
       }],
       mods: [],
       formations: [],

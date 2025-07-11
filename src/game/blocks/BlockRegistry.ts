@@ -373,11 +373,11 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.5,
         fireType: 'explosiveLance',
         fireDamage: 1,
-        explosionDamage: 20,
+        explosionDamage: 25,
         explosionRadiusBlocks: 3,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 0.8,
+        lifetime: 1,
         accuracy: 0.95
       } 
     },
@@ -400,11 +400,11 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.6,
         fireType: 'explosiveLance',
         fireDamage: 1,
-        explosionDamage: 25,
+        explosionDamage: 40,
         explosionRadiusBlocks: 4,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 0.85,
+        lifetime: 1.2,
         accuracy: 0.97
       } 
     },
@@ -427,11 +427,11 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.7,
         fireType: 'explosiveLance',
         fireDamage: 1,
-        explosionDamage: 30,
+        explosionDamage: 60,
         explosionRadiusBlocks: 5,
         detonationDelayMs: 1500,
         projectileSpeed: 1600,
-        lifetime: 0.9,
+        lifetime: 1.4,
         accuracy: 0.98
       } 
     },
@@ -454,11 +454,11 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'explosiveLance',
         fireDamage: 1,
-        explosionDamage: 40,
+        explosionDamage: 80,
         explosionRadiusBlocks: 6,
         detonationDelayMs: 1500,
-        projectileSpeed: 1600,
-        lifetime: 1,
+        projectileSpeed: 1800,
+        lifetime: 1.6,
         accuracy: 0.99
       } 
     },

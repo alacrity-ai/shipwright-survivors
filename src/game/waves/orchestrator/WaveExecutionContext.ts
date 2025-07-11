@@ -198,7 +198,12 @@ export class WaveExecutionContext {
           y,
           true,
           group.entry.behaviorProfile,
-          group.entry.affixes ?? {}
+          group.entry.affixes ?? {},
+          undefined,
+          true,
+          false,
+          false,
+          group.entry.noClip ?? false
         );
 
         this.modApplier.apply(ship, this.wave.mods);

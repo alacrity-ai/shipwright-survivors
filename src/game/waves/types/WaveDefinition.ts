@@ -10,6 +10,7 @@ export interface WaveShipEntry {
   hunter?: boolean;
   behaviorProfile?: BehaviorProfile;
   affixes?: ShipAffixes;
+  noClip?: boolean;
 
   /**
    * Optional script or trigger to run when ALL of this group’s ships are destroyed.

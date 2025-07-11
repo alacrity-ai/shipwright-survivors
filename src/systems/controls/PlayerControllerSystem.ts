@@ -19,7 +19,8 @@ import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 
 import {
   EMPTY_WEAPON_INTENT,
-  EMPTY_UTILITY_INTENT
+  EMPTY_UTILITY_INTENT,
+  EMPTY_MOVEMENT_INTENT,
 } from '@/core/intent/interfaces/EmptyIntents';
 
 export class PlayerControllerSystem {
@@ -53,6 +54,9 @@ export class PlayerControllerSystem {
   }
 
   private getMovementIntent(dt: number): MovementIntent {
+    // If Jumping (Fast Travel) return instantly
+    if (this.playerShip.isJumping()) return EMPTY_MOVEMENT_INTENT;
+
     ShipGrid.getInstance().updateShipPosition(this.playerShip, dt);
 
     this.inputManager.setGamepadCursorOverrideEnabled(true);
