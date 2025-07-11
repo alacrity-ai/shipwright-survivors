@@ -4,8 +4,7 @@ import { PlanetOverlayRenderer } from '@/game/planets/PlanetOverlayRenderer';
 
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
-import { openTradepostMenu } from '@/core/interfaces/events/TradePostReporter';
-
+import { openPlanetInteractionOptions } from '@/core/interfaces/events/PlanetMenusReporter';
 import { audioManager } from '@/audio/Audio';
 
 import { flags } from '@/game/player/PlayerFlagManager';
@@ -99,7 +98,7 @@ export class PlanetController {
         if (this.definition.tradePostId) {
           this.isInteracting = true;
           audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
-          openTradepostMenu(this.definition.tradePostId);
+          openPlanetInteractionOptions(this.definition);
           return;
         } else {
           this.isInteracting = true;

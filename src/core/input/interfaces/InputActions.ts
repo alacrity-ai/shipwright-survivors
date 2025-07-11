@@ -25,5 +25,6 @@ export type InputAction =
   | 'hideHud'
   | 'placeAllBlocksButton'
   | 'rollBlocksButton'
+  | 'jumpHome'
   | 'cycleBlockLeft'
   | 'cycleBlockRight';

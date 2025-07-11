@@ -101,6 +101,7 @@ STEAM CHECKLIST:
 - [ ] Steam achievements
 - [ ] Demo Prepared and ready to launch
 - [ ] Trailer created
+- [ ] Create Press-Kit for Streamer Outreach (images, etc)
 
 DEMO ROADMAP:
 What's needed to get to Demo:
@@ -124,6 +125,30 @@ TUTORIAL TODOS:
 
 
 TODOS:
+
+  - [ ] Add NOCLIP, have constructing piggy bag on this, and apply to incident (cursed cargo and vortex)
+
+  - [ ] Make planet Jump gates require visit to planet to unlock?? Hmm..
+    - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?
+  - [ ] Expand map sizes to 64,000+
+  - [ ] Since map is much larger, add more incident density?
+  - [ ] Since map is much larger, add a total of 4 planets to the first map.
+  - [ ] Since map is much larger, we can extend a round to 20:00 minutes
+  - [ ] Likely will need to add minibosses, (can just use existing wave system for this, as it will continue to hound player.. but maybe make it persist respawn contract even as new waves start. Do we have a flag for this? I think we have a tag for this.)
+
+  - [ ] Add spatial anomolies (No go zones?) Use incident system.
+
+  - [ ] Boss should have dedicated moving minimap marker/screen edge marker
+
+  - [ ] Boss Fights with actual unique FSM trees and mechanics
+
+  - [ ] Add Escorts System
+
+  - [ ] Mission select:
+    - [ ] Need to show summary of all the unlockables within that mission.
+
+  - [ ] Need some kind of mission mutator system for replayability!!!
+
   - [ ] Completely clearing a Vortex Incident should end it immediately
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
@@ -198,6 +223,7 @@ BUGS:
 
 
 REFINEMENT:
+  - [ ] Only unlock first mission after tutorial, not both 1 and 2
   - [ ] Engine sound needs to play on gamepad movement
   - [ ] Rework laser to target the closet target.. add a chain lightning passive
   - [ ] Incident completion / cursed cargo completion sound is the same as leveling. fix that.

@@ -10,7 +10,7 @@ import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
 import { MiniMapIcons, IconType } from '@/ui/utils/MiniMapIcons';
 
-import { getWorldWidth, getWorldHeight, getWorldCenter } from '@/config/world';
+import { getWorldWidth, getWorldHeight } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
 
 export class MiniMap {

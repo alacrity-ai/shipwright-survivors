@@ -37,4 +37,6 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
 
   cycleBlockLeft:   { keys: [], gamepadButtons: ['dpadLeft'] },
   cycleBlockRight:  { keys: [], gamepadButtons: ['dpadRight'] },
+
+  jumpHome:         { keys: ['KeyH'], gamepadButtons: ['rightStickButton'] },
 };

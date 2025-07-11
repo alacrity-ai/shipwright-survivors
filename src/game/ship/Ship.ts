@@ -35,6 +35,7 @@ import { AfterburnerComponent } from './components/AfterburnerComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { Faction } from '@/game/interfaces/types/Faction';
 
+import { initiateJump } from '@/core/interfaces/events/PlanetMenusReporter';
 import { ShipRasterizationService } from '@/rendering/services/ShipRasterizationService';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
@@ -69,6 +70,9 @@ export class Ship extends CompositeBlockObject {
   private statusEffects: Map<StatusEffectType, StatusEffect> = new Map();
 
   private tags: Set<string> = new Set();
+
+  // Fast Travel
+  private homeCoordinates: { x: number; y: number } = { x: 0, y: 0 };
 
   // Check to see if the ship has or had engines ever
   private hadEngines: boolean = false;
@@ -138,6 +142,23 @@ export class Ship extends CompositeBlockObject {
       ...this.getSkillEffects(),
       ...this.getArtifactEffects(),
     };
+  }
+
+  // == Fast Travel (Town Portal)
+
+  public getHomeCoordinates(): { x: number; y: number } {
+    return this.homeCoordinates;
+  }
+
+  public setHomeCoordinates(x: number, y: number): void {
+    this.homeCoordinates = { x, y };
+  }
+
+  public jumpHome(): boolean {
+    if (!this.isPlayerShip) return false;
+    const { x, y } = this.homeCoordinates;
+    initiateJump(x, y);
+    return true;
   }
 
   // == Tagging

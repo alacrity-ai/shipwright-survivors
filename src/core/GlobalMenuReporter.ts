@@ -7,9 +7,11 @@ export class GlobalMenuReporter {
   private hoveredOverlays: Set<string> = new Set();
   private specialBlockers: Set<string> = new Set();
 
-  private constructor() {
-    // Singleton: disallow external instantiation
-  }
+  // Track delayed removal timers to avoid redundant timeouts
+  private pendingMenuRemovalTimers: Map<string, number> = new Map();
+  private pendingOverlayRemovalTimers: Map<string, number> = new Map();
+
+  private constructor() {}
 
   public static getInstance(): GlobalMenuReporter {
     if (!GlobalMenuReporter.instance) {
@@ -18,6 +20,7 @@ export class GlobalMenuReporter {
     return GlobalMenuReporter.instance;
   }
 
+  // === Special Blockers ===
   public setSpecialBlocker(tag: string): void {
     this.specialBlockers.add(tag);
   }
@@ -34,67 +37,80 @@ export class GlobalMenuReporter {
     return this.specialBlockers.size > 0;
   }
 
-  /**
-   * Mark the specified menu tag as open.
-   */
+  // === Menu Open / Close ===
   public setMenuOpen(tag: string): void {
     this.openMenus.add(tag);
+
+    // Cancel pending removal if it exists
+    const timer = this.pendingMenuRemovalTimers.get(tag);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.pendingMenuRemovalTimers.delete(tag);
+    }
   }
 
-  /**
-   * Mark the specified menu tag as closed.
-   */
   public setMenuClosed(tag: string): void {
-    this.openMenus.delete(tag);
+    // Debounce: if already pending, do nothing
+    if (this.pendingMenuRemovalTimers.has(tag)) return;
+
+    const timer = window.setTimeout(() => {
+      this.openMenus.delete(tag);
+      this.pendingMenuRemovalTimers.delete(tag);
+    }, 100);
+
+    this.pendingMenuRemovalTimers.set(tag, timer);
   }
 
-  /**
-   * Returns true if the given menu tag is currently open.
-   */
   public isMenuOpen(tag: string): boolean {
     return this.openMenus.has(tag);
   }
 
-  /**
-   * Returns true if any menu is currently open.
-   */
   public isAnyMenuOpen(): boolean {
     return this.openMenus.size > 0;
   }
 
-  /**
-   * Mark the specified overlay tag as hovered.
-   */
+  // === Overlay Hover Tracking ===
   public setOverlayHovered(tag: string): void {
     this.hoveredOverlays.add(tag);
+
+    // Cancel pending removal if it exists
+    const timer = this.pendingOverlayRemovalTimers.get(tag);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.pendingOverlayRemovalTimers.delete(tag);
+    }
   }
 
-  /**
-   * Mark the specified overlay tag as no longer hovered.
-   */
   public setOverlayNotHovered(tag: string): void {
-    this.hoveredOverlays.delete(tag);
+    // Debounce: if already pending, do nothing
+    if (this.pendingOverlayRemovalTimers.has(tag)) return;
+
+    const timer = window.setTimeout(() => {
+      this.hoveredOverlays.delete(tag);
+      this.pendingOverlayRemovalTimers.delete(tag);
+    }, 100);
+
+    this.pendingOverlayRemovalTimers.set(tag, timer);
   }
 
-  /**
-   * Returns true if the given overlay tag is currently hovered.
-   */
   public isOverlayHovered(tag: string): boolean {
     return this.hoveredOverlays.has(tag);
   }
 
-  /**
-   * Returns true if any overlay is currently hovered.
-   */
   public isAnyOverlayHovered(): boolean {
     return this.hoveredOverlays.size > 0;
   }
 
-  /**
-   * Clears all tracked menus and resets the singleton instance.
-   */
   public destroy(): void {
     this.openMenus.clear();
+    this.hoveredOverlays.clear();
+    this.specialBlockers.clear();
+
+    this.pendingMenuRemovalTimers.forEach(clearTimeout);
+    this.pendingOverlayRemovalTimers.forEach(clearTimeout);
+    this.pendingMenuRemovalTimers.clear();
+    this.pendingOverlayRemovalTimers.clear();
+
     GlobalMenuReporter.instance = null;
   }
 }

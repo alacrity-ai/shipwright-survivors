@@ -164,6 +164,12 @@ export class PlayerControllerSystem {
 
   public update(): void {
     const now = performance.now();
+
+    // TODO : Put in cooldown for this, etc
+    if (this.inputManager.wasActionJustPressed('jumpHome')) {
+      this.playerShip.jumpHome();
+    }
+
     if (
       this.inputManager.wasActionJustPressed('switchFiringMode') &&
       now - this.lastFiringModeSwitchTime >= 1000

@@ -12,6 +12,7 @@ import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 import type { PowerUpChoice } from '@/game/player/PlayerExperienceManager';
+import type { PlanetDefinition } from '@/game/planets/interfaces/PlanetDefinition';
 
 export type CursorChangeType =
   | 'crosshair'
@@ -192,8 +193,15 @@ export interface EventTypes {
     shipId: string;
   };
 
-  // Tradeposts
+  // Planet Menus
   'tradepost:open': { tradePostId: string };
+  'jumpcast:menu:open': undefined;
+  'jumpcast:initiate-jump': { x: number; y: number };
+  'planet:interaction:options:open': { planetDefinition: PlanetDefinition };
+  'planet:interaction:options:disable-jump': undefined;
+  'planet:interaction:options:enable-jump': undefined;
+
+
 
   // Entities
   'entity:destroy': {

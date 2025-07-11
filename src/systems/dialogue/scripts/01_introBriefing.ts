@@ -10,6 +10,7 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { MiniMapIcons } from '@/ui/utils/MiniMapIcons';
 import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
 import { disablePickupDrops, enablePickupDrops } from '@/core/interfaces/events/PickupSpawnReporter';
+import { disableJump } from '@/core/interfaces/events/PlanetMenusReporter';
 import { lockBlockQueue, unlockBlockQueue } from '@/core/interfaces/events/BlockQueueReporter';
 import { lockAllButtons, unlockAttachButton, unlockAllButtons } from '@/core/interfaces/events/BlockDropDecisionMenuReporter';
 import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
@@ -84,6 +85,9 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           // Disable Actions
           inputManager.disableAllActions();
+          
+          // Disable Fast Travel
+          disableJump();
 
           // Disable Pickup Drops
           disablePickupDrops();

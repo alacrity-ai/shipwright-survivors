@@ -16,7 +16,6 @@ export function getDistanceSquared(
   return dx * dx + dy * dy;
 }
 
-
 export class GlobalEnemyCullingSystem {
   private static readonly CULL_RADIUS = 5000;
   private static readonly CULL_RADIUS_SQ = GlobalEnemyCullingSystem.CULL_RADIUS ** 2;

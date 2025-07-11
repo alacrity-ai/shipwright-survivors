@@ -28,6 +28,8 @@ import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequ
 import { MenuManager } from '@/ui/MenuManager';
 import { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import { PowerupSelectionMenu } from '@/game/powerups/ui/PowerupSelectionMenu';
+import { JumpCastMenu } from '@/game/jumpcast/JumpCastMenu';
+import { PlanetInteractionOptionsMenu } from '@/game/planets/PlanetInteractionOptionsMenu';
 import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
 import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
 import { TradePostMenu } from '@/game/tradepost/TradePostMenu';
@@ -52,6 +54,7 @@ import {
 
 import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import { ShipConstructionAnimatorService } from '@/game/ship/systems/ShipConstructionAnimatorService';
+import { JumpCastTransitionController } from '@/game/jumpcast/JumpCastTransitionController';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
@@ -153,8 +156,10 @@ export class EngineRuntime {
   private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
   private powerupSelectionMenu: PowerupSelectionMenu;
+  private planetInteractionOptionsMenu: PlanetInteractionOptionsMenu;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private tradePostMenu: TradePostMenu;
+  private jumpCastMenu: JumpCastMenu | null = null;
   private settingsMenu: SettingsMenu | null = null;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
   private pauseMenu: PauseMenu | null = null;
@@ -191,6 +196,7 @@ export class EngineRuntime {
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
   private shipConstructionAnimator: ShipConstructionAnimatorService;
+  private jumpCastTransitionController: JumpCastTransitionController;
   private waveOrchestrator: WaveOrchestrator | null = null;
   private incidentOrchestrator: IncidentOrchestrator | null = null;
   private asteroidSpawner: AsteroidSpawningSystem | null = null;
@@ -321,8 +327,16 @@ export class EngineRuntime {
       this.inputManager
     );
 
-    // === Trade Post Menu
+    // JumpCast (Fast Travel)
+    this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.shipBuilderEffects);
+    this.jumpCastTransitionController = new JumpCastTransitionController(
+      this.inputManager,
+      this.shipConstructionAnimator,
+    );
+
+    // === Planet Menus
     this.tradePostMenu = new TradePostMenu(this.inputManager);
+    this.planetInteractionOptionsMenu = new PlanetInteractionOptionsMenu(this.inputManager);
 
     // === AI Orchestrator
     this.aiOrchestrator = new AIOrchestratorSystem();
@@ -371,7 +385,6 @@ export class EngineRuntime {
       this.grid,
       this.combatService,
     );
-    this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.shipBuilderEffects);
 
     this.registerLoopHandlers();
   }
@@ -493,6 +506,7 @@ export class EngineRuntime {
     // Planet System
     this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera!, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
+    this.jumpCastMenu = new JumpCastMenu(this.inputManager, this.planetSystem!, this.jumpCastTransitionController!);
 
     // AsteroidSpawner
     this.asteroidSpawner = new AsteroidSpawningSystem(this.grid!, this.blockObjectRegistry, this.objectGrid!);
@@ -540,6 +554,8 @@ export class EngineRuntime {
       this.incidentOrchestrator,
       this.powerupSelectionMenu,
       this.tradePostMenu,
+      this.planetInteractionOptionsMenu,
+      this.jumpCastMenu,
     ];
 
     this.canvasManager.setUnifiedRenderer(this.unifiedSceneRenderer!);
@@ -706,6 +722,9 @@ export class EngineRuntime {
       this.engineSoundPlaying
     );
 
+    // === Fast Travel
+    this.jumpCastTransitionController.update(dt);
+
     // Handle Menu Input
     handleMenuInput({
       inputManager: this.inputManager,
@@ -764,7 +783,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
-      testActivePowerupEffectResolver();
+      this.jumpCastTransitionController.initiateJump({ x: 20000, y: 20000 });
     }
 
     // TODO: Revisit this rendering pass, currently broken
@@ -892,10 +911,12 @@ export class EngineRuntime {
       console.error("Error getting ship transform:", error);
     }
 
-    // Update input manager
+    // Update input Manager and UI Menus/Overlays
     this.inputManager.updateFrame();
     this.hud!.update(dt); // BlockQueueDisplayManager is here
     this.tradePostMenu.update(dt);
+    this.planetInteractionOptionsMenu.update(dt);
+    this.jumpCastMenu!.update(dt);
 
     // All updatables
     if (!this.isPaused) {
@@ -1116,8 +1137,10 @@ export class EngineRuntime {
     this.incidentOrchestrator!.destroy();
     this.destructionService.destroy();
     this.tradePostMenu.destroy();
+    this.planetInteractionOptionsMenu.destroy();
     this.projectileSystem.destroy();
     this.screenEdgeIndicatorManager.destroy();
+    this.jumpCastTransitionController.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

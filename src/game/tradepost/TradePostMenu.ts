@@ -3,7 +3,7 @@
 import { DEFAULT_CONFIG } from '@/config/ui';
 
 import { CanvasManager } from '@/core/CanvasManager';
-import { drawWindow } from '@/ui/primitives/WindowBox';
+import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
@@ -43,7 +43,7 @@ export class TradePostMenu {
   // === Layout Constants ===
   private windowX = 80;
   private windowY = 80;
-  private windowYOffset = 50;
+  private windowYOffset = 46;
   private windowWidth = 560;
   private windowHeight = 360;
 
@@ -80,7 +80,7 @@ export class TradePostMenu {
 
     this.windowWidth = 600 * scale;
     this.windowHeight = 420 * scale;
-    this.windowYOffset = 50 * scale;
+    this.windowYOffset = 46 * scale;
     this.windowX = (viewportWidth / 2) - (this.windowWidth / 2);
     this.windowY = (viewportHeight / 2) - (this.windowHeight / 2) + this.windowYOffset;
 
@@ -161,14 +161,14 @@ export class TradePostMenu {
     const ctx = this.ctx;
 
     // === Main CRT Window ===
-    drawWindow({
-      ctx,
-      x: this.windowX,
-      y: this.windowY,
-      width: this.windowWidth,
-      height: this.windowHeight,
-      options: DEFAULT_CONFIG.window.options,
-    });
+    drawMinimalistWindow(
+      ctx, 
+      this.windowX, 
+      this.windowY, 
+      this.windowWidth, 
+      this.windowHeight, 
+      { ...DEFAULT_CONFIG.window.options, alpha: 0.9 }
+    );
 
     // === Title ===
     drawLabel(
