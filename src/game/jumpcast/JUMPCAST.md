@@ -1,107 +1,125 @@
-📡 JumpCast Network — Fast Travel System Specification
-Overview
-The JumpCast Network introduces a lore-consistent fast travel system across the expanded planetary map in Shipwright Survivors. It replaces the direct transition into the Trade Post with a new interaction menu per planet, offering both trading and interplanetary relocation capabilities. The system is themed around remote disassembly and reconstruction of block-based ships via a distributed quantum uplink network.
+## 📡 JumpCast Network — Fast-Travel Subsystem
 
-Entry Point: Planet Interaction Menu
-Upon interacting with a planet, the user is presented with a new binary menu:
+### 1 ▸ High-Level Purpose
 
-Trade Post — opens the existing trade interface.
+_Shipwright Survivors_ covers a 32 000 × 32 000 world. Traversing long distances in real time is tedious, so **JumpCast** provides **instantaneous, lore-consistent relocation** of the player’s ship by:
 
-JumpCast Network — initiates the interplanetary fast travel UI.
+1. Remotely **disassembling** the vessel into its block blueprint.
+    
+2. **Streaming** the blueprint through a galaxy-wide quantum uplink lattice.
+    
+3. **Re-assembling** the ship at a destination “planet node”.
+    
 
-JumpCastMenu UI
-A semi-opaque overlay window is displayed.
+The mechanic integrates seamlessly with the block-construction fantasy, avoids canonical teleportation, and enforces a global cooldown to prevent abuse.
 
-Planet icons are rendered in relative positions (mirroring the MiniMap’s spatial projection logic).
-
-A Cancel button is available at the bottom (clickable or (B) on gamepad).
-
-Clicking a planet icon initiates a fast travel operation to the target planet.
-
-Fast Travel Transition Sequence
-On planet selection, the following procedural steps are triggered:
-
-Menu closes; user input is locked.
-
-Ship deconstruction animation plays (reverse of the ship construction sequence).
-
-Global screen fade-out is initiated via FadeManager.
-
-Ship's transform is updated to the destination planet’s coordinates.
-
-Camera position is synchronized with the new ship location.
-
-Global fade-in is initiated.
-
-Ship reconstruction animation plays (standard construction sequence).
-
-Player input is restored once construction completes.
-
-Implementation Considerations
-A modular transition controller will encapsulate steps 2–8 for reusability across future teleportation scenarios (e.g. scripted teleport events, town portal analogs).
-
-A global cooldown timer (~20 seconds, configurable) will throttle JumpCast usage to prevent abuse or degenerate usage patterns.
-
-Game state persistence and event hooks (e.g. planet arrival events, ambient audio transitions) must be respected within this transition flow.
-
-Naming and Lore Justification
-JumpCast refers to the act of digitally transmitting a ship’s modular blueprint through a galactic uplink lattice and reassembling it at a destination node using pre-fabrication facilities embedded in each planet’s infrastructure. This positions fast travel not as spatial teleportation but as quantum-accurate modular replication of block-based constructs.
+|Class|Location|Responsibility|
+|---|---|---|
+|**`JumpCastMenu`**|`src/game/jumpcast/JumpCastMenu.ts`|UI overlay: planet map, hover feedback, click-to-jump, Cancel button, slide-in intro animation.|
+|**`JumpCastTransitionController`**|`src/game/jumpcast/JumpCastTransitionController.ts`|State machine orchestrating deconstruction ➜ fade-out ➜ world-transfer ➜ fade-in ➜ reconstruction, plus global cooldown and input gating.|
 
 
+Other collaborators:
 
-Instantiate Core Services in Runtime
+- `ShipConstructionAnimatorService` – handles block-level (de)construction VFX.
+    
+- `FadeManager` – screen fade utility.
+    
+- `PlanetSystem` – supplies planet positions & scales.
+    
+- `GlobalEventBus` – loose coupling via events (open/close menu, enable/disable jump, initiate jump).
 
-Create a single JumpCastTransitionController, injecting the ShipConstructionAnimatorService, InputManager, FadeManager, and any camera reference.
 
-Instantiate JumpCastMenuController, passing it the PlanetSystem, the above transitionController, and the same InputManager.
+3 ▸ UI Flow (`JumpCastMenu`)
 
-JumpCastMenuUI
+```
+graph TD
+A(Open Event) --> B[Slide-In Animation]
+B -->|0.3 s cubic| C[Open State]
+C --> D{User Click}
+D -->|Cancel| E(Close Menu)
+D -->|Planet Icon| F(Emit initiate-jump)
+F --> E
 
-Render a semi-opaque window with planet icons positioned via the existing MiniMap projection math.
+```
 
-Display a bottom “Cancel / (B)” button.
+- **Spatial projection** – World coords are normalised into a square region inside the overlay window.
+    
+- **Hover feedback** – Enlarged icon + brighter glow.
+    
+- **Game-pad** – Planets registered as `NavPoint`s so virtual cursor snaps; Cancel button always present.
+    
+- **Animation** – Menu slides down from off-screen (`easeOutCubic`, 0.3 s). Input is ignored until fully open.
 
-Expose hit-testing helpers for planet icons and the cancel button.
+4 ▸ Transition Flow (`JumpCastTransitionController`)
 
-JumpCastMenuController
+```
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Deconstructing: initiateJump()
+  Deconstructing --> FadeOut: blocks hidden
+  FadeOut --> Transferring: screen fully black
+  Transferring --> FadeIn: teleportShip()
+  FadeIn --> Reconstructing: fade complete
+  Reconstructing --> Cooldown: ship rebuilt
+  Cooldown --> Idle: 100 ms elapsed
 
-Maintain internal state flags: isOpen, selectedPlanet, and a cool-down timer (e.g., remainingCooldownMs).
+```
 
-Update loop responsibilities:
 
-Decrement remainingCooldownMs by dt.
+### Key Details
 
-Generate / update game-pad nav-map nodes (planet icons + cancel).
+|Phase|Duration|Notes|
+|---|---|---|
+|**Deconstructing**|~500 ms|Uses `ShipConstructionAnimatorService.animateShipDeconstruction`.|
+|**FadeOut / FadeIn**|500 ms / 800 ms|Via `FadeManager`; non-blocking update loop.|
+|**Transferring**|~0 ms|Sets ship transform; calls `purgeNonPlayerShips()` so the environment reseeds near new position.|
+|**Reconstructing**|~500 ms|Mirror of deconstruction animation.|
+|**Cooldown**|100 ms (config)|Soft guard; can be increased for balancing.|
 
-On planet click or nav selection, call canTeleport() (true when remainingCooldownMs ≤ 0). If allowed, invoke transitionController.beginJumpCast(target) and reset the cool-down.
+Input is disabled between Deconstructing → Reconstructing and re-enabled afterwards.
 
-Handle (B) or cancel click to close the menu.
 
-Provide canTeleport() as a lightweight gate for UI and hotkey logic.
+### 5 ▸ Event Contract
 
-ShipConstructionAnimatorService Enhancements
+|Event|Payload|Emitted by / Consumed by|
+|---|---|---|
+|`jumpcast:menu:open`|—|Planet interaction menu triggers it.|
+|`jumpcast:initiate-jump`|`{ x, y }`|(optional) Alternative initiation path.|
+|`planet:interaction:options:disable-jump`|—|Tutorial or cooldown gating.|
+|`planet:interaction:options:enable-jump`|—|Re-enables fast travel.|
 
-Add a symmetric deconstruction routine mirroring the existing construction animation.
 
-JumpCastTransitionController
+### 6 ▸ Integration Steps
 
-Coordinate the full fade / deconstruct / move / reconstruct / fade-in pipeline.
+1. **Instantiate** once at runtime:
+```
+const jumpCastTransition = new JumpCastTransitionController(input, shipAnimator);
+const jumpCastMenu       = new JumpCastMenu(input, planetSystem, jumpCastTransition);
 
-Lock and unlock input via the injected InputManager.
+```
+- **Hook editor / planet UI** to emit `jumpcast:menu:open` when the player selects **JumpCast Network**.
+    
+- **Call** `jumpCastTransition.update(dt)` in the main update loop and `render()` in the overlay pass.
+    
+- **Destroy** both objects on scene unload to unregister EventBus listeners.
 
-Ensure the FadeManager.update() and .render() are invoked from within the game loop.
+### 7 ▸ Tuning Knobs
 
-Game Loop Integration
+|Constant|File|Effect|
+|---|---|---|
+|`SLIDE_DURATION`, `SLIDE_EASE_POWER`|`JumpCastMenu.ts`|Menu intro feel.|
+|`PLANET_ICON_MIN_PX`|`JumpCastMenu.ts`|Smallest icon size on map.|
+|`WORLD_RADIUS_THRESHOLD`|`hitTestPlanet()`|Click radius tolerance.|
+|`cooldownMs`|`JumpCastTransitionController.ts`|Global jump cooldown.|
+|De/Construction durations|`ShipConstructionAnimatorService`|Animation pacing.|
 
-Each frame: jumpCastMenuController.update(dt), jumpCastTransitionController.update(dt), and the respective render() calls plus FadeManager.render().
+### 8 ▸ Extensibility
 
-Cooldown UX Signaling
-
-Grey-out or pulse planet icons when !canTeleport() and consider a subtle “JumpCast cooling-down” tooltip.
-
-Expose remaining seconds (rounded) for potential overlay display.
-
-Interfaces & Type Contracts
-
-Centralize shared types (planet hit-target, nav-node schema, cooldown constants) in src/game/jumpcast/interfaces.
-
+- **Additional fast-travel endpoints** – emit `jumpcast:initiate-jump` with `{x, y}` and reuse controller.
+    
+- **Mid-mission scripting** – pause gameplay, open menu, or auto-jump via event.
+    
+- **Planet metadata** – overlay text or resource costs can be rendered next to icons.
+    
+- **Dynamic cooldown** – scale `cooldownMs` based on distance or player upgrades.
