@@ -106,16 +106,16 @@ STEAM CHECKLIST:
 DEMO ROADMAP:
 What's needed to get to Demo:
 - [ ] Mini intro before tutorial, static "Shipwright! Shipwright! Listen ... Trust the robot, he doesn't know it yet.. But"
-- [ ] Tutorial Rewrite
-- [ ] Controller Support
-  - [ ] Menus (Need navtree)
+- [x] Tutorial Rewrite
+- [x] Controller Support
+  - [x] Menus (Need navtree)
 - [ ] Incidents (Make at least 10 or so incidents)
-- [ ] 3 Missions - each tested thoroughly for smooth flow
+- [x] 2 Missions - each tested thoroughly for smooth flow
   - [ ] Sub objectives in each mission, e.g. in the galaxy select
 - [ ] Basic breakroom dialogue
-- [ ] Planet merchants, trade blocks for other blocks, entropium, etc. unlockables
+- [x] Planet merchants, trade blocks for other blocks, entropium, etc. unlockables
 - [ ] Demo End splash (List what's coming)
-- [ ] Titlescreen polish / rework
+- [x] Titlescreen polish / rework
 - [ ] Laser polish firing sound
 - [ ] Engine sound on gamepad use
 - [ ] Add 5 more weapons
@@ -125,10 +125,11 @@ TUTORIAL TODOS:
 
 
 TODOS:
-
+  - [ ] Add sound effects to Jump (Fast travel) menus.
   - [ ] Add NOCLIP, have constructing piggy bag on this, and apply to incident (cursed cargo and vortex)
 
-  - [ ] Make planet Jump gates require visit to planet to unlock?? Hmm..
+  - [ ] Should "town portal" jump be an early unlockable? This would allow for tutorialization/explanation.
+  - [ ] Make planet Jump gates require visit to planet to unlock?? Hmm..?
     - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?
   - [ ] Expand map sizes to 64,000+
   - [ ] Since map is much larger, add more incident density?

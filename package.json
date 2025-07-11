@@ -12,6 +12,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:electron": "tsc -p tsconfig.electron.json && vite build --mode electron",
+    "build:web": "vite build --base ./ --outDir dist-web",
     "deploy": "vite build && gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview",
