@@ -308,14 +308,17 @@ export class UnifiedSceneRendererGL {
       this.sceneFramebufferFX = tmpFbo;
     }
 
-    // === Step 10: Apply screen-space post-process effects to default framebuffer ===
+    // === Step 10: Render world-space FX passes (lightning, trails, etc.) ===
+    this.lightningPass.render(lightningSegments, camera);
+
+    // === Step 11: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const effectChain = Array.from(this.postProcessEffects.entries()).map(
       ([effect, params]) => ({ effect, params })
     );
     this.postProcessPass.run(this.sceneTexture, effectChain);
 
-    // === Step 11: Composite additive lighting effects (e.g. halos) over final image ===
+    // === Step 12: Composite additive lighting effects (e.g. halos) over final image ===
     this.lightingPass.compositeLightingOverTarget(null);
   }
 
@@ -345,6 +348,7 @@ export class UnifiedSceneRendererGL {
     this.backgroundPostProcessPass.destroy();
     this.specialFxPass.destroy();
     this.specialFxController.destroy();
+    for (const fx of this.worldFxPasses) fx.destroy();
 
     this.spriteGroups.clear();
     this.postProcessEffects.clear();

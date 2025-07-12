@@ -459,7 +459,6 @@ function drawProceduralBlock(typeId: string): void {
         muzzleCore: '#FFFFFF'
       });
       break;
-
     case 'laser1':
       renderLaserWeapon(baseCtx, BLOCK_SIZE, {
         body: ['#555D66', '#3C444D', '#2B3036', '#1E2227'], // Grey-steel
@@ -485,6 +484,18 @@ function drawProceduralBlock(typeId: string): void {
       });
       break;
     case 'laser3':
+      renderLaserWeapon(baseCtx, BLOCK_SIZE, {
+        body: ['#00B8D4', '#00ACC1', '#00BCD4', '#4DD0E1'], // Bright cyan-blues
+        housing: '#18FFFF',           // Electric aqua
+        innerHousing: '#00E5FF',      // Vivid sky blue
+        barrel: ['#B2EBF2', '#4DD0E1', '#B2EBF2'],
+        barrelDetail: '#E0F7FA',
+        glow: ['#00E5FF', '#00B8D4', 'rgba(0, 184, 212, 0)'],
+        muzzleGlow: ['#E1F5FE', '#4FC3F7', '#039BE5', 'rgba(3, 155, 229, 0)'],
+        muzzleCore: '#B3E5FC'
+      });
+      break;
+    case 'laser4':
       renderLaserWeapon(baseCtx, BLOCK_SIZE, {
         body: ['#2E003E', '#1D002A', '#14001F', '#0A0014'], // Near-black purples
         housing: '#9575CD',           // Soft lavender

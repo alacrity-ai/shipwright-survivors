@@ -6,7 +6,6 @@ import { ShipFactory } from '@/game/ship/factories/ShipFactory';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
@@ -40,7 +39,6 @@ export async function getStarterShip(
   registry: ShipRegistry,
   particleManager: ParticleManager,
   projectileSystem: ProjectileSystem,
-  laserSystem: LaserSystem,
   combatService: CombatService,
   explosionSystem: ExplosionSystem,
   collisionSystem: BlockObjectCollisionSystem,
@@ -53,7 +51,6 @@ export async function getStarterShip(
     registry,
     particleManager,
     projectileSystem,
-    laserSystem,
     combatService,
     explosionSystem,
     collisionSystem,
@@ -87,7 +84,6 @@ export async function getStarterShipFromJson(
   registry: ShipRegistry,
   particleManager: ParticleManager,
   projectileSystem: ProjectileSystem,
-  laserSystem: LaserSystem,
   combatService: CombatService,
   explosionSystem: ExplosionSystem,
   collisionSystem: BlockObjectCollisionSystem,
@@ -98,7 +94,6 @@ export async function getStarterShipFromJson(
     registry,
     particleManager,
     projectileSystem,
-    laserSystem,
     combatService,
     explosionSystem,
     collisionSystem,

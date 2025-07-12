@@ -7,8 +7,8 @@ import type { Camera } from '@/core/Camera';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 
-import lightningVertSrc from '@/rendering/unified/shaders/lightningPass.vert?raw';
-import lightningFragSrc from '@/rendering/unified/shaders/lightningPass.frag?raw';
+import lightningVertSrc from '@/rendering/unified/shaders/fx/lightningPass.vert?raw';
+import lightningFragSrc from '@/rendering/unified/shaders/fx/lightningPass.frag?raw';
 
 /** One **segment** between two subdivision points of a bolt. */
 export interface LightningSegment {

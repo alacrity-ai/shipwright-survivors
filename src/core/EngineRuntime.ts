@@ -61,9 +61,9 @@ import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import { LaserSystem } from '@/systems/physics/LaserSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
+import { LightningSystem } from '@/systems/fx/LightningSystem';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
@@ -129,6 +129,7 @@ import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
 import { eraseAllArtifacts } from '@/game/ship/artifacts/helpers/eraseAllArtifacts';
 import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtifacts';
+import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -185,11 +186,11 @@ export class EngineRuntime {
   private combatService: CombatService;
   private destructionService: CompositeBlockDestructionService;
   private projectileSystem: ProjectileSystem;
-  private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
   private pickupSpawner: PickupSpawner;
   private particleManager: ParticleManager;
   private persistentParticleManager: ParticleManager;
+  private lightningSystem: LightningSystem;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
@@ -266,6 +267,8 @@ export class EngineRuntime {
     this.particleManager = new ParticleManager(this.lightingOrchestrator);
     // Particle System which runs regardless of game pause
     this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator);
+    // Lightning System
+    this.lightningSystem = new LightningSystem(this.lightingOrchestrator);
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -377,13 +380,6 @@ export class EngineRuntime {
       this.combatService,
       this.particleManager,
     );
-    // Laser system (Single instance shared by all ships)
-    this.laserSystem = new LaserSystem(
-      this.canvasManager,
-      this.camera,
-      this.grid,
-      this.combatService,
-    );
 
     this.registerLoopHandlers();
   }
@@ -397,7 +393,6 @@ export class EngineRuntime {
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
-      this.laserSystem,
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
@@ -481,7 +476,6 @@ export class EngineRuntime {
       this.aiOrchestrator,
       this.particleManager,
       this.projectileSystem,
-      this.laserSystem,
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
@@ -534,7 +528,6 @@ export class EngineRuntime {
 
     // All systems that need to be rendered every frame
     this.renderables = [
-      this.laserSystem,
       this.hud,
       this.miniMap,
       this.screenEdgeIndicatorManager,
@@ -591,8 +584,8 @@ export class EngineRuntime {
   private initializeFixedUpdatables(): void {
     this.fixedUpdatables = [
       this.projectileSystem,
-      this.laserSystem,
       this.particleManager,
+      this.lightningSystem,
       this.persistentParticleManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
@@ -636,7 +629,6 @@ export class EngineRuntime {
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
-      this.laserSystem,
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
@@ -797,6 +789,18 @@ export class EngineRuntime {
       });
     }
 
+    // Dev-only lightning test (KeyL)
+    if (this.inputManager.wasKeyJustPressed('KeyL')) {
+      const angle  = Math.random() * Math.PI * 2;
+      const length = 2000;
+      const endX   = Math.cos(angle) * length;
+      const endY   = Math.sin(angle) * length;
+
+      const { x, y } = this.ship?.getTransform().position ?? { x: 0, y: 0 };
+
+      spawnLaserBeam(x, y, endX, endY, [0.25, 0.9, 1.0, 1.0]);
+    }
+
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
       flags.unlockAllFlags();
     }
@@ -818,10 +822,6 @@ export class EngineRuntime {
       this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
     }
 
-    // if (this.inputManager.wasKeyJustPressed('KeyH')) {
-    //   clearPostProcessEffects();
-    // }
-
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
@@ -829,7 +829,7 @@ export class EngineRuntime {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
-      const randomTypes = ['facetplate2', 'hull2', 'fin2'];
+      const randomTypes = ['laser1', 'laser2', 'laser3', 'laser4'];
       for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -943,7 +943,7 @@ export class EngineRuntime {
 
     this.renderables.forEach(system => system.render(dt));
 
-    // Render all graphics through Unified Rendering Pipeline
+    // == Render all graphics through Unified Rendering Pipeline
     if (this.camera) {
       const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
       const visibleShips = this.shipCulling!.getVisibleShips();
@@ -953,7 +953,7 @@ export class EngineRuntime {
         ...this.persistentParticleManager.collectVisibleParticles(this.camera),
       ];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
-
+      const lightningSegments = this.lightningSystem.getSegments();
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
 
       if (this.ship) {
@@ -965,10 +965,10 @@ export class EngineRuntime {
         visibleObjects,
         visibleLights,
         spriteRequests,
-        visibleParticles
+        visibleParticles,
+        lightningSegments,
       );
     }
-
 
     if (this.shipBuilderMenu.isOpen()) {
       this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);
@@ -1140,6 +1140,7 @@ export class EngineRuntime {
     this.projectileSystem.destroy();
     this.screenEdgeIndicatorManager.destroy();
     this.jumpCastTransitionController.destroy();
+    this.lightningSystem.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

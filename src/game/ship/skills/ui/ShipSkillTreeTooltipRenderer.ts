@@ -237,8 +237,8 @@ export class ShipSkillTreeTooltipRenderer {
       laserDamage: 'Laser Damage',
       laserBeamWidth: 'Beam Width',
       laserEfficiency: 'Efficiency',
-      laserShieldPenetration: 'Shield Penetration',
-      laserTargeting: 'Auto-Targeting',
+      laserChain: 'Chain Lasers',
+      laserAreaOfEffect: 'Area of Effect Damage',
 
       startingBlocks: 'Starting Blocks',
     };

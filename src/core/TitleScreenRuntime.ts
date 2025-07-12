@@ -34,7 +34,6 @@ import { SpriteRendererGL } from '@/rendering/gl/SpriteRendererGL';
 import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import { LaserSystem } from '@/systems/physics/LaserSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 
@@ -105,7 +104,6 @@ export class TitleScreenRuntime {
   private combatService: CombatService;
   private destructionService: CompositeBlockDestructionService;
   private projectileSystem: ProjectileSystem;
-  private laserSystem: LaserSystem;
   private pickupSystem: PickupSystem;
   private pickupSpawner: PickupSpawner;
   private particleManager: ParticleManager;
@@ -221,13 +219,6 @@ export class TitleScreenRuntime {
       this.combatService,
       this.particleManager,
     );
-    // Laser system (Single instance shared by all ships)
-    this.laserSystem = new LaserSystem(
-      this.canvasManager,
-      this.camera,
-      this.grid,
-      this.combatService,
-    );
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.shipBuilderEffects);
 
     // this.registerLoopHandlers();
@@ -265,7 +256,6 @@ export class TitleScreenRuntime {
       this.aiOrchestrator,
       this.particleManager,
       this.projectileSystem,
-      this.laserSystem,
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
@@ -290,7 +280,6 @@ export class TitleScreenRuntime {
 
     // All systems that need to be rendered every frame
     this.renderables = [
-      this.laserSystem,
       this.explosionSystem,
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
@@ -307,7 +296,6 @@ export class TitleScreenRuntime {
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
-      this.laserSystem,
       this.combatService,
       this.explosionSystem,
       this.collisionSystem,
@@ -329,7 +317,6 @@ export class TitleScreenRuntime {
   private initializeFixedUpdatables(): void {
     this.fixedUpdatables = [
       this.projectileSystem,
-      this.laserSystem,
       this.particleManager,
       this.persistentParticleManager,
       this.aiOrchestrator,
@@ -451,7 +438,8 @@ export class TitleScreenRuntime {
         visibleObjects,
         visibleLights,
         spriteRequests,
-        visibleParticles
+        visibleParticles,
+        []
       );
     }
   };

@@ -187,6 +187,15 @@ export class PlayerShipCollection {
     }
   }
 
+  public masterAllShips(): void {
+    for (const shipName of this.discoveredShipNames) {
+      this.shipMasteryMap.set(shipName, {
+        masteryLevel: PlayerShipCollection.MAX_MASTERY_LEVEL,
+        experience: 0,
+      });
+    }
+  }
+
   // === Accessors ===
 
   isDiscovered(shipName: string): boolean {

@@ -25,6 +25,20 @@ export type CursorChangeType =
   | 'right'
   | 'small-circle';
 
+export interface LightningBoltSpawnEvent {
+  start: { x: number; y: number };
+  end:   { x: number; y: number };
+  opts?: Partial<{
+    lifetime: number;
+    thickness: number;
+    color: [number, number, number, number];
+    subdivision: number;
+    jitter: number;
+    lightRadius: number;
+    lightIntensity: number;
+  }>;
+}
+
 type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
 
 export interface EventTypes {
@@ -153,6 +167,8 @@ export interface EventTypes {
   // Special FX runtime events
   'fx:spawn': Omit<SpecialFxInstance, 'time'>;
   'fx:clear': undefined;
+  // Lightning FX
+  'lightning:bolt:spawn': LightningBoltSpawnEvent;
 
   // Wave spawning / Enemy spawning
   'wave:spawn': { tag: string; wave: WaveDefinition; } // Tag to keep track of wave
@@ -200,8 +216,6 @@ export interface EventTypes {
   'planet:interaction:options:open': { planetDefinition: PlanetDefinition };
   'planet:interaction:options:disable-jump': undefined;
   'planet:interaction:options:enable-jump': undefined;
-
-
 
   // Entities
   'entity:destroy': {

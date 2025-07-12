@@ -242,6 +242,11 @@ export class ShipSelectionSceneManager {
     CoachMarkManager.getInstance().update(dt);
     this.gamepadNavManager.update();
 
+    // === DEBUG
+    if (this.inputManager.wasKeyJustPressed('KeyM')) {
+      PlayerShipCollection.getInstance().masterAllShips();
+    }
+
     // === Background scroll update ===
     this.backgroundScrollOffsetX += BACKGROUND_SCROLL_DIRECTION.x * BACKGROUND_SCROLL_SPEED * dt;
     this.backgroundScrollOffsetY += BACKGROUND_SCROLL_DIRECTION.y * BACKGROUND_SCROLL_SPEED * dt;

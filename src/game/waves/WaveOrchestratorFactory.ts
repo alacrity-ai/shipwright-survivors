@@ -9,7 +9,6 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
@@ -32,7 +31,6 @@ export class WaveOrchestratorFactory {
     aiOrchestrator: AIOrchestratorSystem,
     particleManager: ParticleManager,
     projectileSystem: ProjectileSystem,
-    laserSystem: LaserSystem,
     combatService: CombatService,
     explosionSystem: ExplosionSystem,
     collisionSystem: BlockObjectCollisionSystem,
@@ -46,7 +44,6 @@ export class WaveOrchestratorFactory {
       shipRegistry,
       particleManager,
       projectileSystem,
-      laserSystem,
       combatService,
       explosionSystem,
       collisionSystem,

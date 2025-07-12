@@ -35,8 +35,8 @@ export interface ShipSkillEffectMetadata {
   laserDamage?: number; // Flat
   laserBeamWidth?: number; // Flat
   laserEfficiency?: number; // Percentage
-  laserShieldPenetration?: boolean;
-  laserTargeting?: boolean;
+  laserChain?: boolean;
+  laserAreaOfEffect?: boolean;
 
   // Universal Nodes
   startingBlocks?: string[]; // Implemented

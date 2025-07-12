@@ -94,39 +94,68 @@ export function findFarthestTarget(originShip: Ship, range: number): Ship | null
 }
 
 /**
- * Returns a random enemy ship within `range` of `originShip`,
- * excluding same-faction, neutral, and invulnerable ships.
- * No LOS checks.
+ * Selects a random *hostile* ship inside the specified radius.
+ *
+ * @param originShip      Ship whose perspective determines “enemy”
+ * @param range           Search radius (world-space units)
+ * @param excludeShip     Optional ship to omit from selection (e.g. the last target in a chain)
+ * @param targetFaction   If supplied, **only** ships of this faction are eligible
+ *
+ * @returns A random enemy ship satisfying all criteria, otherwise `null`.
+ *
+ * Design invariants
+ * -----------------
+ * • Neutral or invulnerable ships are never returned.  
+ * • Line-of-sight is *not* evaluated; the caller may add that filter if required.  
+ * • The function is deterministic only up to the PRNG used by `Math.random()`.
  */
-export function findRandomTargetInRange(originShip: Ship, range: number): Ship | null {
+export function findRandomTargetInRange(
+  originShip    : Ship,
+  range         : number,
+  excludeShip?  : Ship,
+  targetFaction?: Faction,
+): Ship | null {
   const originFaction = originShip.getFaction();
+
+  // Early-out: neutrals have no hostilities
   if (originFaction === Faction.Neutral) return null;
 
-  const originPos = originShip.getTransform().position;
-  const candidates = ShipGrid.getInstance().getShipsInRadius(originPos.x, originPos.y, range);
+  const { x: ox, y: oy } = originShip.getTransform().position;
 
-  const validTargets: Ship[] = [];
+  // Spatial query – coarse filter
+  const candidates = ShipGrid.getInstance().getShipsInRadius(ox, oy, range);
 
-  for (const candidate of candidates) {
-    if (candidate === originShip) continue;
+  const eligible: Ship[] = [];
 
-    const faction = candidate.getFaction();
-    if (faction === originFaction || faction === Faction.Neutral) continue;
-    if (candidate.getAffixes()?.invulnerable) continue;
+  for (const ship of candidates) {
+    if (ship === originShip)     continue;              // self
+    if (ship === excludeShip)    continue;              // user-explicit exclusion
 
-    const candidatePos = candidate.getTransform().position;
-    const dist = getDistance(originPos, candidatePos);
+    const faction = ship.getFaction();
 
-    if (dist <= range) {
-      validTargets.push(candidate);
+    // Faction gating: either explicitly requested or “any enemy”
+    if (targetFaction !== undefined) {
+      if (faction !== targetFaction) continue;
+    } else {
+      if (faction === originFaction || faction === Faction.Neutral) continue;
     }
+
+    // Gameplay immunity check
+    if (ship.getAffixes()?.invulnerable) continue;
+
+    // Precise distance check (ShipGrid is coarse)
+    const { x, y } = ship.getTransform().position;
+    if (getDistance({ x: ox, y: oy }, { x, y }) > range) continue;
+
+    eligible.push(ship);
   }
 
-  if (validTargets.length === 0) return null;
+  if (eligible.length === 0) return null;
 
-  const index = Math.floor(Math.random() * validTargets.length);
-  return validTargets[index];
+  // Uniform random selection
+  return eligible[(Math.random() * eligible.length) | 0];
 }
+
 export function getWorldPositionFromShipOffset(
   transform: BlockEntityTransform,
   offset: { x: number; y: number }

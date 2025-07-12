@@ -120,14 +120,12 @@ What's needed to get to Demo:
 - [ ] Engine sound on gamepad use
 - [ ] Add 5 more weapons
 
-TUTORIAL TODOS:
-  - [ ] Unique background and planet for this map
-
-
 TODOS:
-  - [ ] Add sound effects to Jump (Fast travel) menus.
-  - [ ] Add NOCLIP, have constructing piggy bag on this, and apply to incident (cursed cargo and vortex)
+  - [x] Add NOCLIP, have constructing piggy bag on this, and apply to incident (cursed cargo and vortex)
 
+  - [ ] Fix all the Laser related passives/tree/etc
+
+  - [ ] ALT+ENTER, can I make this work?
   - [ ] Should "town portal" jump be an early unlockable? This would allow for tutorialization/explanation.
   - [ ] Make planet Jump gates require visit to planet to unlock?? Hmm..?
     - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?

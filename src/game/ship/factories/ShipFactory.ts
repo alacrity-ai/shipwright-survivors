@@ -23,7 +23,6 @@ import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
-import type { LaserSystem } from '@/systems/physics/LaserSystem';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
@@ -49,7 +48,6 @@ export class ShipFactory {
     private readonly registry: ShipRegistry,
     private readonly particleManager: ParticleManager,
     private readonly projectileSystem: ProjectileSystem,
-    private readonly laserSystem: LaserSystem,
     private readonly combatService: CombatService,
     private readonly explosionSystem: ExplosionSystem,
     private readonly collisionSystem: BlockObjectCollisionSystem,
@@ -96,7 +94,7 @@ export class ShipFactory {
     const movement = new MovementSystem(ship, emitter, isPlayerShip ? this.collisionSystem : null);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
-      new LaserBackend(this.laserSystem),
+      new LaserBackend(this.combatService, this.particleManager, this.grid),
       new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
@@ -202,7 +200,7 @@ export class ShipFactory {
     const movement = new MovementSystem(ship, emitter, this.collisionSystem);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
-      new LaserBackend(this.laserSystem),
+      new LaserBackend(this.combatService, this.particleManager, this.grid),
       new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
