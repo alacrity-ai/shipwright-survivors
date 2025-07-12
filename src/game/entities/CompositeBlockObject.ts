@@ -22,6 +22,7 @@ export abstract class CompositeBlockObject {
   private cachedBlockList: [GridCoord, BlockInstance][] | null = null;
   protected blocks: Map<CoordKey, { coord: GridCoord; block: BlockInstance }> = new Map();
   protected blockToCoordMap: Map<BlockInstance, GridCoord> = new Map();
+  protected blockIdMap: Map<string, BlockInstance> = new Map();
 
   protected transform: BlockEntityTransform;
   protected destroyed: boolean = false;
@@ -65,6 +66,7 @@ export abstract class CompositeBlockObject {
         this.blocks.set(toKey(coord), { coord, block });
         this.grid.addBlockToCell(block);
         this.blockToCoordMap.set(block, coord);
+        this.blockIdMap.set(block.id, block);
         BlockToObjectIndex.registerBlock(block, this);
       }
     }
@@ -96,6 +98,7 @@ export abstract class CompositeBlockObject {
     this.blocks.set(key, { coord, block });
     this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
+    this.blockIdMap.set(block.id, block);
     BlockToObjectIndex.registerBlock(block, this);
     this.invalidateBlockCache();
     this.invalidateMass();
@@ -103,6 +106,14 @@ export abstract class CompositeBlockObject {
 
   public getBlock(coord: GridCoord): BlockInstance | undefined {
     return this.blocks.get(toKey(coord))?.block;
+  }
+
+  /**
+   * O(1) lookup of a block by its UUID.
+   * @returns the canonical BlockInstance or `undefined` if not part of this object.
+   */
+  public getBlockById(id: string): BlockInstance | undefined {
+    return this.blockIdMap.get(id);
   }
 
   public getRandomBlock(): BlockInstance | undefined {
@@ -229,6 +240,7 @@ export abstract class CompositeBlockObject {
     this.grid.removeBlockFromCell(block);
     this.blocks.delete(key);
     this.blockToCoordMap.delete(block);
+    this.blockIdMap.delete(block.id);
     this.invalidateBlockCache();
     this.invalidateMass();
   }
@@ -246,6 +258,7 @@ export abstract class CompositeBlockObject {
         toRemove.push(block);
         this.blocks.delete(key);
         this.blockToCoordMap.delete(block);
+        this.blockIdMap.delete(block.id);
       }
     } else {
       for (const block of preResolved) {
@@ -253,6 +266,7 @@ export abstract class CompositeBlockObject {
         if (coord) {
           this.blocks.delete(toKey(coord));
           this.blockToCoordMap.delete(block);
+          this.blockIdMap.delete(block.id);
         }
       }
     }

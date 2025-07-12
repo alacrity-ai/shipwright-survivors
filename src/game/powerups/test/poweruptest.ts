@@ -8,11 +8,9 @@ export function testPowerups() {
   assert (playerPowerups.length === 0, 'Player should have no powerups at start');
 
   const allPowerups = PowerupRegistry.getAll();
-  console.log('[testPowerups] All powerups: ', allPowerups);
   assert (allPowerups.length > 0, 'There should be some powerups defined');
 
   const eligible = PowerupRegistry.getEligiblePowerupNodes(new Set());
-  console.log('[testPowerups] Eligible powerups: ', eligible);
   assert (eligible.length > 0, 'There should be some eligible powerups at the start');
 
   generateRandomSelectionTestBasic();
@@ -21,7 +19,6 @@ export function testPowerups() {
 
 export function testActivePowerupEffectResolver(): void {
   const effects = getAggregatedPowerupEffects();
-  console.log('[testActivePowerupEffectResolver] Aggregated effects: ', effects);
 }
 
 // Tests that we get back 3 selections with no player upgrades
@@ -63,9 +60,6 @@ function testExclusiveBranchEnforcement(): void {
   const acquired = manager.getAcquiredSet();
   const eligible = PowerupRegistry.getEligiblePowerupNodes(acquired);
 
-  console.log('[testExclusiveBranchEnforcement] Acquired:', [...acquired]);
-  console.log('[testExclusiveBranchEnforcement] Eligible:', eligible.map(n => n.id));
-
   // Step 4: Ensure no vampirism options are present
   const forbiddenIds = [
     'vampirism-2',
@@ -80,8 +74,6 @@ function testExclusiveBranchEnforcement(): void {
       `Exclusive node ${forbidden} should NOT be eligible once alternate branch is taken`
     );
   }
-
-  console.log('Exclusive branch enforcement passed: no conflicting nodes offered');
 }
 
 

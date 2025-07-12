@@ -24,7 +24,6 @@ export function purgeNonPlayerShips(): number {
     if (ship.getFaction() === Faction.Player) continue;
     if (ship.hasTag?.('persistent') || ship.hasTag?.('boss')) continue;
 
-    console.log('Destroying Ship with ID: ' + ship.id);
     ship.setDestructionCause('replaced');
     destroyEntityExternally(ship, 'replaced');
     destroyed++;

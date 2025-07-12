@@ -488,7 +488,6 @@ export class ShipBuilderMenu implements Menu {
                 if (typeof jsonContent !== 'string') return;
 
                 const parsedJson = JSON.parse(jsonContent);
-                console.log('[ShipBuilderMenu] Loaded ship JSON:', parsedJson);
                 this.setShipHandlerFromObject?.(parsedJson); // ← updated handler to accept raw object
                 
                 this.closeMenu();

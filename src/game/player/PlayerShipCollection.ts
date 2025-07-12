@@ -117,7 +117,6 @@ export class PlayerShipCollection {
 
   discover(shipName: string): void {
     if (!this.discoveredShipNames.has(shipName)) {
-      console.log(`[PlayerShipCollection] Discovered new ship: ${shipName}`);
       this.discoveredShipNames.add(shipName);
     }
   }

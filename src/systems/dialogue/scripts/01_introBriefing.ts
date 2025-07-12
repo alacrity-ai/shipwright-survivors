@@ -932,7 +932,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          console.log('Added passive point!')
           PlayerPassiveManager.getInstance().addPassivePoints(1);
         },
       },

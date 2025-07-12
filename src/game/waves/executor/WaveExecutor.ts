@@ -109,7 +109,6 @@ export class WaveExecutor {
     for (const incident of wave.incidents ?? []) {
       const roll = Math.random();
       if (roll <= incident.spawnChance) {
-        console.log(`[WaveExecutor] Triggering incident: ${incident.script}`);
         this.incidentSystem.trigger(incident.script, incident.options ?? {}, waveIndex, incident.delaySeconds);
       }
     }

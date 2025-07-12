@@ -61,7 +61,10 @@ export class CombatService {
     const sameFaction = source.getFaction() === entity.getFaction();
     const rawDamage = damage;
 
-    if (sameFaction) return false;
+    if (sameFaction) {
+      if (cause === 'laser') console.log('[CombatService] DID NOT APPLY DAMAGE DUE TO SAME FACTION');
+      return false;
+    }
 
     // === Mission difficulty adjustment ===
     const enemyPower = missionLoader.getEnemyPower();
@@ -223,7 +226,7 @@ export class CombatService {
     if (block.position) {
       let shouldExplode = true;
 
-      if (cause === 'laser' || cause === 'collision') {
+      if (cause === 'collision') {
         shouldExplode = Math.random() < 0.2;
       }
 

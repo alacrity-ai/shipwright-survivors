@@ -114,7 +114,6 @@ export class PlaceAllBlocksButton {
 
   private activate(): void {
     if (this.locked) return;
-    console.log('Requesting Block Placement!')
     requestPlaceAllBlocksInQueue();
     this.isActive = true;
     this.pulseController.startPulse(0.4, 1);

@@ -121,7 +121,6 @@ export class PlayerShipSkillTreeManager {
     // === Verify that all selected nodes are still reachable
     for (const selectedId of selected) {
       if (!reachable.has(selectedId)) {
-        console.log(`[canRefundNode] Cannot refund ${nodeId} because it would isolate ${selectedId}`);
         return false;
       }
     }

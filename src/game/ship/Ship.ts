@@ -42,6 +42,13 @@ import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteR
 import { CanvasManager } from '@/core/CanvasManager';
 import { emitPlayerDefeat } from '@/core/interfaces/events/PlayerOutcomeReporter';
 
+import { 
+  HEATSEEKER_MAX_EMIT_PROBABILITY, 
+  HEATSEEKER_MIN_EMIT_PROBABILITY, 
+  HEATSEEKER_SMOKE_PARTICLE_BUDGET_PER_FRAME 
+} 
+from '@/config/graphicsConfig';
+
 type ShipDestroyedCallback = (ship: Ship, cause: string) => void;
 
 export class Ship extends CompositeBlockObject {
@@ -59,6 +66,7 @@ export class Ship extends CompositeBlockObject {
   private harvesterBlocks: Map<BlockInstance, number> = new Map();
   private haloBladeBlocks: Map<BlockInstance, HaloBladeProperties> = new Map();
   private heatSeekerBlocks: Map<BlockInstance, number> = new Map();
+  private heatSeekerEmitProbability: number = HEATSEEKER_MAX_EMIT_PROBABILITY;
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
   private lightAuraId: string | null = null;
@@ -667,6 +675,21 @@ export class Ship extends CompositeBlockObject {
         this.heatSeekerBlocks.set(block, block.type.tier);
       }
     }
+    this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
+  }
+
+  private calculateHeatSeekerSmokeEmissionProbability(numberBlocks: number): void {
+    this.heatSeekerEmitProbability = Math.min(
+      HEATSEEKER_MAX_EMIT_PROBABILITY,
+      Math.max(
+        HEATSEEKER_MIN_EMIT_PROBABILITY,
+        HEATSEEKER_SMOKE_PARTICLE_BUDGET_PER_FRAME / Math.max(1, numberBlocks)
+      )
+    );
+  }
+
+  public getHeatSeekerEmitProbability(): number {
+    return this.heatSeekerEmitProbability;
   }
 
   // === Utility Systems: Harvesting, etc ===
@@ -763,6 +786,7 @@ export class Ship extends CompositeBlockObject {
     this.blocks.set(key, { coord, block });
     this.grid.addBlockToCell(block);
     this.blockToCoordMap.set(block, coord);
+    this.blockIdMap.set(block.id, block);
 
     // Register block-to-object index
     BlockToObjectIndex.registerBlock(block, this);
@@ -809,6 +833,7 @@ export class Ship extends CompositeBlockObject {
     this.invalidateMass();
     this.invalidateBlockCache();
     this.recomputeEnergyStats();
+    this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
     this.addWeaponToPlanIfApplicable(coord, block);
     this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
@@ -826,6 +851,7 @@ export class Ship extends CompositeBlockObject {
 
     // Remove from tracking maps
     this.blockToCoordMap.delete(block);
+    this.blockIdMap.delete(block.id);
     this.blocks.delete(key);
 
     // Remove from subsystem indices
@@ -847,6 +873,7 @@ export class Ship extends CompositeBlockObject {
     this.invalidateMass();
     this.invalidateBlockCache();
     this.recomputeEnergyStats();
+    this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
     this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
   }
@@ -866,6 +893,7 @@ export class Ship extends CompositeBlockObject {
         blocksToRemove.push(block);
         this.blocks.delete(key);
         this.blockToCoordMap.delete(block);
+        this.blockIdMap.delete(block.id);
       }
     } else {
       for (const block of preResolvedBlocks) {
@@ -875,6 +903,7 @@ export class Ship extends CompositeBlockObject {
           this.blocks.delete(key);
         }
         this.blockToCoordMap.delete(block);
+        this.blockIdMap.delete(block.id);
       }
     }
 
@@ -902,6 +931,7 @@ export class Ship extends CompositeBlockObject {
     this.invalidateMass();
     this.invalidateBlockCache();
     this.recomputeEnergyStats();
+    this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
     this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
   }

@@ -168,7 +168,7 @@ export const PassiveMetadata: Record<PassiveId, PassiveMetadataEntry> = {
   'block-drop-rate': {
     label: 'Block Drop Rate',
     category: 'utility',
-    tiers: { 1: 10, 2: 20, 3: 30, 4: 40, 5: 50 },
+    tiers: { 1: 5, 2: 10, 3: 15, 4: 20, 5: 25 },
     unit: '%'
   }
 };

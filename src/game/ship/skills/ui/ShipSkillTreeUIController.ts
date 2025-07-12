@@ -45,8 +45,6 @@ export class ShipSkillTreeUIController {
     this.renderX2 = 360;
     this.renderY2 = 360;
     this.scale = 1.0;
-
-    console.log('[ShipSkillTreeUIController] Initialized');
   }
 
   public setShip(def: CollectableShipDefinition): void {
@@ -117,7 +115,6 @@ export class ShipSkillTreeUIController {
 
       metaManager.addMetaCurrency(refundAmount);
       PlayerShipCollection.getInstance().clearCachedModifiers();
-      console.log('[ShipSkillTreeUIController] Refunded node:', nodeId);
       audioManager.play('assets/sounds/sfx/ui/gamblewin_00.wav', 'sfx', { maxSimultaneous: 8 });
       return;
     }
@@ -125,13 +122,11 @@ export class ShipSkillTreeUIController {
     // === Left-click unlock path ===
     if (clicked) {
       if (alreadyUnlocked) {
-        console.log('[ShipSkillTreeUIController] Already have node:', nodeId);
         audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
         return;
       }
 
       if (!metaManager.canAfford(node.cost)) {
-        console.log(`[ShipSkillTreeUIController] Cannot afford node (cost: ${node.cost}), current: ${metaManager.getMetaCurrency()}`);
         audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
         return;
       }
@@ -141,7 +136,6 @@ export class ShipSkillTreeUIController {
       const canAcquire = playerTreeManager.canAcquireNode(shipId, nodeId, masteryLevel);
 
       if (!canAcquire) {
-        console.log(`[ShipSkillTreeUIController] Cannot acquire node: cap reached for mastery level ${masteryLevel}`);
         audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
         return;
       }
@@ -151,13 +145,11 @@ export class ShipSkillTreeUIController {
       const success = playerTreeManager.acquireNode(shipId, nodeId);
 
       if (!success) {
-        console.log('[ShipSkillTreeUIController] Failed to acquire node:', nodeId);
         metaManager.addMetaCurrency(node.cost);
         audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
         return;
       }
 
-      console.log('[ShipSkillTreeUIController] Acquired node:', nodeId);
       audioManager.play('assets/sounds/sfx/magic/levelup.wav', 'sfx', { maxSimultaneous: 8 });
     }
   }

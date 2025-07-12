@@ -117,7 +117,6 @@ export class SaveGameManager {
   public static eraseSave(slot: number): void {
     const key = `save${slot}`;
     localStorage.removeItem(key);
-    console.log(`Save slot ${slot} erased.`);
   }
 
   public static getFirstAvailableResolution(): { width: number; height: number } {

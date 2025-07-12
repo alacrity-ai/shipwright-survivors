@@ -104,7 +104,6 @@ export class JumpCastMenu {
     // Start window above the screen
     this.windowY = -this.windowH - 50;
 
-    console.log('[jumpcast] opening menu');
     GlobalMenuReporter.getInstance().setMenuOpen('jumpCastMenu');
     audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx');
   }
@@ -122,7 +121,6 @@ export class JumpCastMenu {
     this.hoveredPlanet = null;
     this.nav.clearNavMap();
 
-    console.log('[jumpcast] closing menu');
     GlobalMenuReporter.getInstance().setMenuClosed('jumpCastMenu');
   }
 

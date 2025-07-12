@@ -181,114 +181,105 @@ export class HeatSeekerBackend implements WeaponBackend {
   private updateMissiles(dt: number, ownerShip: Ship): void {
     const expired = new Set<ActiveSeekerMissile>();
 
+    // ── 1.  Per-frame emission-probability calculation ──────────────────────
+    // Expected particles per frame never exceed SMOKE_PARTICLE_BUDGET_PER_FRAME.
+    const emitProb = ownerShip.getHeatSeekerEmitProbability();
+
+    // ── 2.  Main missile loop ────────────────────────────────────────────────
     for (const missile of this.activeMissiles) {
       if (missile.exploded) continue;
 
+      // ── 2·A  Lifetime & guidance update ───────────────────────────────
       missile.age += dt;
       missile.framesSinceTargetUpdate++;
-      const t = Math.min(missile.age / missile.ttl, 1.0); // normalized [0,1]
+      const t = Math.min(missile.age / missile.ttl, 1.0);
 
-      // Compute dynamic speed and turning power multipliers
-      const speedMultiplier = 1.0 + (SPEED_GROWTH_FACTOR - 1.0) * t;
-      const turningPower = missile.turningPowerInitial * (1.0 + (TURNING_GROWTH_FACTOR - 1.0) * t);
+      const speedMultiplier = 1.0 + (SPEED_GROWTH_FACTOR   - 1.0) * t;
+      const turningPower    = missile.turningPowerInitial  *
+                              (1.0 + (TURNING_GROWTH_FACTOR - 1.0) * t);
 
-      // Retire expired missiles
       if (missile.age > missile.ttl) {
         this.particleManager.removeParticle(missile.particle);
         expired.add(missile);
         continue;
       }
 
-      // === Retarget only if current target is unavailable ===
       if (!missile.targetShip || missile.targetShip.isDestroyed()) {
-        // Only retarget when we need to (expensive operation)
         const newTarget = ownerShip
           ? findNearestTarget(ownerShip, missile.targetingRange)
           : null;
 
         missile.targetShip = newTarget && !newTarget.isDestroyed() ? newTarget : null;
-
-        // Reduce lifespan of missle, to avoid infinite pursuit
         missile.ttl *= 0.5;
 
-        // If no target, mark missle for destroyed
         if (!newTarget) {
           expired.add(missile);
           continue;
         }
       }
 
-      // === Update target position (every N frames for performance) ===
-      if (missile.targetShip && missile.framesSinceTargetUpdate >= TARGET_UPDATE_INTERVAL) {
+      if (missile.targetShip &&
+          missile.framesSinceTargetUpdate >= TARGET_UPDATE_INTERVAL) {
+
         missile.framesSinceTargetUpdate = 0;
-        
-        // Update cached target position
-        const targetPos = missile.targetShip.getTransform().position;
-        missile.lastKnownTargetPosition = { x: targetPos.x, y: targetPos.y };
+        const pos = missile.targetShip.getTransform().position;
+        missile.lastKnownTargetPosition = { x: pos.x, y: pos.y };
       }
 
-      // === Steering Logic with cached target position ===
       if (missile.lastKnownTargetPosition) {
         const dx = missile.lastKnownTargetPosition.x - missile.position.x;
         const dy = missile.lastKnownTargetPosition.y - missile.position.y;
 
         const desiredAngle = Math.atan2(dy, dx);
         const currentAngle = Math.atan2(missile.velocity.y, missile.velocity.x);
-        const deltaAngle = normalizeAngle(desiredAngle - currentAngle);
+        const deltaAngle   = normalizeAngle(desiredAngle - currentAngle);
 
-        const maxRotation = turningPower * dt;
-        const clampedAngle = Math.abs(deltaAngle) <= maxRotation
-          ? deltaAngle
-          : Math.sign(deltaAngle) * maxRotation;
+        const maxRot       = turningPower * dt;
+        const clamped      = Math.abs(deltaAngle) <= maxRot
+                            ? deltaAngle
+                            : Math.sign(deltaAngle) * maxRot;
 
-        const newAngle = currentAngle + clampedAngle;
+        const newAngle     = currentAngle + clamped;
+        const targetSpeed  = missile.velocityMagnitudeInitial * speedMultiplier;
 
-        const targetSpeed = missile.velocityMagnitudeInitial * speedMultiplier;
         missile.velocity.x = Math.cos(newAngle) * targetSpeed;
         missile.velocity.y = Math.sin(newAngle) * targetSpeed;
       }
 
-      // Update position
+      // ── 2·B  Positional update ─────────────────────────────────────────────
       missile.position.x += missile.velocity.x * dt;
       missile.position.y += missile.velocity.y * dt;
-      missile.particle.x = missile.position.x;
-      missile.particle.y = missile.position.y;
+      missile.particle.x  = missile.position.x;
+      missile.particle.y  = missile.position.y;
 
-      // Smoke trail (occasional)
-      let trailColor: string;
-      if (missile.ownerFaction === Faction.Enemy) {
-        trailColor = '#FF0000';
-      } else {
-        trailColor = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#ccc';
-      }
-      if (Math.random() < 0.3) {
+      // ── 2·C  Smoke-trail emission (probabilistic budget) ───────────────────
+      if (Math.random() < emitProb) {
+        const color =
+          missile.ownerFaction === Faction.Enemy
+            ? '#FF0000'
+            : BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#ccc';
+
         createLightFlash(
           missile.position.x,
           missile.position.y,
           80,
           0.4,
           1.2,
-          trailColor
+          color
         );
       }
 
-      // === Impact Detection ===
+      // ── 2·D  Impact detection & damage application ───────────────────────────────────
       if (missile.targetShip) {
         for (const [coord, block] of missile.targetShip.getAllBlocks()) {
           if (!block.position) continue;
 
           const dx = missile.position.x - block.position.x;
           const dy = missile.position.y - block.position.y;
-          const distSq = dx * dx + dy * dy;
-
-          if (distSq < 32 * 32) {
+          if (dx * dx + dy * dy < 32 * 32) {
             this.combatService.applyDamageToBlock(
-              missile.targetShip,
-              ownerShip,
-              block,
-              coord,
-              missile.fireDamage,
-              'heatSeekerDirect'
+              missile.targetShip, ownerShip, block, coord,
+              missile.fireDamage, 'heatSeekerDirect'
             );
 
             missile.exploded = true;
@@ -300,6 +291,7 @@ export class HeatSeekerBackend implements WeaponBackend {
       }
     }
 
+    // ── 3.  Sweep expired missiles ───────────────────────────────────────────
     this.activeMissiles = this.activeMissiles.filter(m => !expired.has(m));
   }
 

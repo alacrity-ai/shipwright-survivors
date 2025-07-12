@@ -476,20 +476,12 @@ export class TitleScreenRuntime {
   * Must be called when ending the runtime to avoid leakage.
   **/
   public destroy(): void {
-    console.log("TitleScreenRuntime: Performing cleanup before scene transition.");
     if (this.isDestroyed) return;
     this.isDestroyed = true;
 
-    // === Dispose of Eventbus Listeners ===
-    console.log('Destroying: destructionService');
-    // this.destructionService.offEntityDestroyed(this.boundOnEntityDestroyed);
-
     // === Clean up singleton state ===
-    console.log('Destroying: waveOrchestrator');
     this.waveOrchestrator!.destroy();
-    console.log('Destroying: shipRegistry');
     this.shipRegistry.clear();
-    console.log('Destroying: aiOrchestrator');
     this.aiOrchestrator.clear();
     ShieldEffectsSystem.getInstance().clear();
     ShipGrid.getInstance().destroy();
@@ -538,8 +530,6 @@ export class TitleScreenRuntime {
     this.incidentOrchestrator = null;
     this.asteroidSpawner = null;
     this.unifiedSceneRenderer = null;
-
-    console.log("Titlescreen Runtime: Cleanup complete.");
   }
 }
 

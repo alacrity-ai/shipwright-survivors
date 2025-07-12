@@ -664,8 +664,6 @@ export class EngineRuntime {
       this.shipBuilderMenu.closeMenu();
       this.resume();
     }
-
-    console.log(`[EngineRuntime] Ship successfully set from ${jsonData}`);
   }
 
   private registerLoopHandlers() {
@@ -829,6 +827,7 @@ export class EngineRuntime {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
+      // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
       const randomTypes = ['laser1', 'laser2', 'laser3', 'laser4'];
       for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
@@ -872,11 +871,9 @@ export class EngineRuntime {
     if (this.inputManager.wasKeyJustPressed('KeyI')) {
       if (!this.spaceStationBuilderMenu!.isOpen()) {
         this.pause();
-        console.log("Opening space station builder menu...");
         this.spaceStationBuilderMenu!.openMenu();
       } else {
         this.resume();
-        console.log("Closing space station builder menu...");
         this.spaceStationBuilderMenu!.closeMenu();
       }
     }
@@ -1030,7 +1027,6 @@ export class EngineRuntime {
   }
 
   public handlePlayerLevelUp() {
-    console.log("Player leveled up!");
     this.pendingLevelUps++;
 
     // Only disable actions + start timer if it's the *first* pending level-up
@@ -1058,8 +1054,7 @@ export class EngineRuntime {
     shakeCamera(10, 1, 10);
   }
 
-  public handlePlayerVictory(timeoutMs: number = 5_000): void {
-    console.log("Player victorious — debriefing will begin in 5 seconds...");
+  public handlePlayerVictory(timeoutMs: number = 3_000): void {
     setTimeout(() => {
       clearPostProcessEffects();
       addPostProcessEffect('sepia');
@@ -1098,7 +1093,6 @@ export class EngineRuntime {
   * Always called when returning to the Hub zone.
   **/
   public destroy(): void {
-    console.log("EngineRuntime: Performing cleanup before scene transition.");
     if (this.isDestroyed) return;
     this.isDestroyed = true;
     this.gameLoop.offUpdate(this.boundUpdate);
@@ -1188,7 +1182,5 @@ export class EngineRuntime {
     this.missionDialogueManager = null;
     this.spaceStationBuilderMenu = null;
     this.unifiedSceneRenderer = null;
-
-    console.log("EngineRuntime: Cleanup complete.");
   }
 }
