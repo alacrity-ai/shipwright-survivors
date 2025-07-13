@@ -193,7 +193,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#606060'],   // Deep shadow
       ]);
       break;
-
     case 'hull2':
       renderHullBlock(baseCtx, BLOCK_SIZE, [
         [0, '#66FF66'],   // Bright neon green
@@ -202,7 +201,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#1B5E20'],   // Deep forest green
       ]);
       break;
-
     case 'hull3':
       renderHullBlock(baseCtx, BLOCK_SIZE, [
         [0, '#64B5F6'],   // Bright cyan-blue
@@ -211,7 +209,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#0D47A1'],   // Deep navy blue
       ]);
       break;
-
     case 'hull4':
       renderHullBlock(baseCtx, BLOCK_SIZE, [
         [0, '#E1BEE7'],   // Bright metallic purple highlight
@@ -219,6 +216,15 @@ function drawProceduralBlock(typeId: string): void {
         [0.4, '#9C27B0'], // Rich purple
         [0.7, '#7B1FA2'], // Deep purple
         [1, '#4A148C'],   // Dark shadow purple
+      ]);
+      break;
+    case 'hull5':
+      renderHullBlock(baseCtx, BLOCK_SIZE, [
+        [0, '#FFF8E1'],    // Soft luminous gold highlight
+        [0.15, '#FFE082'], // Bright golden yellow
+        [0.4, '#FFC107'],  // Vivid amber gold
+        [0.7, '#FFA000'],  // Deep burnished gold
+        [1, '#FF6F00'],    // Dark molten gold shadow
       ]);
       break;
 
@@ -231,7 +237,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#606060'],
       ]);
       break;
-
     case 'facetplate2':
       renderFacetPlate(baseCtx, BLOCK_SIZE, [
         [0, '#66FF66'],
@@ -240,7 +245,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#1B5E20'],
       ]);
       break;
-
     case 'facetplate3':
       renderFacetPlate(baseCtx, BLOCK_SIZE, [
         [0, '#64B5F6'],
@@ -249,7 +253,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#0D47A1'],
       ]);
       break;
-
     case 'facetplate4':
       renderFacetPlate(baseCtx, BLOCK_SIZE, [
         [0, '#E1BEE7'],
@@ -257,6 +260,15 @@ function drawProceduralBlock(typeId: string): void {
         [0.4, '#9C27B0'],
         [0.7, '#7B1FA2'],
         [1, '#4A148C'],
+      ]);
+      break;
+    case 'facetplate5':
+      renderFacetPlate(baseCtx, BLOCK_SIZE, [
+        [0, '#FFF9C4'],    // Pale radiant gold
+        [0.15, '#FFECB3'], // Soft warm gold
+        [0.4, '#FFD54F'],  // Rich goldenrod
+        [0.7, '#FFB300'],  // Deep lustrous gold
+        [1, '#FF8F00'],    // Dark honeyed shadow
       ]);
       break;
 
@@ -274,7 +286,6 @@ function drawProceduralBlock(typeId: string): void {
         terminalHighlightColor: '#F0F4C3',
       });
       break;
-
     case 'fuelTank2':
       renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
         casingStops: [
@@ -288,7 +299,6 @@ function drawProceduralBlock(typeId: string): void {
         terminalHighlightColor: '#DCEDC8',
       });
       break;
-
     case 'fuelTank3':
       renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
         casingStops: [
@@ -302,7 +312,6 @@ function drawProceduralBlock(typeId: string): void {
         terminalHighlightColor: '#E3F2FD',
       });
       break;
-
     case 'fuelTank4':
       renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
         casingStops: [
@@ -315,6 +324,20 @@ function drawProceduralBlock(typeId: string): void {
         coreColor: '#CE93D8',              // Magenta-lavender fuel
         stripeColor: '#8E24AA',
         terminalHighlightColor: '#F3E5F5',
+      });
+      break;
+    case 'fuelTank5':
+      renderFuelTankBlock(baseCtx, BLOCK_SIZE, {
+        casingStops: [
+          [0, '#FFF8E1'],   // Glinting highlight
+          [0.15, '#FFE082'],
+          [0.4, '#FFC107'],
+          [0.7, '#FFA000'],
+          [1, '#FF6F00'],   // Shadowed gold
+        ],
+        coreColor: '#FFE57F',              // Radiant golden fuel
+        stripeColor: '#FF8F00',
+        terminalHighlightColor: '#FFF3E0',
       });
       break;
 
@@ -333,7 +356,6 @@ function drawProceduralBlock(typeId: string): void {
         barrelLength: BLOCK_SIZE * 0.6,
       });
       break;
-
     case 'turret2':
       renderTurret(baseCtx, overlayCtx, BLOCK_SIZE, {
         baseGradientColors: ['#66BB6A', '#4CAF50', '#2E7D32'],
@@ -349,7 +371,6 @@ function drawProceduralBlock(typeId: string): void {
         barrelLength: BLOCK_SIZE * 0.65,
       });
       break;
-
     case 'turret3':
       renderTurret(baseCtx, overlayCtx, BLOCK_SIZE, {
         baseGradientColors: ['#64B5F6', '#2196F3', '#1565C0'],
@@ -366,7 +387,6 @@ function drawProceduralBlock(typeId: string): void {
         barrelLength: BLOCK_SIZE * 0.7,
       });
       break;
-
     case 'turret4':
       renderTurret(baseCtx, overlayCtx, BLOCK_SIZE, {
         baseGradientColors: ['#E1BEE7', '#BA68C8', '#9C27B0', '#7B1FA2', '#4A148C'],
@@ -385,7 +405,25 @@ function drawProceduralBlock(typeId: string): void {
         barrelLength: BLOCK_SIZE * 0.75,
       });
       break;
-
+    case 'turret5':
+      renderTurret(baseCtx, overlayCtx, BLOCK_SIZE, {
+        baseGradientColors: ['#FFF8E1', '#FFE082', '#FFC107', '#FFA000', '#FF6F00'],
+        rotatingBaseColors: ['#FFF3E0', '#FFE082', '#FFD54F', '#FFB300', '#FF8F00'],
+        barrelGradientStops: [
+          [0, '#FF6F00'],
+          [0.1, '#FB8C00'],
+          [0.25, '#FFA000'],
+          [0.4, '#FFB300'],
+          [0.6, '#FFC107'],
+          [0.75, '#FFE082'],
+          [0.9, '#FFF3E0'],
+          [1, '#FFA000']
+        ],
+        barrelWidth: 10,
+        barrelLength: BLOCK_SIZE * 0.75,
+      });
+      break;
+      
       case 'heatSeeker0': // GREY
       case 'heatSeeker1': // GREY
         renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
@@ -400,7 +438,6 @@ function drawProceduralBlock(typeId: string): void {
           missileColors: ['#c44', '#a22', '#822'],
         });
         break;
-
       case 'heatSeeker2': // GREEN
         renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
           baseGradientColors: ['#66BB6A', '#4CAF50', '#2E7D32'],
@@ -414,7 +451,6 @@ function drawProceduralBlock(typeId: string): void {
           missileColors: ['#66BB6A', '#4CAF50', '#2E7D32'],
         });
         break;
-
       case 'heatSeeker3': // BLUE
         renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
           baseGradientColors: ['#64B5F6', '#2196F3', '#1565C0'],
@@ -429,7 +465,6 @@ function drawProceduralBlock(typeId: string): void {
           missileColors: ['#90CAF9', '#64B5F6', '#42A5F5'],
         });
         break;
-
       case 'heatSeeker4': // PURPLE
         renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
           baseGradientColors: ['#E1BEE7', '#BA68C8', '#9C27B0', '#7B1FA2', '#4A148C'],
@@ -444,6 +479,22 @@ function drawProceduralBlock(typeId: string): void {
             [1, '#BA68C8']
           ],
           missileColors: ['#F3E5F5', '#E1BEE7', '#CE93D8'],
+        });
+        break;
+      case 'heatSeeker5': // LEGENDARY GOLD
+        renderHeatSeeker(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#FFF8E1', '#FFE082', '#FFC107', '#FFA000', '#FF6F00'],
+          launcherColors: ['#FFD54F', '#FFB300', '#FF8F00', '#FB8C00'],
+          tubeGradientStops: [
+            [0,   '#FF6F00'],
+            [0.15,'#FB8C00'],
+            [0.3, '#FF8F00'],
+            [0.5, '#FFB300'],
+            [0.7, '#FFC107'],
+            [0.85,'#FFE082'],
+            [1,   '#FFD54F']
+          ],
+          missileColors: ['#FFF3E0', '#FFE082', '#FFD54F'],
         });
         break;
 
@@ -505,6 +556,18 @@ function drawProceduralBlock(typeId: string): void {
         glow: ['#D500F9', '#AA00FF', 'rgba(170, 0, 255, 0)'],
         muzzleGlow: ['#E1BEE7', '#BA68C8', '#8E24AA', 'rgba(142, 36, 170, 0)'],
         muzzleCore: '#F3E5F5'
+      });
+      break;
+    case 'laser5':
+      renderLaserWeapon(baseCtx, BLOCK_SIZE, {
+        body: ['#2C1A00', '#1E1200', '#140C00', '#0A0600'], // Near-black bronzed browns
+        housing: '#FFA000',           // Burnished gold
+        innerHousing: '#FF8F00',      // Deep amber-gold
+        barrel: ['#FFC107', '#FFB300', '#FFC107'],
+        barrelDetail: '#FFE082',
+        glow: ['#FFD700', '#FFC107', 'rgba(255, 193, 7, 0)'],
+        muzzleGlow: ['#FFF8E1', '#FFE082', '#FFB300', 'rgba(255, 179, 0, 0)'],
+        muzzleCore: '#FFF3E0'
       });
       break;
 
@@ -656,7 +719,6 @@ function drawProceduralBlock(typeId: string): void {
         thrustColor: '#09f', // Electric blue
       });
       break;
-
     case 'engine2':
       renderEngine(baseCtx, BLOCK_SIZE, {
         bodyStops: [
@@ -667,7 +729,6 @@ function drawProceduralBlock(typeId: string): void {
         thrustColor: '#0f0', // Green
       });
       break;
-
     case 'engine3':
       renderEngine(baseCtx, BLOCK_SIZE, {
         bodyStops: [
@@ -678,7 +739,6 @@ function drawProceduralBlock(typeId: string): void {
         thrustColor: '#00f', // Deep blue
       });
       break;
-
     case 'engine4':
       renderEngine(baseCtx, BLOCK_SIZE, {
         bodyStops: [
@@ -687,6 +747,16 @@ function drawProceduralBlock(typeId: string): void {
           [1, '#4A148C'],
         ],
         thrustColor: '#f0f', // Purple glow
+      });
+      break;
+    case 'engine5':
+      renderEngine(baseCtx, BLOCK_SIZE, {
+        bodyStops: [
+          [0, '#FFE082'],
+          [0.5, '#FFA000'],
+          [1, '#FF6F00'],
+        ],
+        thrustColor: '#FFD700', // Golden glow
       });
       break;
 
@@ -699,7 +769,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#404040'],
       ]);
       break;
-
     case 'fin2':
       renderFin(baseCtx, BLOCK_SIZE, [
         [0, '#81C784'],
@@ -709,7 +778,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#1B5E20'],
       ]);
       break;
-
     case 'fin3':
       renderFin(baseCtx, BLOCK_SIZE, [
         [0, '#90CAF9'],
@@ -720,7 +788,6 @@ function drawProceduralBlock(typeId: string): void {
         [1, '#0D47A1'],
       ]);
       break;
-
     case 'fin4':
       renderFin(baseCtx, BLOCK_SIZE, [
         [0, '#F3E5F5'],
@@ -731,6 +798,18 @@ function drawProceduralBlock(typeId: string): void {
         [0.8, '#8E24AA'],
         [0.95, '#6A1B99'],
         [1, '#4A148C'],
+      ]);
+      break;
+    case 'fin5':
+      renderFin(baseCtx, BLOCK_SIZE, [
+        [0,   '#FFF8E1'],
+        [0.1, '#FFE082'],
+        [0.25,'#FFD54F'],
+        [0.45,'#FFC107'],
+        [0.65,'#FFB300'],
+        [0.8, '#FFA000'],
+        [0.95,'#FF8F00'],
+        [1,   '#FF6F00'],
       ]);
       break;
 
@@ -772,7 +851,6 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
     case 'explosiveLance2':
       renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
         baseGradientColors: ['#1b3d2f', '#2c704f', '#09251a'],
@@ -783,7 +861,6 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
     case 'explosiveLance3':
       renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
         baseGradientColors: ['#0d47a1', '#1976d2', '#0a1a3f'],
@@ -794,7 +871,6 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
     case 'explosiveLance4':
       renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
         baseGradientColors: ['#4a148c', '#7b1fa2', '#12002e'],
@@ -805,7 +881,17 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
+    case 'explosiveLance5':
+      renderExplosiveLance(baseCtx, overlayCtx, BLOCK_SIZE, {
+        baseGradientColors: ['#FF6F00', '#FFA000', '#2C1A00'],
+        barrelGradientStops: [
+          [0, '#FFF8E1'],
+          [0.5, '#FFC107'],
+          [1, '#FF8F00']
+        ]
+      });
+      break;
+      
     case 'haloBlade0':
     case 'haloBlade1':
       renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
@@ -819,7 +905,6 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
     case 'haloBlade2':
       renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
         ringColor: '#2CFF05',
@@ -832,7 +917,6 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
     case 'haloBlade3':
       renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
         ringColor: '#00FFFF',
@@ -845,7 +929,6 @@ function drawProceduralBlock(typeId: string): void {
         ]
       });
       break;
-
     case 'haloBlade4':
       renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
         ringColor: '#7F00FF',
@@ -855,6 +938,18 @@ function drawProceduralBlock(typeId: string): void {
           [0, '#2E003E'],
           [0.5, '#1D002A'],
           [1, '#0A0014']
+        ]
+      });
+      break;
+    case 'haloBlade5':
+      renderHaloBladeBlock(baseCtx, BLOCK_SIZE, {
+        ringColor: '#FFD700',
+        coreColor: '#FFE082',
+        glowColor: 'rgba(255, 215, 0, 0.4)',
+        casingStops: [
+          [0, '#2C1A00'],
+          [0.5, '#1E1200'],
+          [1, '#0A0600']
         ]
       });
       break;

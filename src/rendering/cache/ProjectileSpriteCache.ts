@@ -26,6 +26,7 @@ function getAllProjectileTypes(): string[] {
     'energyRing2',
     'energyRing3',
     'energyRing4',
+    'energyRing5'
   ];
 }
 
@@ -60,6 +61,9 @@ function drawProceduralProjectile(typeId: string): void {
       break;
     case 'energyRing4':
       drawEnergyRing(ctx, center, center, 64, '#7F00FF');
+      break;
+    case 'energyRing5':
+      drawEnergyRing(ctx, center, center, 64, '#FFFF29');
       break;
     default:
       console.warn(`[ProjectileSpriteCache] Unknown projectile type: ${typeId}`);

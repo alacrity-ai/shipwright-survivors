@@ -10,12 +10,15 @@ import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { resolvePowerupIconSprite } from '@/game/powerups/icons/PowerupIconSpriteCache';
 import { PowerupRegistry } from '@/game/powerups/registry/PowerupRegistry';
 import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
+import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { isBranchNodeWithExclusion, getExcludedBranchLabels } from '@/game/powerups/utils/PowerupTreeUtils';
 import { audioManager } from '@/audio/Audio';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import { CursorRenderer } from '@/rendering/CursorRenderer';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import { flags } from '@/game/player/PlayerFlagManager';
+
+import { resolveImmediatePowerups } from '@/game/powerups/utils/resolveImmediatePowerups';
 
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { cancelBlockQueueInteraction } from '@/core/interfaces/events/BlockQueueReporter';
@@ -175,7 +178,7 @@ export class PowerupSelectionMenu implements Menu {
         const scale = getUniformScaleFactor();
 
         // Always update navManager (even if map is empty)
-        this.navManager.update();
+        this.navManager.update(true);
 
         // Unified mouse/virtual-mouse interaction
         const mouse = this.inputManager.getMousePosition();
@@ -200,9 +203,10 @@ export class PowerupSelectionMenu implements Menu {
 
             this.hoveredIndex = i;
 
-            if (this.inputManager.wasMouseClicked()) {
+            if (this.inputManager.wasMouseClicked(false, true)) {
               const selected = this.selectedNodes[i];
               PlayerPowerupManager.getInstance().acquire(selected.id);
+              resolveImmediatePowerups(selected.id);
               this.choice = selected;
               this.selectedIndex = i;
               this.state = 'selectionMade';
@@ -400,7 +404,8 @@ export class PowerupSelectionMenu implements Menu {
     const acquired = manager.getAcquiredSet();
 
     // Compute all eligible nodes using finalized branching logic
-    const candidates = PowerupRegistry.getEligiblePowerupNodes(acquired);
+    const playerLevel = PlayerExperienceManager.getInstance().getLevel();
+    const candidates = PowerupRegistry.getEligiblePowerupNodes(acquired, playerLevel);
 
     // Randomize and choose up to 3
     const shuffled = [...candidates];

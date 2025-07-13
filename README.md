@@ -121,7 +121,10 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
-  - [x] Add NOCLIP, have constructing piggy bag on this, and apply to incident (cursed cargo and vortex)
+  - [ ] Make place all, roll, combine blocks, all unlockable actions
+  - [ ] Add quest log/mission objectives. Trackable in game, and in galaxymap menu
+
+  - [ ] Add some more powerups
 
   - [ ] Fix all the Laser related passives/tree/etc
 
@@ -130,9 +133,8 @@ TODOS:
   - [ ] Make planet Jump gates require visit to planet to unlock?? Hmm..?
     - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?
   - [ ] Expand map sizes to 64,000+
-  - [ ] Since map is much larger, add more incident density?
   - [ ] Since map is much larger, add a total of 4 planets to the first map.
-  - [ ] Since map is much larger, we can extend a round to 20:00 minutes
+  - [ ] Since map is much larger, we can extend a round to 20:00 minutes???
   - [ ] Likely will need to add minibosses, (can just use existing wave system for this, as it will continue to hound player.. but maybe make it persist respawn contract even as new waves start. Do we have a flag for this? I think we have a tag for this.)
 
   - [ ] Add spatial anomolies (No go zones?) Use incident system.
@@ -147,8 +149,10 @@ TODOS:
     - [ ] Need to show summary of all the unlockables within that mission.
 
   - [ ] Need some kind of mission mutator system for replayability!!!
+    - [ ] Maybe a 10 minute version, and a 20 minute version?
 
-  - [ ] Completely clearing a Vortex Incident should end it immediately
+  - [ ] Completely clearing a Vortex Incident should end it immediately!
+
   - [ ] Todos, add difficulty level selection to mission selection.
     - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
     - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
@@ -224,15 +228,12 @@ BUGS:
 REFINEMENT:
   - [ ] Only unlock first mission after tutorial, not both 1 and 2
   - [ ] Engine sound needs to play on gamepad movement
-  - [ ] Rework laser to target the closet target.. add a chain lightning passive
   - [ ] Incident completion / cursed cargo completion sound is the same as leveling. fix that.
   - [ ] Clearcolor/Shaders when boss enters
   - [ ] Show damage break down in mission summary
   - [ ] Big ship destruction sound always happening, randomly choose 3 sounds or so
   - [ ] Lifesteal needs a cooldown
 
-### Things to Explore:
-  - [ ] Add autofire option?
 
 ## 📝 Commands
 

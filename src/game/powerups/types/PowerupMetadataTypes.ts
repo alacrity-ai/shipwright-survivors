@@ -1,21 +1,42 @@
 // src/game/powerups/types/PowerupMetadataTypes.ts
 
+/** Effect that injects N random blocks of a given tier into the player queue. */
+export interface GrantRandomBlocksEffect {
+  tier: 1 | 2 | 3 | 4 | 5;
+  count: number;
+}
+
 export interface PowerupEffectMetadata {
-  // Offense
-  critChance?: number; // Implemented
-  critMultiplier?: number; // Implemented
-  lifeStealOnCrit?: boolean; // Implemented
-  critLifeStealPercent?: number; // Implemented
-  baseDamageMultiplier?: number; // Implemented
-  fireRateMultiplier?: number; // Implemented
+  /* ───────────── Offense ───────────── */
+  critChance?: number;
+  critMultiplier?: number;
+  lifeStealOnCrit?: boolean;
+  critLifeStealPercent?: number;
+  baseDamageMultiplier?: number;
+  fireRateMultiplier?: number;
 
-  // Defense
-  flatDamageReductionPercent?: number; // Implemented
-  cockpitInvulnChance?: number; // Implemented
-  reflectOnDamagePercent?: number; // Implemented
-  reflectCanCrit?: boolean; // Implemented
+  /* ───────────── Defense ───────────── */
+  flatDamageReductionPercent?: number;
+  cockpitInvulnChance?: number;
+  reflectOnDamagePercent?: number;
+  reflectCanCrit?: boolean;
 
-  // Regen / Utility (future)
+  /* ───── Regen / Utility (future) ───── */
   regenPerSecond?: number;
-  [key: string]: number | boolean | undefined; // fallback to allow extensibility
+
+  /* ─────── Block Affinity (existing) ─────── */
+  attachAffinityBlockTier?: 1 | 2 | 3 | 4;
+  upgradeAffinityBlocksByTier?: number;
+
+  /* ───────────── Resupply ───────────── */
+  /** Enqueue a bundle of randomly-selected blocks. */
+  grantRandomBlocks?: GrantRandomBlocksEffect | GrantRandomBlocksEffect[];
+
+  /* fallback */
+  [key: string]:
+    | number
+    | boolean
+    | GrantRandomBlocksEffect
+    | GrantRandomBlocksEffect[]
+    | undefined;
 }

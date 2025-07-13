@@ -11,6 +11,7 @@ export const mission2TradePost0: TradePost = {
         id: 'monarch',
         wants: ['explosiveLance2', 'explosiveLance2', 'explosiveLance2']
       },
+      guaranteed: true,
       quantity: 1
     },
     {
@@ -19,7 +20,8 @@ export const mission2TradePost0: TradePost = {
         id: 'engine2',
         wants: ['turret1', 'turret1']
       },
-      quantity: 5
+      quantity: 5,
+      appearanceChance: 0.5
     },
     {
       item: {
@@ -27,7 +29,35 @@ export const mission2TradePost0: TradePost = {
         id: 'engine3',
         wants: ['turret2', 'turret2']
       },
-      quantity: 5
+      quantity: 5,
+      appearanceChance: 0.5
+    },
+    {
+      item: {
+        type: 'block',
+        id: 'laser1',
+        wants: ['turret1', 'turret2']
+      },
+      quantity: 5,
+      appearanceChance: 0.3
+    },
+    {
+      item: {
+        type: 'block',
+        id: 'harvester2',
+        wants: ['hull2', 'fin2']
+      },
+      quantity: 5,
+      appearanceChance: 0.3
+    },
+    {
+      item: {
+        type: 'ship',
+        id: 'halo',
+        wants: ['haloBlade1', 'haloBlade1', 'haloBlade2']
+      },
+      quantity: 1,
+      appearanceChance: 0.25
     }
   ]
 };

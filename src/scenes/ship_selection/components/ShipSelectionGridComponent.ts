@@ -56,6 +56,7 @@ export class ShipSelectionGridComponent {
 
   private async loadTiles(): Promise<void> {
     const unlockedShips = ShipBlueprintRegistry.getUnlockedShips();
+    console.log('Got the following unlocked ships: ', unlockedShips);
     const allTiles: ShipTileEntry[] = [];
 
     const scale = getUniformScaleFactor();

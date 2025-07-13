@@ -12,6 +12,8 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 import { InputManager } from '@/core/InputManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
+import { missionSettings } from '@/game/player/PlayerMissionManager';
+import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -28,7 +30,8 @@ export class DebugOverlay {
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>,
-    private readonly particleManager: ParticleManager
+    private readonly particleManager: ParticleManager,
+    private readonly blockQueueDisplayManager: BlockQueueDisplayManager
   ) {}
 
   render(dt: number): void {
@@ -50,6 +53,12 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
 
     if (!DEBUG_MODE) return;
+
+    // === Global Drop Rate
+    drawLabel(ctx, x, y, `Global Drop Rate: ${missionSettings.getGlobalBlockDropRate().toFixed(3)}`); y += lineHeight;
+
+    // === IsDpadNavigationMode? 
+    drawLabel(ctx, x, y, `DPadNav: ${this.blockQueueDisplayManager.getIsDPadNavigationMode()}`); y += lineHeight;
 
     // === Lighting Metrics ===
     // Mouse Coords

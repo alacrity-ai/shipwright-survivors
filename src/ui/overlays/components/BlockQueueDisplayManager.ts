@@ -25,17 +25,21 @@ import { BlockPreviewRenderer } from '@/ui/components/BlockPreviewRenderer';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 
+import { PlaceBlockButton } from '@/ui/overlays/components/PlaceBlockButton';
 import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
 import { RollBlocksButton } from '@/ui/overlays/components/RollBlocksButton';
+import { CombineBlocksButton } from '@/ui/overlays/components/CombineBlocksButton';
 
 export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
+  private readonly placeBlockButton: PlaceBlockButton;
   private readonly placeAllBlocksButton: PlaceAllBlocksButton;
   private readonly rollBlocksButton: RollBlocksButton;
+  private readonly combineBlocksButton: CombineBlocksButton;
 
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
-  private readonly BLOCK_CULLING_THRESHOLD = 30;
+  private readonly BLOCK_CULLING_THRESHOLD = 40;
   private readonly MAXIMUM_CARDS = 25; // TODO : Move this to config
 
   private readonly floatOffsets: number[] = [];
@@ -68,6 +72,10 @@ export class BlockQueueDisplayManager {
   private cursorRestored = false;
 
   private attachAllHidden = false;
+  private rollButtonHidden = false;
+  private attachButtonHidden = false;
+  private combineButtonHidden = false;
+
   private hidden = false;
   private locked = false;
 
@@ -102,12 +110,22 @@ export class BlockQueueDisplayManager {
     this.ctx = CanvasManager.getInstance().getContext('ui');
     this.canvas = this.ctx.canvas;
 
+    this.placeBlockButton = new PlaceBlockButton(
+      this.canvas,
+      this.inputManager
+    );
+
     this.placeAllBlocksButton = new PlaceAllBlocksButton(
       this.canvas,
       this.inputManager
     );
 
     this.rollBlocksButton = new RollBlocksButton(
+      this.canvas,
+      this.inputManager
+    );
+
+    this.combineBlocksButton = new CombineBlocksButton(
       this.canvas,
       this.inputManager
     );
@@ -150,8 +168,10 @@ export class BlockQueueDisplayManager {
     this.dpadRightHoldFrames = 0;
     this._repeatCooldown = 0;
 
+    this.placeBlockButton.unlock();
     this.placeAllBlocksButton.unlock();
     this.rollBlocksButton.unlock();
+    this.combineBlocksButton.unlock();
   }
 
   /** Call this on resolution change or scale change */
@@ -178,6 +198,7 @@ export class BlockQueueDisplayManager {
     this.fanBaseX = this.windowX + this.windowMarginX;
 
     // Resize the Place All Blocks Button
+    this.placeBlockButton.resize();
     this.placeAllBlocksButton.resize();
     this.rollBlocksButton.resize();
   }
@@ -185,10 +206,30 @@ export class BlockQueueDisplayManager {
   public update(dt: number): void {
     if (!this.attachAllHidden) {
       this.placeAllBlocksButton.update(dt);
+    }
+    if (!this.rollButtonHidden) {
       this.rollBlocksButton.update(dt);
+    }
+    if (!this.attachButtonHidden) {
+      this.placeBlockButton.update(dt);
+    }
+    if (!this.combineButtonHidden) {
+      this.combineBlocksButton.update(dt);
     }
 
     const blockQueue = this.playerResources.getBlockQueue();
+
+    // ── Sanity-check navigation index ──────────────────────────────
+    if (this.isDPadNavigationMode && this.dpadHoveredIndex != null) {
+      if (blockQueue.length === 0) {
+        // Case 2 – queue fully emptied ➜ leave manual-placement mode
+        this.cancelInteraction();                // unlocks buttons & cursor
+      } else if (this.dpadHoveredIndex >= blockQueue.length) {
+        // Case 1 – last element was removed but queue still has items
+        this.dpadHoveredIndex = blockQueue.length - 1;  // clamp to new tail
+      }
+    }
+
     if (blockQueue.length === 0) {
       this.floatOffsets.length = 0;
       this.pulseTimers.length = 0;
@@ -307,6 +348,15 @@ export class BlockQueueDisplayManager {
         const block = blockQueue[this.hoveredCardIndex];
         if (block) {
           requestPlaceBlockFromQueue(this.hoveredCardIndex, block.id);
+          // After sending the placement request
+          if (this.dpadHoveredIndex === blockQueue.length - 1) {
+            // We just placed the tail element; advance or abort pre-emptively
+            if (blockQueue.length > 1) {
+              this.dpadHoveredIndex--;        // move to new tail
+            } else {
+              this.cancelInteraction();       // queue will be empty next tick
+            }
+          }
         }
       } else if (this.inputManager.wasRightClicked(true)) {
         const block = blockQueue[this.hoveredCardIndex];
@@ -331,16 +381,20 @@ export class BlockQueueDisplayManager {
       if (GlobalMenuReporter.getInstance().isMenuOpen('powerupSelectionMenu') || !flags.has('mission.intro-briefing.tradepost-closed')) return;
       this.isDPadNavigationMode = true;
       this.dpadHoveredIndex = 0;
+      this.placeBlockButton.lock();
       this.placeAllBlocksButton.lock();
       this.rollBlocksButton.lock();
+      this.combineBlocksButton.lock();
     } else if (this.isDPadNavigationMode) {
       if (pressedCancel) {
         this.isDPadNavigationMode = false;
         this.dpadHoveredIndex = null;
         this.dpadLeftHoldFrames = 0;
         this.dpadRightHoldFrames = 0;
+        this.placeBlockButton.unlock();
         this.placeAllBlocksButton.unlock();
         this.rollBlocksButton.unlock();
+        this.combineBlocksButton.unlock();
       } else {
         // === Update hold timers ===
         if (isLeftHeld) {
@@ -401,11 +455,15 @@ export class BlockQueueDisplayManager {
     }
   }
 
-  private getIntentionFromHover(): 'roll' | 'refine' | 'autoplace' | 'autoPlaceAll' | null {
+  private getIntentionFromHover(): 'roll' | 'refine' | 'autoplace' | 'autoPlaceAll' | 'combine' | null {
     if (this.rollBlocksButton.getIsHovered()) {
       return 'roll';
     } else if (this.placeAllBlocksButton.getIsHovered()) {
       return 'autoPlaceAll';
+    } else if (this.placeBlockButton.getIsHovered()) {
+      return 'autoplace';
+    } else if (this.combineBlocksButton.getIsHovered()) {
+      return 'combine';
     } else {
       return this.blockDropDecisionMenu.getHoveredButton();
     }
@@ -417,7 +475,15 @@ export class BlockQueueDisplayManager {
     // Render the Place All Blocks Button
     if (!this.attachAllHidden) {
       this.placeAllBlocksButton.render(this.ctx);
+    }
+    if (!this.rollButtonHidden) {
       this.rollBlocksButton.render(this.ctx);
+    }
+    if (!this.attachButtonHidden) {
+      this.placeBlockButton.render(this.ctx);
+    }
+    if (!this.combineButtonHidden) {
+      this.combineBlocksButton.render(this.ctx);
     }
 
     const canvas = this.canvas;
@@ -492,6 +558,12 @@ export class BlockQueueDisplayManager {
         case 'autoPlaceAll': {
           labelText = `Attach ${blockCount}`;
           borderColor = '#66ff66';
+          borderAlpha = 0.85;
+          break;
+        }
+        case 'combine': {
+          labelText = 'Combine';
+          borderColor = '#ff6666';
           borderAlpha = 0.85;
           break;
         }
@@ -627,8 +699,10 @@ export class BlockQueueDisplayManager {
     this.isDPadNavigationMode = false;
     this.dpadHoveredIndex = null;
 
+    this.placeBlockButton.unlock();
     this.placeAllBlocksButton.unlock();
     this.rollBlocksButton.unlock();
+    this.combineBlocksButton.unlock();
   }
 
   public handleShow(): void {
@@ -643,6 +717,30 @@ export class BlockQueueDisplayManager {
     this.attachAllHidden = true;
   }
 
+  public showRollButton(): void {
+    this.rollButtonHidden = false;
+  }
+
+  public hideRollButton(): void {
+    this.rollButtonHidden = true;
+  }
+
+  public showAttachButton(): void {
+    this.attachButtonHidden = false;
+  }
+
+  public hideAttachButton(): void {
+    this.attachButtonHidden = true;
+  }
+
+  public showCombineButton(): void {
+    this.combineButtonHidden = false;
+  }
+
+  public hideCombineButton(): void {
+    this.combineButtonHidden = true;
+  }
+
   public destroy(): void {
     GlobalEventBus.off('blockqueue:show', this.boundHandleShow);
     GlobalEventBus.off('blockqueue:hide', this.boundHandleHide);
@@ -654,5 +752,9 @@ export class BlockQueueDisplayManager {
   // Public API
   public getHoveredCardIndex(): number | null {
     return this.hoveredCardIndex;
+  }
+
+  public getIsDPadNavigationMode(): boolean {
+    return this.isDPadNavigationMode;
   }
 }

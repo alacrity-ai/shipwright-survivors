@@ -60,10 +60,10 @@ export class GamepadMenuInteractionManager {
    * Handles directional navigation and selection based on gamepad input.
    * Should be called once per frame.
    */
-  public update(): void {
+  public update(overrideDisabledInput: boolean = false): void {
     if (this.navMap.length === 0) return;
 
-    const moveVec = this.input.getGamepadMovementVector();
+    const moveVec = this.input.getGamepadMovementVector(overrideDisabledInput);
     const dpadLeft = this.input.wasGamepadAliasJustPressed('dpadLeft');
     const dpadRight = this.input.wasGamepadAliasJustPressed('dpadRight');
     const dpadUp = this.input.wasGamepadAliasJustPressed('dpadUp');

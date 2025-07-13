@@ -147,6 +147,99 @@ export function getUtilityIconSprite(): HTMLCanvasElement {
   return utilityIcon;
 }
 
+// 1 ▪ helper ────────────────────────────────────────────────────────────────
+function drawDiamond(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number
+): void {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+}
+
+// 2 ▪ Affinity-Block base icon ─────────────────────────────────────────────
+const affinityBlockIcon = createCanvas(24, 24);
+{
+  const ctx = affinityBlockIcon.getContext('2d')!;
+  drawIconBase(ctx, '#ffdb66', (c) => drawDiamond(c, 12, 12, 7));
+}
+export function getAffinityBlockIconSprite(): HTMLCanvasElement {
+  return affinityBlockIcon;
+}
+
+// 3 ▪ Affinity-Block capstone icon ─────────────────────────────────────────
+const affinityBlockCapIcon = createCanvas(24, 24);
+{
+  const ctx = affinityBlockCapIcon.getContext('2d')!;
+  // outer glow diamond
+  drawIconBase(ctx, '#ffd700', (c) => drawDiamond(c, 12, 12, 8));
+
+  // inner highlight diamond
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = '#ffa500';
+  ctx.fillStyle = '#fff2b0';
+  drawDiamond(ctx, 12, 12, 4);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+export function getAffinityBlockCapstoneIconSprite(): HTMLCanvasElement {
+  return affinityBlockCapIcon;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// 4 ▪ Resupply icons ─ minimalist crates & cache labels
+// ───────────────────────────────────────────────────────────────────────────
+function drawCrate(ctx: CanvasRenderingContext2D, glow: string): void {
+  // Outer glow + square
+  drawIconBase(ctx, glow, (c) => {
+    c.beginPath();
+    c.rect(4, 4, 16, 16);
+  });
+
+  // Inner “X” straps
+  ctx.strokeStyle = '#2b1a00';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(6, 6);
+  ctx.lineTo(18, 18);
+  ctx.moveTo(18, 6);
+  ctx.lineTo(6, 18);
+  ctx.stroke();
+}
+
+/* 4-A ▪ Tier-1–4 ‘crate’ (generic drop) */
+const resupplyCrateIcon = createCanvas(24, 24);
+drawCrate(resupplyCrateIcon.getContext('2d')!, '#00d8d8');
+export function getResupplyCrateIconSprite(): HTMLCanvasElement {
+  return resupplyCrateIcon;
+}
+
+/* 4-B ▪ Tier-5 ‘elite’ cache */
+const resupplyEliteIcon = createCanvas(24, 24);
+drawCrate(resupplyEliteIcon.getContext('2d')!, '#ff9c1a');
+export function getResupplyEliteIconSprite(): HTMLCanvasElement {
+  return resupplyEliteIcon;
+}
+
+/* 4-C ▪ Capstone cache (double-border + glow) */
+const resupplyCapIcon = createCanvas(24, 24);
+{
+  const ctx = resupplyCapIcon.getContext('2d')!;
+  drawCrate(ctx, '#ffde3c');
+  // Inner border highlight
+  ctx.strokeStyle = '#fff5b0';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(6, 6, 12, 12);
+}
+export function getResupplyCapstoneIconSprite(): HTMLCanvasElement {
+  return resupplyCapIcon;
+}
+
 // === Icon Registry Map ===
 const iconMap: Record<string, () => HTMLCanvasElement> = {
   'icon-attackers-arsenal': getAttackIconSprite,
@@ -162,7 +255,14 @@ const iconMap: Record<string, () => HTMLCanvasElement> = {
   'icon-thorn-plating': getDefenseIconSprite,
 
   'icon-utility-default': getUtilityIconSprite,
-  
+
+  'icon-affinity-block': getAffinityBlockIconSprite,
+  'icon-affinity-block-capstone': getAffinityBlockCapstoneIconSprite,
+
+  'icon-resupply-crate':    getResupplyCrateIconSprite,
+  'icon-resupply-elite':    getResupplyEliteIconSprite,
+  'icon-resupply-capstone': getResupplyCapstoneIconSprite,
+
   'icon-core-reward': getFallbackCoreIconSprite,
 };
 

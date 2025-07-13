@@ -9,8 +9,11 @@ import { getRollBlocksIcon } from '@/ui/overlays/components/icons/rollBlocksButt
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { audioManager } from '@/audio/Audio';
 
+import { UIButtonTooltipRenderer } from '@/ui/overlays/components/ButtonTooltip';
+
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import { PlayerResources } from '@/game/player/PlayerResources';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 export class RollBlocksButton {
   private isHovered = false;
@@ -23,6 +26,8 @@ export class RollBlocksButton {
   private scale: number = 1;
 
   private locked: boolean = false;
+
+  private readonly tooltip = new UIButtonTooltipRenderer();
 
   private hoverSoundPlayed = false;
   private readonly pulseController = new ButtonPulseController(0.8, 3.0);
@@ -43,7 +48,7 @@ export class RollBlocksButton {
   public resize(): void {
     this.scale = getUniformScaleFactor();
     this.y = this.canvas.height - Math.floor(54 * this.scale);
-    this.x = Math.floor(this.canvas.width / 2) - Math.floor(354 * this.scale);
+    this.x = Math.floor(this.canvas.width / 2) - Math.floor(404 * this.scale);
   }
 
   public lock(): void {
@@ -137,6 +142,12 @@ export class RollBlocksButton {
         fontSize: 24,
       }
     }, this.scale);
+
+    if (this.isHovered) {
+      const sw = this.width * this.scale;
+      const hotkey = InputDeviceTracker.getInstance().gamepadLastUsed() ? '(Y)' : '(R)';
+      this.tooltip.render(hotkey, x, y, sw, this.scale);
+    }
   }
 
   private getPosition(): { x: number; y: number } {

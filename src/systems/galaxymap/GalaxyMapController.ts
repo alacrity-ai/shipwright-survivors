@@ -213,7 +213,6 @@ export class GalaxyMapController {
   }
 
   public getHoveredLocation(): LocationDefinition | null {
-    console.log('[GalaxyMapController] getHoveredLocation', this.hoveredLocation);
     return this.hoveredLocation;
   }
 

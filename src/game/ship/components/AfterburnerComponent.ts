@@ -18,7 +18,7 @@ export class AfterburnerComponent {
   private triggerCooldownRemaining: number = 0;
 
   private readonly PULSE_WINDOW = 0.4; // seconds after deactivation to allow pulse
-  private readonly PULSE_DURATION = 6.0; // seconds of pulse bonus
+  private readonly PULSE_DURATION = 12.0; // seconds of pulse bonus
   private readonly PULSE_COOLDOWN = 2.0; // seconds before next pulse can occur
 
   private readonly PULSE_PERFECT_WINDOW = 0.2; // seconds for super pulse
@@ -192,11 +192,6 @@ export class AfterburnerComponent {
     this.current = Math.min(this.current, this.max);
     this.rechargePerSecond = this.max / this.RECHARGE_DURATION_SECONDS;
   }
-
-  // Deprecated
-  // setRechargeRate(rate: number): void {
-  //   this.rechargePerSecond = rate;
-  // }
 
   getConsumptionRatePerSecond(): number {
     return this.consumptionPerSecond;

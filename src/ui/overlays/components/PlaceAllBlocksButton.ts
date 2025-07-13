@@ -14,6 +14,8 @@ import { PlayerResources } from '@/game/player/PlayerResources';
 import { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
+import { UIButtonTooltipRenderer } from '@/ui/overlays/components/ButtonTooltip';
+
 export class PlaceAllBlocksButton {
   private isHovered = false;
   private isActive = false;
@@ -24,6 +26,8 @@ export class PlaceAllBlocksButton {
   private x: number = 0;
   private y: number = 0;
   private scale: number = 1;
+
+  private readonly tooltip = new UIButtonTooltipRenderer();
 
   private locked: boolean = false;
 
@@ -47,7 +51,7 @@ export class PlaceAllBlocksButton {
   public resize(): void {
     this.scale = getUniformScaleFactor();
     this.y = this.canvas.height - Math.floor(54 * this.scale);
-    this.x = Math.floor(this.canvas.width / 2) - Math.floor(300 * this.scale);
+    this.x = Math.floor(this.canvas.width / 2) - Math.floor(352 * this.scale);
   }
 
   public getIsHovered(): boolean {
@@ -153,6 +157,12 @@ export class PlaceAllBlocksButton {
         fontSize: 24,
       }
     }, this.scale);
+
+    if (this.isHovered) {
+      const sw = this.width * this.scale;
+      const hotkey = InputDeviceTracker.getInstance().gamepadLastUsed() ? '(B)' : '(E)';
+      this.tooltip.render(hotkey, x, y, sw, this.scale);
+    }
   }
 
   private getPosition(): { x: number; y: number } {

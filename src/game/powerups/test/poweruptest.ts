@@ -10,7 +10,7 @@ export function testPowerups() {
   const allPowerups = PowerupRegistry.getAll();
   assert (allPowerups.length > 0, 'There should be some powerups defined');
 
-  const eligible = PowerupRegistry.getEligiblePowerupNodes(new Set());
+  const eligible = PowerupRegistry.getEligiblePowerupNodes(new Set(), 20);
   assert (eligible.length > 0, 'There should be some eligible powerups at the start');
 
   generateRandomSelectionTestBasic();
@@ -27,7 +27,7 @@ function generateRandomSelectionTestBasic(): void {
   const acquired = manager.getAcquiredSet();
 
   // Compute all eligible nodes using finalized branching logic
-  const candidates = PowerupRegistry.getEligiblePowerupNodes(acquired);
+  const candidates = PowerupRegistry.getEligiblePowerupNodes(acquired, 20);
 
   // Randomize and choose 3
   const shuffled = [...candidates];
@@ -58,7 +58,7 @@ function testExclusiveBranchEnforcement(): void {
 
   // Step 3: Query eligible nodes
   const acquired = manager.getAcquiredSet();
-  const eligible = PowerupRegistry.getEligiblePowerupNodes(acquired);
+  const eligible = PowerupRegistry.getEligiblePowerupNodes(acquired, 20);
 
   // Step 4: Ensure no vampirism options are present
   const forbiddenIds = [

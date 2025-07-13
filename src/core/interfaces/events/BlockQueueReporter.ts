@@ -6,6 +6,10 @@ export function requestPlaceAllBlocksInQueue(): void {
   GlobalEventBus.emit('blockqueue:request-placeall', undefined);
 }
 
+export function requestPlaceFirstBlockInQueue(): void {
+  GlobalEventBus.emit('blockqueue:request-placefirst', undefined);
+}
+
 export function requestRollBlocksQueue(): void {
   GlobalEventBus.emit('blockqueue:request-roll', undefined);
 }

@@ -7,6 +7,7 @@ import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/Ar
 
 import { getAggregatedSkillEffects } from '../ship/skills/runtime/UnlockedShipSkillTreeResolver';
 import { getAggregatedArtifactEffects } from '../ship/artifacts/runtime/ArtifactEffectResolver';
+import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
 
 import type { CollectableShipDefinition } from '@/game/ship/interfaces/CollectableShipDefinition';
 
@@ -134,6 +135,12 @@ export class PlayerShipCollection {
     }
   }
 
+  unDiscover(shipName: string): void {
+    this.discoveredShipNames.delete(shipName);
+    this.unlockedShipNames.delete(shipName);
+    this.shipMasteryMap.delete(shipName);
+  }
+
   // === Mastery Getters ===
 
   public getShipMasteryLevel(shipName: string): number {
@@ -196,6 +203,31 @@ export class PlayerShipCollection {
   }
 
   // === Accessors ===
+
+  // Should be the canonical check for most systems
+  isUnlockedById(shipId: string): boolean {
+    const shipName = ShipBlueprintRegistry.getByName(shipId)?.name;
+    if (!shipName) return false;
+    return this.isUnlocked(shipName);
+  }
+
+  // This should be the canonical unlock point for most systems
+  // Note that discovery is deprecated, but still required, so we will discover and unlock in one action
+  unlockById(shipId: string): void {
+    const shipName = ShipBlueprintRegistry.getByName(shipId)?.name;
+    if (!shipName) return;
+    this.discover(shipName);
+    this.unlock(shipName);
+  }
+
+  /** Return registry keys (ids) for all unlocked ships. */
+  getUnlockedShipIds(): string[] {
+    return ShipBlueprintRegistry.getAllShipKeys().filter(id => {
+      const def = ShipBlueprintRegistry.getByName(id);
+      if (!def) return false;                   // defensive: unknown id
+      return this.isUnlocked(def.name);         // compare against display-name set
+    });
+  }
 
   isDiscovered(shipName: string): boolean {
     return this.discoveredShipNames.has(shipName);

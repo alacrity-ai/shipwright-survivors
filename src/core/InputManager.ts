@@ -276,8 +276,8 @@ export class InputManager {
       : this.keyState[code]?.pressed ?? false;
   }
 
-  public wasKeyJustPressed(code: string): boolean {
-    if (this.inputDisabled || this.disabledKeys.has(code)) return false;
+  public wasKeyJustPressed(code: string, overrideDisabledInput: boolean = false): boolean {
+    if ((this.inputDisabled || this.disabledKeys.has(code)) && !overrideDisabledInput) return false;
     return this.justPressedKeys.has(code);
   }
 
@@ -286,17 +286,17 @@ export class InputManager {
     return this.justReleasedKeys.has(code);
   }
 
-  public wasMouseClicked(physicalOnly: boolean = false): boolean {
-    if (this.inputDisabled) return false;
+  public wasMouseClicked(physicalOnly: boolean = false, overrideDisabledInput: boolean = false): boolean {
+    if (this.inputDisabled && !overrideDisabledInput) return false;
 
-    const mousePressed = this.wasKeyJustPressed('MouseLeft');
+    const mousePressed = this.wasKeyJustPressed('MouseLeft', overrideDisabledInput);
 
     if (physicalOnly) {
       return mousePressed; // Strict mode: ignore emulated inputs
     }
 
     // Default behavior includes both physical and abstract 'select'
-    return mousePressed || this.wasActionJustPressed('select');
+    return mousePressed || this.wasActionJustPressed('select', overrideDisabledInput);
   }
 
   public wasLeftClicked(): boolean {
@@ -347,7 +347,7 @@ export class InputManager {
     const scrollUpDetected = this.scrollUpDetected;
     const scrollDownDetected = this.scrollDownDetected;
 
-    const up = scrollUpDetected || this.isKeyPressed('KeyR') || this.gamepadAliasIsPressed('dpadUp');
+    const up = scrollUpDetected || this.isKeyPressed('KeyG') || this.gamepadAliasIsPressed('dpadUp');
     const down = scrollDownDetected || this.isKeyPressed('KeyT') || this.gamepadAliasIsPressed('dpadDown');
 
     if (up || down) {
@@ -440,8 +440,11 @@ export class InputManager {
   }
 
   // Left stick for moving / turning ship
-  public getGamepadMovementVector(): { x: number; y: number } {
-    return this.leftStickDisabled ? { x: 0, y: 0 } : this.gamepadManager.getLeftStick();
+  public getGamepadMovementVector(overrideDisabledInput: boolean = false): { x: number; y: number } {
+    if (!overrideDisabledInput) {
+      return this.leftStickDisabled ? { x: 0, y: 0 } : this.gamepadManager.getLeftStick();
+    }
+    return this.gamepadManager.getLeftStick();
   }
 
   // Right stick for aiming crosshair
@@ -484,8 +487,8 @@ export class InputManager {
     this.rightStickDisabled = false;
   }
 
-  public isLeftStickMoved(): boolean {
-    if (this.leftStickDisabled) return false;
+  public isLeftStickMoved(overrideDisabledInput: boolean = false): boolean {
+    if (this.leftStickDisabled && !overrideDisabledInput) return false;
     const { x, y } = this.gamepadManager.getLeftStick();
     return Math.abs(x) > 0 || Math.abs(y) > 0;
   }
@@ -547,31 +550,45 @@ export class InputManager {
     binding.gamepadButtons?.forEach(b => this.enableGamepadButton(b));
   }
 
-  public isActionPressed(action: InputAction): boolean {
+  public isActionPressed(action: InputAction, overrideDisabledInput: boolean = false): boolean {
     const binding = DefaultInputMapping[action];
 
     const keyboardPressed =
       binding.keys?.some(k => this.isKeyPressed(k)) ?? false;
 
-    const gamepadPressed =
-      binding.gamepadButtons?.some(
-        b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.isActionPressed(b)
-      ) ?? false;
-
+    let gamepadPressed = false
+    if (!overrideDisabledInput) {
+      gamepadPressed =
+        binding.gamepadButtons?.some(
+          b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.isActionPressed(b)
+        ) ?? false;
+    } else {
+      gamepadPressed = 
+        binding.gamepadButtons?.some(
+          b => this.gamepadManager.isActionPressed(b)
+        ) ?? false;
+    }
     return keyboardPressed || gamepadPressed;
   }
 
-  public wasActionJustPressed(action: InputAction): boolean {
+  public wasActionJustPressed(action: InputAction, overrideDisabledInput: boolean = false): boolean {
     const binding = DefaultInputMapping[action];
 
     const keyboardJustPressed =
-      binding.keys?.some(k => this.wasKeyJustPressed(k)) ?? false;
+      binding.keys?.some(k => this.wasKeyJustPressed(k, overrideDisabledInput)) ?? false;
 
-    const gamepadJustPressed =
-      binding.gamepadButtons?.some(
-        b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.wasActionJustPressed(b)
-      ) ?? false;
-
+    let gamepadJustPressed = false;
+    if (!overrideDisabledInput) {
+      gamepadJustPressed =
+        binding.gamepadButtons?.some(
+          b => !this.disabledGamepadButtons.has(b) && this.gamepadManager.wasActionJustPressed(b)
+        ) ?? false;
+    } else {
+      gamepadJustPressed =
+        binding.gamepadButtons?.some(
+          b => this.gamepadManager.wasActionJustPressed(b)
+        ) ?? false;
+    }
     return keyboardJustPressed || gamepadJustPressed;
   }
 

@@ -27,4 +27,6 @@ export type InputAction =
   | 'rollBlocksButton'
   | 'jumpHome'
   | 'cycleBlockLeft'
-  | 'cycleBlockRight';
+  | 'cycleBlockRight'
+  | 'placeBlockButton'
+  | 'combineBlocksButton';

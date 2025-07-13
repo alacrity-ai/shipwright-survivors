@@ -79,6 +79,12 @@ export interface EventTypes {
   'meters:hide': undefined;
   'attachAllButton:show': undefined;
   'attachAllButton:hide': undefined;
+  'rollButton:show': undefined;
+  'rollButton:hide': undefined;
+  'attachButton:show': undefined;
+  'attachButton:hide': undefined;
+  'combineButton:show': undefined;
+  'combineButton:hide': undefined;
 
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
@@ -104,8 +110,8 @@ export interface EventTypes {
   'cursor:gamepad:show': undefined;
 
   // Block Drop Decision Menu
-  'blockdropdecision:refine:lock': undefined;
-  'blockdropdecision:refine:unlock': undefined;
+  'blockdropdecision:combine:lock': undefined;
+  'blockdropdecision:combine:unlock': undefined;
   'blockdropdecision:attach-all:lock': undefined;
   'blockdropdecision:attach-all:unlock': undefined;
   'blockdropdecision:attach:lock': undefined;
@@ -122,6 +128,7 @@ export interface EventTypes {
     blockTypeId: string;
     index: number;
   };
+  'blockqueue:request-placefirst': undefined;
   'blockqueue:request-placeall': undefined;
   'blockqueue:request-roll': undefined;
 

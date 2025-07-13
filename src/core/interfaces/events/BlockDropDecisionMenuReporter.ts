@@ -15,12 +15,12 @@ import { GlobalEventBus } from '@/core/EventBus';
   'blockdropdecision:unlock-all': undefined;
 */
 
-export function lockRefineButton(): void {
-  GlobalEventBus.emit('blockdropdecision:refine:lock', undefined);
+export function lockCombineButton(): void {
+  GlobalEventBus.emit('blockdropdecision:combine:lock', undefined);
 }
 
-export function unlockRefineButton(): void {
-  GlobalEventBus.emit('blockdropdecision:refine:unlock', undefined);
+export function unlockCombineButton(): void {
+  GlobalEventBus.emit('blockdropdecision:combine:unlock', undefined);
 }
 
 export function lockAttachAllButton(): void {

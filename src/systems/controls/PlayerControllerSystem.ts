@@ -9,6 +9,8 @@ import type { UtilityIntent } from '@/core/intent/interfaces/UtilityIntent';
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { Ship } from '@/game/ship/Ship';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { ShipGrid } from '@/game/ship/ShipGrid';
@@ -28,12 +30,16 @@ export class PlayerControllerSystem {
   private lastFiringModeSwitchTime: number = -Infinity;
   private hudHidden = false;
 
+  private aimDistance: number = 200;
+
   constructor(
     private readonly camera: Camera,
     private readonly inputManager: InputManager,
     private readonly cursorRenderer: CursorRenderer,
     private readonly playerShip: Ship
-  ) {}
+  ) {
+    this.aimDistance = 200 * getUniformScaleFactor();
+  }
 
   public getIntent(dt: number): ShipIntent {
     // Call update
@@ -47,7 +53,7 @@ export class PlayerControllerSystem {
     const overlayHovered = GlobalMenuReporter.getInstance().isAnyOverlayHovered();
     const suppress = menuOpen || overlayHovered;
 
-    const weapons = suppress ? EMPTY_WEAPON_INTENT : this.getWeaponIntent();
+    const weapons = suppress || !this.playerShip.getCanFire() ? EMPTY_WEAPON_INTENT : this.getWeaponIntent();
     const utility = suppress ? EMPTY_UTILITY_INTENT : this.getUtilityIntent();
 
     return { movement, weapons, utility };
@@ -113,41 +119,49 @@ export class PlayerControllerSystem {
   }
 
   private getWeaponIntent(): WeaponIntent {
-    const firePrimary = this.inputManager.isActionPressed('firePrimary');
-    const fireSecondary = this.inputManager.isActionPressed('fireSecondary');
+    // ─── Fast-path device determination ──────────────────────────────────────
+    const lastUsedDevice   = InputDeviceTracker.getInstance().getLastUsed();
+    const usingGamepad     = lastUsedDevice === 'gamepad';
 
-    const playerPos = this.playerShip.getTransform().position;
-    const rawGamepadAim = this.inputManager.getGamepadAimVector();
-    const AIM_DISTANCE = 800;
+    // ─── Fire buttons ─────────────────────────────────────────────────────────
+    const firePrimary      = this.inputManager.isActionPressed('firePrimary');
+    const fireSecondary    = this.inputManager.isActionPressed('fireSecondary');
 
-    const hasGamepadAim = rawGamepadAim.x !== 0 || rawGamepadAim.y !== 0;
+    // ─── Positional primitives (pulled once) ──────────────────────────────────
+    const { position: playerPos, rotation: playerRot } = this.playerShip.getTransform();
+    const rawPadAim      = this.inputManager.getGamepadAimVector();
+    const padHasVector   = rawPadAim.x !== 0 || rawPadAim.y !== 0;
 
-    const aimVector = hasGamepadAim
-      ? this.normalize(rawGamepadAim.x, rawGamepadAim.y)
-      : InputDeviceTracker.getInstance().getLastUsed() === 'gamepad'
-        ? {
-            x: Math.cos(this.playerShip.getTransform().rotation - Math.PI / 2),
-            y: Math.sin(this.playerShip.getTransform().rotation - Math.PI / 2),
-          }
-        : null;
+    // ─── Aim vector derivation ────────────────────────────────────────────────
+    const aimVec = padHasVector
+      ? this.normalize(rawPadAim.x, rawPadAim.y)
+      : usingGamepad                              // idle–stick auto-forward
+          ? { x: Math.cos(playerRot - Math.PI / 2),
+              y: Math.sin(playerRot - Math.PI / 2) }
+          : null;                                 // mouse mode → null
 
-    const aimAt = aimVector
-      ? {
-          x: playerPos.x + aimVector.x * AIM_DISTANCE,
-          y: playerPos.y + aimVector.y * AIM_DISTANCE,
-        }
+    // ─── World-space aim point ────────────────────────────────────────────────
+    const aimAt = aimVec
+      ? { x: playerPos.x + aimVec.x * this.aimDistance,
+          y: playerPos.y + aimVec.y * this.aimDistance }
       : this.camera.screenToWorld(
           this.inputManager.getMousePosition().x,
-          this.inputManager.getMousePosition().y
-        );
+          this.inputManager.getMousePosition().y);
 
-    // Cursor visuals
-    if (firePrimary || fireSecondary || hasGamepadAim) {
+    // ─── Keep virtual cursor in lock-step *only* when pad is active ───────────
+    if (usingGamepad) {
+      const { x: sx, y: sy } = this.camera.worldToScreen(aimAt.x, aimAt.y);
+      this.inputManager.setVirtualMousePosition(sx, sy);
+    }
+
+    // ─── Cursor visuals ───────────────────────────────────────────────────────
+    if (firePrimary || fireSecondary || padHasVector) {
       this.cursorRenderer.setTargetCrosshairCursor();
     } else {
       this.cursorRenderer.setDefaultCursor();
     }
 
+    // ─── Compose intent object ────────────────────────────────────────────────
     return {
       firePrimary,
       fireSecondary,

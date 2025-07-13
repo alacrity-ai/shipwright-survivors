@@ -64,9 +64,20 @@ export const attackerTree: PowerupNodeDefinition[] = [
     scaling: {
       fireRateMultiplier: 0.15
     },
-    capstoneAtLevel: 5
   },
-
+  {
+    id: 'rapid-fire-6',
+    label: 'Rapid Fire +4',
+    description: 'Further increases fire rate.',
+    icon: 'icon-rapid-fire',
+    category: 'attacker',
+    parentId: 'rapid-fire-5',
+    isProcedural: true,
+    scaling: {
+      fireRateMultiplier: 0.15
+    },
+    capstoneAtLevel: 6
+  },
   // === Branch B: Deadly Damage ===
   {
     id: 'deadly-damage-2',
@@ -113,6 +124,18 @@ export const attackerTree: PowerupNodeDefinition[] = [
     scaling: {
       baseDamageMultiplier: 0.20
     },
-    capstoneAtLevel: 5
+  },
+  {
+    id: 'deadly-damage-6',
+    label: 'Deadly Damage +4',
+    description: 'Further increases weapon damage.',
+    icon: 'icon-deadly-damage',
+    category: 'attacker',
+    parentId: 'deadly-damage-5',
+    isProcedural: true,
+    scaling: {
+      baseDamageMultiplier: 0.20
+    },
+    capstoneAtLevel: 6
   }
 ];

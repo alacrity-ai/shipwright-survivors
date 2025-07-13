@@ -6,6 +6,7 @@ export const BLOCK_PICKUP_SPARK_COLOR_PALETTES: Array<string[]> = [
   ['#66ff66', '#33cc33', '#99ff99'],  // green
   ['#66ccff', '#3399ff', '#99ddff'],  // blue
   ['#cc88ff', '#9933ff', '#ddaaff'],  // purple
+  ['#ffcc00', '#ffaa00', '#ff8800'],  // orange
 ];
 
 export const DEFAULT_EXPLOSION_SPARK_PALETTE: string[] = ['#ffdd00', '#ffaa00', '#ff6600', '#ff2200', '#ffffff'];
@@ -16,6 +17,7 @@ export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
   engine2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
   engine3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
   engine4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust
+  engine5: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
 };
 
 export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
@@ -24,6 +26,7 @@ export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
   turret2: ['#88ff88', '#33dd33', '#aaffaa'], // green
   turret3: ['#88ccff', '#3399ff', '#66ddff'], // blue
   turret4: ['#cc88ff', '#9933ff', '#ddaaff'], // purple
+  turret5: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
 };
 
 export const LASER_BEAM_COLORS: Record<string, string[]> = {
@@ -31,6 +34,7 @@ export const LASER_BEAM_COLORS: Record<string, string[]> = {
   laser1: ['#00CCFF', '#00FFFF', '#00faff'],        // same as laser0 for compatibility
   laser2: ['#E6FFED', '#76FF03', '#33691E'],        // pale green core, electric green body, forest glow
   laser3: ['#F3E5F5', '#D500F9', '#4A148C'],        // lavender core, neon violet body, deep purple glow
+  laser5: ['#FFD700', '#FFA500', '#FF8C00'],        // gold core, orange body, deep orange glow
 };
 
 export const SHIELD_COLOR_PALETTES: Record<string, string[]> = {
@@ -38,6 +42,7 @@ export const SHIELD_COLOR_PALETTES: Record<string, string[]> = {
   shield1: ['#88ddff', '#44bbff', '#00aaff'], // same
   shield2: ['#aaffaa', '#66dd66', '#22bb22'], // green
   shield3: ['#ffbbff', '#dd66dd', '#cc33cc'], // magenta
+  shield4: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
 };
 
 export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
@@ -45,6 +50,7 @@ export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
   shield1: 'rgba(100, 255, 255, 0.4)',  // cyan again
   shield2: 'rgba(91, 255, 91, 0.4)',  // soft green
   shield3: 'rgba(255, 86, 255, 0.4)',  // soft magenta
+  shield4: 'rgba(255, 180, 0, 0.4)',  // orange
 };
 
 export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
@@ -53,6 +59,7 @@ export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
   explosiveLance2: ['#aaffaa', '#66dd66', '#228822'], // verdant green
   explosiveLance3: ['#ccccff', '#9999ff', '#4444aa'], // lavender/blue
   explosiveLance4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
+  explosiveLance5: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
 };
 
 export const BLOCK_PICKUP_LIGHT_TIER_COLORS: Record<number, string> = {

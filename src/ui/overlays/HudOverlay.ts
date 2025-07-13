@@ -11,7 +11,7 @@ import { PlayerExperienceBar } from '@/ui/overlays/components/PlayerExperienceBa
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
-import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle';
+// import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle'; // Deprecated, no longer in game
 import { getUniformScaleFactor } from '@/config/view';
 
 import { GlobalEventBus } from '@/core/EventBus';
@@ -33,6 +33,12 @@ export class HudOverlay {
   private readonly onFiringModeShow = () => this.showFiringMode();
   private readonly onAttachAllButtonShow = () => this.blockQueueDisplayManager.showAttachAllButton();
   private readonly onAttachAllButtonHide = () => this.blockQueueDisplayManager.hideAttachAllButton();
+  private readonly onRollButtonShow = () => this.blockQueueDisplayManager.showRollButton();
+  private readonly onRollButtonHide = () => this.blockQueueDisplayManager.hideRollButton();
+  private readonly onAttachButtonShow = () => this.blockQueueDisplayManager.showAttachButton();
+  private readonly onAttachButtonHide = () => this.blockQueueDisplayManager.hideAttachButton();
+  private readonly onCombineButtonShow = () => this.blockQueueDisplayManager.showCombineButton();
+  private readonly onCombineButtonHide = () => this.blockQueueDisplayManager.hideCombineButton();
 
   private metersHidden: boolean = false;
   private firingModeHidden: boolean = false;
@@ -73,6 +79,12 @@ export class HudOverlay {
     GlobalEventBus.on('firingmode:show', this.onFiringModeShow);
     GlobalEventBus.on('attachAllButton:show', this.onAttachAllButtonShow);
     GlobalEventBus.on('attachAllButton:hide', this.onAttachAllButtonHide);
+    GlobalEventBus.on('rollButton:show', this.onRollButtonShow);
+    GlobalEventBus.on('rollButton:hide', this.onRollButtonHide);
+    GlobalEventBus.on('attachButton:show', this.onAttachButtonShow);
+    GlobalEventBus.on('attachButton:hide', this.onAttachButtonHide);
+    GlobalEventBus.on('combineButton:show', this.onCombineButtonShow);
+    GlobalEventBus.on('combineButton:hide', this.onCombineButtonHide);
 
     this.experienceBar = new PlayerExperienceBar(floatingTextManager);
     this.playerResources = PlayerResourcesSingleton.getInstance();
@@ -177,9 +189,9 @@ export class HudOverlay {
             criticalColor: '#ff0040',
             animated: true,
           }
-        }, performance.now());
+        }, dt);
       }
-      ctx.drawImage(this.fuelBarCacheCanvas, toggleX - 10, y - Math.floor(24 * scale) - 10);
+      ctx.drawImage(this.fuelBarCacheCanvas, 40 * scale, y - Math.floor(28 * scale));
 
       // === Energy Bar ===
       if (energy !== this.lastEnergy || maxEnergy !== this.lastEnergyMax) {
@@ -212,14 +224,14 @@ export class HudOverlay {
             criticalColor: '#ff0040',
             animated: true,
           }
-        }, performance.now());
+        }, dt);
       }
-      ctx.drawImage(this.energyBarCacheCanvas, toggleX - 10, y - 10);
+      ctx.drawImage(this.energyBarCacheCanvas, 40 * scale, y - (8 * scale));
 
       // === Speed Bar (Vertical) ===
       const speedBarHeight = Math.floor(120 * scale);
       const speedBarWidth = Math.floor(12 * scale);
-      const speedBarX = Math.floor(32 * scale);
+      const speedBarX = Math.floor(18 * scale);
       const speedBarY = y - speedBarHeight + Math.floor(14 * scale);
 
       if (quantizedSpeed !== this.lastSpeed) {
@@ -247,38 +259,6 @@ export class HudOverlay {
       }
       ctx.drawImage(this.speedBarCacheCanvas, speedBarX - 10, speedBarY - 10);
     };
-
-    // === Firing Mode Toggle ===
-    if (!this.firingModeHidden) {
-      const firingMode = this.ship.getFiringMode();
-      if (firingMode !== this.lastFiringMode) {
-        this.lastFiringMode = firingMode;
-
-        this.firingModeCacheCtx.clearRect(0, 0, this.firingModeCacheCanvas.width, this.firingModeCacheCanvas.height);
-
-        drawFiringModeToggle(this.firingModeCacheCtx, {
-          x: 10,
-          y: 10,
-          mode: firingMode,
-          style: {
-            width: Math.floor(120 * scale),
-            height: Math.floor(24 * scale),
-            backgroundColor: '#000a00',
-            borderColor: '#00ff41',
-            activeColor: '#00ff41',
-            inactiveColor: '#001a00',
-            textColor: '#00ff41',
-            glowColor: '#00ff41',
-            font: `${Math.floor(10 * scale)}px "Courier New", monospace`,
-            glow: true,
-            animated: true,
-            scanlineIntensity: 0.3,
-            chromaticAberration: false,
-          }
-        }, performance.now());
-      }
-      ctx.drawImage(this.firingModeCacheCanvas, toggleX - 10, y - Math.floor(62 * scale) - 10);
-    };
   }
 
   destroy(): void {
@@ -290,6 +270,12 @@ export class HudOverlay {
     GlobalEventBus.off('hud:show', this.onShow);
     GlobalEventBus.off('attachAllButton:show', this.onAttachAllButtonShow);
     GlobalEventBus.off('attachAllButton:hide', this.onAttachAllButtonHide);
+    GlobalEventBus.off('rollButton:show', this.onRollButtonShow);
+    GlobalEventBus.off('rollButton:hide', this.onRollButtonHide);
+    GlobalEventBus.off('attachButton:show', this.onAttachButtonShow);
+    GlobalEventBus.off('attachButton:hide', this.onAttachButtonHide);
+    GlobalEventBus.off('combineButton:show', this.onCombineButtonShow);
+    GlobalEventBus.off('combineButton:hide', this.onCombineButtonHide);
     this.experienceBar.destroy();
     this.blockQueueDisplayManager.destroy();
   }
@@ -318,5 +304,9 @@ export class HudOverlay {
   public show(): void {
     this.metersHidden = false;
     this.firingModeHidden = false;
+  }
+
+  public getQueueDisplayManager(): BlockQueueDisplayManager {
+    return this.blockQueueDisplayManager;
   }
 }

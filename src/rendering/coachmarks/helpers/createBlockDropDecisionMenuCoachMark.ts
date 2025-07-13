@@ -114,7 +114,7 @@ export function createBlockDropDecisionMenuCoachMark(
       baseY - GAP_Y,
       {
         ...sharedStyle,
-        keyLabel: 'W',
+        keyLabel: 'R',
       }
     );
 
@@ -124,7 +124,7 @@ export function createBlockDropDecisionMenuCoachMark(
       baseY - GAP_Y,
       {
         ...sharedStyle,
-        keyLabel: 'D',
+        keyLabel: 'E',
       }
     );
 
@@ -134,7 +134,7 @@ export function createBlockDropDecisionMenuCoachMark(
       baseY + GAP_Y,
       {
         ...sharedStyle,
-        keyLabel: 'A',
+        keyLabel: 'F',
       }
     );
 
@@ -144,7 +144,7 @@ export function createBlockDropDecisionMenuCoachMark(
       baseY + GAP_Y,
       {
         ...sharedStyle,
-        keyLabel: 'S',
+        keyLabel: 'Q',
       }
     );
   }

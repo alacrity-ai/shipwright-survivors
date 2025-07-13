@@ -340,11 +340,12 @@ export class TradePostItemsList {
     return navPoints;
   }
 
-  private getStyleFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' {
+  private getStyleFromTier(tier: number): 'gray' | 'green' | 'blue' | 'purple' | 'gold' {
     switch (tier) {
       case 2: return 'green';
       case 3: return 'blue';
       case 4: return 'purple';
+      case 5: return 'gold';
       default: return 'gray';
     }
   }

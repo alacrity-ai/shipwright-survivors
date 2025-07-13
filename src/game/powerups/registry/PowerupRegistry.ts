@@ -6,6 +6,8 @@ import { criticalHitTree } from './trees/criticalHitTree';
 import { fortificationTree } from './trees/fortificationTree';
 import { attackerTree } from './trees/attackerTree';
 import { fallbackCoreTree } from './trees/fallbackCoreTree';
+import { blockAffinityTree } from './trees/blockAffinityTree';
+import { resupplyTree } from './trees/resupplyTree';
 
 import { extractProceduralIndex } from '@/game/powerups/utils/PowerupTreeUtils';
 
@@ -14,7 +16,11 @@ const ALL_TREES: PowerupNodeDefinition[][] = [
   fortificationTree,
   attackerTree,
   fallbackCoreTree,
+  blockAffinityTree,
+  resupplyTree,
 ];
+
+const MAX_CHOICES = 3;
 
 export class PowerupRegistry {
   private static nodeMap = new Map<string, PowerupNodeDefinition>();
@@ -177,31 +183,44 @@ export class PowerupRegistry {
     return this.getRootNodes().filter(root => !activeCategories.has(root.category ?? ''));
   }
 
-  public static getEligiblePowerupNodes(acquired: Set<string>): PowerupNodeDefinition[] {
-    const result: PowerupNodeDefinition[] = [];
+  /**
+   * Compute the pool of nodes that the menu will later shuffle and trim.
+   * Non-core nodes are always preferred; core nodes only pad the list
+   * when < MAX_CHOICES non-core candidates exist.
+   */
+  public static getEligiblePowerupNodes(
+    acquired: Set<string>,
+    playerLevel: number,
+  ): PowerupNodeDefinition[] {
+    /* ---------- level predicate ---------- */
+    const meetsLevel = (n: PowerupNodeDefinition): boolean =>
+      (n.minLevelRequirement ?? 0) <= playerLevel;
 
-    // === (1) Eligible children from acquired leaf nodes ===
-    const childNodes = this.getEligibleChildNodes(acquired);
-    result.push(...childNodes);
+    /* ---------- gather eligible non-core nodes ---------- */
+    const children   = this.getEligibleChildNodes(acquired).filter(meetsLevel);
+    const freshRoots = this.getFreshRootNodes(acquired).filter(meetsLevel);
 
-    // === (2) Fresh roots (no prior category investment) ===
-    const freshRoots = this.getFreshRootNodes(acquired);
-    result.push(...freshRoots);
+    let nonCore: PowerupNodeDefinition[] = [
+      ...children,
+      ...freshRoots,
+    ].filter(n => n.category !== 'core');
 
-    // === (3) If nothing found so far, fallback to any unacquired roots ===
-    if (result.length === 0) {
-      result.push(...this.getUnacquiredRootNodes(acquired));
+    if (nonCore.length === 0) {
+      nonCore = this.getUnacquiredRootNodes(acquired)
+        .filter(meetsLevel)
+        .filter(n => n.category !== 'core');
     }
 
-    // === (4) Count *non-core* options
-    const nonCoreResults = result.filter(node => node.category !== 'core');
+    /* ---------- single-instance core fallback ---------- */
+    const result: PowerupNodeDefinition[] = [...nonCore];
+    const coreFallback = fallbackCoreTree[0];           // immutable singleton
 
-    // === (5) Add fallback core node only if non-core count < 3
-    if (nonCoreResults.length < 3) {
-      const coreFallback = fallbackCoreTree[0]; // Static root node
-      nonCoreResults.push(coreFallback);
+    if (result.length < MAX_CHOICES) {
+      // Append the core node exactly once.
+      result.push(coreFallback);
+      // (No further padding, even if the list is now < MAX_CHOICES.)
     }
 
-    return nonCoreResults;
+    return result;
   }
 }

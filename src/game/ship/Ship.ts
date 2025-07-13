@@ -75,6 +75,8 @@ export class Ship extends CompositeBlockObject {
   private strafingRight: boolean = false;
   private affixes: ShipAffixes = {};
 
+  private canFire: boolean = true;
+
   private statusEffects: Map<StatusEffectType, StatusEffect> = new Map();
 
   private tags: Set<string> = new Set();
@@ -151,6 +153,16 @@ export class Ship extends CompositeBlockObject {
       ...this.getSkillEffects(),
       ...this.getArtifactEffects(),
     };
+  }
+
+  // == Firing System
+
+  public getCanFire(): boolean {
+    return this.canFire;
+  }
+
+  public setCanFire(canFire: boolean): void {
+    this.canFire = canFire;
   }
 
   // == Fast Travel (Town Portal)

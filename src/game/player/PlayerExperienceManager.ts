@@ -104,6 +104,8 @@ export class PlayerExperienceManager {
 
   private getEntropiumRequirement(level: number): number {
     if (level <= 1) return 100;
-    return 500 * (level - 1);
+    if (level <= 20) return 500 * (level - 1);
+    if (level <= 30) return 700 * (level - 1);
+    return 1000 * (level - 1);
   }
 }

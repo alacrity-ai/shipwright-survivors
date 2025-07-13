@@ -41,4 +41,9 @@ export interface PowerupNodeDefinition {
    * E.g., new mechanic, passive bonus, or special unlock.
    */
   capstoneAtLevel?: number;
+
+  /**
+   * If set, this node is only available at or beyond the specified level.
+   */
+  minLevelRequirement?: number; // NEW!
 }

@@ -24,6 +24,7 @@ export class ShipBlueprintRegistry {
           defenseRating: 3,
           speedRating: 3,
           weaponSpecialization: 'Turrets',
+          weaponBlocks: ['turret1', 'turret2', 'turret3', 'turret4', 'turret5'],
         } as CollectableShipMetadata,
       },
     ],
@@ -41,6 +42,7 @@ export class ShipBlueprintRegistry {
           defenseRating: 4,
           speedRating: 1,
           weaponSpecialization: 'Explosive Lances',
+          weaponBlocks: ['explosiveLance1', 'explosiveLance2', 'explosiveLance3', 'explosiveLance4', 'explosiveLance5'],
         } as CollectableShipMetadata,
       },
     ],
@@ -58,6 +60,7 @@ export class ShipBlueprintRegistry {
           defenseRating: 3,
           speedRating: 3,
           weaponSpecialization: 'Halo Blades',
+          weaponBlocks: ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4', 'haloBlade5'],
         } as CollectableShipMetadata,
       },
     ],
@@ -75,6 +78,7 @@ export class ShipBlueprintRegistry {
           defenseRating: 2,
           speedRating: 2,
           weaponSpecialization: 'Heat Seekers',
+          weaponBlocks: ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'heatSeeker5'],
         } as CollectableShipMetadata,
       },
     ],
@@ -92,6 +96,7 @@ export class ShipBlueprintRegistry {
           defenseRating: 2,
           speedRating: 2,
           weaponSpecialization: 'Lasers',
+          weaponBlocks: ['laser1', 'laser2', 'laser3', 'laser4', 'laser5'],
         } as CollectableShipMetadata,
       },
     ],
@@ -115,6 +120,11 @@ export class ShipBlueprintRegistry {
 
   /** Returns all ship names in registration order. */
   static getAllShipNames(): string[] {
+    return Array.from(this.shipMap.keys());
+  }
+
+  // Duplicate helper
+  static getAllShipKeys(): string[] {
     return Array.from(this.shipMap.keys());
   }
 

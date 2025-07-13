@@ -47,6 +47,7 @@ export class HaloBladeBackend implements WeaponBackend {
       ['energyRing2', getGLProjectileSprite('energyRing2')],
       ['energyRing3', getGLProjectileSprite('energyRing3')],
       ['energyRing4', getGLProjectileSprite('energyRing4')],
+      ['energyRing5', getGLProjectileSprite('energyRing5')]
     ]);
   }
 

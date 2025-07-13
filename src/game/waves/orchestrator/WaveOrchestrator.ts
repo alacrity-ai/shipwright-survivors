@@ -8,6 +8,7 @@ import type { Ship } from '@/game/ship/Ship';
 
 import { GlobalEventBus } from '@/core/EventBus';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { missionSettings } from '@/game/player/PlayerMissionManager';
 
 export class WaveOrchestrator implements IUpdatable {
   private readonly waves: WaveDefinition[];
@@ -107,6 +108,12 @@ export class WaveOrchestrator implements IUpdatable {
     this.currentWaveIndex++;
     this.elapsedTime = 0;
     this.hasSpawnedFirstWave = true;
+
+    // Reduce Global Blockdrop Rate per wave based on elapsed time
+    if (this.accumulatedTimeSinceStart > 240) {
+      const reducedRate = ((this.accumulatedTimeSinceStart - 240) / 60) * 0.05;
+      missionSettings.setGlobalBlockDropRate(Math.max(missionSettings.getBaseGlobalDropRate() - reducedRate, 0.1));
+    }
   }
 
   public getCurrentWaveNumber(): number {
@@ -127,6 +134,7 @@ export class WaveOrchestrator implements IUpdatable {
     return Math.max(0, interval - this.elapsedTime);
   }
 
+  // Time in seconds
   public getTimeSinceFirstWaveStarted(): number {
     return this.accumulatedTimeSinceStart;
   }

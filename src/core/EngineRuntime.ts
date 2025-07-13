@@ -121,6 +121,7 @@ import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { TradePostRegistry } from '@/game/tradepost/registry/TradePostRegistry';
 import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { flags } from '@/game/player/PlayerFlagManager';
+import { missionSettings } from '@/game/player/PlayerMissionManager';
 
 // Debug
 import { getBlockType } from '@/game/blocks/BlockRegistry';
@@ -506,8 +507,8 @@ export class EngineRuntime {
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
-    this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!, this.particleManager);
     this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
+    this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!, this.particleManager, this.hud.getQueueDisplayManager());
     this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
     
     // Register player ship
@@ -828,7 +829,8 @@ export class EngineRuntime {
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
-      const randomTypes = ['laser1', 'laser2', 'laser3', 'laser4'];
+      // const randomTypes = ['laser1', 'laser2', 'laser3', 'laser4'];
+      const randomTypes = ['laser1', 'engine1', 'engine1', 'fin1', 'hull1', 'fin1', 'facetplate1'];
       for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -836,11 +838,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyN')) {
-      if (this.waveOrchestrator!.getIsPaused()) {
-        this.waveOrchestrator!.resume();
-      } else {
-        this.waveOrchestrator!.pause();
-      }
+      PlayerShipCollection.getInstance().unDiscover('Monarch');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit0')) {
@@ -1115,6 +1113,7 @@ export class EngineRuntime {
     PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();
     PlayerPowerupManager.destroy();
+    missionSettings.reset();
     ShipGrid.getInstance().destroy();
     MovementSystemRegistry.clear();
     BlockToObjectIndex.clear();

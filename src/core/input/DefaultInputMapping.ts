@@ -22,7 +22,7 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   fireTertiary:     { keys: ['Space'], gamepadButtons: ['B'] },
   fireQuaternary:   { keys: ['KeyC'], gamepadButtons: [] },
 
-  switchFiringMode: { keys: ['KeyX'], gamepadButtons: ['X'] },
+  switchFiringMode: { keys: [], gamepadButtons: [] },
   openMenu:         { keys: ['Escape'], gamepadButtons: ['start'] },
   openShipBuilder:  { keys: ['Tab'], gamepadButtons: ['select'] },
   select:           { keys: ['Enter'], gamepadButtons: ['A'] },
@@ -32,8 +32,10 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   zoomIn:           { keys: ['WheelUp'], gamepadButtons: ['dpadUp'] },
   zoomOut:          { keys: ['WheelDown'], gamepadButtons: ['dpadDown'] },
 
-  placeAllBlocksButton: { keys: ['KeyE'], gamepadButtons: ['A'] },
-  rollBlocksButton: { keys: ['KeyQ'], gamepadButtons: ['B'] },
+  placeBlockButton: { keys: ['KeyQ'], gamepadButtons: ['A'] },
+  placeAllBlocksButton: { keys: ['KeyE'], gamepadButtons: ['B'] },
+  rollBlocksButton: { keys: ['KeyR'], gamepadButtons: ['Y'] },
+  combineBlocksButton: { keys: ['KeyF'], gamepadButtons: ['X'] },
 
   cycleBlockLeft:   { keys: [], gamepadButtons: ['dpadLeft'] },
   cycleBlockRight:  { keys: [], gamepadButtons: ['dpadRight'] },

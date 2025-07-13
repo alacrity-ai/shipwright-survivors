@@ -15,4 +15,5 @@ export interface CollectableShipMetadata {
   defenseRating?: number;
   speedRating?: number;
   weaponSpecialization?: string;
+  weaponBlocks?: string[];
 }

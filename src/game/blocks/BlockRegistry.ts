@@ -3,6 +3,7 @@
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
+import { randomFromArray } from '@/shared/arrayUtils';
 
 const blockTypes: Record<string, BlockType> = {
   cockpit0: {
@@ -120,6 +121,19 @@ const blockTypes: Record<string, BlockType> = {
     dropRate: 0.03,
     metatags: ['hull']
   },
+  hull5: {
+    id: 'hull5',
+    tier: 5,
+    name: 'Hull Mk V',
+    armor: 225,
+    mass: 100,
+    cost: 180,
+    sprite: 'hull5',
+    category: 'hull',
+    subcategory: 'hull',
+    dropRate: 0.02,
+    metatags: ['hull']
+  },
   facetplate0: {
     id: 'facetplate0',
     tier: 0,
@@ -201,6 +215,23 @@ const blockTypes: Record<string, BlockType> = {
     behavior: {
       rammingDamageMultiplier: 2,
       rammingArmor: 22,
+    },
+    dropRate: 0.02,
+    metatags: ['facetplate']
+  },
+  facetplate5: {
+    id: 'facetplate5',
+    tier: 5,
+    name: 'Facetplate Mk V',
+    armor: 250,
+    mass: 70,
+    cost: 150,
+    sprite: 'facetplate5',
+    category: 'hull',
+    subcategory: 'facetplate',
+    behavior: {
+      rammingDamageMultiplier: 2.2,
+      rammingArmor: 27,
     },
     dropRate: 0.02,
     metatags: ['facetplate']
@@ -327,6 +358,31 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.16,
+    placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
+    metatags: ['turret']
+  },
+  turret5: {
+    id: 'turret5',
+    tier: 5,
+    name: 'Turret Mk V',
+    armor: 120,
+    cost: 600,
+    mass: 120,
+    sprite: 'turret5',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 1.6,
+        fireType: 'turret',
+        fireDamage: 42,
+        projectileSpeed: 1100,
+        lifetime: 2.2,
+        accuracy: 0.98
+      } 
+    },
+    category: 'weapon',
+    subcategory: 'turret',
+    dropRate: 0.14,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']
   },
@@ -465,6 +521,33 @@ const blockTypes: Record<string, BlockType> = {
     dropRate: 0.1,
     metatags: ['explosiveLance']
   },
+  explosiveLance5: {
+    id: 'explosiveLance5',
+    tier: 5,
+    name: 'Explosive Lance Mk V',
+    armor: 120,
+    cost: 1000,
+    mass: 140,
+    sprite: 'explosiveLance5',
+    category: 'weapon',
+    subcategory: 'explosiveLance',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.9,
+        fireType: 'explosiveLance',
+        fireDamage: 1,
+        explosionDamage: 120,
+        explosionRadiusBlocks: 6,
+        detonationDelayMs: 1500,
+        projectileSpeed: 2000,
+        lifetime: 1.6,
+        accuracy: 0.99
+      } 
+    },
+    dropRate: 0.08,
+    metatags: ['explosiveLance']
+    },
   laser0: {
     id: 'laser0',
     tier: 0,
@@ -592,6 +675,32 @@ const blockTypes: Record<string, BlockType> = {
       },
     },
     dropRate: 0.1,
+    metatags: ['laser']
+  },
+  laser5: {
+    id: 'laser5',
+    tier: 5,
+    name: 'Laser Emitter Mk V',
+    armor: 100,
+    cost: 1000,
+    mass: 160,
+    sprite: 'laser5',
+    category: 'weapon',
+    subcategory: 'laser',
+    behavior: {
+      canFire: true,
+      fire: {
+        fireType: 'laser',
+        fireRate: 2.2,
+        energyCost: 0,
+        fireDamage: 175,
+        projectileSpeed: 0,
+        targetingRange: 1800,
+        lifetime: 0.5, 
+        accuracy: 1.0,
+      },
+    },
+    dropRate: 0.08,
     metatags: ['laser']
   },
   reactor0: {
@@ -851,6 +960,23 @@ const blockTypes: Record<string, BlockType> = {
     dropRate: 0.04,
     metatags: ['engine']
   },
+  engine5: {
+    id: 'engine5',
+    tier: 5,
+    name: 'Engine Mk V',
+    armor: 80,
+    mass: 30,
+    cost: 200,
+    behavior: {
+      canThrust: true,
+      thrustPower: 130,
+    },
+    sprite: 'engine5',
+    category: 'engine',
+    subcategory: 'engine',
+    dropRate: 0.03,
+    metatags: ['engine']
+  },
   fin0: {
     id: 'fin0',
     tier: 0,
@@ -926,6 +1052,22 @@ const blockTypes: Record<string, BlockType> = {
       turnPower: 2.0,
     },
     sprite: 'fin4',
+    category: 'hull',
+    subcategory: 'fin',
+    dropRate: 0.05,
+    metatags: ['fin']
+  },
+  fin5: {
+    id: 'fin5',
+    tier: 5,
+    name: 'Fin Mk V',
+    armor: 150,
+    mass: 10,
+    cost: 300,
+    behavior: {
+      turnPower: 2.2,
+    },
+    sprite: 'fin5',
     category: 'hull',
     subcategory: 'fin',
     dropRate: 0.05,
@@ -1060,7 +1202,7 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 900,
         orbitingSpeed: 2.8,
         size: 64,
-        damage: 12,
+        damage: 14,
         color: '#00FFFF',
         sprite: 'energyRing3'
       }
@@ -1083,12 +1225,35 @@ const blockTypes: Record<string, BlockType> = {
         orbitingRadius: 1100,
         orbitingSpeed: 3.2,
         size: 64,
-        damage: 15,
+        damage: 20,
         color: '#7F00FF',
         sprite: 'energyRing4'
       }
     },
     sprite: 'haloBlade4',
+    category: 'weapon',
+    subcategory: 'haloBlade',
+    dropRate: 0.1,
+    metatags: ['haloBlade']
+  },
+  haloBlade5: {
+    id: 'haloBlade5',
+    tier: 5,
+    name: 'Halo Blade Mk V',
+    armor: 200,
+    mass: 80,
+    cost: 1500,
+    behavior: {
+      haloBladeProperties: {
+        orbitingRadius: 1300,
+        orbitingSpeed: 3.5,
+        size: 64,
+        damage: 30,
+        color: '#ff7a14ff',
+        sprite: 'energyRing5'
+      }
+    },
+    sprite: 'haloBlade5',
     category: 'weapon',
     subcategory: 'haloBlade',
     dropRate: 0.1,
@@ -1244,7 +1409,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 15,
+        explosionDamage: 16,
         explosionRadiusBlocks: 6,
         turningPower: 2.8,
         targetingRange: 3000,
@@ -1253,6 +1418,33 @@ const blockTypes: Record<string, BlockType> = {
       } 
     },
     sprite: 'heatSeeker4',
+    category: 'weapon',
+    subcategory: 'heatSeeker',
+    dropRate: 0.28,
+    metatags: ['heatSeeker']
+  },
+  heatSeeker5: {
+    id: 'heatSeeker5',
+    tier: 5,
+    name: 'Heat Seeker Mk V',
+    armor: 150,
+    mass: 100,
+    cost: 2000,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 0.7,
+        fireType: 'heatSeeker',
+        fireDamage: 1,
+        explosionDamage: 22,
+        explosionRadiusBlocks: 6,
+        turningPower: 2.8,
+        targetingRange: 3000,
+        projectileSpeed: 900,
+        lifetime: 3.6,
+      } 
+    },
+    sprite: 'heatSeeker5',
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
@@ -1337,6 +1529,22 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'fuel',
     dropRate: 0.07,
     metatags: ['fuelTank']
+  },
+  fuelTank5: {
+    id: 'fuelTank5',
+    tier: 4,
+    name: 'Fuel Tank Mk V',
+    armor: 90,
+    cost: 50,
+    mass: 40,
+    behavior: {
+      fuelCapacityIncrease: 100,
+    },
+    sprite: 'fuelTank5',
+    category: 'utility',
+    subcategory: 'fuel',
+    dropRate: 0.07,
+    metatags: ['fuelTank']
   }
 };
 
@@ -1357,6 +1565,11 @@ export function getAllBlocksInTier(tier: number): BlockType[] {
   return Object.values(blockTypes).filter(
     block => getTierFromBlockId(block.id) === tier && !block.id.includes('cockpit')
   );
+}
+
+export function getRandomBlockInTier(tier: number): BlockType {
+  const candidates = getAllBlocksInTier(tier);
+  return randomFromArray(candidates);
 }
 
 export function getAllBlocksInTierFromBlockType(blockType: BlockType): BlockType[] {

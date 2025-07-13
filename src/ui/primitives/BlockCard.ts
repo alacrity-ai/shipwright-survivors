@@ -12,7 +12,7 @@ interface DrawBlockCardOptions {
   width: number;
   height: number;
   borderRadius: number;
-  baseStyleId: string; // 'gray' | 'green' | 'blue' | 'purple'
+  baseStyleId: string; // 'gray' | 'green' | 'blue' | 'purple' | 'gold'
   alpha?: number;
   scale?: number;
   brighten?: number;
@@ -29,6 +29,7 @@ const STYLE_MAP: Record<string, StyleDef> = {
   green:  { backgroundColor: '#003300', borderColor: '#00ff00' },
   blue:   { backgroundColor: '#002244', borderColor: '#00ccff' },
   purple: { backgroundColor: '#220033', borderColor: '#cc66ff' },
+  gold:   { backgroundColor: '#443300', borderColor: '#ffcc00' },
 };
 
 function brighten(hex: string, amt: number): string {

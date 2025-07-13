@@ -11,6 +11,9 @@ export function emitHudHideAll(): void {
   GlobalEventBus.emit('firingmode:hide', undefined);
   GlobalEventBus.emit('meters:hide', undefined);
   GlobalEventBus.emit('attachAllButton:hide', undefined);
+  GlobalEventBus.emit('rollButton:hide', undefined);
+  GlobalEventBus.emit('attachButton:hide', undefined);
+  GlobalEventBus.emit('combineButton:hide', undefined);
 }
 
 export function emitHudShowAll(): void {
@@ -22,6 +25,17 @@ export function emitHudShowAll(): void {
   GlobalEventBus.emit('firingmode:show', undefined);
   GlobalEventBus.emit('meters:show', undefined);
   GlobalEventBus.emit('attachAllButton:show', undefined);
+  GlobalEventBus.emit('rollButton:show', undefined);
+  GlobalEventBus.emit('attachButton:show', undefined);
+  GlobalEventBus.emit('combineButton:show', undefined);
+}
+
+export function emitAttachButtonShow(): void {
+  GlobalEventBus.emit('attachButton:show', undefined);
+}
+
+export function emitAttachButtonHide(): void {
+  GlobalEventBus.emit('attachButton:hide', undefined);
 }
 
 export function emitAttachAllButtonShow(): void {
@@ -30,6 +44,22 @@ export function emitAttachAllButtonShow(): void {
 
 export function emitAttachAllButtonHide(): void {
   GlobalEventBus.emit('attachAllButton:hide', undefined);
+}
+
+export function emitCombineButtonShow(): void {
+  GlobalEventBus.emit('combineButton:show', undefined);
+}
+
+export function emitCombineButtonHide(): void {
+  GlobalEventBus.emit('combineButton:hide', undefined);
+}
+
+export function emitRollButtonShow(): void {
+  GlobalEventBus.emit('rollButton:show', undefined);
+}
+
+export function emitRollButtonHide(): void {
+  GlobalEventBus.emit('rollButton:hide', undefined);
 }
 
 export function emitFiringModeHide(): void {

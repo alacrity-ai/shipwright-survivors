@@ -16,11 +16,10 @@ import { lockAllButtons, unlockAttachButton, unlockAllButtons } from '@/core/int
 import { createScreenEdgeIndicator, removeScreenEdgeIndicator } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
 import { 
   emitAttachAllButtonShow,
-  emitAttachAllButtonHide,
+  emitAttachButtonShow,
   emitMetersShow, 
   emitHudShowAll,
   emitBlockQueueShow,
-  emitHudShow,
   emitMinimapShow,
   emitExperienceBarShow
  } from '@/core/interfaces/events/HudReporter';
@@ -91,6 +90,9 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
 
           // Disable Pickup Drops
           disablePickupDrops();
+
+          // Disable Firing system
+          playerShip.setCanFire(false);
           
           // Unlock starter ship and set as active ship
           const playerShipCollection = PlayerShipCollection.getInstance();
@@ -480,29 +482,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'pause',
         durationMs: 300,
       },
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Firing vector locked. Wiggle your aiming controls to express your hostility.",
-      },
-      {
-        type: 'command',
-        run: () => {
-          createAimCoachMark(coachMarkManager, 200, 400);
-
-          return new Promise<void>((resolve) => {
-            const waitForInput = () => {
-              if (inputManager.wasMouseMoved() || inputManager.isRightStickMoved()) {
-                coachMarkManager.clear(); // Clear all active marks
-                resolve();
-              } else {
-                requestAnimationFrame(waitForInput);
-              }
-            };
-            waitForInput();
-          });
-        },
-      },
       // Clear the coachmark
       {
         type: 'command',
@@ -522,6 +501,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         run: () => {
           inputManager.enableAction('firePrimary');
           inputManager.enableAction('pause');
+          playerShip.setCanFire(true);
 
           createFirePrimaryCoachMark(coachMarkManager, 200, 400);
         },
@@ -559,60 +539,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'pause',
         durationMs: 300,
       },
-      // Instruct user to press X to toggle between firing modes
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Demonstrate ability to toggle firing mode. 'Synced' for sustained fire, 'Sequence' for burst fire.",
-      },
-      // Show hud
-      {
-        type: 'command',
-        run: () => {
-          emitHudShow();
-        },
-      },
-      // Make sure KeyX is enabled
-      {
-        type: 'command',
-        run: () => {
-          inputManager.enableKey('KeyX');
-        },
-      },
-      // Show X Key Coachmark
-      {
-        type: 'command',
-        run: () => {
-          createToggleFiringModeCoachMark(coachMarkManager, 200, 400);
-        },
-      },
-      {
-        type: 'command',
-        run: () => {
-          return new Promise<void>((resolve) => {
-            const waitForInput = () => {
-              if (inputManager.isActionPressed('switchFiringMode')) {
-                resolve();
-              } else {
-                requestAnimationFrame(waitForInput);
-              }
-            };
-            waitForInput();
-          });
-        },
-      },
-      // Clear the coachmark
-      {
-        type: 'command',
-        run: () => {
-          coachMarkManager.clear();
-        },
-      },
-      // Wait 200ms
-      {
-        type: 'pause',
-        durationMs: 200,
-      },
       // Instruct user to use mousewheel or R/T to zoom in and out, instruction should be witty
       {
         type: 'line',
@@ -634,7 +560,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
               if (
                 inputManager.wasScrollWheelUp() || 
                 inputManager.wasScrollWheelDown() || 
-                inputManager.isKeyPressed('KeyR') || 
+                inputManager.isKeyPressed('KeyG') || 
                 inputManager.isKeyPressed('KeyT') ||
                 (inputManager.wasGamepadAliasJustPressed('dpadUp') || inputManager.wasGamepadAliasJustPressed('dpadDown'))
               ) {
@@ -772,11 +698,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         speakerId: 'carl',
         text: 'You have been granted a powerup license. Select a powerup to activate.',
       },
-      // Wait 1000ms
-      {
-        type: 'pause',
-        durationMs: 200,
-      },
       // Enable all input
       {
         type: 'command',
@@ -833,6 +754,7 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'command',
         run: () => {
           emitAttachAllButtonShow();
+          emitAttachButtonShow();
         },
       },
       // Update flags to prevent softlock on death

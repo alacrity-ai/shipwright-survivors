@@ -7,6 +7,7 @@ import type { PurchaseableItem } from '@/game/tradepost/interfaces/PurchaseableI
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
+import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
 import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -27,6 +28,38 @@ function multisetContains(inventory: string[], required: string[]): boolean {
 
   return true;
 }
+
+// Weighted sampling without replacement using priority sampling
+function selectVisibleTradeItems(
+  entries: TradePostItemEntry[],
+  maxVisible: number,
+): TradePostItemEntry[] {
+  /* ───── 1. Partition ──────────────────────────────────────────────────── */
+  const guaranteed      = entries.filter(e => e.guaranteed);
+  const candidatePool   = entries.filter(e => !e.guaranteed);
+
+  /* ───── 2. Purge already-unlocked ships ───────────────────────────────── */
+  const shipCollection  = PlayerShipCollection.getInstance();
+  const unlockedShipIds = new Set<string>(shipCollection.getUnlockedShipIds());
+  const eligible        = candidatePool.filter(e =>
+    e.item.type !== 'ship' || !unlockedShipIds.has(e.item.id),
+  );
+
+  /* ───── 3. Priority-sampling selection ───────────────────────────────── */
+  const slotsRemaining  = Math.max(0, maxVisible - guaranteed.length);
+  const keyed = eligible.flatMap(entry => {
+    const weight = entry.appearanceChance ?? 1.0;
+    return weight > 0
+      ? [{ entry, priority: -Math.log(Math.random()) / weight }]
+      : [];                               // weight ≤ 0 ⇒ impossible
+  });
+
+  keyed.sort((a, b) => a.priority - b.priority);         // ascending = lowest priority wins
+  const selected = keyed.slice(0, slotsRemaining).map(k => k.entry);
+
+  return [...guaranteed, ...selected];
+}
+
 
 function consumeBlocks(required: string[]): boolean {
   const player = PlayerResources.getInstance();
@@ -51,34 +84,6 @@ function consumeBlocks(required: string[]): boolean {
   }
 
   return true;
-}
-
-// Weighted sampling without replacement using priority sampling
-function selectVisibleTradeItems(
-  entries: TradePostItemEntry[],
-  maxVisible: number
-): TradePostItemEntry[] {
-  const guaranteed = entries.filter(e => e.guaranteed);
-  const nonGuaranteed = entries.filter(e => !e.guaranteed);
-
-  const slotsRemaining = Math.max(0, maxVisible - guaranteed.length);
-
-  const keyed: { entry: TradePostItemEntry; priority: number }[] = [];
-
-  for (const entry of nonGuaranteed) {
-    const weight = entry.appearanceChance ?? 1.0;
-    if (weight <= 0) continue;
-
-    // Proper priority sampling — higher weight = more likely to be selected
-    const priority = -Math.log(Math.random()) / weight;
-    keyed.push({ entry, priority });
-  }
-
-  keyed.sort((a, b) => a.priority - b.priority);
-
-  const selected = keyed.slice(0, slotsRemaining).map(k => k.entry);
-
-  return [...guaranteed, ...selected];
 }
 
 export function createTradePostInstance(def: TradePost): TradePostInstance {
@@ -127,10 +132,15 @@ export function createTradePostInstance(def: TradePost): TradePostInstance {
 
       } else if (item.type === 'ship') {
         const collection = PlayerShipCollection.getInstance();
-        missionResultStore.addShipDiscovery(item.id);
-        collection.discover(item.id);
-        collection.unlock(item.id);
+        const shipName = ShipBlueprintRegistry.getByName(item.id)?.name
+        if (!shipName) {
+          console.warn(`[createTradePostInstance] Tried to unlock ship that doesn't exist: ${item.id}`);
+          return false;
+        }
 
+        missionResultStore.addShipDiscovery(shipName);
+        collection.discover(shipName);
+        collection.unlock(shipName);
       } else if (item.type === 'artifact') {
         const artifacts = PlayerArtifactsManager.getInstance();
 

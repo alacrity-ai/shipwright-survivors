@@ -36,7 +36,7 @@ import { Camera } from '@/core/Camera';
 import { audioManager } from '@/audio/Audio';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 
-type ButtonId = 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll';
+type ButtonId = 'combine' | 'autoplace' | 'roll' | 'autoPlaceAll';
 
 type Phase = 'pre-open' | 'sliding-in' | 'settling' | 'open' | 'sliding-out' | null;
 
@@ -95,7 +95,7 @@ export class BlockDropDecisionMenu implements Menu {
   private readonly COACHMARK_BASE_X = 122;
   private readonly COACHMARK_BASE_Y = 452;
 
-  private refineButton: UIButton = {} as UIButton;
+  private combineButton: UIButton = {} as UIButton;
   private autoplaceButton: UIButton = {} as UIButton;
   private randomRollButton: UIButton = {} as UIButton;
   private autoPlaceAllButton: UIButton = {} as UIButton;
@@ -107,7 +107,7 @@ export class BlockDropDecisionMenu implements Menu {
   // Button Locks
   private attachLocked: boolean = false;
   private attachAllLocked: boolean = false;
-  private refineLocked: boolean = false;
+  private combineLocked: boolean = false;
   private rollLocked: boolean = false;
 
   constructor(
@@ -125,15 +125,15 @@ export class BlockDropDecisionMenu implements Menu {
     GlobalEventBus.on('blockdropdecision:attach:unlock', this.handleUnlockAttach);
     GlobalEventBus.on('blockdropdecision:attach-all:lock', this.handleLockAttachAll);
     GlobalEventBus.on('blockdropdecision:attach-all:unlock', this.handleUnlockAttachAll);
-    GlobalEventBus.on('blockdropdecision:refine:lock', this.handleLockRefine);
-    GlobalEventBus.on('blockdropdecision:refine:unlock', this.handleUnlockRefine);
+    GlobalEventBus.on('blockdropdecision:combine:lock', this.handleLockCombine);
+    GlobalEventBus.on('blockdropdecision:combine:unlock', this.handleUnlockCombine);
     GlobalEventBus.on('blockdropdecision:roll:lock', this.handleLockRoll);
     GlobalEventBus.on('blockdropdecision:roll:unlock', this.handleUnlockRoll);
     GlobalEventBus.on('blockdropdecision:lock-all', this.handleLockAll);
     GlobalEventBus.on('blockdropdecision:unlock-all', this.handleUnlockAll);
 
+    GlobalEventBus.on('blockqueue:request-placefirst', this.handleBlockQueuePlaceFirstRequest);
     GlobalEventBus.on('blockqueue:request-place', this.handleBlockQueueRequest);
-    GlobalEventBus.on('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
     GlobalEventBus.on('blockqueue:request-placeall', this.handleBlockQueuePlaceAllRequest);
     GlobalEventBus.on('blockqueue:request-roll', this.handleBlockQueueRollRequest);
   }
@@ -145,14 +145,14 @@ export class BlockDropDecisionMenu implements Menu {
   private handleLockAll = (): void => {
     this.attachAllLocked = true;
     this.attachLocked = true;
-    this.refineLocked = true;
+    this.combineLocked = true;
     this.rollLocked = true;
   };
 
   private handleUnlockAll = (): void => {
     this.attachAllLocked = false;
     this.attachLocked = false;
-    this.refineLocked = false;
+    this.combineLocked = false;
     this.rollLocked = false;
   };
 
@@ -172,12 +172,12 @@ export class BlockDropDecisionMenu implements Menu {
     this.attachAllLocked = false;
   };
 
-  private handleLockRefine = (): void => {
-    this.refineLocked = true;
+  private handleLockCombine = (): void => {
+    this.combineLocked = true;
   };
 
-  private handleUnlockRefine = (): void => {
-    this.refineLocked = false;
+  private handleUnlockCombine = (): void => {
+    this.combineLocked = false;
   };
 
   private handleLockRoll = (): void => {
@@ -199,13 +199,13 @@ export class BlockDropDecisionMenu implements Menu {
 
     const baseY = this.BASE_WINDOW_Y + this.BASE_WINDOW_HEIGHT - (this.BASE_BUTTON_HEIGHT + 32) * scaled;
 
-    this.refineButton = {
+    this.combineButton = {
       x: buttonRowX + this.slideX * scaled,
       y: baseY,
       width: this.BASE_BUTTON_WIDTH,
       height: this.BASE_BUTTON_HEIGHT,
-      label: 'Refine',
-      onClick: () => this.handleRefine(),
+      label: 'Combine',
+      onClick: () => this.handleCombine(),
       style: {
         borderRadius: 8,
         alpha: 0.9,
@@ -418,8 +418,8 @@ export class BlockDropDecisionMenu implements Menu {
       const buttonRowX = scaledWindowX + scaledSlideX + (scaledWindowWidth - totalButtonWidth) / 2;
       const buttonRowY = scaledWindowY + scaledWindowHeight - (scaledButtonHeight + 32);
 
-      this.refineButton.x = buttonRowX;
-      this.refineButton.y = buttonRowY;
+      this.combineButton.x = buttonRowX;
+      this.combineButton.y = buttonRowY;
 
       this.autoplaceButton.x = buttonRowX + scaledButtonWidth + buttonSpacing;
       this.autoplaceButton.y = buttonRowY;
@@ -445,7 +445,7 @@ export class BlockDropDecisionMenu implements Menu {
 
     // === Interaction loop for buttons ===
     const buttonMap: [UIButton, ButtonId, () => void][] = [
-      [this.refineButton, 'refine', () => { this.clickedButton = 'refine'; }],
+      [this.combineButton, 'combine', () => { this.clickedButton = 'combine'; }],
       [this.autoplaceButton, 'autoplace', () => { this.clickedButton = 'autoplace'; }],
       [this.randomRollButton, 'roll', () => { this.clickedButton = 'roll'; }],
       [this.autoPlaceAllButton, 'autoPlaceAll', () => { this.clickedButton = 'autoPlaceAll'; }],
@@ -458,22 +458,22 @@ export class BlockDropDecisionMenu implements Menu {
     }
 
     // === Gamepad support ===
-    if (this.inputManager.wasGamepadAliasJustPressed('X') || this.inputManager.wasKeyJustPressed('KeyA')) {
-      this.refineButton.onClick();
-      this.clickedButton = 'refine';
+    if (this.inputManager.wasGamepadAliasJustPressed('X') || this.inputManager.wasKeyJustPressed('KeyF')) {
+      this.combineButton.onClick();
+      this.clickedButton = 'combine';
     }
 
-    if (this.inputManager.wasGamepadAliasJustPressed('A') || this.inputManager.wasKeyJustPressed('KeyS')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('A') || this.inputManager.wasKeyJustPressed('KeyQ')) {
       this.autoplaceButton.onClick();
       this.clickedButton = 'autoplace';
     }
 
-    if (this.inputManager.wasGamepadAliasJustPressed('Y') || this.inputManager.wasKeyJustPressed('KeyW')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('Y') || this.inputManager.wasKeyJustPressed('KeyR')) {
       this.randomRollButton.onClick();
       this.clickedButton = 'roll';
     }
 
-    if (this.inputManager.wasGamepadAliasJustPressed('B') || this.inputManager.wasKeyJustPressed('KeyD')) {
+    if (this.inputManager.wasGamepadAliasJustPressed('B') || this.inputManager.wasKeyJustPressed('KeyE')) {
       this.autoPlaceAllButton.onClick();
       this.clickedButton = 'autoPlaceAll';
     }
@@ -508,33 +508,26 @@ export class BlockDropDecisionMenu implements Menu {
     this.isAutoPlacingAll = false;
 
     // Re-enable interaction
-    this.refineButton.disabled = false;
+    this.combineButton.disabled = false;
     this.autoplaceButton.disabled = false;
     this.randomRollButton.disabled = false;
     this.autoPlaceAllButton.disabled = false;
 
     // Restore handlers (if they were nulled)
-    this.refineButton.onClick = () => this.handleRefine();
+    this.combineButton.onClick = () => this.handleCombine();
     this.autoplaceButton.onClick = () => this.handleAutoplace();
     this.randomRollButton.onClick = () => this.handleRoll();
     this.autoPlaceAllButton.onClick = () => this.autoPlaceAll();
   }
 
-  private handleRefine(): void {
-    if (this.refineLocked) return;
+  private handleCombine(): void {
+    if (this.combineLocked) return;
 
-    const current = this.getCurrentBlockType();
-    if (!current) return;
+    audioManager.play('assets/sounds/sfx/ui/gamblewin_01.wav', 'sfx', { maxSimultaneous: 8 });
 
-    // Refund currency based on block cost
-    PlayerExperienceManager.getInstance().addEntropium(current.cost ?? 0);
-    PlayerResources.getInstance().dequeueBlock();
-
-    audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
-    missionResultStore.incrementBlockRefinedCount();
-
+    PlayerResources.getInstance().combineAllPossibleBlocks();
     this.advanceQueueOrClose();
-    this.clickedButton = 'refine';
+    this.clickedButton = 'combine';
   }
 
   private handleAutoplace(): void {
@@ -565,12 +558,12 @@ export class BlockDropDecisionMenu implements Menu {
     this.isAutoPlacingAll = true;
 
     // Disable all button interaction
-    this.refineButton.onClick = () => {};
+    this.combineButton.onClick = () => {};
     this.autoplaceButton.onClick = () => {};
     this.randomRollButton.onClick = () => {};
     this.autoPlaceAllButton.onClick = () => {};
 
-    this.disableButton(this.refineButton);
+    this.disableButton(this.combineButton);
     this.disableButton(this.autoplaceButton);
     this.disableButton(this.randomRollButton);
     this.disableButton(this.autoPlaceAllButton);
@@ -637,67 +630,6 @@ export class BlockDropDecisionMenu implements Menu {
       await new Promise(resolve => setTimeout(resolve, delay));
       delay = Math.max(delay * decayRate, delayMin);
     }
-  }
-
-  private externalRoll(): void {
-    if (this.rollLocked) return;
-
-    const queue = PlayerResources.getInstance().getBlockQueue();
-    const current = this.getCurrentBlockType();
-
-    // Must have at least 3 total: current block + 2 in queue
-    if (!current || queue.length < 3) {
-      audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
-      return;
-    }
-
-    // === Compute averaged base tier from 3 blocks ===
-    const sacrificeBlocks: BlockType[] = [
-      current,
-      queue[1],
-      queue[2],
-    ];
-
-    const baseTier = Math.floor(
-      sacrificeBlocks.reduce((sum, blockType) => sum + getTierFromBlockType(blockType), 0) / sacrificeBlocks.length
-    );
-
-    // === Determine reward tier with probabilities ===
-    let finalTier = baseTier;
-    const roll = Math.random();
-    if (roll < 0.02) {
-      finalTier = Math.min(baseTier + 2, 4);
-    } else if (roll < 0.15) {
-      finalTier = Math.min(baseTier + 1, 4);
-    }
-
-    const tierDelta = finalTier - baseTier;
-
-    const candidates = getAllBlocksInTier(finalTier);
-    if (!candidates.length) {
-      console.warn(`[handleRoll] No blocks found for tier ${finalTier}`);
-      return;
-    }
-
-    const rewardBlock = candidates[Math.floor(Math.random() * candidates.length)];
-
-    // Dequeue current block and next 2
-    PlayerResources.getInstance().dequeueBlock(); // current
-    PlayerResources.getInstance().dequeueBlock(); // 1st in queue
-    PlayerResources.getInstance().dequeueBlock(); // 2nd in queue
-
-    // Enqueue reward block to front
-    PlayerResources.getInstance().enqueueBlockToFront(rewardBlock);
-
-    // === Tier-specific Audio Feedback ===
-    const soundMap: Record<number, string> = {
-      0: 'assets/sounds/sfx/ui/gamblewin_00.wav',
-      1: 'assets/sounds/sfx/ui/gamblewin_01.wav',
-      2: 'assets/sounds/sfx/ui/gamblewin_02.wav',
-    };
-
-    const soundPath = soundMap[tierDelta] ?? soundMap[0];
-    audioManager.play(soundPath, 'sfx', { maxSimultaneous: 5 });
   }
 
   private handleRoll(): void {
@@ -795,6 +727,37 @@ export class BlockDropDecisionMenu implements Menu {
     this.handleRoll();
   };
 
+  /** Places (and dequeues) the *head* of the global queue. */
+  private handleBlockQueuePlaceFirstRequest = (): void => {
+    if (!this.ship) return;
+
+    const fullQueue = PlayerResources.getInstance().getBlockQueue();
+    const index = 0;
+
+    if (fullQueue.length === 0) {
+      console.warn('[BlockDropDecisionMenu] Queue is empty – nothing to place');
+      return;
+    }
+
+    const block = fullQueue[index];
+
+    // NOTE: caller doesn’t supply an id, so we simply operate on queue[0]
+
+    const archetype = getArchetypeById('interceptor');
+    const success = autoPlaceBlock(this.ship, block, this.shipBuilderEffects, archetype ?? undefined);
+
+    if (!success) {
+      audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx');
+      return;
+    }
+
+    PlayerResources.getInstance().removeBlockAt(index);
+    missionResultStore.incrementBlockPlacedCount();
+    audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+
+    if (this.open) this.rebuildInternalQueueFromGlobal();
+  };
+
   private handleBlockQueueRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
     if (!this.ship) return;
 
@@ -822,31 +785,6 @@ export class BlockDropDecisionMenu implements Menu {
     PlayerResources.getInstance().removeBlockAt(index);
     missionResultStore.incrementBlockPlacedCount();
     audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
-
-    if (this.open) this.rebuildInternalQueueFromGlobal();
-  };
-
-
-  private handleBlockQueueRefineRequest = ({ blockTypeId, index }: { blockTypeId: string; index: number }): void => {
-    if (!this.ship) return;
-
-    const fullQueue = PlayerResources.getInstance().getBlockQueue();
-
-    if (index < 0 || index >= fullQueue.length) {
-      console.warn(`[BlockDropDecisionMenu] Invalid index ${index} for block queue`);
-      return;
-    }
-
-    const block = fullQueue[index];
-    if (block.id !== blockTypeId) {
-      console.warn(`[BlockDropDecisionMenu] Block mismatch: index ${index} has id ${block.id}, expected ${blockTypeId}`);
-      return;
-    }
-
-    PlayerExperienceManager.getInstance().addEntropium(block.cost ?? 0);
-    PlayerResources.getInstance().removeBlockAt(index);
-    audioManager.play('assets/sounds/sfx/ui/coin_00.wav', 'sfx', { maxSimultaneous: 4 });
-    missionResultStore.incrementBlockRefinedCount();
 
     if (this.open) this.rebuildInternalQueueFromGlobal();
   };
@@ -949,7 +887,7 @@ export class BlockDropDecisionMenu implements Menu {
 
     // Buttons only if active
     if (this.animationPhase === 'open' || current) {
-      drawButton(ctx, { ...this.refineButton, disabled: this.refineLocked }, scale);
+      drawButton(ctx, { ...this.combineButton, disabled: this.combineLocked }, scale);
       drawButton(ctx, { ...this.autoplaceButton, disabled: this.attachLocked }, scale);
       drawButton(ctx, { ...this.randomRollButton, disabled: this.rollLocked }, scale);
       drawButton(ctx, { ...this.autoPlaceAllButton, disabled: this.attachAllLocked }, scale);
@@ -1000,11 +938,11 @@ export class BlockDropDecisionMenu implements Menu {
     return 0.5 * getUniformScaleFactor();
   }
 
-  public getHoveredButton(): 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null {
+  public getHoveredButton(): 'combine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null {
     return this.hoveredButton;
   }
 
-  public getClickedButton(): 'refine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null {
+  public getClickedButton(): 'combine' | 'autoplace' | 'roll' | 'autoPlaceAll' | null {
     return this.clickedButton;
   }
 
@@ -1016,15 +954,15 @@ export class BlockDropDecisionMenu implements Menu {
     this.pause = () => {};
     this.resume = () => {};
     this.nextBlockPreviewRenderer = null;
+    GlobalEventBus.off('blockqueue:request-placefirst', this.handleBlockQueuePlaceFirstRequest);
     GlobalEventBus.off('blockqueue:request-place', this.handleBlockQueueRequest);
-    GlobalEventBus.off('blockqueue:request-refine', this.handleBlockQueueRefineRequest);
     GlobalEventBus.off('blockqueue:request-placeall', this.handleBlockQueuePlaceAllRequest);
     GlobalEventBus.off('blockdropdecision:attach:lock', this.handleLockAttach);
     GlobalEventBus.off('blockdropdecision:attach:unlock', this.handleUnlockAttach);
     GlobalEventBus.off('blockdropdecision:attach-all:lock', this.handleLockAttachAll);
     GlobalEventBus.off('blockdropdecision:attach-all:unlock', this.handleUnlockAttachAll);
-    GlobalEventBus.off('blockdropdecision:refine:lock', this.handleLockRefine);
-    GlobalEventBus.off('blockdropdecision:refine:unlock', this.handleUnlockRefine);
+    GlobalEventBus.off('blockdropdecision:combine:lock', this.handleLockCombine);
+    GlobalEventBus.off('blockdropdecision:combine:unlock', this.handleUnlockCombine);
     GlobalEventBus.off('blockdropdecision:roll:lock', this.handleLockRoll);
     GlobalEventBus.off('blockdropdecision:roll:unlock', this.handleUnlockRoll);
     GlobalEventBus.off('blockdropdecision:lock-all', this.handleLockAll);
