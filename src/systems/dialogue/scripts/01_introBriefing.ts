@@ -535,6 +535,11 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           });
         },
       },
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Weapon discharge successful. No signs of sabotage by operator. Unexpected.",
+      },
       // Clear the coachmark
       {
         type: 'command',
@@ -542,12 +547,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           coachMarkManager.clear();
         },
       },
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Weapon discharge successful. No signs of sabotage by operator. Unexpected.",
-      },
-      // Wait 300ms
       {
         type: 'pause',
         durationMs: 300,
@@ -586,18 +585,18 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           });
         },
       },
+      // Express affirmation for using the zoom functionality, sarcastically
+      {
+        type: 'line',
+        speakerId: 'carl',
+        text: "Zoom functionality confirmed. Your biomechanics are improving...",
+      },
       // Clear the coachmark
       {
         type: 'command',
         run: () => {
           coachMarkManager.clear();
         },
-      },
-      // Express affirmation for using the zoom functionality, sarcastically
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Zoom functionality confirmed. Your biomechanics are improving...",
       },
       {
         type: 'command',
