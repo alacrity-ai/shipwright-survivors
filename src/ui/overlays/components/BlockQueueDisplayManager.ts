@@ -8,6 +8,7 @@ import type { InputManager } from '@/core/InputManager';
 import { audioManager } from '@/audio/Audio';
 
 import { flags } from '@/game/player/PlayerFlagManager';
+import { PlayerAbilityManager } from '@/game/player/PlayerAbilityManager';
 
 import { setCursor, restoreCursor } from '@/core/interfaces/events/CursorReporter';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -71,6 +72,11 @@ export class BlockQueueDisplayManager {
 
   private cursorRestored = false;
 
+  private attachAbilityUnlocked = false;
+  private attachAllAbilityUnlocked = false;
+  private rollAbilityUnlocked = false;
+  private combineAbilityUnlocked = false;
+
   private attachAllHidden = false;
   private rollButtonHidden = false;
   private attachButtonHidden = false;
@@ -100,6 +106,7 @@ export class BlockQueueDisplayManager {
   private boundHandleLock: () => void;
   private boundHandleUnlock: () => void;
   private boundCancelInteraction: () => void;
+  private boundAbilitiesUpdate: () => void;
 
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -130,6 +137,11 @@ export class BlockQueueDisplayManager {
       this.inputManager
     );
 
+    this.attachAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-block');
+    this.attachAllAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-all-blocks');
+    this.rollAbilityUnlocked = PlayerAbilityManager.getInstance().has('roll-blocks');
+    this.combineAbilityUnlocked = PlayerAbilityManager.getInstance().has('combine-blocks');
+
     const defaultBlockType = getBlockType('hull0')!;
     this.blockPreviewRenderer = new BlockPreviewRenderer(
       defaultBlockType,
@@ -143,7 +155,9 @@ export class BlockQueueDisplayManager {
     this.boundHandleLock = this.handleLock.bind(this);
     this.boundHandleUnlock = this.handleUnlock.bind(this);
     this.boundCancelInteraction = this.cancelInteraction.bind(this);
+    this.boundAbilitiesUpdate = this.updateUnlockedAbilities.bind(this);
 
+    GlobalEventBus.on('abilities:update', this.boundAbilitiesUpdate);
     GlobalEventBus.on('blockqueue:show', this.boundHandleShow);
     GlobalEventBus.on('blockqueue:hide', this.boundHandleHide);
     GlobalEventBus.on('blockqueue:lock', this.boundHandleLock);
@@ -172,6 +186,13 @@ export class BlockQueueDisplayManager {
     this.placeAllBlocksButton.unlock();
     this.rollBlocksButton.unlock();
     this.combineBlocksButton.unlock();
+  }
+
+  public updateUnlockedAbilities(): void {
+    this.attachAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-block');
+    this.attachAllAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-all-blocks');
+    this.rollAbilityUnlocked = PlayerAbilityManager.getInstance().has('roll-blocks');
+    this.combineAbilityUnlocked = PlayerAbilityManager.getInstance().has('combine-blocks');
   }
 
   /** Call this on resolution change or scale change */
@@ -204,16 +225,16 @@ export class BlockQueueDisplayManager {
   }
 
   public update(dt: number): void {
-    if (!this.attachAllHidden) {
+    if (!this.attachAllHidden && this.attachAllAbilityUnlocked) {
       this.placeAllBlocksButton.update(dt);
     }
-    if (!this.rollButtonHidden) {
+    if (!this.rollButtonHidden && this.rollAbilityUnlocked) {
       this.rollBlocksButton.update(dt);
     }
-    if (!this.attachButtonHidden) {
+    if (!this.attachButtonHidden && this.attachAbilityUnlocked) {
       this.placeBlockButton.update(dt);
     }
-    if (!this.combineButtonHidden) {
+    if (!this.combineButtonHidden && this.combineAbilityUnlocked) {
       this.combineBlocksButton.update(dt);
     }
 
@@ -473,16 +494,16 @@ export class BlockQueueDisplayManager {
     if (this.hidden) return;
 
     // Render the Place All Blocks Button
-    if (!this.attachAllHidden) {
+    if (!this.attachAllHidden && this.attachAllAbilityUnlocked) {
       this.placeAllBlocksButton.render(this.ctx);
     }
-    if (!this.rollButtonHidden) {
+    if (!this.rollButtonHidden && this.rollAbilityUnlocked) {
       this.rollBlocksButton.render(this.ctx);
     }
-    if (!this.attachButtonHidden) {
+    if (!this.attachButtonHidden && this.attachAbilityUnlocked) {
       this.placeBlockButton.render(this.ctx);
     }
-    if (!this.combineButtonHidden) {
+    if (!this.combineButtonHidden && this.combineAbilityUnlocked) {
       this.combineBlocksButton.render(this.ctx);
     }
 
@@ -747,6 +768,7 @@ export class BlockQueueDisplayManager {
     GlobalEventBus.off('blockqueue:lock', this.boundHandleLock);
     GlobalEventBus.off('blockqueue:unlock', this.boundHandleUnlock);
     GlobalEventBus.off('blockqueue:cancel-interaction', this.boundCancelInteraction);
+    GlobalEventBus.off('abilities:update', this.boundAbilitiesUpdate);
   }
 
   // Public API

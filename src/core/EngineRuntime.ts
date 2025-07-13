@@ -120,6 +120,7 @@ import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { TradePostRegistry } from '@/game/tradepost/registry/TradePostRegistry';
 import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
+import { AbilityUnlockAnnouncementPopupMenu } from '@/game/player/ui/AbilityUnlockAnnouncementPopupMenu';
 import { flags } from '@/game/player/PlayerFlagManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
 
@@ -131,6 +132,7 @@ import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
 import { eraseAllArtifacts } from '@/game/ship/artifacts/helpers/eraseAllArtifacts';
 import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtifacts';
 import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
+import { openAbilityAnnouncement } from './interfaces/events/AbilityReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -156,6 +158,7 @@ export class EngineRuntime {
   private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
   private powerupSelectionMenu: PowerupSelectionMenu;
+  private abilityAnnouncementMenu: AbilityUnlockAnnouncementPopupMenu;
   private planetInteractionOptionsMenu: PlanetInteractionOptionsMenu;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private tradePostMenu: TradePostMenu;
@@ -314,6 +317,9 @@ export class EngineRuntime {
       this.inputManager.enableAction('pause');
       this.inputManager.enableAction('openShipBuilder');
     });
+
+    // === Ability Unlock Announcement Popup
+    this.abilityAnnouncementMenu = new AbilityUnlockAnnouncementPopupMenu();
 
     // === Block Drop Decision Menu
     this.blockDropDecisionMenu = new BlockDropDecisionMenu(
@@ -546,6 +552,7 @@ export class EngineRuntime {
       this.coachMarkManager,
       this.incidentOrchestrator,
       this.powerupSelectionMenu,
+      this.abilityAnnouncementMenu,
       this.tradePostMenu,
       this.planetInteractionOptionsMenu,
       this.jumpCastMenu,
@@ -818,7 +825,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit8')) {
-      this.ship?.rerasterize(this.canvasManager.getWebGL2Context('unifiedgl2'));
+      openAbilityAnnouncement('attach-block');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
@@ -919,6 +926,7 @@ export class EngineRuntime {
 
     // Always update these systems regardless of pause state
     this.powerupSelectionMenu.update(dt);
+    this.abilityAnnouncementMenu.update(dt);
     this.shipBuilderEffects.update(dt);
     this.missionDialogueManager!.update(dt);
     this.floatingTextManager.update(dt);

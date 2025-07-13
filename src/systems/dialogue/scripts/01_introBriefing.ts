@@ -33,11 +33,11 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
+import { PlayerAbilityManager } from '@/game/player/PlayerAbilityManager';
+import { openAbilityAnnouncement } from '@/core/interfaces/events/AbilityReporter';
 
 import { createAfterBurnerCoachMark } from '@/rendering/coachmarks/helpers/createAfterBurnerCoachMark';
 import { createOpenBlockMenuCoachMark } from '@/rendering/coachmarks/helpers/createOpenBlockMenuCoachMark';
-import { createToggleFiringModeCoachMark } from '@/rendering/coachmarks/helpers/createToggleFiringModeCoachMark';
-import { createAimCoachMark } from '@/rendering/coachmarks/helpers/createAimCoachMark';
 import { createFirePrimaryCoachMark } from '@/rendering/coachmarks/helpers/createFirePrimaryCoachMark';
 import { createMoveCoachMark } from '@/rendering/coachmarks/helpers/createMoveCoachMark';
 import { createOpenTradePostCoachMark } from '@/rendering/coachmarks/helpers/createOpenTradePostCoachMark';
@@ -269,12 +269,6 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
         type: 'pause',
         durationMs: 300,
       },
-      // Try not to crash into too many spatial bodies during your trip
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: "Try not to crash into too many spatial bodies during your trip. It's not good for your health.",
-      },
       // Verify player has reached destination
       {
         type: 'command',
@@ -373,6 +367,11 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           inputManager.disableAction('firePrimary');
         },
       },
+      // Wait 300ms
+      {
+        type: 'pause',
+        durationMs: 300,
+      },
       // Clear coach mark
       {
         type: 'command',
@@ -380,6 +379,20 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
           coachMarkManager.clear();
         },
       },
+      // Unlock the attach-block ability
+      {
+        type: 'command',
+        run: () => {
+          PlayerAbilityManager.getInstance().unlock('attach-block');
+          openAbilityAnnouncement('attach-block');
+        },
+      },
+      // Wait 2000 ms
+      {
+        type: 'pause',
+        durationMs: 2200,
+      },
+      // Run another command (leave empty)
       {
         type: 'command',
         run: () => {

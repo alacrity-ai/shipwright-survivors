@@ -86,6 +86,10 @@ export interface EventTypes {
   'combineButton:show': undefined;
   'combineButton:hide': undefined;
 
+  // Abilities
+  'abilities:update': undefined;
+  'abilities:announcement:open': { abilityKey: string };
+
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
   'indicator:remove': { id: string };

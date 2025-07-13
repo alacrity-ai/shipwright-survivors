@@ -8,7 +8,8 @@ import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManag
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeManager';
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
-import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager'; // IMPORTED
+import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
+import { PlayerAbilityManager } from '@/game/player/PlayerAbilityManager';
 
 export interface SaveGameData {
   flags: string[];
@@ -20,6 +21,7 @@ export interface SaveGameData {
   shipSkillTrees?: string;
   artifacts?: string;
   tradeposts?: string;
+  abilities?: string;
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
@@ -77,6 +79,7 @@ export class SaveGameManager {
       shipSkillTrees: PlayerShipSkillTreeManager.getInstance().toJSON(),
       artifacts: PlayerArtifactsManager.getInstance().toJSON(),
       tradeposts: PlayerTradePostManager.getInstance().toJSON(),
+      abilities: PlayerAbilityManager.getInstance().toJSON(),
       version: 1,
     };
 
@@ -107,6 +110,9 @@ export class SaveGameManager {
     }
     if (data.tradeposts) {
       PlayerTradePostManager.getInstance().fromJSON(data.tradeposts);
+    }
+    if (data.abilities) {
+      PlayerAbilityManager.getInstance().fromJSON(data.abilities);
     }
   }
 
@@ -201,6 +207,12 @@ export class SaveGameManager {
     this.writeData(data);
   }
 
+  public saveAbilities(): void {
+    const data = this.loadData();
+    data.abilities = PlayerAbilityManager.getInstance().toJSON();
+    this.writeData(data);
+  }
+
   // === LOAD METHODS ===
 
   public loadTradePosts(): void {
@@ -259,6 +271,13 @@ export class SaveGameManager {
     const data = this.loadData();
     if (data.artifacts) {
       PlayerArtifactsManager.getInstance().fromJSON(data.artifacts);
+    }
+  }
+
+  public loadAbilities(): void {
+    const data = this.loadData();
+    if (data.abilities) {
+      PlayerAbilityManager.getInstance().fromJSON(data.abilities);
     }
   }
 
