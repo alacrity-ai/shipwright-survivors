@@ -13,6 +13,7 @@ import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject'
 import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 import type { PowerUpChoice } from '@/game/player/PlayerExperienceManager';
 import type { PlanetDefinition } from '@/game/planets/interfaces/PlanetDefinition';
+import type { QuestStepId } from '@/game/quests/interfaces/QuestStep';
 
 export type CursorChangeType =
   | 'crosshair'
@@ -91,10 +92,13 @@ export interface EventTypes {
   'abilities:announcement:open': { abilityKey: string };
 
   // Quests
+  'quests:step:update': { stepId: QuestStepId; value: number | boolean | string };
+  'quests:menu:open': { planetName: string };
   'quests:complete': { questId: string };
   'quests:announcement:open': { questId: string };
   'quests:announcement:ship': { shipId: string };
   'quests:announcement:cores': { amount: number };
+  'quests:announcement:artifact': { artifactId: string };
 
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
@@ -233,6 +237,8 @@ export interface EventTypes {
   'planet:interaction:options:open': { planetDefinition: PlanetDefinition };
   'planet:interaction:options:disable-jump': undefined;
   'planet:interaction:options:enable-jump': undefined;
+  'planet:interaction:options:enable-contracts': undefined;
+  'planet:interaction:options:disable-contracts': undefined;
 
   // Entities
   'entity:destroy': {

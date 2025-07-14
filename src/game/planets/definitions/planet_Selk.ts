@@ -8,4 +8,5 @@ export const SelkPlanet: PlanetDefinition = {
   scale: 5,
   interactionDialogueId: 'planet-generic',
   tradePostId: 'mission1-tradepost-0',
+  questIds: ['ability:jumpcast', 'slayer:station_slayer1', 'slayer:station_slayer2'],
 };

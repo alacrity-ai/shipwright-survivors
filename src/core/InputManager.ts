@@ -8,6 +8,8 @@ import { isElectron } from '@/shared/isElectron';
 import { Camera } from './Camera';
 import { getUniformScaleFactor } from '@/config/view';
 
+import { GlobalMenuReporter } from './GlobalMenuReporter';
+
 import type { InputAction } from '@/core/input/interfaces/InputActions';
 import type { GamepadButtonAlias } from '@/core/input/interfaces/GamePadButtonAlias';
 
@@ -347,8 +349,11 @@ export class InputManager {
     const scrollUpDetected = this.scrollUpDetected;
     const scrollDownDetected = this.scrollDownDetected;
 
-    const up = scrollUpDetected || this.isKeyPressed('KeyG') || this.gamepadAliasIsPressed('dpadUp');
-    const down = scrollDownDetected || this.isKeyPressed('KeyT') || this.gamepadAliasIsPressed('dpadDown');
+    const gamepadUp = this.gamepadAliasIsPressed('dpadUp') && !GlobalMenuReporter.getInstance().isAnyMenuOpen();
+    const gamepadDown = this.gamepadAliasIsPressed('dpadDown') && !GlobalMenuReporter.getInstance().isAnyMenuOpen();
+
+    const up = scrollUpDetected || this.isKeyPressed('KeyG') || gamepadUp;
+    const down = scrollDownDetected || this.isKeyPressed('KeyT') || gamepadDown;
 
     if (up || down) {
       Camera.getInstance().abortZoomAnimation();

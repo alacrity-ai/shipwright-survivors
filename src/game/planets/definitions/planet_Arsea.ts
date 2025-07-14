@@ -7,5 +7,6 @@ export const ArseaPlanet: PlanetDefinition = {
   scale: 10,
   interactionDialogueId: 'planet-generic',
   tradePostId: 'mission2-tradepost-0',
+  questIds: ['ability:rollblocks', 'ability:combineblocks'],
   // approachDialogueId: 'dialogue-aetherion-approach',
 };

@@ -1,5 +1,5 @@
 // src/game/planets/PlanetInteractionOptionsMenu.ts
-
+// ─────────────────────────────────────────────────────────────────────────────
 import { DEFAULT_CONFIG } from '@/config/ui';
 
 import { CanvasManager } from '@/core/CanvasManager';
@@ -19,140 +19,162 @@ import { GlobalEventBus } from '@/core/EventBus';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { openJumpCastMenu } from '@/core/interfaces/events/PlanetMenusReporter';
 import { openTradepostMenu } from '@/core/interfaces/events/TradePostReporter';
+import { openQuestsMenu } from '@/core/interfaces/events/QuestReporter';
 
 import { pauseRuntime, resumeRuntime } from '@/core/interfaces/events/RuntimeReporter';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 import type { InputManager } from '@/core/InputManager';
 
-const getStyle = (btn: UIButton) => (btn.style ??= {});
+const styleOf = (btn: UIButton) => (btn.style ??= {});
 
 export class PlanetInteractionOptionsMenu {
-  // === Dependencies ===
-  private readonly inputManager: InputManager;
-  private readonly navManager: GamepadMenuInteractionManager;
-  private readonly canvasManager: CanvasManager;
-  private readonly ctx: CanvasRenderingContext2D;
+  // ──────────────────────────────────────────
+  // Dependencies
+  // ──────────────────────────────────────────
+  private readonly input: InputManager;
+  private readonly nav  : GamepadMenuInteractionManager;
+  private readonly cm   : CanvasManager;
+  private readonly ctx  : CanvasRenderingContext2D;
 
-  // === State ===
+  // ──────────────────────────────────────────
+  // State
+  // ──────────────────────────────────────────
   private open = false;
+  private lastHoveredBtn: UIButton | null = null;
   private planetId: string | null = null;
+
   private jumpEnabled = true;
+  private contractsEnabled = true;
 
-  // === Layout ===
-  private windowX = 80;
-  private windowY = 80;
-  private windowYOffset = 46;
-  private windowWidth = 360;
-  private windowHeight = 260;
+  // ──────────────────────────────────────────
+  // Layout
+  // ──────────────────────────────────────────
+  private winX = 0; private winY = 0;
+  private winW = 360; private winH = 260;
+  private buttonW = 160; private buttonH = 44;
+  private padY = 20;
 
-  private buttonWidth = 160;
-  private buttonHeight = 44;
-  private buttonPadding = 20;
+  // ──────────────────────────────────────────
+  // UI Buttons
+  // ──────────────────────────────────────────
+  private readonly tradePostBtn : UIButton;
+  private readonly contractsBtn : UIButton;
+  private readonly jumpBtn      : UIButton;
+  private readonly closeBtn     : UIButton;
 
-  // === UI elements ===
-  private readonly tradePostButton: UIButton;
-  private readonly jumpCastButton: UIButton;
-  private readonly closeButton: UIButton;
+  // ──────────────────────────────────────────
+  // Event binding
+  // ──────────────────────────────────────────
+  private readonly boundOpen = (p:{ planetDefinition: PlanetDefinition }) =>
+    this.openMenu(p.planetDefinition.name);
 
-  // === Event binding ===
-  private readonly boundOpenMenu = (payload: { planetDefinition: PlanetDefinition }) => {
-    this.openMenu(payload.planetDefinition.name);
-  };
+  constructor(input: InputManager) {
+    this.input = input;
+    this.cm    = CanvasManager.getInstance();
+    this.ctx   = this.cm.getContext('ui');
+    this.nav   = new GamepadMenuInteractionManager(this.input);
 
-  constructor(inputManager: InputManager) {
-    this.inputManager  = inputManager;
-    this.canvasManager = CanvasManager.getInstance();
-    this.ctx           = this.canvasManager.getContext('ui');
-    this.navManager    = new GamepadMenuInteractionManager(this.inputManager);
-
-    // --- Button definitions ---
-    this.tradePostButton = this.makeButton('Trade Post', () => {
+    /* ---------- Button Definitions ---------- */
+    this.tradePostBtn = this.makeButton('Trade Post', () => {
       this.closeMenu();
-      const planetDefinition = PlanetRegistry.getPlanetByName(this.planetId!);
-      openTradepostMenu(planetDefinition.tradePostId!);
+      const def = PlanetRegistry.getPlanetByName(this.planetId!);
+      audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
+      openTradepostMenu(def.tradePostId!);
     });
 
-    this.jumpCastButton = this.makeButton('Jump', () => {
+    this.contractsBtn = this.makeButton('Contracts', () => {
       this.closeMenu();
+      audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
+      openQuestsMenu(this.planetId!);
+    });
+
+    this.jumpBtn = this.makeButton('Jump', () => {
+      this.closeMenu();
+      audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
       openJumpCastMenu();
     });
 
-    this.closeButton = this.makeButton('Close', () => this.closeMenu());
+    this.closeBtn = this.makeButton('Close', () => {
+      audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+      this.closeMenu();
+    });
 
-    // Register global listener
-    GlobalEventBus.on('planet:interaction:options:open', this.boundOpenMenu);
+    /* ---------- Global listeners ---------- */
+    GlobalEventBus.on('planet:interaction:options:open',        this.boundOpen);
     GlobalEventBus.on('planet:interaction:options:disable-jump', this.handleJumpDisable);
     GlobalEventBus.on('planet:interaction:options:enable-jump',  this.handleJumpEnable);
+    GlobalEventBus.on('planet:interaction:options:enable-contracts', this.handleContractsEnable);
+    GlobalEventBus.on('planet:interaction:options:disable-contracts', this.handleContractsDisable);
   }
 
-  // -------------------------------------------------------------------------------------------------------------------
+  // ═══════════════════════════════════════════════════════════════════════════
   // Public API
-  // -------------------------------------------------------------------------------------------------------------------
-
+  // ═══════════════════════════════════════════════════════════════════════════
   openMenu(planetId: string): void {
     pauseRuntime();
     this.planetId = planetId;
-    this.open     = true;
-    this.resize();
-    this.recomputeNavMap();
+    this.open = true;
 
-    // Get player ship and set this as home coordinate
-    const playerShip = ShipRegistry.getInstance().getPlayerShip();
-    if (playerShip) {
-      const { x, y } = playerShip.getTransform().position;
-      playerShip.setHomeCoordinates(x, y);
+    // Mark home coordinates
+    const ship = ShipRegistry.getInstance().getPlayerShip();
+    if (ship) {
+      const { x, y } = ship.getTransform().position;
+      ship.setHomeCoordinates(x, y);
     }
 
+    this.resize(); this.recomputeNavMap();
     GlobalMenuReporter.getInstance().setMenuOpen('planetInteractionOptions');
     audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx');
   }
 
-  isOpen(): boolean {
-    return this.open;
-  }
+  isOpen(): boolean { return this.open; }
 
   closeMenu(): void {
     if (!this.open) return;
-
     resumeRuntime();
-    this.open  = false;
-    this.navManager.clearNavMap();
+    this.open = false;
+    this.nav.clearNavMap();
     GlobalMenuReporter.getInstance().setMenuClosed('planetInteractionOptions');
   }
 
   destroy(): void {
-    GlobalEventBus.off('planet:interaction:options:open',        this.boundOpenMenu);
+    GlobalEventBus.off('planet:interaction:options:open',        this.boundOpen);
     GlobalEventBus.off('planet:interaction:options:disable-jump', this.handleJumpDisable);
     GlobalEventBus.off('planet:interaction:options:enable-jump',  this.handleJumpEnable);
   }
 
-  // -------------------------------------------------------------------------------------------------------------------
-  // Frame lifecycle
-  // -------------------------------------------------------------------------------------------------------------------
-
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Frame Lifecycle
+  // ═══════════════════════════════════════════════════════════════════════════
   update(dt: number): void {
     if (!this.open) return;
 
-    const mouse   = this.inputManager.getMousePosition();
-    const clicked = this.inputManager.wasMouseClicked();
+    const mouse    = this.input.getMousePosition();
+    const clicked  = this.input.wasMouseClicked();
+    const { x: mx, y: my } = mouse ?? { x: -1, y: -1 };
 
-    this.navManager.update();
+    this.nav.update();
 
-    const { x, y } = mouse ?? { x: -1, y: -1 };
-
-    // Hover/click processing – skip disabled Jump button
-    [this.tradePostButton, this.jumpCastButton, this.closeButton].forEach(btn => {
-      if (btn === this.jumpCastButton && !this.jumpEnabled) return;
-
-      const rect = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
-      btn.isHovered = isMouseOverRect(x, y, rect, 1.0);
-
+    [this.tradePostBtn, this.contractsBtn, this.jumpBtn, this.closeBtn].forEach(btn => {
+      if (btn.disabled) return;                               // ← NEW: ignore disabled
+      const r = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
+      btn.isHovered = isMouseOverRect(mx, my, r, 1.0);
+      if (btn.isHovered && btn !== this.lastHoveredBtn) {
+        audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 4 });
+        this.lastHoveredBtn = btn;
+      }
       if (clicked && btn.isHovered) btn.onClick();
     });
 
-    // Game-pad cancel → Close
-    if (this.inputManager.wasActionJustPressed('cancel') || this.inputManager.wasKeyJustPressed('Escape')) this.closeMenu();
+    if (!this.tradePostBtn.isHovered && !this.contractsBtn.isHovered &&
+        !this.jumpBtn.isHovered      && !this.closeBtn.isHovered) {
+      this.lastHoveredBtn = null;
+    }
+
+    if (this.input.wasActionJustPressed('cancel') || this.input.wasKeyJustPressed('Escape')) {
+      this.closeMenu();
+    }
   }
 
   render(): void {
@@ -161,48 +183,32 @@ export class PlanetInteractionOptionsMenu {
     const scale = getUniformScaleFactor();
     const ctx   = this.ctx;
 
-    // Window
-    drawMinimalistWindow(
-      ctx,
-      this.windowX,
-      this.windowY,
-      this.windowWidth,
-      this.windowHeight,
-      { ...DEFAULT_CONFIG.window.options, alpha: 0.6 },
-    );
+    drawMinimalistWindow(ctx, this.winX, this.winY, this.winW, this.winH,
+                        { ...DEFAULT_CONFIG.window.options, alpha: 0.6 });
 
-    // Title (Planet-specific if desired)
-    drawLabel(
-      ctx,
-      this.windowX + this.windowWidth / 2,
-      this.windowY - 24 * scale,
-      'Planet Services',
-      {
-        font : `${14 * scale}px monospace`,
-        align: 'center',
-        glow : true,
-      },
-    );
+    drawLabel(ctx,
+              this.winX + this.winW / 2,
+              this.winY - 24 * scale,
+              'Planet Services',
+              { font: `${14 * scale}px monospace`, align: 'center', glow: true });
 
-    // Buttons (only draw Jump when enabled)
-    drawButton(ctx, this.tradePostButton, 1.0, 13 * scale);
-    if (this.jumpEnabled) {
-      const alpha = getStyle(this.jumpCastButton).alpha ?? 1.0;
-      drawButton(ctx, this.jumpCastButton, alpha, 13 * scale);
-    }
-    drawButton(ctx, this.closeButton, 1.0, 13 * scale);
+    // Always draw; drawButton handles .disabled internally
+    drawButton(ctx, this.tradePostBtn , 1, 13 * scale);
+    drawButton(ctx, this.contractsBtn , 1, 13 * scale);
+    drawButton(ctx, this.jumpBtn      , 1, 13 * scale);
+    drawButton(ctx, this.closeBtn     , 1, 13 * scale);
   }
 
-  // -------------------------------------------------------------------------------------------------------------------
-  // Helpers
-  // -------------------------------------------------------------------------------------------------------------------
+  /* ──────────────────────────────────────────────────────────────
+  *  Enable / Disable Handlers
+  * ──────────────────────────────────────────────────────────── */
 
   private readonly handleJumpDisable = (): void => {
     if (!this.jumpEnabled) return;
     this.jumpEnabled = false;
 
-    getStyle(this.jumpCastButton).alpha = 0.35;
-    this.jumpCastButton.onClick         = () => {};
+    this.jumpBtn.disabled = true;
+    this.jumpBtn.onClick  = () => {};
     this.recomputeNavMap();
   };
 
@@ -210,83 +216,99 @@ export class PlanetInteractionOptionsMenu {
     if (this.jumpEnabled) return;
     this.jumpEnabled = true;
 
-    getStyle(this.jumpCastButton).alpha = 1.0;
-    this.jumpCastButton.onClick         = () => {
+    this.jumpBtn.disabled = false;
+    this.jumpBtn.onClick  = () => {
       this.closeMenu();
       openJumpCastMenu();
     };
     this.recomputeNavMap();
   };
 
+  private readonly handleContractsDisable = (): void => {
+    if (!this.contractsEnabled) return;
+    this.contractsEnabled   = false;
+
+    this.contractsBtn.disabled = true;
+    this.contractsBtn.onClick  = () => {};
+    this.recomputeNavMap();
+  };
+
+  private readonly handleContractsEnable = (): void => {
+    if (this.contractsEnabled) return;
+    this.contractsEnabled   = true;
+
+    this.contractsBtn.disabled = false;
+    this.contractsBtn.onClick  = () => {
+      this.closeMenu();
+      openQuestsMenu(this.planetId!);
+    };
+    this.recomputeNavMap();
+  };
+
   private makeButton(label: string, onClick: () => void): UIButton {
     return {
-      x: 0, y: 0, width: this.buttonWidth, height: this.buttonHeight,
-      label,
-      isHovered    : false,
-      wasHovered   : false,
-      onClick,
-      style        : { textFont: `${13 * getUniformScaleFactor()}px monospace` },
+      x: 0, y: 0, width: this.buttonW, height: this.buttonH,
+      label, onClick,
+      isHovered: false, wasHovered: false,
+      style: { textFont: `${13 * getUniformScaleFactor()}px monospace` },
       ...DEFAULT_CONFIG.button.style,
     };
   }
 
   private resize(): void {
-    const scale          = getUniformScaleFactor();
-    const viewportWidth  = this.canvasManager.getCanvas('ui').width;
-    const viewportHeight = this.canvasManager.getCanvas('ui').height;
+    const scale = getUniformScaleFactor();
+    const vpW = this.cm.getCanvas('ui').width;
+    const vpH = this.cm.getCanvas('ui').height;
 
-    this.windowWidth  = 320 * scale;
-    this.windowHeight = 280 * scale;
-    this.windowYOffset = 40 * scale;
+    this.winW = 320 * scale;
+    this.winH = 300 * scale;  // ↑ slightly taller for extra button
+    this.winX = (vpW - this.winW) / 2;
+    this.winY = (vpH - this.winH) / 2 + 40 * scale;
 
-    this.windowX = (viewportWidth  - this.windowWidth)  / 2;
-    this.windowY = (viewportHeight - this.windowHeight) / 2 + this.windowYOffset;
+    this.buttonW = 180 * scale;
+    this.buttonH = 46 * scale;
+    this.padY = 20 * scale;
 
-    this.buttonWidth  = 180 * scale;
-    this.buttonHeight = 46 * scale;
-    this.buttonPadding = 24 * scale;
+    // Vertical stack
+    const startX = this.winX + (this.winW - this.buttonW) / 2;
+    let y = this.winY + 28 * scale;
 
-    // Position buttons vertically
-    const btnStartX = this.windowX + (this.windowWidth - this.buttonWidth) / 2;
-    let   btnY      = this.windowY + 60 * scale;
-
-    [this.tradePostButton, this.jumpCastButton, this.closeButton].forEach(btn => {
-      btn.x = btnStartX;
-      btn.y = btnY;
-      btn.width  = this.buttonWidth;
-      btn.height = this.buttonHeight;
-      btnY += this.buttonHeight + this.buttonPadding;
+    [this.tradePostBtn, this.contractsBtn, this.jumpBtn, this.closeBtn].forEach(btn => {
+      btn.x = startX; btn.y = y;
+      btn.width = this.buttonW; btn.height = this.buttonH;
+      y += this.buttonH + this.padY;
     });
   }
 
   private recomputeNavMap(): void {
-    this.navManager.clearNavMap();
+    this.nav.clearNavMap();
+    const nodes: any[] = [];
 
-    const nodes = [
-      {
-        gridX: 0, gridY: 0,
-        screenX: this.tradePostButton.x + this.tradePostButton.width / 2,
-        screenY: this.tradePostButton.y + this.tradePostButton.height / 2,
-        isEnabled: true,
-      },
-    ];
-
-    if (this.jumpEnabled) {
+    const maybePush = (btn: UIButton, row: number) => {
+      if (btn.disabled) return;                 // NEW
       nodes.push({
-        gridX: 0, gridY: 1,
-        screenX: this.jumpCastButton.x + this.jumpCastButton.width / 2,
-        screenY: this.jumpCastButton.y + this.jumpCastButton.height / 2,
+        gridX: 0, gridY: row,
+        screenX: btn.x + btn.width  / 2,
+        screenY: btn.y + btn.height / 2,
         isEnabled: true,
       });
-    }
+    };
 
-    nodes.push({
-      gridX: 0, gridY: this.jumpEnabled ? 2 : 1,
-      screenX: this.closeButton.x + this.closeButton.width / 2,
-      screenY: this.closeButton.y + this.closeButton.height / 2,
+    let row = 0;
+    maybePush(this.tradePostBtn , row++);
+    maybePush(this.contractsBtn , row++);
+    maybePush(this.jumpBtn      , row++);
+    maybePush(this.closeBtn     , row);
+
+    this.nav.setNavMap(nodes);
+  }
+
+  private navNodeAt(btn: UIButton, row: number) {
+    return {
+      gridX: 0, gridY: row,
+      screenX: btn.x + btn.width / 2,
+      screenY: btn.y + btn.height / 2,
       isEnabled: true,
-    });
-
-    this.navManager.setNavMap(nodes);
+    };
   }
 }

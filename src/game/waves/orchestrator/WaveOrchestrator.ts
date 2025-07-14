@@ -6,6 +6,8 @@ import type { WaveExecutor } from '@/game/waves/executor/WaveExecutor';
 import type { WaveExecutionContext } from './WaveExecutionContext';
 import type { Ship } from '@/game/ship/Ship';
 
+import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
+
 import { GlobalEventBus } from '@/core/EventBus';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
@@ -114,6 +116,7 @@ export class WaveOrchestrator implements IUpdatable {
       const reducedRate = ((this.accumulatedTimeSinceStart - 240) / 60) * 0.05;
       missionSettings.setGlobalBlockDropRate(Math.max(missionSettings.getBaseGlobalDropRate() - reducedRate, 0.1));
     }
+    reportQuestStepUpdated('timeSurvived', this.accumulatedTimeSinceStart);
   }
 
   public getCurrentWaveNumber(): number {

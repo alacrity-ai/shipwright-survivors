@@ -18,7 +18,9 @@ const ICON_PATHS = {
   quest_combineblocks   : 'assets/quests/mission01Quests/quest_combineblocks.png',
   quest_jumpcast         : 'assets/quests/mission01Quests/quest_jumpcast.png',
   quest_stationslayer    : 'assets/quests/mission01Quests/quest_stationslayer.png',
+  quest_stationslayer_2  : 'assets/quests/mission01Quests/quest_stationslayer_2.png',
   quest_cursedcargo      : 'assets/quests/mission01Quests/quest_cursedcargo.png',
+  quest_brawler          : 'assets/quests/mission01Quests/quest_brawler.png',
 
   // …add additional quest icons below…
 } as const;

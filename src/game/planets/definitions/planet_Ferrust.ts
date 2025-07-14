@@ -7,5 +7,6 @@ export const FerrustPlanet: PlanetDefinition = {
   scale: 5,
   interactionDialogueId: 'planet-generic',
   tradePostId: 'mission2-tradepost-0',
+  questIds: ['slayer:brawler1'],
   // approachDialogueId: 'dialogue-ferrust-approach',
 };

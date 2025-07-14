@@ -15,6 +15,7 @@ export type QuestRewardKind =
   | 'core'           // Meta-currency (e.g., Entropium cores)
   | 'shipUnlock'     // Permanently unlocks a ship blueprint
   | 'abilityUnlock'  // Grants an ability via PlayerAbilityManager
+  | 'artifactUnlock' // Grants an artifact via PlayerArtifactsManager
   // — append future kinds here — ;
 
 /**
@@ -42,6 +43,11 @@ export interface AbilityUnlockReward extends QuestRewardBase<'abilityUnlock'> {
   abilityId: AbilityKey;  // re-use key type from AbilityRegistry
 }
 
+/** Unlocks an artifact by registry key. */
+export interface ArtifactUnlockReward extends QuestRewardBase<'artifactUnlock'> {
+  artifactId: string;  // re-use key type from ArtifactRegistry
+}
+
 /**
  * Exhaustive union of all reward archetypes.
  * Narrowing on `kind` gives exact property sets.
@@ -49,4 +55,5 @@ export interface AbilityUnlockReward extends QuestRewardBase<'abilityUnlock'> {
 export type QuestReward =
   | CoreReward
   | ShipUnlockReward
-  | AbilityUnlockReward;
+  | AbilityUnlockReward
+  | ArtifactUnlockReward;

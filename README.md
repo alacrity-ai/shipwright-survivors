@@ -126,23 +126,40 @@ What's needed to get to Demo:
 
 TODOS:
   - [x] Make place all, roll, combine blocks, all unlockable actions
-
+  - [ ] Make JumpCast, and QuestLog button, both unlockable actions (right side of exp bar)
   - [ ] Quests
+    - [x] Quest step attribute to Quest object
+      - [x] Requisite event:  quest:completion:step reporter, which has questStep and associated meta data: true, number, or string
+      - [x] QuestCompletionController will listen for these events, and update those steps being completed in its registry (or the player quest registry. Likely its registry, as steps should be transient to runs)
+      - [x] Consumers emit quest:completion:step, e.g. when an incident is destroyed, it will emit that, and QuestCompletionController will increment that step by 1.  QuestCompletionController will check: shouldCompleteQuest when it receives one of these events.
     - [x] Underlying registries
     - [x] Popups
       - [x] Quest completion
       - [x] Ability unlock
       - [x] Ship unlock
       - [x] Core reward
-      - [ ] Artifact Reward
-    - [ ] Quest List Menu within Planet and GalaxyMap Mission Select (Mission select may just say Quests Completed X/Y)
-      - [ ] Backend code for tying quests to planets
-      - [ ] Backend code for tying quests to missions
-      - [ ] Quest list UI within the planet menu
-      - [ ] Quest tracking? Maybe you can accept up to 5 active quests or something? not sure.
-        - [ ] Might want to: Add "prerequisiteQuestId" to the quest interface, so that completing one quest can unlock the next in the chain. (This would be in addition to flagRequirement).  Questlines will add A LOT to the game. Drone Slayer -> Cruiser Slayer -> SpaceStation Slayer -> Dread Station Slayer etc.
-    - [ ] Integrate quests in the first mission
-    - [ ] Test and verify all quests, rewards being dispensed? quests showing as completed? persistent state?
+      - [x] Artifact Reward
+    - [x] Quest List Menu within Planet and GalaxyMap Mission Select (Mission select may just say Quests Completed X/Y)
+      - [x] Backend code for tying quests to planets
+      - [x] Backend code for tying quests to missions
+      - [x] Quest list UI within the planet menu
+      - [x] Quest tracking? Maybe you can accept up to 5 active quests or something? not sure.
+        - [x] Might want to: Add "prerequisiteQuestId" to the quest interface, so that completing one quest can unlock the next in the chain. (This would be in addition to flagRequirement).  Questlines will add A LOT to the game. Drone Slayer -> Cruiser Slayer -> SpaceStation Slayer -> Dread Station Slayer etc.
+        - [ ] Quest tracker button
+          - [ ] Button opens list of tracked quests
+          - [ ] Tracked quests show steps completed.
+          - [ ] When quest Step is incremented, show visually in the tracker with a little notification badge
+    - [ ] Integrate all quests in the first mission
+      - [x] Slayer quests
+      - [x] Tier5 Block
+      - [ ] Planets discovered
+      - [x] Time survived
+    - [ ] Test and verify all quests:
+      - [x] Events triggering completion (e.g. 5 incidents cleared)
+      - [x] Popups occurring
+      - [x] Quests dissappearing from quest list in planet, and quest tracker
+      - [ ] Quests shown as completed in galaxy map
+      - [x] Quest rewards given
 
   - [ ] Add quest log/mission objectives. Trackable in game, and in galaxymap menu
 

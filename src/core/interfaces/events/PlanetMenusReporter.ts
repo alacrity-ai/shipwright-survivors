@@ -22,3 +22,11 @@ export function disableJump(): void {
 export function enableJump(): void {
   GlobalEventBus.emit('planet:interaction:options:enable-jump', undefined);
 }
+
+export function disableContracts(): void {
+  GlobalEventBus.emit('planet:interaction:options:disable-contracts', undefined);
+}
+
+export function enableContracts(): void {
+  GlobalEventBus.emit('planet:interaction:options:enable-contracts', undefined);
+}

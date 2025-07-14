@@ -12,6 +12,13 @@ export const mission2Quests: Record<string, Quest> = {
     name        : 'Alpha Cruiser Vanquished',
     icon        : 'quest_alpha_cruiser',
     description : 'Defeat the Alpha Cruiser to secure safe passage through sector Δ-17.',
+    steps       : [
+      {
+        kind     : 'bossSlain',
+        progress : '',
+        goal     : 'alphaCruiser',
+      },
+    ],
     rewards     : [
       {
         kind  : 'shipUnlock',

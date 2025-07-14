@@ -11,6 +11,7 @@ import type { WaveModifiersApplier } from '@/game/waves/executor/WaveModifiersAp
 import { GlobalEnemyCullingSystem } from '@/systems/culling/GlobalEnemyCullingSystem';
 
 import { shakeOnShipDestruction } from '@/game/waves/orchestrator/helpers/shakeOnShipDestruction';
+import { emitOnSlainQuestSteps } from '@/game/waves/orchestrator/helpers/emitOnSlainQuestSteps';
 
 import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -61,6 +62,9 @@ export class WaveExecutionContext {
       ship.addTag('boss');
     }
 
+    // Add tag of the origin ship JSON filename
+    ship.addTag(origin.shipId);
+
     let group = this.groupMap.get(origin);
     if (!group) {
       group = {
@@ -89,6 +93,7 @@ export class WaveExecutionContext {
 
     if (cause !== 'replaced') {
       shakeOnShipDestruction(ship);
+      emitOnSlainQuestSteps(ship);
       missionResultStore.incrementKillCount();
       if (ship.hasTag('boss')) {
         missionResultStore.setBossDefeated();

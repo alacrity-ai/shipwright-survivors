@@ -277,6 +277,7 @@ export class PlayerShipCollection {
     this.discoveredShipNames.clear();
     this.unlockedShipNames.clear();
     this.selectedColor = ShipColorPreset.White;
+    this.clearCachedModifiers();
   }
 
   destroy(): void {

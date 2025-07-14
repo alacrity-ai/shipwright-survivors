@@ -14,12 +14,18 @@ import {
   openAbilityAnnouncement,
   openShipAnnouncement,
   openCoreRewardAnnouncement,
+  openArtifactAnnouncement,
 } from '@/core/interfaces/events/QuestReporter';
 
 import { QuestCompletionAnnouncementPopup } from '@/game/quests/ui/QuestCompleteAnnouncementPopup';
 import { ShipUnlockAnnouncementPopupMenu } from '@/game/quests/ui/ShipUnlockAnnouncementPopupMenu';
 import { AbilityUnlockAnnouncementPopupMenu } from '@/game/quests/ui/AbilityUnlockAnnouncementPopupMenu';
 import { CoreRewardAnnouncementPopupMenu } from '@/game/quests/ui/CoreRewardAnnouncementPopupMenu';
+import { ArtifactRewardAnnouncementPopupMenu } from '@/game/quests/ui/ArtifactRewardAnnouncementPopupMenu';
+
+import { audioManager } from '@/audio/Audio';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 import { ShipBlueprintRegistry } from '../ship/ShipBlueprintRegistry';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -27,6 +33,7 @@ import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { GlobalEventBus }            from '@/core/EventBus';
 
 import type { Quest }                from '@/game/quests/interfaces/Quest';
+import type { QuestStepId }          from '@/game/quests/interfaces/QuestStep';
 import type { QuestReward }          from '@/game/quests/interfaces/QuestReward';
 
 // ──────────────────────────────────────────────────────────────
@@ -53,8 +60,10 @@ export class QuestCompletionController {
     this.abilityPopup = new AbilityUnlockAnnouncementPopupMenu();
     this.shipPopup = new ShipUnlockAnnouncementPopupMenu();
     this.corePopup = new CoreRewardAnnouncementPopupMenu();
+    this.artifactPopup = new ArtifactRewardAnnouncementPopupMenu();
 
     GlobalEventBus.on('quests:complete', this.handleQuestComplete);
+    GlobalEventBus.on('quests:step:update', this.handleQuestStepUpdate);
   }
 
   public destroy(): void {
@@ -62,8 +71,10 @@ export class QuestCompletionController {
     this.abilityPopup.destroy();
     this.shipPopup.destroy();
     this.corePopup.destroy();
+    this.artifactPopup.destroy();
 
     GlobalEventBus.off('quests:complete', this.handleQuestComplete);
+    GlobalEventBus.off('quests:step:update', this.handleQuestStepUpdate);
   }
 
   // ───────────────────────────── API: Lifecycle ──────────────────────────────────────
@@ -78,6 +89,7 @@ export class QuestCompletionController {
     this.shipPopup.update(dt);
     this.questPopup.update(dt);
     this.corePopup.update(dt);
+    this.artifactPopup.update(dt);
 
     this.ctx.timer -= dt;
     if (this.ctx.timer > 0) return;
@@ -100,6 +112,7 @@ export class QuestCompletionController {
     this.shipPopup.render();
     this.questPopup.render();
     this.corePopup.render();
+    this.artifactPopup.render();
   }
 
   // ───────────────────────────── Internal Data ───────────────────────────────────────
@@ -111,10 +124,31 @@ export class QuestCompletionController {
   private abilityPopup: AbilityUnlockAnnouncementPopupMenu;
   private shipPopup: ShipUnlockAnnouncementPopupMenu;
   private corePopup: CoreRewardAnnouncementPopupMenu;
+  private artifactPopup: ArtifactRewardAnnouncementPopupMenu;
 
   // ───────────────────────────── Event Binding ───────────────────────────────────────
   private readonly handleQuestComplete = ({ questId }: { questId: string }) => {
     this.completeQuest(questId);
+  };
+
+  private readonly handleQuestStepUpdate = (
+    { stepId, value }: { stepId: QuestStepId; value: number | boolean | string }
+  ) => {
+    const didUpdate = quests.updateStep(stepId, value);
+    if (didUpdate) {
+      audioManager.play('assets/sounds/sfx/debriefing/progressbar_wave.wav', 'sfx', { volume: 1.2, maxSimultaneous: 8 });
+      const playerShip = ShipRegistry.getInstance().getPlayerShip();
+      if (playerShip) {
+        const { x, y } = playerShip.getTransform().position;
+        createLightFlash(x, y, 800, 1.4, 0.4, '#ff45b2ff');
+      }
+    }
+
+    // Harvest newly eligible quests (active only),
+    // then pipe them through existing completion path.
+    for (const q of quests.getQuestsReadyForCompletion()) {
+      this.completeQuest(q.id);
+    }
   };
 
   // ───────────────────────────── Core Orchestration ──────────────────────────────────
@@ -182,6 +216,11 @@ export class QuestCompletionController {
 
       case 'core':
         openCoreRewardAnnouncement?.(r.amount);
+        missionResultStore.addBonusObjective(r.blurb);
+        break;
+      
+      case 'artifactUnlock':
+        openArtifactAnnouncement?.(r.artifactId);
         missionResultStore.addBonusObjective(r.blurb);
         break;
 

@@ -15,6 +15,7 @@ import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/Ship
 import type { StatusEffect, StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
 import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/ArtifactEffectMetadata';
 
+import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { PlayerArtifactsManager } from '../player/PlayerArtifactsManager';
 import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
@@ -198,6 +199,10 @@ export class Ship extends CompositeBlockObject {
 
   public hasTag(tag: string): boolean {
     return this.tags.has(tag);
+  }
+
+  public getTags(): Set<string> {
+    return this.tags;
   }
 
   // == Affixes system
@@ -839,6 +844,13 @@ export class Ship extends CompositeBlockObject {
     // Fuel Tanks
     if (block.type.metatags?.includes('fuelTank')) {
       this.fuelTankBlocks.add(block);
+    }
+
+    // QUEST: Tier5 special broadcast
+    if (block.type.tier === 5) {
+      if (this.isPlayerShip) {
+        reportQuestStepUpdated('tier5BlocksAttached', 1);
+      }
     }
 
     this.updateFuelCapacity();

@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import type { QuestReward } from './QuestReward';
+import type { QuestStep }   from './QuestStep';
 import type { FlagKey }     from '@/game/player/registry/FlagRegistry';
 
 /**
@@ -28,12 +29,20 @@ export interface Quest {
   /** Narrative or objective description shown to the player. */
   description: string;
 
+  /** One or more rewards bestowed upon first completion. */
+  rewards: QuestReward[];
+
+  /** Optional set of measurable objectives. */
+  steps: QuestStep[];
+
   /**
    * Optional flag prerequisites.  The quest is considered *hidden*
    * until **every** listed flag is present in PlayerFlagManager.
    */
   flagRequirements?: FlagKey[];
 
-  /** One or more rewards bestowed upon first completion. */
-  rewards: QuestReward[];
+  /**
+   * Optional quest that must be completed before this one becomes active.
+   */
+  prerequisiteQuestId?: string;
 }

@@ -8,10 +8,10 @@ import type { InputManager }    from '@/core/InputManager';
 import { InputDeviceTracker }   from '@/core/input/InputDeviceTracker';
 
 export class PlayerAutoAimController implements AimProvider {
-  private readonly range         = 2_600; // px
+  private readonly range         = 2_800; // px
   private readonly leadSeconds   = 0.5;   // s
-  private readonly TARGET_STICKY = 0.5;   // s
-  private readonly RESCAN_PERIOD = 1.0;   // s
+  private readonly TARGET_STICKY = 0.25;   // s
+  private readonly RESCAN_PERIOD = 0.5;   // s
   private readonly SWITCH_MARGIN = 32;    // px hysteresis
 
   private target: Ship | null = null;

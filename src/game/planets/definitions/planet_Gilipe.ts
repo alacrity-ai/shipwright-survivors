@@ -7,5 +7,6 @@ export const GilipePlanet: PlanetDefinition = {
   scale: 4,
   interactionDialogueId: 'planet-generic',
   tradePostId: 'mission2-tradepost-1',
+  questIds: ['incidents:cursedcargo1'],
   // approachDialogueId: 'dialogue-aetherion-approach',
 };

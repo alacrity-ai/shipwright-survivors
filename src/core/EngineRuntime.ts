@@ -33,6 +33,7 @@ import { PlanetInteractionOptionsMenu } from '@/game/planets/PlanetInteractionOp
 import { SpaceStationBuilderMenu } from '@/ui/menus/dev/SpaceStationBuilderMenu';
 import { SpaceStationBuilderController } from '@/ui/menus/dev/SpaceStationBuilderController';
 import { TradePostMenu } from '@/game/tradepost/TradePostMenu';
+import { PlanetQuestsMenu } from '@/game/quests/ui/PlanetQuestsMenu';
 import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import { BlockPlacementController } from '@/ui/components/BlockPlacementController';
 import { SettingsMenu } from '@/ui/menus/SettingsMenu';
@@ -134,6 +135,7 @@ import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtif
 import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
 import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
+import { openQuestsMenu } from './interfaces/events/QuestReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -163,6 +165,7 @@ export class EngineRuntime {
   private planetInteractionOptionsMenu: PlanetInteractionOptionsMenu;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private tradePostMenu: TradePostMenu;
+  private planetQuestsMenu: PlanetQuestsMenu;
   private jumpCastMenu: JumpCastMenu | null = null;
   private settingsMenu: SettingsMenu | null = null;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
@@ -346,6 +349,7 @@ export class EngineRuntime {
 
     // === Planet Menus
     this.tradePostMenu = new TradePostMenu(this.inputManager);
+    this.planetQuestsMenu = new PlanetQuestsMenu(this.inputManager);
     this.planetInteractionOptionsMenu = new PlanetInteractionOptionsMenu(this.inputManager);
 
     // === AI Orchestrator
@@ -555,6 +559,7 @@ export class EngineRuntime {
       this.powerupSelectionMenu,
       this.questCompletionController,
       this.tradePostMenu,
+      this.planetQuestsMenu,
       this.planetInteractionOptionsMenu,
       this.jumpCastMenu,
       this.jumpCastTransitionController
@@ -837,6 +842,10 @@ export class EngineRuntime {
       reportQuestCompleted('slayer:station_slayer1');
     }
 
+    if (this.inputManager.wasKeyJustPressed('Digit9')) {
+      openQuestsMenu('Selk');
+    }
+
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
@@ -925,6 +934,7 @@ export class EngineRuntime {
     this.inputManager.updateFrame();
     this.hud!.update(dt); // BlockQueueDisplayManager is here
     this.tradePostMenu.update(dt);
+    this.planetQuestsMenu.update(dt);
     this.planetInteractionOptionsMenu.update(dt);
     this.jumpCastMenu!.update(dt);
 
@@ -1139,6 +1149,7 @@ export class EngineRuntime {
     CoachMarkManager.getInstance().clear();
     SpriteRendererGL.destroyInstance();
     GlobalMenuReporter.getInstance().destroy();
+    PlayerQuestManager.getInstance().clearActiveQuests();
 
     // Additional cleanup
     this.pickupSystem.destroy();
@@ -1146,6 +1157,7 @@ export class EngineRuntime {
     this.incidentOrchestrator!.destroy();
     this.destructionService.destroy();
     this.tradePostMenu.destroy();
+    this.planetQuestsMenu.destroy();
     this.planetInteractionOptionsMenu.destroy();
     this.projectileSystem.destroy();
     this.screenEdgeIndicatorManager.destroy();

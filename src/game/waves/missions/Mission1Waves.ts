@@ -305,7 +305,8 @@ export const waveDefinitions: WaveDefinition[] = [
       },
       { shipId: 'ship_0_03', count: 4, hunter: true, affixes: FAST_AFFIXES },
       { shipId: 'ship_0_02', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
-      { shipId: 'ship_scrapper_3', count: 8, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_scrapper_3', count: 6, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_0_station', count: 4 }
     ],
     incidents: [
       {
@@ -371,10 +372,10 @@ export const waveDefinitions: WaveDefinition[] = [
         },
       },
       { shipId: 'ship_scrapper_2', count: 4, hunter: true, affixes: SUPER_FAST_AFFIXES },
-      { shipId: 'ship_scrapper_3', count: 4, hunter: true, affixes: FAST_AFFIXES },
-      { shipId: 'ship_scrapper_4', count: 4, hunter: true, affixes: SPEED_DEMON_AFFIXES },
+      { shipId: 'ship_scrapper_3', count: 2, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_scrapper_4', count: 2, hunter: true, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'ship_scrapper_5', count: 2, hunter: true, affixes: FAST_AFFIXES },
-      { shipId: 'ship_scrapper_6', count: 2, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'ship_scrapper_6', count: 1, hunter: true, affixes: FAST_AFFIXES },
       { shipId: 'ship_0_station', count: 4 }
     ],
     incidents: [

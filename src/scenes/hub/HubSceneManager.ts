@@ -21,6 +21,8 @@ import { drawCursor, getCrosshairCursorSprite, getHoveredCursorSprite } from '@/
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { loadImage } from '@/shared/imageCache';
 
+import { resetPlayerData } from '@/game/player/helpers/playerResetService';
+
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import { NavPoint } from '@/core/input/interfaces/NavMap';
 
@@ -74,6 +76,7 @@ export class HubSceneManager {
       onClick: () => {
         this.stop();
         audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
+        resetPlayerData();
         sceneManager.fadeToScene('title');
       },
       style: DEFAULT_CONFIG.button.style
