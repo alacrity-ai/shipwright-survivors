@@ -103,6 +103,10 @@ STEAM CHECKLIST:
 - [ ] Trailer created
 - [ ] Create Press-Kit for Streamer Outreach (images, etc)
 
+TUTORIAL FEEDBACK:
+- [ ] Not clear that you should hold down fire button
+- [ ] Not clear that afterburner also requires simultaneous movement, perhaps if holding afterburner, assume forward thrust?
+
 DEMO ROADMAP:
 What's needed to get to Demo:
 - [ ] Mini intro before tutorial, static "Shipwright! Shipwright! Listen ... Trust the robot, he doesn't know it yet.. But"
@@ -121,7 +125,25 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
-  - [ ] Make place all, roll, combine blocks, all unlockable actions
+  - [x] Make place all, roll, combine blocks, all unlockable actions
+
+  - [ ] Quests
+    - [x] Underlying registries
+    - [x] Popups
+      - [x] Quest completion
+      - [x] Ability unlock
+      - [x] Ship unlock
+      - [x] Core reward
+      - [ ] Artifact Reward
+    - [ ] Quest List Menu within Planet and GalaxyMap Mission Select (Mission select may just say Quests Completed X/Y)
+      - [ ] Backend code for tying quests to planets
+      - [ ] Backend code for tying quests to missions
+      - [ ] Quest list UI within the planet menu
+      - [ ] Quest tracking? Maybe you can accept up to 5 active quests or something? not sure.
+        - [ ] Might want to: Add "prerequisiteQuestId" to the quest interface, so that completing one quest can unlock the next in the chain. (This would be in addition to flagRequirement).  Questlines will add A LOT to the game. Drone Slayer -> Cruiser Slayer -> SpaceStation Slayer -> Dread Station Slayer etc.
+    - [ ] Integrate quests in the first mission
+    - [ ] Test and verify all quests, rewards being dispensed? quests showing as completed? persistent state?
+
   - [ ] Add quest log/mission objectives. Trackable in game, and in galaxymap menu
 
   - [ ] Add some more powerups

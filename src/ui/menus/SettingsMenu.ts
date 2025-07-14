@@ -68,6 +68,7 @@ export class SettingsMenu implements Menu {
   private closeButton: UIButton | null = null;
   private volumeSliders: VolumeSlider[] = [];
 
+  private aimModeCheckbox: UICheckbox | null = null;
   private particleCheckbox: UICheckbox | null = null;
   private lightingCheckbox: UICheckbox | null = null;
   private collisionsCheckbox: UICheckbox | null = null;
@@ -180,10 +181,24 @@ export class SettingsMenu implements Menu {
     });
 
     // == Display Tab
+
+    this.aimModeCheckbox = {
+      x: this.baseX,
+      y: this.baseY,
+      size: this.checkboxSize,
+      label: 'Auto Fire',
+      checked: settings.getAimMode() === 'auto',
+      onToggle: (val) => {
+        this.aimModeCheckbox!.checked = val;
+        settings.setAimMode(val ? 'auto' : 'manual');
+        SaveGameManager.saveSettings();
+      }
+    };
+
     // Particle Checkbox is (first) top most item in column in its tab
     this.particleCheckbox = {
       x: this.baseX,
-      y: this.baseY,
+      y: this.baseY + scaledItemVerticalSpacing,
       size: this.checkboxSize,
       label: 'Particles Enabled',
       checked: settings.isParticlesEnabled(),
@@ -196,7 +211,7 @@ export class SettingsMenu implements Menu {
 
     this.lightingCheckbox = {
       x: this.baseX,
-      y: this.baseY + scaledItemVerticalSpacing,
+      y: this.baseY + scaledItemVerticalSpacing * 2,
       size: this.checkboxSize,
       label: 'Lighting Enabled',
       checked: settings.isLightingEnabled(),
@@ -209,7 +224,7 @@ export class SettingsMenu implements Menu {
 
     this.collisionsCheckbox = {
       x: this.baseX,
-      y: this.baseY + scaledItemVerticalSpacing * 2,
+      y: this.baseY + scaledItemVerticalSpacing * 3,
       size: this.checkboxSize,
       label: 'Collisions Enabled',
       checked: settings.isCollisionsEnabled(),
@@ -231,7 +246,7 @@ export class SettingsMenu implements Menu {
 
     this.resolutionDropdown = {
       x: this.baseX,
-      y: this.baseY + scaledItemVerticalSpacing * 3,
+      y: this.baseY + scaledItemVerticalSpacing * 4,
       width: this.dropdownWidth,
       height: this.dropdownHeight,
       items: resolutionItems,
@@ -296,7 +311,12 @@ export class SettingsMenu implements Menu {
 
     // === Display tab ===
     if (this.activeTab === 'display') {
-      for (const cb of [this.particleCheckbox, this.lightingCheckbox, this.collisionsCheckbox]) {
+      for (const cb of [
+        this.aimModeCheckbox, 
+        this.particleCheckbox, 
+        this.lightingCheckbox, 
+        this.collisionsCheckbox
+      ]) {
         if (!cb) continue;
         const rect = { x: cb.x, y: cb.y, width: cb.size, height: cb.size };
         cb.isHovered = isMouseOverRect(mouse.x, mouse.y, rect, scale);
@@ -407,6 +427,7 @@ export class SettingsMenu implements Menu {
 
     // === Items in the active tab ===
     if (this.activeTab === 'display') {
+      drawCheckbox(ctx, this.aimModeCheckbox!, scale);
       drawCheckbox(ctx, this.particleCheckbox!, scale);
       drawCheckbox(ctx, this.lightingCheckbox!, scale);
       drawCheckbox(ctx, this.collisionsCheckbox!, scale);

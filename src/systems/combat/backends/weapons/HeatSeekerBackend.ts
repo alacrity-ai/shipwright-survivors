@@ -263,7 +263,7 @@ export class HeatSeekerBackend implements WeaponBackend {
           missile.position.x,
           missile.position.y,
           80,
-          0.4,
+          0.8,
           1.2,
           color
         );

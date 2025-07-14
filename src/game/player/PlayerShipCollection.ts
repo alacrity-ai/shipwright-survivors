@@ -120,6 +120,8 @@ export class PlayerShipCollection {
     if (!this.discoveredShipNames.has(shipName)) {
       this.discoveredShipNames.add(shipName);
     }
+
+    this.unlock(shipName);
   }
 
   unlock(shipName: string): void {

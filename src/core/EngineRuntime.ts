@@ -120,7 +120,7 @@ import { PlayerPowerupManager } from '@/game/player/PlayerPowerupManager';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { TradePostRegistry } from '@/game/tradepost/registry/TradePostRegistry';
 import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
-import { AbilityUnlockAnnouncementPopupMenu } from '@/game/player/ui/AbilityUnlockAnnouncementPopupMenu';
+import { QuestCompletionController } from '@/game/quests/QuestCompletionController';
 import { flags } from '@/game/player/PlayerFlagManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
 
@@ -132,7 +132,8 @@ import { spawnShipBlueprint } from './interfaces/events/PickupSpawnReporter';
 import { eraseAllArtifacts } from '@/game/ship/artifacts/helpers/eraseAllArtifacts';
 import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtifacts';
 import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
-import { openAbilityAnnouncement } from './interfaces/events/AbilityReporter';
+import { reportQuestCompleted } from './interfaces/events/QuestReporter';
+import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -158,7 +159,7 @@ export class EngineRuntime {
   private menuManager = MenuManager.getInstance();
   private shipBuilderMenu: ShipBuilderMenu
   private powerupSelectionMenu: PowerupSelectionMenu;
-  private abilityAnnouncementMenu: AbilityUnlockAnnouncementPopupMenu;
+  private questCompletionController: QuestCompletionController;
   private planetInteractionOptionsMenu: PlanetInteractionOptionsMenu;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private tradePostMenu: TradePostMenu;
@@ -318,8 +319,8 @@ export class EngineRuntime {
       this.inputManager.enableAction('openShipBuilder');
     });
 
-    // === Ability Unlock Announcement Popup
-    this.abilityAnnouncementMenu = new AbilityUnlockAnnouncementPopupMenu();
+    // === Announcement Popups
+    this.questCompletionController = new QuestCompletionController();
 
     // === Block Drop Decision Menu
     this.blockDropDecisionMenu = new BlockDropDecisionMenu(
@@ -552,7 +553,7 @@ export class EngineRuntime {
       this.coachMarkManager,
       this.incidentOrchestrator,
       this.powerupSelectionMenu,
-      this.abilityAnnouncementMenu,
+      this.questCompletionController,
       this.tradePostMenu,
       this.planetInteractionOptionsMenu,
       this.jumpCastMenu,
@@ -821,11 +822,19 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit5')) {
-      applyCoolCinematicEffect();
+      PlayerQuestManager.getInstance().reset();
+    }
+
+    if (this.inputManager.wasKeyJustPressed('Digit6')) {
+      reportQuestCompleted('incidents:cursedcargo1');
+    }
+
+    if (this.inputManager.wasKeyJustPressed('Digit7')) {
+      reportQuestCompleted('ability:rollblocks');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit8')) {
-      openAbilityAnnouncement('attach-block');
+      reportQuestCompleted('slayer:station_slayer1');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
@@ -837,7 +846,7 @@ export class EngineRuntime {
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
       // const randomTypes = ['laser1', 'laser2', 'laser3', 'laser4'];
-      const randomTypes = ['laser1', 'engine1', 'engine1', 'fin1', 'hull1', 'fin1', 'facetplate1'];
+      const randomTypes = ['heatSeeker1'];
       for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }
@@ -926,7 +935,7 @@ export class EngineRuntime {
 
     // Always update these systems regardless of pause state
     this.powerupSelectionMenu.update(dt);
-    this.abilityAnnouncementMenu.update(dt);
+    this.questCompletionController.update(dt);
     this.shipBuilderEffects.update(dt);
     this.missionDialogueManager!.update(dt);
     this.floatingTextManager.update(dt);
@@ -1142,6 +1151,7 @@ export class EngineRuntime {
     this.screenEdgeIndicatorManager.destroy();
     this.jumpCastTransitionController.destroy();
     this.lightningSystem.destroy();
+    this.questCompletionController.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();
@@ -1149,6 +1159,7 @@ export class EngineRuntime {
     this.miniMap!.destroy();
     this.explosionSystem.destroy();
     this.particleManager.destroy();
+    this.persistentParticleManager.destroy();
     this.lightingOrchestrator.destroy();
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();

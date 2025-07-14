@@ -308,6 +308,10 @@ export abstract class CompositeBlockObject {
     this.updateBlockPositions();
   }
 
+  public getVelocity(): { x: number; y: number } {
+    return this.transform.velocity;
+  }
+
   public getGrid(): Grid {
     return this.grid;
   }

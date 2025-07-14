@@ -242,7 +242,7 @@ export class AbilityUnlockAnnouncementPopupMenu {
 
     this.windowW = 260 * scale;
     this.windowH = 260 * scale;
-    this.windowX = (vpW - this.windowW) / 2;
+    this.windowX = 20 * scale;
     this.windowY = (vpH - this.windowH) / 2;
   }
 }

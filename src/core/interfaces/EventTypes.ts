@@ -90,6 +90,12 @@ export interface EventTypes {
   'abilities:update': undefined;
   'abilities:announcement:open': { abilityKey: string };
 
+  // Quests
+  'quests:complete': { questId: string };
+  'quests:announcement:open': { questId: string };
+  'quests:announcement:ship': { shipId: string };
+  'quests:announcement:cores': { amount: number };
+
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
   'indicator:remove': { id: string };

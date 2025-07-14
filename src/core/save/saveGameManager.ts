@@ -10,6 +10,7 @@ import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeMan
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { PlayerAbilityManager } from '@/game/player/PlayerAbilityManager';
+import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 
 export interface SaveGameData {
   flags: string[];
@@ -22,6 +23,7 @@ export interface SaveGameData {
   artifacts?: string;
   tradeposts?: string;
   abilities?: string;
+  quests?: string;
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
@@ -80,6 +82,7 @@ export class SaveGameManager {
       artifacts: PlayerArtifactsManager.getInstance().toJSON(),
       tradeposts: PlayerTradePostManager.getInstance().toJSON(),
       abilities: PlayerAbilityManager.getInstance().toJSON(),
+      quests: PlayerQuestManager.getInstance().toJSON(),
       version: 1,
     };
 
@@ -113,6 +116,9 @@ export class SaveGameManager {
     }
     if (data.abilities) {
       PlayerAbilityManager.getInstance().fromJSON(data.abilities);
+    }
+    if (data.quests) {
+      PlayerQuestManager.getInstance().fromJSON(data.quests);
     }
   }
 
@@ -153,6 +159,12 @@ export class SaveGameManager {
   }
 
   // === SAVE METHODS ===
+
+  public saveQuests(): void {
+    const data = this.loadData();
+    data.quests = PlayerQuestManager.getInstance().toJSON();
+    this.writeData(data);
+  }
 
   public saveTradePosts(): void {
     const data = this.loadData();
@@ -214,6 +226,13 @@ export class SaveGameManager {
   }
 
   // === LOAD METHODS ===
+
+  public loadQuests(): void {
+    const data = this.loadData();
+    if (data.quests) {
+      PlayerQuestManager.getInstance().fromJSON(data.quests);
+    }
+  }
 
   public loadTradePosts(): void {
     const data = this.loadData();

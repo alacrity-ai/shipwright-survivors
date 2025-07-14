@@ -113,6 +113,11 @@ export class ShipBlueprintRegistry {
     return this.shipMap.get(shipName);
   }
 
+  /** Returns the ship definition for the given ship id. */
+  static getByKey(shipId: string): CollectableShipDefinition | undefined {
+    return this.shipMap.get(shipId);
+  }
+
   /** Returns the default ship to use (e.g. fallback or first available). */
   static getDefaultShipName(): string {
     return 'sw1';

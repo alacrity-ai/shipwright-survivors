@@ -34,7 +34,7 @@ import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { PlayerResources } from '@/game/player/PlayerResources';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { PlayerAbilityManager } from '@/game/player/PlayerAbilityManager';
-import { openAbilityAnnouncement } from '@/core/interfaces/events/AbilityReporter';
+import { openAbilityAnnouncement } from '@/core/interfaces/events/QuestReporter';
 
 import { createAfterBurnerCoachMark } from '@/rendering/coachmarks/helpers/createAfterBurnerCoachMark';
 import { createOpenBlockMenuCoachMark } from '@/rendering/coachmarks/helpers/createOpenBlockMenuCoachMark';
@@ -866,7 +866,9 @@ export function createIntroBriefingScript(ctx: DialogueContext): DialogueScript 
       {
         type: 'command',
         run: () => {
-          PlayerPassiveManager.getInstance().addPassivePoints(1);
+          PlayerPassiveManager.getInstance().addPassivePoints(5);
+          // TODO : For Debug only, remove in Production
+          PlayerAbilityManager.getInstance().unlockAll();
         },
       },
       // Show UI

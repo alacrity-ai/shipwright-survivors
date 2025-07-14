@@ -2,10 +2,10 @@
 
 import { audioManager } from '@/audio/Audio';
 
-import { reportResolutionChange } from '@/core/interfaces/events/ResolutionChangeReporter';
-
 export class PlayerSettingsManager {
   private static instance: PlayerSettingsManager;
+
+  private aimMode: 'manual' | 'auto' = 'auto';
 
   private masterVolume: number = 1.0;
   private musicVolume: number = 1.0;
@@ -63,6 +63,14 @@ export class PlayerSettingsManager {
   }
 
   // === Getters and Setters ===
+
+  setAimMode(mode: 'manual' | 'auto'): void {
+    this.aimMode = mode;
+  }
+
+  getAimMode(): 'manual' | 'auto' {
+    return this.aimMode;
+  }
 
   setViewportWidth(w: number): void {
     this.viewportWidth = Math.max(640, w);
@@ -152,6 +160,7 @@ export class PlayerSettingsManager {
 
   toJSON(): string {
     return JSON.stringify({
+      aimMode: this.aimMode,
       masterVolume: this.masterVolume,
       musicVolume: this.musicVolume,
       sfxVolume: this.sfxVolume,
@@ -168,6 +177,7 @@ export class PlayerSettingsManager {
     try {
       const parsed = JSON.parse(json);
       if (typeof parsed === 'object' && parsed !== null) {
+        this.setAimMode(parsed.aimMode ?? this.aimMode);
         this.setMasterVolume(parsed.masterVolume ?? this.masterVolume);
         this.setMusicVolume(parsed.musicVolume ?? this.musicVolume);
         this.setSfxVolume(parsed.sfxVolume ?? this.sfxVolume);
@@ -186,6 +196,7 @@ export class PlayerSettingsManager {
   }
 
   reset(): void {
+    this.aimMode = 'manual';
     this.masterVolume = 1.0;
     this.musicVolume = 1.0;
     this.sfxVolume = 1.0;

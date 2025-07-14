@@ -2,6 +2,7 @@
 import type { AbilityKey } from '@/game/player/registry/AbilityRegistry';
 import { getAbility }      from '@/game/player/registry/AbilityRegistry';
 
+import { AbilityRegistry } from '@/game/player/registry/AbilityRegistry';
 import { updateBlockQueueAbilities } from '@/core/interfaces/events/AbilityReporter';
 
 /**
@@ -71,6 +72,24 @@ export class PlayerAbilityManager {
 
   public reset(): void {
     this.unlocked.clear();
+  }
+
+  // ──────────────────────────── Debug helpers ──────────────────────────
+  /**
+   * Permanently adds every ability enumerated in {@link AbilityRegistry} to the
+   * unlocked set. Intended exclusively for diagnostic / sandbox scenarios.
+   *
+   * Invoke from the dev console:
+   *     abilities.unlockAll();
+   *
+   * NOTE: This method is compiled only when NODE_ENV !== 'production'.  In
+   * production bundles the reference is replaced with a no-op to guarantee
+   * players cannot surreptitiously unlock content.
+   */
+  public unlockAll(): void {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    (Object.keys(AbilityRegistry) as AbilityKey[]).forEach(k => this.unlocked.add(k));
+    updateBlockQueueAbilities();
   }
 }
 
