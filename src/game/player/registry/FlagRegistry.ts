@@ -71,6 +71,24 @@ export const FlagRegistry = {
   'hub.introduction-3.complete': {
     description: 'Marks the third introduction dialogue as completed.',
   },
+  'planet.arsea.visited': {
+    description: 'Marks the planet Arsea as visited.',
+  },
+  'planet.deimos.visited': {
+    description: 'Marks the planet Deimos as visited.',
+  },
+  'planet.ferrust.visited': {
+    description: 'Marks the planet Ferrust as visited.',
+  },
+  'planet.gilipe.visited': {
+    description: 'Marks the planet Gilipe as visited.',
+  },
+  'planet.selk.visited': {
+    description: 'Marks the planet Selk as visited.',
+  },
+  'planet.voidia.visited': {
+    description: 'Marks the planet Voidia as visited.',
+  },
 } as const;
 
 export type FlagKey = keyof typeof FlagRegistry;

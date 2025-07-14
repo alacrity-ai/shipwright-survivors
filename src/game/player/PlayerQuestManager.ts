@@ -20,7 +20,7 @@ import type { QuestReward }     from '@/game/quests/interfaces/QuestReward';
 import type { QuestStep, QuestStepId }  from '@/game/quests/interfaces/QuestStep';
 import type { Aggregation } from '@/game/quests/interfaces/QuestStep';
 
-import { aggregators } from '@/game/quests/interfaces/QuestStep';
+import { aggregators, DEFAULT_AGGREGATION } from '@/game/quests/interfaces/QuestStep';
 
 export class PlayerQuestManager {
   private static instance: PlayerQuestManager;
@@ -157,8 +157,8 @@ export class PlayerQuestManager {
   /**
    * Records step advancement.
    *   • Combination semantics are dictated by the step’s `aggregation`.
-   *   • If absent, legacy heuristics are applied (add/or/replace).
-   * Returns true iff the step was relevant and state mutated.
+   *   • If absent, we consult DEFAULT_AGGREGATION; otherwise we fall back to legacy heuristics.
+   * Returns true iff the step was relevant *and* state mutated.
    */
   public updateStep(
     stepId: QuestStepId,
@@ -171,30 +171,31 @@ export class PlayerQuestManager {
       const quest = QuestRegistry[qid];
       if (!quest) continue;
       stepDefinition = quest.steps.find(s => s.kind === stepId);
-      if (stepDefinition) break; // found the first relevant quest/step
+      if (stepDefinition) break;                     // first relevant quest/step found
     }
 
-    if (!stepDefinition) return false;          // irrelevant to current quests
+    if (!stepDefinition) return false;               // irrelevant to current quests
 
     // ── 2. Resolve aggregation strategy ─────────────────────────────────────
     const policy: Aggregation =
-      stepDefinition.aggregation ??
-      (typeof value === 'number'
-        ? 'add'
-        : typeof value === 'boolean'
-        ? 'or'
-        : 'replace');
+      stepDefinition.aggregation                           // explicit override
+      ?? DEFAULT_AGGREGATION[stepId]                       // canonical default
+      ?? (typeof value === 'number' ? 'add'                // legacy heuristics
+          : typeof value === 'boolean' ? 'or'
+          : 'replace');
 
-    // ── 3. Combine using the centralised dispatcher ─────────────────────────
+    // ── 3. Combine via the centralised dispatcher ───────────────────────────
     const prev = this.stepProgress[stepId];
     const next = aggregators[policy](prev, value);
 
-    // Short‑circuit if nothing changed (cheap guard for booleans / sets)
+    // Guard: no state change → no‑op
     if (prev === next) return false;
 
     this.stepProgress[stepId] = next;
+    console.log('[Quest] stepProgress[%s] = %o', stepId, next);
     return true;
   }
+
 
   /**
    * Returns active quests whose *every* QuestStep goal

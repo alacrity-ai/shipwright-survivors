@@ -7,15 +7,20 @@ import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptReg
 import { openPlanetInteractionOptions } from '@/core/interfaces/events/PlanetMenusReporter';
 import { audioManager } from '@/audio/Audio';
 
+import { allPlanetsDiscoveredInMission } from '@/game/missions/MissionRegistry';
+import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
+import { missionLoader } from '../missions/MissionLoader';
 import { flags } from '@/game/player/PlayerFlagManager';
-import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
-import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
+import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+
+import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { PlanetDefinition } from './interfaces/PlanetDefinition';
 import type { Ship } from '@/game/ship/Ship';
 import type { InputManager } from '@/core/InputManager';
 import type { Camera } from '@/core/Camera';
+import type { FlagKey } from '@/game/player/registry/FlagRegistry';
 
 
 export class PlanetController {
@@ -98,6 +103,18 @@ export class PlanetController {
         if (this.definition.tradePostId) {
           this.isInteracting = true;
           audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
+
+          // Flag planet as visited
+          const planetNameLowercase = this.definition.name.toLowerCase();
+          flags.set(`planet.${planetNameLowercase}.visited` as FlagKey);
+
+          // If all planets are discovered, fire discovered quest event
+          const currentMission = missionLoader.getMission();
+          if (allPlanetsDiscoveredInMission(currentMission.id)) {
+            reportQuestStepUpdated('planetsExplored', true);
+          }
+
+          // Fire event to open planet interaction options
           openPlanetInteractionOptions(this.definition);
           return;
         } else {
@@ -157,6 +174,10 @@ export class PlanetController {
 
   getPosition(): { x: number; y: number } {
     return { x: this.x, y: this.y };
+  }
+
+  getName(): string {
+    return this.definition.name;
   }
 
   getScale(): number {

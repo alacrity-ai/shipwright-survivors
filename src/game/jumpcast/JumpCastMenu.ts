@@ -16,6 +16,9 @@ import type { NavPoint } from '@/core/input/interfaces/NavMap';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import { audioManager } from '@/audio/Audio';
 
+import { getDiscoveredPlanetsInMission } from '@/game/missions/MissionRegistry';
+import { missionLoader } from '@/game/missions/MissionLoader';
+
 import { GlobalEventBus } from '@/core/EventBus';
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
 import { pauseRuntime, resumeRuntime } from '@/core/interfaces/events/RuntimeReporter';
@@ -36,6 +39,8 @@ enum MenuState {
   OPEN = 'open'
 }
 
+type PlanetT = ReturnType<PlanetSystem['getPlanets']>[number];
+
 export class JumpCastMenu {
   // ────────────────────────── dependencies ──────────────────────────
   private readonly input: InputManager;
@@ -50,6 +55,9 @@ export class JumpCastMenu {
   private state: MenuState = MenuState.CLOSED;
   private slideTimer = 0;
   private hoveredPlanet: { x: number; y: number } | null = null;
+
+  // Planets
+  private discoveredPlanets: Set<string> = new Set();
 
   // Window geometry (scaled in resize)
   private windowX = 0;
@@ -95,13 +103,27 @@ export class JumpCastMenu {
   openMenu(): void {
     if (this.state !== MenuState.CLOSED) return;
 
+    /* 1. ─────────── cache discovery state ─────────── */
+    try {
+      const missionId   = missionLoader.getMission().id;
+      const discovered  = getDiscoveredPlanetsInMission(missionId);
+
+      // normalise to lowercase for robust matching
+      this.discoveredPlanets = new Set(discovered.map(n => n.toLowerCase()));
+    } catch (err) {
+      console.warn('[JumpCastMenu] Unable to resolve mission / discovered planets:', err);
+      this.discoveredPlanets.clear();
+    }
+
+    /* 2. ─────────── normal menu‑startup logic ─────────── */
     pauseRuntime();
-    this.state = MenuState.SLIDING_IN;
-    this.slideTimer = 0;
+
+    this.state         = MenuState.SLIDING_IN;
+    this.slideTimer    = 0;
     this.hoveredPlanet = null;
     this.resize();
-    
-    // Start window above the screen
+
+    // Start window just above the viewport so it can slide down
     this.windowY = -this.windowH - 50;
 
     GlobalMenuReporter.getInstance().setMenuOpen('jumpCastMenu');
@@ -156,33 +178,48 @@ export class JumpCastMenu {
       return;
     }
 
-    // Only process input when fully open
+    /* Only process input when fully open */
     const mouse   = this.input.getMousePosition();
     const clicked = this.input.wasMouseClicked();
 
     this.nav.update();
 
-    // Update hovered planet based on mouse position
+    // ── Hover logic ──
     const { x: mx, y: my } = mouse ?? { x: -1, y: -1 };
     this.hoveredPlanet = this.hitTestPlanet(mx, my);
 
-    // Cancel button hover/click
-    const cancelRect = { x: this.cancelBtn.x, y: this.cancelBtn.y, width: this.cancelBtn.width, height: this.cancelBtn.height };
+    // ── Cancel button ──
+    const cancelRect = { x: this.cancelBtn.x, y: this.cancelBtn.y,
+                        width: this.cancelBtn.width, height: this.cancelBtn.height };
     this.cancelBtn.isHovered = isMouseOverRect(mx, my, cancelRect, 1.0);
     if (clicked && this.cancelBtn.isHovered) this.cancelBtn.onClick();
 
-    // Planet selection hover/click
+    // ── Planet selection ──
     if (clicked) {
-      const target = this.hitTestPlanet(mx, my);
-      if (target) {
-        const accepted = this.transition.initiateJump({ x: target.x, y: target.y });
+      const planet = this.planetAtPos(mx, my);          // ← returns Planet | null
+      if (planet && this.discoveredPlanets.has(planet.getName().toLowerCase())) {
+        const pos = planet.getPosition();
+        const accepted = this.transition.initiateJump({ x: pos.x, y: pos.y });
         if (accepted) this.closeMenu();
+      } else {
+        audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 4 });
       }
     }
 
     if (this.input.wasActionJustPressed('cancel') || this.input.wasKeyJustPressed('Escape')) {
       this.closeMenu();
     }
+  }
+
+  /** Returns the planet instance whose icon is under (mx,my) or null */
+  private planetAtPos(mx: number, my: number): PlanetT | null {
+    const hit = this.hitTestPlanet(mx, my);
+    if (!hit) return null;
+
+    return this.planets.getPlanets().find(p => {
+      const pos = p.getPosition();
+      return Math.abs(pos.x - hit.x) < 1 && Math.abs(pos.y - hit.y) < 1;
+    }) ?? null;
   }
 
   render(): void {
@@ -268,55 +305,51 @@ export class JumpCastMenu {
   }
 
   // == Rendering
-
   private drawPlanets(
     ctx: CanvasRenderingContext2D,
     project: (pos: { x: number; y: number }) => { x: number; y: number },
   ): void {
     const windowInnerW = this.windowW - 40 * getUniformScaleFactor();
+    const g            = getUniformScaleFactor();
 
     for (const planet of this.planets.getPlanets()) {
-      const scale = planet.getScale();
-      const pos   = planet.getPosition();
+      const name   = planet.getName().toLowerCase();
+      const pos    = planet.getPosition();
       const screen = project(pos);
 
-      const base = 256; // consistent with minimap
-      const worldRadius = base * scale;
-      let pxRadius = Math.max(
+      /* radius scaling identical to prior implementation */
+      const base      = 256;
+      const pxRadius0 = base * planet.getScale();
+      let   pxRadius  = Math.max(
         PLANET_ICON_MIN_PX,
-        (worldRadius / this.worldW) * windowInnerW * 1.5,
+        (pxRadius0 / this.worldW) * windowInnerW * 1.5,
       );
 
-      // Check if this planet is hovered
-      const isHovered = this.hoveredPlanet && 
-        Math.abs(this.hoveredPlanet.x - pos.x) < 1 && 
+      const isHovered = this.hoveredPlanet &&
+        Math.abs(this.hoveredPlanet.x - pos.x) < 1 &&
         Math.abs(this.hoveredPlanet.y - pos.y) < 1;
 
-      if (isHovered) {
-        pxRadius *= 1.25;
-      }
+      if (isHovered) pxRadius *= 1.25;
+
+      /* ───────────── visual style by discovery state ───────────── */
+      const discovered = this.discoveredPlanets.has(name);
+      const baseColor  = discovered ? '#55ff55'   // bright‑green
+                                    : '#0088cc';  // default blue
 
       ctx.save();
       ctx.translate(screen.x, screen.y);
-      
-      if (isHovered) {
-        // Brightest cyan for hovered planets
-        ctx.fillStyle = '#00ffff';
-        ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 12; // Increased glow for hovered state
-      } else {
-        // Regular blue for non-hovered planets
-        ctx.fillStyle = '#0088cc';
-        ctx.shadowColor = '#0088cc';
-        ctx.shadowBlur = 6;
-      }
-      
+
+      ctx.fillStyle   = isHovered ? '#00ffff' : baseColor;
+      ctx.shadowColor = isHovered ? '#00ffff' : baseColor;
+      ctx.shadowBlur  = isHovered ? 12 * g     : 6 * g;
+
       ctx.beginPath();
       ctx.arc(0, 0, pxRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
   }
+
 
   /** Convert world → menu pixel space (keeps square aspect). */
   private worldToMenuSpace({ x, y }: { x: number; y: number }): { x: number; y: number } {

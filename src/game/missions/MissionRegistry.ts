@@ -8,7 +8,10 @@ import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves
 import { waveDefinitions as waveSet3 } from '@/game/waves/missions/Mission3Waves';
 import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves';
 
+import { flags } from '@/game/player/PlayerFlagManager';
+
 import { emitHudHideAll } from '@/core/interfaces/events/HudReporter';
+import { FlagKey } from '../player/registry/FlagRegistry';
 
 export const missionRegistry: Record<string, MissionDefinition> = {
   mission_editor: {
@@ -221,3 +224,18 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     missionPortrait: 'assets/characters/bosses/character_boss_admiral-pith.png'
   }
 };
+
+export function allPlanetsDiscoveredInMission(missionId: string): boolean {
+  const mission = missionRegistry[missionId];
+  if (!mission) return false;
+  for (const { name: planetName } of mission.planets ?? []) {
+    if (!flags.has(`planet.${planetName.toLowerCase()}.visited` as FlagKey)) return false;
+  }
+  return true;
+}
+
+export function getDiscoveredPlanetsInMission(missionId: string): string[] {
+  const mission = missionRegistry[missionId];
+  if (!mission) return [];
+  return (mission.planets ?? []).filter(p => flags.has(`planet.${p.name.toLowerCase()}.visited` as FlagKey)).map(p => p.name);
+}

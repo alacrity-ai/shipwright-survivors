@@ -22,6 +22,19 @@ export const aggregators: Record<Aggregation, (prev: any, next: any) => any> = {
   replace:  (_: any,    n: any)     => n,
 } as const;
 
+// QuestStep.ts --------------------------------------------------------------
+export const DEFAULT_AGGREGATION: Record<QuestStepId, Aggregation> = {
+  cursedCargoIncidentsCleared: 'add',
+  spaceStationsSlain:          'add',
+  spaceStations2Slain:         'add',
+  brawlersSlain:               'add',
+  timeSurvived:                'set',
+  tier5BlocksAttached:         'add',
+  hitlessRun:                  'or',
+  planetsExplored:             'or',
+  bossSlain:                   'replace',
+} as const;
+
 /** How successive updates are combined. */
 export type Aggregation =
   | 'add'        // numeric accumulation
@@ -53,12 +66,9 @@ export interface SpaceStationsSlainStep
 export interface SpaceStations2SlainStep
   extends BaseQuestStep<'spaceStations2Slain', number> {}
 
-export interface PlanetsExploredStep
-  extends BaseQuestStep<'planetsExplored', number> {}
-
 export interface BrawlersSlainStep extends BaseQuestStep<'brawlersSlain', number> {}
 
-export interface TimeSurvivedStep extends BaseQuestStep<'timeSurvived', number, 'set'> {}
+export interface TimeSurvivedStep extends BaseQuestStep<'timeSurvived', number, 'set'> {} // This is the step we're examining
 
 export interface Tier5BlocksAttachedStep
   extends BaseQuestStep<'tier5BlocksAttached', number> {}
@@ -69,6 +79,9 @@ export interface Tier5BlocksAttachedStep
  *───────────────────────────────────────────────────────────*/
 export interface HitlessRunStep
   extends BaseQuestStep<'hitlessRun', boolean> {}
+
+export interface PlanetsExploredStep
+  extends BaseQuestStep<'planetsExplored', boolean> {}
 
 /*───────────────────────────────────────────────────────────*
  *  String objective

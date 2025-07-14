@@ -70,12 +70,10 @@ export const mission1Quests: Record<string, Quest> = {
     steps       : [
       {
         kind     : 'planetsExplored',
-        progress : 0,
-        /* Swap 4 for your actual planet count at runtime-registration. */
-        goal     : 4,
+        progress : true,
+        goal     : true,
       },
     ],
-
     rewards     : [
       {
         kind      : 'abilityUnlock',
