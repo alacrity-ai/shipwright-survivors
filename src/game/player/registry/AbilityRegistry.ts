@@ -41,6 +41,11 @@ export const AbilityRegistry = {
     description: 'Execute a short-range hyperspace jump.',
     iconKey: 'icon-jump-cast',
   },
+  'active-contracts': {
+    name: 'Active Contracts',
+    description: 'Access your active contracts and quests.',
+    iconKey: 'icon-active-contracts',
+  },
 } as const satisfies Record<string, AbilityDef>;
 
 

@@ -29,4 +29,5 @@ export type InputAction =
   | 'cycleBlockLeft'
   | 'cycleBlockRight'
   | 'placeBlockButton'
-  | 'combineBlocksButton';
+  | 'combineBlocksButton'
+  | 'activeContractsButton';

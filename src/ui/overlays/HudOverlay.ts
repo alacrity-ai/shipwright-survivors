@@ -39,6 +39,10 @@ export class HudOverlay {
   private readonly onAttachButtonHide = () => this.blockQueueDisplayManager.hideAttachButton();
   private readonly onCombineButtonShow = () => this.blockQueueDisplayManager.showCombineButton();
   private readonly onCombineButtonHide = () => this.blockQueueDisplayManager.hideCombineButton();
+  private readonly onActiveContractsButtonShow = () => this.blockQueueDisplayManager.showActiveContractsButton();
+  private readonly onActiveContractsButtonHide = () => this.blockQueueDisplayManager.hideActiveContractsButton();
+  private readonly onJumpCastButtonShow = () => this.blockQueueDisplayManager.showJumpCastButton();
+  private readonly onJumpCastButtonHide = () => this.blockQueueDisplayManager.hideJumpCastButton();
 
   private metersHidden: boolean = false;
   private firingModeHidden: boolean = false;
@@ -52,18 +56,18 @@ export class HudOverlay {
   private fuelBarCacheCtx: CanvasRenderingContext2D;
   private energyBarCacheCanvas: HTMLCanvasElement;
   private energyBarCacheCtx: CanvasRenderingContext2D;
-  private speedBarCacheCanvas: HTMLCanvasElement;
-  private speedBarCacheCtx: CanvasRenderingContext2D;
-  private firingModeCacheCanvas: HTMLCanvasElement;
-  private firingModeCacheCtx: CanvasRenderingContext2D;
+  // private speedBarCacheCanvas: HTMLCanvasElement;
+  // private firingModeCacheCanvas: HTMLCanvasElement;
+  // private firingModeCacheCtx: CanvasRenderingContext2D;
+  // private speedBarCacheCtx: CanvasRenderingContext2D;
 
   // === Invalidation State ===
   private lastFuel = -1;
   private lastFuelMax = -1;
   private lastEnergy = -1;
   private lastEnergyMax = -1;
-  private lastSpeed = -1;
-  private lastFiringMode: any = null;
+  // private lastSpeed = -1;
+  // private lastFiringMode: any = null;
 
   constructor(
     private readonly canvasManager: CanvasManager,
@@ -85,6 +89,10 @@ export class HudOverlay {
     GlobalEventBus.on('attachButton:hide', this.onAttachButtonHide);
     GlobalEventBus.on('combineButton:show', this.onCombineButtonShow);
     GlobalEventBus.on('combineButton:hide', this.onCombineButtonHide);
+    GlobalEventBus.on('activeContractsButton:show', this.onActiveContractsButtonShow);
+    GlobalEventBus.on('activeContractsButton:hide', this.onActiveContractsButtonHide);
+    GlobalEventBus.on('jumpCastButton:show', this.onJumpCastButtonShow);
+    GlobalEventBus.on('jumpCastButton:hide', this.onJumpCastButtonHide);
 
     this.experienceBar = new PlayerExperienceBar(floatingTextManager);
     this.playerResources = PlayerResourcesSingleton.getInstance();
@@ -101,24 +109,24 @@ export class HudOverlay {
     const scale = getUniformScaleFactor();
 
     this.fuelBarCacheCanvas = document.createElement('canvas');
-    this.fuelBarCacheCanvas.width = 140 * scale;
+    this.fuelBarCacheCanvas.width = 160 * scale;
     this.fuelBarCacheCanvas.height = 32 * scale;
     this.fuelBarCacheCtx = this.fuelBarCacheCanvas.getContext('2d')!;
 
     this.energyBarCacheCanvas = document.createElement('canvas');
-    this.energyBarCacheCanvas.width = 140 * scale;
+    this.energyBarCacheCanvas.width = 160 * scale;
     this.energyBarCacheCanvas.height = 32 * scale;
     this.energyBarCacheCtx = this.energyBarCacheCanvas.getContext('2d')!;
 
-    this.speedBarCacheCanvas = document.createElement('canvas');
-    this.speedBarCacheCanvas.width = 32 * scale;
-    this.speedBarCacheCanvas.height = 140 * scale;
-    this.speedBarCacheCtx = this.speedBarCacheCanvas.getContext('2d')!;
+    // this.speedBarCacheCanvas = document.createElement('canvas');
+    // this.speedBarCacheCanvas.width = 32 * scale;
+    // this.speedBarCacheCanvas.height = 140 * scale;
+    // this.speedBarCacheCtx = this.speedBarCacheCanvas.getContext('2d')!;
 
-    this.firingModeCacheCanvas = document.createElement('canvas');
-    this.firingModeCacheCanvas.width = 140 * scale;
-    this.firingModeCacheCanvas.height = 40 * scale;
-    this.firingModeCacheCtx = this.firingModeCacheCanvas.getContext('2d')!;
+    // this.firingModeCacheCanvas = document.createElement('canvas');
+    // this.firingModeCacheCanvas.width = 140 * scale;
+    // this.firingModeCacheCanvas.height = 40 * scale;
+    // this.firingModeCacheCtx = this.firingModeCacheCanvas.getContext('2d')!;
   }
 
   public setPlayerShip(ship: Ship): void {
@@ -140,15 +148,15 @@ export class HudOverlay {
     const ctx = this.canvasManager.getContext('ui');
     const canvas = ctx.canvas;
 
-    const barWidth = Math.floor(120 * scale);
+    const barWidth = Math.floor(140 * scale);
     const barHeight = Math.floor(12 * scale);
     const y = canvas.height - Math.floor(24 * scale);
     const toggleX = Math.floor(64 * scale);
 
     if (!this.metersHidden) {
-      const velocity = this.ship.getTransform().velocity;
-      const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-      const quantizedSpeed = Math.round(speed);
+      // const velocity = this.ship.getTransform().velocity;
+      // const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+      // const quantizedSpeed = Math.round(speed);
 
       const energyComponent = this.ship.getEnergyComponent();
       const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
@@ -191,7 +199,7 @@ export class HudOverlay {
           }
         }, dt);
       }
-      ctx.drawImage(this.fuelBarCacheCanvas, 40 * scale, y - Math.floor(28 * scale));
+      ctx.drawImage(this.fuelBarCacheCanvas, 20 * scale, y - Math.floor(28 * scale));
 
       // === Energy Bar ===
       if (energy !== this.lastEnergy || maxEnergy !== this.lastEnergyMax) {
@@ -226,38 +234,38 @@ export class HudOverlay {
           }
         }, dt);
       }
-      ctx.drawImage(this.energyBarCacheCanvas, 40 * scale, y - (8 * scale));
+      ctx.drawImage(this.energyBarCacheCanvas, 20 * scale, y - (8 * scale));
 
-      // === Speed Bar (Vertical) ===
-      const speedBarHeight = Math.floor(120 * scale);
-      const speedBarWidth = Math.floor(12 * scale);
-      const speedBarX = Math.floor(18 * scale);
-      const speedBarY = y - speedBarHeight + Math.floor(14 * scale);
+      // // === Speed Bar (Vertical) === // Deprecated
+      // const speedBarHeight = Math.floor(120 * scale);
+      // const speedBarWidth = Math.floor(12 * scale);
+      // const speedBarX = Math.floor(18 * scale);
+      // const speedBarY = y - speedBarHeight + Math.floor(14 * scale);
 
-      if (quantizedSpeed !== this.lastSpeed) {
-        this.lastSpeed = quantizedSpeed;
+      // if (quantizedSpeed !== this.lastSpeed) {
+      //   this.lastSpeed = quantizedSpeed;
 
-        this.speedBarCacheCtx.clearRect(0, 0, this.speedBarCacheCanvas.width, this.speedBarCacheCanvas.height);
+      //   this.speedBarCacheCtx.clearRect(0, 0, this.speedBarCacheCanvas.width, this.speedBarCacheCanvas.height);
 
-        drawUIVerticalResourceBar(this.speedBarCacheCtx, {
-          x: 10,
-          y: 10,
-          width: speedBarWidth,
-          height: speedBarHeight,
-          value: quantizedSpeed,
-          maxValue: 2000,
-          style: {
-            barColor: '#00ff41',
-            backgroundColor: '#001100',
-            borderColor: '#00aa33',
-            glow: true,
-            textColor: '#00ff88',
-            showLabel: true,
-            unit: 'm/s',
-          }
-        });
-      }
-      ctx.drawImage(this.speedBarCacheCanvas, speedBarX - 10, speedBarY - 10);
+      //   drawUIVerticalResourceBar(this.speedBarCacheCtx, {
+      //     x: 10,
+      //     y: 10,
+      //     width: speedBarWidth,
+      //     height: speedBarHeight,
+      //     value: quantizedSpeed,
+      //     maxValue: 2000,
+      //     style: {
+      //       barColor: '#00ff41',
+      //       backgroundColor: '#001100',
+      //       borderColor: '#00aa33',
+      //       glow: true,
+      //       textColor: '#00ff88',
+      //       showLabel: true,
+      //       unit: 'm/s',
+      //     }
+      //   });
+      // }
+      // ctx.drawImage(this.speedBarCacheCanvas, speedBarX - 10, speedBarY - 10);
     };
   }
 
@@ -276,6 +284,10 @@ export class HudOverlay {
     GlobalEventBus.off('attachButton:hide', this.onAttachButtonHide);
     GlobalEventBus.off('combineButton:show', this.onCombineButtonShow);
     GlobalEventBus.off('combineButton:hide', this.onCombineButtonHide);
+    GlobalEventBus.off('activeContractsButton:show', this.onActiveContractsButtonShow);
+    GlobalEventBus.off('activeContractsButton:hide', this.onActiveContractsButtonHide);
+    GlobalEventBus.off('jumpCastButton:show', this.onJumpCastButtonShow);
+    GlobalEventBus.off('jumpCastButton:hide', this.onJumpCastButtonHide);
     this.experienceBar.destroy();
     this.blockQueueDisplayManager.destroy();
   }

@@ -20,7 +20,7 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   firePrimary:      { keys: ['MouseLeft'], gamepadButtons: ['rightBumper'] },
   fireSecondary:    { keys: ['MouseRight'], gamepadButtons: ['rightTrigger'] },
   fireTertiary:     { keys: ['Space'], gamepadButtons: ['B'] },
-  fireQuaternary:   { keys: ['KeyC'], gamepadButtons: [] },
+  fireQuaternary:   { keys: [''], gamepadButtons: [] },
 
   switchFiringMode: { keys: [], gamepadButtons: [] },
   openMenu:         { keys: ['Escape'], gamepadButtons: ['start'] },
@@ -41,4 +41,5 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   cycleBlockRight:  { keys: [], gamepadButtons: ['dpadRight'] },
 
   jumpHome:         { keys: ['KeyH'], gamepadButtons: ['rightStickButton'] },
+  activeContractsButton: { keys: ['KeyC'], gamepadButtons: ['select'] },
 };

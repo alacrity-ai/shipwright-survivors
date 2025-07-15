@@ -125,9 +125,11 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
-  - [ ] Make JumpCast, and QuestLog button, both unlockable actions (right side of exp bar)
+  - [ ] Open Communications Label should not display while dialogue is active
+  - [x] Fix damage numbers not aggregating. After optimization, it seems like damage numbers are all rendering individually, without adding.
+  - [x] Make JumpCast, and QuestLog button, both unlockable actions (right side of exp bar)
   - [ ] Quests
-        - [ ] Quest tracker button
+        - [x] Quest tracker button
           - [ ] Button opens list of tracked quests
           - [ ] Tracked quests show steps completed.
           - [ ] When quest Step is incremented, show visually in the tracker with a little notification badge
@@ -141,8 +143,8 @@ TODOS:
   - [ ] Fix all the Laser related passives/tree/etc
 
   - [ ] ALT+ENTER, can I make this work?
-  - [ ] Should "town portal" jump be an early unlockable? This would allow for tutorialization/explanation.
-  - [ ] Make planet Jump gates require visit to planet to unlock?? Hmm..?
+  - [x] Should "town portal" jump be an early unlockable? This would allow for tutorialization/explanation.
+  - [x] Make planet Jump gates require visit to planet to unlock?? Hmm..?
     - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?
   - [ ] Expand map sizes to 64,000+
   - [ ] Since map is much larger, add a total of 4 planets to the first map.

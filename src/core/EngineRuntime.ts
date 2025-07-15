@@ -136,6 +136,7 @@ import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
 import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { openQuestsMenu } from './interfaces/events/QuestReporter';
+import { abilities } from '@/game/player/PlayerAbilityManager';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -814,7 +815,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
-      flags.unlockAllFlags();
+      abilities.unlockAll();
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyG')) {

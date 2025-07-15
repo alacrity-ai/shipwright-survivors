@@ -180,9 +180,10 @@ export class PlayerControllerSystem {
   private updateSideEffects(): void {
     const now = performance.now();
 
-    if (this.input.wasActionJustPressed('jumpHome')) {
-      this.playerShip.jumpHome();
-    }
+    // Moved to button
+    // if (this.input.wasActionJustPressed('jumpHome')) {
+    //   this.playerShip.jumpHome();
+    // }
 
     if (this.input.wasActionJustPressed('switchFiringMode')
         && now - this.lastFiringModeSwitchTime >= 1000) {

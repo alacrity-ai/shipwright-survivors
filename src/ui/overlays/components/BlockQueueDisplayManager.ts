@@ -30,6 +30,9 @@ import { PlaceBlockButton } from '@/ui/overlays/components/PlaceBlockButton';
 import { PlaceAllBlocksButton } from '@/ui/overlays/components/PlaceAllBlocksButton';
 import { RollBlocksButton } from '@/ui/overlays/components/RollBlocksButton';
 import { CombineBlocksButton } from '@/ui/overlays/components/CombineBlocksButton';
+import { ActiveContractsButton } from '@/ui/overlays/components/ActiveContractsButton';
+import { JumpCastButton } from '@/ui/overlays/components/JumpCastButton';
+
 
 export class BlockQueueDisplayManager {
   private readonly blockPreviewRenderer: BlockPreviewRenderer;
@@ -37,6 +40,8 @@ export class BlockQueueDisplayManager {
   private readonly placeAllBlocksButton: PlaceAllBlocksButton;
   private readonly rollBlocksButton: RollBlocksButton;
   private readonly combineBlocksButton: CombineBlocksButton;
+  private readonly activeContractsButton: ActiveContractsButton;
+  private readonly jumpCastButton: JumpCastButton;
 
   private readonly MINI_BLOCK_SIZE = 16;
   private readonly MINI_BLOCK_SPIN_SPEED = 0.5;
@@ -76,11 +81,15 @@ export class BlockQueueDisplayManager {
   private attachAllAbilityUnlocked = false;
   private rollAbilityUnlocked = false;
   private combineAbilityUnlocked = false;
+  private jumpCastAbilityUnlocked = false;
+  private activeContractsAbilityUnlocked = false;
 
   private attachAllHidden = false;
   private rollButtonHidden = false;
   private attachButtonHidden = false;
   private combineButtonHidden = false;
+  private activeContractsButtonHidden = false;
+  private jumpCastButtonHidden = false;
 
   private hidden = false;
   private locked = false;
@@ -137,10 +146,22 @@ export class BlockQueueDisplayManager {
       this.inputManager
     );
 
+    this.activeContractsButton = new ActiveContractsButton(
+      this.canvas,
+      this.inputManager
+    );
+
+    this.jumpCastButton = new JumpCastButton(
+      this.canvas,
+      this.inputManager
+    );
+
     this.attachAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-block');
     this.attachAllAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-all-blocks');
     this.rollAbilityUnlocked = PlayerAbilityManager.getInstance().has('roll-blocks');
     this.combineAbilityUnlocked = PlayerAbilityManager.getInstance().has('combine-blocks');
+    this.jumpCastAbilityUnlocked = PlayerAbilityManager.getInstance().has('jump-cast');
+    this.activeContractsAbilityUnlocked = PlayerAbilityManager.getInstance().has('active-contracts');
 
     const defaultBlockType = getBlockType('hull0')!;
     this.blockPreviewRenderer = new BlockPreviewRenderer(
@@ -186,6 +207,8 @@ export class BlockQueueDisplayManager {
     this.placeAllBlocksButton.unlock();
     this.rollBlocksButton.unlock();
     this.combineBlocksButton.unlock();
+    this.activeContractsButton.unlock();
+    this.jumpCastButton.unlock();
   }
 
   public updateUnlockedAbilities(): void {
@@ -193,6 +216,8 @@ export class BlockQueueDisplayManager {
     this.attachAllAbilityUnlocked = PlayerAbilityManager.getInstance().has('attach-all-blocks');
     this.rollAbilityUnlocked = PlayerAbilityManager.getInstance().has('roll-blocks');
     this.combineAbilityUnlocked = PlayerAbilityManager.getInstance().has('combine-blocks');
+    this.jumpCastAbilityUnlocked = PlayerAbilityManager.getInstance().has('jump-cast');
+    this.activeContractsAbilityUnlocked = PlayerAbilityManager.getInstance().has('active-contracts');
   }
 
   /** Call this on resolution change or scale change */
@@ -222,6 +247,9 @@ export class BlockQueueDisplayManager {
     this.placeBlockButton.resize();
     this.placeAllBlocksButton.resize();
     this.rollBlocksButton.resize();
+    this.combineBlocksButton.resize();
+    this.activeContractsButton.resize();
+    this.jumpCastButton.resize();
   }
 
   public update(dt: number): void {
@@ -236,6 +264,12 @@ export class BlockQueueDisplayManager {
     }
     if (!this.combineButtonHidden && this.combineAbilityUnlocked) {
       this.combineBlocksButton.update(dt);
+    }
+    if (!this.activeContractsButtonHidden && this.activeContractsAbilityUnlocked) {
+      this.activeContractsButton.update(dt);
+    }
+    if (!this.jumpCastButtonHidden && this.jumpCastAbilityUnlocked) {
+      this.jumpCastButton.update(dt);
     }
 
     const blockQueue = this.playerResources.getBlockQueue();
@@ -406,6 +440,8 @@ export class BlockQueueDisplayManager {
       this.placeAllBlocksButton.lock();
       this.rollBlocksButton.lock();
       this.combineBlocksButton.lock();
+      this.activeContractsButton.lock();
+      this.jumpCastButton.lock();
     } else if (this.isDPadNavigationMode) {
       if (pressedCancel) {
         this.isDPadNavigationMode = false;
@@ -416,6 +452,8 @@ export class BlockQueueDisplayManager {
         this.placeAllBlocksButton.unlock();
         this.rollBlocksButton.unlock();
         this.combineBlocksButton.unlock();
+        this.activeContractsButton.unlock();
+        this.jumpCastButton.unlock();
       } else {
         // === Update hold timers ===
         if (isLeftHeld) {
@@ -505,6 +543,12 @@ export class BlockQueueDisplayManager {
     }
     if (!this.combineButtonHidden && this.combineAbilityUnlocked) {
       this.combineBlocksButton.render(this.ctx);
+    }
+    if (!this.activeContractsButtonHidden && this.activeContractsAbilityUnlocked) {
+      this.activeContractsButton.render(this.ctx);
+    }
+    if (!this.jumpCastButtonHidden && this.jumpCastAbilityUnlocked) {
+      this.jumpCastButton.render(this.ctx);
     }
 
     const canvas = this.canvas;
@@ -760,6 +804,22 @@ export class BlockQueueDisplayManager {
 
   public hideCombineButton(): void {
     this.combineButtonHidden = true;
+  }
+
+  public showActiveContractsButton(): void {
+    this.activeContractsButtonHidden = false;
+  }
+
+  public hideActiveContractsButton(): void {
+    this.activeContractsButtonHidden = true;
+  }
+
+  public showJumpCastButton(): void {
+    this.jumpCastButtonHidden = false;
+  }
+
+  public hideJumpCastButton(): void {
+    this.jumpCastButtonHidden = true;
   }
 
   public destroy(): void {

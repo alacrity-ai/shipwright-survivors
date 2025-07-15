@@ -86,10 +86,15 @@ export interface EventTypes {
   'attachButton:hide': undefined;
   'combineButton:show': undefined;
   'combineButton:hide': undefined;
+  'activeContractsButton:show': undefined;
+  'activeContractsButton:hide': undefined;
+  'jumpCastButton:show': undefined;
+  'jumpCastButton:hide': undefined;
 
   // Abilities
   'abilities:update': undefined;
   'abilities:announcement:open': { abilityKey: string };
+  'abilities:unlock-all': undefined;
 
   // Quests
   'quests:step:update': { stepId: QuestStepId; value: number | boolean | string };

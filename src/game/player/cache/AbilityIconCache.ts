@@ -274,14 +274,75 @@ const jumpCastIcon = makeCanvas();
   ctx.stroke();
 }
 
+/* 7 ▪ Active Contracts */
+const activeContractsIcon = makeCanvas();
+{
+  const ctx = activeContractsIcon.getContext('2d')!;
+
+  /* —— Palette —— */
+  const GOLD = '#ffd700';          // glow & fill
+  const DARK = '#001122';          // sheet background
+  const OUTL = '#ffd700';          // outline
+
+  /* —— Contract sheet dimensions —— */
+  const sheetW = SIZE * 0.60;      // ≈ 77 px
+  const sheetH = SIZE * 0.72;      // ≈ 92 px
+  const sheetX = (SIZE - sheetW) / 2;
+  const sheetY = (SIZE - sheetH) / 2;
+
+  /* —— Glow‑backed sheet —— */
+  drawIconBase(ctx, GOLD, c => {
+    c.roundRect(sheetX, sheetY, sheetW, sheetH, 12);
+  });
+
+  /* —— Inner dark fill (removes glow from interior) —— */
+  ctx.fillStyle = DARK;
+  ctx.beginPath();
+  ctx.roundRect(
+    sheetX + STROKE_W * 0.8,
+    sheetY + STROKE_W * 0.8,
+    sheetW  - STROKE_W * 1.6,
+    sheetH  - STROKE_W * 1.6,
+    8,
+  );
+  ctx.fill();
+
+  /* —— Task lines (three gold bars) —— */
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth   = STROKE_W * 0.45;
+  const lineStart = sheetX + STROKE_W * 2;
+  const lineEnd   = sheetX + sheetW - STROKE_W * 2;
+  const firstLine = sheetY + sheetH * 0.28;
+  const spacing   = sheetH * 0.22;
+
+  for (let i = 0; i < 3; i++) {
+    const y = firstLine + i * spacing;
+    ctx.beginPath();
+    ctx.moveTo(lineStart, y);
+    ctx.lineTo(lineEnd,   y);
+    ctx.stroke();
+  }
+
+  /* —— Check‑mark —— */
+  ctx.lineWidth   = STROKE_W * 0.6;
+  ctx.lineCap     = 'round';
+  ctx.beginPath();
+  ctx.moveTo(sheetX + sheetW * 0.70, sheetY + sheetH * 0.70);  // tail
+  ctx.lineTo(sheetX + sheetW * 0.80, sheetY + sheetH * 0.80);  // vertex
+  ctx.lineTo(sheetX + sheetW * 0.92, sheetY + sheetH * 0.50);  // tip
+  ctx.stroke();
+}
+
+
 /*  Registry  */
 const iconMap: Record<string, () => HTMLCanvasElement> = {
-  'icon-pulse':           () => pulseIcon,
-  'icon-attach-block':    () => attachBlockIcon,
-  'icon-attach-all':      () => attachAllIcon,
-  'icon-roll-blocks':     () => rollBlocksIcon,
-  'icon-combine-blocks':  () => combineBlocksIcon,
-  'icon-jump-cast':       () => jumpCastIcon,
+  'icon-pulse':            () => pulseIcon,
+  'icon-attach-block':     () => attachBlockIcon,
+  'icon-attach-all':       () => attachAllIcon,
+  'icon-roll-blocks':      () => rollBlocksIcon,
+  'icon-combine-blocks':   () => combineBlocksIcon,
+  'icon-jump-cast':        () => jumpCastIcon,
+  'icon-active-contracts': () => activeContractsIcon,
 };
 
 /*  Fallback  */

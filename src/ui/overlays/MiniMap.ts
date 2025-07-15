@@ -21,8 +21,8 @@ export class MiniMap {
   private readonly onHide = () => this.hide();
   private readonly onShow = () => this.show();
 
-  private readonly baseWidth = 220;
-  private readonly baseHeight = 220;
+  private readonly baseWidth = 180;
+  private readonly baseHeight = 180;
   private readonly baseMargin = 14;
   private width: number;
   private height: number;
@@ -201,7 +201,7 @@ export class MiniMap {
 
     const canvasW = ctx.canvas.width;
     const canvasH = ctx.canvas.height;
-    const x = canvasW - this.width - this.margin;
+    const x = canvasW - this.width - this.margin * 1.5;
     const y = canvasH - this.height - this.margin;
 
     const alpha = SETTINGS.MINIMAP_TRANSPARENCY ?? 0.85;
