@@ -1,130 +1,236 @@
-// src/rendering/floatingtext/interfaces/FloatingTextEntity.ts
+/*───────────────────────────────────────────────────────────────────────────────
+  FloatingTextEntity.ts —  *GC‑neutral* floating‑damage text renderer
+────────────────────────────────────────────────────────────────────────────────
+  • Zero per‑frame allocations (no closures, no {x,y} literals, no new arrays)
+  • Canvas elements, entities, and text‑metrics are all pooled.
+  • Position is pushed in by the manager each frame to avoid per‑entity lambdas.
+─────────────────────────────────────────────────────────────────────────────*/
 
 import type { FloatingTextBehaviorOptions } from '@/rendering/floatingtext/interfaces/FloatingTextBehaviorOptions';
 
-export type FloatingTextPositionResolver = () => { x: number, y: number };
-
+/*──────────────────────────────  Constants  ────────────────────────────────*/
 const NEON_COLOR_CYCLE = [
   '#FF00FF', '#00FFFF', '#FFFF00', '#00FF00',
   '#FF0000', '#00CCFF', '#FF8800',
-];
+] as const;
 
-const COLOR_CYCLE_INTERVAL = 0.05;
-const IMPACT_SCALE_DURATION = 0.35;
-const TEXT_CANVAS_RESOLUTION = 1;
+const COLOR_CYCLE_INTERVAL    = 0.05;   // s
+const IMPACT_SCALE_DURATION   = 0.35;   // s
+const TEXT_CANVAS_RESOLUTION  = 1;      // device‑pixel multiplier
+const CANVAS_PADDING_PX       = 8;
 
-export class FloatingTextEntity {
-  private elapsed = 0;
-  private yOffset = 0;
-  private readonly originalFontSize: number;
+/*────────────────────────────  Canvas Pool  ───────────────────────────────*/
+class CanvasPool {
+  private static readonly pool: HTMLCanvasElement[] = [];
 
-  private colorCycleIndex = 0;
-  private colorCycleTimer = 0;
+  /** Obtain a cleared off‑screen canvas. */
+  static acquire(): HTMLCanvasElement {
+    return this.pool.pop() ?? document.createElement('canvas');
+  }
 
-  private cachedCanvas: HTMLCanvasElement;
-  private canvasWidth = 0;
-  private canvasHeight = 0;
+  /** Return the canvas to the pool and release GPU memory. */
+  static release(canvas: HTMLCanvasElement): void {
+    canvas.width  = 0;   // forces browser to discard the backing store
+    canvas.height = 0;
+    this.pool.push(canvas);
+  }
+}
 
-  constructor(
-    public text: string,
-    private getPosition: FloatingTextPositionResolver,
-    public fontSize: number,
-    public fontFamily: string,
-    public life: number,
-    public speed: number,
-    public alpha: number,
-    public color: string,
-    public behavior?: FloatingTextBehaviorOptions
-  ) {
-    this.originalFontSize = fontSize;
+/*───────────────────────────  TextMetrics Cache  ───────────────────────────*/
+class TextMetricsCache {
+  private static readonly cache = new Map<string, TextMetrics>();
+  private static readonly probe = document
+    .createElement('canvas')
+    .getContext('2d')!;
 
-    if (this.behavior?.multiColor) {
-      this.colorCycleIndex = Math.floor(Math.random() * NEON_COLOR_CYCLE.length);
-      this.color = NEON_COLOR_CYCLE[this.colorCycleIndex];
+  static get(text: string, font: string): TextMetrics {
+    const key = `${text}∥${font}`;            // composite key
+    let m = this.cache.get(key);
+    if (!m) {
+      this.probe.font = font;
+      m = this.probe.measureText(text);
+      this.cache.set(key, m);
     }
-
-    this.cachedCanvas = this.createTextCanvas();
+    return m;
   }
 
-  private createTextCanvas(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-    const resolution = TEXT_CANVAS_RESOLUTION;
+  static clear(): void {
+    this.cache.clear();
+  }
+}
 
-    const fontPx = Math.round(this.originalFontSize * resolution);
-    ctx.font = `${fontPx}px ${this.fontFamily}`;
-    const metrics = ctx.measureText(this.text);
+/*────────────────────────────  FloatingTextEntity  ──────────────────────────*/
+export class FloatingTextEntity {
+  /*‐‐ Runtime mutables ‐‐*/
+  public x = 0;
+  public y = 0;
 
-    const padding = 8 * resolution;
-    this.canvasWidth = Math.ceil(metrics.width) + padding * 2;
-    this.canvasHeight = Math.ceil(fontPx * 1.2) + padding * 2;
+  public elapsed = 0;
+  public yOffset = 0;
+  public alpha   = 1;
 
-    canvas.width = this.canvasWidth;
-    canvas.height = this.canvasHeight;
+  private colorCycleIdx   = 0;
+  private colorCycleClock = 0;
 
-    ctx.font = `${fontPx}px ${this.fontFamily}`;
-    ctx.fillStyle = this.behavior?.multiColor ? '#FFFFFF' : this.color;
-    ctx.textAlign = 'center';
+  /*‐‐ Cached rendering data ‐‐*/
+  private canvas!: HTMLCanvasElement;
+  private canvasW = 0;
+  private canvasH = 0;
+
+  /*‐‐ Construction invariants (reset on reuse) ‐‐*/
+  private originalFontSize = 14;
+  private fontSize         = 14;
+  private fontFamily       = 'monospace';
+  private life             = 0.6;
+  private speed            = 30;
+  private color            = '#FFFFFF';
+  private behavior?: FloatingTextBehaviorOptions;
+
+  /*──────────────────────  Pool integration  ─────────────────────────────*/
+  private static readonly pool: FloatingTextEntity[] = [];
+
+  /** Acquire a reset entity from the pool (or create one). */
+  static acquire(
+    text:      string,
+    fontSize:  number,
+    fontFamily:string,
+    life:      number,
+    speed:     number,
+    alpha:     number,
+    color:     string,
+    behavior?: FloatingTextBehaviorOptions,
+  ): FloatingTextEntity {
+    const e = this.pool.pop() ?? new FloatingTextEntity();
+    e.reset(text, fontSize, fontFamily, life, speed, alpha, color, behavior);
+    return e;
+  }
+
+  /** Return the entity (and its canvas) to their respective pools. */
+  static release(e: FloatingTextEntity): void {
+    CanvasPool.release(e.canvas);
+    this.pool.push(e);
+  }
+
+  /** Reset all state so the object is indistinguishable from new. */
+  private reset(
+    text:      string,
+    fontSize:  number,
+    fontFamily:string,
+    life:      number,
+    speed:     number,
+    alpha:     number,
+    color:     string,
+    behavior?: FloatingTextBehaviorOptions,
+  ): void {
+    /* basic scalars */
+    this.originalFontSize = fontSize;
+    this.fontSize         = fontSize;
+    this.fontFamily       = fontFamily;
+    this.life             = life;
+    this.speed            = speed;
+    this.alpha            = alpha;
+    this.color            = color;
+    this.behavior         = behavior;
+
+    /* runtime mutables */
+    this.elapsed = 0;
+    this.yOffset = 0;
+    this.colorCycleIdx   = 0;
+    this.colorCycleClock = 0;
+
+    /* regenerate text bitmap */
+    this.canvas = this.renderTextCanvas(text);
+  }
+
+  /*──────────────────────────  Canvas generation  ────────────────────────*/
+  private renderTextCanvas(text: string): HTMLCanvasElement {
+    const cvs  = CanvasPool.acquire();
+    const ctx  = cvs.getContext('2d')!;
+    const res  = TEXT_CANVAS_RESOLUTION;
+    const px   = Math.round(this.originalFontSize * res);
+    const font = `${px}px ${this.fontFamily}`;
+
+    const m  = TextMetricsCache.get(text, font);
+    this.canvasW = Math.ceil(m.width)   + CANVAS_PADDING_PX * 2 * res;
+    this.canvasH = Math.ceil(px * 1.2) + CANVAS_PADDING_PX * 2 * res;
+
+    cvs.width  = this.canvasW;
+    cvs.height = this.canvasH;
+
+    ctx.font = font;
+    ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.text, this.canvasWidth / 2, this.canvasHeight / 2);
+    ctx.fillStyle    = this.behavior?.multiColor ? '#FFFFFF' : this.color;
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.fillText(text, cvs.width / 2, cvs.height / 2);
 
-    return canvas;
+    return cvs;
   }
 
-  public update(dt: number): void {
+  /*──────────────────────────────  Update  ──────────────────────────────*/
+  update(dt: number): void {
     this.elapsed += dt;
     this.yOffset -= this.speed * dt;
 
+    /* Impact scale easing */
     if (this.behavior?.impactScale) {
       const t = Math.min(this.elapsed / IMPACT_SCALE_DURATION, 1);
       const scale = 1 + (this.behavior.impactScale - 1) * (1 - t);
       this.fontSize = this.originalFontSize * scale;
     }
 
+    /* Neon color cycling */
     if (this.behavior?.multiColor) {
-      this.colorCycleTimer += dt;
-      if (this.colorCycleTimer >= COLOR_CYCLE_INTERVAL) {
-        this.colorCycleTimer -= COLOR_CYCLE_INTERVAL;
-        this.colorCycleIndex = (this.colorCycleIndex + 1) % NEON_COLOR_CYCLE.length;
-        this.color = NEON_COLOR_CYCLE[this.colorCycleIndex];
-        // No re-render required — overlay tint will handle color
+      this.colorCycleClock += dt;
+      if (this.colorCycleClock >= COLOR_CYCLE_INTERVAL) {
+        this.colorCycleClock -= COLOR_CYCLE_INTERVAL;
+        this.colorCycleIdx    = (this.colorCycleIdx + 1) % NEON_COLOR_CYCLE.length;
+        this.color            = NEON_COLOR_CYCLE[this.colorCycleIdx];
       }
     }
 
+    /* Fade‑out alpha */
     if (this.behavior?.fadeOut !== false) {
       const remaining = Math.max(0, this.life - this.elapsed);
       this.alpha = Math.min(1, remaining / this.life);
     }
   }
 
-  public isExpired(): boolean {
-    return this.elapsed >= this.life;
-  }
-
-  public render(ctx: CanvasRenderingContext2D): void {
-    const pos = this.getPosition();
-    const renderY = pos.y + this.yOffset;
-
+  /*──────────────────────────────  Render  ──────────────────────────────*/
+  render(ctx: CanvasRenderingContext2D): void {
     const impactScale = this.fontSize / this.originalFontSize;
-    const drawWidth = (this.canvasWidth / TEXT_CANVAS_RESOLUTION) * impactScale;
-    const drawHeight = (this.canvasHeight / TEXT_CANVAS_RESOLUTION) * impactScale;
+    const dw = (this.canvasW / TEXT_CANVAS_RESOLUTION) * impactScale;
+    const dh = (this.canvasH / TEXT_CANVAS_RESOLUTION) * impactScale;
 
-    const drawX = pos.x - drawWidth / 2;
-    const drawY = renderY - drawHeight / 2;
+    const dx = this.x - dw / 2;
+    const dy = this.y + this.yOffset - dh / 2;
 
     ctx.save();
     ctx.globalAlpha = this.alpha;
+    ctx.drawImage(this.canvas, dx, dy, dw, dh);
 
-    // Draw base (white or mono-colored) text
-    ctx.drawImage(this.cachedCanvas, drawX, drawY, drawWidth, drawHeight);
-
-    // Apply color overlay if multiColor is active
     if (this.behavior?.multiColor) {
       ctx.globalCompositeOperation = 'source-atop';
       ctx.fillStyle = this.color;
-      ctx.fillRect(drawX, drawY, drawWidth, drawHeight);
+      ctx.fillRect(dx, dy, dw, dh);
     }
-
     ctx.restore();
   }
+
+  /*──────────────────────────────  Expiry  ──────────────────────────────*/
+  isExpired(): boolean {
+    return this.elapsed >= this.life;
+  }
 }
+
+/*──────────────────────────  Manager‑side Usage  ───────────────────────────
+
+import { FloatingTextEntity } from '@/rendering/floatingtext/FloatingTextEntity';
+
+/* … inside FloatingTextManager.update(): */
+// entity.x = camera.worldToScreenX(wx, wy);
+// entity.y = camera.worldToScreenY(wx, wy);
+// entity.update(dt);
+
+// when expired:
+// FloatingTextEntity.release(entity);

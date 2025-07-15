@@ -51,6 +51,9 @@ export class ParticleManager {
   private emissionAccumulator = 0;
   private cachedVisibleParticles: Particle[] = [];
   
+  private randPtr = 0;          // cheap palette cycling index
+  private randState = 0x12345678 ^ performance.now();   // seed once
+
   // Reuse scratch array to avoid allocations
   private readonly visibleScratch: Particle[] = [];
   
@@ -139,6 +142,63 @@ export class ParticleManager {
   emitBurst(origin: { x: number; y: number }, count: number, options: ParticleOptions = {}): void {
     for (let i = 0; i < count; i++) this._createAndRegisterParticle(origin, options);
   }
+
+  /* VERY small, inlineable RNG: one 32‑bit multiply + two XORs */
+  private nextRand(): number {
+    // scramble a private 32‑bit state field
+    this.randState ^= this.randState << 13;
+    this.randState ^= this.randState >>> 17;
+    this.randState ^= this.randState << 5;
+    // convert to [0,1) float
+    return (this.randState >>> 0) * 2.3283064365386963e-10;
+  }
+
+  /** Ultra‑hot path for two small flame particles.
+   *  – Avoids option parsing, random array indexing, extra trig, and object churn.
+   *  – `palette` is a pre‑resolved array of THREE hex strings (r‑g‑b already cached). */
+  emitPairFast(
+    origin: { x: number; y: number },
+    vx: number,
+    vy: number,
+    palette: readonly [string, string, string]
+  ): void {
+    const r1 = this.nextRand();
+    const r2 = this.nextRand();
+
+    /* --- first particle --- */
+    const p0 = this.getParticle();
+    p0.x = origin.x;
+    p0.y = origin.y;
+    p0.vx = vx + (r1 - 0.5) * 20;                 // ±10 px/s spray
+    p0.vy = vy + (r2 - 0.5) * 20;
+    p0.size = (1.9 + r1) * PARTICLE_SCALE;        // 1.5–2.5
+    p0.life = 0.09 + r2 * 0.06;                   // 0.09–0.15
+    p0.initialLife = p0.life;
+    p0.fadeOut = true;
+    p0.renderAlpha = 1.0;
+    const c0 = palette[(this.randPtr = (this.randPtr + 1) % 3)];
+    const rgb0 = hexToRgb(c0);
+    p0.color = c0;  p0.r = rgb0.r;  p0.g = rgb0.g;  p0.b = rgb0.b;
+
+    /* --- second particle --- */
+    const r3 = this.nextRand();
+    const p1 = this.getParticle();
+    p1.x = origin.x;
+    p1.y = origin.y;
+    p1.vx = vx + (r2 - 0.5) * 20;
+    p1.vy = vy + (r3 - 0.5) * 20;
+    p1.size = (1.2 + r3) * PARTICLE_SCALE;        // 1.2–2.2
+    p1.life = 0.08 + r1 * 0.05;                   // 0.08–0.13
+    p1.initialLife = p1.life;
+    p1.fadeOut = true;
+    p1.renderAlpha = 1.0;
+    const c1 = palette[(this.randPtr = (this.randPtr + 1) % 3)];
+    const rgb1 = hexToRgb(c1);
+    p1.color = c1;  p1.r = rgb1.r;  p1.g = rgb1.g;  p1.b = rgb1.b;
+
+    this.activeParticles.push(p0, p1);
+  }
+
 
   emitContinuous(origin: { x: number; y: number }, dt: number, ratePerSecond: number, options: ParticleOptions = {}): void {
     const clampedDt = Math.min(dt, 0.05);

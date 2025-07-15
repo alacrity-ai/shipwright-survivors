@@ -387,13 +387,14 @@ export abstract class CompositeBlockObject {
     for (const { coord, block } of this.blocks.values()) {
       const { x: cx, y: cy } = coord;
 
-      // Fast inlined position calc
+      /* Fast inlined world‑space transform (unchanged) */
       const worldX = px + cx * 32 * cos - cy * 32 * sin;
       const worldY = py + cx * 32 * sin + cy * 32 * cos;
 
-      this.grid.removeBlockFromCell(block);
       block.position = { x: worldX, y: worldY };
-      this.grid.addBlockToCell(block);
+
+      /* Conditional re‑home */
+      this.grid.rehomeBlock(block);
     }
   }
 

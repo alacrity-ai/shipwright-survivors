@@ -4,6 +4,12 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 
 import { Faction } from '@/game/interfaces/types/Faction';
 
+interface CellRef {
+  cellArr: BlockInstance[];
+  index:   number;          // slot within cellArr
+  cellKey: number;          // packed (cellX<<16)|cellY   — enables O(1) row lookup
+}
+
 export interface BlockInstance {
   id: string;             // UUID
   type: BlockType;       // reference to immutable block definition
@@ -18,5 +24,7 @@ export interface BlockInstance {
   shieldEfficiency?: number; // efficiency of the shield protecting this block
   shieldHighlightColor?: string;
   shieldSourceId?: string;
-  hidden?: boolean; // JUST ADDED THIS <----
+  hidden?: boolean;
+  _cell?: CellRef;  // Transient Metadata
+  _cellFaction?: { cellArr: BlockInstance[]; index: number; cellKey: number };
 }
