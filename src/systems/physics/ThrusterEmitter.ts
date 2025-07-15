@@ -84,14 +84,12 @@ export class ThrusterEmitter {
     this.cachedPosition.y = nozzleWorldY;
 
     // === Emit standard flame particles ===
-    this.sparkManager.emitBurst(this.cachedPosition, 2, {
-      colors: flameColors,
-      velocity: this.cachedVelocity,
-      baseSpeed: 1,
-      sizeRange: afterBurner ? [2, 4] : [1, 3],
-      lifeRange: [0.08, 0.18],
-      fadeOut: true,
-    });
+    this.sparkManager.emitPairFast(
+      this.cachedPosition,
+      this.cachedVelocity.x,
+      this.cachedVelocity.y,
+      flameColors as [string, string, string]   // asserted 3‑color palette
+    );
 
     // === Afterburner Just Activated Effects ===
     if (afterBurnerJustActivated) {

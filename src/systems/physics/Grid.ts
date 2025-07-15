@@ -13,6 +13,8 @@ export class Grid {
   private factionCells: Map<Faction, Map<number, Map<number, BlockInstance[]>>> = new Map();
   private cellSize: number;
 
+  private packKey = (x: number, y: number) => (x << 16) ^ (y & 0xFFFF);
+
   constructor(cellSize: number = 256) {
     this.cellSize = cellSize;
   }
@@ -55,49 +57,84 @@ export class Grid {
 
   addBlockToCell(block: BlockInstance): void {
     const { x, y } = block.position!;
-    const [cellX, cellY] = this.getCellCoords(x, y);
+    const [cx, cy] = this.getCellCoords(x, y);
+    const key      = this.packKey(cx, cy);
 
-    // Add to global map
-    const globalCell = this.getOrCreateCell(this.cells, cellX, cellY);
-    if (!globalCell.includes(block)) globalCell.push(block);
+    /* ── GLOBAL MAP ───────────────────────────────────────────── */
+    const cell = this.getOrCreateCell(this.cells, cx, cy);
+    if (!block._cell || block._cell.cellKey !== key) {
+      cell.push(block);
+      block._cell = { cellArr: cell, index: cell.length - 1, cellKey: key };
+    }
 
-    // Add to faction-specific map
-    const factionMap = this.getFactionMap(block.ownerFaction);
-    const factionCell = this.getOrCreateCell(factionMap, cellX, cellY);
-    if (!factionCell.includes(block)) factionCell.push(block);
-  }
+    /* ── FACTION MAP ──────────────────────────────────────────── */
+    const fMap  = this.getFactionMap(block.ownerFaction);
+    const fCell = this.getOrCreateCell(fMap, cx, cy);
 
-  removeBlockFromCell(block: BlockInstance): void {
-    const { x, y } = block.position!;
-    const [cellX, cellY] = this.getCellCoords(x, y);
-
-    const removeFrom = (map: Map<number, Map<number, BlockInstance[]>>) => {
-      const row = map.get(cellX);
-      if (!row) return;
-
-      const cell = row.get(cellY);
-      if (!cell) return;
-
-      const idx = cell.indexOf(block);
-      if (idx !== -1) cell.splice(idx, 1);
-
-      // Clean up empty cell
-      if (cell.length === 0) {
-        row.delete(cellY);
-      }
-
-      // Clean up empty row
-      if (row.size === 0) {
-        map.delete(cellX);
-      }
-    };
-
-    removeFrom(this.cells);
-    if (block.ownerFaction) {
-      removeFrom(this.getFactionMap(block.ownerFaction));
+    // Avoid double‑push when global/faction share the same array reference
+    if (fCell !== cell && (!block._cellFaction || block._cellFaction.cellKey !== key)) {
+      fCell.push(block);
+      block._cellFaction = { cellArr: fCell, index: fCell.length - 1, cellKey: key };
     }
   }
 
+  removeBlockFromCell(block: BlockInstance): void {
+    /* -------- global pointer -------- */
+    const refGlobal = block._cell;
+    if (refGlobal) {
+      const { cellArr, index, cellKey } = refGlobal;
+      const last = cellArr.pop()!;
+      if (index < cellArr.length) {
+        cellArr[index]      = last;
+        last._cell!.index   = index;
+      }
+      block._cell = undefined;
+
+      if (cellArr.length === 0) {
+        const cx = cellKey >> 16, cy = cellKey & 0xFFFF;
+        const row = this.cells.get(cx);
+        row?.delete(cy);
+        if (row?.size === 0) this.cells.delete(cx);
+      }
+    }
+
+    /* -------- faction pointer -------- */
+    const refFac = block._cellFaction;
+    if (refFac) {
+      const { cellArr, index, cellKey } = refFac;
+      const last = cellArr.pop()!;
+      if (index < cellArr.length) {
+        cellArr[index]            = last;
+        last._cellFaction!.index  = index;
+      }
+      block._cellFaction = undefined;
+
+      if (cellArr.length === 0) {
+        const cx = cellKey >> 16, cy = cellKey & 0xFFFF;
+        const row = this.getFactionMap(block.ownerFaction).get(cx);
+        row?.delete(cy);
+        if (row?.size === 0) this.getFactionMap(block.ownerFaction).delete(cx);
+      }
+    }
+  }
+
+  /** Re‑homes a block if it has migrated to a different cell. */
+  public rehomeBlock(block: BlockInstance): void {
+    const { x, y } = block.position!;
+    const [cx, cy] = this.getCellCoords(x, y);
+    const newKey   = this.packKey(cx, cy);
+
+    // Fast path: still inside the same spatial cell
+    if (block._cell && block._cell.cellKey === newKey) {
+      return;                                   // nothing to do
+    }
+
+    /* Cell transition → full detach/attach */
+    this.removeBlockFromCell(block);            // O(1)
+    this.addBlockToCell(block);                 // O(1)
+  }
+
+  // Additional Bulk Methods
   removeBlocksFromCells(blocks: BlockInstance[]): void {
     for (const block of blocks) {
       this.removeBlockFromCell(block);
@@ -109,6 +146,7 @@ export class Grid {
     return this.getBlocksInCellByCoords(cellX, cellY, excludeFaction);
   }
 
+  // Getters
   getBlocksInCellByCoords(cellX: number, cellY: number, excludeFaction?: Faction): BlockInstance[] {
     const sources = this.getCellSources(excludeFaction);
     const result: BlockInstance[] = [];
