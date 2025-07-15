@@ -65,6 +65,9 @@ export class FloatingTextEntity {
   public x = 0;
   public y = 0;
 
+  public text = '';
+  public numeric = NaN;
+
   public elapsed = 0;
   public yOffset = 0;
   public alpha   = 1;
@@ -81,7 +84,7 @@ export class FloatingTextEntity {
   private originalFontSize = 14;
   private fontSize         = 14;
   private fontFamily       = 'monospace';
-  private life             = 0.6;
+  public life             = 0.6;
   private speed            = 30;
   private color            = '#FFFFFF';
   private behavior?: FloatingTextBehaviorOptions;
@@ -131,6 +134,9 @@ export class FloatingTextEntity {
     this.alpha            = alpha;
     this.color            = color;
     this.behavior         = behavior;
+
+    this.text = text;
+    this.numeric = parseFloat(text);
 
     /* runtime mutables */
     this.elapsed = 0;
@@ -194,6 +200,36 @@ export class FloatingTextEntity {
       const remaining = Math.max(0, this.life - this.elapsed);
       this.alpha = Math.min(1, remaining / this.life);
     }
+  }
+
+  /** Replace the visible text in‑place and regenerate the cached bitmap. */
+  updateText(newText: string): void {
+    if (this.text === newText) return;      // hot‑path guard
+
+    this.text    = newText;
+    this.numeric = +newText;                // unary + is fastest parse
+
+    const res  = TEXT_CANVAS_RESOLUTION;
+    const px   = Math.round(this.originalFontSize * res);
+    const font = `${px}px ${this.fontFamily}`;
+
+    // Recompute metrics
+    const m  = TextMetricsCache.get(newText, font);
+    this.canvasW = Math.ceil(m.width)   + CANVAS_PADDING_PX * 2 * res;
+    this.canvasH = Math.ceil(px * 1.2) + CANVAS_PADDING_PX * 2 * res;
+
+    // Resize in‑place (one backing‑store reset)
+    this.canvas.width  = this.canvasW;
+    this.canvas.height = this.canvasH;
+
+    // Redraw
+    const ctx = this.canvas.getContext('2d')!;
+    ctx.font = font;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = this.behavior?.multiColor ? '#FFFFFF' : this.color;
+    ctx.clearRect(0, 0, this.canvasW, this.canvasH);
+    ctx.fillText(newText, this.canvasW / 2, this.canvasH / 2);
   }
 
   /*──────────────────────────────  Render  ──────────────────────────────*/

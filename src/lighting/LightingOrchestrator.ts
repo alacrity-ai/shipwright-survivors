@@ -23,10 +23,16 @@ export class LightingOrchestrator {
   private tagSetPool: Set<string>[] = [];
 
   private cachedVisibleLights: AnyLightInstance[] = [];
-  private visibleLightsScratch: AnyLightInstance[] = [];
 
   private lastCameraBounds: { x: number; y: number; width: number; height: number } | null = null;
   private lightsDirty = true;
+
+  /** Ping–pong buffers that always stay the same length objects. */
+  private readonly visibleBuffers: [AnyLightInstance[], AnyLightInstance[]] = [
+    [] as AnyLightInstance[],
+    [] as AnyLightInstance[],
+  ];
+  private currentBufferIndex = 0;
 
   private constructor() {}
 
@@ -137,7 +143,6 @@ export class LightingOrchestrator {
 
   collectVisibleLights(camera: Camera): AnyLightInstance[] {
     const bounds = camera.getViewportBounds();
-
     const boundsChanged =
       !this.lastCameraBounds ||
       bounds.x !== this.lastCameraBounds.x ||
@@ -149,12 +154,12 @@ export class LightingOrchestrator {
       return this.cachedVisibleLights;
     }
 
-    const left = bounds.x;
-    const right = bounds.x + bounds.width;
-    const top = bounds.y;
+    const left   = bounds.x;
+    const right  = bounds.x + bounds.width;
+    const top    = bounds.y;
     const bottom = bounds.y + bounds.height;
 
-    const visible = this.visibleLightsScratch;
+    const visible = this.visibleBuffers[this.currentBufferIndex];
     visible.length = 0;
 
     for (const light of this.lights.values()) {
@@ -165,24 +170,25 @@ export class LightingOrchestrator {
         case 'point':
         case 'spot': {
           const { x, y, radius } = light;
-          if (
-            x + radius > left &&
-            x - radius < right &&
-            y + radius > top &&
-            y - radius < bottom
-          ) {
+          if (x + radius > left && x - radius < right &&
+              y + radius > top  && y - radius < bottom) {
             visible.push(light);
           }
           break;
         }
         default:
           visible.push(light);
-          break;
       }
     }
 
-    this.cachedVisibleLights = visible.slice(); // safe return
-    this.lastCameraBounds = this.lastCameraBounds || { x: 0, y: 0, width: 0, height: 0 };
+    // ── ping–pong copy without allocation ───────────────────────────────
+    this.currentBufferIndex ^= 1;                          // swap
+    const out = this.visibleBuffers[this.currentBufferIndex];
+    out.length = 0;
+    for (let i = 0; i < visible.length; ++i) out[i] = visible[i];
+
+    this.cachedVisibleLights = out;
+    this.lastCameraBounds ??= { x: 0, y: 0, width: 0, height: 0 };
     Object.assign(this.lastCameraBounds, bounds);
     this.lightsDirty = false;
     return this.cachedVisibleLights;
@@ -257,7 +263,6 @@ export class LightingOrchestrator {
 
     this.lightPool.length = 0;
     this.cachedVisibleLights.length = 0;
-    this.visibleLightsScratch.length = 0;
     this.tagSetPool.length = 0;
     this.lastCameraBounds = null;
 

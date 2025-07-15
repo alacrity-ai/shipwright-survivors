@@ -32,7 +32,9 @@ type Source = ScreenSource | WorldSource;
 
 /*────────────────────────────  Configuration  ──────────────────────────────*/
 const ADDITIONAL_FONT_SCALE   = 1.25;
-const MERGE_WINDOW_MS         = 50;
+const MERGE_WINDOW_MS         = 200;
+const REMAINING_BONUS = 0.3;           // seconds to add per merge
+const maxLife = 1.2;                   // hard ceiling
 
 /*────────────────────────────  Manager Class  ──────────────────────────────*/
 export class FloatingTextManager {
@@ -147,22 +149,37 @@ export class FloatingTextManager {
     behavior?: FloatingTextBehaviorOptions,
     channel?:  string,
   ): void {
-    /* ── Channel merge (numeric accumulation) ───────────────────────────*/
+    /* ── Channel merge (numeric accumulation) ────────────────────────── */
     const now = performance.now();
     if (channel) {
       const rec = this.channelMap.get(channel);
-      if (rec && now - rec.lastUpdate < MERGE_WINDOW_MS) {
-        const a = parseFloat(rec.entity['text' as keyof FloatingTextEntity] as any);
-        const b = parseFloat(text);
-        if (!isNaN(a) && !isNaN(b)) {
-          rec.entity['text' as keyof FloatingTextEntity] = `${Math.round(a + b)}` as any;
-          rec.entity['alpha']   = 1;
-          rec.entity['life']    = life;
-          rec.lastUpdate        = now;
-          return;
+      if (rec) {
+        const win = behavior?.mergeWindowMs ?? MERGE_WINDOW_MS;
+        if (now - rec.lastUpdate < win) {
+          const a = rec.entity.numeric;   // cached numeric  (NaN if text)
+          const b = +text;                // unary + fastest parse
+
+          if (a === a && b === b) {       // NaN check
+            const merged = Math.round(a + b);
+
+            /* ── NEW: keep whatever prefix the entity already shows ── */
+            const prefix = rec.entity.text.replace(/[\d.,-]+$/u, ''); // e.g. "+" or ""
+            const mergedText = prefix + merged;                       // "+123" or "123"
+
+            rec.entity.updateText(mergedText);  // redraw in‑place
+            rec.entity.alpha = 1;
+
+            /* partial life refresh (no elapsed reset) */
+            const remaining = rec.entity.life - rec.entity.elapsed;
+            rec.entity.life = Math.min(maxLife, remaining + REMAINING_BONUS);
+
+            rec.lastUpdate = now;
+            return;
+          }
         }
       }
     }
+
 
     /* ── Pool‑aware entity acquisition ───────────────────────────────────*/
     const e = FloatingTextEntity.acquire(
