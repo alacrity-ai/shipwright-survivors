@@ -150,8 +150,8 @@ export const mission1Quests: Record<string, Quest> = {
     rewards     : [
       {
         kind    : 'shipUnlock',
-        blurb   : 'Unlocks: Godhand Prototype',
-        shipId  : 'godhand',
+        blurb   : 'Unlocks: Vanguard',
+        shipId  : 'vanguard',
       },
     ],
   },

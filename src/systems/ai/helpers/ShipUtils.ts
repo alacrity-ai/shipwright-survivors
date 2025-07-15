@@ -142,6 +142,7 @@ export function findRandomTargetInRange(
 
     // Gameplay immunity check
     if (ship.getAffixes()?.invulnerable) continue;
+    if (ship.isNoClip()) continue;
 
     // Precise distance check (ShipGrid is coarse)
     const { x, y } = ship.getTransform().position;

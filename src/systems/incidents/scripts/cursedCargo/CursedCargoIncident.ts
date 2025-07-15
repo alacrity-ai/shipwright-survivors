@@ -9,6 +9,8 @@ import { spawnRepairExplosion } from '@/systems/pickups/helpers/spawnRepairExplo
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { randomIntFromRange } from '@/shared/mathUtils';
 
+import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
+
 import type { WaveDefinition, WaveShipEntry } from '@/game/waves/types/WaveDefinition';
 import type { IncidentRuntimeContext } from '@/systems/incidents/types/IncidentRuntimeContext';
 
@@ -184,6 +186,9 @@ export class CursedCargoIncident extends BaseIncidentScript {
       });
 
       createLightFlash(x, y, 1400, 1.0, 0.5, '#ffffff');
+
+      // Update quest step
+      reportQuestStepUpdated('cursedCargoIncidentsCleared', 1);
     }
 
     for (const tag of this.ownedWaveTags) {

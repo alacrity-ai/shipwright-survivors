@@ -72,7 +72,7 @@ export class PlayerControllerSystem {
 
     /* overlay / menu suppression rules */
     const gm     = GlobalMenuReporter.getInstance();
-    const suppress = gm.isAnyMenuOpen() // || gm.isAnyOverlayHovered()) && this.aimProvider === this.manualProvider;
+    const suppress = gm.isAnyMenuOpen() || this.playerShip.isJumping();
 
     const weapons = suppress || !this.playerShip.getCanFire()
       ? EMPTY_WEAPON_INTENT

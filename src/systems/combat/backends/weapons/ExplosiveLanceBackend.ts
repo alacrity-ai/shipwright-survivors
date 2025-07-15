@@ -247,6 +247,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
             const coord = compositeBlockObject ? findBlockCoordinatesInObject(block, compositeBlockObject) : null;
 
             if (compositeBlockObject && coord) {
+              if (compositeBlockObject.isNoClip()) continue;
+
               lance.stuck = true;
               lance.targetBlock = block;
               lance.targetShip = compositeBlockObject;

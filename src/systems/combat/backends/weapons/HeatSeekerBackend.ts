@@ -271,6 +271,8 @@ export class HeatSeekerBackend implements WeaponBackend {
 
       // ── 2·D  Impact detection & damage application ───────────────────────────────────
       if (missile.targetShip) {
+        if (missile.targetShip.isNoClip()) continue;
+
         for (const [coord, block] of missile.targetShip.getAllBlocks()) {
           if (!block.position) continue;
 
