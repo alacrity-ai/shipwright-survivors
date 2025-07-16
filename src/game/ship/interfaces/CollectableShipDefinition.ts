@@ -16,4 +16,5 @@ export interface CollectableShipMetadata {
   speedRating?: number;
   weaponSpecialization?: string;
   weaponBlocks?: string[];
+  affinity?: string;
 }

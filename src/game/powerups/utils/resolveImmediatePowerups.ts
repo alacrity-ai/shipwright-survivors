@@ -7,7 +7,8 @@ import { blockAffinityTree } from '@/game/powerups/registry/trees/blockAffinityT
 import { PlayerResources }  from '@/game/player/PlayerResources';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { ShipRegistry }     from '@/game/ship/ShipRegistry';
-import { getBlockType, getRandomBlockInTier } from '@/game/blocks/BlockRegistry';
+import { getBlockType, getRandomBlockInTier, getNextTierBlock } from '@/game/blocks/BlockRegistry';
+import { upgradeAffinityBlocksOnShip } from '@/game/blocks/helpers/upgradeUtils';
 
 import type {
   GrantRandomBlocksEffect,
@@ -56,6 +57,9 @@ export function resolveImmediatePowerups(powerupId: string): void {
     PlayerShipCollection.getInstance().getActiveShip();
   const affinityBlocks =
     activeShipDef?.metaData?.weaponBlocks ?? [];
+  const affinityTag =
+    activeShipDef?.metaData?.affinity ?? '';
+
   if (affinityBlocks.length === 0) {
     console.warn(
       '[resolveImmediatePowerups] Active ship has no weaponBlocks metadata.',
@@ -81,25 +85,6 @@ export function resolveImmediatePowerups(powerupId: string): void {
   /* ─── Case B: Upgrade existing affinity blocks ─── */
   if (node.metadata.upgradeAffinityBlocksByTier) {
     const delta = node.metadata.upgradeAffinityBlocksByTier;
-    ship.getAllBlocks().forEach(([, block]) => {
-      const baseName = block.type.id.replace(/\d+$/, '');
-      const affinityMatch = affinityBlocks.some(b =>
-        b.startsWith(baseName),
-      );
-      if (!affinityMatch) return;
-
-      const currentTier = Number(
-        block.type.id.match(/\d+$/)?.[0] ?? 1,
-      );
-      if (currentTier >= 5) return;
-
-      const newTier = Math.min(currentTier + delta, 5);
-      const newBlockId = `${baseName}${newTier}`;
-      const newBlockType = getBlockType(newBlockId);
-      if (!newBlockType) return;
-
-      block.type = newBlockType;
-      block.hp = newBlockType.armor;
-    });
+    upgradeAffinityBlocksOnShip(ship, [affinityTag], delta);
   }
 }

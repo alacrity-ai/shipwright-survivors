@@ -51,7 +51,6 @@ export class HaloBladeBackend implements WeaponBackend {
     ]);
   }
 
-  // REMOVED ENTIRELY, never used
   render(dt: number): void {}
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
@@ -148,16 +147,16 @@ export class HaloBladeBackend implements WeaponBackend {
         // Determine if source ship is Faction.Enemy
         const isEnemy = ship.getFaction() === Faction.Enemy;
         // Emit particle from orbiter blade
+        let color = isEnemy ? '#ff0000' : props.color;
         this.particleManager.emitParticle(orbiter.position, {
-          colors: [props.color, '#fff'],
+          colors: [color],
           baseSpeed: 0,
-          sizeRange: [0.8, 1.2],
+          sizeRange: [1.2, 1.6],
           lifeRange: [0.3, 0.8],
           fadeOut: true,
           light: true,
           lightRadiusScalar: 32,
           lightIntensity: 0.7,
-          lightColorOverride: isEnemy ? '#ff0000' : undefined,
         });
       }
     }

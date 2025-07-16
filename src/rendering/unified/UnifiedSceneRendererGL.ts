@@ -260,8 +260,6 @@ export class UnifiedSceneRendererGL {
 
     // === Step 6: Render entities ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Light was rendering to offscreen FB, so we needed to rebind before going to the next
-    const ambientLight = this.lightingPass.getAmbientLight();
-    this.entityPass.setAmbientLight(ambientLight);
     this.entityPass.render(ships, lightTexture, camera);
 
     // === Step 7: Render batched sprites ===

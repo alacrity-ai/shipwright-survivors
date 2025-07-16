@@ -23,13 +23,6 @@ const tmpRotation = new Float32Array(16);
 const tmpModelMatrix = new Float32Array(16);
 const tmpMouseWorld = { x: 0, y: 0 };
 
-function getChargeColor(id: string): [number, number, number] | null {
-  if (id === 'battery1' || id === 'reactor1' || id === 'shield1') return [0.2, 0.6, 1.0];
-  if (id === 'battery2' || id === 'reactor2' || id === 'shield3') return [0.8, 0.5, 1.0];
-  if (id === 'shield2') return [0.3, 1.0, 0.4];
-  return null;
-}
-
 function isMetallicSheenBlock(id: string): boolean {
   return id.startsWith('hull') || id.startsWith('fin') || id.startsWith('faceplate') || id.startsWith('engine');
 }
@@ -45,7 +38,7 @@ export class EntityPass {
   private lastBlockIndices = new WeakMap<CompositeBlockObject, number>();
   private currentTex0: WebGLTexture | null = null;
 
-  private ambientLight: [number, number, number] = [0.2, 0.2, 0.25];
+  private ambientLight: [number, number, number] = [3.2, 3.2, 3.2];
 
   private readonly uniforms: {
     uModelMatrix: WebGLUniformLocation | null;
@@ -55,10 +48,6 @@ export class EntityPass {
     uTexture: WebGLUniformLocation | null;
     uLightMap: WebGLUniformLocation | null;
     uTime: WebGLUniformLocation | null;
-    uGlowStrength: WebGLUniformLocation | null;
-    uEnergyPulse: WebGLUniformLocation | null;
-    uChargeColor: WebGLUniformLocation | null;
-    uSheenStrength: WebGLUniformLocation | null;
     uCollisionColor: WebGLUniformLocation | null;
     uUseCollisionColor: WebGLUniformLocation | null;
     uAmbientLight: WebGLUniformLocation | null;
@@ -96,10 +85,6 @@ export class EntityPass {
       uTexture: gl.getUniformLocation(this.program, 'uTexture'),
       uLightMap: gl.getUniformLocation(this.program, 'uLightMap'),
       uTime: gl.getUniformLocation(this.program, 'uTime'),
-      uGlowStrength: gl.getUniformLocation(this.program, 'uGlowStrength'),
-      uEnergyPulse: gl.getUniformLocation(this.program, 'uEnergyPulse'),
-      uChargeColor: gl.getUniformLocation(this.program, 'uChargeColor'),
-      uSheenStrength: gl.getUniformLocation(this.program, 'uSheenStrength'),
       uCollisionColor: gl.getUniformLocation(this.program, 'uCollisionColor'),
       uUseCollisionColor: gl.getUniformLocation(this.program, 'uUseCollisionColor'),
       uAmbientLight: gl.getUniformLocation(this.program, 'uAmbientLight'),
@@ -113,32 +98,24 @@ export class EntityPass {
     this.frameBudgetMs = ms;
   }
 
-  /** ------------------------------------------------------------------
-   *  EntityPass.render — texture‑bind memoised variant
-   *  Reduces redundant driver calls when consecutive blocks share
-   *  the same sprite or overlay texture.
-   *  ------------------------------------------------------------------ */
-  render(
-    entities: CompositeBlockObject[],
-    lightTexture: WebGLTexture,
-    camera:      Camera
-  ): void {
+  render(entities: CompositeBlockObject[], lightTexture: WebGLTexture, camera: Camera): void {
     const { gl } = this;
-    const now       = performance.now();
-    const deadline  = now + this.frameBudgetMs;
-    const time      = now / 1000;
+    const now = performance.now();
+    const deadline = now + this.frameBudgetMs;
+    const time = now / 1000;
 
     if (entities.length === 0) return;
     const startIndex = this.lastEntityIndex % entities.length;
 
-    /* ── Fixed per‑pass state ─────────────────────────────────────── */
+    // Fixed per-pass state
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.useProgram(this.program);
-    this.currentTex0 = null; // prevent stale GL state across consecutive render passes
+    this.currentTex0 = null; // Clear texture cache at start of pass
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    
+
+    // Set uniforms that don't change per-block
     gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
     gl.uniform1f(this.uniforms.uTime, time);
     gl.uniform3f(this.uniforms.uAmbientLight, ...this.ambientLight);
@@ -152,11 +129,7 @@ export class EntityPass {
       camera.screenToWorld(mouse.x, mouse.y, tmpMouseWorld);
     }
 
-    /* last‑bound texture caches (unit 0) */
-    let lastBaseTex:    WebGLTexture | null = null;
-    let lastOverlayTex: WebGLTexture | null = null;
-
-    /* ── Main entity loop ─────────────────────────────────────────── */
+    // Main entity loop
     let i = startIndex;
     for (let looped = 0; looped < entities.length; looped++) {
       const entity = entities[i];
@@ -170,7 +143,7 @@ export class EntityPass {
       gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
 
       const colorOverride = entity.getBlockColor?.();
-      const intensity     = entity.getBlockColorIntensity?.() ?? 0.5;
+      const intensity = entity.getBlockColorIntensity?.() ?? 0.5;
 
       if (colorOverride) {
         const r = parseInt(colorOverride.substring(1, 3), 16) / 255;
@@ -183,89 +156,52 @@ export class EntityPass {
         gl.uniform1i(this.uniforms.uUseBlockColor, 0);
       }
 
-      /* ── 2.  Ship‑level locals ────────────────────────────────────────── */
-      let blockIndex   = this.lastBlockIndices.get(entity) ?? 0;
+      let blockIndex = this.lastBlockIndices.get(entity) ?? 0;
       let currentBlock = 0;
-
-      /* caching for type‑scoped uniforms */
-      let lastTypeId: string | null = null;
-      let lastPulse = 0, lastGlow = 0, lastSheen = 0;
-      let lastChargeR = 0, lastChargeG = 0, lastChargeB = 0;
 
       entity.forEachBlock((coord, block) => {
         if (currentBlock++ < blockIndex) return;
-        if (block.hidden)                return;
+        if (block.hidden) return;
 
-        const typeId = block.type.id;                                          // NEW
-        const maxHp       = block.type.armor ?? 1;
+        const typeId = block.type.id;
+        const maxHp = block.type.armor ?? 1;
         const damageLevel = getDamageLevel(block.hp, maxHp);
-        const sprite      = getGL2BlockOrAsteroidSprite(typeId, damageLevel);
+        const sprite = getGL2BlockOrAsteroidSprite(typeId, damageLevel);
 
-        const localX        = coord.x * BLOCK_SIZE;
-        const localY        = coord.y * BLOCK_SIZE;
+        const localX = coord.x * BLOCK_SIZE;
+        const localY = coord.y * BLOCK_SIZE;
         const blockRotation = (block.rotation ?? 0) * Math.PI / 180;
 
         gl.uniform2f(this.uniforms.uBlockPosition, localX, localY);
         gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
-        /* gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE); */ // REMOVED
 
-        /* ── 2‑A.  Update *type‑scoped* uniforms only on change ─────────── */
-        if (typeId !== lastTypeId) {
-          const chargeColor  = getChargeColor(typeId);
-          const energyPulse  = chargeColor ? Math.sin(time * 6.0) * 0.5 + 0.5 : 0.0;
-          const glowStrength = typeId.startsWith('cockpit') ? 1.0 : 0.0;
-          const sheenStrength= isMetallicSheenBlock(typeId) ? 1.0 : 0.0;
-
-          if (energyPulse !== lastPulse)
-            gl.uniform1f(this.uniforms.uEnergyPulse, energyPulse);
-          if (glowStrength !== lastGlow)
-            gl.uniform1f(this.uniforms.uGlowStrength, glowStrength);
-          if (sheenStrength !== lastSheen)
-            gl.uniform1f(this.uniforms.uSheenStrength, sheenStrength);
-
-          const [r, g, b] = chargeColor ?? [0, 0, 0];
-          if (r !== lastChargeR || g !== lastChargeG || b !== lastChargeB) {
-            gl.uniform3f(this.uniforms.uChargeColor, r, g, b);
-            lastChargeR = r; lastChargeG = g; lastChargeB = b;
-          }
-
-          lastTypeId  = typeId;
-          lastPulse   = energyPulse;
-          lastGlow    = glowStrength;
-          lastSheen   = sheenStrength;
-        }
-
-        /* ── 3.  Texture bind memoisation (already present) ─────────────── */
+        // Bind base texture and render
         this.bindTex0(sprite.base);
-        lastBaseTex = sprite.base;
         gl.uniform1i(this.uniforms.uTexture, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-        /* ── 4.  Overlay path with same optimisation ────────────────────── */
+        // Overlay rendering
         if (sprite.overlay && this.inputManager) {
           const worldX = position.x + localX * Math.cos(rotation) - localY * Math.sin(rotation);
           const worldY = position.y + localX * Math.sin(rotation) + localY * Math.cos(rotation);
 
           const dx = tmpMouseWorld.x - worldX;
           const dy = tmpMouseWorld.y - worldY;
-          const globalAngle  = Math.atan2(dy, dx);
+          const globalAngle = Math.atan2(dy, dx);
           const overlayAngle = globalAngle - rotation + Math.PI / 2;
 
           gl.uniform1f(this.uniforms.uBlockRotation, overlayAngle);
           gl.uniform2f(this.uniforms.uBlockPosition, localX, localY);
 
           this.bindTex0(sprite.overlay);
-          lastOverlayTex = sprite.overlay;
+          gl.uniform1i(this.uniforms.uTexture, 0);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-          // Restore base texture so state matches cache
-          this.bindTex0(sprite.base);
-          lastBaseTex = sprite.base;
-
+          // Restore original rotation (position is already set correctly)
           gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
         }
 
-        /* Deadline check — frame‑budget slicing */
+        // Frame budget check
         if (performance.now() > deadline) {
           this.lastEntityIndex = i;
           this.lastBlockIndices.set(entity, currentBlock);
@@ -280,8 +216,8 @@ export class EntityPass {
       i = (i + 1) % entities.length;
     }
 
-    /* ── End‑of‑pass cleanup ───────────────────────────────────────── */
-    this.lastEntityIndex  = i;
+    // End-of-pass cleanup
+    this.lastEntityIndex = i;
     this.lastBlockIndices = new WeakMap();
 
     gl.disable(gl.BLEND);
@@ -300,13 +236,13 @@ export class EntityPass {
     if (gl.isVertexArray(this.vao)) gl.deleteVertexArray(this.vao);
   }
 
-  /** Hot‑path texture binder (no GC churn, inlined by JIT) */
+  /** Optimized texture binding - avoids redundant GL calls */
   private bindTex0(tex: WebGLTexture): void {
-    if (tex !== this.currentTex0) {        // branch predicted ~95 % of the time
+    if (tex !== this.currentTex0) {
       const { gl } = this;
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, tex);
-      this.currentTex0 = tex;              // single source of truth
+      this.currentTex0 = tex;
     }
   }
 }

@@ -137,6 +137,7 @@ import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { openQuestsMenu } from './interfaces/events/QuestReporter';
 import { abilities } from '@/game/player/PlayerAbilityManager';
+import { upgradeAffinityBlocksOnShip } from '@/game/blocks/helpers/upgradeUtils';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -819,8 +820,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyG')) {
-      addPostProcessEffect('bloom');
-      addPostProcessEffect('chromaticAberration');
+      upgradeAffinityBlocksOnShip(this.ship!, ['haloBlade'], 1);
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
@@ -850,13 +850,13 @@ export class EngineRuntime {
     if (this.inputManager.wasKeyJustPressed('Digit1')) {
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4', 'hull1', 'hull2', 'hull3', 'fin1', 'fin2', 'facetplate1', 'facetplate2', 'turret1', 'turret2', 'turret3', 'turret4', 'laser1', 'harvester1', 'battery1', 'shield1', 'turret2', 'fuelTank1'];
       // const randomTypes = ['fuelTank1', 'fuelTank2', 'fuelTank3', 'fuelTank4'];
-      // const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
+      const randomTypes = ['haloBlade1', 'haloBlade2', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['engine1', 'engine2', 'engine3', 'engine4'];
       // const randomTypes = ['engine4', 'hull4', 'fin4', 'facetplate4', 'turret4', 'laser1', 'battery2', 'shield2', 'harvester1', 'explosiveLance1', 'haloBlade3', 'haloBlade4'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4', 'explosiveLance1', 'explosiveLance2'];
       // const randomTypes = ['heatSeeker1', 'heatSeeker2', 'heatSeeker3', 'heatSeeker4'];
       // const randomTypes = ['laser1', 'laser2', 'laser3', 'laser4'];
-      const randomTypes = ['heatSeeker1'];
+      // const randomTypes = ['heatSeeker1'];
       for (let i = 0; i < 5; i++) {
         this.blockDropDecisionMenu.enqueueBlock(getBlockType(randomTypes[Math.floor(Math.random() * randomTypes.length)])!);
       }

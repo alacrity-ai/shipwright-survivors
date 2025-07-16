@@ -1582,3 +1582,53 @@ export function getAllBlocksInTierFromBlockType(blockType: BlockType): BlockType
 export function getTierFromBlockType(blockType: BlockType): number {
   return getTierFromBlockId(blockType.id);
 }
+
+/** ─────────────────────────────────────────────────────────────
+ * Affinity-based upgrade chains, grouped by primary metatag.
+ * This map is lazily built from blockTypes.
+ * ───────────────────────────────────────────────────────────── */
+const affinityUpgradeChains: Map<string, BlockType[]> = new Map();
+
+// Build affinity chains from metatag
+for (const block of Object.values(blockTypes)) {
+  const [tag] = block.metatags ?? [];
+  if (!tag) continue;
+
+  if (!affinityUpgradeChains.has(tag)) {
+    affinityUpgradeChains.set(tag, []);
+  }
+  affinityUpgradeChains.get(tag)!.push(block);
+}
+
+// Ensure tier order within each chain
+for (const chain of affinityUpgradeChains.values()) {
+  chain.sort((a, b) => a.tier - b.tier);
+}
+
+/**
+ * Gets the upgraded block for a given base block and delta.
+ * Will not exceed the max tier in the affinity group.
+ */
+export function getNextTierBlock(current: BlockType, delta: number): BlockType | undefined {
+  const [tag] = current.metatags ?? [];
+  if (!tag) return undefined;
+
+  const chain = affinityUpgradeChains.get(tag);
+  if (!chain) return undefined;
+
+  const index = chain.findIndex(b => b.id === current.id);
+  if (index === -1) return undefined;
+
+  const newIndex = Math.min(index + delta, chain.length - 1);
+  return chain[newIndex];
+}
+
+/**
+ * Returns the full upgrade chain (sorted by tier) for a given BlockType.
+ */
+export function getAffinityChainFor(block: BlockType): BlockType[] {
+  const [tag] = block.metatags ?? [];
+  if (!tag) return [];
+
+  return affinityUpgradeChains.get(tag) ?? [];
+}
