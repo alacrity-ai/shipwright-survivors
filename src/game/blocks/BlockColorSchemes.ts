@@ -97,7 +97,7 @@ export const LASER_TIER_COLORS_RGBA: Record<number, [number, number, number, num
   1: [80, 200, 255, 1], // Tier 1 – cyan
   2: [0, 255, 0, 1],    // Tier 2 – emerald green
   3: [0, 0, 255, 1],    // Tier 3 – cobalt blue
-  4: [223, 10, 255, 1],   // Tier 4 – royal purple
+  4: [140, 0, 140, 1],   // Tier 4 – royal purple
   5: [255, 204, 0, 1],   // Tier 5 – gold
 };
 
