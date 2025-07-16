@@ -45,7 +45,7 @@ const LASER_BEAM_EXTENSION_PX = 80;
 const CHAIN_RANGE_PX = 1500; // Range to search for chain targets
 
 /** Helper colour palette keyed by block tier (fallback: cyan). */
-import { BLOCK_TIER_COLORS_RGBA, BLOCK_TIER_COLORS }           from '@/game/blocks/BlockColorSchemes';
+import { LASER_TIER_COLORS_RGBA, BLOCK_TIER_COLORS }           from '@/game/blocks/BlockColorSchemes';
 
 export class LaserBackend implements WeaponBackend {
 
@@ -131,7 +131,7 @@ export class LaserBackend implements WeaponBackend {
 
       // ─── Fire the initial laser beam ──────────────────────────────────────────
       const dmg = (fireDef.fireDamage ?? 1) * damageBonus;
-      const tierColour = BLOCK_TIER_COLORS_RGBA[emitter.block.type.tier] ?? [0.2, 0.9, 1.0, 1.0];
+      const tierColour = LASER_TIER_COLORS_RGBA[emitter.block.type.tier] ?? [0.2, 0.9, 1.0, 1.0];
       
       this.fireLaserBeam(
         origin,

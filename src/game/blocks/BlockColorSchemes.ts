@@ -85,11 +85,20 @@ export const BLOCK_TIER_COLORS: Record<number, string> = {
 export const BLOCK_TIER_COLORS_RGBA: Record<number, [number, number, number, number]> = {
   0: [169, 169, 169, 1], // Tier 0 – white (for consistency)
   1: [169, 169, 169, 1], // Tier 1 – neutral white
-  2: [0, 170, 51, 1],    // Tier 2 – emerald green
-  3: [0, 51, 204, 1],    // Tier 3 – cobalt blue
+  2: [0, 255, 0, 1],    // Tier 2 – emerald green
+  3: [0, 51, 255, 1],    // Tier 3 – cobalt blue
   4: [102, 0, 204, 1],   // Tier 4 – royal purple
   5: [255, 204, 0, 1],   // Tier 5 – gold (optional)
   10: [255, 51, 102, 1], // Cockpit tier – exotic pink-red (for story-critical parts)
+};
+
+export const LASER_TIER_COLORS_RGBA: Record<number, [number, number, number, number]> = {
+  0: [255, 255, 255, 1], // Tier 0 – white (for consistency)
+  1: [80, 200, 255, 1], // Tier 1 – cyan
+  2: [0, 255, 0, 1],    // Tier 2 – emerald green
+  3: [0, 0, 255, 1],    // Tier 3 – cobalt blue
+  4: [223, 10, 255, 1],   // Tier 4 – royal purple
+  5: [255, 204, 0, 1],   // Tier 5 – gold
 };
 
 export const PICKUP_FLASH_COLORS: Record<string, string> = {
