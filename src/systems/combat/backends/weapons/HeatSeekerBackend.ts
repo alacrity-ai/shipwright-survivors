@@ -29,7 +29,7 @@ interface ActiveSeekerMissile {
   age: number;
   targetShip: Ship | null;
   ownerShipId: string;
-  particleIndex: number;
+  particleHandle: number;
   firingBlockId: string;
   turningPower: number;
   exploded: boolean;
@@ -112,7 +112,7 @@ export class HeatSeekerBackend implements WeaponBackend {
         const turningPower = (fire.turningPower ?? 0) * TURNING_POWER_COMPENSATION;
         const color = BLOCK_TIER_COLORS[seeker.block.type.tier] ?? '#ccc';
 
-        const particleIndex = this.particleManager.emitParticle({ x: worldX, y: worldY }, {
+        const particleHandle = this.particleManager.emitParticleWithHandle({ x: worldX, y: worldY }, {
           colors: [color],
           baseSpeed: 0,
           sizeRange: [2, 2],
@@ -142,7 +142,7 @@ export class HeatSeekerBackend implements WeaponBackend {
           age: 0,
           targetShip: target,
           ownerShipId: ship.id,
-          particleIndex,
+          particleHandle,
           firingBlockId: seeker.block.type.id,
           turningPower,
           exploded: false,
@@ -198,8 +198,7 @@ export class HeatSeekerBackend implements WeaponBackend {
                               (1.0 + (TURNING_GROWTH_FACTOR - 1.0) * t);
 
       if (missile.age > missile.ttl) {
-        console.log('[EXPIRING MISSLE PARTICLE]')
-        this.particleManager.removeParticle(missile.particleIndex);
+        this.particleManager.killParticle(missile.particleHandle);
         expired.add(missile);
         continue;
       }
@@ -249,6 +248,11 @@ export class HeatSeekerBackend implements WeaponBackend {
       // ── 2·B  Positional update ─────────────────────────────────────────────
       missile.position.x += missile.velocity.x * dt;
       missile.position.y += missile.velocity.y * dt;
+      this.particleManager.setParticlePosition(
+        missile.particleHandle,
+        missile.position.x,
+        missile.position.y
+      );
 
       // ── 2·C  Smoke-trail emission (probabilistic budget) ───────────────────
       if (Math.random() < emitProb) {
@@ -298,7 +302,7 @@ export class HeatSeekerBackend implements WeaponBackend {
   private explodeMissile(missile: ActiveSeekerMissile, sourceShip: Ship): void {
     if (!missile.targetShip) return;
 
-    this.particleManager.removeParticle(missile.particleIndex);
+    this.particleManager.killParticle(missile.particleHandle);
 
     const color = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#ccc';
     createLightFlash(

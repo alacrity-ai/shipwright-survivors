@@ -40,7 +40,7 @@ interface ActiveExplosiveLance {
   targetShip: CompositeBlockObject | null;
   coord: GridCoord | null;
   ownerShipId: string;
-  particleIndex: number;
+  particleHandle: number;
   particleOriginalSize: number;
   anchorOffset?: { x: number; y: number };
   ttl: number;
@@ -113,7 +113,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       const vy = Math.sin(angle) * (fire.projectileSpeed ?? 300);
 
       const colors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.block.type.id] ?? ['#ccc', '#aaa', '#888'];
-      const particleIndex = this.particleManager.emitParticle({ x: worldX, y: worldY }, {
+      const particleHandle = this.particleManager.emitParticleWithHandle({ x: worldX, y: worldY }, {
         colors,
         baseSpeed: 0,
         sizeRange: [4, 4],
@@ -157,7 +157,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         targetShip: null,
         coord: null,
         ownerShipId: ship.id,
-        particleIndex,
+        particleHandle,
         particleOriginalSize: 4,
         ttl: lifetime,
         age: 0,
@@ -198,7 +198,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       }
 
       if (lance.age > lance.ttl && !lance.stuck) {
-        this.particleManager.removeParticle(lance.particleIndex);
+        this.particleManager.killParticle(lance.particleHandle);
         exploded.add(lance);
         continue;
       }
@@ -210,7 +210,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           lance.position.y = shipPos.y + lance.anchorOffset.y;
 
           this.particleManager.setParticlePosition(
-            lance.particleIndex,
+            lance.particleHandle,
             lance.position.x,
             lance.position.y
           );
@@ -291,9 +291,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               };
 
               lance.velocity = { x: 0, y: 0 };
-              this.particleManager.setParticleVelocity(lance.particleIndex, 0, 0);
-              this.particleManager.extendParticleLife(lance.particleIndex, lance.detonationDelay + 0.2);
-              this.particleManager.setParticleSize(lance.particleIndex, lance.particleOriginalSize * 1.25);
+              this.particleManager.setParticleVelocity(lance.particleHandle, 0, 0);
+              this.particleManager.extendParticleLife(lance.particleHandle, lance.detonationDelay + 0.2);
+              this.particleManager.setParticleSize(lance.particleHandle, lance.particleOriginalSize * 1.25);
 
               // Play stuck sound effect
               const playerShip = ShipRegistry.getInstance().getPlayerShip();
@@ -335,7 +335,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship, lifeSteal?: boolean): void {
     // Always remove visual light and particle
     LightingOrchestrator.getInstance().removeLight(lance.light.id);
-    this.particleManager.removeParticle(lance.particleIndex);
+    this.particleManager.killParticle(lance.particleHandle);
 
     const colorPalette =
       EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??

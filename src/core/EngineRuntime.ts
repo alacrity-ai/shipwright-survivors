@@ -951,7 +951,7 @@ export class EngineRuntime {
     this.missionDialogueManager!.update(dt);
     this.floatingTextManager.update(dt);
     this.coachMarkManager!.update(dt);
-    // this.persistentParticleManager.update(dt);
+    this.persistentParticleManager.update(dt);
   };
 
   private render = (dt: number) => {
@@ -976,7 +976,7 @@ export class EngineRuntime {
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
 
       const particleSOA1 = this.particleManager.getParticleSOA();
-      // const particleSOA2 = this.persistentParticleManager.getParticleSOA();
+      const particleSOA2 = this.persistentParticleManager.getParticleSOA();
 
       if (this.ship) {
         this.ship.enqueueRenderRequest();
@@ -987,7 +987,7 @@ export class EngineRuntime {
         visibleObjects,
         visibleLights,
         spriteRequests,
-        [particleSOA1],
+        [particleSOA1, particleSOA2],
         lightningSegments,
       );
     }

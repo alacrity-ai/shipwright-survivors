@@ -5,14 +5,14 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
-import type { ParticleManager, ParticleHandle } from '@/systems/fx/ParticleManager';
+import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
 import { Faction } from '@/game/interfaces/types/Faction';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 
 interface VisualizedProjectile extends Projectile {
-  particleHandler: ParticleHandle;
+  particleHandle: number;
 }
 
 export class ProjectileSystem {
@@ -129,7 +129,7 @@ export class ProjectileSystem {
       lifetime *= affixes.projectileLifetimeMulti ?? 1;
     }
 
-    const particleHandler = this.particleManager.emitParticle(origin, {
+    const particleHandle = this.particleManager.emitParticleWithHandle(origin, {
       colors: particleColors ?? ['#ffff88', '#ffaa00', '#ffcc33'],
       baseSpeed: 0,
       sizeRange: [2.2, 2.8],
@@ -153,7 +153,7 @@ export class ProjectileSystem {
       split,
       penetrate,
       hitShipIds: this.acquireHitSet(),
-      particleHandler,
+      particleHandle,
     };
 
     this.projectiles.push(projectile);
@@ -270,7 +270,7 @@ export class ProjectileSystem {
     life: number,
     inheritedHitIds: Set<string>
   ): void {
-    const particleHandler = this.particleManager.emitParticle(origin, {
+    const particleHandle = this.particleManager.emitParticleWithHandle(origin, {
       colors: ['#ff88cc', '#ffaaee', '#ff66bb'],
       baseSpeed: 0,
       sizeRange: [1.8, 2.4],
@@ -298,7 +298,7 @@ export class ProjectileSystem {
       split: false,
       penetrate: parent.penetrate,
       hitShipIds: hitSet,
-      particleHandler,
+      particleHandle,
     });
   }
 
@@ -316,7 +316,7 @@ export class ProjectileSystem {
 
   private removeProjectile(projectile: VisualizedProjectile) {
     this.projectiles = this.projectiles.filter(p => p !== projectile);
-    // this.particleManager.killParticle(projectile.particleHandler);
+    this.particleManager.killParticle(projectile.particleHandle);
     this.releaseHitSet(projectile.hitShipIds);
   }
 
