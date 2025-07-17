@@ -140,7 +140,7 @@ TODOS:
 
   - [ ] Add some more powerups
 
-  - [ ] Fix all the Laser related passives/tree/etc
+  - [ ] Finish All Ship Skill Tree Implementations
 
   - [ ] ALT+ENTER, can I make this work?
   - [x] Should "town portal" jump be an early unlockable? This would allow for tutorialization/explanation.

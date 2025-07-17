@@ -26,6 +26,7 @@ import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem'
 
 export interface ExtraDamageOptions {
   repairOrbDropRateMulti?: number;
+  hideExplosionParticlesOnHit?: boolean;
 }
 
 export class CombatService {
@@ -230,7 +231,7 @@ export class CombatService {
         shouldExplode = Math.random() < 0.2;
       }
 
-      if (shouldExplode) {
+      if (shouldExplode && !extraOptions.hideExplosionParticlesOnHit) {
         this.explosionSystem.createExplosion(
           entity.id,
           block.position,

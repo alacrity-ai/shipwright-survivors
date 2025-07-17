@@ -86,15 +86,21 @@ export class LaserBackend implements WeaponBackend {
     if (firingPlan.length === 0) return;
 
     // ─── Passive / power-up modifiers ─────────────────────────────────────────
-    let fireRateBonus   = 1.0; // TODO: Temporary
+    const {
+      laserDamage = 0,
+      laserFiringRate = 0,
+      laserRange = 0,
+      laserChain = false,
+      laserAreaOfEffect = false,
+    } = this.skillEffects;
+
+    let passiveRangeMultiplier = ship.getPassiveBonus('laser-firing-range');
+    console.warn('Laser firing range passive: ', passiveRangeMultiplier);
+    let fireRateBonus   = 1.0
     let damageBonus     = ship.getPassiveBonus('laser-damage');
     const { fireRateMultiplier = 0, baseDamageMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus   += fireRateMultiplier;
+    fireRateBonus   += fireRateMultiplier + laserFiringRate;
     damageBonus     += baseDamageMultiplier;
-
-    // Skill effects
-    const canChain = this.skillEffects.laserChain ?? false;
-    const canAreaOfEffect = this.skillEffects.laserAreaOfEffect ?? false;
 
     // ========================================================================
     // Iterate over each laser emitter block
@@ -123,14 +129,14 @@ export class LaserBackend implements WeaponBackend {
       // ─── Target acquisition ───────────────────────────────────────────────────
       const targetShip = findRandomTargetInRange(
         ship,
-        fireDef.targetingRange ?? 1_200,
+        fireDef.targetingRange! * (laserRange + passiveRangeMultiplier),
       );
       if (!targetShip) continue;
 
       const targetPos = targetShip.getTransform().position;
 
       // ─── Fire the initial laser beam ──────────────────────────────────────────
-      const dmg = (fireDef.fireDamage ?? 1) * damageBonus;
+      const dmg = (fireDef.fireDamage! + laserDamage) * damageBonus;
       const tierColour = LASER_TIER_COLORS_RGBA[emitter.block.type.tier] ?? [0.2, 0.9, 1.0, 1.0];
       
       this.fireLaserBeam(
@@ -144,7 +150,7 @@ export class LaserBackend implements WeaponBackend {
       );
 
       // ─── Chain lightning if skill is active ───────────────────────────────────
-      if (canChain) {
+      if (laserChain) {
         this.executeChainLightning(
           targetPos,
           targetShip,

@@ -16,6 +16,7 @@ export class ScreenShakeController {
   private readonly tagCooldowns: Map<string, number> = new Map();
   private readonly tagCooldownDurations: Map<string, number> = new Map([
     ['enemyDestruction', 0.8], // In seconds
+    ['explosiveLance', 0.5],
     ['default', 0],            // No cooldown by default
   ]);
 

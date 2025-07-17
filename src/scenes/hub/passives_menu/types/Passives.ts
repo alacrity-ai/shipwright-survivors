@@ -30,10 +30,10 @@ export const PassiveMetadata: Record<PassiveId, PassiveMetadataEntry> = {
     tiers: { 1: 5, 2: 10, 3: 15, 4: 20, 5: 25 },
     unit: '%'
   },
-  'laser-energy-drain': {
-    label: 'Laser Energy Drain',
+  'laser-firing-range': {
+    label: 'Laser Range',
     category: 'offense',
-    tiers: { 1: -10, 2: -20, 3: -30, 4: -40, 5: -50 },
+    tiers: { 1: 3, 2: 5, 3: 10, 4: 15, 5: 20 },
     unit: '%'
   },
   'explosive-lance-radius': {
@@ -168,7 +168,7 @@ export const PassiveMetadata: Record<PassiveId, PassiveMetadataEntry> = {
   'block-drop-rate': {
     label: 'Block Drop Rate',
     category: 'utility',
-    tiers: { 1: 5, 2: 10, 3: 15, 4: 20, 5: 25 },
+    tiers: { 1: 3, 2: 8, 3: 12, 4: 15, 5: 20 },
     unit: '%'
   }
 };

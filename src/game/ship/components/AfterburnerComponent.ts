@@ -56,19 +56,20 @@ export class AfterburnerComponent {
       }
     }
 
-    // === Fuel drain or recharge ===
-    if (this.active) {
-      const fuelUsage = this.consumptionPerSecond * dt;
-      this.current -= fuelUsage;
-      if (this.current <= 0) {
-        this.current = 0;
-        this.active = false;
-        this.lastDeactivationTime = performance.now() / 1000;
-        this.pulseDurationRemaining = 0;
-      }
-    } else if (this.rechargePerSecond > 0) {
-      this.current = Math.min(this.current + this.rechargePerSecond * dt, this.max);
-    }
+    // Fuel usage deprecated
+    // // === Fuel drain or recharge ===
+    // if (this.active) {
+    //   const fuelUsage = this.consumptionPerSecond * dt;
+    //   this.current -= fuelUsage;
+    //   if (this.current <= 0) {
+    //     this.current = 0;
+    //     this.active = false;
+    //     this.lastDeactivationTime = performance.now() / 1000;
+    //     this.pulseDurationRemaining = 0;
+    //   }
+    // } else if (this.rechargePerSecond > 0) {
+    //   this.current = Math.min(this.current + this.rechargePerSecond * dt, this.max);
+    // }
 
     // === Pulse duration decrement ===
     if (this.pulseDurationRemaining > 0) {

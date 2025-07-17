@@ -12,12 +12,12 @@ export const monarchSkillTree: StarterShipSkillTree = {
     {
       node: {
         id: 'grappling-lance',
-        name: 'Grappling Lance',
-        description: 'Explosive lances pull enemies',
+        name: 'Radiating Lance',
+        description: 'Explosive lances radiate projectiles while stuck',
         icon: 'icon-lance-grapple',
         nodeSize: 'major',
         cost: 300,
-        metadata: { explosiveLanceGrappling: true },
+        metadata: { explosiveLanceRadiate: true },
         masteryRequirement: 5,
       },
       x: 5,

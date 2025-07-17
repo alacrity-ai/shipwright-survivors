@@ -235,8 +235,8 @@ export class ShipSkillTreeTooltipRenderer {
       haloBladeOrbitRadius: 'Orbit Radius',
 
       laserDamage: 'Laser Damage',
-      laserBeamWidth: 'Beam Width',
-      laserEfficiency: 'Efficiency',
+      laserFiringRate: 'Firing Rate',
+      laserRange: 'Beam Range',
       laserChain: 'Chain Lasers',
       laserAreaOfEffect: 'Area of Effect Damage',
 

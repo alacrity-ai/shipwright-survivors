@@ -53,12 +53,30 @@ export class HaloBladeBackend implements WeaponBackend {
 
   render(dt: number): void {}
 
+  // haloBladeSplitBlades?: boolean; 
+  // haloBladeDetonateOnHit?: boolean;
+  // haloBladeFreezeOnHit?: boolean;
+
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const bladeMap = this.ship.getHaloBladeBlocks();
-    const sizeBonus = ship.getPassiveBonus('halo-blade-size');
+
+    // === Multiplicative percentage (e.g. 1.0 is no change, 1.25 is +25%)
+    let sizeBonus = ship.getPassiveBonus('halo-blade-size');
+
+    // === Add flat skill-based increase to the size multiplier (still multiplicative)
+    const {
+      haloBladeDamage = 0,
+      haloBladeSize = 0,
+      haloBladeOrbitRadius = 0,
+    } = ship.getSkillEffects();
+
+    sizeBonus += haloBladeSize;
+
+    // === Passive + powerup-based scalar multiplier for damage
     let damageBonus = ship.getPassiveBonus('halo-blade-damage');
     const { baseDamageMultiplier = 0 } = ship.getPowerupBonus();
     damageBonus += baseDamageMultiplier;
+
     const currentBlades = Array.from(bladeMap.keys());
 
     // === Prune removed orbiters ===
@@ -72,11 +90,21 @@ export class HaloBladeBackend implements WeaponBackend {
         this.orbiters.push({
           block,
           angle: 0, // will be set by tier logic
-          radius: props.orbitingRadius,
+
+          // === Skill-augmented orbit radius (multiplier)
+          radius: props.orbitingRadius * (1 + haloBladeOrbitRadius),
+
+          // === Local position (recomputed every frame elsewhere presumably)
           position: { x: 0, y: 0 },
+
+          // === Sprite lookup remains unchanged
           sprite: this.energyRingSprites.get(props.sprite)!,
+
+          // === Skill-enhanced size (add to size multiplier)
           size: props.size * sizeBonus,
-          damage: props.damage * damageBonus,
+
+          // === Base damage with multiplicative bonus + flat additive bonus
+          damage: props.damage * damageBonus + haloBladeDamage,
         });
       }
     }
@@ -122,7 +150,6 @@ export class HaloBladeBackend implements WeaponBackend {
         const angle = baseAngle + (i / count) * Math.PI * 2;
 
         orbiter.angle = angle;
-        orbiter.radius = props.orbitingRadius;
 
         // Determine radius based on firing mode
         const firingModeRadius = firingModeIsSequence ? orbiter.radius : orbiter.radius * 0.5;

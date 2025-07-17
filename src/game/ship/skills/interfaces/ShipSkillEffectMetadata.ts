@@ -16,7 +16,7 @@ export interface ShipSkillEffectMetadata {
   timeFreezeOnSeekerMissileExplosion?: boolean; // Implemented in Backend
 
   // Monarch Nodes
-  explosiveLanceGrappling?: boolean;
+  explosiveLanceRadiate?: boolean; // Implemented
   explosiveLanceLifesteal?: boolean; // Implemented
   explosiveLanceDamage?: number; // Flat // Implemented
   explosiveLanceElectrocution?: boolean; // Implemented in backend
@@ -27,15 +27,15 @@ export interface ShipSkillEffectMetadata {
   haloBladeSplitBlades?: boolean; 
   haloBladeDetonateOnHit?: boolean;
   haloBladeFreezeOnHit?: boolean;
-  haloBladeDamage?: number; // Flat
-  haloBladeSize?: number; // Percentage
-  haloBladeOrbitRadius?: number; // Flat
+  haloBladeDamage?: number; // Flat // Implemented
+  haloBladeSize?: number; // Percentage // Implemented
+  haloBladeOrbitRadius?: number; // Percentage // Implemented
 
   // Godhand Nodes
-  laserDamage?: number; // Flat
-  laserBeamWidth?: number; // Flat
-  laserEfficiency?: number; // Percentage
-  laserChain?: boolean;
+  laserDamage?: number; // Flat // Implemented
+  laserRange?: number; // Percentage // Implemented
+  laserFiringRate?: number; // Percentage // Implemented
+  laserChain?: boolean; // Implemented 
   laserAreaOfEffect?: boolean;
 
   // Universal Nodes

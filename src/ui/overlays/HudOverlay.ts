@@ -9,8 +9,8 @@ import type { InputManager } from '@/core/InputManager';
 
 import { PlayerExperienceBar } from '@/ui/overlays/components/PlayerExperienceBar';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
-import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
-import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
+// import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
+// import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 // import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle'; // Deprecated, no longer in game
 import { getUniformScaleFactor } from '@/config/view';
 
@@ -29,8 +29,8 @@ export class HudOverlay {
   private readonly onShow = () => this.show();
   private readonly onMetersHide = () => this.hideMeters();
   private readonly onMetersShow = () => this.showMeters();
-  private readonly onFiringModeHide = () => this.hideFiringMode();
-  private readonly onFiringModeShow = () => this.showFiringMode();
+  // private readonly onFiringModeHide = () => this.hideFiringMode();
+  // private readonly onFiringModeShow = () => this.showFiringMode();
   private readonly onAttachAllButtonShow = () => this.blockQueueDisplayManager.showAttachAllButton();
   private readonly onAttachAllButtonHide = () => this.blockQueueDisplayManager.hideAttachAllButton();
   private readonly onRollButtonShow = () => this.blockQueueDisplayManager.showRollButton();
@@ -45,27 +45,28 @@ export class HudOverlay {
   private readonly onJumpCastButtonHide = () => this.blockQueueDisplayManager.hideJumpCastButton();
 
   private metersHidden: boolean = false;
-  private firingModeHidden: boolean = false;
+  // private firingModeHidden: boolean = false;
 
   private entropium: number = 0;
   private previousEntropium: number = 0;
   private experienceBar: PlayerExperienceBar;
 
   // === Canvas Caches ===
-  private fuelBarCacheCanvas: HTMLCanvasElement;
-  private fuelBarCacheCtx: CanvasRenderingContext2D;
-  private energyBarCacheCanvas: HTMLCanvasElement;
-  private energyBarCacheCtx: CanvasRenderingContext2D;
+  // Deprecated Meters
+  // private fuelBarCacheCanvas: HTMLCanvasElement;
+  // private fuelBarCacheCtx: CanvasRenderingContext2D;
+  // private energyBarCacheCanvas: HTMLCanvasElement;
+  // private energyBarCacheCtx: CanvasRenderingContext2D;
   // private speedBarCacheCanvas: HTMLCanvasElement;
   // private firingModeCacheCanvas: HTMLCanvasElement;
   // private firingModeCacheCtx: CanvasRenderingContext2D;
   // private speedBarCacheCtx: CanvasRenderingContext2D;
 
   // === Invalidation State ===
-  private lastFuel = -1;
-  private lastFuelMax = -1;
-  private lastEnergy = -1;
-  private lastEnergyMax = -1;
+  // private lastFuel = -1;
+  // private lastFuelMax = -1;
+  // private lastEnergy = -1;
+  // private lastEnergyMax = -1;
   // private lastSpeed = -1;
   // private lastFiringMode: any = null;
 
@@ -79,8 +80,8 @@ export class HudOverlay {
     GlobalEventBus.on('hud:show', this.onShow);
     GlobalEventBus.on('meters:hide', this.onMetersHide);
     GlobalEventBus.on('meters:show', this.onMetersShow);
-    GlobalEventBus.on('firingmode:hide', this.onFiringModeHide);
-    GlobalEventBus.on('firingmode:show', this.onFiringModeShow);
+    // GlobalEventBus.on('firingmode:hide', this.onFiringModeHide);
+    // GlobalEventBus.on('firingmode:show', this.onFiringModeShow);
     GlobalEventBus.on('attachAllButton:show', this.onAttachAllButtonShow);
     GlobalEventBus.on('attachAllButton:hide', this.onAttachAllButtonHide);
     GlobalEventBus.on('rollButton:show', this.onRollButtonShow);
@@ -106,17 +107,17 @@ export class HudOverlay {
       this.inputManager
     );
 
-    const scale = getUniformScaleFactor();
+    // const scale = getUniformScaleFactor();
 
-    this.fuelBarCacheCanvas = document.createElement('canvas');
-    this.fuelBarCacheCanvas.width = 160 * scale;
-    this.fuelBarCacheCanvas.height = 32 * scale;
-    this.fuelBarCacheCtx = this.fuelBarCacheCanvas.getContext('2d')!;
+    // this.fuelBarCacheCanvas = document.createElement('canvas');
+    // this.fuelBarCacheCanvas.width = 160 * scale;
+    // this.fuelBarCacheCanvas.height = 32 * scale;
+    // this.fuelBarCacheCtx = this.fuelBarCacheCanvas.getContext('2d')!;
 
-    this.energyBarCacheCanvas = document.createElement('canvas');
-    this.energyBarCacheCanvas.width = 160 * scale;
-    this.energyBarCacheCanvas.height = 32 * scale;
-    this.energyBarCacheCtx = this.energyBarCacheCanvas.getContext('2d')!;
+    // this.energyBarCacheCanvas = document.createElement('canvas');
+    // this.energyBarCacheCanvas.width = 160 * scale;
+    // this.energyBarCacheCanvas.height = 32 * scale;
+    // this.energyBarCacheCtx = this.energyBarCacheCanvas.getContext('2d')!;
 
     // this.speedBarCacheCanvas = document.createElement('canvas');
     // this.speedBarCacheCanvas.width = 32 * scale;
@@ -158,83 +159,83 @@ export class HudOverlay {
       // const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
       // const quantizedSpeed = Math.round(speed);
 
-      const energyComponent = this.ship.getEnergyComponent();
-      const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
-      const maxEnergy = Math.floor(energyComponent?.getMax() ?? 0);
+      // const energyComponent = this.ship.getEnergyComponent();
+      // const energy = Math.floor(energyComponent?.getCurrent() ?? 0);
+      // const maxEnergy = Math.floor(energyComponent?.getMax() ?? 0);
 
-      const afterburnerComponent = this.ship.getAfterburnerComponent();
-      const afterburnerValue = afterburnerComponent?.getCurrent() ?? 0;
-      const afterburnerMax = afterburnerComponent?.getMax() ?? 1;
+      // const afterburnerComponent = this.ship.getAfterburnerComponent();
+      // const afterburnerValue = afterburnerComponent?.getCurrent() ?? 0;
+      // const afterburnerMax = afterburnerComponent?.getMax() ?? 1;
 
-      // === Afterburner Fuel Bar ===
-      if (afterburnerValue !== this.lastFuel || afterburnerMax !== this.lastFuelMax) {
-        this.lastFuel = afterburnerValue;
-        this.lastFuelMax = afterburnerMax;
+      // // === Afterburner Fuel Bar ===
+      // if (afterburnerValue !== this.lastFuel || afterburnerMax !== this.lastFuelMax) {
+      //   this.lastFuel = afterburnerValue;
+      //   this.lastFuelMax = afterburnerMax;
 
-        this.fuelBarCacheCtx.clearRect(0, 0, this.fuelBarCacheCanvas.width, this.fuelBarCacheCanvas.height);
+      //   this.fuelBarCacheCtx.clearRect(0, 0, this.fuelBarCacheCanvas.width, this.fuelBarCacheCanvas.height);
 
-        drawUIResourceBar(this.fuelBarCacheCtx, {
-          x: 10,
-          y: 10,
-          width: barWidth,
-          height: barHeight,
-          value: afterburnerValue / afterburnerMax,
-          label: `${Math.floor(afterburnerValue)} / ${afterburnerMax}`,
-          style: {
-            barColor: '#ffcc00',
-            borderColor: '#ffee88',
-            backgroundColor: '#221800',
-            glow: true,
-            textColor: '#ffffaa',
-            font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
-            scanlineIntensity: 0.3,
-            chromaticAberration: true,
-            phosphorDecay: true,
-            cornerBevel: true,
-            warningThreshold: 0.25,
-            criticalThreshold: 0.1,
-            warningColor: '#ffaa00',
-            criticalColor: '#ff0040',
-            animated: true,
-          }
-        }, dt);
-      }
-      ctx.drawImage(this.fuelBarCacheCanvas, 20 * scale, y - Math.floor(28 * scale));
+      //   drawUIResourceBar(this.fuelBarCacheCtx, {
+      //     x: 10,
+      //     y: 10,
+      //     width: barWidth,
+      //     height: barHeight,
+      //     value: afterburnerValue / afterburnerMax,
+      //     label: `${Math.floor(afterburnerValue)} / ${afterburnerMax}`,
+      //     style: {
+      //       barColor: '#ffcc00',
+      //       borderColor: '#ffee88',
+      //       backgroundColor: '#221800',
+      //       glow: true,
+      //       textColor: '#ffffaa',
+      //       font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
+      //       scanlineIntensity: 0.3,
+      //       chromaticAberration: true,
+      //       phosphorDecay: true,
+      //       cornerBevel: true,
+      //       warningThreshold: 0.25,
+      //       criticalThreshold: 0.1,
+      //       warningColor: '#ffaa00',
+      //       criticalColor: '#ff0040',
+      //       animated: true,
+      //     }
+      //   }, dt);
+      // }
+      // ctx.drawImage(this.fuelBarCacheCanvas, 20 * scale, y - Math.floor(28 * scale));
 
-      // === Energy Bar ===
-      if (energy !== this.lastEnergy || maxEnergy !== this.lastEnergyMax) {
-        this.lastEnergy = energy;
-        this.lastEnergyMax = maxEnergy;
+      // // === Energy Bar ===
+      // if (energy !== this.lastEnergy || maxEnergy !== this.lastEnergyMax) {
+      //   this.lastEnergy = energy;
+      //   this.lastEnergyMax = maxEnergy;
 
-        this.energyBarCacheCtx.clearRect(0, 0, this.energyBarCacheCanvas.width, this.energyBarCacheCanvas.height);
+      //   this.energyBarCacheCtx.clearRect(0, 0, this.energyBarCacheCanvas.width, this.energyBarCacheCanvas.height);
 
-        drawUIResourceBar(this.energyBarCacheCtx, {
-          x: 10,
-          y: 10,
-          width: barWidth,
-          height: barHeight,
-          value: maxEnergy > 0 ? energy / maxEnergy : 1,
-          label: `${Math.round(energy)} / ${maxEnergy}`,
-          style: {
-            barColor: '#0af',
-            borderColor: '#6cf',
-            backgroundColor: '#003',
-            glow: true,
-            textColor: '#9cf',
-            font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
-            scanlineIntensity: 0.25,
-            chromaticAberration: true,
-            phosphorDecay: true,
-            cornerBevel: true,
-            warningThreshold: 0.25,
-            criticalThreshold: 0.1,
-            warningColor: '#ffaa00',
-            criticalColor: '#ff0040',
-            animated: true,
-          }
-        }, dt);
-      }
-      ctx.drawImage(this.energyBarCacheCanvas, 20 * scale, y - (8 * scale));
+      //   drawUIResourceBar(this.energyBarCacheCtx, {
+      //     x: 10,
+      //     y: 10,
+      //     width: barWidth,
+      //     height: barHeight,
+      //     value: maxEnergy > 0 ? energy / maxEnergy : 1,
+      //     label: `${Math.round(energy)} / ${maxEnergy}`,
+      //     style: {
+      //       barColor: '#0af',
+      //       borderColor: '#6cf',
+      //       backgroundColor: '#003',
+      //       glow: true,
+      //       textColor: '#9cf',
+      //       font: `${Math.floor(11 * scale)}px "Courier New", monospace`,
+      //       scanlineIntensity: 0.25,
+      //       chromaticAberration: true,
+      //       phosphorDecay: true,
+      //       cornerBevel: true,
+      //       warningThreshold: 0.25,
+      //       criticalThreshold: 0.1,
+      //       warningColor: '#ffaa00',
+      //       criticalColor: '#ff0040',
+      //       animated: true,
+      //     }
+      //   }, dt);
+      // }
+      // ctx.drawImage(this.energyBarCacheCanvas, 20 * scale, y - (8 * scale));
 
       // // === Speed Bar (Vertical) === // Deprecated
       // const speedBarHeight = Math.floor(120 * scale);
@@ -272,8 +273,8 @@ export class HudOverlay {
   destroy(): void {
     GlobalEventBus.off('meters:hide', this.onMetersHide);
     GlobalEventBus.off('meters:show', this.onMetersShow);
-    GlobalEventBus.off('firingmode:hide', this.onFiringModeHide);
-    GlobalEventBus.off('firingmode:show', this.onFiringModeShow);
+    // GlobalEventBus.off('firingmode:hide', this.onFiringModeHide);
+    // GlobalEventBus.off('firingmode:show', this.onFiringModeShow);
     GlobalEventBus.off('hud:hide', this.onHide);
     GlobalEventBus.off('hud:show', this.onShow);
     GlobalEventBus.off('attachAllButton:show', this.onAttachAllButtonShow);
@@ -300,22 +301,22 @@ export class HudOverlay {
     this.metersHidden = false;
   }
 
-  private hideFiringMode(): void {
-    this.firingModeHidden = true;
-  }
+  // private hideFiringMode(): void {
+  //   this.firingModeHidden = true;
+  // }
 
-  private showFiringMode(): void {
-    this.firingModeHidden = false;
-  }
+  // private showFiringMode(): void {
+  //   this.firingModeHidden = false;
+  // }
 
   public hide(): void {
     this.metersHidden = true;
-    this.firingModeHidden = true;
+    // this.firingModeHidden = true;
   }
 
   public show(): void {
     this.metersHidden = false;
-    this.firingModeHidden = false;
+    // this.firingModeHidden = false;
   }
 
   public getQueueDisplayManager(): BlockQueueDisplayManager {

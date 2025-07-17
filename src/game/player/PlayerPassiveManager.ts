@@ -3,33 +3,36 @@
 import { PlayerMetaCurrencyManager } from './PlayerMetaCurrencyManager';
 import { PassiveMetadata } from '@/scenes/hub/passives_menu/types/Passives'; // IMPORTED HERE
 
-export type PassiveId =
-  | 'harvester-range'
-  | 'laser-damage'
-  | 'laser-energy-drain'
-  | 'explosive-lance-radius'
-  | 'explosive-lance-firing-rate'
-  | 'heat-seeker-damage'
-  | 'heat-seeker-firing-rate'
-  | 'halo-blade-damage'
-  | 'halo-blade-size'
-  | 'block-durability'
-  | 'fin-turn-power'
-  | 'engine-thrust'
-  | 'charger-rate'
-  | 'battery-capacity'
-  | 'turret-firing-rate'
-  | 'turret-damage'
-  | 'turret-accuracy'
-  | 'shield-energy-drain'
-  | 'shield-radius'
-  | 'shield-efficiency'
-  | 'facetplate-armor'
-  | 'hull-armor'
-  | 'cockpit-armor'
-  | 'repair-orb-drop-rate'
-  | 'entropium-pickup-bonus'
-  | 'block-drop-rate';
+export const PassiveIds = [
+  'harvester-range',
+  'laser-damage',
+  'laser-firing-range',
+  'explosive-lance-radius',
+  'explosive-lance-firing-rate',
+  'heat-seeker-damage',
+  'heat-seeker-firing-rate',
+  'halo-blade-damage',
+  'halo-blade-size',
+  'block-durability',
+  'fin-turn-power',
+  'engine-thrust',
+  'charger-rate',
+  'battery-capacity',
+  'turret-firing-rate',
+  'turret-damage',
+  'turret-accuracy',
+  'shield-energy-drain',
+  'shield-radius',
+  'shield-efficiency',
+  'facetplate-armor',
+  'hull-armor',
+  'cockpit-armor',
+  'repair-orb-drop-rate',
+  'entropium-pickup-bonus',
+  'block-drop-rate',
+] as const;
+
+export type PassiveId = typeof PassiveIds[number];
 
 export type PassiveTier = 1 | 2 | 3 | 4 | 5;
 
@@ -197,34 +200,7 @@ export class PlayerPassiveManager {
   }
 
   private isValidPassiveId(id: string): id is PassiveId {
-    return [
-      'harvester-range',
-      'laser-damage',
-      'laser-energy-drain',
-      'explosive-lance-radius',
-      'explosive-lance-firing-rate',
-      'heat-seeker-damage',
-      'heat-seeker-firing-rate',
-      'halo-blade-damage',
-      'halo-blade-size',
-      'block-durability',
-      'fin-turn-power',
-      'engine-thrust',
-      'charger-rate',
-      'battery-capacity',
-      'turret-firing-rate',
-      'turret-damage',
-      'turret-accuracy',
-      'shield-energy-drain',
-      'shield-radius',
-      'shield-efficiency',
-      'facetplate-armor',
-      'hull-armor',
-      'cockpit-armor',
-      'repair-orb-drop-rate',
-      'entropium-pickup-bonus',
-      'block-drop-rate',
-    ].includes(id);
+    return (PassiveIds as readonly string[]).includes(id);
   }
 
   private isValidTier(tier: any): tier is PassiveTier {

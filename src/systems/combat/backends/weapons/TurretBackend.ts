@@ -45,6 +45,13 @@ export class TurretBackend implements WeaponBackend {
     fireRateBonus += fireRateMultiplier;
     damageBonus += baseDamageMultiplier;
 
+    // Skill effects - Called once per frame instead of once per turret
+    const skillEffects = ship.getSkillEffects();
+    const { turretProjectileSpeed = 0, turretSplitShots = false, turretPenetratingShots = false, turretDamage = 0 } = skillEffects;
+
+    // Pre-compute spread multiplier once per frame
+    const spreadMultiplier = (Math.PI / 8) * (1 - accuracyBonus);
+
     // Always advance cooldowns
     for (const turret of plan) {
       turret.timeSinceLastShot += dt;
@@ -59,9 +66,11 @@ export class TurretBackend implements WeaponBackend {
     const effectiveRate = fireRateMulti * fireRateBonus;
 
     if (mode === FiringMode.Synced) {
-      this.handleSyncedFiring(plan, ship, transform, target, effectiveRate, damageBonus, accuracyBonus, dt);
+      this.handleSyncedFiring(plan, ship, transform, target, effectiveRate, damageBonus, accuracyBonus, dt, 
+        { turretProjectileSpeed, turretSplitShots, turretPenetratingShots, turretDamage }, spreadMultiplier);
     } else if (mode === FiringMode.Sequence) {
-      this.handleSequenceFiring(plan, ship, transform, target, effectiveRate, damageBonus, accuracyBonus, dt, justResumedFiring);
+      this.handleSequenceFiring(plan, ship, transform, target, effectiveRate, damageBonus, accuracyBonus, dt, justResumedFiring, 
+        { turretProjectileSpeed, turretSplitShots, turretPenetratingShots, turretDamage }, spreadMultiplier);
     }
   }
 
@@ -73,7 +82,9 @@ export class TurretBackend implements WeaponBackend {
     fireRateMulti: number,
     damageBonus: number,
     accuracyBonus: number,
-    dt: number
+    dt: number,
+    skillEffects: { turretProjectileSpeed: number; turretSplitShots: boolean; turretPenetratingShots: boolean; turretDamage: number },
+    spreadMultiplier: number
   ): void {
     for (let i = plan.length - 1; i >= 0; i--) {
       const turret = plan[i];
@@ -81,7 +92,7 @@ export class TurretBackend implements WeaponBackend {
 
       if (turret.timeSinceLastShot < turret.fireCooldown / fireRateMulti) continue;
 
-      this.spawnTurretProjectile(ship, transform, turret, target, damageBonus, accuracyBonus);
+      this.spawnTurretProjectile(ship, transform, turret, target, damageBonus, accuracyBonus, skillEffects, spreadMultiplier);
       turret.timeSinceLastShot = 0;
     }
   }
@@ -95,7 +106,9 @@ export class TurretBackend implements WeaponBackend {
     damageBonus: number,
     accuracyBonus: number,
     dt: number,
-    justResumedFiring: boolean
+    justResumedFiring: boolean,
+    skillEffects: { turretProjectileSpeed: number; turretSplitShots: boolean; turretPenetratingShots: boolean; turretDamage: number },
+    spreadMultiplier: number
   ): void {
     const grouped = new Map<TurretClassId, WeaponFiringPlanEntry[]>();
     for (const entry of plan) {
@@ -122,7 +135,7 @@ export class TurretBackend implements WeaponBackend {
         const readyTurret = turrets.find(t => t.timeSinceLastShot >= effectiveCooldown);
         if (readyTurret) {
           const readyIndex = turrets.indexOf(readyTurret);
-          this.spawnTurretProjectile(ship, transform, readyTurret, target, damageBonus, accuracyBonus);
+          this.spawnTurretProjectile(ship, transform, readyTurret, target, damageBonus, accuracyBonus, skillEffects, spreadMultiplier);
           readyTurret.timeSinceLastShot = 0;
 
           state.nextIndex = (readyIndex + 1) % turrets.length;
@@ -138,7 +151,7 @@ export class TurretBackend implements WeaponBackend {
         if (!ship.getBlockCoord(turret.block)) continue;
 
         if (turret.timeSinceLastShot >= effectiveCooldown) {
-          this.spawnTurretProjectile(ship, transform, turret, target, damageBonus, accuracyBonus);
+          this.spawnTurretProjectile(ship, transform, turret, target, damageBonus, accuracyBonus, skillEffects, spreadMultiplier);
           turret.timeSinceLastShot = 0;
           state.nextIndex = (state.nextIndex + 1) % turrets.length;
           state.lastFiredAt = 0;
@@ -153,7 +166,9 @@ export class TurretBackend implements WeaponBackend {
     turret: WeaponFiringPlanEntry,
     target: TargetPoint,
     damageBonus: number,
-    accuracyBonus: number
+    accuracyBonus: number,
+    skillEffects: { turretProjectileSpeed: number; turretSplitShots: boolean; turretPenetratingShots: boolean; turretDamage: number },
+    spreadMultiplier: number
   ): void {
     const { coord, block } = turret;
 
@@ -175,7 +190,7 @@ export class TurretBackend implements WeaponBackend {
 
     // === Compute aim direction + spread
     let angle = Math.atan2(dy, dx);
-    const spread = (1 - (fire.accuracy ?? 1) * accuracyBonus) * (Math.PI / 8);
+    const spread = (1 - (fire.accuracy ?? 1)) * spreadMultiplier;
     if (spread > 0) {
       angle += (Math.random() * 2 - 1) * spread;
     }
@@ -184,8 +199,8 @@ export class TurretBackend implements WeaponBackend {
     const aimY = Math.sin(angle);
     let baseSpeed = fire.projectileSpeed ?? 300;
 
-    // === Skilltree bonus
-    const { turretProjectileSpeed = 0, turretSplitShots = false, turretPenetratingShots = false } = ship.getSkillEffects();
+    // === Skilltree bonus (now passed as individual values)
+    const { turretProjectileSpeed, turretSplitShots, turretPenetratingShots, turretDamage } = skillEffects;
     baseSpeed += turretProjectileSpeed;
 
     // === Raw velocity with ship motion added
@@ -202,7 +217,6 @@ export class TurretBackend implements WeaponBackend {
     }
 
     // Add extra base damage from passive
-    const { turretDamage = 0 } = ship.getSkillEffects();
     let baseDamage = fire.fireDamage! + turretDamage;
 
     if (this.fireSoundTimer > 4) {

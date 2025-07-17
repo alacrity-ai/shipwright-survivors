@@ -16,6 +16,7 @@ import type { ExtraDamageOptions } from '@/systems/combat/CombatService';
 import { Ship } from '@/game/ship/Ship';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
@@ -47,6 +48,7 @@ interface ActiveExplosiveLance {
   emissionAccumulatorStuck: number;
   firingBlockId: string;
   light: PointLightInstance;
+  radiateTimer?: number;
 }
 
 export class ExplosiveLanceBackend implements WeaponBackend {
@@ -169,6 +171,11 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
   private updateLances(dt: number, ship: Ship): void {
     const exploded = new Set<ActiveExplosiveLance>();
+    const { 
+      explosiveLanceRadiate = false, 
+      explosiveLanceElectrocution = false,
+      explosiveLanceLifesteal = false,
+    } = ship.getSkillEffects();
 
     for (const lance of this.activeLances) {
       lance.age += dt;
@@ -203,6 +210,14 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           lance.particle.y = lance.position.y;
         }
 
+        if (explosiveLanceRadiate && lance.radiateTimer != null) {
+          lance.radiateTimer += dt;
+          if (lance.radiateTimer >= 0.5) {
+            this.emitProjectileBurst(ship, lance, 8, 1000);
+            lance.radiateTimer = 0;
+          }
+        }
+
         lance.emissionAccumulatorStuck += dt * 20; // 1 = desired particles per second
         const count = Math.floor(lance.emissionAccumulatorStuck);
         lance.emissionAccumulatorStuck -= count;
@@ -220,7 +235,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
         lance.elapsed += dt;
         if (lance.elapsed >= lance.detonationDelay || lance.targetShip?.isDestroyed()) {
-          this.explodeLance(lance, ship);
+          this.explodeLance(lance, ship, explosiveLanceLifesteal);
           exploded.add(lance);
         }
         continue;
@@ -250,12 +265,13 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               if (compositeBlockObject.isNoClip()) continue;
 
               lance.stuck = true;
+              lance.radiateTimer = 0;
               lance.targetBlock = block;
               lance.targetShip = compositeBlockObject;
               lance.coord = coord;
 
               // Electrocute if applies
-              if (ship.getSkillEffects().explosiveLanceElectrocution) {
+              if (explosiveLanceElectrocution) {
                 if (compositeBlockObject instanceof Ship) {
                   compositeBlockObject.addStatusEffect('electrocuted', 8, 1);
                 }
@@ -287,11 +303,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               });
 
               // Shake screen slightly
-              GlobalEventBus.emit('camera:shake', {
-                strength: 6,
-                duration: 0.16,
-                frequency: 10,
-              });
+              shakeCamera(6, 0.16, 10, 'explosiveLance');
 
               const wasDestroyed = this.combatService.applyDamageToBlock(
                 compositeBlockObject,
@@ -312,50 +324,19 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         }
       }
     }
-
     this.activeLances = this.activeLances.filter(l => !exploded.has(l));
   }
 
-  private explodeLance(lance: ActiveExplosiveLance, ship: Ship): void {
+  private explodeLance(lance: ActiveExplosiveLance, ship: Ship, lifeSteal?: boolean): void {
     // Always remove visual light and particle
     LightingOrchestrator.getInstance().removeLight(lance.light.id);
     this.particleManager.removeParticle(lance.particle);
-
-    const origin = { x: lance.position.x, y: lance.position.y };
-    const speed = 1600;
-    const damage = lance.explosionDamage;
-    const life = 1.2;
 
     const colorPalette =
       EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??
       ['#cccccc', '#aaaaaa', '#888888'];
 
-    // Emit radial projectiles
-    const initialAngle = Math.random() * Math.PI * 2;
-    for (let i = 0; i < 16; i++) {
-      const angle = initialAngle + (i / 16) * Math.PI * 2;
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-
-      const projectile = this.projectileSystem.spawnProjectileWithVelocity(
-        origin,
-        { x: vx, y: vy },
-        'explosiveLance',
-        damage * 3,
-        life,
-        1,
-        ship.id,
-        ship.getFaction(),
-        colorPalette,
-        'delayed',
-        false,
-        true
-      );
-
-      if (lance.targetShip) {
-        projectile.hitShipIds.add(lance.targetShip.id);
-      }
-    }
+    this.emitProjectileBurst(ship, lance, 16);
 
     // Light flash at point of impact (fallback to position if ship is gone)
     const flashX = lance.targetShip?.getTransform().position.x ?? lance.position.x;
@@ -377,9 +358,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         lance.explosionRadius
       );
 
-      const { explosiveLanceLifesteal = false } = ship.getSkillEffects();
-      const extraOptions: ExtraDamageOptions = {
-        repairOrbDropRateMulti: explosiveLanceLifesteal ? 0.3 : 0,
+      const options: ExtraDamageOptions = {
+        repairOrbDropRateMulti: lifeSteal ? 0.3 : 0,
+        hideExplosionParticlesOnHit: false,
       };
 
       for (const [coord, block] of blocks) {
@@ -393,11 +374,50 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           true,
           0,
           1.5,
-          extraOptions
+          options
         );
+        options.hideExplosionParticlesOnHit = true;
+      }
+    }
+  }
+
+  private emitProjectileBurst(ship: Ship, lance: ActiveExplosiveLance, quantity: number = 16, speed: number = 1600): void {
+    const colorPalette =
+      EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??
+      ['#cccccc', '#aaaaaa', '#888888'];
+
+    const origin = { x: lance.position.x, y: lance.position.y };
+    const damage = lance.explosionDamage;
+    const life = 1.2;
+
+    // Emit radial projectiles
+    const initialAngle = Math.random() * Math.PI * 2;
+    for (let i = 0; i < quantity; i++) {
+      const angle = initialAngle + (i / quantity) * Math.PI * 2;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+
+      const projectile = this.projectileSystem.spawnProjectileWithVelocity(
+        origin,
+        { x: vx, y: vy },
+        'explosiveLance',
+        damage * 2,
+        life,
+        1,
+        ship.id,
+        ship.getFaction(),
+        colorPalette,
+        'delayed',
+        false,
+        true
+      );
+
+      if (lance.targetShip) {
+        projectile.hitShipIds.add(lance.targetShip.id);
       }
     }
   }
 
   render(dt: number): void {}
 }
+
