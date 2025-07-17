@@ -2,18 +2,17 @@
 
 import type { Projectile } from '@/game/interfaces/types/Projectile';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { CanvasManager } from '@/core/CanvasManager';
 import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
-import type { ParticleManager } from '@/systems/fx/ParticleManager';
+import type { ParticleManager, ParticleHandle } from '@/systems/fx/ParticleManager';
 
 import { Faction } from '@/game/interfaces/types/Faction';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 
 interface VisualizedProjectile extends Projectile {
-  particle: Particle;
+  particleHandler: ParticleHandle;
 }
 
 export class ProjectileSystem {
@@ -130,7 +129,7 @@ export class ProjectileSystem {
       lifetime *= affixes.projectileLifetimeMulti ?? 1;
     }
 
-    const particle = this.particleManager.emitParticle(origin, {
+    const particleHandler = this.particleManager.emitParticle(origin, {
       colors: particleColors ?? ['#ffff88', '#ffaa00', '#ffcc33'],
       baseSpeed: 0,
       sizeRange: [2.2, 2.8],
@@ -154,7 +153,7 @@ export class ProjectileSystem {
       split,
       penetrate,
       hitShipIds: this.acquireHitSet(),
-      particle,
+      particleHandler,
     };
 
     this.projectiles.push(projectile);
@@ -271,7 +270,7 @@ export class ProjectileSystem {
     life: number,
     inheritedHitIds: Set<string>
   ): void {
-    const particle = this.particleManager.emitParticle(origin, {
+    const particleHandler = this.particleManager.emitParticle(origin, {
       colors: ['#ff88cc', '#ffaaee', '#ff66bb'],
       baseSpeed: 0,
       sizeRange: [1.8, 2.4],
@@ -296,10 +295,10 @@ export class ProjectileSystem {
       life,
       ownerShipId: parent.ownerShipId,
       ownerFaction: parent.ownerFaction,
-      particle,
       split: false,
       penetrate: parent.penetrate,
       hitShipIds: hitSet,
+      particleHandler,
     });
   }
 
@@ -317,7 +316,7 @@ export class ProjectileSystem {
 
   private removeProjectile(projectile: VisualizedProjectile) {
     this.projectiles = this.projectiles.filter(p => p !== projectile);
-    this.particleManager.removeParticle(projectile.particle);
+    // this.particleManager.killParticle(projectile.particleHandler);
     this.releaseHitSet(projectile.hitShipIds);
   }
 

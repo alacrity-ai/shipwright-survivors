@@ -95,7 +95,6 @@ export class LaserBackend implements WeaponBackend {
     } = this.skillEffects;
 
     let passiveRangeMultiplier = ship.getPassiveBonus('laser-firing-range');
-    console.warn('Laser firing range passive: ', passiveRangeMultiplier);
     let fireRateBonus   = 1.0
     let damageBonus     = ship.getPassiveBonus('laser-damage');
     const { fireRateMultiplier = 0, baseDamageMultiplier = 0 } = ship.getPowerupBonus();

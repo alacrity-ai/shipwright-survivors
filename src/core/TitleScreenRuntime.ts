@@ -156,9 +156,9 @@ export class TitleScreenRuntime {
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
 
     // Particle System
-    this.particleManager = new ParticleManager(this.lightingOrchestrator);
+    this.particleManager = new ParticleManager(this.lightingOrchestrator, 'game');
     // Particle System which runs regardless of game pause
-    this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator);
+    this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator, 'persistent');
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -318,7 +318,6 @@ export class TitleScreenRuntime {
     this.fixedUpdatables = [
       this.projectileSystem,
       this.particleManager,
-      this.persistentParticleManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
       this.destructionService,
@@ -425,10 +424,9 @@ export class TitleScreenRuntime {
       const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
       const visibleShips = this.shipCulling!.getVisibleShips();
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
-      const visibleParticles = [
-        ...this.particleManager.collectVisibleParticles(this.camera),
-        ...this.persistentParticleManager.collectVisibleParticles(this.camera),
-      ];
+      const visibleParticles1 = this.particleManager.getParticleSOA();
+      const visibleParticles2 = this.persistentParticleManager.getParticleSOA();
+      const visibleParticles = [visibleParticles1, visibleParticles2];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
 
       const visibleObjects = [...visibleBlockObjects, ...visibleShips];

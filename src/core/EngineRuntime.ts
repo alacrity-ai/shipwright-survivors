@@ -275,9 +275,9 @@ export class EngineRuntime {
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
 
     // Particle System
-    this.particleManager = new ParticleManager(this.lightingOrchestrator);
+    this.particleManager = new ParticleManager(this.lightingOrchestrator, 'game');
     // Particle System which runs regardless of game pause
-    this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator);
+    this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator, 'persistent');
     // Lightning System
     this.lightningSystem = new LightningSystem(this.lightingOrchestrator);
 
@@ -603,7 +603,6 @@ export class EngineRuntime {
       this.projectileSystem,
       this.particleManager,
       this.lightningSystem,
-      this.persistentParticleManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
       this.destructionService,
@@ -952,7 +951,7 @@ export class EngineRuntime {
     this.missionDialogueManager!.update(dt);
     this.floatingTextManager.update(dt);
     this.coachMarkManager!.update(dt);
-    this.persistentParticleManager.update(dt);
+    // this.persistentParticleManager.update(dt);
   };
 
   private render = (dt: number) => {
@@ -972,13 +971,12 @@ export class EngineRuntime {
       const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
       const visibleShips = this.shipCulling!.getVisibleShips();
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
-      const visibleParticles = [
-        ...this.particleManager.collectVisibleParticles(this.camera),
-        ...this.persistentParticleManager.collectVisibleParticles(this.camera),
-      ];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
       const lightningSegments = this.lightningSystem.getSegments();
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
+
+      const particleSOA1 = this.particleManager.getParticleSOA();
+      // const particleSOA2 = this.persistentParticleManager.getParticleSOA();
 
       if (this.ship) {
         this.ship.enqueueRenderRequest();
@@ -989,7 +987,7 @@ export class EngineRuntime {
         visibleObjects,
         visibleLights,
         spriteRequests,
-        visibleParticles,
+        [particleSOA1],
         lightningSegments,
       );
     }
