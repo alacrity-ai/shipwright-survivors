@@ -1,14 +1,13 @@
 // src/rendering/unified/passes/ParticlePass.ts
 
-import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { Camera } from '@/core/Camera';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 
-import { particleFrameBudgetMs } from '@/config/graphicsConfig';
-
 import particleVertSrc from '@/rendering/unified/shaders/particlePass.vert?raw';
 import particleFragSrc from '@/rendering/unified/shaders/particlePass.frag?raw';
+
+import type { ParticleSOA } from '@/systems/fx/ParticleManager';
 
 export class ParticlePass {
   private readonly gl: WebGL2RenderingContext;
@@ -17,10 +16,9 @@ export class ParticlePass {
   private readonly quadBuffer: WebGLBuffer;
   private readonly instanceBuffer: WebGLBuffer;
 
-  private instanceBufferCapacity: number = 0;
-
-  private dataBuffer: Float32Array = new Float32Array(70000);
-  private frameBudgetMs: number = particleFrameBudgetMs;
+  // Fixed-size buffers to avoid runtime allocations
+  private static readonly MAX_PARTICLES = 30000;
+  private readonly dataBuffer: Float32Array;
 
   constructor(gl: WebGL2RenderingContext, cameraUBO: WebGLBuffer) {
     this.gl = gl;
@@ -29,6 +27,10 @@ export class ParticlePass {
     this.quadBuffer = createQuadBuffer(gl);
     this.instanceBuffer = gl.createBuffer()!;
     this.vao = gl.createVertexArray()!;
+
+    // Pre-allocate fixed-size buffers
+    const stride = 7;
+    this.dataBuffer = new Float32Array(ParticlePass.MAX_PARTICLES * stride);
 
     gl.bindVertexArray(this.vao);
 
@@ -40,7 +42,7 @@ export class ParticlePass {
 
     // Instance buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    const strideBytes = 7 * 4;
+    const strideBytes = stride * 4;
 
     gl.enableVertexAttribArray(1); // aParticlePos
     gl.vertexAttribPointer(1, 2, gl.FLOAT, false, strideBytes, 0);
@@ -60,55 +62,44 @@ export class ParticlePass {
 
     gl.bindVertexArray(null);
 
+    // Pre-allocate GPU buffer at maximum capacity
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, ParticlePass.MAX_PARTICLES * stride * 4, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
     const cameraBlockIndex = gl.getUniformBlockIndex(this.program, 'CameraMatrices');
     if (cameraBlockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(this.program, cameraBlockIndex, 0);
     }
   }
 
-  setFrameBudget(ms: number): void {
-    this.frameBudgetMs = ms;
-  }
-
-  render(particles: Particle[], _camera: Camera): void {
+  // Alternative render method that accepts SOA data directly (if you can modify your particle system)
+  renderSOA(particleData: ParticleSOA, _camera: Camera): void {
     const gl = this.gl;
-    if (particles.length === 0) return;
+    if (particleData.count === 0) return;
 
     const stride = 7;
-    const requiredCapacity = particles.length * stride;
-    if (requiredCapacity > this.dataBuffer.length) {
-      this.dataBuffer = new Float32Array(requiredCapacity * 2);
-    }
-
     const data = this.dataBuffer;
+    const maxCount = Math.min(particleData.count, ParticlePass.MAX_PARTICLES);
 
-    const start = performance.now();
     let count = 0;
 
-    for (; count < particles.length; count++) {
-      const p = particles[count];
+    // Direct SOA access - maximum performance
+    for (; count < maxCount; count++) {
       const base = count * stride;
-      data[base + 0] = p.x;
-      data[base + 1] = p.y;
-      data[base + 2] = p.size;
-      data[base + 3] = p.renderAlpha ?? 1.0;
-      data[base + 4] = p.r;
-      data[base + 5] = p.g;
-      data[base + 6] = p.b;
 
-      if (performance.now() - start > this.frameBudgetMs) break;
+      data[base + 0] = particleData.x[count];
+      data[base + 1] = particleData.y[count];
+      data[base + 2] = particleData.size[count];
+      data[base + 3] = particleData.renderAlpha[count];
+      data[base + 4] = particleData.r[count];
+      data[base + 5] = particleData.g[count];
+      data[base + 6] = particleData.b[count];
     }
 
     if (count === 0) return;
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    const requiredBytes = count * stride * 4;
-
-    if (requiredBytes > this.instanceBufferCapacity) {
-      gl.bufferData(gl.ARRAY_BUFFER, requiredBytes * 2, gl.DYNAMIC_DRAW); // Grow
-      this.instanceBufferCapacity = requiredBytes * 2;
-    }
-
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.dataBuffer, 0, count * stride);
 
     gl.useProgram(this.program);
@@ -121,6 +112,10 @@ export class ParticlePass {
 
     gl.disable(gl.BLEND);
     gl.useProgram(null);
+  }
+
+  getMaxParticleCount(): number {
+    return ParticlePass.MAX_PARTICLES;
   }
 
   destroy(): void {

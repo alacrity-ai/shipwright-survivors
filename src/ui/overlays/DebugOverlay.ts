@@ -72,10 +72,6 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Mouse (raw): ${mouseX.toFixed(0)}, ${mouseY.toFixed(0)}`); y += lineHeight;
     drawLabel(ctx, x, y, `Mouse (virtual): ${virtualMouseX.toFixed(0)}, ${virtualMouseY.toFixed(0)}`); y += lineHeight;
 
-    // === Visible particles ===
-    const visibleParticles = this.particleManager.collectVisibleParticles(Camera.getInstance());
-    drawLabel(ctx, x, y, `Particles: ${visibleParticles.length}`); y += lineHeight;
-
     const lightingOrch = LightingOrchestrator.getInstance();
     const allLights = lightingOrch.getActiveLights();
     const visibleLights = lightingOrch.collectVisibleLights(Camera.getInstance());

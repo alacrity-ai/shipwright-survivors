@@ -29,6 +29,8 @@ import {
   type UnderwaterParams
 } from '@/rendering/unified/passes/PostProcessPass';
 
+import type { ParticleSOA } from '@/systems/fx/ParticleManager';
+
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
 import type { SpecialFxInstance } from '@/rendering/unified/interfaces/SpecialFxInstance';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
@@ -220,7 +222,7 @@ export class UnifiedSceneRendererGL {
     ships: CompositeBlockObject[],
     lights: AnyLightInstance[],
     sprites: SpriteRenderRequest[],
-    particles: Particle[],
+    particleSOAs: ParticleSOA[],
     lightningSegments: LightningSegment[]
   ): void {
     const gl = this.gl;
@@ -290,7 +292,9 @@ export class UnifiedSceneRendererGL {
     }
 
     // === Step 8: Render particles ===
-    this.particlePass.render(particles, camera);
+    for (const particleSOA of particleSOAs) {
+      this.particlePass.renderSOA(particleSOA, camera);
+    }
 
     // === Step 9: Apply ripple/distortion FX (sceneTexture → sceneFramebufferFX)
     const activeFx = this.specialFxController.getActiveFx();

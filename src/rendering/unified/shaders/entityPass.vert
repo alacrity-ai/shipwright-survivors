@@ -1,57 +1,67 @@
 #version 300 es
 precision mediump float;
 
-in vec2 position;
+// ─── Static Vertex Quad ───────────────────────────────────────────────────
+in vec2 position; // [-1, +1] quad corners
 
+// ─── Per-Instance Attributes ──────────────────────────────────────────────
+layout(location = 1) in vec2 aPos;              // World position of block
+layout(location = 2) in float aRotation;        // Block rotation (radians)
+layout(location = 3) in vec2 aBaseUV;           // Base UV top-left
+layout(location = 4) in vec2 aOverlayUV;        // Overlay UV top-left
+layout(location = 5) in float aUseOverlay;      // 1.0 = overlay, 0.0 = base
+layout(location = 6) in vec3 aColor;            // RGB color override
+layout(location = 7) in float aUseColor;        // Whether to apply color override
+
+// ─── Uniforms ─────────────────────────────────────────────────────────────
 layout(std140) uniform CameraBlock {
   mat4 uProjectionMatrix;
   mat4 uViewMatrix;
 };
 
-uniform mat4 uModelMatrix;
-uniform vec2 uBlockPosition;
-uniform float uBlockRotation;
-uniform vec2 uBlockScale;
-uniform vec2 uTileSize;
+uniform vec2 uBlockScale;  // BLOCK_SIZE x BLOCK_SIZE
+uniform vec2 uTileSize;    // One tile size in UV space (in atlas)
 
-// New uniforms for atlas sampling
-uniform vec2 uBaseUVOffset;     // Top-left corner of base sprite in atlas
-uniform vec2 uOverlayUVOffset;  // Top-left corner of overlay sprite in atlas
-uniform float uUseOverlay;      // 1.0 = overlay, 0.0 = base
+// ─── Varyings to Fragment Shader ──────────────────────────────────────────
+out vec2 vUV;              // Local quad UV (0–1)
+out vec2 vScreenUV;        // For lightmap
+out vec2 vBaseUVOffset;    // Top-left UV of base tile
+out vec2 vOverlayUVOffset; // Top-left UV of overlay tile
+out float vUseOverlay;     // Passed along for conditionals
+out vec3 vColor;           // Block color
+out float vUseColor;
 
-out vec2 vUV;              // Local UV (0–1)
-out vec2 vScreenUV;        // Post-projection screen UV
-out vec2 vBaseUVOffset;    // Forwarded to frag for sampling
-out vec2 vOverlayUVOffset; // "
-out float vUseOverlay;     // "
 void main() {
-  // Local quad UV (from vertex pos)
+  // Local quad UV (for sampling)
   vUV = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
 
-  // Local vertex → scaled
-  vec2 scaledPosition = position * uBlockScale * 0.5;
-  vec2 flippedPosition = vec2(scaledPosition.x, -scaledPosition.y);
+  // Scale and flip local quad
+  vec2 scaled = position * uBlockScale * 0.5;
+  vec2 flipped = vec2(scaled.x, -scaled.y); // Y-flip due to texture coords
 
-  // Rotation
-  float cos_rot = cos(uBlockRotation);
-  float sin_rot = sin(uBlockRotation);
-  vec2 rotatedPosition = vec2(
-    flippedPosition.x * cos_rot - flippedPosition.y * sin_rot,
-    flippedPosition.x * sin_rot + flippedPosition.y * cos_rot
+  // Apply block rotation
+  float cosR = cos(aRotation);
+  float sinR = sin(aRotation);
+  vec2 rotated = vec2(
+    flipped.x * cosR - flipped.y * sinR,
+    flipped.x * sinR + flipped.y * cosR
   );
 
-  vec2 blockWorldPosition = rotatedPosition + uBlockPosition;
+  // Final world position
+  vec2 worldPos = aPos + rotated;
 
-  // Final transformation
-  vec4 worldPos = uModelMatrix * vec4(blockWorldPosition, 0.0, 1.0);
-  vec4 viewPos = uViewMatrix * worldPos;
-  gl_Position = uProjectionMatrix * viewPos;
+  // MVP transform
+  vec4 world = vec4(worldPos, 0.0, 1.0);
+  vec4 view = uViewMatrix * world;
+  gl_Position = uProjectionMatrix * view;
 
-  // Screen UV (for lightmap sampling)
+  // Lightmap sampling
   vScreenUV = gl_Position.xy / gl_Position.w * 0.5 + 0.5;
 
-  // Pass-through atlas metadata
-  vBaseUVOffset = uBaseUVOffset;
-  vOverlayUVOffset = uOverlayUVOffset;
-  vUseOverlay = uUseOverlay;
+  // Pass per-instance metadata
+  vBaseUVOffset = aBaseUV;
+  vOverlayUVOffset = aOverlayUV;
+  vUseOverlay = aUseOverlay;
+  vColor = aColor;
+  vUseColor = aUseColor;
 }
