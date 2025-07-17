@@ -3,9 +3,13 @@ precision mediump float;
 
 in vec2 vUV;
 in vec2 vScreenUV;
+in vec2 vBaseUVOffset;
+in vec2 vOverlayUVOffset;
+in float vUseOverlay;
+
 out vec4 outColor;
 
-uniform sampler2D uTexture;
+uniform sampler2D uBlockAtlas;
 uniform sampler2D uLightMap;
 
 uniform float uTime;
@@ -16,8 +20,17 @@ uniform vec3 uBlockColor;
 uniform float uBlockColorIntensity;
 uniform bool uUseBlockColor;
 
+// ─── New: Per-tile UV size in normalized atlas space ─────────────
+uniform vec2 uTileSize;
+
 void main() {
-  vec4 base = texture(uTexture, vUV);
+  // === Determine atlas sampling UV ===
+  vec2 spriteUV = vUV;
+  vec2 atlasUV = vUseOverlay > 0.5
+    ? vOverlayUVOffset + spriteUV * uTileSize
+    : vBaseUVOffset + spriteUV * uTileSize;
+
+  vec4 base = texture(uBlockAtlas, atlasUV);
   if (base.a < 0.01) discard;
 
   // === Lightmap Sampling ===
@@ -26,8 +39,6 @@ void main() {
   // === Lighting Composition (PBR-style blending) ===
   vec3 ambientComponent = base.rgb * uAmbientLight;
   vec3 litComponent = base.rgb * lightSample;
-
-  // Weighted blend: 85% lightmap, 15% ambient
   base.rgb = mix(ambientComponent, litComponent, 0.85);
 
   // === Block Color Override (modulates result color space) ===
