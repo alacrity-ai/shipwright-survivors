@@ -4,8 +4,7 @@ import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject'
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/config/view';
-import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
-import { getGL2BlockOrAsteroidSprite } from '@/rendering/unified/helpers/GLSpriteResolver';
+import { getDamageLevel, initializeUnifiedBlockAtlas, getBlockAtlasUVOffset } from '@/rendering/cache/BlockSpriteCache';
 import { entityFrameBudgetMs } from '@/config/graphicsConfig';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
@@ -23,20 +22,19 @@ const tmpRotation = new Float32Array(16);
 const tmpModelMatrix = new Float32Array(16);
 const tmpMouseWorld = { x: 0, y: 0 };
 
-function isMetallicSheenBlock(id: string): boolean {
-  return id.startsWith('hull') || id.startsWith('fin') || id.startsWith('faceplate') || id.startsWith('engine');
-}
-
 export class EntityPass {
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
   private readonly quadBuffer: WebGLBuffer;
 
+  private readonly blockAtlasTexture: WebGLTexture;
+
+  private tileSize: [number, number];
+
   private frameBudgetMs: number = entityFrameBudgetMs;
   private lastEntityIndex = 0;
   private lastBlockIndices = new WeakMap<CompositeBlockObject, number>();
-  private currentTex0: WebGLTexture | null = null;
 
   private ambientLight: [number, number, number] = [3.2, 3.2, 3.2];
 
@@ -45,7 +43,6 @@ export class EntityPass {
     uBlockPosition: WebGLUniformLocation | null;
     uBlockRotation: WebGLUniformLocation | null;
     uBlockScale: WebGLUniformLocation | null;
-    uTexture: WebGLUniformLocation | null;
     uLightMap: WebGLUniformLocation | null;
     uTime: WebGLUniformLocation | null;
     uCollisionColor: WebGLUniformLocation | null;
@@ -54,6 +51,12 @@ export class EntityPass {
     uBlockColor: WebGLUniformLocation | null;
     uUseBlockColor: WebGLUniformLocation | null;
     uBlockColorIntensity: WebGLUniformLocation | null;
+
+    uBlockAtlas: WebGLUniformLocation | null;
+    uBaseUVOffset: WebGLUniformLocation | null;
+    uOverlayUVOffset: WebGLUniformLocation | null;
+    uUseOverlay: WebGLUniformLocation | null;
+    uTileSize: WebGLUniformLocation | null;
   };
 
   constructor(
@@ -62,6 +65,10 @@ export class EntityPass {
   ) {
     this.gl = gl;
     this.program = createProgramFromSources(gl, entityVertSrc, entityFragSrc);
+
+    const atlas = initializeUnifiedBlockAtlas(gl);
+    this.blockAtlasTexture = atlas.texture;
+    this.tileSize = [atlas.tileWidth, atlas.tileHeight]; // Add this member
 
     const blockIndex = gl.getUniformBlockIndex(this.program, 'CameraBlock');
     if (blockIndex !== gl.INVALID_INDEX) {
@@ -82,7 +89,6 @@ export class EntityPass {
       uBlockPosition: gl.getUniformLocation(this.program, 'uBlockPosition'),
       uBlockRotation: gl.getUniformLocation(this.program, 'uBlockRotation'),
       uBlockScale: gl.getUniformLocation(this.program, 'uBlockScale'),
-      uTexture: gl.getUniformLocation(this.program, 'uTexture'),
       uLightMap: gl.getUniformLocation(this.program, 'uLightMap'),
       uTime: gl.getUniformLocation(this.program, 'uTime'),
       uCollisionColor: gl.getUniformLocation(this.program, 'uCollisionColor'),
@@ -91,6 +97,12 @@ export class EntityPass {
       uBlockColor: gl.getUniformLocation(this.program, 'uBlockColor'),
       uUseBlockColor: gl.getUniformLocation(this.program, 'uUseBlockColor'),
       uBlockColorIntensity: gl.getUniformLocation(this.program, 'uBlockColorIntensity'),
+
+      uBlockAtlas: gl.getUniformLocation(this.program, 'uBlockAtlas'),
+      uBaseUVOffset: gl.getUniformLocation(this.program, 'uBaseUVOffset'),
+      uOverlayUVOffset: gl.getUniformLocation(this.program, 'uOverlayUVOffset'),
+      uUseOverlay: gl.getUniformLocation(this.program, 'uUseOverlay'),
+      uTileSize: gl.getUniformLocation(this.program, 'uTileSize'),
     };
   }
 
@@ -107,29 +119,34 @@ export class EntityPass {
     if (entities.length === 0) return;
     const startIndex = this.lastEntityIndex % entities.length;
 
-    // Fixed per-pass state
+    // ─── Fixed per-pass state ─────────────────────────────────────────────
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.useProgram(this.program);
-    this.currentTex0 = null; // Clear texture cache at start of pass
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // Set uniforms that don't change per-block
     gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
     gl.uniform1f(this.uniforms.uTime, time);
     gl.uniform3f(this.uniforms.uAmbientLight, ...this.ambientLight);
 
+    // Bind global lightmap texture
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightTexture);
     gl.uniform1i(this.uniforms.uLightMap, 1);
+
+    // Bind atlas texture (bound to unit 0)
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.blockAtlasTexture);
+    gl.uniform1i(this.uniforms.uBlockAtlas, 0);
+    gl.uniform2f(this.uniforms.uTileSize, this.tileSize[0], this.tileSize[1]);
 
     if (this.inputManager) {
       const mouse = this.inputManager.getMousePosition();
       camera.screenToWorld(mouse.x, mouse.y, tmpMouseWorld);
     }
 
-    // Main entity loop
+    // ─── Main entity loop ─────────────────────────────────────────────────
     let i = startIndex;
     for (let looped = 0; looped < entities.length; looped++) {
       const entity = entities[i];
@@ -142,6 +159,7 @@ export class EntityPass {
       gl.uniformMatrix4fv(this.uniforms.uModelMatrix, false, tmpModelMatrix);
       gl.uniform1i(this.uniforms.uUseCollisionColor, 0);
 
+      // Block color override
       const colorOverride = entity.getBlockColor?.();
       const intensity = entity.getBlockColorIntensity?.() ?? 0.5;
 
@@ -166,7 +184,7 @@ export class EntityPass {
         const typeId = block.type.id;
         const maxHp = block.type.armor ?? 1;
         const damageLevel = getDamageLevel(block.hp, maxHp);
-        const sprite = getGL2BlockOrAsteroidSprite(typeId, damageLevel);
+        const { baseUV, overlayUV } = getBlockAtlasUVOffset(typeId, damageLevel);
 
         const localX = coord.x * BLOCK_SIZE;
         const localY = coord.y * BLOCK_SIZE;
@@ -175,13 +193,13 @@ export class EntityPass {
         gl.uniform2f(this.uniforms.uBlockPosition, localX, localY);
         gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
 
-        // Bind base texture and render
-        this.bindTex0(sprite.base);
-        gl.uniform1i(this.uniforms.uTexture, 0);
+        gl.uniform2f(this.uniforms.uBaseUVOffset, baseUV[0], baseUV[1]);
+        gl.uniform2f(this.uniforms.uOverlayUVOffset, overlayUV?.[0] ?? 0, overlayUV?.[1] ?? 0);
+        gl.uniform1f(this.uniforms.uUseOverlay, 0.0); // base pass
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-        // Overlay rendering
-        if (sprite.overlay && this.inputManager) {
+        // ─── Overlay rendering ─────────────────────────────────────────────
+        if (overlayUV && this.inputManager) {
           const worldX = position.x + localX * Math.cos(rotation) - localY * Math.sin(rotation);
           const worldY = position.y + localX * Math.sin(rotation) + localY * Math.cos(rotation);
 
@@ -193,15 +211,13 @@ export class EntityPass {
           gl.uniform1f(this.uniforms.uBlockRotation, overlayAngle);
           gl.uniform2f(this.uniforms.uBlockPosition, localX, localY);
 
-          this.bindTex0(sprite.overlay);
-          gl.uniform1i(this.uniforms.uTexture, 0);
+          gl.uniform1f(this.uniforms.uUseOverlay, 1.0);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-          // Restore original rotation (position is already set correctly)
-          gl.uniform1f(this.uniforms.uBlockRotation, blockRotation);
+          gl.uniform1f(this.uniforms.uBlockRotation, blockRotation); // restore rotation
         }
 
-        // Frame budget check
+        // ─── Frame budget check ───────────────────────────────────────────
         if (performance.now() > deadline) {
           this.lastEntityIndex = i;
           this.lastBlockIndices.set(entity, currentBlock);
@@ -216,7 +232,7 @@ export class EntityPass {
       i = (i + 1) % entities.length;
     }
 
-    // End-of-pass cleanup
+    // ─── End-of-pass cleanup ──────────────────────────────────────────────
     this.lastEntityIndex = i;
     this.lastBlockIndices = new WeakMap();
 
@@ -234,15 +250,6 @@ export class EntityPass {
     if (gl.isProgram(this.program)) gl.deleteProgram(this.program);
     if (gl.isBuffer(this.quadBuffer)) gl.deleteBuffer(this.quadBuffer);
     if (gl.isVertexArray(this.vao)) gl.deleteVertexArray(this.vao);
-  }
-
-  /** Optimized texture binding - avoids redundant GL calls */
-  private bindTex0(tex: WebGLTexture): void {
-    if (tex !== this.currentTex0) {
-      const { gl } = this;
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      this.currentTex0 = tex;
-    }
+    if (gl.isTexture(this.blockAtlasTexture)) gl.deleteTexture(this.blockAtlasTexture);
   }
 }

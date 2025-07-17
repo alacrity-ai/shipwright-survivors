@@ -138,6 +138,7 @@ import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { openQuestsMenu } from './interfaces/events/QuestReporter';
 import { abilities } from '@/game/player/PlayerAbilityManager';
 import { upgradeAffinityBlocksOnShip } from '@/game/blocks/helpers/upgradeUtils';
+import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -844,7 +845,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit9')) {
-      openQuestsMenu('Selk');
+      exportUnifiedBlockAtlasAsPNG();
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit1')) {

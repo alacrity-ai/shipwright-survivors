@@ -21,6 +21,18 @@ import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRender
 import { renderHaloBladeBlock } from './blockRenderers/haloBladeBlockRenderer';
 import { renderFuelTankBlock } from './blockRenderers/fuelTankBlockRenderer';
 
+import { getAllAsteroidBlockTypes, getAsteroidBlockType } from '@/game/blocks/AsteroidBlockRegistry';
+import { AsteroidDamageLevel, getAsteroidBlockSprite } from '@/rendering/cache/AsteroidSpriteCache';
+
+interface BlockAtlas {
+  texture: WebGLTexture;
+  width: number;
+  height: number;
+  tileWidth: number;  // UV size = BLOCK_SIZE / width
+  tileHeight: number; // UV size = BLOCK_SIZE / height
+}
+
+
 // --- Damage Level Enum ---
 
 export enum DamageLevel {
@@ -1061,4 +1073,193 @@ export function getGL2BlockSprite(blockType: BlockType, level: DamageLevel = Dam
   const entry = gl2SpriteCache.get(blockType.sprite);
   if (!entry) throw new Error(`GL2 block sprite not cached: ${blockType.sprite}`);
   return entry[level];
+}
+
+export function exportUnifiedBlockAtlasAsPNG(): void {
+  const normalBlocks = getAllBlockTypes();
+  const asteroidBlocks = getAllAsteroidBlockTypes();
+
+  const damageLevels: DamageLevel[] = [
+    DamageLevel.NONE,
+    DamageLevel.LIGHT,
+    DamageLevel.MODERATE,
+    DamageLevel.HEAVY,
+  ];
+
+  const rowsPerDamageLevel = 2; // base + overlay
+  const totalRows = damageLevels.length * rowsPerDamageLevel;
+
+  const allBlocks = [...normalBlocks, ...asteroidBlocks];
+  const cols = allBlocks.length;
+
+  const atlasWidth = cols * BLOCK_SIZE;
+  const atlasHeight = totalRows * BLOCK_SIZE;
+
+  const atlasCanvas = document.createElement('canvas');
+  atlasCanvas.width = atlasWidth;
+  atlasCanvas.height = atlasHeight;
+
+  const ctx = atlasCanvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = false;
+
+  for (let dy = 0; dy < damageLevels.length; dy++) {
+    const level = damageLevels[dy];
+
+    for (let bx = 0; bx < allBlocks.length; bx++) {
+      const block = allBlocks[bx];
+      const x = bx * BLOCK_SIZE;
+      const baseY = (dy * 2) * BLOCK_SIZE;
+      const overlayY = (dy * 2 + 1) * BLOCK_SIZE;
+
+      const isAsteroid = asteroidBlocks.includes(block);
+      let sprite: { base: HTMLCanvasElement; overlay?: HTMLCanvasElement };
+
+      if (isAsteroid) {
+        const asteroidLevel = mapDamageLevelToAsteroid(level);
+        sprite = getAsteroidBlockSprite(block.id, asteroidLevel);
+      } else {
+        sprite = getBlockSprite(block, level);
+      }
+
+      ctx.drawImage(sprite.base, x, baseY);
+
+      if (sprite.overlay) {
+        ctx.drawImage(sprite.overlay, x, overlayY);
+      } else {
+        ctx.clearRect(x, overlayY, BLOCK_SIZE, BLOCK_SIZE);
+      }
+
+      const baseUV: [number, number] = [x / atlasWidth, baseY / atlasHeight];
+      const overlayUV: [number, number] = [x / atlasWidth, overlayY / atlasHeight];
+
+      registerBlockAtlasUV(block.id, level, baseUV, sprite.overlay ? overlayUV : undefined);
+    }
+  }
+
+  // ─── Export PNG ─────────────────────────────────────
+  const dataURL = atlasCanvas.toDataURL('image/png');
+
+  const downloadLink = document.createElement('a');
+  downloadLink.href = dataURL;
+  downloadLink.download = 'block_texture_atlas_with_asteroids.png';
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
+
+export function initializeUnifiedBlockAtlas(gl: WebGL2RenderingContext): BlockAtlas {
+  const normalBlocks = getAllBlockTypes();
+  const asteroidBlocks = getAllAsteroidBlockTypes();
+
+  const damageLevels: DamageLevel[] = [
+    DamageLevel.NONE,
+    DamageLevel.LIGHT,
+    DamageLevel.MODERATE,
+    DamageLevel.HEAVY,
+  ];
+
+  const rowsPerDamageLevel = 2; // base + overlay
+  const totalRows = damageLevels.length * rowsPerDamageLevel;
+
+  const allBlocks = [...normalBlocks, ...asteroidBlocks];
+  const cols = allBlocks.length;
+
+  const atlasWidth = cols * BLOCK_SIZE;
+  const atlasHeight = totalRows * BLOCK_SIZE;
+
+  const atlasCanvas = document.createElement('canvas');
+  atlasCanvas.width = atlasWidth;
+  atlasCanvas.height = atlasHeight;
+
+  const ctx = atlasCanvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = false;
+
+  for (let dy = 0; dy < damageLevels.length; dy++) {
+    const level = damageLevels[dy];
+
+    for (let bx = 0; bx < allBlocks.length; bx++) {
+      const block = allBlocks[bx];
+      const x = bx * BLOCK_SIZE;
+      const baseY = (dy * 2) * BLOCK_SIZE;
+      const overlayY = (dy * 2 + 1) * BLOCK_SIZE;
+
+      // Determine whether this is an asteroid block
+      const isAsteroid = asteroidBlocks.includes(block);
+
+      let sprite: { base: HTMLCanvasElement; overlay?: HTMLCanvasElement };
+      if (isAsteroid) {
+        const asteroidLevel = mapDamageLevelToAsteroid(level);
+        sprite = getAsteroidBlockSprite(block.id, asteroidLevel);
+      } else {
+        sprite = getBlockSprite(block, level);
+      }
+
+      ctx.drawImage(sprite.base, x, baseY);
+
+      if (sprite.overlay) {
+        ctx.drawImage(sprite.overlay, x, overlayY);
+      } else {
+        ctx.clearRect(x, overlayY, BLOCK_SIZE, BLOCK_SIZE);
+      }
+
+      const baseUV: [number, number] = [x / atlasWidth, baseY / atlasHeight];
+      const overlayUV: [number, number] = [x / atlasWidth, overlayY / atlasHeight];
+
+      registerBlockAtlasUV(block.id, level, baseUV, sprite.overlay ? overlayUV : undefined);
+    }
+  }
+
+  const glTexture = createGL2TextureFromCanvas(gl, atlasCanvas);
+
+  return {
+    texture: glTexture,
+    width: atlasWidth,
+    height: atlasHeight,
+    tileWidth: BLOCK_SIZE / atlasWidth,
+    tileHeight: BLOCK_SIZE / atlasHeight,
+  };
+}
+
+function mapDamageLevelToAsteroid(level: DamageLevel): AsteroidDamageLevel {
+  switch (level) {
+    case DamageLevel.NONE:     return AsteroidDamageLevel.NONE;
+    case DamageLevel.LIGHT:    return AsteroidDamageLevel.FRACTURED;
+    case DamageLevel.MODERATE: return AsteroidDamageLevel.CRUMBLING;
+    case DamageLevel.HEAVY:    return AsteroidDamageLevel.CRUMBLING;
+  }
+}
+
+
+// UV map container
+interface AtlasUVOffset {
+  baseUV: [number, number];
+  overlayUV?: [number, number];
+}
+
+const blockAtlasUVMap = new Map<string, Record<DamageLevel, AtlasUVOffset>>();
+
+/** Registers UV offset for a block ID + damage level */
+export function registerBlockAtlasUV(
+  typeId: string,
+  damageLevel: DamageLevel,
+  baseUV: [number, number],
+  overlayUV?: [number, number]
+): void {
+  let levels = blockAtlasUVMap.get(typeId);
+  if (!levels) {
+    levels = {} as Record<DamageLevel, AtlasUVOffset>;
+    blockAtlasUVMap.set(typeId, levels);
+  }
+  levels[damageLevel] = { baseUV, overlayUV };
+}
+
+export function getBlockAtlasUVOffset(
+  typeId: string,
+  damageLevel: DamageLevel
+): AtlasUVOffset {
+  const levels = blockAtlasUVMap.get(typeId);
+  if (!levels) throw new Error(`No UV mapping found for typeId: ${typeId}`);
+  const entry = levels[damageLevel];
+  if (!entry) throw new Error(`No UV for typeId=${typeId}, level=${damageLevel}`);
+  return entry;
 }
