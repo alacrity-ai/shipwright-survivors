@@ -14,6 +14,7 @@ import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionServ
 import type { PowerUpChoice } from '@/game/player/PlayerExperienceManager';
 import type { PlanetDefinition } from '@/game/planets/interfaces/PlanetDefinition';
 import type { QuestStepId } from '@/game/quests/interfaces/QuestStep';
+import type { Ship } from '@/game/ship/Ship';
 
 export type CursorChangeType =
   | 'crosshair'
@@ -195,6 +196,22 @@ export interface EventTypes {
   'fx:clear': undefined;
   // Lightning FX
   'lightning:bolt:spawn': LightningBoltSpawnEvent;
+  // Fire FX Events
+  'fx:fire:emit': {
+    x: number;
+    y: number;
+    radius?: number;
+    life?: number;
+    intensity?: number;
+    rampIndex?: number;
+    randomizeRadius?: boolean;
+    randomizeLife?: boolean;
+    count?: number;              // number of blobs to spawn
+    light?: boolean;             // spawn a point light per blob
+    lightRadiusScalar?: number;  // scales light radius relative to blob radius
+    lightIntensity?: number;     // brightness of the light
+    color?: string;              // optional light color override (hex)
+  };
 
   // Wave spawning / Enemy spawning
   'wave:spawn': { tag: string; wave: WaveDefinition; } // Tag to keep track of wave
@@ -249,5 +266,13 @@ export interface EventTypes {
   'entity:destroy': {
     entity: CompositeBlockObject;
     cause: DestructionCause;
+  };
+
+  // Status Effects
+  'status:damageOverTime': {
+    target: Ship;             // the ship receiving damage
+    source: Ship | null;      // the ship that caused it (or null if self)
+    amount: number;           // per-tick damage
+    cause: 'dot';  // for CombatService cause routing
   };
 }

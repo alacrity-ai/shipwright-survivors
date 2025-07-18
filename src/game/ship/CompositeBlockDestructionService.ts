@@ -30,7 +30,8 @@ export type DestructionCause =
   | 'self'
   | 'scripted'
   | 'reflected'
-  | 'replaced';
+  | 'replaced'
+  | 'dot';
 
 interface BlockDestructionStep {
   delay: number; // in seconds
@@ -112,6 +113,7 @@ export class CompositeBlockDestructionService {
       this.shipRegistry.remove(entity);
       MovementSystemRegistry.unregister(entity);
       this.aiOrchestrator.removeControllersForShip?.(entityId);
+      entity.clearAllStatusEffects();
     }
 
     entity.destroy();
@@ -139,29 +141,28 @@ export class CompositeBlockDestructionService {
             50 + Math.random() * 40,
             0.5 + Math.random() * 0.5,
             undefined,
-            DEFAULT_EXPLOSION_SPARK_PALETTE
+            DEFAULT_EXPLOSION_SPARK_PALETTE,
+            undefined,
           );
-          const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-          this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
+          // const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
+          // this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
         },
       });
     });
 
     // Handle ship-specific effects
     if (entity instanceof Ship) {
-      if (PlayerSettingsManager.getInstance().isLightingEnabled()) {
-        const lightingOrchestrator = LightingOrchestrator.getInstance();
-        const light = createPointLight({
-          x: transform.position.x,
-          y: transform.position.y,
-          radius: 4 * entity.getTotalMass(),
-          color: '#ffffff',
-          intensity: 1.25,
-          life: 0.5,
-          expires: true,
-        });
-        lightingOrchestrator.registerLight(light);
-      }
+      const lightingOrchestrator = LightingOrchestrator.getInstance();
+      const light = createPointLight({
+        x: transform.position.x,
+        y: transform.position.y,
+        radius: 4 * entity.getTotalMass(),
+        color: '#ffffff',
+        intensity: 1.25,
+        life: 0.5,
+        expires: true,
+      });
+      lightingOrchestrator.registerLight(light);
 
       const cockpitCoord = entity.getCockpitCoord?.();
       if (cockpitCoord) {
@@ -182,10 +183,10 @@ export class CompositeBlockDestructionService {
                   60 + Math.random() * 20,
                   0.5 + Math.random() * 0.3,
                   undefined,
-                  DEFAULT_EXPLOSION_SPARK_PALETTE
+                  DEFAULT_EXPLOSION_SPARK_PALETTE,
                 );
-                const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-                this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
+                // const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
+                // this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
               },
             });
           }

@@ -2,7 +2,6 @@
 
 import type { Camera } from '@/core/Camera';
 import type { AnyLightInstance } from '@/lighting/lights/types';
-import type { Particle } from '@/systems/fx/interfaces/Particle';
 import type { InputManager } from '@/core/InputManager';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 
@@ -22,6 +21,8 @@ import { EntityPass } from '@/rendering/unified/passes/EntityPass';
 import { ParticlePass } from '@/rendering/unified/passes/ParticlePass';
 import { SpritePass } from '@/rendering/unified/passes/SpritePass';
 import { LightningPass, type LightningSegment } from '@/rendering/unified/passes/fx/LightningPass';
+import { FirePass, type FireSOA } from '@/rendering/unified/passes/fx/FirePass';
+import { createFireGradientAtlas } from '@/rendering/unified/utils/createGradientRampAtlas';
 import {
   PostProcessPass,
   type PostEffectName,
@@ -32,7 +33,6 @@ import {
 import type { ParticleSOA } from '@/systems/fx/ParticleManager';
 
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
-import type { SpecialFxInstance } from '@/rendering/unified/interfaces/SpecialFxInstance';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
 
 type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
@@ -43,6 +43,7 @@ export class UnifiedSceneRendererGL {
   private readonly backgroundPass: BackgroundPass;
   private readonly planetPass: PlanetPass;
   private readonly lightingPass: LightingPass;
+  private readonly firePass: FirePass;
   private readonly entityPass: EntityPass;
   private readonly spritePass: SpritePass;
   private readonly particlePass: ParticlePass;
@@ -93,8 +94,12 @@ export class UnifiedSceneRendererGL {
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
 
+    // Create gradient atlas for fire
+    const { texture: fireRampTex, count: fireRampCount } = createFireGradientAtlas(this.gl);
+
     // World FX
     this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
+    this.firePass = new FirePass(this.gl, this.cameraUBO, fireRampTex, fireRampCount);
 
     this.sceneFramebuffer = this.gl.createFramebuffer()!;
     this.sceneTexture = this.gl.createTexture()!;
@@ -218,12 +223,14 @@ export class UnifiedSceneRendererGL {
   }
 
   render(
+    dt: number, // Seconds
     camera: Camera,
     ships: CompositeBlockObject[],
     lights: AnyLightInstance[],
     sprites: SpriteRenderRequest[],
     particleSOAs: ParticleSOA[],
-    lightningSegments: LightningSegment[]
+    lightningSegments: LightningSegment[],
+    fireSOA: FireSOA
   ): void {
     const gl = this.gl;
 
@@ -312,6 +319,7 @@ export class UnifiedSceneRendererGL {
 
     // === Step 10: Render world-space FX passes (lightning, trails, etc.) ===
     this.lightningPass.render(lightningSegments, camera);
+    this.firePass.renderSOA(fireSOA, dt);
 
     // === Step 11: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

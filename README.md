@@ -126,8 +126,7 @@ What's needed to get to Demo:
 
 TODOS:
   - [ ] Open Communications Label should not display while dialogue is active
-  - [x] Fix damage numbers not aggregating. After optimization, it seems like damage numbers are all rendering individually, without adding.
-  - [x] Make JumpCast, and QuestLog button, both unlockable actions (right side of exp bar)
+  - [ ] Potentially give enemies "callout sounds" and have them use playSpatialSfx
   - [ ] Quests
         - [x] Quest tracker button
           - [ ] Button opens list of tracked quests

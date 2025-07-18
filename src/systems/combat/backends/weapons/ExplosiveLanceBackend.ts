@@ -24,8 +24,7 @@ import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { PointLightInstance } from '@/lighting/lights/types';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-import { GlobalEventBus } from '@/core/EventBus';
-import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 
 interface ActiveExplosiveLance {
   position: { x: number; y: number };
@@ -279,7 +278,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
               // Electrocute if applies
               if (explosiveLanceElectrocution) {
                 if (compositeBlockObject instanceof Ship) {
-                  compositeBlockObject.addStatusEffect('electrocuted', 8, 1);
+                  compositeBlockObject.addStatusEffect('electrocuted', 8, ship, 1);
                 }
               }
 
@@ -346,15 +345,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     // Light flash at point of impact (fallback to position if ship is gone)
     const flashX = lance.targetShip?.getTransform().position.x ?? lance.position.x;
     const flashY = lance.targetShip?.getTransform().position.y ?? lance.position.y;
-    createLightFlash(
-      flashX,
-      flashY,
-      lance.explosionRadius * 24,
-      0.8,
-      0.4,
-      colorPalette[0],
-      `explosiveLance-${lance.targetShip?.id ?? 'ambient'}`
-    );
+    emitDefaultFlames(flashX, flashY, lance.explosionRadius * 24, 0.8, true, 1, colorPalette[0]);
 
     // If we have a valid, alive targetShip and coord, apply AoE damage
     if (lance.targetShip && lance.coord && !lance.targetShip.isDestroyed()) {

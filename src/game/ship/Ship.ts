@@ -12,7 +12,8 @@ import type { HaloBladeProperties } from '@/game/interfaces/behavior/HaloBladePr
 import type { PassiveId } from '@/game/player/PlayerPassiveManager';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
-import type { StatusEffect, StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
+import type { StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
+import type { StatusEffect } from '@/game/ship/status/StatusEffect';
 import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/ArtifactEffectMetadata';
 
 import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
@@ -35,6 +36,7 @@ import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { AfterburnerComponent } from './components/AfterburnerComponent';
 import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { Faction } from '@/game/interfaces/types/Faction';
+import { StatusEffectFactory } from '@/game/ship/status/StatusEffectFactory';
 
 import { initiateJump } from '@/core/interfaces/events/PlanetMenusReporter';
 import { ShipRasterizationService } from '@/rendering/services/ShipRasterizationService';
@@ -216,34 +218,75 @@ export class Ship extends CompositeBlockObject {
 
   // === Status Effects
 
-  public addStatusEffect(type: StatusEffectType, duration: number, intensity?: number): void {
+  /**
+   * Adds or refreshes a status effect.
+   * - Replaces existing effect if new one has longer duration.
+   * - Calls onApply() when first applied.
+   */
+  public addStatusEffect(type: StatusEffectType, duration: number, sourceShip: Ship | null, intensity?: number): void {
     const existing = this.statusEffects.get(type);
-    if (!existing || duration > existing.duration) {
-      this.statusEffects.set(type, { type, duration, intensity });
+
+    if (!existing || duration > existing.getRemainingDuration()) {
+      // If replacing, ensure cleanup
+      existing?.onExpire?.(this);
+
+      const newEffect = StatusEffectFactory.create(type, duration, sourceShip, intensity ?? 1);
+      this.statusEffects.set(type, newEffect);
+      newEffect.onApply?.(this);
     }
   }
 
+  /** Forces removal of a status effect, calling onExpire if defined. */
   public removeStatusEffect(type: StatusEffectType): void {
-    this.statusEffects.delete(type);
+    const existing = this.statusEffects.get(type);
+    if (existing) {
+      existing.onExpire?.(this);
+      this.statusEffects.delete(type);
+    }
   }
 
+  /** Returns true if the ship currently has the specified status effect. */
   public hasStatusEffect(type: StatusEffectType): boolean {
     return this.statusEffects.has(type);
   }
 
+  /** Retrieves the instance (for reading state like intensity), if present. */
   public getStatusEffect(type: StatusEffectType): StatusEffect | undefined {
     return this.statusEffects.get(type);
   }
 
-  // Should be called every frame
+  /**
+   * Called every frame by ShipGrid.
+   * Updates each effect and cleans up expired ones.
+   */
   public updateStatusEffects(dt: number): void {
     for (const [type, effect] of this.statusEffects.entries()) {
-      effect.duration -= dt;
-      if (effect.duration <= 0) {
+      effect.update(dt, this);
+
+      if (effect.isExpired()) {
+        effect.onExpire?.(this);
         this.statusEffects.delete(type);
-        // Optionally trigger expiration logic here
       }
     }
+  }
+
+  /**
+   * Forcefully clears all active status effects.
+   * Invokes onExpire() for each effect before removing.
+   * Intended to be called when the ship is destroyed or permanently removed.
+   */
+  public clearAllStatusEffects(): void {
+    if (this.statusEffects.size === 0) return;
+
+    for (const [type, effect] of this.statusEffects.entries()) {
+      try {
+        effect.onExpire?.(this);
+      } catch (err) {
+        console.warn(`[Ship] Error while expiring status effect '${type}':`, err);
+      }
+    }
+
+    this.statusEffects.clear();
   }
 
   // == Powerups system
@@ -791,7 +834,8 @@ export class Ship extends CompositeBlockObject {
       hp: Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus),
       ownerShipId: this.id,
       position: worldPos,
-      ...(rotation !== undefined ? { rotation } : {})
+      ...(rotation !== undefined ? { rotation } : {}),
+      destroyed: false,
     };
 
     this.placeBlock(coord, block);
@@ -1066,6 +1110,9 @@ export class Ship extends CompositeBlockObject {
     ShipRegistry.getInstance().remove(this);
 
     const gl = CanvasManager.getInstance().getWebGL2Context('unifiedgl2');
+
+    // Clear statuses
+    this.clearAllStatusEffects();
 
     // --- Clean up GPU texture ---
     if (this.rasterizedTexture && gl.isTexture(this.rasterizedTexture)) {

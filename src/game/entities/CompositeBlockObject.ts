@@ -365,6 +365,13 @@ export abstract class CompositeBlockObject {
     return this.calculateBlockWorldPosition(coord);
   }
 
+  // Helper for effects on blocks
+  public getRandomBlockWorldPosition(): { x: number; y: number } {
+    const block = this.getRandomBlock();
+    if (!block) return { x: 0, y: 0 };
+    return this.getBlockWorldPosition(block);
+  }
+
   protected calculateBlockWorldPosition(coord: GridCoord): { x: number; y: number } {
     const { position, rotation } = this.transform;
     const { x: px, y: py } = position;
@@ -512,6 +519,7 @@ export abstract class CompositeBlockObject {
         hp: type.armor,
         ownerShipId: this.id,
         position: { x: 0, y: 0 },
+        destroyed: false,
       };
 
       const coordKey = toKey(blockData.coord);

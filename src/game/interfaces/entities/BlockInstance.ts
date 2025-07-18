@@ -27,4 +27,5 @@ export interface BlockInstance {
   hidden?: boolean;
   _cell?: CellRef;  // Transient Metadata
   _cellFaction?: { cellArr: BlockInstance[]; index: number; cellKey: number };
+  destroyed: boolean;
 }

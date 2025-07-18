@@ -24,19 +24,65 @@ import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 export interface ExtraDamageOptions {
   repairOrbDropRateMulti?: number;
   hideExplosionParticlesOnHit?: boolean;
 }
 
 export class CombatService {
+  // Keep a reference to the bound EventBus handler so we can unregister it later
+  private readonly handleDamageOverTime = ({ target, source, amount, cause }: {
+    target: Ship;
+    source: Ship | null;
+    amount: number;
+    cause: 'dot';
+  }): void => {
+    this.applyDamageToRandomBlock(
+      target,
+      source ?? target, // Fallback to self if source is null
+      amount,
+      cause
+    );
+  };
+
   constructor(
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
     private readonly destructionService: CompositeBlockDestructionService,
     private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly floatingTextManager?: FloatingTextManager
-  ) {}
+  ) {
+    // Register the bound handler
+    GlobalEventBus.on('status:damageOverTime', this.handleDamageOverTime);
+  }
+
+  /**
+   * Must be called when the owning runtime is disposed to prevent ghost listeners.
+   */
+  public destroy(): void {
+    GlobalEventBus.off('status:damageOverTime', this.handleDamageOverTime);
+  }
+
+  public applyDamageToRandomBlock(
+    entity: CompositeBlockObject,
+    source: CompositeBlockObject,
+    damage: number,
+    cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' |
+           'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' |
+           'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
+  ): void {
+    if (entity.isDestroyed()) return;
+
+    const randomBlock = entity.getRandomBlock();
+    if (!randomBlock) return;
+
+    const randomBlockCoord = entity.getBlockCoord(randomBlock);
+    if (!randomBlockCoord) return;
+
+    this.applyDamageToBlock(entity, source, randomBlock, randomBlockCoord, damage, cause, false, 0, 1.5);
+  }
 
   public applyDamageToBlock(
     entity: CompositeBlockObject, // The entity receiving the damage
@@ -44,13 +90,13 @@ export class CombatService {
     block: BlockInstance, // The block receiving the damage
     coord: GridCoord,
     damage: number,
-    cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'scripted' | 'reflected' = 'scripted',
+    cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
     lightFlash: boolean = true,
     baseCriticalChance: number = 0,
     baseCriticalMultiplier: number = 1.5,
     extraOptions: ExtraDamageOptions = {}
   ): boolean {
-    if (block.indestructible) return false;
+    if (block.indestructible || block.destroyed) return false;
 
     // === Local caches for fast repeated logic ===
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
@@ -272,6 +318,7 @@ export class CombatService {
     });
 
     if (block.hp > 0) return false;
+    block.destroyed = true;
 
     // === Invariant: destroying center block (0,0) destroys entire object ===
     const isCenterBlock = coord.x === 0 && coord.y === 0;
@@ -348,6 +395,8 @@ export class CombatService {
           0.5 + Math.random() * 0.3,
           undefined,
           DEFAULT_EXPLOSION_SPARK_PALETTE,
+          undefined,
+          'lightless',
         );
 
         const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;        
@@ -405,6 +454,8 @@ export class CombatService {
         0.7 + Math.random() * 0.3,
         undefined,
         DEFAULT_EXPLOSION_SPARK_PALETTE,
+        undefined,
+        'lightless',
       );
 
       const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;      

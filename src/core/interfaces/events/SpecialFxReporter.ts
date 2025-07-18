@@ -55,3 +55,96 @@ export function spawnLightningBolt(
 ): void {
   GlobalEventBus.emit('lightning:bolt:spawn', payload);
 }
+
+/** Low-level emitter for fully custom fire payloads. */
+export function emitFire(params: {
+  x: number;
+  y: number;
+  radius?: number;
+  life?: number;
+  intensity?: number;
+  rampIndex?: number;
+  randomizeRadius?: boolean;
+  randomizeLife?: boolean;
+  count?: number;
+  light?: boolean;
+  lightRadiusScalar?: number;
+  lightIntensity?: number;
+  color?: string;
+}): void {
+  GlobalEventBus.emit('fx:fire:emit', params);
+}
+
+// === Prefab Emitters ===
+
+export function emitDefaultFlames(x: number, y: number, radius = 250, life = 1.0, light = true, count = 5, color = '#ff9933'): void {
+  emitFire({
+    x,
+    y,
+    radius,
+    life,
+    intensity: 0.25,
+    rampIndex: 0, // classic orange flame
+    randomizeRadius: true,
+    randomizeLife: true,
+    count,
+    light,
+    lightRadiusScalar: 4.0,
+    lightIntensity: 0.4,
+    color,
+  });
+}
+
+export function emitBlueFlames(x: number, y: number, count = 5): void {
+  emitFire({
+    x,
+    y,
+    radius: 20,
+    life: 1.2,
+    intensity: 0.8,
+    rampIndex: 2, // plasma/blue flame
+    randomizeRadius: true,
+    randomizeLife: true,
+    count,
+    light: true,
+    lightRadiusScalar: 4.5,
+    lightIntensity: 1.0,
+    color: '#33ccff',
+  });
+}
+
+export function emitPoisonFlames(x: number, y: number, count = 4): void {
+  emitFire({
+    x,
+    y,
+    radius: 22,
+    life: 1.4,
+    intensity: 1.0,
+    rampIndex: 1, // acid/poison flame
+    randomizeRadius: true,
+    randomizeLife: true,
+    count,
+    light: true,
+    lightRadiusScalar: 4.0,
+    lightIntensity: 1.0,
+    color: '#33ff99',
+  });
+}
+
+export function emitBigExplosionFlames(x: number, y: number, count = 12): void {
+  emitFire({
+    x,
+    y,
+    radius: 48,
+    life: 1.5,
+    intensity: 1.5,
+    rampIndex: 0, // fiery explosion
+    randomizeRadius: true,
+    randomizeLife: true,
+    count,
+    light: true,
+    lightRadiusScalar: 6.0,
+    lightIntensity: 2.0,
+    color: '#ff6600',
+  });
+}

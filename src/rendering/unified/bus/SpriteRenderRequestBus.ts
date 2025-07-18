@@ -4,23 +4,40 @@ import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteR
 
 class SpriteRenderRequestBus {
   private requests: SpriteRenderRequest[] = [];
+  private pool: SpriteRenderRequest[] = []; // Reuse old request objects
 
   add(request: SpriteRenderRequest): void {
-    this.requests.push(request);
+    // Reuse a pooled object instead of allocating a fresh one
+    const pooled = this.pool.pop() || ({} as SpriteRenderRequest);
+
+    // Copy fields (preserve shape for JIT optimizations)
+    pooled.texture = request.texture;
+    pooled.worldX = request.worldX;
+    pooled.worldY = request.worldY;
+    pooled.widthPx = request.widthPx;
+    pooled.heightPx = request.heightPx;
+    pooled.alpha = request.alpha;
+    pooled.rotation = request.rotation;
+
+    this.requests.push(pooled);
   }
 
   addMany(requests: SpriteRenderRequest[]): void {
-    this.requests.push(...requests);
+    for (let i = 0; i < requests.length; i++) {
+      this.add(requests[i]); // Will automatically use pool
+    }
   }
 
   getAndClear(): SpriteRenderRequest[] {
     const current = this.requests;
-    this.requests = []; // GC-free if re-used
+    this.requests = []; // Avoid reallocation by reusing array
+    this.pool.push(...current); // Recycle all requests
     return current;
   }
 
   clear(): void {
-    this.requests = [];
+    this.pool.push(...this.requests);
+    this.requests.length = 0;
   }
 }
 

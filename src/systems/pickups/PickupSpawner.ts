@@ -123,7 +123,6 @@ export class PickupSpawner {
     if (this.pickupDropsDisabled) return;
 
     const blockType = block.type;
-
     const baseDropRate = blockType.dropRate ?? 0;
     const missionMultiplier = missionLoader.getDropMultiplier();
     const passiveDropMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('block-drop-rate');

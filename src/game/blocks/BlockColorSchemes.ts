@@ -93,8 +93,8 @@ export const BLOCK_TIER_COLORS_RGBA: Record<number, [number, number, number, num
 };
 
 export const LASER_TIER_COLORS_RGBA: Record<number, [number, number, number, number]> = {
-  0: [255, 255, 255, 1], // Tier 0 – white (for consistency)
-  1: [80, 200, 255, 1], // Tier 1 – cyan
+  0: [0, 255, 255, 1], // Tier 0 – white (for consistency)
+  1: [0, 255, 255, 1], // Tier 1 – cyan
   2: [0, 255, 0, 1],    // Tier 2 – emerald green
   3: [0, 0, 255, 1],    // Tier 3 – cobalt blue
   4: [140, 0, 140, 1],   // Tier 4 – royal purple

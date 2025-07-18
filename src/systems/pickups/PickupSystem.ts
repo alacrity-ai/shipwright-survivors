@@ -1,9 +1,4 @@
-// // src/systems/pickups/PickupSystem.ts
-
-
-
-
-// Refactored GC-optimized PickupSystem
+// src/systems/pickups/PickupSystem.ts
 
 import { BLOCK_PICKUP_SPARK_COLOR_PALETTES, BLOCK_PICKUP_LIGHT_TIER_COLORS, PICKUP_FLASH_COLORS, BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { BLOCK_SIZE } from '@/config/view';
@@ -32,7 +27,6 @@ import type { ParticleOptions } from '@/systems/fx/ParticleManager';
 import type { ScreenEffectsSystem } from '../fx/ScreenEffectsSystem';
 import type { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import type { Camera } from '@/core/Camera';
-import type { PickupInstance } from '@/game/interfaces/entities/PickupInstance';
 import type { Ship } from '@/game/ship/Ship';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
@@ -43,14 +37,13 @@ const PICKUP_RADIUS = 16;
 const PICKUP_RANGE_PER_HARVEST_UNIT = 48;
 const ATTRACTION_SPEED = 10;
 const PICKUP_ATTRACTION_EXPONENT = 2.0;
-const ROTATION_SPEED = {
-  currency: 1,
-  block: 1,
-  repair: 1,
-  quantumAttractor: 4,
-  shipBlueprint: 4,
-};
-
+const ROTATION_SPEED_ARRAY = [
+  1, // Currency
+  1, // Repair
+  1, // Block
+  4, // Quantum
+  4, // ShipBlueprint
+];
 const CULL_PADDING = 0;
 
 const SPARK_OPTIONS: ParticleOptions = {
@@ -61,18 +54,74 @@ const SPARK_OPTIONS: ParticleOptions = {
   fadeOut: true,
 };
 
+const REUSABLE_PARTICLE_OPTIONS: ParticleOptions = {
+  colors: SPARK_OPTIONS.colors,
+  baseSpeed: 250,
+  sizeRange: [1, 2.5],  // reused, not recreated
+  lifeRange: [1, 2],    // reused, not recreated
+  fadeOut: true,
+};
+
+interface PickupSOA {
+  count: number;
+
+  x: Float32Array;
+  y: Float32Array;
+  rotation: Float32Array;
+  ttl: Float32Array;
+  spawnTime: Float32Array;
+  category: Uint8Array;          // 0=currency,1=repair,2=block,3=quantum,4=shipBlueprint
+  amount: Float32Array;          // currency or repair amount
+  blockTypeId: (string | undefined)[];  // String block IDs
+  texture: (WebGLTexture | null)[];
+  shipId: (string | undefined)[];
+  lightId: (string | undefined)[];
+}
+
+const MAX_PICKUPS = 3200; // Adjust based on game scale
+
+function createPickupBuffer(max: number): PickupSOA {
+  return {
+    count: 0,
+    x: new Float32Array(max),
+    y: new Float32Array(max),
+    rotation: new Float32Array(max),
+    ttl: new Float32Array(max),
+    spawnTime: new Float32Array(max),
+    category: new Uint8Array(max),
+    amount: new Float32Array(max),
+
+    // String-based fields (parallel arrays)
+    blockTypeId: new Array<string | undefined>(max),
+    shipId: new Array<string | undefined>(max),
+
+    // Non-numeric (object) fields
+    texture: new Array<WebGLTexture | null>(max),
+    lightId: new Array<string | undefined>(max),
+  };
+}
+
+
+// Category enum for consistency
+const enum PickupCategory {
+  Currency = 0,
+  Repair = 1,
+  Block = 2,
+  Quantum = 3,
+  ShipBlueprint = 4,
+}
+
 export class PickupSystem {
-  private pickups: PickupInstance[] = [];
-  private blockPickups: PickupInstance[] = [];
-  private resourcePickups: PickupInstance[] = [];
+  private readonly soa: PickupSOA;
+  private readonly freeIndices: number[] = []; // reuse slots on removal
 
   private playerResources: PlayerResources;
   private playerShip: Ship | null = null;
-  private sparkManager: ParticleManager;
-  private screenEffects: ScreenEffectsSystem;
-  private popupMessageSystem: PopupMessageSystem;
-  private shipBuilderEffects: ShipBuilderEffectsSystem;
-  private blockDropDecisionMenu: BlockDropDecisionMenu;
+
+  private destroyed = false;
+
+  private blockSpriteCache = new Map<string, WebGLTexture | null>();
+  private readonly tempVec = { x: 0, y: 0 };
 
   private static readonly BASE_PICKUP_PITCH = 0.8;
   private static readonly PICKUP_PITCH_INCREMENT = 0.05;
@@ -82,80 +131,145 @@ export class PickupSystem {
   private static readonly QUANTUM_ATTRACTOR_DURATION = 8.0;
   private static readonly QUANTUM_ATTRACTOR_RANGE_BOOST = 64000;
   private static readonly QUANTUM_ATTRACTOR_SPEED_MULTIPLIER = 6.0;
+
+  // Audio pitch state
+  private currencyPickupPitch = PickupSystem.BASE_PICKUP_PITCH;
+  private blockPickupPitch = PickupSystem.BASE_PICKUP_PITCH;
+  private timeSinceLastCurrencyPickup = 0;
+  private timeSinceLastBlockPickup = 0;
+
   private quantumAttractorRemainingTime = 0;
-
-  private currencyPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
-  private blockPickupPitch: number = PickupSystem.BASE_PICKUP_PITCH;
-  private timeSinceLastCurrencyPickup: number = 0;
-  private timeSinceLastBlockPickup: number = 0;
-
-  private destroyed = false;
-
-  // === GC optimization fields ===
-  private blockSpriteCache = new Map<string, WebGLTexture | null>();
-  private readonly tempVec = { x: 0, y: 0 };
 
   constructor(
     private readonly camera: Camera,
-    sparkManager: ParticleManager,
-    screenEffects: ScreenEffectsSystem,
-    popupMessageSystem: PopupMessageSystem,
-    shipBuilderEffects: ShipBuilderEffectsSystem,
-    blockDropDecisionMenu: BlockDropDecisionMenu
+    private readonly sparkManager: ParticleManager,
+    private readonly screenEffects: ScreenEffectsSystem,
+    private readonly popupMessageSystem: PopupMessageSystem,
+    private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
+    private readonly blockDropDecisionMenu: BlockDropDecisionMenu
   ) {
     this.playerResources = PlayerResources.getInstance();
-    this.sparkManager = sparkManager;
-    this.screenEffects = screenEffects;
-    this.popupMessageSystem = popupMessageSystem;
-    this.shipBuilderEffects = shipBuilderEffects;
-    this.blockDropDecisionMenu = blockDropDecisionMenu;
+    this.soa = createPickupBuffer(MAX_PICKUPS);
   }
 
-  // === GC-optimized helpers ===
-
-  private removePickupFromArray(pickup: PickupInstance, arr: PickupInstance[]): void {
-    const index = arr.indexOf(pickup);
-    if (index !== -1) arr.splice(index, 1);
+  setPlayerShip(ship: Ship): void {
+    this.playerShip = ship;
   }
 
-  private resolvePickupTexture(pickup: PickupInstance): WebGLTexture | null {
+  // Allocation helper: reuses or expands index space
+  private allocateIndex(): number {
+    if (this.freeIndices.length > 0) {
+      const idx = this.freeIndices.pop()!;
+      if (idx >= this.soa.count) this.soa.count = idx + 1;
+      return idx;
+    }
+    if (this.soa.count >= MAX_PICKUPS) return -1;
+    return this.soa.count++;
+  }
+
+  // Recycle helper: swap-with-last for O(1) removal
+  private recycleIndex(i: number): void {
+    const last = this.soa.count - 1;
+
+    // Clean up any light
+    if (this.soa.lightId[i]) {
+      LightingOrchestrator.getInstance().removeLight(this.soa.lightId[i]!);
+      this.soa.lightId[i] = undefined;
+    }
+
+    if (i !== last) this.swap(i, last);
+    this.freeIndices.push(last);
+    this.soa.count--;
+  }
+
+  private swap(i: number, j: number): void {
+    let t: number;
+
+    // Swap all numeric/typed-array fields
+    t = this.soa.x[i]; this.soa.x[i] = this.soa.x[j]; this.soa.x[j] = t;
+    t = this.soa.y[i]; this.soa.y[i] = this.soa.y[j]; this.soa.y[j] = t;
+    t = this.soa.rotation[i]; this.soa.rotation[i] = this.soa.rotation[j]; this.soa.rotation[j] = t;
+    t = this.soa.ttl[i]; this.soa.ttl[i] = this.soa.ttl[j]; this.soa.ttl[j] = t;
+    t = this.soa.spawnTime[i]; this.soa.spawnTime[i] = this.soa.spawnTime[j]; this.soa.spawnTime[j] = t;
+    t = this.soa.amount[i]; this.soa.amount[i] = this.soa.amount[j]; this.soa.amount[j] = t;
+
+    const cat = this.soa.category[i];
+    this.soa.category[i] = this.soa.category[j];
+    this.soa.category[j] = cat;
+
+    // Swap string/object fields (reference swaps)
+    const blockId = this.soa.blockTypeId[i];
+    this.soa.blockTypeId[i] = this.soa.blockTypeId[j];
+    this.soa.blockTypeId[j] = blockId;
+
+    const tex = this.soa.texture[i];
+    this.soa.texture[i] = this.soa.texture[j];
+    this.soa.texture[j] = tex;
+
+    const sid = this.soa.shipId[i];
+    this.soa.shipId[i] = this.soa.shipId[j];
+    this.soa.shipId[j] = sid;
+
+    const lid = this.soa.lightId[i];
+    this.soa.lightId[i] = this.soa.lightId[j];
+    this.soa.lightId[j] = lid;
+  }
+
+  private resolvePickupTextureSOA(i: number): WebGLTexture | null {
     try {
-      switch (pickup.type.category) {
-        case 'currency':
-        case 'repair':
-        case 'quantumAttractor':
-        case 'shipBlueprint':
-          return getGLPickupSprite(pickup.type.id).texture;
+      const cat = this.soa.category[i];
 
-        case 'block':
-          const id = pickup.type.blockTypeId!;
+      switch (cat) {
+        case PickupCategory.Currency:
+          return getGLPickupSprite('currency').texture;
+
+        case PickupCategory.Repair:
+          return getGLPickupSprite('repair').texture;
+
+        case PickupCategory.Quantum:
+          return getGLPickupSprite('quantumAttractor').texture;
+
+        case PickupCategory.ShipBlueprint:
+          return getGLPickupSprite('shipBlueprint').texture;
+
+        case PickupCategory.Block: {
+          const id = this.soa.blockTypeId[i];
+          if (!id) return null;
+
           if (this.blockSpriteCache.has(id)) {
             return this.blockSpriteCache.get(id)!;
           }
+
           const blockType = getBlockType(id);
           if (!blockType) {
             this.blockSpriteCache.set(id, null);
             return null;
           }
+
           const tex = getGL2BlockSprite(blockType, DamageLevel.NONE)?.base ?? null;
           this.blockSpriteCache.set(id, tex);
           return tex;
+        }
 
         default:
-          console.warn(`[PickupSystem] Unhandled pickup category: ${pickup.type.category}`);
+          console.warn(`[PickupSystem] Unhandled pickup category index: ${cat}`);
           return null;
       }
     } catch (e) {
-      console.error(`[PickupSystem] Failed to resolve texture for ${pickup.type.id}`, e);
+      console.error(`[PickupSystem] Failed to resolve texture for pickup at index ${i}`, e);
       return null;
     }
   }
 
-  private computeAttraction(shipX: number, shipY: number, pickup: PickupInstance, attractionSpeedBoost: number, attractionRangeSq: number): boolean {
-    this.tempVec.x = shipX - pickup.position.x;
-    this.tempVec.y = shipY - pickup.position.y;
-    const dx = this.tempVec.x;
-    const dy = this.tempVec.y;
+  private computeAttractionSOA(
+    i: number,
+    shipX: number,
+    shipY: number,
+    attractionSpeedBoost: number,
+    attractionRangeSq: number
+  ): boolean {
+    const dx = shipX - this.soa.x[i];
+    const dy = shipY - this.soa.y[i];
     const distSq = dx * dx + dy * dy;
 
     if (distSq > attractionRangeSq) return false;
@@ -168,103 +282,92 @@ export class PickupSystem {
     const nx = dx * invLen;
     const ny = dy * invLen;
 
-    pickup.position.x += nx * speed;
-    pickup.position.y += ny * speed;
+    this.soa.x[i] += nx * speed;
+    this.soa.y[i] += ny * speed;
 
-    const light = pickup.lightId ? LightingOrchestrator.getInstance().getLightById?.(pickup.lightId) : null;
-    if (light && light.type === 'point') {
-      light.x = pickup.position.x;
-      light.y = pickup.position.y;
+    const lightId = this.soa.lightId[i];
+    if (lightId) {
+      const light = LightingOrchestrator.getInstance().getLightById?.(lightId);
+      if (light && light.type === 'point') {
+        light.x = this.soa.x[i];
+        light.y = this.soa.y[i];
+      }
     }
 
     return distSq < PICKUP_RADIUS * PICKUP_RADIUS;
   }
 
+  private spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
+    const idx = this.allocateIndex();
+    if (idx === -1) return;
 
-  setPlayerShip(ship: Ship): void {
-    this.playerShip = ship;
-  }
-
-  spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
-    const lightingOrchestrator = LightingOrchestrator.getInstance();
-
-    const light = createPointLight({
-      x: position.x,
-      y: position.y,
-      radius: 200, // ~2x BLOCK_SIZE visually
-      color: '#ffcc00', // gold glow
-      intensity: 1.0,
-      life: 10000,
-      expires: true,
-    });
-
-    lightingOrchestrator.registerLight(light);
-
-    const newPickup: PickupInstance = {
-      type: {
-        id: 'currency',
-        name: 'Gold Coin',
-        currencyAmount: amount,
-        category: 'currency',
-        sprite: 'currency',
-        repairAmount: 0,
-      },
-      position,
-      isPickedUp: false,
-      repairAmount: 0,
-      currencyAmount: amount,
-      rotation: 0,
-      lightId: light.id,
-      spawnTime: performance.now() / 1000,
-      ttl: 90,
-    };
-
-    this.pickups.push(newPickup);
-    this.resourcePickups.push(newPickup);
-  }
-
-  spawnRepairPickup(position: { x: number; y: number }, amount: number): void {
-    const lightingOrchestrator = LightingOrchestrator.getInstance();
+    const now = performance.now() / 1000;
+    const lighting = LightingOrchestrator.getInstance();
 
     const light = createPointLight({
       x: position.x,
       y: position.y,
       radius: 200,
-      color: '#ff4444', // soft red glow
+      color: '#ffcc00',
+      intensity: 0.7,
+      life: 10000,
+      expires: true,
+    });
+    lighting.registerLight(light);
+
+    this.soa.x[idx] = position.x;
+    this.soa.y[idx] = position.y;
+    this.soa.rotation[idx] = 0;
+    this.soa.ttl[idx] = 90;
+    this.soa.spawnTime[idx] = now;
+    this.soa.category[idx] = PickupCategory.Currency;
+    this.soa.amount[idx] = amount;
+    this.soa.blockTypeId[idx] = undefined;
+    this.soa.shipId[idx] = undefined;
+    this.soa.lightId[idx] = light.id;
+    this.soa.texture[idx] = getGLPickupSprite('currency').texture;
+  }
+
+  private spawnRepairPickup(position: { x: number; y: number }, amount: number): void {
+    const idx = this.allocateIndex();
+    if (idx === -1) return;
+
+    const now = performance.now() / 1000;
+    const lighting = LightingOrchestrator.getInstance();
+
+    const light = createPointLight({
+      x: position.x,
+      y: position.y,
+      radius: 200,
+      color: '#ff4444',
       intensity: 1.0,
       life: 10000,
       expires: true,
     });
+    lighting.registerLight(light);
 
-    lightingOrchestrator.registerLight(light);
-
-    const newPickup: PickupInstance = {
-      type: {
-        id: 'repair',
-        name: 'Repair Nanobot Swarm',
-        sprite: 'repair',
-        category: 'repair',
-        currencyAmount: 0,
-        repairAmount: amount,
-      },
-      position,
-      isPickedUp: false,
-      currencyAmount: 0,
-      repairAmount: amount,
-      rotation: 0,
-      lightId: light.id,
-      spawnTime: performance.now() / 1000,
-      ttl: 30,
-    };
-
-    this.pickups.push(newPickup);
-    this.resourcePickups.push(newPickup);
+    this.soa.x[idx] = position.x;
+    this.soa.y[idx] = position.y;
+    this.soa.rotation[idx] = 0;
+    this.soa.ttl[idx] = 30;
+    this.soa.spawnTime[idx] = now;
+    this.soa.category[idx] = PickupCategory.Repair;
+    this.soa.amount[idx] = amount;
+    this.soa.blockTypeId[idx] = undefined;
+    this.soa.shipId[idx] = undefined;
+    this.soa.lightId[idx] = light.id;
+    this.soa.texture[idx] = getGLPickupSprite('repair').texture;
   }
 
-  spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
-    const lightingOrchestrator = LightingOrchestrator.getInstance();
+  private spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
+    const idx = this.allocateIndex();
+    if (idx === -1) return;
+
+    const now = performance.now() / 1000;
+    const lighting = LightingOrchestrator.getInstance();
+
     const tier = getTierFromBlockId(blockType.id);
-    const color = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? '#ffffff'; // fallback to white
+    const color = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? '#ffffff';
 
     const light = createPointLight({
       x: position.x,
@@ -275,113 +378,88 @@ export class PickupSystem {
       life: 10000,
       expires: true,
     });
+    lighting.registerLight(light);
 
-    lightingOrchestrator.registerLight(light);
+    // Handle drop override (mutates blockType if needed)
+    const finalBlockType = blockType.blockDropOverride ? getBlockType(blockType.blockDropOverride)! : blockType;
 
-    const blockDropOverride = blockType.blockDropOverride;
-    if (blockDropOverride) {
-      blockType = getBlockType(blockDropOverride)!;
-    }
+    this.soa.x[idx] = position.x;
+    this.soa.y[idx] = position.y;
+    this.soa.rotation[idx] = 0;
+    this.soa.ttl[idx] = 30;
+    this.soa.spawnTime[idx] = now;
+    this.soa.category[idx] = PickupCategory.Block;
+    this.soa.amount[idx] = 0;
+    this.soa.blockTypeId[idx] = finalBlockType.id;
+    this.soa.shipId[idx] = undefined;
+    this.soa.lightId[idx] = light.id;
 
-    const newPickup: PickupInstance = {
-      type: {
-        id: `unlock-${blockType.id}`,
-        name: `${blockType.name} Blueprint`,
-        sprite: blockType.sprite,
-        currencyAmount: 0,
-        category: 'block',
-        blockTypeId: blockType.id,
-        repairAmount: 0,
-      },
-      position,
-      isPickedUp: false,
-      repairAmount: 0,
-      currencyAmount: 0,
-      rotation: 0,
-      lightId: light.id,
-      spawnTime: performance.now() / 1000,
-      ttl: 30,
-    };
-
-    this.pickups.push(newPickup);
-    this.blockPickups.push(newPickup);
+    // Cache block texture (resolve only once)
+    const tex = getGL2BlockSprite(finalBlockType, DamageLevel.NONE)?.base ?? null;
+    this.blockSpriteCache.set(finalBlockType.id, tex);
+    this.soa.texture[idx] = tex;
   }
 
-  spawnQuantumAttractorPickup(position: { x: number; y: number }): void {
-    const lightingOrchestrator = LightingOrchestrator.getInstance();
+  private spawnQuantumAttractorPickup(position: { x: number; y: number }): void {
+    const idx = this.allocateIndex();
+    if (idx === -1) return;
+
+    const now = performance.now() / 1000;
+    const lighting = LightingOrchestrator.getInstance();
 
     const light = createPointLight({
       x: position.x,
       y: position.y,
       radius: 380,
-      color: '#00ffff', // cyan-blue glow to match "quantum" tone
+      color: '#00ffff',
       intensity: 1.6,
       life: 10000,
       expires: true,
     });
+    lighting.registerLight(light);
 
-    lightingOrchestrator.registerLight(light);
-
-    const newPickup: PickupInstance = {
-      type: {
-        id: 'quantumAttractor',
-        name: 'Quantum Attractor',
-        sprite: 'quantumAttractor',
-        category: 'quantumAttractor',
-        currencyAmount: 0,
-        repairAmount: 0,
-      },
-      position,
-      isPickedUp: false,
-      repairAmount: 0,
-      currencyAmount: 0,
-      rotation: 0,
-      lightId: light.id,
-      spawnTime: performance.now() / 1000,
-      ttl: 999,
-    };
-
-    this.pickups.push(newPickup);
-    this.resourcePickups.push(newPickup);
+    this.soa.x[idx] = position.x;
+    this.soa.y[idx] = position.y;
+    this.soa.rotation[idx] = 0;
+    this.soa.ttl[idx] = 999;
+    this.soa.spawnTime[idx] = now;
+    this.soa.category[idx] = PickupCategory.Quantum;
+    this.soa.amount[idx] = 0;
+    this.soa.blockTypeId[idx] = undefined;
+    this.soa.shipId[idx] = undefined;
+    this.soa.lightId[idx] = light.id;
+    this.soa.texture[idx] = getGLPickupSprite('quantumAttractor').texture;
   }
 
-  spawnShipBlueprintPickup(position: { x: number; y: number }, shipId: string): void {
-    const lightingOrchestrator = LightingOrchestrator.getInstance();
+  private spawnShipBlueprintPickup(position: { x: number; y: number }, shipId: string): void {
+    const idx = this.allocateIndex();
+    if (idx === -1) return;
+
+    const now = performance.now() / 1000;
+    const lighting = LightingOrchestrator.getInstance();
 
     const light = createPointLight({
       x: position.x,
       y: position.y,
       radius: 500,
-      color: '#00FFFF', // cyan-blue glow
+      color: '#00ffff',
       intensity: 1.4,
       life: 10000,
       expires: true,
     });
+    lighting.registerLight(light);
 
-    lightingOrchestrator.registerLight(light);
-
-    const newPickup: PickupInstance = {
-      type: {
-        id: `shipBlueprint`,
-        name: `${shipId} Blueprint`,
-        sprite: 'shipBlueprint',
-        category: 'shipBlueprint',
-        currencyAmount: 0,
-        repairAmount: 0,
-      },
-      position,
-      isPickedUp: false,
-      repairAmount: 0,
-      currencyAmount: 0,
-      rotation: 0,
-      lightId: light.id,
-      spawnTime: performance.now() / 1000,
-      ttl: 999,
-      shipId,
-    };
-
-    this.pickups.push(newPickup);
-    this.resourcePickups.push(newPickup);
+    this.soa.x[idx] = position.x;
+    this.soa.y[idx] = position.y;
+    this.soa.rotation[idx] = 0;
+    this.soa.ttl[idx] = 999;
+    this.soa.spawnTime[idx] = now;
+    this.soa.category[idx] = PickupCategory.ShipBlueprint;
+    this.soa.amount[idx] = 0;
+    this.soa.blockTypeId[idx] = undefined;
+    this.soa.shipId[idx] = shipId;
+    this.soa.lightId[idx] = light.id;
+    this.soa.texture[idx] = getGLPickupSprite('shipBlueprint').texture;
   }
 
   private isQuantumAttractorActive(): boolean {
@@ -414,16 +492,16 @@ export class PickupSystem {
       this.blockPickupPitch = PickupSystem.BASE_PICKUP_PITCH;
     }
 
-    const shipPosition = this.playerShip.getTransform().position;
-    const baseAttractionRange = 700;
+    const shipPos = this.playerShip.getTransform().position;
+    const baseRange = 700;
     const bonusRange = this.playerShip.getTotalHarvestRate() * PICKUP_RANGE_PER_HARVEST_UNIT;
-    let attractionRange = baseAttractionRange + bonusRange;
-    let attractionSpeedBoost = 1.0;
+    let attractionRange = baseRange + bonusRange;
+    let speedBoost = 1.0;
 
     if (this.quantumAttractorRemainingTime > 0) {
       this.quantumAttractorRemainingTime -= dt;
       attractionRange += PickupSystem.QUANTUM_ATTRACTOR_RANGE_BOOST;
-      attractionSpeedBoost = PickupSystem.QUANTUM_ATTRACTOR_SPEED_MULTIPLIER;
+      speedBoost = PickupSystem.QUANTUM_ATTRACTOR_SPEED_MULTIPLIER;
       if (this.quantumAttractorRemainingTime <= 0) {
         this.quantumAttractorRemainingTime = 0;
       }
@@ -439,92 +517,86 @@ export class PickupSystem {
     const maxX = viewport.x + viewport.width + CULL_PADDING;
     const maxY = viewport.y + viewport.height + CULL_PADDING;
 
-    const emissionChance = Math.min(0.16, 10 / this.pickups.length);
+    const emissionChance = Math.min(0.16, 10 / Math.max(1, this.soa.count));
     const emitParticles = Math.random() < emissionChance;
 
-    for (let i = this.pickups.length - 1; i >= 0; i--) {
-      const pickup = this.pickups[i];
-      if (pickup.isPickedUp) continue;
-
-      // === TTL Expiry ===
-      if (pickup.ttl !== undefined && now - pickup.spawnTime >= pickup.ttl) {
-        if (pickup.lightId) {
-          LightingOrchestrator.getInstance().removeLight(pickup.lightId);
-        }
-
-        this.pickups.splice(i, 1);
-        this.removePickupFromArray(pickup, this.blockPickups);
-        this.removePickupFromArray(pickup, this.resourcePickups);
+    for (let i = this.soa.count - 1; i >= 0; i--) {
+      // TTL expiration
+      if (now - this.soa.spawnTime[i] >= this.soa.ttl[i]) {
+        this.recycleIndex(i);
         continue;
       }
 
-      const px = pickup.position.x;
-      const py = pickup.position.y;
+      const px = this.soa.x[i];
+      const py = this.soa.y[i];
 
+      // Viewport culling (skip off-screen when not in attractor mode)
       if (shouldCull && (px < minX || px > maxX || py < minY || py > maxY)) {
         continue;
       }
 
-      // === Rotation ===
-      pickup.rotation += (ROTATION_SPEED[pickup.type.category] ?? 0) * dt;
+      // Rotation
+      const cat = this.soa.category[i];
+      this.soa.rotation[i] += ROTATION_SPEED_ARRAY[cat] * dt;
 
-      // === Particle Emission ===
+      // Particle emission (sparks)
       if (emitParticles) {
         let sparkColors: string[];
-        switch (pickup.type.category) {
-          case 'block': {
-            const blockTypeId = pickup.type.blockTypeId;
-            if (blockTypeId) {
-              const tier = getTierFromBlockId(blockTypeId);
-              sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors;
+        switch (cat) {
+          case PickupCategory.Block: {
+            const blockId = this.soa.blockTypeId[i];
+            if (blockId) {
+              const tier = getTierFromBlockId(blockId);
+              sparkColors = BLOCK_PICKUP_SPARK_COLOR_PALETTES[tier] ?? SPARK_OPTIONS.colors!;
             } else {
               sparkColors = ['#00ffff'];
             }
             break;
           }
-          case 'repair':
+          case PickupCategory.Repair:
             sparkColors = ['#ff4444', '#cc2222', '#ff0000', '#aa0000'];
             break;
-          case 'currency':
+          case PickupCategory.Currency:
           default:
             sparkColors = SPARK_OPTIONS.colors!;
             break;
         }
 
-        this.sparkManager.emitParticle(pickup.position, {
-          colors: sparkColors,
-          baseSpeed: 250,
-          sizeRange: [1, 2.5],
-          lifeRange: [1, 2],
-          fadeOut: true,
-        });
+        // GC Neutral Particle emission
+        REUSABLE_PARTICLE_OPTIONS.colors = sparkColors;
+        this.tempVec.x = px;
+        this.tempVec.y = py;
+        this.sparkManager.emitParticle(this.tempVec, REUSABLE_PARTICLE_OPTIONS);
       }
 
-      // === Texture Resolve ===
-      const texture = this.resolvePickupTexture(pickup);
+      // Render sprite
+      if (!this.soa.texture[i]) {
+        this.soa.texture[i] = this.resolvePickupTextureSOA(i);
+      }
+      const texture = this.soa.texture[i];
       if (texture) {
         let width = BLOCK_SIZE;
         let height = BLOCK_SIZE;
 
-        switch (pickup.type.category) {
-          case 'currency': {
-            const scale = BASE_PICKUP_SCALE + Math.log2(pickup.currencyAmount + 1) / 7;
+        switch (cat) {
+          case PickupCategory.Currency: {
+            const scale = BASE_PICKUP_SCALE + Math.log2(this.soa.amount[i] + 1) / 7;
             width *= scale;
             height *= scale;
             break;
           }
-          case 'repair': {
-            const scale = BASE_PICKUP_SCALE + Math.log2(pickup.repairAmount + 1) / 5;
+          case PickupCategory.Repair: {
+            const scale = BASE_PICKUP_SCALE + Math.log2(this.soa.amount[i] + 1) / 5;
             width *= scale;
             height *= scale;
             break;
           }
-          case 'block':
+          case PickupCategory.Block:
             width *= BASE_BLOCK_PICKUP_SCALE;
             height *= BASE_BLOCK_PICKUP_SCALE;
             break;
-          case 'quantumAttractor':
-          case 'shipBlueprint':
+          case PickupCategory.Quantum:
+          case PickupCategory.ShipBlueprint:
             width = 176;
             height = 176;
             break;
@@ -537,56 +609,49 @@ export class PickupSystem {
           widthPx: width,
           heightPx: height,
           alpha: 1.0,
-          rotation: pickup.rotation,
+          rotation: this.soa.rotation[i],
         });
       }
 
-      // === Pickup logic ===
-      if (pickup.type.category === 'block') {
+      // Block-specific capacity check
+      if (cat === PickupCategory.Block) {
         const current = this.playerResources.getBlockCount();
         const max = this.playerResources.getMaxBlockQueueSize();
         if (current >= max) continue;
       }
 
-      const pickedUp = this.computeAttraction(shipPosition.x, shipPosition.y, pickup, attractionSpeedBoost, attractionRangeSq);
+      // Attraction (moves toward ship, triggers pickup if within radius)
+      const pickedUp = this.computeAttractionSOA(i, shipPos.x, shipPos.y, speedBoost, attractionRangeSq);
       if (pickedUp) {
-        this.collectPickup(pickup);
+        this.collectPickup(i);
       }
     }
   }
 
-  private async collectPickup(pickup: PickupInstance): Promise<void> {
+  private async collectPickup(i: number): Promise<void> {
     if (!this.playerShip) return;
 
-    pickup.isPickedUp = true;
+    const cat = this.soa.category[i];
+    const amt = this.soa.amount[i];
+    const blockId = this.soa.blockTypeId[i];
+    const shipId = this.soa.shipId[i];
 
-    const lighting = LightingOrchestrator.getInstance();
-    if (pickup.lightId) lighting.removeLight(pickup.lightId);
-
-    this.removePickupFromArray(pickup, this.pickups);
-    if (pickup.type.category === 'block') {
-      this.removePickupFromArray(pickup, this.blockPickups);
-    } else {
-      this.removePickupFromArray(pickup, this.resourcePickups);
-    }
-
-    const playerPos = this.playerShip.getTransform().position;
-
-    let flashColor = PICKUP_FLASH_COLORS[pickup.type.category] ?? '#ffffff';
-    if (pickup.type.category === 'block' && pickup.type.blockTypeId) {
-      const tier = getTierFromBlockId(pickup.type.blockTypeId);
+    // Compute flash color (default or tier-based)
+    let flashColor = PICKUP_FLASH_COLORS[cat] ?? '#ffffff';
+    if (cat === PickupCategory.Block && blockId) {
+      const tier = getTierFromBlockId(blockId);
       flashColor = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? flashColor;
     }
 
+    const playerPos = this.playerShip.getTransform().position;
     createLightFlash(playerPos.x, playerPos.y, 320 + Math.random() * 100, 1.2, 0.5, flashColor, 'pickup-currency');
 
     let playedSound = false;
 
-    switch (pickup.type.category) {
-      case 'currency': {
-        const amount = pickup.currencyAmount;
-        PlayerExperienceManager.getInstance().addEntropium(amount);
-        missionResultStore.addEntropium(amount);
+    switch (cat) {
+      case PickupCategory.Currency: {
+        PlayerExperienceManager.getInstance().addEntropium(amt);
+        missionResultStore.addEntropium(amt);
 
         playedSound = await audioManager.play('assets/sounds/sfx/ship/gather_00.wav', 'sfx', {
           volume: 1.25,
@@ -604,9 +669,8 @@ export class PickupSystem {
         break;
       }
 
-      case 'block': {
-        const blockTypeId = pickup.type.blockTypeId;
-        if (!blockTypeId) break;
+      case PickupCategory.Block: {
+        if (!blockId) break;
 
         missionResultStore.incrementBlockCollectedCount();
 
@@ -624,27 +688,27 @@ export class PickupSystem {
           );
         }
 
-        const tier = getTierFromBlockId(blockTypeId);
-        const flashColor = BLOCK_TIER_COLORS[tier] ?? ['#fff'];
-        createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, flashColor, `blockPickup-${blockTypeId}`);
+        const tier = getTierFromBlockId(blockId);
+        const tierColor = BLOCK_TIER_COLORS[tier] ?? ['#fff'];
+        createLightFlash(playerPos.x, playerPos.y, 360, 1.0, 0.5, tierColor, `blockPickup-${blockId}`);
 
-        const blockType = getBlockType(blockTypeId);
+        const blockType = getBlockType(blockId);
         if (blockType) {
           this.blockDropDecisionMenu.enqueueBlock(getTier1BlockIfTier0(blockType));
         }
         break;
       }
 
-      case 'repair': {
-        repairAllBlocksWithHealing(this.playerShip, pickup.repairAmount, this.shipBuilderEffects);
+      case PickupCategory.Repair: {
+        repairAllBlocksWithHealing(this.playerShip, amt, this.shipBuilderEffects);
         audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx', { maxSimultaneous: 3 });
         break;
       }
 
-      case 'shipBlueprint': {
-        const shipId = pickup.shipId;
+      case PickupCategory.ShipBlueprint: {
         if (!shipId) {
-          console.warn('Ship blueprint pickup missing ship ID:', pickup);
+          console.warn(`Ship blueprint pickup missing ship ID (index ${i})`);
+          this.recycleIndex(i);
           return;
         }
 
@@ -664,7 +728,6 @@ export class PickupSystem {
           shipCollection.unlock(shipId);
 
           audioManager.play('assets/sounds/sfx/magic/collect_ship.wav', 'sfx', { maxSimultaneous: 8 });
-
           this.popupMessageSystem.displayMessage(`${shipId} Blueprint Discovered!`, {
             color: '#00FFFF',
             duration: 5,
@@ -678,15 +741,15 @@ export class PickupSystem {
       }
 
       default: {
-        if (pickup.type.id === 'quantumAttractor') {
-          reportPickupCollected('quantumAttractor');
-          createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#EFBF04');
-          this.activateQuantumAttractor();
-        } else {
-          console.warn('Unhandled pickup category or malformed pickup:', pickup);
-        }
+        // Only possible "other" type is Quantum Attractor
+        reportPickupCollected('quantumAttractor');
+        createLightFlash(playerPos.x, playerPos.y, 900, 1.0, 0.5, '#EFBF04');
+        this.activateQuantumAttractor();
       }
     }
+
+    // Recycle the pickup after processing (removes from SOA & cleans up light)
+    this.recycleIndex(i);
   }
 
   public destroy(): void {
@@ -695,18 +758,20 @@ export class PickupSystem {
 
     const lighting = LightingOrchestrator.getInstance();
 
-    // Efficient light removal loop
-    for (let i = 0; i < this.pickups.length; i++) {
-      const lightId = this.pickups[i].lightId;
-      if (lightId) lighting.removeLight(lightId);
+    // Remove all lights attached to active pickups
+    for (let i = 0; i < this.soa.count; i++) {
+      const lightId = this.soa.lightId[i];
+      if (lightId) {
+        lighting.removeLight(lightId);
+        this.soa.lightId[i] = undefined;
+      }
     }
 
-    // Avoid replacing arrays (retain references)
-    this.pickups.length = 0;
-    this.blockPickups.length = 0;
-    this.resourcePickups.length = 0;
+    // Reset SOA state (retain buffers to avoid reallocating)
+    this.soa.count = 0;
+    this.freeIndices.length = 0;
 
-    // Clear sprite cache if long-lived system
+    // Clear cached textures for blocks
     this.blockSpriteCache.clear();
 
     // Clear player ship reference

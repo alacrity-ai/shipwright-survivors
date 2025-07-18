@@ -36,6 +36,7 @@ import { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManage
 import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
+import { FireManager } from '@/systems/fx/FireManager';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 
@@ -107,6 +108,7 @@ export class TitleScreenRuntime {
   private pickupSystem: PickupSystem;
   private pickupSpawner: PickupSpawner;
   private particleManager: ParticleManager;
+  private fireManager: FireManager;
   private persistentParticleManager: ParticleManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private floatingTextManager: FloatingTextManager;
@@ -159,6 +161,8 @@ export class TitleScreenRuntime {
     this.particleManager = new ParticleManager(this.lightingOrchestrator, 'game');
     // Particle System which runs regardless of game pause
     this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator, 'persistent');
+    // Fire manager
+    this.fireManager = new FireManager(this.lightingOrchestrator);
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -318,6 +322,7 @@ export class TitleScreenRuntime {
     this.fixedUpdatables = [
       this.projectileSystem,
       this.particleManager,
+      this.fireManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
       this.destructionService,
@@ -428,16 +433,18 @@ export class TitleScreenRuntime {
       const visibleParticles2 = this.persistentParticleManager.getParticleSOA();
       const visibleParticles = [visibleParticles1, visibleParticles2];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
-
+      const fireSOA = this.fireManager.getFireSOA();
       const visibleObjects = [...visibleBlockObjects, ...visibleShips];
 
       this.unifiedSceneRenderer!.render(
+        dt,
         this.camera,
         visibleObjects,
         visibleLights,
         spriteRequests,
         visibleParticles,
-        []
+        [],
+        fireSOA,
       );
     }
   };
@@ -496,10 +503,13 @@ export class TitleScreenRuntime {
     this.projectileSystem.destroy();
     this.blockDropDecisionMenu.destroy();
     this.waveOrchestrator!.destroy();
+    this.combatService.destroy();
 
     // Optional: clear UI menus, overlays
     this.explosionSystem.destroy();
     this.particleManager.destroy();
+    this.persistentParticleManager.destroy();
+    this.fireManager.destroy();
     this.lightingOrchestrator.destroy();
 
     this.unifiedSceneRenderer!.destroy();

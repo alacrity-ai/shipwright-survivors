@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────────────────────────────────────────
-// src/rendering/unified/passes/LightningPass.ts
+// src/rendering/unified/passes/fx/LightningPass.ts
 // Real-time chain-lightning renderer ‒ instanced screen-facing quads per segment
 // ────────────────────────────────────────────────────────────────────────────────
 

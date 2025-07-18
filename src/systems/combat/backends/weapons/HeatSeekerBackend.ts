@@ -18,6 +18,7 @@ import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { normalizeAngle } from '@/shared/mathUtils';
+import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 
 interface ActiveSeekerMissile {
   position: { x: number; y: number };
@@ -304,16 +305,8 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     this.particleManager.killParticle(missile.particleHandle);
 
-    const color = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#ccc';
-    createLightFlash(
-      missile.targetShip.getTransform().position.x,
-      missile.targetShip.getTransform().position.y,
-      420,
-      0.8,
-      0.3,
-      color,
-      `heatSeeker-${missile.targetShip.id}`
-    );
+    const color = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#FFFFFF';
+    emitDefaultFlames(missile.position.x, missile.position.y, 200, 1.2, true, 1, color);
 
     let centerCoord: GridCoord | null = null;
     let minDistSq = Infinity;
@@ -335,10 +328,10 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     // Apply status effects if applicable
     if (missile.igniteOnSeekerMissileExplosion) {
-      missile.targetShip.addStatusEffect('ignite', 5.0, 1.0);
+      missile.targetShip.addStatusEffect('ignite', 12.0, sourceShip, missile.explosionDamage * 0.3);
     }
     if (missile.timeFreezeOnSeekerMissileExplosion) {
-      missile.targetShip.addStatusEffect('frozen', 5.0, 1.0);
+      missile.targetShip.addStatusEffect('frozen', 3.0, sourceShip, 1.0);
     }
 
     let damageBonus = sourceShip.getPassiveBonus('heat-seeker-damage');

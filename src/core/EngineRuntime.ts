@@ -65,6 +65,7 @@ import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { LightningSystem } from '@/systems/fx/LightningSystem';
+import { FireManager } from '@/systems/fx/FireManager';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
@@ -139,6 +140,7 @@ import { openQuestsMenu } from './interfaces/events/QuestReporter';
 import { abilities } from '@/game/player/PlayerAbilityManager';
 import { upgradeAffinityBlocksOnShip } from '@/game/blocks/helpers/upgradeUtils';
 import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
+import { emitDefaultFlames } from './interfaces/events/SpecialFxReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -202,6 +204,7 @@ export class EngineRuntime {
   private particleManager: ParticleManager;
   private persistentParticleManager: ParticleManager;
   private lightningSystem: LightningSystem;
+  private fireManager: FireManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
@@ -280,6 +283,8 @@ export class EngineRuntime {
     this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator, 'persistent');
     // Lightning System
     this.lightningSystem = new LightningSystem(this.lightingOrchestrator);
+    // Fire System
+    this.fireManager = new FireManager(this.lightingOrchestrator);
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -603,6 +608,7 @@ export class EngineRuntime {
       this.projectileSystem,
       this.particleManager,
       this.lightningSystem,
+      this.fireManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
       this.destructionService,
@@ -819,8 +825,8 @@ export class EngineRuntime {
       abilities.unlockAll();
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyG')) {
-      upgradeAffinityBlocksOnShip(this.ship!, ['haloBlade'], 1);
+    if (this.inputManager.wasKeyJustPressed('Digit3')) {
+      emitDefaultFlames(0, 0);
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
@@ -973,6 +979,7 @@ export class EngineRuntime {
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
       const lightningSegments = this.lightningSystem.getSegments();
+      const fireSOA = this.fireManager.getFireSOA();
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
 
       const particleSOA1 = this.particleManager.getParticleSOA();
@@ -983,12 +990,14 @@ export class EngineRuntime {
       }
 
       this.unifiedSceneRenderer!.render(
+        dt,
         this.camera,
         visibleObjects,
         visibleLights,
         spriteRequests,
         [particleSOA1, particleSOA2],
         lightningSegments,
+        fireSOA,
       );
     }
 
@@ -1164,6 +1173,7 @@ export class EngineRuntime {
     this.jumpCastTransitionController.destroy();
     this.lightningSystem.destroy();
     this.questCompletionController.destroy();
+    this.combatService.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();
@@ -1172,6 +1182,7 @@ export class EngineRuntime {
     this.explosionSystem.destroy();
     this.particleManager.destroy();
     this.persistentParticleManager.destroy();
+    this.fireManager.destroy();
     this.lightingOrchestrator.destroy();
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();
