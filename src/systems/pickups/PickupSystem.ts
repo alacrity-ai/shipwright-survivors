@@ -101,7 +101,6 @@ function createPickupBuffer(max: number): PickupSOA {
   };
 }
 
-
 // Category enum for consistency
 const enum PickupCategory {
   Currency = 0,
@@ -297,7 +296,7 @@ export class PickupSystem {
     return distSq < PICKUP_RADIUS * PICKUP_RADIUS;
   }
 
-  private spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
+  public spawnCurrencyPickup(position: { x: number; y: number }, amount: number): void {
     const idx = this.allocateIndex();
     if (idx === -1) return;
 
@@ -328,7 +327,7 @@ export class PickupSystem {
     this.soa.texture[idx] = getGLPickupSprite('currency').texture;
   }
 
-  private spawnRepairPickup(position: { x: number; y: number }, amount: number): void {
+  public spawnRepairPickup(position: { x: number; y: number }, amount: number): void {
     const idx = this.allocateIndex();
     if (idx === -1) return;
 
@@ -359,7 +358,7 @@ export class PickupSystem {
     this.soa.texture[idx] = getGLPickupSprite('repair').texture;
   }
 
-  private spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
+  public spawnBlockPickup(position: { x: number; y: number }, blockType: BlockType): void {
     const idx = this.allocateIndex();
     if (idx === -1) return;
 
@@ -400,7 +399,7 @@ export class PickupSystem {
     this.soa.texture[idx] = tex;
   }
 
-  private spawnQuantumAttractorPickup(position: { x: number; y: number }): void {
+  public spawnQuantumAttractorPickup(position: { x: number; y: number }): void {
     const idx = this.allocateIndex();
     if (idx === -1) return;
 
@@ -431,7 +430,7 @@ export class PickupSystem {
     this.soa.texture[idx] = getGLPickupSprite('quantumAttractor').texture;
   }
 
-  private spawnShipBlueprintPickup(position: { x: number; y: number }, shipId: string): void {
+  public spawnShipBlueprintPickup(position: { x: number; y: number }, shipId: string): void {
     const idx = this.allocateIndex();
     if (idx === -1) return;
 

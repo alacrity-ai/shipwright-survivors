@@ -43,7 +43,8 @@ export class SpaceStation extends CompositeBlockObject {
       hp: type.armor,
       ownerShipId: this.id,  // Associate the block with this ship's ID
       position: worldPos,  // Set the calculated world position
-      ...(rotation !== undefined ? { rotation } : {})  // Set the rotation if provided
+      ...(rotation !== undefined ? { rotation } : {}),  // Set the rotation if provided
+      destroyed: false,
     };
 
     this.placeBlock(coord, block);  // Place the block into the grid and the ship

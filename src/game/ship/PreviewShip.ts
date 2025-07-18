@@ -64,6 +64,7 @@ export class PreviewShip {
       ownerShipId: 'preview',
       ownerFaction: Faction.Neutral,
       ...(rotation !== undefined ? { rotation } : {}),
+      destroyed: false,
     };
 
     this.placeBlock(coord, block);

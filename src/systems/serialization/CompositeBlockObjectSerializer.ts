@@ -90,6 +90,7 @@ export async function loadAsteroidFromJson(
       ownerShipId: asteroid.id,
       position: { x: 0, y: 0 },
       rotation: b.rotation,
+      destroyed: false,
     };
 
     asteroid.placeBlock(b.coord, block);
