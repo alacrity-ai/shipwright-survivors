@@ -9,7 +9,7 @@ import type {
 let nextLightId = 0;
 let _instance: LightingOrchestrator | null = null;
 
-export const MAXIMUM_LIGHTS_PER_TAG = 10;
+export const MAXIMUM_LIGHTS_PER_TAG = 8;
 
 /**
  * Central controller for active light instances.

@@ -9,7 +9,7 @@ import type { BaseAIState } from './fsm/BaseAIState';
 import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
 import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
-
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FormationRegistry } from './formations/FormationRegistry';
 
 import { IdleState } from './fsm/IdleState';
@@ -40,6 +40,9 @@ export class AIControllerSystem {
   private initialState: BaseAIState | null = null;
 
   private cullabilityDelegate: CullabilityDelegate | null = null;
+
+  // Anchor tracking for spacing mitigation
+  private currentAnchorIndex: number = -1;
 
   private formationId: string | null = null;
   private formationRole: 'leader' | 'follower' | null = null;
@@ -98,8 +101,18 @@ export class AIControllerSystem {
   }
 
   private setState(next: BaseAIState): void {
+    // Call onExit for the outgoing state before switching
+    if (this.currentState) {
+      this.currentState.onExit();
+    }
+
+    // Swap to the new state
     this.currentState = next;
-    next.onEnter();
+
+    // Initialize the new state
+    if (this.currentState) {
+      this.currentState.onEnter();
+    }
   }
 
   public render(dt: number): void { /* NOOP */ }
@@ -134,6 +147,28 @@ export class AIControllerSystem {
 
   public makeCullable(): void {
     this.cullabilityDelegate?.setCullable(this);
+  }
+
+  // === Anchor Index Management ===
+  
+  public setAnchorIndex(index: number): void {
+    this.currentAnchorIndex = index;
+  }
+
+  public getAnchorIndex(): number {
+    return this.currentAnchorIndex;
+  }
+
+  /** Clears the anchor slot (releases from ship if valid). */
+  public clearAnchorIndex(): void {
+    if (this.currentAnchorIndex !== -1) {
+      const targetShip = ShipRegistry.getInstance().getPlayerShip(); 
+      // Assuming only player ships have anchors
+      if (targetShip?.hasAnchorPoints()) {
+        targetShip.releaseAnchorIndex(this.currentAnchorIndex);
+      }
+      this.currentAnchorIndex = -1;
+    }
   }
 
   // Hunter system

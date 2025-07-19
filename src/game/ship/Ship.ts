@@ -128,6 +128,12 @@ export class Ship extends CompositeBlockObject {
 
   public setIsPlayerShip(isPlayerShip: boolean): void {
     this.isPlayerShip = isPlayerShip;
+
+    if (isPlayerShip) {
+      this.initializeAnchorPoints();
+    } else {
+      this.anchorPointComponent = null;
+    }
   }
 
   public getPassiveManager(): PlayerPassiveManager | null {

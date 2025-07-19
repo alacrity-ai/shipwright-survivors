@@ -27,10 +27,18 @@ export class SeekTargetState extends BaseAIState {
 
   public override onEnter(): void {
     this.controller.makeUncullable();
+
+    // Try to assign an anchor via the controller
+    if (this.target.hasAnchorPoints()) {
+      const idx = this.target.assignAnchorIndex();
+      this.controller.setAnchorIndex(idx);
+    } else {
+      this.controller.setAnchorIndex(-1);
+    }
   }
 
   /**
-   * Legacy wrapper for systems still consuming ShipIntent.
+   * Legacy wrapper for ShipIntent-based consumers.
    */
   public update(): {
     movement: any;
@@ -39,8 +47,7 @@ export class SeekTargetState extends BaseAIState {
   } {
     const soa = (this.controller as any).soa as IntentSOA;
     const idx = this.controller.getSOAIndex();
-
-    this.updateSOA(0, soa, idx); // dt unused for stateless intent generation
+    this.updateSOA(0, soa, idx);
 
     return {
       movement: {
@@ -65,7 +72,6 @@ export class SeekTargetState extends BaseAIState {
    */
   public updateSOA(dt: number, soa: IntentSOA, idx: number): void {
     if (this.target.isDestroyed?.()) {
-      // Zero everything out when target is dead
       soa.thrustForward[idx] = 0;
       soa.brake[idx] = 1;
       soa.rotateLeft[idx] = 0;
@@ -81,16 +87,28 @@ export class SeekTargetState extends BaseAIState {
     }
 
     const selfTransform = this.ship.getTransform();
-    const targetTransform = this.target.getTransform();
 
-    // Write movement intent directly into SOA
-    approachTargetSOA(this.ship, targetTransform.position, selfTransform.velocity, soa, idx);
+    // === Resolve target position ===
+    const anchorIdx = this.controller.getAnchorIndex();
+    let targetX: number;
+    let targetY: number;
 
-    // Followers here don't fire — just aim toward target
+    if (anchorIdx !== -1 && this.target.hasAnchorPoints()) {
+      targetX = this.target.getAnchorPointX(anchorIdx);
+      targetY = this.target.getAnchorPointY(anchorIdx);
+    } else {
+      const targetTransform = this.target.getTransform();
+      targetX = targetTransform.position.x;
+      targetY = targetTransform.position.y;
+    }
+
+    approachTargetSOA(this.ship, { x: targetX, y: targetY }, selfTransform.velocity, soa, idx);
+
+    // Followers here don't fire — just aim
     soa.firePrimary[idx] = 0;
     soa.fireSecondary[idx] = 0;
-    soa.aimX[idx] = targetTransform.position.x;
-    soa.aimY[idx] = targetTransform.position.y;
+    soa.aimX[idx] = targetX;
+    soa.aimY[idx] = targetY;
     soa.toggleShields[idx] = 0;
   }
 
@@ -104,7 +122,6 @@ export class SeekTargetState extends BaseAIState {
     const selfPos = selfTransform.position;
     const targetPos = targetTransform.position;
 
-    // === Formation fallback ===
     const formationId = this.controller.getFormationId();
     const registry = this.controller.getFormationRegistry();
     const leader = this.controller.getFormationLeaderController();
@@ -114,7 +131,6 @@ export class SeekTargetState extends BaseAIState {
         : new PatrolState(this.controller, this.ship);
     }
 
-    // === Engagement ===
     const dx = selfPos.x - targetPos.x;
     const dy = selfPos.y - targetPos.y;
     const distSq = dx * dx + dy * dy;
@@ -122,7 +138,6 @@ export class SeekTargetState extends BaseAIState {
       return new AttackState(this.controller, this.ship, this.target);
     }
 
-    // === Disengagement for non-hunters ===
     if (!this.controller.isHunter()) {
       const player = ShipRegistry.getInstance().getPlayerShip();
       if (player) {

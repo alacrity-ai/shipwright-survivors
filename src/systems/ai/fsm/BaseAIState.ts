@@ -22,6 +22,15 @@ export abstract class BaseAIState {
   }
 
   /**
+   * Called once when exiting this state.
+   * Default implementation is a no-op. Override as needed.
+   * Use this for cleanup (e.g., releasing anchor slots).
+   */
+  public onExit(): void {
+    // NOOP by default
+  }
+
+  /**
    * LEGACY: Emit a ShipIntent object for this frame.
    * This will be phased out as all states move to SOA.
    */

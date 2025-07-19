@@ -50,98 +50,100 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     ShipGrid.getInstance().clear();
   }
 
-public addController(controller: AIControllerSystem, unCullable = false): void {
-  const ship = controller.getShip();
-  if (!ship) return;
+  public addController(controller: AIControllerSystem, unCullable = false): void {
+    const ship = controller.getShip();
+    if (!ship) return;
 
-  ship.updateBlockPositions();
+    ship.updateBlockPositions();
 
-  // === Allocate SOA slot (reuse or expand) ===
-  let slotIndex: number;
-  if (this.freeIndices.length > 0) {
-    slotIndex = this.freeIndices.pop()!;
-    // Ensure count covers the reused index (critical fix)
-    if (slotIndex >= this.intents.count) {
-      this.intents.count = slotIndex + 1;
-    }
-  } else {
-    if (this.intents.count >= MAX_AI_SHIPS) {
-      console.warn('AIOrchestrator: Max AI ships reached, cannot add controller.');
-      return;
-    }
-    slotIndex = this.intents.count++;
-  }
-
-  // === Initialize the slot ===
-  this.zeroIntentSlot(slotIndex);
-  this.intents.culledFlags[slotIndex] = 0; // Explicitly mark as active
-
-  // Bind controller to this SOA slot
-  controller.bindSOA(this.intents, slotIndex);
-  this.soaIndexToController[slotIndex] = controller;
-
-  // === Register controller mappings ===
-  this.controllerToShipMap.set(controller, ship);
-  this.shipIdToControllerMap.set(ship.id, controller);
-
-  // Handle uncullable state and delegate assignment
-  this.setUncullable(controller, unCullable || controller.isHunter());
-  controller.setCullabilityDelegate(this);
-
-  // === Formation registration (unchanged) ===
-  const formation = this.formationRegistry.getFormationByShipId(ship.id);
-  if (formation) {
-    if (formation.leaderId === ship.id) {
-      controller.setFormationContext(formation.formationId, 'leader');
+    // === Allocate SOA slot (reuse or expand) ===
+    let slotIndex: number;
+    if (this.freeIndices.length > 0) {
+      slotIndex = this.freeIndices.pop()!;
+      // Ensure count covers the reused index (critical fix)
+      if (slotIndex >= this.intents.count) {
+        this.intents.count = slotIndex + 1;
+      }
     } else {
-      const leaderController = this.shipIdToControllerMap.get(formation.leaderId) ?? null;
-      if (leaderController) {
-        controller.setFormationContext(
-          formation.formationId,
-          'follower',
-          this.formationRegistry,
-          leaderController
-        );
+      if (this.intents.count >= MAX_AI_SHIPS) {
+        console.warn('AIOrchestrator: Max AI ships reached, cannot add controller.');
+        return;
+      }
+      slotIndex = this.intents.count++;
+    }
+
+    // === Initialize the slot ===
+    this.zeroIntentSlot(slotIndex);
+    this.intents.culledFlags[slotIndex] = 0; // Explicitly mark as active
+
+    // Bind controller to this SOA slot
+    controller.bindSOA(this.intents, slotIndex);
+    this.soaIndexToController[slotIndex] = controller;
+
+    // === Register controller mappings ===
+    this.controllerToShipMap.set(controller, ship);
+    this.shipIdToControllerMap.set(ship.id, controller);
+
+    // Handle uncullable state and delegate assignment
+    this.setUncullable(controller, unCullable || controller.isHunter());
+    controller.setCullabilityDelegate(this);
+
+    // === Formation registration (unchanged) ===
+    const formation = this.formationRegistry.getFormationByShipId(ship.id);
+    if (formation) {
+      if (formation.leaderId === ship.id) {
+        controller.setFormationContext(formation.formationId, 'leader');
+      } else {
+        const leaderController = this.shipIdToControllerMap.get(formation.leaderId) ?? null;
+        if (leaderController) {
+          controller.setFormationContext(
+            formation.formationId,
+            'follower',
+            this.formationRegistry,
+            leaderController
+          );
+        }
       }
     }
   }
-}
 
-public removeController(controller: AIControllerSystem): void {
-  const ship = this.controllerToShipMap.get(controller);
-  if (ship) {
-    this.shipIdToControllerMap.delete(ship.id);
-    ShipGrid.getInstance().removeShip(ship);
-  }
-  this.controllerToShipMap.delete(controller);
-  this.uncullableControllers.delete(controller);
-
-  const index = controller.getSOAIndex();
-  const count = this.intents.count;
-  if (index < 0 || index >= count) return;
-
-  const last = count - 1;
-
-  if (index !== last) {
-    // Swap SOA data and controller refs to keep array compact
-    this.swapIntentSOA(index, last);
-
-    // Rebind the moved controller to its new slot index
-    const movedController = this.soaIndexToController[index];
-    if (movedController) {
-      movedController.bindSOA(this.intents, index);
+  public removeController(controller: AIControllerSystem): void {
+    controller.clearAnchorIndex();
+    
+    const ship = this.controllerToShipMap.get(controller);
+    if (ship) {
+      this.shipIdToControllerMap.delete(ship.id);
+      ShipGrid.getInstance().removeShip(ship);
     }
+    this.controllerToShipMap.delete(controller);
+    this.uncullableControllers.delete(controller);
+
+    const index = controller.getSOAIndex();
+    const count = this.intents.count;
+    if (index < 0 || index >= count) return;
+
+    const last = count - 1;
+
+    if (index !== last) {
+      // Swap SOA data and controller refs to keep array compact
+      this.swapIntentSOA(index, last);
+
+      // Rebind the moved controller to its new slot index
+      const movedController = this.soaIndexToController[index];
+      if (movedController) {
+        movedController.bindSOA(this.intents, index);
+      }
+    }
+
+    // === Clear the vacated last slot ===
+    this.zeroIntentSlot(last);
+    this.intents.culledFlags[last] = 1;      // Mark as inactive/cut
+    this.soaIndexToController[last] = null;
+
+    // === Decrement count and recycle slot ===
+    this.intents.count--;                    // Shrink active range
+    this.freeIndices.push(this.intents.count); // Recycle the *new* free slot
   }
-
-  // === Clear the vacated last slot ===
-  this.zeroIntentSlot(last);
-  this.intents.culledFlags[last] = 1;      // Mark as inactive/cut
-  this.soaIndexToController[last] = null;
-
-  // === Decrement count and recycle slot ===
-  this.intents.count--;                    // Shrink active range
-  this.freeIndices.push(this.intents.count); // Recycle the *new* free slot
-}
 
 
   /** Clears all intent and culling state for a slot so no stale values leak. */

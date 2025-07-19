@@ -14,6 +14,7 @@ import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { toKey, fromKey, type CoordKey } from '@/game/ship/utils/shipBlockUtils';
 
 import { Faction } from '@/game/interfaces/types/Faction';
+import { AnchorPointComponent } from '@/game/ship/anchors/AnchorPointComponent';
 
 export abstract class CompositeBlockObject {
   readonly id: string;
@@ -39,6 +40,8 @@ export abstract class CompositeBlockObject {
   protected blockColorIntensity: number = 0.5;
 
   protected noClip: boolean = false;
+
+  protected anchorPointComponent: AnchorPointComponent | null = null;
 
   private _lastTransformCheckX: number = NaN;
   private _lastTransformCheckY: number = NaN;
@@ -305,7 +308,7 @@ export abstract class CompositeBlockObject {
 
   public setTransform(newTransform: BlockEntityTransform): void {
     this.transform = { ...newTransform };
-    this.updateBlockPositions();
+    this.updateBlockPositions();   
   }
 
   public getVelocity(): { x: number; y: number } {
@@ -322,6 +325,42 @@ export abstract class CompositeBlockObject {
 
   public isImmoveable(): boolean {
     return this.immoveable;
+  }
+
+  /* == Anchor Points (For probabilistic mitigation of enemy "stacking")
+   An anchor point effectively gives an enemy ship multiple "targets" to chase after */
+
+  public initializeAnchorPoints(): void {
+    if (!this.anchorPointComponent) {
+      this.anchorPointComponent = new AnchorPointComponent(this.id);
+    }
+    this.anchorPointComponent.updateFromTransform(this.getTransform());
+  }
+
+  /** Assigns an anchor index for an enemy. Returns -1 if no anchor component. */
+  public assignAnchorIndex(): number {
+    return this.anchorPointComponent
+      ? this.anchorPointComponent.getAnchorPointAssignment()
+      : -1;
+  }
+
+  /** Releases a previously assigned anchor index. */
+  public releaseAnchorIndex(index: number): void {
+    if (this.anchorPointComponent && index >= 0) {
+      this.anchorPointComponent.releaseAnchor(index);
+    }
+  }
+
+  public getAnchorPointX(index: number): number {
+    return this.anchorPointComponent ? this.anchorPointComponent.getAnchorX(index) : 0;
+  }
+
+  public getAnchorPointY(index: number): number {
+    return this.anchorPointComponent ? this.anchorPointComponent.getAnchorY(index) : 0;
+  }
+
+  public hasAnchorPoints(): boolean {
+    return !!this.anchorPointComponent;
   }
 
   // State // Movement // Positional States
@@ -402,6 +441,11 @@ export abstract class CompositeBlockObject {
 
       /* Conditional re‑home */
       this.grid.rehomeBlock(block);
+    }
+
+    // Update Anchor Points
+    if (this.anchorPointComponent) {
+      this.anchorPointComponent.updateFromTransform(this.transform);
     }
   }
 
