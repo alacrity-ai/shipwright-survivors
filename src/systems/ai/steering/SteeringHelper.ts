@@ -3,18 +3,23 @@
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { Vec2 } from '@/systems/ai/helpers/VectorUtils';
 import type { Ship } from '@/game/ship/Ship';
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
+
 import { angleDiff, subtract, normalize, vectorMagnitude, dot, predictPosition } from '@/systems/ai/helpers/VectorUtils';
 import { getNetThrustDirection } from '@/systems/ai/helpers/ThrustUtils';
 import { isThrustFacingTarget } from '@/systems/ai/helpers/ShipUtils';
 
 /**
- * Rotates the ship to align its thrust direction toward the target.
- * Does not apply any thrust or braking — purely angular alignment.
+ * Writes rotation-only steering intent into SOA buffers.
+ * Aligns ship's thrust direction toward the target.
+ * Does not trigger thrust or braking.
  */
-export function faceTarget(
+export function faceTargetSOA(
   ship: Ship,
-  targetPos: Vec2
-): MovementIntent {
+  targetPos: Vec2,
+  soa: IntentSOA,
+  idx: number
+): void {
   const thrustDir = getNetThrustDirection(ship);
   const shipPos = ship.getTransform().position;
 
@@ -24,28 +29,26 @@ export function faceTarget(
   const delta = angleDiff(currentAngle, desiredAngle);
 
   const tolerance = 0.05;
-  const rotateLeft = delta < -tolerance;
-  const rotateRight = delta > tolerance;
 
-  return {
-    thrustForward: false,
-    brake: false,
-    rotateLeft,
-    rotateRight,
-    strafeLeft: false,
-    strafeRight: false,
-  };
+  soa.thrustForward[idx] = 0;
+  soa.brake[idx] = 0;
+  soa.strafeLeft[idx] = 0;
+  soa.strafeRight[idx] = 0;
+  soa.rotateLeft[idx] = delta < -tolerance ? 1 : 0;
+  soa.rotateRight[idx] = delta > tolerance ? 1 : 0;
 }
 
 /**
- * Thrusts toward the target if thrust direction is properly aligned.
- * Brakes if close enough and still moving too fast toward the target.
+ * Writes movement and rotation steering intent into SOA buffers.
+ * Moves the ship toward the target when aligned; brakes when too close or moving too fast.
  */
-export function approachTarget(
+export function approachTargetSOA(
   ship: Ship,
   targetPos: Vec2,
-  currentVel: Vec2
-): MovementIntent {
+  currentVel: Vec2,
+  soa: IntentSOA,
+  idx: number
+): void {
   const shipPos = ship.getTransform().position;
   const toTarget = subtract(targetPos, shipPos);
   const dist = vectorMagnitude(toTarget);
@@ -54,47 +57,48 @@ export function approachTarget(
   const isAligned = isThrustFacingTarget(ship, targetPos, 0.15);
   const velocityTowardTarget = dot(currentVel, desiredDir);
 
-  let thrustForward = false;
-  let brake = false;
+  let thrustForward = 0;
+  let brake = 0;
 
   if (dist < 100) {
-    brake = velocityTowardTarget > 10;
+    brake = velocityTowardTarget > 10 ? 1 : 0;
   } else if (isAligned) {
-    thrustForward = true;
+    thrustForward = 1;
   }
 
-  // Angular steering logic (same as faceTarget)
+  // Angular steering (like faceTarget)
   const thrustDir = getNetThrustDirection(ship);
   const desiredAngle = Math.atan2(desiredDir.y, desiredDir.x);
   const currentAngle = Math.atan2(thrustDir.y, thrustDir.x);
   const delta = angleDiff(currentAngle, desiredAngle);
 
-  const rotateLeft = delta < -0.05;
-  const rotateRight = delta > 0.05;
+  const rotateLeft = delta < -0.05 ? 1 : 0;
+  const rotateRight = delta > 0.05 ? 1 : 0;
 
-  return {
-    thrustForward,
-    brake,
-    rotateLeft,
-    rotateRight,
-    strafeLeft: false,
-    strafeRight: false,
-  };
+  // Write directly to SOA buffers
+  soa.thrustForward[idx] = thrustForward;
+  soa.brake[idx] = brake;
+  soa.rotateLeft[idx] = rotateLeft;
+  soa.rotateRight[idx] = rotateRight;
+  soa.strafeLeft[idx] = 0;
+  soa.strafeRight[idx] = 0;
 }
 
 /**
- * Returns a MovementIntent that maintains an orbital trajectory around a target.
- * Uses thrust vector alignment and radial correction to sustain orbit.
- * 
- * @param clockwise If true, orbit proceeds clockwise; else counterclockwise (default).
+ * Writes orbital movement and rotation intent into SOA buffers.
+ * Sustains a circular orbit around the target, correcting radius and direction.
+ *
+ * @param clockwise If true, orbits clockwise, else counterclockwise.
  */
-export function orbitTarget(
+export function orbitTargetSOA(
   ship: Ship,
   currentVel: Vec2,
   targetPos: Vec2,
   desiredRadius: number,
-  clockwise: boolean = false
-): MovementIntent {
+  clockwise: boolean,
+  soa: IntentSOA,
+  idx: number
+): void {
   const currentPos = ship.getTransform().position;
   const toTarget = subtract(targetPos, currentPos);
   const dist = vectorMagnitude(toTarget);
@@ -102,63 +106,58 @@ export function orbitTarget(
 
   const directionToTarget = normalize(toTarget);
 
-  // === Direction of orbit: rotate 90° either CW or CCW
+  // Orbit direction: rotate unit vector by ±90°
   const orbitDirection = clockwise
-    ? { x: directionToTarget.y, y: -directionToTarget.x }   // Clockwise: +90° rotation
-    : { x: -directionToTarget.y, y: directionToTarget.x };  // Counterclockwise: -90° rotation
+    ? { x: directionToTarget.y, y: -directionToTarget.x }
+    : { x: -directionToTarget.y, y: directionToTarget.x };
 
-  // === Phase 1: Determine rotation ===
-  const netThrustDir = getNetThrustDirection(ship); // Approximate facing
+  // === Phase 1: Rotation control ===
+  const netThrustDir = getNetThrustDirection(ship);
   const desiredFacing = Math.atan2(orbitDirection.y, orbitDirection.x);
   const currentFacing = Math.atan2(netThrustDir.y, netThrustDir.x);
   const angleDelta = angleDiff(currentFacing, desiredFacing);
 
   const tolerance = 0.05;
-  const rotateLeft = angleDelta < -tolerance;
-  const rotateRight = angleDelta > tolerance;
+  const rotateLeft = angleDelta < -tolerance ? 1 : 0;
+  const rotateRight = angleDelta > tolerance ? 1 : 0;
 
-  // === Phase 2: Decide thrust/brake ===
-  let thrustForward = false;
-  let brake = false;
+  // === Phase 2: Thrust/Brake logic ===
+  let thrustForward = 0;
+  let brake = 0;
 
   const velocityMag = vectorMagnitude(currentVel);
   const velocityAlignment = velocityMag > 0 ? dot(normalize(currentVel), orbitDirection) : 0;
 
-  const innerEscapeThreshold = 40; // Minimum radius where we must push outward
+  const innerEscapeThreshold = 40;
   const misaligned = velocityAlignment < 0.5;
 
   if (radiusError > 20) {
-    // === Too far: push along orbit direction to tighten orbit
-    thrustForward = true;
+    thrustForward = 1;
   } else if (radiusError < -innerEscapeThreshold) {
-    // === Too close: actively escape outward from center
     const outwardDir = normalize(subtract(currentPos, targetPos));
     const velOutward = velocityMag > 0 ? dot(normalize(currentVel), outwardDir) : 0;
 
     if (velOutward < 0.6) {
-      thrustForward = true;
+      thrustForward = 1;
     } else {
-      brake = false;
+      brake = 0;
     }
   } else {
-    // === Near optimal radius
     if (misaligned) {
-      thrustForward = true;
+      thrustForward = 1;
     } else if (velocityAlignment > 0.7 && radiusError < 0) {
-      brake = true;
+      brake = 1;
     }
   }
 
-  return {
-    thrustForward,
-    brake,
-    rotateLeft,
-    rotateRight,
-    strafeLeft: false,
-    strafeRight: false,
-  };
+  // Write to SOA
+  soa.thrustForward[idx] = thrustForward;
+  soa.brake[idx] = brake;
+  soa.rotateLeft[idx] = rotateLeft;
+  soa.rotateRight[idx] = rotateRight;
+  soa.strafeLeft[idx] = 0;
+  soa.strafeRight[idx] = 0;
 }
-
 
 export function leadTarget(
   shooterPos: Vec2,

@@ -1,45 +1,77 @@
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+// src/systems/ai/fsm/IdleState.ts
+
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 import type { AIControllerSystem } from '../AIControllerSystem';
 
 import { FormationState } from './FormationState';
-
 import { BaseAIState } from './BaseAIState';
 import { SpaceStationBehaviorProfile } from '../types/BehaviorProfile';
-import { isWithinRange } from '../helpers/ShipUtils';
-import { findNearestTarget } from '../helpers/ShipUtils'; // Assumed
+import { isWithinRange, findNearestTarget } from '../helpers/ShipUtils';
 import { SpaceStationAttackState } from './SpaceStationAttackState';
 import { SeekTargetState } from './SeekTargetState';
+
+// Utility to zero all relevant SOA flags
+function zeroAllIntents(soa: IntentSOA, idx: number): void {
+  soa.thrustForward[idx] = 0;
+  soa.brake[idx] = 0;
+  soa.rotateLeft[idx] = 0;
+  soa.rotateRight[idx] = 0;
+  soa.strafeLeft[idx] = 0;
+  soa.strafeRight[idx] = 0;
+
+  soa.firePrimary[idx] = 0;
+  soa.fireSecondary[idx] = 0;
+  soa.aimX[idx] = 0;
+  soa.aimY[idx] = 0;
+
+  soa.toggleShields[idx] = 0;
+}
 
 export class IdleState extends BaseAIState {
   private readonly wakeRadius = 1600; // Shared for both mobile and station AI
 
-  update(): ShipIntent {
+  /**
+   * Legacy wrapper: converts SOA intent to a ShipIntent object.
+   * This allows old code paths to work while we transition.
+   */
+  public update(): { movement: any; weapons: any; utility: any } {
+    const soa = (this.controller as any).soa as IntentSOA;
+    const idx = this.controller.getSOAIndex();
+
+    // Delegate actual logic to SOA writer
+    this.updateSOA(0, soa, idx);
+
     return {
       movement: {
-        thrustForward: false,
-        brake: false,
-        rotateLeft: false,
-        rotateRight: false,
-        strafeLeft: false,
-        strafeRight: false,
+        thrustForward: !!soa.thrustForward[idx],
+        brake: !!soa.brake[idx],
+        rotateLeft: !!soa.rotateLeft[idx],
+        rotateRight: !!soa.rotateRight[idx],
+        strafeLeft: !!soa.strafeLeft[idx],
+        strafeRight: !!soa.strafeRight[idx],
       },
       weapons: {
-        firePrimary: false,
-        fireSecondary: false,
-        aimAt: { x: 0, y: 0 },
+        firePrimary: !!soa.firePrimary[idx],
+        fireSecondary: !!soa.fireSecondary[idx],
+        aimAt: { x: soa.aimX[idx], y: soa.aimY[idx] },
       },
-      utility: {
-        toggleShields: false,
-      },
+      utility: { toggleShields: !!soa.toggleShields[idx] },
     };
   }
 
-  transitionIfNeeded(): BaseAIState | null {
+  /**
+   * SOA-native intent writer: zeros all inputs (Idle behavior).
+   */
+  public updateSOA(dt: number, soa: IntentSOA, idx: number): void {
+    zeroAllIntents(soa, idx);
+  }
+
+  public transitionIfNeeded(): BaseAIState | null {
     const behaviorProfile = this.controller.getBehaviorProfile();
     const nearestTarget = findNearestTarget(this.ship, this.wakeRadius);
 
     if (!nearestTarget) {
-      // ⬅Patch: Rejoin formation if we're a follower and not in combat
+      // Rejoin formation if we're a follower and not engaged
       if (this.controller.isFormationFollower()) {
         const registry = this.controller.getFormationRegistry();
         const leader = this.controller.getFormationLeaderController();
@@ -49,7 +81,6 @@ export class IdleState extends BaseAIState {
           return new FormationState(this.controller, this.ship);
         }
       }
-
       return null;
     }
 

@@ -1,7 +1,7 @@
 // src/systems/ai/fsm/BaseAIState.ts
 
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { ShipIntent, IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 
 export abstract class BaseAIState {
@@ -22,12 +22,19 @@ export abstract class BaseAIState {
   }
 
   /**
-   * Emit a ShipIntent for this frame.
+   * LEGACY: Emit a ShipIntent object for this frame.
+   * This will be phased out as all states move to SOA.
    */
   abstract update(dt: number): ShipIntent;
 
   /**
-   * Optionally transition to a new state. Called after `update()`.
+   * NEW: Write directly into the SOA for this controller’s slot.
+   * Avoids any object allocation.
+   */
+  abstract updateSOA(dt: number, soa: IntentSOA, idx: number): void;
+
+  /**
+   * Optionally transition to a new state. Called after update/updateSOA.
    */
   abstract transitionIfNeeded(): BaseAIState | null;
 }

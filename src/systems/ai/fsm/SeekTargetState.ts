@@ -1,9 +1,11 @@
+// src/systems/ai/fsm/SeekTargetState.ts
+
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '../AIControllerSystem';
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from './BaseAIState';
-import { approachTarget } from '../steering/SteeringHelper';
+import { approachTargetSOA } from '../steering/SteeringHelper';
 import { AttackState } from './AttackState';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FormationState } from './FormationState';
@@ -11,8 +13,8 @@ import { PatrolState } from './PatrolState';
 
 export class SeekTargetState extends BaseAIState {
   private readonly target: Ship;
-  private readonly engagementRange = 1200;
-  private readonly disengagementRange = 5000;
+  private readonly engagementRange: number;
+  private readonly disengagementRange: number;
 
   constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
     super(controller, ship);
@@ -27,33 +29,72 @@ export class SeekTargetState extends BaseAIState {
     this.controller.makeUncullable();
   }
 
-  update(): ShipIntent {
+  /**
+   * Legacy wrapper for systems still consuming ShipIntent.
+   */
+  public update(): {
+    movement: any;
+    weapons: any;
+    utility: any;
+  } {
+    const soa = (this.controller as any).soa as IntentSOA;
+    const idx = this.controller.getSOAIndex();
+
+    this.updateSOA(0, soa, idx); // dt unused for stateless intent generation
+
+    return {
+      movement: {
+        thrustForward: !!soa.thrustForward[idx],
+        brake: !!soa.brake[idx],
+        rotateLeft: !!soa.rotateLeft[idx],
+        rotateRight: !!soa.rotateRight[idx],
+        strafeLeft: !!soa.strafeLeft[idx],
+        strafeRight: !!soa.strafeRight[idx],
+      },
+      weapons: {
+        firePrimary: !!soa.firePrimary[idx],
+        fireSecondary: !!soa.fireSecondary[idx],
+        aimAt: { x: soa.aimX[idx], y: soa.aimY[idx] },
+      },
+      utility: { toggleShields: !!soa.toggleShields[idx] },
+    };
+  }
+
+  /**
+   * SOA-native update: writes movement, weapon, and utility intent flags directly.
+   */
+  public updateSOA(dt: number, soa: IntentSOA, idx: number): void {
     if (this.target.isDestroyed?.()) {
-      return {
-        movement: { thrustForward: false, brake: true, rotateLeft: false, rotateRight: false, strafeLeft: false, strafeRight: false },
-        weapons: { firePrimary: false, fireSecondary: false, aimAt: { x: 0, y: 0 } },
-        utility: { toggleShields: false },
-      };
+      // Zero everything out when target is dead
+      soa.thrustForward[idx] = 0;
+      soa.brake[idx] = 1;
+      soa.rotateLeft[idx] = 0;
+      soa.rotateRight[idx] = 0;
+      soa.strafeLeft[idx] = 0;
+      soa.strafeRight[idx] = 0;
+      soa.firePrimary[idx] = 0;
+      soa.fireSecondary[idx] = 0;
+      soa.aimX[idx] = 0;
+      soa.aimY[idx] = 0;
+      soa.toggleShields[idx] = 0;
+      return;
     }
 
     const selfTransform = this.ship.getTransform();
     const targetTransform = this.target.getTransform();
-    const movement = approachTarget(this.ship, targetTransform.position, selfTransform.velocity);
 
-    return {
-      movement,
-      weapons: {
-        firePrimary: false,
-        fireSecondary: false,
-        aimAt: targetTransform.position,
-      },
-      utility: {
-        toggleShields: false,
-      },
-    };
+    // Write movement intent directly into SOA
+    approachTargetSOA(this.ship, targetTransform.position, selfTransform.velocity, soa, idx);
+
+    // Followers here don't fire — just aim toward target
+    soa.firePrimary[idx] = 0;
+    soa.fireSecondary[idx] = 0;
+    soa.aimX[idx] = targetTransform.position.x;
+    soa.aimY[idx] = targetTransform.position.y;
+    soa.toggleShields[idx] = 0;
   }
 
-  transitionIfNeeded(): BaseAIState | null {
+  public transitionIfNeeded(): BaseAIState | null {
     if (this.target.isDestroyed?.()) {
       return this.controller.getInitialState() ?? null;
     }
