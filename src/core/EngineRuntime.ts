@@ -1166,6 +1166,7 @@ export class EngineRuntime {
     SpriteRendererGL.destroyInstance();
     GlobalMenuReporter.getInstance().destroy();
     PlayerQuestManager.getInstance().clearActiveQuests();
+    DamageTextManager.getInstance().clear();
 
     // Additional cleanup
     this.pickupSystem.destroy();

@@ -501,6 +501,7 @@ export class TitleScreenRuntime {
     Camera.destroy();
     SpriteRendererGL.destroyInstance();
     GlobalMenuReporter.getInstance().destroy();
+    DamageTextManager.getInstance().clear();
 
     // Additional cleanup
     this.pickupSystem.destroy();

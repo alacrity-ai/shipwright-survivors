@@ -49,6 +49,8 @@ export class CombatService {
     );
   };
 
+  private readonly damageTextManager: DamageTextManager;
+
   constructor(
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
@@ -58,6 +60,8 @@ export class CombatService {
   ) {
     // Register the bound handler
     GlobalEventBus.on('status:damageOverTime', this.handleDamageOverTime);
+
+    this.damageTextManager = DamageTextManager.getInstance();
   }
 
   /**
@@ -298,15 +302,17 @@ export class CombatService {
       const r = 1.0, g = 1.0, b = 1.0;
       const lifetime = 1.4;
 
-      DamageTextManager.getInstance().spawnNumber(
-        worldX,
-        worldY,
-        dmg,
-        r, g, b,
-        lifetime,
-        isCriticalHit,
-        `damage-${entity.id}`
-      );   
+      if (!entity.getIsPlayerShip()) {
+        this.damageTextManager.spawnNumber(
+          worldX,
+          worldY,
+          dmg,
+          r, g, b,
+          lifetime,
+          isCriticalHit,
+          `damage-${entity.id}`
+        );
+      }
     }
 
     playSpatialSfx(entity, playerShip, {

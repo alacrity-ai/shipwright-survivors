@@ -89,7 +89,7 @@ export class DamageTextManager {
   private readonly freeIndices: number[] = [];
 
   /** Stable ID → index mapping for external updates (e.g., merging) */
-  private readonly idToIndex: Map<number, number> = new Map();
+  private readonly idToIndex: Int32Array = new Int32Array(MAX_DIGITS);
 
   /** GC-neutral channel aggregation using SOA */
   private readonly channels: ChannelSOA = createChannelSOA(MAX_CHANNELS);
@@ -103,14 +103,21 @@ export class DamageTextManager {
   /** Next available slot in digit ID pool */
   private digitPoolIndex = 0;
 
-  /** Stack of freed digit blocks for reuse */
-  private readonly freeDigitBlocks: { start: number; length: number }[] = [];
+  // Parallel stacks for freed digit blocks (GC-neutral)
+  private readonly freeDigitStarts = new Int32Array(MAX_CHANNELS);
+  private readonly freeDigitLengths = new Int32Array(MAX_CHANNELS);
+  private freeDigitCount = 0;
 
-  /** Channel key → channel index mapping for fast lookups */
-  private readonly channelKeyToIndex: Map<number, number> = new Map();
+  private readonly digitScratch = new Uint8Array(12); // Supports up to 12 digits
+  private readonly channelBlockScratch = new Int32Array(2); 
+
+  // Fixed-size hash table for key → channelIndex mapping (open addressing)
+  private readonly channelKeys = new Int32Array(MAX_CHANNELS).fill(-1);
+  private readonly channelValues = new Int32Array(MAX_CHANNELS).fill(-1);
 
   private constructor() {
     this.scratchValues.fill(null);
+    this.idToIndex.fill(-1);
   }
 
   public static getInstance(): DamageTextManager {
@@ -156,7 +163,7 @@ export class DamageTextManager {
   /**
    * Spawns or updates damage for a specific channel.
    * If channel exists, adds to existing damage and refreshes the display.
-   * If channel doesn't exist, creates new channel.
+   * If channel doesn't exist, creates a new channel.
    */
   private spawnOrUpdateChannel(
     channel: string,
@@ -170,9 +177,9 @@ export class DamageTextManager {
     crit: boolean,
   ): void {
     const keyHash = hashString(channel);
-    const existingIndex = this.channelKeyToIndex.get(keyHash);
+    const existingIndex = this.findChannelIndexForKey(keyHash);
 
-    if (existingIndex !== undefined && existingIndex < this.channels.count) {
+    if (existingIndex !== -1 && existingIndex < this.channels.count) {
       // Update existing channel
       this.updateExistingChannel(existingIndex, x, y, value, r, g, b, life, crit);
     } else {
@@ -181,6 +188,10 @@ export class DamageTextManager {
     }
   }
 
+  /**
+   * Updates an existing channel by aggregating new damage and refreshing its digits.
+   * Removes old digits, updates aggregate values, and spawns a fresh set of glyphs.
+   */
   private updateExistingChannel(
     channelIndex: number,
     x: number,
@@ -208,8 +219,8 @@ export class DamageTextManager {
     this.channels.crit[channelIndex] = this.channels.crit[channelIndex] || (crit ? 1 : 0);
     this.channels.life[channelIndex] = life;
 
-    // Spawn new digits with updated value
-    const newDigitIds = this.spawnDigitsForValue(
+    // Spawn new digits with the updated value (reuses channelBlockScratch)
+    const block = this.spawnDigitsForValue(
       this.channels.x[channelIndex],
       this.channels.y[channelIndex],
       this.channels.value[channelIndex],
@@ -218,12 +229,13 @@ export class DamageTextManager {
       this.channels.b[channelIndex],
       this.channels.life[channelIndex],
       this.channels.crit[channelIndex] === 1,
-      true
-    ) as number[];
+      true // track IDs for this channel
+    ) as Int32Array;
 
-    this.storeDigitIds(channelIndex, newDigitIds);
+    // Record the block slice for this channel (no allocations)
+    this.channels.digitStart[channelIndex] = block[0];
+    this.channels.digitCount[channelIndex] = block[1];
   }
-
 
   private createNewChannel(
     keyHash: number,
@@ -237,8 +249,8 @@ export class DamageTextManager {
     crit: boolean,
   ): void {
     const channelIndex = this.allocateChannelIndex();
-    if (channelIndex === -1) return; // No free channels
-    
+    if (channelIndex === -1) return; // No free channels available
+
     // Initialize channel data
     this.channels.keyHash[channelIndex] = keyHash;
     this.channels.value[channelIndex] = value;
@@ -249,57 +261,25 @@ export class DamageTextManager {
     this.channels.b[channelIndex] = b;
     this.channels.life[channelIndex] = life;
     this.channels.crit[channelIndex] = crit ? 1 : 0;
-    
-    // Create digit mapping
-    this.channelKeyToIndex.set(keyHash, channelIndex);
-    
-    // Spawn digits
-    const digitIds = this.spawnDigitsForValue(x, y, value, r, g, b, life, crit, true) as number[];
-    
-    // Store digit IDs in pool
-    this.storeDigitIds(channelIndex, digitIds);
-  }
 
-  private storeDigitIds(channelIndex: number, digitIds: number[]): void {
-    let start: number;
+    // Register mapping from key → channel index in our fixed-size table
+    this.putChannelKey(keyHash, channelIndex);
 
-    // If we have enough recycled space, reuse it
-    if (this.freeDigitBlocks.length > 0) {
-      // Reuse the last freed block (stack behavior)
-      const block = this.freeDigitBlocks.pop()!;
-      // If the freed block is too small, just allocate at the end
-      if (block.length >= digitIds.length) {
-        start = block.start;
-      } else {
-        start = this.digitPoolIndex;
-      }
-    } else {
-      start = this.digitPoolIndex;
-    }
+    // Spawn digits and capture their location in the global ID pool
+    const block = this.spawnDigitsForValue(x, y, value, r, g, b, life, crit, true) as Int32Array;
 
-    // Bounds check
-    if (start + digitIds.length > MAX_DIGITS) {
-      digitIds = digitIds.slice(0, MAX_DIGITS - start);
-    }
-
-    // Record the digit range for this channel
-    this.channels.digitStart[channelIndex] = start;
-    this.channels.digitCount[channelIndex] = digitIds.length;
-
-    // Write the IDs into the pool
-    for (let i = 0; i < digitIds.length; i++) {
-      this.digitIdPool[start + i] = digitIds[i];
-    }
-
-    // Advance pool pointer if we wrote past the end
-    if (start + digitIds.length > this.digitPoolIndex) {
-      this.digitPoolIndex = start + digitIds.length;
-    }
+    // Record the block slice for this channel (preallocated scratch array)
+    this.channels.digitStart[channelIndex] = block[0];
+    this.channels.digitCount[channelIndex] = block[1];
   }
 
   /**
    * Internal method to spawn digits for a value.
-   * Can optionally return the IDs of created digits for channel tracking.
+   * Writes IDs directly into the global digitIdPool (if tracking is needed),
+   * avoiding transient arrays.
+   *
+   * Returns a { start, count } descriptor only when channel tracking
+   * is enabled, otherwise undefined.
    */
   private spawnDigitsForValue(
     x: number,
@@ -310,55 +290,108 @@ export class DamageTextManager {
     b: number,
     life: number,
     crit: boolean,
-    returnIds: boolean = false,
-  ): void | number[] {
-    const str = String(Math.floor(value));
-    const glyphs = str.split('').map((c) => (c === '+' ? 10 : Number(c))); // 10 reserved for '+'
+    trackIds: boolean = false
+  ): Int32Array | void {
+    const glyphCount = this.encodeDigits(value);
+    const centerOffset = (glyphCount - 1) * 0.5;
 
-    const glyphCount = glyphs.length;
-    const centerOffset = (glyphCount - 1) * 0.5; // for -N..N digit offsets
-    const digitIds: number[] = returnIds ? [] : [];
+    // If tracking IDs for a channel, reserve a contiguous slice
+    let start = 0;
+    if (trackIds) {
+      start = this.allocateDigitBlock(glyphCount);
+    }
 
     for (let i = 0; i < glyphCount; i++) {
       const index = this.allocateIndex();
       if (index === -1) break;
 
-      // Anchor: all glyphs share the same X (centered string)
+      // Position and movement
       this.soa.x[index] = x;
       this.soa.y[index] = y;
-
       this.soa.vx[index] = 0;
-      this.soa.vy[index] = -FLOAT_SPEED; // upward drift
+      this.soa.vy[index] = -FLOAT_SPEED;
+
+      // Visual attributes
       this.soa.scale[index] = BASE_SCALE;
       this.soa.alpha[index] = 1;
       this.soa.r[index] = r;
       this.soa.g[index] = g;
       this.soa.b[index] = b;
-      this.soa.glyphIndex[index] = glyphs[i];
+      this.soa.glyphIndex[index] = this.digitScratch[i];
+
+      // Lifetime
       this.soa.life[index] = life;
       this.soa.initialLife[index] = life;
       this.soa.elapsed[index] = 0;
 
-      // Digit offset (-N..N) for dynamic spacing in shader
+      // Offset and pop
       this.soa.digitOffset[index] = i - centerOffset;
+      const popMult = crit ? 3.0 : 2.0;
+      this.soa.impactScale[index] = BASE_SCALE * popMult;
 
-      // "Pop" effect scale on spawn: bigger if critical
-      const popMultiplier = crit ? 3.0 : 2.0;
-      this.soa.impactScale[index] = BASE_SCALE * popMultiplier;
-
+      // Neon (crit effect)
       this.soa.neonPhase[index] = 0;
       this.soa.neonSpeed[index] = crit ? 6 : 0;
       this.soa.neonEnabled[index] = crit ? 1 : 0;
-      this.soa.id[index] = nextTextId++;
 
-      this.idToIndex.set(this.soa.id[index], index);
+      // Assign wrapped ID
+      const id = nextTextId++ % MAX_DIGITS;
+      this.soa.id[index] = id;
+      this.idToIndex[id] = index;
 
-      if (returnIds) {
-        digitIds.push(this.soa.id[index]);
+      if (trackIds) {
+        this.digitIdPool[start + i] = id;
       }
     }
 
-    return returnIds ? digitIds : undefined;
+    if (trackIds) {
+      this.channelBlockScratch[0] = start;
+      this.channelBlockScratch[1] = glyphCount;
+      return this.channelBlockScratch;
+    }
+  }
+
+  // Helper: converts a value to digits, stores in digitScratch, returns count.
+  private encodeDigits(value: number): number {
+    let n = Math.floor(value);
+    let i = 0;
+
+    if (n === 0) {
+      this.digitScratch[0] = 0;
+      return 1;
+    }
+
+    // Extract digits least-significant first
+    while (n > 0 && i < this.digitScratch.length) {
+      this.digitScratch[i++] = n % 10;
+      n = Math.floor(n / 10);
+    }
+
+    // Reverse to most-significant first
+    for (let l = 0, r = i - 1; l < r; l++, r--) {
+      const tmp = this.digitScratch[l];
+      this.digitScratch[l] = this.digitScratch[r];
+      this.digitScratch[r] = tmp;
+    }
+
+    return i; // number of digits
+  }
+
+  /**
+   * Allocates a contiguous block in the digitIdPool for channel tracking.
+   * Reuses freed blocks when possible to avoid growing digitPoolIndex.
+   */
+  private allocateDigitBlock(count: number): number {
+    if (this.freeDigitCount > 0) {
+      this.freeDigitCount--;
+      const start = this.freeDigitStarts[this.freeDigitCount];
+      const length = this.freeDigitLengths[this.freeDigitCount];
+      if (length >= count) return start;
+      // If block is too small, ignore and continue
+    }
+    const start = this.digitPoolIndex;
+    this.digitPoolIndex += count;
+    return start;
   }
 
   /** Updates all text (movement, alpha, impact scaling, neon cycling) */
@@ -380,12 +413,12 @@ export class DamageTextManager {
       this.soa.x[i] += this.soa.vx[i] * dt;
       this.soa.y[i] += this.soa.vy[i] * dt;
 
-      // Decay the scale back toward BASE_SCALE smoothly
+      // Scale decay back to BASE_SCALE
       const pop = this.soa.impactScale[i];
       const decayT = Math.min(this.soa.elapsed[i] / POP_DECAY_TIME, 1);
       this.soa.scale[i] = BASE_SCALE + (pop - BASE_SCALE) * (1 - decayT);
 
-      // Neon cycling
+      // Neon cycling for critical hits
       if (this.soa.neonEnabled[i]) {
         this.soa.neonPhase[i] += dt * this.soa.neonSpeed[i];
       }
@@ -393,44 +426,51 @@ export class DamageTextManager {
       i++;
     }
 
-    // Clean up channels whose digits have expired (GC-neutral)
+    // Clean up channels whose digits have expired
     for (let i = 0; i < this.channels.count; ) {
-      let hasLiveDigits = false;
       const digitStart = this.channels.digitStart[i];
       const digitCount = this.channels.digitCount[i];
-      
-      // Check if any digits for this channel are still alive
+
+      // Skip empty channels immediately
+      if (digitCount === 0) {
+        this.recycleChannel(i);
+        continue;
+      }
+
+      // Check if any digit IDs in this channel are still alive
+      let hasLiveDigits = false;
       for (let j = 0; j < digitCount; j++) {
         const digitId = this.digitIdPool[digitStart + j];
-        if (this.idToIndex.has(digitId)) {
+        // Use the Int32Array lookup table: -1 = dead, otherwise holds SOA index
+        if (this.idToIndex[digitId] !== -1) {
           hasLiveDigits = true;
           break;
         }
       }
-      
+
       if (!hasLiveDigits) {
         this.recycleChannel(i);
-        continue; // re-check this index after swap
+        continue; // re-check same index after swap
       }
-      
+
       i++;
     }
   }
 
   /** Removes a digit entry by ID */
   public removeById(id: number): void {
-    const index = this.idToIndex.get(id);
+    const index = this.idToIndex[id];
     if (index == null || index < 0 || index >= this.soa.count) return;
     this.recycle(index);
   }
 
-  /** 
-   * Removes all damage for a specific channel 
+  /**
+   * Removes all damage for a specific channel
    */
   public removeChannel(channel: string): void {
     const keyHash = hashString(channel);
-    const channelIndex = this.channelKeyToIndex.get(keyHash);
-    if (channelIndex === undefined || channelIndex >= this.channels.count) return;
+    const channelIndex = this.findChannelIndexForKey(keyHash);
+    if (channelIndex === -1 || channelIndex >= this.channels.count) return;
 
     // Remove all digits associated with this channel
     const digitStart = this.channels.digitStart[channelIndex];
@@ -449,12 +489,12 @@ export class DamageTextManager {
   public clear(): void {
     this.soa.count = 0;
     this.freeIndices.length = 0;
-    this.idToIndex.clear();
+    this.idToIndex.fill(-1);
     this.channels.count = 0;
     this.freeChannelIndices.length = 0;
-    this.channelKeyToIndex.clear();
+    this.clearChannelKeys(); // Reset our fixed-size hash table
     this.digitPoolIndex = 0;
-    this.freeDigitBlocks.length = 0;
+    this.freeDigitCount = 0;
   }
 
   /**
@@ -462,8 +502,8 @@ export class DamageTextManager {
    */
   public getChannelValue(channel: string): number | undefined {
     const keyHash = hashString(channel);
-    const channelIndex = this.channelKeyToIndex.get(keyHash);
-    if (channelIndex === undefined || channelIndex >= this.channels.count) return undefined;
+    const channelIndex = this.findChannelIndexForKey(keyHash);
+    if (channelIndex === -1 || channelIndex >= this.channels.count) return undefined;
     return this.channels.value[channelIndex];
   }
 
@@ -515,14 +555,14 @@ export class DamageTextManager {
       // Fix mapping for the element that was swapped into index
       const swappedId = this.soa.id[index];
       if (swappedId) {
-        this.idToIndex.set(swappedId, index);
+        this.idToIndex[swappedId] = index;
       }
     }
 
     // Remove mapping for the dead element (now at lastIndex)
     const deadId = this.soa.id[lastIndex];
     if (deadId) {
-      this.idToIndex.delete(deadId);
+      this.idToIndex[deadId] = -1; // mark as dead
     }
 
     // Clear out old slot to prevent ghost lookups
@@ -536,9 +576,9 @@ export class DamageTextManager {
   private recycleChannel(index: number): void {
     const lastIndex = this.channels.count - 1;
 
-    // Delete the mapping for the element we are actually removing (lastIndex) first
+    // Remove the mapping for the element being deleted (lastIndex) first
     const deadKeyHash = this.channels.keyHash[lastIndex];
-    this.channelKeyToIndex.delete(deadKeyHash);
+    this.removeChannelKey(deadKeyHash);
 
     // If we're not deleting the last element, swap it with the one at `index`
     if (index !== lastIndex) {
@@ -546,14 +586,16 @@ export class DamageTextManager {
 
       // Update mapping for the swapped-in channel now at `index`
       const swappedKeyHash = this.channels.keyHash[index];
-      this.channelKeyToIndex.set(swappedKeyHash, index);
+      this.putChannelKey(swappedKeyHash, index);
     }
 
     // Reclaim the digit ID block used by this channel
     const digitStart = this.channels.digitStart[lastIndex];
     const digitCount = this.channels.digitCount[lastIndex];
     if (digitCount > 0) {
-      this.freeDigitBlocks.push({ start: digitStart, length: digitCount });
+      const i = this.freeDigitCount++;
+      this.freeDigitStarts[i] = digitStart;
+      this.freeDigitLengths[i] = digitCount;
     }
 
     // Compact the pool only if this freed block was at the tail
@@ -653,5 +695,54 @@ export class DamageTextManager {
     channels.crit[j] = tempCrit;
     channels.digitStart[j] = tempDigitStart;
     channels.digitCount[j] = tempDigitCount;
+  }
+
+  /** Finds the index in channelKeys for a given keyHash, or -1 if not found */
+  private findChannelIndexForKey(keyHash: number): number {
+    const mask = MAX_CHANNELS - 1; // MAX_CHANNELS should be power of 2 ideally
+    let idx = keyHash & mask;
+    for (let i = 0; i < MAX_CHANNELS; i++) {
+      const k = this.channelKeys[idx];
+      if (k === keyHash) return this.channelValues[idx];
+      if (k === -1) break; // Empty slot
+      idx = (idx + 1) & mask;
+    }
+    return -1;
+  }
+
+  /** Inserts or updates a key → channelIndex mapping */
+  private putChannelKey(keyHash: number, channelIndex: number): void {
+    const mask = MAX_CHANNELS - 1;
+    let idx = keyHash & mask;
+    for (let i = 0; i < MAX_CHANNELS; i++) {
+      const k = this.channelKeys[idx];
+      if (k === -1 || k === keyHash) {
+        this.channelKeys[idx] = keyHash;
+        this.channelValues[idx] = channelIndex;
+        return;
+      }
+      idx = (idx + 1) & mask;
+    }
+  }
+
+  /** Deletes a key from the table */
+  private removeChannelKey(keyHash: number): void {
+    const mask = MAX_CHANNELS - 1;
+    let idx = keyHash & mask;
+    for (let i = 0; i < MAX_CHANNELS; i++) {
+      if (this.channelKeys[idx] === keyHash) {
+        this.channelKeys[idx] = -1;
+        this.channelValues[idx] = -1;
+        return;
+      }
+      if (this.channelKeys[idx] === -1) return; // Not found
+      idx = (idx + 1) & mask;
+    }
+  }
+
+  /** Clears the table */
+  private clearChannelKeys(): void {
+    this.channelKeys.fill(-1);
+    this.channelValues.fill(-1);
   }
 }

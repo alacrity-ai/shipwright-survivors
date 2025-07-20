@@ -94,6 +94,11 @@ export abstract class CompositeBlockObject {
     return this.faction;
   }
 
+  // Convenience to avoid instanceof checks
+  public getIsPlayerShip(): boolean {
+    return false;
+  }
+
   // --- Block Access & Placement ---
 
   public placeBlock(coord: GridCoord, block: BlockInstance): void {
