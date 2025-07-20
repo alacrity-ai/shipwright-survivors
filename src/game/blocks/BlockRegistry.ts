@@ -1249,7 +1249,7 @@ const blockTypes: Record<string, BlockType> = {
         orbitingSpeed: 3.5,
         size: 64,
         damage: 30,
-        color: '#ff7a14ff',
+        color: '#ff7a14',
         sprite: 'energyRing5'
       }
     },
