@@ -25,6 +25,37 @@ export function hexToRgba32(hex: string): number {
   return (255 << 24) | (b << 16) | (g << 8) | r;
 }
 
+const rgbCache = new Map<string, { r: number; g: number; b: number }>();
+
+/**
+ * Converts a hex color string (#rgb or #rrggbb) into normalized RGB floats.
+ * Uses memoization for repeated lookups to minimize GC and parsing cost.
+ */
+export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const cached = rgbCache.get(hex);
+  if (cached) return cached;
+
+  let r = 0, g = 0, b = 0;
+
+  if (hex.length === 4) {
+    // Shorthand #rgb → #rrggbb
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  } else {
+    throw new Error(`Invalid hex color format: ${hex}`);
+  }
+
+  // Normalize to 0–1 floats
+  const rgb = { r: r / 255, g: g / 255, b: b / 255 };
+  rgbCache.set(hex, rgb);
+  return rgb;
+}
+
 /**
  * Converts RGBA components (0–255) into a hex string.
  * If alpha is omitted or 255, returns #rrggbb.

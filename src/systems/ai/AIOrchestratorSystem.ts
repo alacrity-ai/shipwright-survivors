@@ -245,46 +245,6 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     }
   }
 
-  public clear(): void {
-    // Clear controller and ship mappings
-    this.controllerToShipMap.clear();
-    this.shipIdToControllerMap.clear();
-    this.uncullableControllers.clear();
-
-    // Reset SOA bookkeeping
-    this.intents.count = 0;
-    this.freeIndices.length = 0;
-
-    // Clear controller references for every slot
-    for (let i = 0; i < this.soaIndexToController.length; i++) {
-      this.soaIndexToController[i] = null;
-    }
-
-    // Zero out all intent and culled flag arrays
-    const soa = this.intents;
-    soa.thrustForward.fill(0);
-    soa.brake.fill(0);
-    soa.rotateLeft.fill(0);
-    soa.rotateRight.fill(0);
-    soa.strafeLeft.fill(0);
-    soa.strafeRight.fill(0);
-    soa.turnToAngle.fill(0);
-    soa.afterburner.fill(0);
-    soa.firePrimary.fill(0);
-    soa.fireSecondary.fill(0);
-    soa.aimX.fill(0);
-    soa.aimY.fill(0);
-    soa.firingMode.fill(0);
-    soa.toggleShields.fill(0);
-    soa.culledFlags.fill(1); // everything starts "culled" after reset
-
-    // Clear ShipGrid state as before
-    ShipGrid.getInstance().clear();
-
-    // Reset rotating update index so the next update starts clean
-    this.lastControllerIndex = 0;
-  }
-
   public update(dt: number): void {
     if (!this.playerShip) return;
 
@@ -413,5 +373,46 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       result.push(controller.getCurrentStateString());
     }
     return result;
+  }
+
+  // == Cleanup
+  public clear(): void {
+    // Reset controller/ship maps
+    this.controllerToShipMap.clear();
+    this.shipIdToControllerMap.clear();
+    this.uncullableControllers.clear();
+
+    // Reset SOA bookkeeping
+    this.intents.count = 0;
+    this.freeIndices.length = 0;
+    this.lastControllerIndex = 0;
+
+    // Null out controller slots
+    this.soaIndexToController.fill(null);
+
+    // Zero all SOA fields for consistency
+    const soa = this.intents;
+    soa.thrustForward.fill(0);
+    soa.brake.fill(0);
+    soa.rotateLeft.fill(0);
+    soa.rotateRight.fill(0);
+    soa.strafeLeft.fill(0);
+    soa.strafeRight.fill(0);
+    soa.turnToAngle.fill(0);
+    soa.afterburner.fill(0);
+    soa.firePrimary.fill(0);
+    soa.fireSecondary.fill(0);
+    soa.aimX.fill(0);
+    soa.aimY.fill(0);
+    soa.firingMode.fill(0);
+    soa.toggleShields.fill(0);
+    soa.culledFlags.fill(1); // Default everything to "culled"
+
+    // Also ensure any other SOA fields (if `IntentSOA` expands later) start zeroed:
+    if ('additionalField1' in soa) (soa as any).additionalField1.fill(0);
+    if ('additionalField2' in soa) (soa as any).additionalField2.fill(0);
+
+    // Clear ShipGrid state (AI’s spatial anchor)
+    ShipGrid.getInstance().clear();
   }
 }

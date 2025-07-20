@@ -182,6 +182,8 @@ export class LaserBackend implements WeaponBackend {
     tierColour  : [number, number, number, number],
     tier        : number,
   ): void {
+    if (targetShip.isDestroyed()) return;
+
     /* ── 1. Beam geometry (unchanged) ───────────────────────────────────────── */
     const dx   = targetPos.x - origin.x;
     const dy   = targetPos.y - origin.y;

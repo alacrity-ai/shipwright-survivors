@@ -55,7 +55,7 @@ export function initWebGLContext(canvas: HTMLCanvasElement): WebGLRenderingConte
   }) as WebGLRenderingContext | null;
 
   if (!gl) {
-    throw new Error('[LightingRenderer] WebGL is not supported on this device or browser.');
+    throw new Error('[initWebGLContext] WebGL is not supported on this device or browser.');
   }
 
   // Basic WebGL setup - but DON'T set blend mode here
@@ -65,7 +65,7 @@ export function initWebGLContext(canvas: HTMLCanvasElement): WebGLRenderingConte
 
   // Log context parameters for diagnostics
   if (import.meta.env?.DEV) {
-    console.log('[LightingRenderer] WebGL context initialized');
+    console.log('[initWebGLContext] WebGL context initialized');
     console.log('Vendor:', gl.getParameter(gl.VENDOR));
     console.log('Renderer:', gl.getParameter(gl.RENDERER));
     console.log('Version:', gl.getParameter(gl.VERSION));

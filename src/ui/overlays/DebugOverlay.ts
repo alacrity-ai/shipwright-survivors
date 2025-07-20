@@ -72,14 +72,6 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Mouse (raw): ${mouseX.toFixed(0)}, ${mouseY.toFixed(0)}`); y += lineHeight;
     drawLabel(ctx, x, y, `Mouse (virtual): ${virtualMouseX.toFixed(0)}, ${virtualMouseY.toFixed(0)}`); y += lineHeight;
 
-    const lightingOrch = LightingOrchestrator.getInstance();
-    const allLights = lightingOrch.getActiveLights();
-    const visibleLights = lightingOrch.collectVisibleLights(Camera.getInstance());
-    const orphanedLights = functionfindOrphanedAuraLights(lightingOrch, this.shipRegistry, false);
-
-    const auraLightCount = allLights.filter(l => l.id?.startsWith('aura-')).length;
-    const visibleAuraLights = visibleLights.filter(l => l.id?.startsWith('aura-')).length;
-
     const shipCount = this.shipRegistry.count();
     const visibleShips = ShipGrid.getInstance().getShipsInCameraView(0).length;
     const activeAIShips = ShipGrid.getInstance().getShipsInCameraView(2000).length;
@@ -113,9 +105,6 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Active AI Ships (2000): ${activeAIShips}`); y += lineHeight;
     drawLabel(ctx, x, y, `Enemy Power: ${enemyPower}`); y += lineHeight;
     drawLabel(ctx, x, y, `Formation: ${inFormation} (Leaders: ${formationLeaders}, Followers: ${formationFollowers})`); y += lineHeight;
-    drawLabel(ctx, x, y, `Aura Lights: ${auraLightCount}`); y += lineHeight;
-    drawLabel(ctx, x, y, `Visible Aura Lights: ${visibleAuraLights}`); y += lineHeight;
-    drawLabel(ctx, x, y, `Orphaned Aura Lights: ${orphanedLights.length}`); y += lineHeight;
     drawLabel(ctx, x, y, `Composite Block Objects: ${compositeBlockObjectsInGrid.length}`); y += lineHeight;
     const destroyedObjects = compositeBlockObjectsInGrid.filter(o => o.isDestroyed());
     drawLabel(ctx, x, y, `Destroyed Composite Objects: ${destroyedObjects.length}`); y += lineHeight;
@@ -196,33 +185,4 @@ export class DebugOverlay {
     //   y += lineHeight;
     // }
   }
-}
-
-/**
- * Diagnostic method to find and optionally clean up orphaned aura lights
- */
-export function functionfindOrphanedAuraLights(
-  lightingOrchestrator: LightingOrchestrator,
-  shipRegistry: ShipRegistry,
-  cleanup: boolean = false
-): string[] {
-  const orphanedLightIds: string[] = [];
-
-  for (const [id, light] of lightingOrchestrator.getActiveLightEntries()) {
-    if (!id.startsWith('aura-')) continue;
-
-    const shipId = id.substring(5);
-    const shipExists = shipRegistry.getById(shipId) !== undefined;
-
-    if (!shipExists) {
-      orphanedLightIds.push(id);
-
-      if (cleanup) {
-        lightingOrchestrator.removeLight(id);
-        console.log(`[LightingOrchestrator] Removed orphaned aura light: ${id}`);
-      }
-    }
-  }
-
-  return orphanedLightIds;
 }

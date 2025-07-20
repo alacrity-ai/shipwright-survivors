@@ -7,9 +7,9 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { GlobalEventBus } from '@/core/EventBus';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { Ship } from '@/game/ship/Ship';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
@@ -152,17 +152,16 @@ export class CompositeBlockDestructionService {
 
     // Handle ship-specific effects
     if (entity instanceof Ship) {
-      const lightingOrchestrator = LightingOrchestrator.getInstance();
-      const light = createPointLight({
-        x: transform.position.x,
-        y: transform.position.y,
-        radius: 4 * entity.getTotalMass(),
-        color: '#ffffff',
-        intensity: 1.25,
-        life: 0.5,
-        expires: true,
-      });
-      lightingOrchestrator.registerLight(light);
+      // Create Light Flash identical to the pointlight
+      createLightFlash(
+        transform.position.x,
+        transform.position.y,
+        4 * entity.getTotalMass(),
+        1.25,
+        0.5,
+        '#ffffff',
+        `explosion-${entityId}`
+      );
 
       const cockpitCoord = entity.getCockpitCoord?.();
       if (cockpitCoord) {
@@ -185,8 +184,6 @@ export class CompositeBlockDestructionService {
                   undefined,
                   DEFAULT_EXPLOSION_SPARK_PALETTE,
                 );
-                // const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-                // this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
               },
             });
           }

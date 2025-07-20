@@ -47,12 +47,13 @@ interface ActiveExplosiveLance {
   emissionAccumulatorTrail: number;
   emissionAccumulatorStuck: number;
   firingBlockId: string;
-  light: PointLightInstance;
+  lightId: number | null;
   radiateTimer?: number;
 }
 
 export class ExplosiveLanceBackend implements WeaponBackend {
   private activeLances: ActiveExplosiveLance[] = [];
+  private lightingOrchestrator: LightingOrchestrator;
 
   constructor(
     private readonly combatService: CombatService,
@@ -60,7 +61,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     private readonly grid: Grid,
     private readonly explosionSystem: ExplosionSystem,
     private readonly projectileSystem: ProjectileSystem
-  ) {}
+  ) {
+    this.lightingOrchestrator = LightingOrchestrator.getInstance();
+  }
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     const plan = ship.getFiringPlan().filter(p => p.block.type.behavior?.fire?.fireType === 'explosiveLance');
@@ -121,7 +124,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       });
 
       // Create pointlight
-      const light = createPointLight({
+      const lightId = createPointLight({
         x: worldX,
         y: worldY,
         radius: 600,
@@ -130,7 +133,6 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         life: lifetime + 0.4,
         expires: true,
       }, `explosive-lance-${ship.id}`);
-      LightingOrchestrator.getInstance().registerLight(light);
 
       // Play spatial sfx
       const playerShip = ShipRegistry.getInstance().getPlayerShip();
@@ -163,7 +165,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         emissionAccumulatorTrail: 0,
         emissionAccumulatorStuck: 0,
         firingBlockId: lance.block.type.id,
-        light: light
+        lightId: lightId,
       });
     }
 
@@ -248,8 +250,12 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
       lance.position.x += lance.velocity.x * dt;
       lance.position.y += lance.velocity.y * dt;
-      lance.light.x = lance.position.x;
-      lance.light.y = lance.position.y;
+      if (lance.lightId) {
+        this.lightingOrchestrator.updateLight(lance.lightId, {
+          x: lance.position.x,
+          y: lance.position.y,
+        });
+      };
 
       const cells = this.grid.getRelevantCells(lance.position);
       for (const cell of cells) {
@@ -333,7 +339,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship, lifeSteal?: boolean): void {
     // Always remove visual light and particle
-    LightingOrchestrator.getInstance().removeLight(lance.light.id);
+    if (lance.lightId) {
+      this.lightingOrchestrator.removeLight(lance.lightId);
+    }
     this.particleManager.killParticle(lance.particleHandle);
 
     const colorPalette =

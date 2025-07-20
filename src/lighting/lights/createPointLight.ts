@@ -1,6 +1,6 @@
 // src/lighting/lights/createPointLight.ts
 
-import type { PointLightInstance } from './types';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import type { LightFadeMode } from './types';
 
 /** Configuration object for creating a point light instance */
@@ -28,27 +28,26 @@ export interface PointLightConfig {
   expires?: boolean;
 
   /** Optional: Force a specific ID (useful for persistent lights) */
-  id?: string;
+  id?: number;
 
   /** Optional: Fade mode (default: 'linear') */
   fadeMode?: LightFadeMode;
 }
 
-/** Generates a stable unique ID */
-let idCounter = 0;
-function generateLightId(): string {
-  return `point-light-${idCounter++}`;
-}
-
 const INTENSITY_FACTOR = 0.25;
 
 /**
- * Creates a PointLightInstance with flexible parameters.
+ * Spawns and registers a PointLightInstance with the orchestrator.
+ * Returns the light's unique ID (or null if rejected).
  */
-export function createPointLight(config: PointLightConfig, tag?: string): PointLightInstance {
-
-  // Mutate config intesity with INTENSITY_FACTOR
-  config.intensity = config.intensity ? config.intensity * INTENSITY_FACTOR : INTENSITY_FACTOR;
+export function createPointLight(
+  config: PointLightConfig,
+  tag?: string
+): number | null {
+  // Normalize intensity once
+  config.intensity = config.intensity
+    ? config.intensity * INTENSITY_FACTOR
+    : INTENSITY_FACTOR;
 
   const {
     x,
@@ -59,12 +58,13 @@ export function createPointLight(config: PointLightConfig, tag?: string): PointL
     flicker = false,
     life,
     expires = false,
-    id = generateLightId(),
     fadeMode = 'linear',
   } = config;
 
-  const instance: PointLightInstance = {
-    id,
+  const orchestrator = LightingOrchestrator.getInstance();
+
+  return orchestrator.registerLight({
+    id: undefined as any,
     x,
     y,
     radius,
@@ -77,7 +77,5 @@ export function createPointLight(config: PointLightConfig, tag?: string): PointL
     type: 'point',
     fadeMode,
     tag,
-  };
-
-  return instance;
+  });
 }

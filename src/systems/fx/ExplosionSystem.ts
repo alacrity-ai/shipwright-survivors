@@ -134,13 +134,13 @@ export class ExplosionSystem {
 
   /** Cleanup lights tagged as explosion-related */
   public destroy(): void {
-    if (this.lightingOrchestrator) {
-      const activeLights = this.lightingOrchestrator.getActiveLightEntries();
-      for (const [id, light] of activeLights) {
-        if (light.expires) {
-          this.lightingOrchestrator.removeLight(id);
-        }
-      }
-    }
+    // if (this.lightingOrchestrator) {
+    //   const activeLights = this.lightingOrchestrator.getActiveLightEntries();
+    //   for (const [id, light] of activeLights) {
+    //     if (light.expires) {
+    //       this.lightingOrchestrator.removeLight(id);
+    //     }
+    //   }
+    // }
   }
 }

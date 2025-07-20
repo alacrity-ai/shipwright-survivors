@@ -29,7 +29,7 @@ interface Bolt {
   end: number;
   age: number;
   life: number;
-  lightId?: string;
+  lightId?: number | null;
 }
 
 /* ────────────────────────────────────────────────────────────────── */
@@ -118,7 +118,7 @@ export class LightningSystem {
     /* 3. optional point light along path midpoint */
     if (this.lightingOrchestrator) {
       const mid = { x: (start.x + end.x) * 0.5, y: (start.y + end.y) * 0.5 };
-      const light = createPointLight({
+      const lightId = createPointLight({
         x: mid.x,
         y: mid.y,
         radius: opts.lightRadius ?? 8,
@@ -127,8 +127,7 @@ export class LightningSystem {
         life,
         expires: true,
       }, 'lightning');
-      this.lightingOrchestrator.registerLight(light);
-      bolt.lightId = light.id;
+      bolt.lightId = lightId;
     }
 
     this.bolts.push(bolt);
