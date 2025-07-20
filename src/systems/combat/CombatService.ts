@@ -305,6 +305,7 @@ export class CombatService {
         r, g, b,
         lifetime,
         isCriticalHit,
+        `damage-${entity.id}`
       );   
     }
 
