@@ -326,7 +326,7 @@ export class DamageTextManager {
 
       // Offset and pop
       this.soa.digitOffset[index] = i - centerOffset;
-      const popMult = crit ? 3.0 : 2.0;
+      const popMult = crit ? 2.5 : 2.0;
       this.soa.impactScale[index] = BASE_SCALE * popMult;
 
       // Neon (crit effect)

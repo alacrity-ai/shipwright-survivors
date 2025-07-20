@@ -31,6 +31,15 @@ export class LightingPass {
   private lightUBOs: WebGLBuffer[] = [];
   private currentUBOIndex = 0;
 
+  // Cache to avoid redundant buffer bindings
+  private lastBoundUBO: WebGLBuffer | null = null;
+
+  // Cache uniform locations
+  private readonly lightResolutionLoc: WebGLUniformLocation;
+  private readonly lightCountLoc: WebGLUniformLocation;
+  private readonly postTextureLoc: WebGLUniformLocation;
+  private readonly postMaxBrightnessLoc: WebGLUniformLocation;
+
   private readonly lightData: Float32Array;
 
   private framebuffer: WebGLFramebuffer;
@@ -56,6 +65,12 @@ export class LightingPass {
     this.lightProgram = createProgramFromSources(gl, lightVertSrc, lightFragSrc);
     this.postProgram = createProgramFromSources(gl, postVertSrc, postFragSrc);
 
+    // Cache uniform locations to avoid string lookups
+    this.lightResolutionLoc = gl.getUniformLocation(this.lightProgram, 'uResolution')!;
+    this.lightCountLoc = gl.getUniformLocation(this.lightProgram, 'uLightCount')!;
+    this.postTextureLoc = gl.getUniformLocation(this.postProgram, 'uTexture')!;
+    this.postMaxBrightnessLoc = gl.getUniformLocation(this.postProgram, 'uMaxBrightness')!;
+
     this.quadBuffer = createQuadBuffer(gl);
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
@@ -68,10 +83,11 @@ export class LightingPass {
     this.lightData = new Float32Array(MAX_POINT_LIGHTS * FLOATS_PER_LIGHT);
 
     // --- Create double-buffered UBOs ---
-    const NUM_UBOS = 2; // Increase to 3 if stalls still occur on your GPU
+    const NUM_UBOS = 4; // Increase to 3 if stalls still occur on your GPU
     for (let i = 0; i < NUM_UBOS; i++) {
       const ubo = gl.createBuffer()!;
       gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+      // Initialize with full size for orphaning
       gl.bufferData(gl.UNIFORM_BUFFER, this.lightData.byteLength, gl.DYNAMIC_DRAW);
       this.lightUBOs.push(ubo);
     }
@@ -79,6 +95,7 @@ export class LightingPass {
 
     // Bind the first buffer to the binding index
     gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, this.lightUBOs[0]);
+    this.lastBoundUBO = this.lightUBOs[0];
 
     const blockIndex = gl.getUniformBlockIndex(this.lightProgram, 'LightBlock');
     if (blockIndex !== gl.INVALID_INDEX) {
@@ -181,21 +198,31 @@ export class LightingPass {
       this.lightData[base + 11] = 0;
     }
 
-    // === Upload to GPU (ping-pong UBO) ===
+    // === Upload to GPU using Buffer Orphaning (ping-pong UBO) ===
     this.currentUBOIndex = (this.currentUBOIndex + 1) % this.lightUBOs.length;
     const currentUBO = this.lightUBOs[this.currentUBOIndex];
 
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, currentUBO);
+    // Only bind if different from last frame to avoid redundant state changes
+    if (this.lastBoundUBO !== currentUBO) {
+      gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, currentUBO);
+      this.lastBoundUBO = currentUBO;
+    }
+
     gl.bindBuffer(gl.UNIFORM_BUFFER, currentUBO);
+
+    // Orphan the buffer by reallocating with no contents
+    gl.bufferData(gl.UNIFORM_BUFFER, this.lightData.byteLength, gl.DYNAMIC_DRAW);
+
+    // Now upload actual contents
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.lightData.subarray(0, maxCount * FLOATS_PER_LIGHT));
 
     // === Draw all lights ===
     gl.useProgram(this.lightProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(this.lightProgram, 'uResolution'),
-      this.framebufferWidth,
-      this.framebufferHeight
-    );
+    
+    // Use cached uniform locations
+    gl.uniform1i(this.lightCountLoc, maxCount);
+    gl.uniform2f(this.lightResolutionLoc, this.framebufferWidth, this.framebufferHeight);
+    
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, maxCount);
 
     gl.disable(gl.BLEND);
@@ -219,8 +246,10 @@ export class LightingPass {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
-    gl.uniform1i(gl.getUniformLocation(this.postProgram, 'uTexture'), 0);
-    gl.uniform1f(gl.getUniformLocation(this.postProgram, 'uMaxBrightness'), this.maxBrightness);
+    
+    // Use cached uniform locations
+    gl.uniform1i(this.postTextureLoc, 0);
+    gl.uniform1f(this.postMaxBrightnessLoc, this.maxBrightness);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -254,23 +283,5 @@ export class LightingPass {
     this.lightUBOs = [];
     gl.deleteFramebuffer(this.compositeFramebuffer);
     gl.deleteTexture(this.compositeTexture);
-  }
-
-  private hexToRgbaVec4(hex: string): [number, number, number, number] {
-    if (this.colorCache.has(hex)) {
-      return this.colorCache.get(hex)!;
-    }
-
-    let h = hex;
-    if (h.startsWith('#')) h = h.slice(1);
-
-    const r = parseInt(h.slice(0, 2), 16) / 255;
-    const g = parseInt(h.slice(2, 4), 16) / 255;
-    const b = parseInt(h.slice(4, 6), 16) / 255;
-    const a = h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1;
-
-    const rgba: [number, number, number, number] = [r, g, b, a];
-    this.colorCache.set(hex, rgba);
-    return rgba;
   }
 }
