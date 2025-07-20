@@ -66,6 +66,7 @@ import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { LightningSystem } from '@/systems/fx/LightningSystem';
 import { FireManager } from '@/systems/fx/FireManager';
+import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
@@ -205,6 +206,7 @@ export class EngineRuntime {
   private persistentParticleManager: ParticleManager;
   private lightningSystem: LightningSystem;
   private fireManager: FireManager;
+  private damageTextManager: DamageTextManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
@@ -285,6 +287,8 @@ export class EngineRuntime {
     this.lightningSystem = new LightningSystem(this.lightingOrchestrator);
     // Fire System
     this.fireManager = new FireManager(this.lightingOrchestrator);
+    // Damage Text
+    this.damageTextManager = DamageTextManager.getInstance();
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -609,6 +613,7 @@ export class EngineRuntime {
       this.particleManager,
       this.lightningSystem,
       this.fireManager,
+      this.damageTextManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
       this.destructionService,
@@ -981,6 +986,7 @@ export class EngineRuntime {
       const lightningSegments = this.lightningSystem.getSegments();
       const fireSOA = this.fireManager.getFireSOA();
       const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
+      const damageTextSOA = this.damageTextManager.getSOA();
 
       const particleSOA1 = this.particleManager.getParticleSOA();
       const particleSOA2 = this.persistentParticleManager.getParticleSOA();
@@ -998,6 +1004,7 @@ export class EngineRuntime {
         [particleSOA1, particleSOA2],
         lightningSegments,
         fireSOA,
+        damageTextSOA
       );
     }
 

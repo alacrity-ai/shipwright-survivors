@@ -11,6 +11,8 @@ import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionServ
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
+import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
+
 import { getAggregatedSkillEffects } from '@/game/ship/skills/runtime/UnlockedShipSkillTreeResolver';
 import { repairBlockViaLifesteal } from '../pickups/helpers/repairAllBlocksWithHealing';
 import { Camera } from '@/core/Camera';
@@ -292,20 +294,18 @@ export class CombatService {
       const worldX = entity.getTransform().position.x + coord.x;
       const worldY = entity.getTransform().position.y + coord.y;
 
-      this.floatingTextManager?.createWorldText(
-        `${Math.floor(damage)}`,
+      const dmg = Math.floor(damage);
+      const r = 1.0, g = 1.0, b = 1.0;
+      const lifetime = 1.4;
+
+      DamageTextManager.getInstance().spawnNumber(
         worldX,
         worldY,
-        Camera.getInstance(),
-        10,
-        'monospace',
-        0.8,
-        140,
-        1.0,
-        '#FFFFFF',
-        { impactScale: isCriticalHit ? 3.0 : 1.5, multiColor: isCriticalHit ?? false }, 
-        block.ownerShipId,
-      );      
+        dmg,
+        r, g, b,
+        lifetime,
+        isCriticalHit,
+      );   
     }
 
     playSpatialSfx(entity, playerShip, {

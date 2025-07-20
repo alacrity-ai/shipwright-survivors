@@ -37,6 +37,7 @@ import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { FireManager } from '@/systems/fx/FireManager';
+import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 
@@ -109,6 +110,7 @@ export class TitleScreenRuntime {
   private pickupSpawner: PickupSpawner;
   private particleManager: ParticleManager;
   private fireManager: FireManager;
+  private damageTextManager: DamageTextManager;
   private persistentParticleManager: ParticleManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private floatingTextManager: FloatingTextManager;
@@ -163,6 +165,8 @@ export class TitleScreenRuntime {
     this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator, 'persistent');
     // Fire manager
     this.fireManager = new FireManager(this.lightingOrchestrator);
+    // Damage Text
+    this.damageTextManager = DamageTextManager.getInstance();
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -323,6 +327,7 @@ export class TitleScreenRuntime {
       this.projectileSystem,
       this.particleManager,
       this.fireManager,
+      this.damageTextManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
       this.destructionService,
@@ -435,6 +440,7 @@ export class TitleScreenRuntime {
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
       const fireSOA = this.fireManager.getFireSOA();
       const visibleObjects = [...visibleBlockObjects, ...visibleShips];
+      const damageTextSOA = this.damageTextManager.getSOA();
 
       this.unifiedSceneRenderer!.render(
         dt,
@@ -445,6 +451,7 @@ export class TitleScreenRuntime {
         visibleParticles,
         [],
         fireSOA,
+        damageTextSOA
       );
     }
   };

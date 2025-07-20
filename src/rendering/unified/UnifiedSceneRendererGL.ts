@@ -1,11 +1,11 @@
 // src/rendering/unified/UnifiedSceneRendererGL.ts
 
 import type { Camera } from '@/core/Camera';
-import type { AnyLightInstance } from '@/lighting/lights/types';
 import type { InputManager } from '@/core/InputManager';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
+import { initializeDigitAtlas } from '@/rendering/cache/DigitAtlas';
 
 import { CanvasManager } from '@/core/CanvasManager';
 import { GlobalEventBus } from '@/core/EventBus';
@@ -29,9 +29,11 @@ import {
   type CinematicGradingParams,
   type UnderwaterParams
 } from '@/rendering/unified/passes/PostProcessPass';
+import { DamageTextPass } from '@/rendering/unified/passes/fx/DamageTextPass';
 
 import type { ParticleSOA } from '@/systems/fx/ParticleManager';
 import type { LightSOA } from '@/lighting/interfaces/LightSOA';
+import type { DamageTextSOA } from '@/systems/damagetext/interfaces/DamageTextSOA';
 
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
@@ -50,6 +52,7 @@ export class UnifiedSceneRendererGL {
   private readonly particlePass: ParticlePass;
   private readonly postProcessPass: PostProcessPass;
   private readonly backgroundPostProcessPass: PostProcessPass;
+  private readonly damageTextPass: DamageTextPass;
 
   private sceneFramebufferFX: WebGLFramebuffer;
   private sceneTextureFX: WebGLTexture;
@@ -84,6 +87,10 @@ export class UnifiedSceneRendererGL {
     this.cameraUBO = createCameraUBO(this.gl);
     this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, 0, this.cameraUBO);
 
+    // Create Atlases
+    const digitAtlas = initializeDigitAtlas(this.gl);
+    const { texture: fireRampTex, count: fireRampCount } = createFireGradientAtlas(this.gl);
+
     // Primary Passes
     this.backgroundPass = new BackgroundPass(this.gl);
     this.planetPass = new PlanetPass(this.gl);
@@ -94,9 +101,7 @@ export class UnifiedSceneRendererGL {
     this.particlePass = new ParticlePass(this.gl, this.cameraUBO);
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
-
-    // Create gradient atlas for fire
-    const { texture: fireRampTex, count: fireRampCount } = createFireGradientAtlas(this.gl);
+    this.damageTextPass = new DamageTextPass(this.gl, digitAtlas, this.cameraUBO);
 
     // World FX
     this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
@@ -231,7 +236,8 @@ export class UnifiedSceneRendererGL {
     sprites: SpriteRenderRequest[],
     particleSOAs: ParticleSOA[],
     lightningSegments: LightningSegment[],
-    fireSOA: FireSOA
+    fireSOA: FireSOA,
+    damageTextSOA: DamageTextSOA
   ): void {
     const gl = this.gl;
 
@@ -321,6 +327,7 @@ export class UnifiedSceneRendererGL {
     // === Step 10: Render world-space FX passes (lightning, trails, etc.) ===
     this.lightningPass.render(lightningSegments, camera);
     this.firePass.renderSOA(fireSOA, dt);
+    this.damageTextPass.renderSOA(damageTextSOA);
 
     // === Step 11: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -359,6 +366,7 @@ export class UnifiedSceneRendererGL {
     this.backgroundPostProcessPass.destroy();
     this.specialFxPass.destroy();
     this.specialFxController.destroy();
+    this.damageTextPass.destroy();
     for (const fx of this.worldFxPasses) fx.destroy();
 
     this.spriteGroups.clear();
