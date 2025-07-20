@@ -8,6 +8,7 @@ import type { CanvasManager } from '@/core/CanvasManager';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
 import type { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
+import type { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 
 import { PlanetController } from './PlanetController';
 import { PlanetFactory } from './PlanetFactory';
@@ -25,7 +26,8 @@ export class PlanetSystem {
     private readonly camera: Camera,
     private readonly canvasManager: CanvasManager,
     private readonly waveOrchestrator: WaveOrchestrator,
-    private readonly unifiedRenderer: UnifiedSceneRendererGL
+    private readonly unifiedRenderer: UnifiedSceneRendererGL,
+    private readonly missionDialogueManager: MissionDialogueManager
   ) {
     this.ctx = canvasManager.getContext('background');
     this.overlayCtx = canvasManager.getContext('ui');
@@ -47,7 +49,8 @@ export class PlanetSystem {
       this.inputManager,
       this.camera,
       def,
-      this.waveOrchestrator
+      this.waveOrchestrator,
+      this.missionDialogueManager
     );
     this.planets.add(controller);
 
@@ -71,7 +74,8 @@ export class PlanetSystem {
       this.playerShip,
       this.inputManager,
       this.camera,
-      this.waveOrchestrator
+      this.waveOrchestrator,
+      this.missionDialogueManager
     );
     this.planets.add(controller);
 

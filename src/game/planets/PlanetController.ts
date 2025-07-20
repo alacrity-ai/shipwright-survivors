@@ -21,7 +21,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { InputManager } from '@/core/InputManager';
 import type { Camera } from '@/core/Camera';
 import type { FlagKey } from '@/game/player/registry/FlagRegistry';
-
+import type { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 
 export class PlanetController {
   private readonly renderer: PlanetOverlayRenderer;
@@ -37,6 +37,7 @@ export class PlanetController {
     private readonly camera: Camera,
     private readonly definition: PlanetDefinition,
     private readonly waveOrchestrator: WaveOrchestrator,
+    private readonly missionDialogueManager: MissionDialogueManager,
 
     private interactionLatched: boolean = false
   ) {
@@ -151,6 +152,7 @@ export class PlanetController {
     dialogueCtx: CanvasRenderingContext2D): void {
     
     if (!flags.has('mission.intro-briefing.complete')) return;
+    if (this.missionDialogueManager.isDialogueVisible()) return;
 
     const {
       inDrawingRange,

@@ -609,48 +609,63 @@ export class DamageTextManager {
 
   /** Swaps two indices in the digit SOA */
   private swap(i: number, j: number): void {
-    const s = this.scratchValues;
+    const s   = this.scratchValues;
     const soa = this.soa;
 
     // Cache all fields for i
-    s[0]  = soa.x[i];            s[1]  = soa.y[i];
-    s[2]  = soa.vx[i];           s[3]  = soa.vy[i];
-    s[4]  = soa.scale[i];        s[5]  = soa.alpha[i];
-    s[6]  = soa.r[i];            s[7]  = soa.g[i];             s[8]  = soa.b[i];
+    s[0]  = soa.x[i];             s[1]  = soa.y[i];
+    s[2]  = soa.vx[i];            s[3]  = soa.vy[i];
+    s[4]  = soa.scale[i];         s[5]  = soa.alpha[i];
+    s[6]  = soa.r[i];             s[7]  = soa.g[i];              s[8]  = soa.b[i];
     s[9]  = soa.glyphIndex[i];
-    s[10] = soa.life[i];         s[11] = soa.initialLife[i];
-    s[12] = soa.elapsed[i];      s[13] = soa.impactScale[i];
-    s[14] = soa.neonPhase[i];    s[15] = soa.neonSpeed[i];
+    s[10] = soa.life[i];          s[11] = soa.initialLife[i];
+    s[12] = soa.elapsed[i];       s[13] = soa.impactScale[i];
+    s[14] = soa.neonPhase[i];     s[15] = soa.neonSpeed[i];
     s[16] = soa.neonEnabled[i];
     s[17] = soa.id[i];
     s[18] = soa.digitOffset[i];
 
     // Copy j → i
-    soa.x[i] = soa.x[j];           soa.y[i] = soa.y[j];
-    soa.vx[i] = soa.vx[j];         soa.vy[i] = soa.vy[j];
-    soa.scale[i] = soa.scale[j];   soa.alpha[i] = soa.alpha[j];
-    soa.r[i] = soa.r[j];           soa.g[i] = soa.g[j];            soa.b[i] = soa.b[j];
-    soa.glyphIndex[i] = soa.glyphIndex[j];
-    soa.life[i] = soa.life[j];     soa.initialLife[i] = soa.initialLife[j];
-    soa.elapsed[i] = soa.elapsed[j];
-    soa.impactScale[i] = soa.impactScale[j];
-    soa.neonPhase[i] = soa.neonPhase[j]; soa.neonSpeed[i] = soa.neonSpeed[j];
-    soa.neonEnabled[i] = soa.neonEnabled[j];
-    soa.id[i] = soa.id[j];
-    soa.digitOffset[i] = soa.digitOffset[j];
+    soa.x[i]             = soa.x[j];            
+    soa.y[i]             = soa.y[j];
+    soa.vx[i]            = soa.vx[j];           
+    soa.vy[i]            = soa.vy[j];
+    soa.scale[i]         = soa.scale[j];        
+    soa.alpha[i]         = soa.alpha[j];
+    soa.r[i]             = soa.r[j];            
+    soa.g[i]             = soa.g[j];            
+    soa.b[i]             = soa.b[j];
+    soa.glyphIndex[i]    = soa.glyphIndex[j];
+    soa.life[i]          = soa.life[j];         
+    soa.initialLife[i]   = soa.initialLife[j];
+    soa.elapsed[i]       = soa.elapsed[j];      
+    soa.impactScale[i]   = soa.impactScale[j];
+    soa.neonPhase[i]     = soa.neonPhase[j];    
+    soa.neonSpeed[i]     = soa.neonSpeed[j];
+    soa.neonEnabled[i]   = soa.neonEnabled[j];
+    soa.id[i]            = soa.id[j];
+    soa.digitOffset[i]   = soa.digitOffset[j];
 
     // Copy cached (i) → j
-    soa.x[j] = s[0];               soa.y[j] = s[1];
-    soa.vx[j] = s[2];              soa.vy[j] = s[3];
-    soa.scale[j] = s[4];           soa.alpha[j] = s[5];
-    soa.r[j] = s[6];               soa.g[j] = s[7];                 soa.b[j] = s[8];
-    soa.glyphIndex[j] = s[9];
-    soa.life[j] = s[10];           soa.initialLife[j] = s[11];
-    soa.elapsed[j] = s[12];        soa.impactScale[j] = s[13];
-    soa.neonPhase[j] = s[14];      soa.neonSpeed[j] = s[15];
-    soa.neonEnabled[j] = s[16];
-    soa.id[j] = s[17];
-    soa.digitOffset[j] = s[18];
+    soa.x[j]             = s[0];                
+    soa.y[j]             = s[1];
+    soa.vx[j]            = s[2];                
+    soa.vy[j]            = s[3];
+    soa.scale[j]         = s[4];                
+    soa.alpha[j]         = s[5];
+    soa.r[j]             = s[6];                
+    soa.g[j]             = s[7];                
+    soa.b[j]             = s[8];
+    soa.glyphIndex[j]    = s[9];
+    soa.life[j]          = s[10];               
+    soa.initialLife[j]   = s[11];
+    soa.elapsed[j]       = s[12];               
+    soa.impactScale[j]   = s[13];
+    soa.neonPhase[j]     = s[14];               
+    soa.neonSpeed[j]     = s[15];
+    soa.neonEnabled[j]   = s[16];
+    soa.id[j]            = s[17];
+    soa.digitOffset[j]   = s[18];
   }
 
   /** Swaps two channel indices in the channel SOA */

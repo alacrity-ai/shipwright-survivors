@@ -3,6 +3,7 @@ import type { Ship } from '@/game/ship/Ship';
 import type { InputManager } from '@/core/InputManager';
 import type { Camera } from '@/core/Camera';
 import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrator';
+import type { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 
 import { PlanetController } from './PlanetController';
 import { PlanetRegistry } from './PlanetRegistry';
@@ -15,9 +16,10 @@ export const PlanetFactory = {
     playerShip: Ship | null,
     inputManager: InputManager,
     camera: Camera,
-    waveOrchestrator: WaveOrchestrator
+    waveOrchestrator: WaveOrchestrator,
+    missionDialogueManager: MissionDialogueManager
   ): PlanetController {
     const def = PlanetRegistry.getPlanetByName(name);
-    return new PlanetController(x, y, playerShip, inputManager, camera, def, waveOrchestrator);
+    return new PlanetController(x, y, playerShip, inputManager, camera, def, waveOrchestrator, missionDialogueManager);
   }
 };

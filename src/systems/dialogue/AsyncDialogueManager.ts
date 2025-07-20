@@ -82,6 +82,10 @@ export class AsyncDialogueManager {
     this.currentRenderer = null;
   }
 
+  isVisible(): boolean {
+    return !!this.currentRenderer;
+  }
+
   hasActiveRunners(): boolean {
     return this.allRunners.size > 0;
   }

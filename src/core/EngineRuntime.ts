@@ -521,7 +521,15 @@ export class EngineRuntime {
     );
 
     // Planet System
-    this.planetSystem = new PlanetSystem(this.ship, this.inputManager, this.camera!, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
+    this.planetSystem = new PlanetSystem(
+      this.ship, 
+      this.inputManager, 
+      this.camera!, 
+      this.canvasManager, 
+      this.waveOrchestrator, 
+      this.unifiedSceneRenderer, 
+      this.missionDialogueManager
+    );
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
     this.jumpCastMenu = new JumpCastMenu(this.inputManager, this.planetSystem!, this.jumpCastTransitionController!);
 

@@ -25,7 +25,7 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
     private readonly inputManager: InputManager,
     private readonly canvasManager: CanvasManager,
     private readonly waveOrchestrator: WaveOrchestrator,
-    private readonly coachMarkManager: CoachMarkManager
+    private readonly coachMarkManager: CoachMarkManager | null
   ) {}
 
   public setPlayerShip(ship: Ship): void {
@@ -48,6 +48,10 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   }
 
   private getDialogueContext(): DialogueContext {
+    if (!this.coachMarkManager) return {
+      inputManager: this.inputManager,
+      waveOrchestrator: this.waveOrchestrator,
+    };
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     if (!playerShip) {
       throw new Error('Player ship is required for dialogue context');
@@ -78,6 +82,10 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
     if (!this.dialogueQueueManager.isRunning()) {
       this.tryStartNextScript();
     }
+  }
+
+  public isDialogueVisible(): boolean {
+    return this.dialogueQueueManager.isDialogueVisible();
   }
 
   public render(): void {

@@ -211,6 +211,10 @@ export class DialogueQueueManager {
     return this.isActive;
   }
 
+  public isDialogueVisible(): boolean {
+    return this.orchestrator.isVisible() || this.asyncManager.isVisible();
+  }
+
   public clear(): void {
     this.currentScript = null;
     this.currentIndex = 0;

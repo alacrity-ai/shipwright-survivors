@@ -100,6 +100,14 @@ export class DialogueOrchestrator {
     this.finished = true;
   }
 
+  public isRunning(): boolean {
+    return !!this.activeLine && !this.finished;
+  }
+
+  public isVisible(): boolean {
+    return this.visualsVisible;
+  }
+
   public isFinished(): boolean {
     return this.finished;
   }

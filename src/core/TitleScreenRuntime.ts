@@ -40,6 +40,7 @@ import { FireManager } from '@/systems/fx/FireManager';
 import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
+import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 
 import { BlockObjectCollisionSystem } from '@/systems/physics/BlockObjectCollisionSystem';
 import { PlanetSystem } from '@/game/planets/PlanetSystem';
@@ -275,8 +276,23 @@ export class TitleScreenRuntime {
     // Notify wave orchestrator when a ship is destroyed
     // this.destructionService.onEntityDestroyed(this.boundOnEntityDestroyed);
 
+    const missionDialogue = new MissionDialogueManager(
+      this.inputManager, 
+      this.canvasManager, 
+      this.waveOrchestrator, 
+      null,
+    );
+
     // Planet System
-    this.planetSystem = new PlanetSystem(null, this.inputManager, this.camera!, this.canvasManager, this.waveOrchestrator, this.unifiedSceneRenderer);
+    this.planetSystem = new PlanetSystem(
+      null, 
+      this.inputManager, 
+      this.camera!, 
+      this.canvasManager, 
+      this.waveOrchestrator, 
+      this.unifiedSceneRenderer, 
+      missionDialogue,
+    );
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // AsteroidSpawner
