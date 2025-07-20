@@ -179,37 +179,49 @@ export class LightingOrchestrator {
 
   /** Swap all fields between two indices */
   private swapLight(i: number, j: number): void {
-    const s = this.scratchValues;
+    const s   = this.scratchValues;
     const soa = this.soa;
 
     // Snapshot all fields from i into scratch
-    s[0]  = soa.x[i];          s[1]  = soa.y[i]; 
-    s[2]  = soa.radius[i];     s[3]  = soa.r[i];
-    s[4]  = soa.g[i];          s[5]  = soa.b[i];
-    s[6]  = soa.intensity[i];  s[7]  = soa.life[i];
-    s[8]  = soa.initialLife[i];s[9]  = soa.fadeMode[i];
+    s[0]  = soa.x[i];              s[1]  = soa.y[i];
+    s[2]  = soa.radius[i];         s[3]  = soa.r[i];
+    s[4]  = soa.g[i];              s[5]  = soa.b[i];
+    s[6]  = soa.intensity[i];      s[7]  = soa.life[i];
+    s[8]  = soa.initialLife[i];    s[9]  = soa.fadeMode[i];
     s[10] = soa.animationPhase[i]; s[11] = soa.id[i];
-    s[12] = soa.tag[i];        s[13] = soa.colorHex[i];
+    s[12] = soa.tag[i];            s[13] = soa.colorHex[i];
 
     // Copy j → i
-    soa.x[i] = soa.x[j];       soa.y[i] = soa.y[j];
-    soa.radius[i] = soa.radius[j];
-    soa.r[i] = soa.r[j];       soa.g[i] = soa.g[j]; soa.b[i] = soa.b[j];
-    soa.intensity[i] = soa.intensity[j];
-    soa.life[i] = soa.life[j]; soa.initialLife[i] = soa.initialLife[j];
-    soa.fadeMode[i] = soa.fadeMode[j];
+    soa.x[i]              = soa.x[j];
+    soa.y[i]              = soa.y[j];
+    soa.radius[i]         = soa.radius[j];
+    soa.r[i]              = soa.r[j];
+    soa.g[i]              = soa.g[j];
+    soa.b[i]              = soa.b[j];
+    soa.intensity[i]      = soa.intensity[j];
+    soa.life[i]           = soa.life[j];
+    soa.initialLife[i]    = soa.initialLife[j];
+    soa.fadeMode[i]       = soa.fadeMode[j];
     soa.animationPhase[i] = soa.animationPhase[j];
-    soa.id[i] = soa.id[j];     soa.tag[i] = soa.tag[j]; soa.colorHex[i] = soa.colorHex[j];
+    soa.id[i]             = soa.id[j];
+    soa.tag[i]            = soa.tag[j];
+    soa.colorHex[i]       = soa.colorHex[j];
 
     // Copy scratch → j
-    soa.x[j] = s[0];           soa.y[j] = s[1];
-    soa.radius[j] = s[2];
-    soa.r[j] = s[3];           soa.g[j] = s[4]; soa.b[j] = s[5];
-    soa.intensity[j] = s[6];
-    soa.life[j] = s[7];        soa.initialLife[j] = s[8];
-    soa.fadeMode[j] = s[9];
+    soa.x[j]              = s[0];
+    soa.y[j]              = s[1];
+    soa.radius[j]         = s[2];
+    soa.r[j]              = s[3];
+    soa.g[j]              = s[4];
+    soa.b[j]              = s[5];
+    soa.intensity[j]      = s[6];
+    soa.life[j]           = s[7];
+    soa.initialLife[j]    = s[8];
+    soa.fadeMode[j]       = s[9];
     soa.animationPhase[j] = s[10];
-    soa.id[j] = s[11];         soa.tag[j] = s[12]; soa.colorHex[j] = s[13];
+    soa.id[j]             = s[11];
+    soa.tag[j]            = s[12];
+    soa.colorHex[j]       = s[13];
   }
 
   // == Tag management ==
