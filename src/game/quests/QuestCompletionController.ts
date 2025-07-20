@@ -140,7 +140,7 @@ export class QuestCompletionController {
       const playerShip = ShipRegistry.getInstance().getPlayerShip();
       if (playerShip) {
         const { x, y } = playerShip.getTransform().position;
-        createLightFlash(x, y, 800, 1.4, 0.4, '#ff45b2ff');
+        createLightFlash(x, y, 800, 1.4, 0.4, '#ff45b2');
       }
     }
 

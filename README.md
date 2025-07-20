@@ -21,7 +21,7 @@ Shipwright Survivors (SWS) combines the addictive wave-based combat of games lik
 
 - **TypeScript** for type-safe code
 - **React + Vite** for UI and build system
-- **Canvas API** for rendering game elements
+- **Canvas API / WebGL2** for rendering game elements
 - **Entity-Component System** for game architecture
 
 ## 🧩 Project Structure
@@ -127,18 +127,13 @@ What's needed to get to Demo:
 TODOS:
   - [ ] AI Phase 2
       Kill Per-Frame Blind Zeroing:
-
     Instead of zeroIntentSlot on every frame, have each state guarantee it fully overwrites all its fields (which updateSOA already does).
-
     Only zero slots when they’re culled or freed. This alone could cut memory writes by 30–40%.
-
     Abstract Slot Swapping Behind a Utility:
-
     The swapIntentSOA + rebind logic should be atomic. Right now, a bug here will desync controllers.
-
     Wrap it in a moveControllerSlot(from, to) method to enforce invariants.
 
-  - [ ] Autofire system can suddenly stop firing if an enemy is killed by a DOT.
+  - [x] Autofire system can suddenly stop firing if an enemy is killed by a DOT.
   - [ ] Open Communications Label should not display while dialogue is active
   - [ ] Potentially give enemies "callout sounds" and have them use playSpatialSfx
   - [ ] Quests

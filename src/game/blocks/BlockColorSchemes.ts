@@ -17,7 +17,7 @@ export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
   engine2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
   engine3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
   engine4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust
-  engine5: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
+  engine5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
@@ -26,7 +26,7 @@ export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
   turret2: ['#88ff88', '#33dd33', '#aaffaa'], // green
   turret3: ['#88ccff', '#3399ff', '#66ddff'], // blue
   turret4: ['#cc88ff', '#9933ff', '#ddaaff'], // purple
-  turret5: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
+  turret5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const LASER_BEAM_COLORS: Record<string, string[]> = {
@@ -42,7 +42,7 @@ export const SHIELD_COLOR_PALETTES: Record<string, string[]> = {
   shield1: ['#88ddff', '#44bbff', '#00aaff'], // same
   shield2: ['#aaffaa', '#66dd66', '#22bb22'], // green
   shield3: ['#ffbbff', '#dd66dd', '#cc33cc'], // magenta
-  shield4: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
+  shield4: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
@@ -59,7 +59,7 @@ export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
   explosiveLance2: ['#aaffaa', '#66dd66', '#228822'], // verdant green
   explosiveLance3: ['#ccccff', '#9999ff', '#4444aa'], // lavender/blue
   explosiveLance4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
-  explosiveLance5: ['#ffcc00', '#ff953dff', '#ff3232ff'],  // orange exhaust
+  explosiveLance5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const BLOCK_PICKUP_LIGHT_TIER_COLORS: Record<number, string> = {

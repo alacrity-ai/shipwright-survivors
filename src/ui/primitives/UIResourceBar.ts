@@ -506,9 +506,9 @@ export function drawUIResourceBar(
     if (chromaticAberration) {
       ctx.save();
       ctx.globalAlpha = 0.3;
-      ctx.fillStyle = '#ff000040';
+      ctx.fillStyle = '#800000';
       ctx.fillText(label, x + width / 2 - 0.5, y + height / 2);
-      ctx.fillStyle = '#0000ff40';
+      ctx.fillStyle = '#000080';
       ctx.fillText(label, x + width / 2 + 0.5, y + height / 2);
       ctx.restore();
     }

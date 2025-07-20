@@ -134,7 +134,7 @@ export class LightingOrchestrator {
         set.delete(index);
         if (set.size === 0) {
           this.tagMap.delete(tag);
-          this.releaseTagSet(set);  // <-- changed
+          this.releaseTagSet(set);
         }
       }
     }

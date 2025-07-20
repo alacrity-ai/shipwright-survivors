@@ -594,7 +594,7 @@ function drawProceduralBlock(typeId: string): void {
         coreRingStops: [
           [0.0, '#4FC3F7'],          // Cyan outer rim
           [0.4, '#0288D1'],          // Plasma blue
-          [1.0, '#00000000'],        // Transparent
+          [1.0, '#000000'],        // Transparent
         ],
         coreRingInnerRadius: 4,
         coreGlowStops: [
@@ -616,7 +616,7 @@ function drawProceduralBlock(typeId: string): void {
         coreRingStops: [
           [0.0, '#BA68C8'],   // Light magenta rim
           [0.4, '#8E24AA'],   // Core arc
-          [1.0, '#00000000'], // Fade out
+          [1.0, '#000000'], // Fade out
         ],
         coreRingInnerRadius: 5,
         coreGlowStops: [
