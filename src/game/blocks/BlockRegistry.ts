@@ -1328,12 +1328,12 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 2,
+        explosionDamage: 0,
         explosionRadiusBlocks: 3,
         turningPower: 2.0,
         targetingRange: 2000,
         projectileSpeed: 600,
-        lifetime: 3.5,
+        lifetime: 5.0,
       } 
     },
     sprite: 'heatSeeker1',
@@ -1360,7 +1360,7 @@ const blockTypes: Record<string, BlockType> = {
         turningPower: 2.2,
         targetingRange: 2200,
         projectileSpeed: 700,
-        lifetime: 3.5,
+        lifetime: 5.0,
       } 
     },
     sprite: 'heatSeeker2',
@@ -1387,7 +1387,7 @@ const blockTypes: Record<string, BlockType> = {
         turningPower: 2.4,
         targetingRange: 2400,
         projectileSpeed: 800,
-        lifetime: 3.5,
+        lifetime: 5.0,
       } 
     },
     sprite: 'heatSeeker3',
@@ -1414,7 +1414,7 @@ const blockTypes: Record<string, BlockType> = {
         turningPower: 2.8,
         targetingRange: 2600,
         projectileSpeed: 900,
-        lifetime: 3.6,
+        lifetime: 5.0,
       } 
     },
     sprite: 'heatSeeker4',
@@ -1441,7 +1441,7 @@ const blockTypes: Record<string, BlockType> = {
         turningPower: 2.8,
         targetingRange: 2800,
         projectileSpeed: 1000,
-        lifetime: 3.6,
+        lifetime: 5.0,
       } 
     },
     sprite: 'heatSeeker5',

@@ -67,6 +67,7 @@ import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { LightningSystem } from '@/systems/fx/LightningSystem';
 import { FireManager } from '@/systems/fx/FireManager';
 import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
+import { DamageTextAggregator } from '@/systems/damagetext/DamageTextAggregator';
 
 import { PlayerControllerSystem } from '@/systems/controls/PlayerControllerSystem';
 import { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
@@ -207,6 +208,7 @@ export class EngineRuntime {
   private lightningSystem: LightningSystem;
   private fireManager: FireManager;
   private damageTextManager: DamageTextManager;
+  private damageTextAggregator: DamageTextAggregator;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
   private cursorRenderer: CursorRenderer;
   private floatingTextManager: FloatingTextManager;
@@ -289,6 +291,7 @@ export class EngineRuntime {
     this.fireManager = new FireManager(this.lightingOrchestrator);
     // Damage Text
     this.damageTextManager = DamageTextManager.getInstance();
+    this.damageTextAggregator = DamageTextAggregator.getInstance();
 
     ShieldEffectsSystem.initialize(this.canvasManager, this.camera);
 
@@ -621,6 +624,7 @@ export class EngineRuntime {
       this.particleManager,
       this.lightningSystem,
       this.fireManager,
+      this.damageTextAggregator,
       this.damageTextManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
@@ -1175,6 +1179,7 @@ export class EngineRuntime {
     GlobalMenuReporter.getInstance().destroy();
     PlayerQuestManager.getInstance().clearActiveQuests();
     DamageTextManager.getInstance().clear();
+    DamageTextAggregator.getInstance().clear();
 
     // Additional cleanup
     this.pickupSystem.destroy();

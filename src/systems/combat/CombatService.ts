@@ -11,7 +11,7 @@ import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionServ
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
-import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
+import { DamageTextAggregator } from '@/systems/damagetext/DamageTextAggregator';
 
 import { getAggregatedSkillEffects } from '@/game/ship/skills/runtime/UnlockedShipSkillTreeResolver';
 import { repairBlockViaLifesteal } from '../pickups/helpers/repairAllBlocksWithHealing';
@@ -49,7 +49,7 @@ export class CombatService {
     );
   };
 
-  private readonly damageTextManager: DamageTextManager;
+  private readonly damageTextAggregator: DamageTextAggregator;
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -61,7 +61,7 @@ export class CombatService {
     // Register the bound handler
     GlobalEventBus.on('status:damageOverTime', this.handleDamageOverTime);
 
-    this.damageTextManager = DamageTextManager.getInstance();
+    this.damageTextAggregator = DamageTextAggregator.getInstance();
   }
 
   /**
@@ -303,7 +303,7 @@ export class CombatService {
       const lifetime = 1.4;
 
       if (!entity.getIsPlayerShip()) {
-        this.damageTextManager.spawnNumber(
+        this.damageTextAggregator.enqueueDamage(
           worldX,
           worldY,
           dmg,

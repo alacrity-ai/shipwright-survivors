@@ -10,7 +10,57 @@ export class SpeakerVoiceRegistry {
   }
 
   private loadDefaults(): void {
-    // Main cast
+    // == Primary cast
+
+    // Astro Badger
+    this.register({
+      id: 'astro',
+      portrait: this.loadImage('assets/characters/character_astro.png'),
+      blipAudioFile: 'assets/sounds/bleeps/man_eh.wav',
+      basePitch: 0.9,
+      textSpeed: 0.04,
+      pitchVariance: 0.3,
+      syllableDuration: 120,
+      portraitOffset: { x: -100, y: -200 },
+    });
+
+    // Rue the Capybara
+    this.register({
+      id: 'rue',
+      portrait: this.loadImage('assets/characters/character_rue.png'),
+      blipAudioFile: 'assets/sounds/bleeps/man_eh.wav',
+      basePitch: 1.1,
+      textSpeed: 0.04,
+      pitchVariance: 0.3,
+      syllableDuration: 120,
+      portraitOffset: { x: -100, y: -200 },
+    });
+
+    // Razor the Panther
+    this.register({
+      id: 'razor',
+      portrait: this.loadImage('assets/characters/character_razor.png'),
+      blipAudioFile: 'assets/sounds/bleeps/man_eh.wav',
+      basePitch: 1.0,
+      textSpeed: 0.04,
+      pitchVariance: 0.3,
+      syllableDuration: 120,
+      portraitOffset: { x: -100, y: -200 },
+    });
+
+    // Slick the Gecko
+    this.register({
+      id: 'slick',
+      portrait: this.loadImage('assets/characters/character_slick.png'),
+      blipAudioFile: 'assets/sounds/bleeps/girl_ah.wav',
+      basePitch: 1.2,
+      textSpeed: 0.04,
+      pitchVariance: 0.3,
+      syllableDuration: 120,
+      portraitOffset: { x: -100, y: -200 },
+    });
+
+    // == Additional cast
     this.register({
       id: 'marla',
       portrait: this.loadImage('assets/characters/character_marla-thinx.png'),
@@ -56,7 +106,7 @@ export class SpeakerVoiceRegistry {
       basePitch: 1.1,
     });
 
-    // Bosses
+    // == Bosses
     this.register({
       id: 'crazy-moe',
       portrait: this.loadImage('assets/characters/bosses/character_boss_wildjoe.png'),
