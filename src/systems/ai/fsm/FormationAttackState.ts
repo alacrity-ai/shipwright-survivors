@@ -1,41 +1,29 @@
+// src/systems/ai/fsm/FormationAttackState.ts
+
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from '@/systems/ai/fsm/BaseAIState';
 import {
-  approachTarget,
-  orbitTarget,
-  faceTarget,
+  approachTargetSOA,
+  orbitTargetSOA,
+  faceTargetSOA,
   leadTarget,
 } from '@/systems/ai/steering/SteeringHelper';
-
 import { getWorldPositionFromShipOffset } from '@/systems/ai/helpers/ShipUtils';
 import { FormationSeekTargetState } from '@/systems/ai/fsm/FormationSeekTargetState';
 import { handleFormationLeaderDeath } from '@/systems/ai/helpers/FormationHelpers';
 
-const IDLE_MOVEMENT = {
-  thrustForward: false,
-  brake: true,
-  rotateLeft: false,
-  rotateRight: false,
-  strafeLeft: false,
-  strafeRight: false,
-} as const;
-
-const IDLE_UTILITY = {
-  toggleShields: false,
-} as const;
-
 export class FormationAttackState extends BaseAIState {
   private readonly target: Ship;
-  private readonly disengageRange = 1800;
+  private readonly disengageRange: number;
   private readonly projectileSpeed = 400;
 
   private readonly orbitRadius: number;
   private readonly siegeRange: number;
 
-  private orbitClockwise: boolean = false;
+  private orbitClockwise = false;
   private actualOrbitRadius: number;
 
   constructor(controller: AIControllerSystem, ship: Ship, target: Ship) {
@@ -46,6 +34,7 @@ export class FormationAttackState extends BaseAIState {
 
     this.orbitRadius = params.orbitRadius ?? 400;
     this.siegeRange = params.siegeRange ?? 400;
+    this.disengageRange = params.disengageRange ?? 1800;
 
     this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
   }
@@ -56,94 +45,144 @@ export class FormationAttackState extends BaseAIState {
     this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
   }
 
-  public update(): ShipIntent {
-    if (this.target.isDestroyed?.()) return this.idleIntent();
+  /**
+   * Temporary compatibility shim until downstream systems consume SOA directly.
+   */
+  public update(): {
+    movement: any;
+    weapons: any;
+    utility: any;
+  } {
+    const soa = (this.controller as any).soa as IntentSOA;
+    const idx = this.controller.getSOAIndex();
+    this.updateSOA(0, soa, idx);
 
-    const behavior = this.controller.getBehaviorProfile().attack;
+    return {
+      movement: {
+        thrustForward: !!soa.thrustForward[idx],
+        brake: !!soa.brake[idx],
+        rotateLeft: !!soa.rotateLeft[idx],
+        rotateRight: !!soa.rotateRight[idx],
+        strafeLeft: !!soa.strafeLeft[idx],
+        strafeRight: !!soa.strafeRight[idx],
+      },
+      weapons: {
+        firePrimary: !!soa.firePrimary[idx],
+        fireSecondary: !!soa.fireSecondary[idx],
+        aimAt: { x: soa.aimX[idx], y: soa.aimY[idx] },
+      },
+      utility: {
+        toggleShields: !!soa.toggleShields[idx],
+      },
+    };
+  }
+
+  /**
+   * Main SOA-based behavior logic.
+   */
+  public updateSOA(dt: number, soa: IntentSOA, idx: number): void {
+    if (this.target.isDestroyed?.()) {
+      this.writeIdleSOA(soa, idx);
+      return;
+    }
 
     const registry = this.controller.getFormationRegistry();
     const leaderController = this.controller.getFormationLeaderController();
     const formationId = this.controller.getFormationId();
 
     if (!registry || !leaderController || !formationId) {
-      return this.idleIntent();
+      this.writeIdleSOA(soa, idx);
+      return;
     }
 
     const leaderShip = leaderController.getShip();
     if (leaderShip.isDestroyed()) {
-      return this.idleIntent();
+      this.writeIdleSOA(soa, idx);
+      return;
     }
 
     const offset = registry.getOffsetForShip(this.ship.id);
-    if (!offset) return this.idleIntent();
+    if (!offset) {
+      this.writeIdleSOA(soa, idx);
+      return;
+    }
 
     const leaderTransform = leaderShip.getTransform();
-    const targetPos = getWorldPositionFromShipOffset(leaderTransform, offset);
+    const formationTarget = getWorldPositionFromShipOffset(leaderTransform, offset);
 
     const selfTransform = this.ship.getTransform();
     const selfPos = selfTransform.position;
     const selfVel = selfTransform.velocity;
 
     const targetTransform = this.target.getTransform();
-    const targetShipPos = targetTransform.position;
-    const targetShipVel = targetTransform.velocity;
+    const targetPos = targetTransform.position;
+    const targetVel = targetTransform.velocity;
 
-    const dx = selfPos.x - targetShipPos.x;
-    const dy = selfPos.y - targetShipPos.y;
+    const dx = selfPos.x - targetPos.x;
+    const dy = selfPos.y - targetPos.y;
     const distSq = dx * dx + dy * dy;
 
+    const behavior = this.controller.getBehaviorProfile().attack;
+
+    // === Siege behavior
     if (behavior === 'siege') {
       const inRange = distSq <= this.siegeRange * this.siegeRange;
-      const faceIntent = faceTarget(this.ship, targetShipPos);
 
-      return {
-        movement: inRange
-          ? {
-              thrustForward: false,
-              brake: true,
-              rotateLeft: faceIntent.rotateLeft,
-              rotateRight: faceIntent.rotateRight,
-              strafeLeft: false,
-              strafeRight: false,
-            }
-          : approachTarget(this.ship, targetPos, selfVel),
-        weapons: {
-          firePrimary: true,
-          fireSecondary: false,
-          aimAt: leadTarget(selfPos, targetShipPos, targetShipVel, this.projectileSpeed),
-        },
-        utility: {
-          toggleShields: true,
-        },
-      };
+      if (inRange) {
+        faceTargetSOA(this.ship, targetPos, soa, idx);
+        soa.thrustForward[idx] = 0;
+        soa.brake[idx] = 1;
+        soa.strafeLeft[idx] = 0;
+        soa.strafeRight[idx] = 0;
+      } else {
+        approachTargetSOA(this.ship, formationTarget, selfVel, soa, idx);
+      }
+
+      soa.firePrimary[idx] = 1;
+      soa.fireSecondary[idx] = 0;
+      const lead = leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed);
+      soa.aimX[idx] = lead.x;
+      soa.aimY[idx] = lead.y;
+      soa.toggleShields[idx] = 1;
+      return;
     }
 
+    // === Orbit behavior
     if (behavior === 'orbit') {
-      return {
-        movement: orbitTarget(this.ship, selfVel, targetShipPos, this.actualOrbitRadius, this.orbitClockwise),
-        weapons: {
-          firePrimary: true,
-          fireSecondary: false,
-          aimAt: leadTarget(selfPos, targetShipPos, targetShipVel, this.projectileSpeed),
-        },
-        utility: {
-          toggleShields: true,
-        },
-      };
+      orbitTargetSOA(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise, soa, idx);
+
+      soa.firePrimary[idx] = 1;
+      soa.fireSecondary[idx] = 0;
+      const lead = leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed);
+      soa.aimX[idx] = lead.x;
+      soa.aimY[idx] = lead.y;
+      soa.toggleShields[idx] = 1;
+      return;
     }
 
-    // Default: stay in formation offset
-    return {
-      movement: approachTarget(this.ship, targetPos, selfVel),
-      weapons: {
-        firePrimary: true,
-        fireSecondary: false,
-        aimAt: leadTarget(selfPos, targetShipPos, targetShipVel, this.projectileSpeed),
-      },
-      utility: {
-        toggleShields: true,
-      },
-    };
+    // === Default: maintain formation offset while attacking
+    approachTargetSOA(this.ship, formationTarget, selfVel, soa, idx);
+
+    soa.firePrimary[idx] = 1;
+    soa.fireSecondary[idx] = 0;
+    const lead = leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed);
+    soa.aimX[idx] = lead.x;
+    soa.aimY[idx] = lead.y;
+    soa.toggleShields[idx] = 1;
+  }
+
+  private writeIdleSOA(soa: IntentSOA, idx: number): void {
+    soa.thrustForward[idx] = 0;
+    soa.brake[idx] = 1;
+    soa.rotateLeft[idx] = 0;
+    soa.rotateRight[idx] = 0;
+    soa.strafeLeft[idx] = 0;
+    soa.strafeRight[idx] = 0;
+    soa.firePrimary[idx] = 0;
+    soa.fireSecondary[idx] = 0;
+    soa.aimX[idx] = this.ship.getTransform().position.x;
+    soa.aimY[idx] = this.ship.getTransform().position.y;
+    soa.toggleShields[idx] = 0;
   }
 
   public transitionIfNeeded(): BaseAIState | null {
@@ -166,7 +205,6 @@ export class FormationAttackState extends BaseAIState {
 
     const selfPos = this.ship.getTransform().position;
     const targetPos = this.target.getTransform().position;
-
     const dx = selfPos.x - targetPos.x;
     const dy = selfPos.y - targetPos.y;
     const distSq = dx * dx + dy * dy;
@@ -180,18 +218,5 @@ export class FormationAttackState extends BaseAIState {
 
   public getTarget(): Ship {
     return this.target;
-  }
-
-  private idleIntent(): ShipIntent {
-    const shipPos = this.ship.getTransform().position;
-    return {
-      movement: IDLE_MOVEMENT,
-      weapons: {
-        firePrimary: false,
-        fireSecondary: false,
-        aimAt: shipPos,
-      },
-      utility: IDLE_UTILITY,
-    };
   }
 }

@@ -26,7 +26,7 @@ export function createLightFlash(
     }
   }
 
-  const light = createPointLight(
+  createPointLight(
     {
       x,
       y,
@@ -38,7 +38,5 @@ export function createLightFlash(
     },
     tag
   );
-
-  orchestrator.registerLight(light);
 }
 

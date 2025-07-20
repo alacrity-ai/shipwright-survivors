@@ -1,8 +1,5 @@
 // src/game/entities/factories/AsteroidFactory.ts
 
-// import { MovementSystem } from '@/systems/physics/MovementSystem';
-// import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
-// import type { Ship } from '@/game/ship/Ship';
 import type { Grid } from '@/systems/physics/Grid';
 import { Asteroid } from '@/game/entities/Asteroid';
 import { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';

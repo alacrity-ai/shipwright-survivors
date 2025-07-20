@@ -72,7 +72,7 @@ export class Ship extends CompositeBlockObject {
   private heatSeekerEmitProbability: number = HEATSEEKER_MAX_EMIT_PROBABILITY;
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
-  private lightAuraId: string | null = null;
+  private lightAuraId: number | null = null;
   private thrusting: boolean = true;
   private strafingLeft: boolean = false;
   private strafingRight: boolean = false;
@@ -128,6 +128,12 @@ export class Ship extends CompositeBlockObject {
 
   public setIsPlayerShip(isPlayerShip: boolean): void {
     this.isPlayerShip = isPlayerShip;
+
+    if (isPlayerShip) {
+      this.initializeAnchorPoints();
+    } else {
+      this.anchorPointComponent = null;
+    }
   }
 
   public getPassiveManager(): PlayerPassiveManager | null {
@@ -353,39 +359,29 @@ export class Ship extends CompositeBlockObject {
     if (!LightingOrchestrator.hasInstance()) return;
 
     if (this.lightAuraId) return;
-    const orchestrator = LightingOrchestrator.getInstance();
-    this.lightAuraId = `aura-${this.id}`;
 
-    const auraLight = createPointLight({
-      id: this.lightAuraId,
+    this.lightAuraId = createPointLight({
       x: this.getTransform().position.x,
       y: this.getTransform().position.y,
       radius: radius,
       color: color,
       intensity: intensity,
     });
-
-    orchestrator.registerLight(auraLight);
   }
 
+  // Simply replaces the AuraLight with a new one
   public updateAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
     if (!LightingOrchestrator.hasInstance()) return;
 
     this.cleanupAuraLight();
 
-    const orchestrator = LightingOrchestrator.getInstance();
-    this.lightAuraId = `aura-${this.id}`;
-
-    const updatedLight = createPointLight({
-      id: this.lightAuraId,
+    this.lightAuraId = createPointLight({
       x: this.getTransform().position.x,
       y: this.getTransform().position.y,
       radius,
       color,
       intensity,
     });
-
-    orchestrator.registerLight(updatedLight);
   }
 
   public cleanupAuraLight(): void {
@@ -394,7 +390,7 @@ export class Ship extends CompositeBlockObject {
     this.lightAuraId = null;
   }
 
-  public getLightAuraId(): string | null {
+  public getLightAuraId(): number | null {
     return this.lightAuraId;
   }
 

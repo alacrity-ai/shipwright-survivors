@@ -18,9 +18,9 @@ export interface FireSOA {
   age: Float32Array;
   intensity: Float32Array;
   rampIndex: Float32Array;
-  lightId: (string | undefined)[];
-  life: Float32Array;         // Remaining life in seconds
-  initialLife: Float32Array;  // Initial life for fade calculation
+  lightId: (number | undefined)[]; // Updated to Number
+  life: Float32Array;
+  initialLife: Float32Array;
 }
 
 export interface FireOptions {
@@ -120,7 +120,7 @@ export class FireManager {
 
     // Create an accompanying point light if requested
     if (light) {
-      const lightInstance = createPointLight({
+      const lightId = createPointLight({
         x,
         y,
         radius: this.soa.radius[idx] * lightRadiusScalar,
@@ -130,8 +130,8 @@ export class FireManager {
         expires: true,
         fadeMode: 'linear',
       });
-      this.lightingOrchestrator.registerLight(lightInstance);
-      this.soa.lightId[idx] = lightInstance.id;
+      // this.lightingOrchestrator.registerLight(lightInstance); // Registration occurs automatically in createPointLight
+      this.soa.lightId[idx] = lightId ?? undefined;
     } else {
       this.soa.lightId[idx] = undefined;
     }
@@ -151,12 +151,12 @@ export class FireManager {
       }
 
       // Update light position to follow fire blob
-      if (this.soa.lightId[i]) {
-        const light = this.lightingOrchestrator.getLightById(this.soa.lightId[i]!);
-        if (light && (light.type === 'point' || light.type === 'spot')) {
-          light.x = this.soa.x[i];
-          light.y = this.soa.y[i];
-        }
+      const id = this.soa.lightId[i];
+      if (id !== undefined) {
+        this.lightingOrchestrator.updateLight(id, {
+          x: this.soa.x[i],
+          y: this.soa.y[i]
+        });
       }
 
       i++;
@@ -178,12 +178,6 @@ export class FireManager {
     }
     this.soa.count = 0;
     this.freeIndices.length = 0;
-  }
-
-  /** Clean up all resources and detach event listeners. */
-  destroy(): void {
-    GlobalEventBus.off('fx:fire:emit', this.onFireEmitBound);
-    this.clear();
   }
 
   // === Internal utilities ===
@@ -228,5 +222,33 @@ export class FireManager {
     const tempId = this.soa.lightId[i];
     this.soa.lightId[i] = this.soa.lightId[j];
     this.soa.lightId[j] = tempId;
+  }
+
+  /** Clean up all resources and detach event listeners. */
+  destroy(): void {
+    // Unsubscribe from event bus to prevent dangling callbacks
+    GlobalEventBus.off('fx:fire:emit', this.onFireEmitBound);
+
+    // Remove any active lights and clear state
+    for (let i = 0; i < this.soa.count; i++) {
+      if (this.soa.lightId[i]) {
+        this.lightingOrchestrator.removeLight(this.soa.lightId[i]!);
+        this.soa.lightId[i] = undefined;
+      }
+    }
+
+    this.soa.count = 0;
+    this.freeIndices.length = 0;
+
+    // Zero all SOA fields for safety and GC friendliness
+    this.soa.x.fill(0);
+    this.soa.y.fill(0);
+    this.soa.radius.fill(0);
+    this.soa.age.fill(0);
+    this.soa.intensity.fill(0);
+    this.soa.rampIndex.fill(0);
+    this.soa.life.fill(0);
+    this.soa.initialLife.fill(0);
+    this.soa.lightId.fill(undefined);
   }
 }

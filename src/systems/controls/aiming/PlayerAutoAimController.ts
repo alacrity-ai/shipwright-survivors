@@ -1,18 +1,18 @@
 // src/systems/controls/aiming/PlayerAutoAimController.ts
-import { findNearestTarget }    from '@/systems/ai/helpers/ShipUtils';
+import { findNearestTarget } from '@/systems/ai/helpers/ShipUtils';
 import { predictInterceptPositionAnalytical, type Vec2 } from '@/systems/ai/helpers/VectorUtils';
-import { getDistance }          from '@/shared/vectorUtils';
-import type { AimProvider }     from './AimProvider';
-import type { Ship }            from '@/game/ship/Ship';
-import type { InputManager }    from '@/core/InputManager';
-import { InputDeviceTracker }   from '@/core/input/InputDeviceTracker';
+import { getDistance } from '@/shared/vectorUtils';
+import type { AimProvider } from './AimProvider';
+import type { Ship } from '@/game/ship/Ship';
+import type { InputManager } from '@/core/InputManager';
+import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 
 export class PlayerAutoAimController implements AimProvider {
   private readonly range         = 2_800; // px
   private readonly leadSeconds   = 0.5;   // s
-  private readonly TARGET_STICKY = 0.25;   // s
-  private readonly RESCAN_PERIOD = 0.5;   // s
-  private readonly SWITCH_MARGIN = 32;    // px hysteresis
+  private readonly TARGET_STICKY = 0.25;  // s minimum lock persistence
+  private readonly RESCAN_PERIOD = 0.5;   // s between reprioritisation scans
+  private readonly SWITCH_MARGIN = 32;    // px hysteresis for switching
 
   private target: Ship | null = null;
   private timeSinceLock   = 0; // s
@@ -23,7 +23,9 @@ export class PlayerAutoAimController implements AimProvider {
   /* ------------------------------------------------------------------ */
   public tick(dt: number, self: Ship): void {
     const stick = this.input.getGamepadAimVector();
-    if (stick.x || stick.y) {                 // stick engaged
+
+    // Manual override: right stick engaged clears auto-target
+    if (stick.x || stick.y) {
       this.clearTarget();
       InputDeviceTracker.getInstance().updateDevice('gamepad');
       return;
@@ -32,14 +34,21 @@ export class PlayerAutoAimController implements AimProvider {
     this.timeSinceLock   += dt;
     this.rescanCountdown -= dt;
 
-    /* drop invalid targets immediately and reacquire */
-    if (this.timeSinceLock >= this.TARGET_STICKY && !this.isTargetValid()) {
+    // Immediate drop and reacquire if the current target is dead
+    if (this.target && this.target.isDestroyed()) {
       this.clearTarget();
       this.acquireTarget(self);
       return;
     }
 
-    /* periodic reprioritisation */
+    // Reacquire immediately if target is invalid (out of range or invulnerable)
+    if (!this.isTargetValid(self)) {
+      this.clearTarget();
+      this.acquireTarget(self);
+      return;
+    }
+
+    // Periodic reprioritisation (look for a closer/better target)
     if (this.rescanCountdown <= 0) {
       this.rescanCountdown = this.RESCAN_PERIOD;
       this.considerBetterTarget(self);
@@ -48,19 +57,21 @@ export class PlayerAutoAimController implements AimProvider {
 
   /* ── external contract ─────────────────────────────────────────── */
   /** Indicates whether a live, in-range, non-invulnerable target is tracked. */
-  public isLocked(): boolean {          // ← ▲ NEW
+  public isLocked(): boolean {
     return this.target !== null && !this.target.isDestroyed();
   }
 
   /* ------------------------------------------------------------------ */
   public getAimPoint(self: Ship): Vec2 {
-    if (!this.target) this.acquireTarget(self);
+    if (!this.target) {
+      this.acquireTarget(self);
+    }
 
     if (this.target) {
       const selfTransform = self.getTransform();
       const targetTransform = this.target.getTransform();
-      
-      // Use the analytical solution for best accuracy
+
+      // Predict intercept point based on velocity and projectile speed
       return predictInterceptPositionAnalytical(
         selfTransform.position,
         targetTransform.position,
@@ -69,7 +80,7 @@ export class PlayerAutoAimController implements AimProvider {
       );
     }
 
-    /* fallback – forward vector */
+    // Fallback: aim forward along ship's nose
     const { position: p, rotation: r } = self.getTransform();
     return {
       x: p.x + Math.cos(r - Math.PI / 2) * 400,
@@ -84,7 +95,10 @@ export class PlayerAutoAimController implements AimProvider {
   }
 
   private considerBetterTarget(self: Ship): void {
-    if (!this.target) { this.acquireTarget(self); return; }
+    if (!this.target) {
+      this.acquireTarget(self);
+      return;
+    }
 
     const candidate = findNearestTarget(self, this.range);
     if (!candidate || candidate === this.target) return;
@@ -99,13 +113,21 @@ export class PlayerAutoAimController implements AimProvider {
     }
   }
 
-  private isTargetValid(): boolean {
+  /**
+   * Validates the current target:
+   * - Must exist
+   * - Must not be destroyed
+   * - Must not be invulnerable
+   * - Must be within `range` of the player ship
+   */
+  private isTargetValid(self: Ship): boolean {
     if (!this.target) return false;
-    if (this.target.isDestroyed())              return false;
+    if (this.target.isDestroyed()) return false;
     if (this.target.getAffixes()?.invulnerable) return false;
 
-    const origin = this.target.getTransform().position; // any reference ok
-    return getDistance(origin, this.target.getTransform().position) <= this.range;
+    const selfPos = self.getTransform().position;
+    const targetPos = this.target.getTransform().position;
+    return getDistance(selfPos, targetPos) <= this.range;
   }
 
   private clearTarget(): void {

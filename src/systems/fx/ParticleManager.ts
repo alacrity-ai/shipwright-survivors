@@ -38,7 +38,7 @@ export interface ParticleSOA {
   r: Float32Array;
   g: Float32Array;
   b: Float32Array;
-  lightId: (string | undefined)[];
+  lightId: (number | null)[];
   color: string[];          // Keep for light creation
   count: number;
 }
@@ -112,7 +112,7 @@ export class ParticleManager {
   private readonly instanceName: string;
   private readonly soa: ParticleSOA;
   private readonly freeIndices: number[] = [];  // Pool of recycled indices
-  
+
   // Handle system for stable particle references
   private nextHandle = 1;                       // Auto-incrementing handle counter
   private readonly handleToIndex = new Map<number, number>();  // handle -> SOA index
@@ -124,6 +124,7 @@ export class ParticleManager {
   constructor(private readonly lightingOrchestrator: LightingOrchestrator, instanceName: string = 'default') {
     this.soa = createSOABuffer(MAX_PARTICLES);
     this.instanceName = instanceName;
+
   }
 
   private _createAndRegisterParticle(origin: { x: number; y: number }, options: ParticleOptions): number {
@@ -186,10 +187,10 @@ export class ParticleManager {
     this.soa.r[i] = r;
     this.soa.g[i] = g;
     this.soa.b[i] = b;
-    this.soa.lightId[i] = undefined;
+    this.soa.lightId[i] = null;
 
     if (this.lightingOrchestrator && options.light) {
-      const light = createPointLight({
+      const lightId = createPointLight({
         x: this.soa.x[i],
         y: this.soa.y[i],
         radius: this.soa.size[i] * (options.lightRadiusScalar ?? 3),
@@ -200,8 +201,7 @@ export class ParticleManager {
         fadeMode: options.fadeMode ?? 'linear',
       });
 
-      this.lightingOrchestrator.registerLight(light);
-      this.soa.lightId[i] = light.id;
+      this.soa.lightId[i] = lightId;
     }
 
     return i;
@@ -263,11 +263,10 @@ export class ParticleManager {
 
       // Update associated light
       if (this.soa.lightId[i]) {
-        const light = this.lightingOrchestrator.getLightById(this.soa.lightId[i]!);
-        if (light && (light.type === 'point' || light.type === 'spot')) {
-          light.x = this.soa.x[i];
-          light.y = this.soa.y[i];
-        }
+        this.lightingOrchestrator.updateLight(this.soa.lightId[i]!, {
+          x: this.soa.x[i],
+          y: this.soa.y[i],
+        });
       }
 
       // Update alpha
@@ -294,7 +293,7 @@ export class ParticleManager {
   private recycleParticle(index: number): void {
     if (this.soa.lightId[index]) {
       this.lightingOrchestrator.removeLight(this.soa.lightId[index]!);
-      this.soa.lightId[index] = undefined;
+      this.soa.lightId[index] = null;
     }
 
     // Clean up handle mappings if this particle has a handle
@@ -334,19 +333,6 @@ export class ParticleManager {
 
     if (this.soa.count >= MAX_PARTICLES) return -1;
     return this.soa.count++;
-  }
-
-  public destroy(): void {
-    for (let i = 0; i < this.soa.count; i++) {
-      if (this.soa.lightId[i]) {
-        this.lightingOrchestrator.removeLight(this.soa.lightId[i]!);
-      }
-    }
-
-    this.soa.count = 0;
-    this.freeIndices.length = 0;
-    this.handleToIndex.clear();
-    this.indexToHandle.fill(0);
   }
 
   // Utility methods for debugging/monitoring
@@ -407,7 +393,7 @@ export class ParticleManager {
     this.soa.fadeOut[i0] = 1;
     this.soa.fadeMode[i0] = FADE_MODE_LINEAR;
     this.soa.renderAlpha[i0] = 1.0;
-    this.soa.lightId[i0] = undefined;
+    this.soa.lightId[i0] = null;
 
     const c0 = palette[(this.randPtr = (this.randPtr + 1) % palette.length)];
     const rgb0 = hexToRgb(c0);
@@ -427,7 +413,7 @@ export class ParticleManager {
     this.soa.fadeOut[i1] = 1;
     this.soa.fadeMode[i1] = FADE_MODE_LINEAR;
     this.soa.renderAlpha[i1] = 1.0;
-    this.soa.lightId[i1] = undefined;
+    this.soa.lightId[i1] = null;
 
     const c1 = palette[(this.randPtr = (this.randPtr + 1) % palette.length)];
     const rgb1 = hexToRgb(c1);
@@ -525,5 +511,40 @@ export class ParticleManager {
 
     this.soa.life[index] += delta;
     this.soa.initialLife[index] += delta;
+  }
+
+  // == Cleanup
+  public destroy(): void {
+    // Remove all lights attached to particles
+    for (let i = 0; i < this.soa.count; i++) {
+      if (this.soa.lightId[i]) {
+        this.lightingOrchestrator.removeLight(this.soa.lightId[i]!);
+        this.soa.lightId[i] = null;
+      }
+    }
+
+    // Reset particle bookkeeping
+    this.soa.count = 0;
+    this.freeIndices.length = 0;
+    this.handleToIndex.clear();
+    this.indexToHandle.fill(0);
+
+    // Optional but safer: clear all SOA fields so no stale data lingers
+    this.soa.x.fill(0);
+    this.soa.y.fill(0);
+    this.soa.vx.fill(0);
+    this.soa.vy.fill(0);
+    this.soa.size.fill(0);
+    this.soa.life.fill(0);
+    this.soa.initialLife.fill(0);
+    this.soa.renderAlpha.fill(0);
+    this.soa.fadeOut.fill(0);
+    this.soa.fadeMode.fill(0);
+    this.soa.r.fill(0);
+    this.soa.g.fill(0);
+    this.soa.b.fill(0);
+
+    // Clear string references so GC can collect them
+    this.soa.color.fill('');
   }
 }

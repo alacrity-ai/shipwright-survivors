@@ -75,7 +75,7 @@ interface PickupSOA {
   blockTypeId: (string | undefined)[];  // String block IDs
   texture: (WebGLTexture | null)[];
   shipId: (string | undefined)[];
-  lightId: (string | undefined)[];
+  lightId: (number | null)[];
 }
 
 const MAX_PICKUPS = 3200; // Adjust based on game scale
@@ -97,7 +97,7 @@ function createPickupBuffer(max: number): PickupSOA {
 
     // Non-numeric (object) fields
     texture: new Array<WebGLTexture | null>(max),
-    lightId: new Array<string | undefined>(max),
+    lightId: new Array<number | null>(max),
   };
 }
 
@@ -116,6 +116,7 @@ export class PickupSystem {
 
   private playerResources: PlayerResources;
   private playerShip: Ship | null = null;
+  private lightingOrchestrator: LightingOrchestrator;
 
   private destroyed = false;
 
@@ -149,6 +150,7 @@ export class PickupSystem {
   ) {
     this.playerResources = PlayerResources.getInstance();
     this.soa = createPickupBuffer(MAX_PICKUPS);
+    this.lightingOrchestrator = LightingOrchestrator.getInstance();
   }
 
   setPlayerShip(ship: Ship): void {
@@ -172,8 +174,8 @@ export class PickupSystem {
 
     // Clean up any light
     if (this.soa.lightId[i]) {
-      LightingOrchestrator.getInstance().removeLight(this.soa.lightId[i]!);
-      this.soa.lightId[i] = undefined;
+      this.lightingOrchestrator.removeLight(this.soa.lightId[i]!);
+      this.soa.lightId[i] = null;
     }
 
     if (i !== last) this.swap(i, last);
@@ -286,11 +288,10 @@ export class PickupSystem {
 
     const lightId = this.soa.lightId[i];
     if (lightId) {
-      const light = LightingOrchestrator.getInstance().getLightById?.(lightId);
-      if (light && light.type === 'point') {
-        light.x = this.soa.x[i];
-        light.y = this.soa.y[i];
-      }
+      this.lightingOrchestrator.updateLight(lightId, {
+        x: this.soa.x[i],
+        y: this.soa.y[i],
+      });
     }
 
     return distSq < PICKUP_RADIUS * PICKUP_RADIUS;
@@ -301,9 +302,8 @@ export class PickupSystem {
     if (idx === -1) return;
 
     const now = performance.now() / 1000;
-    const lighting = LightingOrchestrator.getInstance();
 
-    const light = createPointLight({
+    const lightId = createPointLight({
       x: position.x,
       y: position.y,
       radius: 200,
@@ -312,7 +312,6 @@ export class PickupSystem {
       life: 10000,
       expires: true,
     });
-    lighting.registerLight(light);
 
     this.soa.x[idx] = position.x;
     this.soa.y[idx] = position.y;
@@ -323,7 +322,7 @@ export class PickupSystem {
     this.soa.amount[idx] = amount;
     this.soa.blockTypeId[idx] = undefined;
     this.soa.shipId[idx] = undefined;
-    this.soa.lightId[idx] = light.id;
+    this.soa.lightId[idx] = lightId;
     this.soa.texture[idx] = getGLPickupSprite('currency').texture;
   }
 
@@ -332,9 +331,8 @@ export class PickupSystem {
     if (idx === -1) return;
 
     const now = performance.now() / 1000;
-    const lighting = LightingOrchestrator.getInstance();
 
-    const light = createPointLight({
+    const lightId = createPointLight({
       x: position.x,
       y: position.y,
       radius: 200,
@@ -343,7 +341,6 @@ export class PickupSystem {
       life: 10000,
       expires: true,
     });
-    lighting.registerLight(light);
 
     this.soa.x[idx] = position.x;
     this.soa.y[idx] = position.y;
@@ -354,7 +351,7 @@ export class PickupSystem {
     this.soa.amount[idx] = amount;
     this.soa.blockTypeId[idx] = undefined;
     this.soa.shipId[idx] = undefined;
-    this.soa.lightId[idx] = light.id;
+    this.soa.lightId[idx] = lightId;
     this.soa.texture[idx] = getGLPickupSprite('repair').texture;
   }
 
@@ -363,12 +360,11 @@ export class PickupSystem {
     if (idx === -1) return;
 
     const now = performance.now() / 1000;
-    const lighting = LightingOrchestrator.getInstance();
 
     const tier = getTierFromBlockId(blockType.id);
     const color = BLOCK_PICKUP_LIGHT_TIER_COLORS[tier] ?? '#ffffff';
 
-    const light = createPointLight({
+    const lightId = createPointLight({
       x: position.x,
       y: position.y,
       radius: 300,
@@ -377,7 +373,6 @@ export class PickupSystem {
       life: 10000,
       expires: true,
     });
-    lighting.registerLight(light);
 
     // Handle drop override (mutates blockType if needed)
     const finalBlockType = blockType.blockDropOverride ? getBlockType(blockType.blockDropOverride)! : blockType;
@@ -391,7 +386,7 @@ export class PickupSystem {
     this.soa.amount[idx] = 0;
     this.soa.blockTypeId[idx] = finalBlockType.id;
     this.soa.shipId[idx] = undefined;
-    this.soa.lightId[idx] = light.id;
+    this.soa.lightId[idx] = lightId;
 
     // Cache block texture (resolve only once)
     const tex = getGL2BlockSprite(finalBlockType, DamageLevel.NONE)?.base ?? null;
@@ -404,9 +399,8 @@ export class PickupSystem {
     if (idx === -1) return;
 
     const now = performance.now() / 1000;
-    const lighting = LightingOrchestrator.getInstance();
 
-    const light = createPointLight({
+    const lightId = createPointLight({
       x: position.x,
       y: position.y,
       radius: 380,
@@ -415,7 +409,6 @@ export class PickupSystem {
       life: 10000,
       expires: true,
     });
-    lighting.registerLight(light);
 
     this.soa.x[idx] = position.x;
     this.soa.y[idx] = position.y;
@@ -426,7 +419,7 @@ export class PickupSystem {
     this.soa.amount[idx] = 0;
     this.soa.blockTypeId[idx] = undefined;
     this.soa.shipId[idx] = undefined;
-    this.soa.lightId[idx] = light.id;
+    this.soa.lightId[idx] = lightId;
     this.soa.texture[idx] = getGLPickupSprite('quantumAttractor').texture;
   }
 
@@ -435,9 +428,8 @@ export class PickupSystem {
     if (idx === -1) return;
 
     const now = performance.now() / 1000;
-    const lighting = LightingOrchestrator.getInstance();
 
-    const light = createPointLight({
+    const lightId = createPointLight({
       x: position.x,
       y: position.y,
       radius: 500,
@@ -446,7 +438,6 @@ export class PickupSystem {
       life: 10000,
       expires: true,
     });
-    lighting.registerLight(light);
 
     this.soa.x[idx] = position.x;
     this.soa.y[idx] = position.y;
@@ -457,7 +448,7 @@ export class PickupSystem {
     this.soa.amount[idx] = 0;
     this.soa.blockTypeId[idx] = undefined;
     this.soa.shipId[idx] = shipId;
-    this.soa.lightId[idx] = light.id;
+    this.soa.lightId[idx] = lightId;
     this.soa.texture[idx] = getGLPickupSprite('shipBlueprint').texture;
   }
 
@@ -762,7 +753,7 @@ export class PickupSystem {
       const lightId = this.soa.lightId[i];
       if (lightId) {
         lighting.removeLight(lightId);
-        this.soa.lightId[i] = undefined;
+        this.soa.lightId[i] = null;
       }
     }
 

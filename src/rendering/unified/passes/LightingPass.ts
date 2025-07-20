@@ -1,14 +1,13 @@
 // src/rendering/unified/passes/LightingPass.ts
 
 import type { Camera } from '@/core/Camera';
-import type { AnyLightInstance } from '@/lighting/lights/types';
+import type { LightSOA } from '@/lighting/interfaces/LightSOA';
+
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
 
 import lightVertSrc from '@/rendering/unified/shaders/lightingPassInstanced.vert?raw';
 import lightFragSrc from '@/rendering/unified/shaders/lightingPassInstanced.frag?raw';
-import beamVertSrc from '@/rendering/unified/shaders/lightingPassBeam.vert?raw';
-import beamFragSrc from '@/rendering/unified/shaders/lightingPassBeam.frag?raw';
 import postVertSrc from '@/rendering/unified/shaders/lightingPassPost.vert?raw';
 import postFragSrc from '@/rendering/unified/shaders/lightingPassPost.frag?raw';
 
@@ -23,12 +22,15 @@ export class LightingPass {
   private ambientLight: [number, number, number] = [0.2, 0.2, 0.25];
 
   private readonly lightProgram: WebGLProgram;
-  private readonly beamProgram: WebGLProgram;
   private readonly postProgram: WebGLProgram;
 
   private readonly vao: WebGLVertexArrayObject;
   private readonly quadBuffer: WebGLBuffer;
-  private readonly lightUBO: WebGLBuffer;
+
+  // Double-buffered UBOs
+  private lightUBOs: WebGLBuffer[] = [];
+  private currentUBOIndex = 0;
+
   private readonly lightData: Float32Array;
 
   private framebuffer: WebGLFramebuffer;
@@ -45,12 +47,13 @@ export class LightingPass {
   private readonly clearColor: [number, number, number, number] = [0, 0, 0, 0];
   private readonly maxBrightness = 1.0;
 
+  private readonly colorCache = new Map<string, [number, number, number, number]>();
+
   constructor(gl: WebGL2RenderingContext, cameraUBO: WebGLBuffer) {
     this.gl = gl;
     this.cameraUBO = cameraUBO;
 
     this.lightProgram = createProgramFromSources(gl, lightVertSrc, lightFragSrc);
-    this.beamProgram = createProgramFromSources(gl, beamVertSrc, beamFragSrc);
     this.postProgram = createProgramFromSources(gl, postVertSrc, postFragSrc);
 
     this.quadBuffer = createQuadBuffer(gl);
@@ -61,20 +64,30 @@ export class LightingPass {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
 
-    this.lightUBO = gl.createBuffer()!;
+    // Prepare Float32Array for all lights
     this.lightData = new Float32Array(MAX_POINT_LIGHTS * FLOATS_PER_LIGHT);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, this.lightUBO);
-    gl.bufferData(gl.UNIFORM_BUFFER, this.lightData.byteLength, gl.DYNAMIC_DRAW);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, this.lightUBO);
+
+    // --- Create double-buffered UBOs ---
+    const NUM_UBOS = 2; // Increase to 3 if stalls still occur on your GPU
+    for (let i = 0; i < NUM_UBOS; i++) {
+      const ubo = gl.createBuffer()!;
+      gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+      gl.bufferData(gl.UNIFORM_BUFFER, this.lightData.byteLength, gl.DYNAMIC_DRAW);
+      this.lightUBOs.push(ubo);
+    }
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+    // Bind the first buffer to the binding index
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, this.lightUBOs[0]);
 
     const blockIndex = gl.getUniformBlockIndex(this.lightProgram, 'LightBlock');
     if (blockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(this.lightProgram, blockIndex, LIGHTBLOCK_BINDING_INDEX);
     }
 
+    // Framebuffer + textures
     this.colorTexture = gl.createTexture()!;
     this.framebuffer = gl.createFramebuffer()!;
-
     this.initializeFramebuffer();
 
     this.compositeTexture = gl.createTexture()!;
@@ -120,7 +133,10 @@ export class LightingPass {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  public generateLightBuffer(lights: AnyLightInstance[], camera: Camera): WebGLTexture {
+  public generateLightBuffer(
+    visible: { soa: LightSOA; indices: Uint16Array; count: number },
+    camera: Camera
+  ): WebGLTexture {
     const gl = this.gl;
 
     if (this.framebufferDirty) {
@@ -137,69 +153,50 @@ export class LightingPass {
     gl.enable(gl.BLEND);
     gl.bindVertexArray(this.vao);
 
-    let pointLightCount = 0;
-    for (const light of lights) {
-      if (light.type !== 'point') continue;
-      if (pointLightCount >= MAX_POINT_LIGHTS) break;
+    const { soa, indices, count } = visible;
+    const maxCount = Math.min(count, MAX_POINT_LIGHTS);
 
-      const screen = camera.worldToScreen(light.x, light.y);
+    // === Populate CPU buffer directly from master SOA via visible indices ===
+    for (let i = 0; i < maxCount; i++) {
+      const idx = indices[i];
+      const screen = camera.worldToScreen(soa.x[idx], soa.y[idx]);
       const sx = screen.x * this.resolutionScale;
       const sy = screen.y * this.resolutionScale;
 
-      const base = pointLightCount * FLOATS_PER_LIGHT;
-      const [r, g, b, a] = this.hexToRgbaVec4(light.color);
+      const base = i * FLOATS_PER_LIGHT;
 
-      // vec4[0] = [x, y, radius, unused]
       this.lightData[base + 0] = sx;
       this.lightData[base + 1] = sy;
-      this.lightData[base + 2] = light.radius * camera.getZoom() * this.resolutionScale;
+      this.lightData[base + 2] = soa.radius[idx] * camera.getZoom() * this.resolutionScale;
       this.lightData[base + 3] = 0;
 
-      // vec4[1] = [r, g, b, intensity]
-      this.lightData[base + 4] = r;
-      this.lightData[base + 5] = g;
-      this.lightData[base + 6] = b;
-      this.lightData[base + 7] = light.intensity;
+      this.lightData[base + 4] = soa.r[idx];
+      this.lightData[base + 5] = soa.g[idx];
+      this.lightData[base + 6] = soa.b[idx];
+      this.lightData[base + 7] = soa.intensity[idx];
 
-      // vec4[2] = [falloff, unused, unused, unused]
-      this.lightData[base + 8] = light.animationPhase ?? 1.0;
-      this.lightData[base + 9] = 0;
+      this.lightData[base + 8]  = soa.animationPhase[idx];
+      this.lightData[base + 9]  = 0;
       this.lightData[base + 10] = 0;
       this.lightData[base + 11] = 0;
-
-      pointLightCount++;
     }
 
-    gl.bindBuffer(gl.UNIFORM_BUFFER, this.lightUBO);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.lightData.subarray(0, pointLightCount * FLOATS_PER_LIGHT));
+    // === Upload to GPU (ping-pong UBO) ===
+    this.currentUBOIndex = (this.currentUBOIndex + 1) % this.lightUBOs.length;
+    const currentUBO = this.lightUBOs[this.currentUBOIndex];
 
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, currentUBO);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, currentUBO);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.lightData.subarray(0, maxCount * FLOATS_PER_LIGHT));
+
+    // === Draw all lights ===
     gl.useProgram(this.lightProgram);
-    gl.uniform2f(gl.getUniformLocation(this.lightProgram, 'uResolution'), this.framebufferWidth, this.framebufferHeight);
-
-    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, pointLightCount);
-
-    for (const light of lights) {
-      if (light.type !== 'beam') continue;
-
-      gl.useProgram(this.beamProgram);
-      gl.uniform2f(gl.getUniformLocation(this.beamProgram, 'uResolution'), this.framebufferWidth, this.framebufferHeight);
-
-      const start = camera.worldToScreen(light.start.x, light.start.y);
-      const end = camera.worldToScreen(light.end.x, light.end.y);
-      const sx0 = start.x * this.resolutionScale;
-      const sy0 = this.framebufferHeight - start.y * this.resolutionScale;
-      const sx1 = end.x * this.resolutionScale;
-      const sy1 = this.framebufferHeight - end.y * this.resolutionScale;
-
-      gl.uniform2f(gl.getUniformLocation(this.beamProgram, 'uStart'), sx0, sy0);
-      gl.uniform2f(gl.getUniformLocation(this.beamProgram, 'uEnd'), sx1, sy1);
-      gl.uniform1f(gl.getUniformLocation(this.beamProgram, 'uWidth'), light.width * camera.getZoom() * this.resolutionScale);
-      gl.uniform4fv(gl.getUniformLocation(this.beamProgram, 'uColor'), this.hexToRgbaVec4(light.color));
-      gl.uniform1f(gl.getUniformLocation(this.beamProgram, 'uIntensity'), light.intensity);
-      gl.uniform1f(gl.getUniformLocation(this.beamProgram, 'uFalloff'), light.animationPhase ?? 1.0);
-
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    }
+    gl.uniform2f(
+      gl.getUniformLocation(this.lightProgram, 'uResolution'),
+      this.framebufferWidth,
+      this.framebufferHeight
+    );
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, maxCount);
 
     gl.disable(gl.BLEND);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -211,15 +208,12 @@ export class LightingPass {
   public compositeLightingOverTarget(targetFramebuffer: WebGLFramebuffer | null): void {
     const gl = this.gl;
 
-    // === Bind target framebuffer (null = default screen) ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-    // === Set up additive blending for halo overlay ===
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE); // Additive blend mode
+    gl.blendFunc(gl.ONE, gl.ONE);
 
-    // === Draw fullscreen quad using lighting texture ===
     gl.useProgram(this.postProgram);
     gl.bindVertexArray(this.vao);
 
@@ -230,11 +224,9 @@ export class LightingPass {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    // === Clean up ===
     gl.disable(gl.BLEND);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
-
 
   public setAmbientLight(value: [number, number, number]): void {
     this.ambientLight = value;
@@ -251,18 +243,18 @@ export class LightingPass {
   public destroy(): void {
     const gl = this.gl;
     gl.deleteProgram(this.lightProgram);
-    gl.deleteProgram(this.beamProgram);
     gl.deleteProgram(this.postProgram);
     gl.deleteBuffer(this.quadBuffer);
     gl.deleteFramebuffer(this.framebuffer);
     gl.deleteTexture(this.colorTexture);
     gl.deleteVertexArray(this.vao);
-    gl.deleteBuffer(this.lightUBO);
+    for (const ubo of this.lightUBOs) {
+      gl.deleteBuffer(ubo);
+    }
+    this.lightUBOs = [];
     gl.deleteFramebuffer(this.compositeFramebuffer);
     gl.deleteTexture(this.compositeTexture);
   }
-
-  private readonly colorCache = new Map<string, [number, number, number, number]>();
 
   private hexToRgbaVec4(hex: string): [number, number, number, number] {
     if (this.colorCache.has(hex)) {

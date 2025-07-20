@@ -41,7 +41,7 @@ export function findNearestTarget(originShip: Ship, range: number): Ship | null 
   let nearestDist = Infinity;
 
   for (const candidate of candidates) {
-    if (candidate === originShip) continue;
+    if (candidate === originShip || candidate.isDestroyed()) continue;
 
     const faction = candidate.getFaction();
 
@@ -130,6 +130,7 @@ export function findRandomTargetInRange(
   for (const ship of candidates) {
     if (ship === originShip)     continue;              // self
     if (ship === excludeShip)    continue;              // user-explicit exclusion
+    if (ship.isDestroyed())      continue;              // destroyed
 
     const faction = ship.getFaction();
 

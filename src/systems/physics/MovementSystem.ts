@@ -17,6 +17,8 @@ import type { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import type { MovementIntent } from '@/core/intent/interfaces/MovementIntent';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
+
 const BASE_MASS = 500;
 const LINEAR_MASS_SCALE_EXPONENT = 0.4; // Controls how strongly mass reduces linear acceleration and top speed
 
@@ -520,6 +522,20 @@ export class MovementSystem {
         frequency: 10,
       });
     }
+  }
+
+  public setSOAIntent(soa: IntentSOA, idx: number): void {
+    this.currentIntent.thrustForward = !!soa.thrustForward[idx];
+    this.currentIntent.brake = !!soa.brake[idx];
+    this.currentIntent.rotateLeft = !!soa.rotateLeft[idx];
+    this.currentIntent.rotateRight = !!soa.rotateRight[idx];
+    this.currentIntent.strafeLeft = !!soa.strafeLeft[idx];
+    this.currentIntent.strafeRight = !!soa.strafeRight[idx];
+
+    // Force-disable turnToAngle for AI (never used)
+    this.currentIntent.turnToAngle = undefined;
+
+    this.currentIntent.afterburner = !!soa.afterburner[idx];
   }
 }
 

@@ -35,6 +35,7 @@ import type { ParticleManager }        from '@/systems/fx/ParticleManager';
 import type { Grid }                   from '@/systems/physics/Grid';
 import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
 
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
@@ -181,6 +182,7 @@ export class LaserBackend implements WeaponBackend {
     tierColour  : [number, number, number, number],
     tier        : number,
   ): void {
+    if (targetShip.isDestroyed()) return;
 
     /* ── 1. Beam geometry (unchanged) ───────────────────────────────────────── */
     const dx   = targetPos.x - origin.x;
@@ -194,17 +196,33 @@ export class LaserBackend implements WeaponBackend {
       y: targetPos.y + dirY * LASER_BEAM_EXTENSION_PX,
     };
 
-    /* ── 2. Block selection – ship-local only ───────────────────────────────── */
+    /* ── 2. Block selection – bulletproofed ─────────────────────────────────── */
     let candidateBlock = targetShip.getRandomBlock();
 
-    // Fallback: cockpit always exists ⇒ guarantees coord lookup
     if (!candidateBlock) {
-      console.warn('[LaserBackend] Target ship had no random block, defaulting to cockpit.');
-      candidateBlock = targetShip.getCockpit()!;
+      const cockpit = targetShip.getCockpit();
+      if (cockpit) {
+        candidateBlock = cockpit;
+      } else {
+        // Early exit if: target ship has no blocks (likely destroyed)
+        spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
+        return;
+      }
     }
 
-    const canonicalBlock = targetShip.getBlockById(candidateBlock.id)!;   // will succeed
-    const coord          = targetShip.getBlockCoord(canonicalBlock)!;     // -> GridCoord
+    const canonicalBlock = targetShip.getBlockById(candidateBlock.id);
+    if (!canonicalBlock) {
+      // Early exit if: block lookup failed (shouldn't happen)
+      spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
+      return;
+    }
+
+    const coord = targetShip.getBlockCoord(canonicalBlock);
+    if (!coord) {
+      // Early exit if: block coord missing (shouldn't happen)
+      spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
+      return;
+    }
 
     /* ── 3. Visual + SFX output (unchanged) ─────────────────────────────────── */
     spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
@@ -219,7 +237,6 @@ export class LaserBackend implements WeaponBackend {
     });
 
     const sparkColor = BLOCK_TIER_COLORS[tier] ?? '#00FFFF';
-
     this.particleManager.emitBurst(targetPos, 16, {
       colors            : [sparkColor],
       randomDirection   : true,
@@ -227,12 +244,21 @@ export class LaserBackend implements WeaponBackend {
       sizeRange         : [1.4, 2.4],
       lifeRange         : [0.4, 1.0],
       fadeOut           : true,
-      light             : true,
-      lightRadiusScalar : 60,
-      lightIntensity    : 0.2,
+      light             : false,
     });
 
-    /* ── 4. Damage application (now bullet-proof) ───────────────────────────── */
+    // Create a light flash at location
+    createLightFlash(
+      targetPos.x,
+      targetPos.y,
+      600,
+      1.0,
+      0.4,
+      sparkColor,
+      `laser-hit-${targetShip.id}`
+    );
+
+    /* ── 4. Damage application (only if valid block) ────────────────────────── */
     this.combatService.applyDamageToBlock(
       targetShip,
       sourceShip,

@@ -3,6 +3,7 @@
 import type { Ship } from '@/game/ship/Ship';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
 // Define the interface for pluggable weapon backends
 export interface WeaponBackend {
@@ -21,6 +22,18 @@ export class WeaponSystem {
 
   public setIntent(intent: WeaponIntent): void {
     this.currentIntent = intent;
+  }
+
+  /**
+   * SOA-based intent setter.
+   * Pulls primary/secondary fire flags and aim vector from the shared SOA buffers.
+   */
+  public setSOAIntent(soa: IntentSOA, idx: number): void {
+    this.currentIntent = {
+      firePrimary: !!soa.firePrimary[idx],
+      fireSecondary: !!soa.fireSecondary[idx],
+      aimAt: { x: soa.aimX[idx] || 0, y: soa.aimY[idx] || 0 },
+    };
   }
 
   public update(dt: number, ship: Ship, transform: BlockEntityTransform): void {

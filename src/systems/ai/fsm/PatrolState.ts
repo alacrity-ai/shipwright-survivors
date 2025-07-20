@@ -2,28 +2,32 @@
 
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
 import type { Ship } from '@/game/ship/Ship';
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { getWorldWidth, getWorldHeight } from '@/config/world';
 import { BaseAIState } from './BaseAIState';
-import { approachTarget } from '@/systems/ai/steering/SteeringHelper';
+import { approachTargetSOA } from '@/systems/ai/steering/SteeringHelper';
 import { findNearestTarget } from '@/systems/ai/helpers/ShipUtils';
 import { SeekTargetState } from './SeekTargetState';
 
-// === Preallocated idle intent structures ===
-const IDLE_MOVEMENT = {
-  thrustForward: false,
-  brake: true,
-  rotateLeft: false,
-  rotateRight: false,
-  strafeLeft: false,
-  strafeRight: false,
-} as const;
+// Helper for zeroing/shield flags (common to patrol + idle)
+function writeIdleMovement(soa: IntentSOA, idx: number): void {
+  soa.thrustForward[idx] = 0;
+  soa.rotateLeft[idx] = 0;
+  soa.rotateRight[idx] = 0;
+  soa.strafeLeft[idx] = 0;
+  soa.strafeRight[idx] = 0;
+  soa.brake[idx] = 1; // Patrol idles with brake on
+}
 
-const IDLE_UTILITY = {
-  toggleShields: false,
-} as const;
+function writeIdleWeaponsAndUtility(soa: IntentSOA, idx: number, aimX: number, aimY: number): void {
+  soa.firePrimary[idx] = 0;
+  soa.fireSecondary[idx] = 0;
+  soa.aimX[idx] = aimX;
+  soa.aimY[idx] = aimY;
+  soa.toggleShields[idx] = 0;
+}
 
 export class PatrolState extends BaseAIState {
   private patrolTarget: { x: number; y: number };
@@ -37,7 +41,38 @@ export class PatrolState extends BaseAIState {
     this.patrolTarget = this.chooseNewPatrolTarget();
   }
 
-  public update(dt: number): ShipIntent {
+  /**
+   * Legacy wrapper: for systems still expecting ShipIntent objects.
+   */
+  public update(dt: number): { movement: any; weapons: any; utility: any } {
+    const soa = (this.controller as any).soa as IntentSOA;
+    const idx = this.controller.getSOAIndex();
+
+    this.updateSOA(dt, soa, idx);
+
+    return {
+      movement: {
+        thrustForward: !!soa.thrustForward[idx],
+        brake: !!soa.brake[idx],
+        rotateLeft: !!soa.rotateLeft[idx],
+        rotateRight: !!soa.rotateRight[idx],
+        strafeLeft: !!soa.strafeLeft[idx],
+        strafeRight: !!soa.strafeRight[idx],
+      },
+      weapons: {
+        firePrimary: !!soa.firePrimary[idx],
+        fireSecondary: !!soa.fireSecondary[idx],
+        aimAt: { x: soa.aimX[idx], y: soa.aimY[idx] },
+      },
+      utility: { toggleShields: !!soa.toggleShields[idx] },
+    };
+  }
+
+  /**
+   * SOA-native intent writer.
+   * Patrol alternates between dwelling (idle) and moving toward patrol target.
+   */
+  public updateSOA(dt: number, soa: IntentSOA, idx: number): void {
     const transform = this.ship.getTransform();
     const selfPos = transform.position;
     const velocity = transform.velocity;
@@ -47,6 +82,7 @@ export class PatrolState extends BaseAIState {
     const distSq = dx * dx + dy * dy;
 
     const closeEnough = distSq <= 100 * 100;
+
     if (closeEnough) {
       this.dwellTime += dt;
       if (this.dwellTime >= this.dwellDuration) {
@@ -54,28 +90,16 @@ export class PatrolState extends BaseAIState {
         this.dwellTime = 0;
       }
 
-      return {
-        movement: IDLE_MOVEMENT,
-        weapons: {
-          firePrimary: false,
-          fireSecondary: false,
-          aimAt: this.patrolTarget,
-        },
-        utility: IDLE_UTILITY,
-      };
+      writeIdleMovement(soa, idx);
+      writeIdleWeaponsAndUtility(soa, idx, this.patrolTarget.x, this.patrolTarget.y);
+      return;
     }
 
-    const movement = approachTarget(this.ship, this.patrolTarget, velocity);
+    // Write patrol movement intent directly into SOA
+    approachTargetSOA(this.ship, this.patrolTarget, velocity, soa, idx);
 
-    return {
-      movement,
-      weapons: {
-        firePrimary: false,
-        fireSecondary: false,
-        aimAt: this.patrolTarget,
-      },
-      utility: IDLE_UTILITY,
-    };
+    // Weapons and aim (no firing)
+    writeIdleWeaponsAndUtility(soa, idx, this.patrolTarget.x, this.patrolTarget.y);
   }
 
   public transitionIfNeeded(): BaseAIState | null {

@@ -1,9 +1,11 @@
+// src/systems/ai/fsm/AttackState.ts
+
 import type { Ship } from '@/game/ship/Ship';
 import type { AIControllerSystem } from '@/systems/ai/AIControllerSystem';
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
+import type { ShipIntent, IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
 import { BaseAIState } from './BaseAIState';
-import { orbitTarget, approachTarget, leadTarget, faceTarget } from '@/systems/ai/steering/SteeringHelper';
+import { orbitTargetSOA, approachTargetSOA, leadTarget, faceTargetSOA } from '@/systems/ai/steering/SteeringHelper';
 import { SeekTargetState } from './SeekTargetState';
 import { FormationState } from './FormationState';
 import { PatrolState } from './PatrolState';
@@ -13,25 +15,24 @@ enum AttackPhase {
   Orbiting,
 }
 
-// === Static Reusable Intents ===
-const INERT_MOVEMENT = {
-  thrustForward: false,
-  brake: false,
-  rotateLeft: false,
-  rotateRight: false,
-  strafeLeft: false,
-  strafeRight: false,
-} as const;
-
-const INERT_WEAPONS = {
-  firePrimary: false,
-  fireSecondary: false,
-  aimAt: { x: 0, y: 0 },
-} as const;
-
-const INERT_UTILITY = {
-  toggleShields: false,
-} as const;
+// Helper for zeroing weapons/movement
+function zeroMovement(soa: IntentSOA, idx: number): void {
+  soa.thrustForward[idx] = 0;
+  soa.brake[idx] = 0;
+  soa.rotateLeft[idx] = 0;
+  soa.rotateRight[idx] = 0;
+  soa.strafeLeft[idx] = 0;
+  soa.strafeRight[idx] = 0;
+}
+function zeroWeapons(soa: IntentSOA, idx: number): void {
+  soa.firePrimary[idx] = 0;
+  soa.fireSecondary[idx] = 0;
+  soa.aimX[idx] = 0;
+  soa.aimY[idx] = 0;
+}
+function zeroUtility(soa: IntentSOA, idx: number): void {
+  soa.toggleShields[idx] = 0;
+}
 
 export class AttackState extends BaseAIState {
   private readonly target: Ship;
@@ -67,13 +68,52 @@ export class AttackState extends BaseAIState {
     this.actualOrbitRadius = this.orbitRadius * (0.5 + Math.random());
   }
 
+  /**
+   * LEGACY: For compatibility, wraps updateSOA by building a temporary ShipIntent.
+   * This will be removed once all systems are SOA-only.
+   */
   public update(dt: number): ShipIntent {
+    const soa: IntentSOA = (this.controller as any).soa!;
+    const idx = this.controller.getSOAIndex();
+    this.updateSOA(dt, soa, idx);
+
+    return {
+      movement: {
+        thrustForward: !!soa.thrustForward[idx],
+        brake: !!soa.brake[idx],
+        rotateLeft: !!soa.rotateLeft[idx],
+        rotateRight: !!soa.rotateRight[idx],
+        strafeLeft: !!soa.strafeLeft[idx],
+        strafeRight: !!soa.strafeRight[idx],
+      },
+      weapons: {
+        firePrimary: !!soa.firePrimary[idx],
+        fireSecondary: !!soa.fireSecondary[idx],
+        aimAt: { x: soa.aimX[idx], y: soa.aimY[idx] },
+      },
+      utility: { toggleShields: !!soa.toggleShields[idx] },
+    };
+  }
+
+  /**
+   * SOA-native update: Writes intent flags directly into the SOA buffers.
+   * Guarantees all fields are reset before applying state-specific behavior
+   * to avoid lingering values from previous frames or states.
+   */
+  public updateSOA(dt: number, soa: IntentSOA, idx: number): void {
+    // === Baseline: clear all fields ===
+    zeroMovement(soa, idx);
+    zeroWeapons(soa, idx);
+    zeroUtility(soa, idx);
+
+    // Reset rarely used / optional fields as well
+    soa.turnToAngle[idx] = 0;
+    soa.afterburner[idx] = 0;
+    soa.firingMode[idx] = 0;
+
+    // If target is destroyed, remain inert this frame
     if (this.target.isDestroyed?.()) {
-      return {
-        movement: INERT_MOVEMENT,
-        weapons: INERT_WEAPONS,
-        utility: INERT_UTILITY,
-      };
+      return;
     }
 
     const behavior = this.controller.getBehaviorProfile().attack;
@@ -91,6 +131,7 @@ export class AttackState extends BaseAIState {
 
     // === Ram behavior
     if (behavior === 'ram') {
+      // Phase switching: ramming <-> orbiting
       if (this.phase === AttackPhase.Ramming && this.ship.isColliding()) {
         this.phase = AttackPhase.Orbiting;
         this.phaseTimer = 0;
@@ -105,72 +146,62 @@ export class AttackState extends BaseAIState {
       }
 
       if (this.phase === AttackPhase.Ramming) {
-        return {
-          movement: approachTarget(this.ship, targetPos, selfVel),
-          weapons: {
-            firePrimary: false,
-            fireSecondary: false,
-            aimAt: targetPos,
-          },
-          utility: { toggleShields: true },
-        };
+        approachTargetSOA(this.ship, targetPos, selfVel, soa, idx);
+        soa.firePrimary[idx] = 0;
+        soa.fireSecondary[idx] = 0;
+        soa.aimX[idx] = targetPos.x;
+        soa.aimY[idx] = targetPos.y;
+        soa.toggleShields[idx] = 1;
+        return;
       }
 
-      return {
-        movement: orbitTarget(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise),
-        weapons: {
-          firePrimary: false,
-          fireSecondary: false,
-          aimAt: targetPos,
-        },
-        utility: { toggleShields: false },
-      };
+      orbitTargetSOA(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise, soa, idx);
+      soa.firePrimary[idx] = 0;
+      soa.fireSecondary[idx] = 0;
+      soa.aimX[idx] = targetPos.x;
+      soa.aimY[idx] = targetPos.y;
+      soa.toggleShields[idx] = 0;
+      return;
     }
 
     // === Siege behavior
     if (behavior === 'siege') {
       const inRange = distSq <= this.siegeRange * this.siegeRange;
-      const faceIntent = faceTarget(this.ship, targetPos);
 
-      return {
-        movement: inRange
-          ? {
-              thrustForward: false,
-              brake: true,
-              rotateLeft: faceIntent.rotateLeft,
-              rotateRight: faceIntent.rotateRight,
-              strafeLeft: false,
-              strafeRight: false,
-            }
-          : approachTarget(this.ship, targetPos, selfVel),
+      if (inRange) {
+        // Only rotation, no thrust
+        faceTargetSOA(this.ship, targetPos, soa, idx);
+        soa.thrustForward[idx] = 0;
+        soa.brake[idx] = 1;
+        soa.strafeLeft[idx] = 0;
+        soa.strafeRight[idx] = 0;
+      } else {
+        approachTargetSOA(this.ship, targetPos, selfVel, soa, idx);
+      }
 
-        weapons: {
-          firePrimary: true,
-          fireSecondary: false,
-          aimAt: leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed),
-        },
-        utility: { toggleShields: false },
-      };
+      soa.firePrimary[idx] = 1;
+      soa.fireSecondary[idx] = 0;
+      const lead = leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed);
+      soa.aimX[idx] = lead.x;
+      soa.aimY[idx] = lead.y;
+      soa.toggleShields[idx] = 0;
+      return;
     }
 
     // === Orbit behavior
     if (behavior === 'orbit') {
-      return {
-        movement: orbitTarget(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise),
-        weapons: {
-          firePrimary: true,
-          fireSecondary: false,
-          aimAt: leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed),
-        },
-        utility: { toggleShields: false },
-      };
+      orbitTargetSOA(this.ship, selfVel, targetPos, this.actualOrbitRadius, this.orbitClockwise, soa, idx);
+      soa.firePrimary[idx] = 1;
+      soa.fireSecondary[idx] = 0;
+      const lead = leadTarget(selfPos, targetPos, targetVel, this.projectileSpeed);
+      soa.aimX[idx] = lead.x;
+      soa.aimY[idx] = lead.y;
+      soa.toggleShields[idx] = 0;
+      return;
     }
 
-    return {
-      movement: INERT_MOVEMENT,
-      weapons: INERT_WEAPONS,
-      utility: INERT_UTILITY,
-    };
+    // === Fallback: remain inert
+    // (baseline reset already zeroed everything)
   }
 
   public transitionIfNeeded(): BaseAIState | null {

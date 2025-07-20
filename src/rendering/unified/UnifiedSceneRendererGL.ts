@@ -31,6 +31,7 @@ import {
 } from '@/rendering/unified/passes/PostProcessPass';
 
 import type { ParticleSOA } from '@/systems/fx/ParticleManager';
+import type { LightSOA } from '@/lighting/interfaces/LightSOA';
 
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
@@ -226,7 +227,7 @@ export class UnifiedSceneRendererGL {
     dt: number, // Seconds
     camera: Camera,
     ships: CompositeBlockObject[],
-    lights: AnyLightInstance[],
+    visibleLights: { soa: LightSOA, indices: Uint16Array, count: number },
     sprites: SpriteRenderRequest[],
     particleSOAs: ParticleSOA[],
     lightningSegments: LightningSegment[],
@@ -265,7 +266,7 @@ export class UnifiedSceneRendererGL {
     this.planetPass.renderAll();
 
     // === Step 5: Generate light buffer (offscreen) ===
-    const lightTexture = this.lightingPass.generateLightBuffer(lights, camera);
+    const lightTexture = this.lightingPass.generateLightBuffer(visibleLights, camera);
 
     // === Step 6: Render entities ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Light was rendering to offscreen FB, so we needed to rebind before going to the next

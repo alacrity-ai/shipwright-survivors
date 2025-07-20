@@ -328,7 +328,7 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     // Apply status effects if applicable
     if (missile.igniteOnSeekerMissileExplosion) {
-      missile.targetShip.addStatusEffect('ignite', 12.0, sourceShip, missile.explosionDamage * 0.3);
+      missile.targetShip.addStatusEffect('ignite', 12.0, sourceShip, missile.explosionDamage * 0.75);
     }
     if (missile.timeFreezeOnSeekerMissileExplosion) {
       missile.targetShip.addStatusEffect('frozen', 3.0, sourceShip, 1.0);

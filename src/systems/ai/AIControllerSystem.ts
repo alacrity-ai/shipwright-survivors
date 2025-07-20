@@ -4,11 +4,12 @@ import type { Ship } from '@/game/ship/Ship';
 import type { MovementSystem } from '@/systems/physics/MovementSystem';
 import type { WeaponSystem } from '@/systems/combat/WeaponSystem';
 import type { UtilitySystem } from '@/systems/combat/UtilitySystem';
-import type { ShipIntent } from '@/core/intent/interfaces/ShipIntent';
 import type { BehaviorProfile } from './types/BehaviorProfile';
 import type { BaseAIState } from './fsm/BaseAIState';
 import type { CullabilityDelegate } from './interfaces/CullabilityDelegate';
+import type { IntentSOA } from '@/core/intent/interfaces/ShipIntent';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { FormationRegistry } from './formations/FormationRegistry';
 
 import { IdleState } from './fsm/IdleState';
@@ -19,9 +20,29 @@ export class AIControllerSystem {
   private readonly weaponSystem: WeaponSystem;
   private readonly utilitySystem: UtilitySystem;
   private readonly behaviorProfile: BehaviorProfile;
+
+  private soaIndex: number = -1;  // index into IntentSOA
+  private soa: IntentSOA | null = null;
+
+  public setSOAIndex(i: number): void {
+    this.soaIndex = i;
+  }
+
+  public getSOAIndex(): number {
+    return this.soaIndex;
+  }
+
+  public bindSOA(soa: IntentSOA, index: number): void {
+    this.soa = soa;
+    this.soaIndex = index;
+  }
+
   private initialState: BaseAIState | null = null;
 
   private cullabilityDelegate: CullabilityDelegate | null = null;
+
+  // Anchor tracking for spacing mitigation
+  private currentAnchorIndex: number = -1;
 
   private formationId: string | null = null;
   private formationRole: 'leader' | 'follower' | null = null;
@@ -50,32 +71,48 @@ export class AIControllerSystem {
   }
 
   public update(dt: number): void {
-    // Check if ship is still valid
     const transform = this.ship.getTransform();
 
     try {
-      const intent: ShipIntent = this.currentState.update(dt);
+      if (!this.soa || this.soaIndex === -1) return;
 
-      const { movement, weapons, utility } = intent;
-      this.movementSystem.setIntent(movement);
-      this.weaponSystem.setIntent(weapons);
-      this.utilitySystem.setIntent(utility);
+      const idx = this.soaIndex;
+      const soa = this.soa;
+
+      // AI state writes directly to SOA buffers
+      this.currentState.updateSOA(dt, soa, idx);
+
+      // Subsystems consume SOA intents
+      this.movementSystem.setSOAIntent(soa, idx);
+      this.weaponSystem.setSOAIntent(soa, idx);
+      this.utilitySystem.setSOAIntent(soa, idx);
+
+      // Subsystem updates
       this.movementSystem.update(dt);
       this.utilitySystem.update(dt, this.ship, transform);
       this.weaponSystem.update(dt, this.ship, transform);
 
+      // State transitions
       const nextState = this.currentState.transitionIfNeeded();
-      if (nextState) {
-        this.setState(nextState);
-      }
-    } catch (error) {
-      console.error("Error in AIControllerSystem update:", error);
+      if (nextState) this.setState(nextState);
+    } catch (err) {
+      console.error('Error in AIControllerSystem update:', err);
     }
   }
 
   private setState(next: BaseAIState): void {
+    // Call onExit for the outgoing state before switching
+    if (this.currentState) {
+      this.currentState.onExit();
+    }
+
+    // Swap to the new state
     this.currentState = next;
-    next.onEnter();
+
+    // Initialize the new state
+    if (this.currentState) {
+      this.currentState.onEnter();
+    }
   }
 
   public render(dt: number): void { /* NOOP */ }
@@ -110,6 +147,28 @@ export class AIControllerSystem {
 
   public makeCullable(): void {
     this.cullabilityDelegate?.setCullable(this);
+  }
+
+  // === Anchor Index Management ===
+  
+  public setAnchorIndex(index: number): void {
+    this.currentAnchorIndex = index;
+  }
+
+  public getAnchorIndex(): number {
+    return this.currentAnchorIndex;
+  }
+
+  /** Clears the anchor slot (releases from ship if valid). */
+  public clearAnchorIndex(): void {
+    if (this.currentAnchorIndex !== -1) {
+      const targetShip = ShipRegistry.getInstance().getPlayerShip(); 
+      // Assuming only player ships have anchors
+      if (targetShip?.hasAnchorPoints()) {
+        targetShip.releaseAnchorIndex(this.currentAnchorIndex);
+      }
+      this.currentAnchorIndex = -1;
+    }
   }
 
   // Hunter system
