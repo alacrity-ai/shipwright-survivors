@@ -5,6 +5,8 @@ import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import damageTextVertSrc from '@/rendering/unified/shaders/fx/damageTextPass.vert?raw';
 import damageTextFragSrc from '@/rendering/unified/shaders/fx/damageTextPass.frag?raw';
 
+import { BASE_SCALE, SPACING_FACTOR } from '@/systems/damagetext/DamageTextManager';
+
 import type { DamageTextSOA } from '@/systems/damagetext/interfaces/DamageTextSOA';
 import type { DigitAtlas } from '@/rendering/cache/DigitAtlas';
 
@@ -24,6 +26,8 @@ export class DamageTextPass {
   private readonly uDigitAtlasLoc: WebGLUniformLocation;
   private readonly uNeonFreqLoc: WebGLUniformLocation;
   private readonly uNeonAmpLoc: WebGLUniformLocation;
+  private readonly uSpacingFactorLoc: WebGLUniformLocation;
+  private readonly uBaseScaleLoc: WebGLUniformLocation;
 
   private static readonly MAX_DIGITS = 10000;
 
@@ -36,10 +40,11 @@ export class DamageTextPass {
    *  location=5 float neonPhase
    *  location=6 float glyphIndex
    *  location=7 float neonEnabled
+   *  location=8 float digitOffset
    *
-   *  Total = 10 floats per instance.
+   *  Total = 11 floats per instance.
    */
-  private static readonly STRIDE = 10;
+  private static readonly STRIDE = 11;
 
   constructor(gl: WebGL2RenderingContext, digitAtlas: DigitAtlas, cameraUBO: WebGLBuffer) {
     this.gl = gl;
@@ -102,6 +107,11 @@ export class DamageTextPass {
     gl.vertexAttribPointer(7, 1, gl.FLOAT, false, strideBytes, 36);
     gl.vertexAttribDivisor(7, 1);
 
+    // digitOffset (float)
+    gl.enableVertexAttribArray(8);
+    gl.vertexAttribPointer(8, 1, gl.FLOAT, false, strideBytes, 40);
+    gl.vertexAttribDivisor(8, 1);
+
     gl.bindVertexArray(null);
 
     // Pre-allocate GPU buffer for instances
@@ -121,6 +131,8 @@ export class DamageTextPass {
     this.uDigitAtlasLoc = gl.getUniformLocation(this.program, 'u_digitAtlas')!;
     this.uNeonFreqLoc = gl.getUniformLocation(this.program, 'u_neonFreq')!;
     this.uNeonAmpLoc = gl.getUniformLocation(this.program, 'u_neonAmp')!;
+    this.uSpacingFactorLoc = gl.getUniformLocation(this.program, 'u_spacingFactor')!;
+    this.uBaseScaleLoc = gl.getUniformLocation(this.program, 'u_baseScale')!;
   }
 
   /**
@@ -147,6 +159,7 @@ export class DamageTextPass {
       data[base + 7] = soa.neonPhase[i];
       data[base + 8] = soa.glyphIndex[i];
       data[base + 9] = soa.neonEnabled[i];
+      data[base + 10] = soa.digitOffset[i];
     }
 
     // Upload instance data
@@ -160,6 +173,8 @@ export class DamageTextPass {
     gl.uniform1f(this.uCellHeightLoc, this.digitAtlas.tileHeight);
     gl.uniform1f(this.uNeonFreqLoc, 8.0);
     gl.uniform1f(this.uNeonAmpLoc, 0.4);
+    gl.uniform1f(this.uSpacingFactorLoc, SPACING_FACTOR);
+    gl.uniform1f(this.uBaseScaleLoc, BASE_SCALE);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.digitAtlas.texture);

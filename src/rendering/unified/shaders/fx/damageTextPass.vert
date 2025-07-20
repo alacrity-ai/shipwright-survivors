@@ -9,6 +9,7 @@ layout(location = 4) in vec3 aColor;
 layout(location = 5) in float aPhase;
 layout(location = 6) in float aGlyphIndex;
 layout(location = 7) in float aNeonEnabled;
+layout(location = 8) in float aDigitOffset;
 
 layout(std140) uniform CameraMatrices {
   mat4 uProjectionMatrix;
@@ -17,6 +18,8 @@ layout(std140) uniform CameraMatrices {
 
 uniform float u_cellWidth;
 uniform float u_cellHeight;
+uniform float u_spacingFactor;  // NEW
+uniform float u_baseScale;      // NEW
 
 out vec2 vUV;
 out float vAlpha;
@@ -25,7 +28,7 @@ out float vPhase;
 out float vNeonEnabled;
 
 void main() {
-  // Convert quad local corners (-1 to 1) into atlas UVs
+  // Compute glyph atlas UVs (unchanged)
   float u0 = aGlyphIndex * u_cellWidth;
   float u1 = u0 + u_cellWidth;
   float uvx = mix(u0, u1, (aCorner.x * 0.5) + 0.5);
@@ -37,8 +40,10 @@ void main() {
   vPhase = aPhase;
   vNeonEnabled = aNeonEnabled;
 
-  vec2 worldOffset = aCorner * aScale;
-  vec2 worldPos = aWorldPos + worldOffset;
+  // Dynamic horizontal spacing scaled by the glyph’s current scale
+  float spacing = u_spacingFactor * u_baseScale * (aScale / u_baseScale);
+  vec2 worldOffset = aCorner * aScale + vec2(aDigitOffset * spacing, 0.0);
 
+  vec2 worldPos = aWorldPos + worldOffset;
   gl_Position = uProjectionMatrix * uViewMatrix * vec4(worldPos, 0.0, 1.0);
 }
