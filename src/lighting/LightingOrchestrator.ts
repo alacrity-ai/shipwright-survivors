@@ -16,18 +16,30 @@ export const MAXIMUM_LIGHTS_PER_TAG = 8;
  */
 export class LightingOrchestrator {
   private readonly soa = createSOABuffer(MAX_LIGHTS);
+
+  private readonly scratchValues: any[] = new Array(14);  // one slot per field
+
   private readonly visibleIndices = new Uint16Array(MAX_LIGHTS);
   private visibleCount = 0;
+
   private readonly freeIndices: number[] = [];
   private readonly idToIndex = new Map<number, number>();  // for stable lookup by ID
 
-  private readonly tagMap: Map<string, Set<number>> = new Map(); // tag -> SOA indices
+  private static readonly TAG_SET_POOL_SIZE = 1024;
   private readonly tagSetPool: Set<number>[] = [];
+  private readonly tagMap: Map<string, Set<number>> = new Map();
 
   private lastCameraBounds: { x: number; y: number; width: number; height: number } | null = null;
   private lightsDirty = true;
 
-  private constructor() {}
+  private constructor() {
+    // Preallocate pool of empty sets
+    for (let i = 0; i < LightingOrchestrator.TAG_SET_POOL_SIZE; i++) {
+      this.tagSetPool.push(new Set<number>());
+    }
+  
+    this.scratchValues.fill(null);  // Keep packed array, avoid deopt
+  }
 
   public static getInstance(): LightingOrchestrator {
     if (!_instance) {
@@ -67,7 +79,7 @@ export class LightingOrchestrator {
     if (light.tag) {
       let set = this.tagMap.get(light.tag);
       if (!set) {
-        set = this.tagSetPool.pop() ?? new Set();
+        set = this.getPooledTagSet();       // <-- use pooled set
         this.tagMap.set(light.tag, set);
       } else if (set.size >= MAXIMUM_LIGHTS_PER_TAG) {
         return null; // Cap reached — reject
@@ -106,7 +118,6 @@ export class LightingOrchestrator {
     }
 
     this.lightsDirty = true;
-
     return light.id;
   }
 
@@ -119,10 +130,12 @@ export class LightingOrchestrator {
     const tag = this.soa.tag[index];
     if (tag) {
       const set = this.tagMap.get(tag);
-      set?.delete(index);
-      if (set && set.size === 0) {
-        this.tagMap.delete(tag);
-        this.tagSetPool.push(set);
+      if (set) {
+        set.delete(index);
+        if (set.size === 0) {
+          this.tagMap.delete(tag);
+          this.releaseTagSet(set);  // <-- changed
+        }
       }
     }
 
@@ -166,24 +179,40 @@ export class LightingOrchestrator {
 
   /** Swap all fields between two indices */
   private swapLight(i: number, j: number): void {
+    const s = this.scratchValues;
     const soa = this.soa;
-    let tmp: any;
 
-    tmp = soa.x[i]; soa.x[i] = soa.x[j]; soa.x[j] = tmp;
-    tmp = soa.y[i]; soa.y[i] = soa.y[j]; soa.y[j] = tmp;
-    tmp = soa.radius[i]; soa.radius[i] = soa.radius[j]; soa.radius[j] = tmp;
-    tmp = soa.r[i]; soa.r[i] = soa.r[j]; soa.r[j] = tmp;
-    tmp = soa.g[i]; soa.g[i] = soa.g[j]; soa.g[j] = tmp;
-    tmp = soa.b[i]; soa.b[i] = soa.b[j]; soa.b[j] = tmp;
-    tmp = soa.intensity[i]; soa.intensity[i] = soa.intensity[j]; soa.intensity[j] = tmp;
-    tmp = soa.life[i]; soa.life[i] = soa.life[j]; soa.life[j] = tmp;
-    tmp = soa.initialLife[i]; soa.initialLife[i] = soa.initialLife[j]; soa.initialLife[j] = tmp;
-    tmp = soa.fadeMode[i]; soa.fadeMode[i] = soa.fadeMode[j]; soa.fadeMode[j] = tmp;
-    tmp = soa.animationPhase[i]; soa.animationPhase[i] = soa.animationPhase[j]; soa.animationPhase[j] = tmp;
-    tmp = soa.id[i]; soa.id[i] = soa.id[j]; soa.id[j] = tmp;
-    tmp = soa.tag[i]; soa.tag[i] = soa.tag[j]; soa.tag[j] = tmp;
-    tmp = soa.colorHex[i]; soa.colorHex[i] = soa.colorHex[j]; soa.colorHex[j] = tmp;
+    // Snapshot all fields from i into scratch
+    s[0]  = soa.x[i];          s[1]  = soa.y[i]; 
+    s[2]  = soa.radius[i];     s[3]  = soa.r[i];
+    s[4]  = soa.g[i];          s[5]  = soa.b[i];
+    s[6]  = soa.intensity[i];  s[7]  = soa.life[i];
+    s[8]  = soa.initialLife[i];s[9]  = soa.fadeMode[i];
+    s[10] = soa.animationPhase[i]; s[11] = soa.id[i];
+    s[12] = soa.tag[i];        s[13] = soa.colorHex[i];
+
+    // Copy j → i
+    soa.x[i] = soa.x[j];       soa.y[i] = soa.y[j];
+    soa.radius[i] = soa.radius[j];
+    soa.r[i] = soa.r[j];       soa.g[i] = soa.g[j]; soa.b[i] = soa.b[j];
+    soa.intensity[i] = soa.intensity[j];
+    soa.life[i] = soa.life[j]; soa.initialLife[i] = soa.initialLife[j];
+    soa.fadeMode[i] = soa.fadeMode[j];
+    soa.animationPhase[i] = soa.animationPhase[j];
+    soa.id[i] = soa.id[j];     soa.tag[i] = soa.tag[j]; soa.colorHex[i] = soa.colorHex[j];
+
+    // Copy scratch → j
+    soa.x[j] = s[0];           soa.y[j] = s[1];
+    soa.radius[j] = s[2];
+    soa.r[j] = s[3];           soa.g[j] = s[4]; soa.b[j] = s[5];
+    soa.intensity[j] = s[6];
+    soa.life[j] = s[7];        soa.initialLife[j] = s[8];
+    soa.fadeMode[j] = s[9];
+    soa.animationPhase[j] = s[10];
+    soa.id[j] = s[11];         soa.tag[j] = s[12]; soa.colorHex[j] = s[13];
   }
+
+  // == Tag management ==
 
   public getTagLightCount(tag: string): number {
     const set = this.tagMap.get(tag);
@@ -195,31 +224,26 @@ export class LightingOrchestrator {
     if (!tag) return;
 
     const set = this.tagMap.get(tag);
-    set?.delete(index);
-    if (set && set.size === 0) {
+    if (!set) return;
+
+    set.delete(index);
+    if (set.size === 0) {
       this.tagMap.delete(tag);
-      this.tagSetPool.push(set);
+      this.releaseTagSet(set);
     }
   }
 
-  clear(): void {
-    // Clean up tag associations for all active lights
-    for (let i = 0; i < this.soa.count; i++) {
-      this.removeTagAssociation(i);
-    }
+  // When needing a set:
+  private getPooledTagSet(): Set<number> {
+    return this.tagSetPool.pop() ?? this.tagSetPool[0]; // fallback to reuse first
+  }
 
-    // Reset SOA counts and free list
-    this.soa.count = 0;
-    this.freeIndices.length = 0;
-
-    // Pool and clear all tag sets
-    for (const set of this.tagMap.values()) {
-      set.clear();
+  // When releasing:
+  private releaseTagSet(set: Set<number>): void {
+    set.clear();
+    if (this.tagSetPool.length < LightingOrchestrator.TAG_SET_POOL_SIZE) {
       this.tagSetPool.push(set);
     }
-    this.tagMap.clear();
-
-    this.lightsDirty = true;
   }
 
   update(dt: number): void {
@@ -291,26 +315,6 @@ export class LightingOrchestrator {
     return this.soa.count;
   }
 
-  getLightById(id: number): PointLightInstance | undefined {
-    const index = this.idToIndex.get(id);
-    if (index == null) return undefined;
-
-    return {
-      id: this.soa.id[index]!,
-      x: this.soa.x[index],
-      y: this.soa.y[index],
-      radius: this.soa.radius[index],
-      color: this.soa.colorHex[index] ?? '#ffffff',  // direct lookup
-      intensity: this.soa.intensity[index],
-      life: this.soa.life[index],
-      maxLife: this.soa.initialLife[index],
-      fadeMode: this.soa.fadeMode[index] === 1 ? 'delayed' : 'linear',
-      animationPhase: this.soa.animationPhase[index],
-      type: 'point',
-      tag: this.soa.tag[index]
-    };
-  }
-
   updateLight(id: number, updates: Partial<Omit<PointLightInstance, 'id' | 'type'>>): void {
     const index = this.idToIndex.get(id);
     if (index == null || index < 0 || index >= this.soa.count) return;
@@ -376,6 +380,27 @@ export class LightingOrchestrator {
     this.lightsDirty = true;
   }
 
+  // == Cleanup
+  
+  clear(): void {
+    // Clean up tag associations for all active lights
+    for (let i = 0; i < this.soa.count; i++) {
+      this.removeTagAssociation(i);
+    }
+
+    // Reset SOA counts and free list
+    this.soa.count = 0;
+    this.freeIndices.length = 0;
+
+    // Pool and clear all tag sets
+    for (const set of this.tagMap.values()) {
+      this.releaseTagSet(set);  // clears and returns to pool
+    }
+    this.tagMap.clear();
+
+    this.lightsDirty = true;
+  }
+
   destroy(): void {
     if (_instance !== this) return;
 
@@ -409,8 +434,7 @@ export class LightingOrchestrator {
 
     // Clear tag associations and pools
     for (const set of this.tagMap.values()) {
-      set.clear();
-      this.tagSetPool.push(set);
+      this.releaseTagSet(set);  // centralized pooling logic
     }
     this.tagMap.clear();
 
