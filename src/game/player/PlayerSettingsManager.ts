@@ -12,6 +12,7 @@ export class PlayerSettingsManager {
   private sfxVolume: number = 1.0;
   private dialogueVolume: number = 1.0;
 
+  private damageTextEnabled: boolean = true;
   private particlesEnabled: boolean = true;
   private lightingEnabled: boolean = true;
   private collisionsEnabled: boolean = true;
@@ -70,6 +71,14 @@ export class PlayerSettingsManager {
 
   getAimMode(): 'manual' | 'auto' {
     return this.aimMode;
+  }
+
+  setDamageTextEnabled(enabled: boolean): void {
+    this.damageTextEnabled = enabled;
+  }
+
+  isDamageTextEnabled(): boolean {
+    return this.damageTextEnabled;
   }
 
   setViewportWidth(w: number): void {
@@ -165,6 +174,7 @@ export class PlayerSettingsManager {
       musicVolume: this.musicVolume,
       sfxVolume: this.sfxVolume,
       dialogueVolume: this.dialogueVolume,
+      damageTextEnabled: this.damageTextEnabled,
       particlesEnabled: this.particlesEnabled,
       lightingEnabled: this.lightingEnabled,
       viewportWidth: this.viewportWidth,
@@ -182,6 +192,7 @@ export class PlayerSettingsManager {
         this.setMusicVolume(parsed.musicVolume ?? this.musicVolume);
         this.setSfxVolume(parsed.sfxVolume ?? this.sfxVolume);
         this.setDialogueVolume(parsed.dialogueVolume ?? this.dialogueVolume);
+        this.setDamageTextEnabled(Boolean(parsed.damageTextEnabled ?? this.damageTextEnabled));
 
         // TODO maybe set these later?
         this.particlesEnabled = Boolean(parsed.particlesEnabled ?? this.particlesEnabled);
@@ -197,6 +208,7 @@ export class PlayerSettingsManager {
 
   reset(): void {
     this.aimMode = 'manual';
+    this.damageTextEnabled = true;
     this.masterVolume = 1.0;
     this.musicVolume = 1.0;
     this.sfxVolume = 1.0;

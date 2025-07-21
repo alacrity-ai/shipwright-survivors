@@ -1,6 +1,7 @@
 // src/systems/fx/DamageTextAggregator.ts
 
 import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 /** Max number of simultaneous damage channels (e.g., unique targets). */
 const MAX_CHANNELS = 512;

@@ -13,6 +13,7 @@ import { GlobalEventBus } from '@/core/EventBus';
 import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
 import type { SpriteInstance } from '@/rendering/unified/passes/SpritePass';
 import { createCameraUBO, updateCameraUBO } from '@/rendering/unified/CameraUBO';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 import { BackgroundPass } from '@/rendering/unified/passes/BackgroundPass';
 import { PlanetPass } from '@/rendering/unified/passes/PlanetPass';
@@ -80,6 +81,8 @@ export class UnifiedSceneRendererGL {
   private readonly specialFxPass: SpecialFxPass;
   private readonly specialFxController: SpecialFxController = new SpecialFxController();
 
+  private playerSettings: PlayerSettingsManager;
+
   constructor(camera: Camera, private readonly inputManager: InputManager) {
     const canvasManager = CanvasManager.getInstance();
     this.gl = canvasManager.getWebGL2Context('unifiedgl2');
@@ -128,6 +131,8 @@ export class UnifiedSceneRendererGL {
     GlobalEventBus.on('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
     GlobalEventBus.on('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
     GlobalEventBus.on('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
+
+    this.playerSettings = PlayerSettingsManager.getInstance();
   }
 
   private readonly onResolutionChanged = (): void => {
@@ -327,16 +332,20 @@ export class UnifiedSceneRendererGL {
     // === Step 10: Render world-space FX passes (lightning, trails, etc.) ===
     this.lightningPass.render(lightningSegments, camera);
     this.firePass.renderSOA(fireSOA, dt);
-    this.damageTextPass.renderSOA(damageTextSOA);
 
-    // === Step 11: Apply screen-space post-process effects to default framebuffer ===
+    // === Step 11: Render damage text ===
+    if (this.playerSettings.isDamageTextEnabled()) {
+      this.damageTextPass.renderSOA(damageTextSOA);
+    }
+
+    // === Step 12: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const effectChain = Array.from(this.postProcessEffects.entries()).map(
       ([effect, params]) => ({ effect, params })
     );
     this.postProcessPass.run(this.sceneTexture, effectChain);
 
-    // === Step 12: Composite additive lighting effects (e.g. halos) over final image ===
+    // === Step 13: Composite additive lighting effects (e.g. halos) over final image ===
     this.lightingPass.compositeLightingOverTarget(null);
   }
 

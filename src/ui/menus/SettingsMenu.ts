@@ -69,7 +69,7 @@ export class SettingsMenu implements Menu {
   private volumeSliders: VolumeSlider[] = [];
 
   private aimModeCheckbox: UICheckbox | null = null;
-  private particleCheckbox: UICheckbox | null = null;
+  private damageTextCheckbox: UICheckbox | null = null;
   private lightingCheckbox: UICheckbox | null = null;
   private collisionsCheckbox: UICheckbox | null = null;
 
@@ -196,15 +196,15 @@ export class SettingsMenu implements Menu {
     };
 
     // Particle Checkbox is (first) top most item in column in its tab
-    this.particleCheckbox = {
+    this.damageTextCheckbox = {
       x: this.baseX,
       y: this.baseY + scaledItemVerticalSpacing,
       size: this.checkboxSize,
-      label: 'Particles Enabled',
+      label: 'Damage Text Enabled',
       checked: settings.isParticlesEnabled(),
       onToggle: (val) => {
-        this.particleCheckbox!.checked = val;
-        settings.setParticlesEnabled(val);
+        this.damageTextCheckbox!.checked = val;
+        settings.setDamageTextEnabled(val);
         SaveGameManager.saveSettings();
       }
     };
@@ -313,7 +313,7 @@ export class SettingsMenu implements Menu {
     if (this.activeTab === 'display') {
       for (const cb of [
         this.aimModeCheckbox, 
-        this.particleCheckbox, 
+        this.damageTextCheckbox, 
         this.lightingCheckbox, 
         this.collisionsCheckbox
       ]) {
@@ -428,7 +428,7 @@ export class SettingsMenu implements Menu {
     // === Items in the active tab ===
     if (this.activeTab === 'display') {
       drawCheckbox(ctx, this.aimModeCheckbox!, scale);
-      drawCheckbox(ctx, this.particleCheckbox!, scale);
+      drawCheckbox(ctx, this.damageTextCheckbox!, scale);
       drawCheckbox(ctx, this.lightingCheckbox!, scale);
       drawCheckbox(ctx, this.collisionsCheckbox!, scale);
       if (this.resolutionLocked) {
