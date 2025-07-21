@@ -334,9 +334,10 @@ export class HeatSeekerBackend implements WeaponBackend {
       missile.targetShip.addStatusEffect('frozen', 3.0, sourceShip, 1.0);
     }
 
-    let damageBonus = sourceShip.getPassiveBonus('heat-seeker-damage');
+    let damageBonusPercent = sourceShip.getPassiveBonus('heat-seeker-damage');
     const { baseDamageMultiplier = 0 } = sourceShip.getPowerupBonus();
-    damageBonus += baseDamageMultiplier;
+    damageBonusPercent += baseDamageMultiplier;
+    const totalDamage = missile.explosionDamage * damageBonusPercent;
 
     const blocks = missile.targetShip.getBlocksWithinGridDistance(centerCoord, missile.explosionRadius);
     for (const [coord, block] of blocks) {
@@ -345,7 +346,7 @@ export class HeatSeekerBackend implements WeaponBackend {
         sourceShip,
         block,
         coord,
-        missile.explosionDamage * damageBonus,
+        totalDamage,
         'heatSeekerAoE'
       );
     }
