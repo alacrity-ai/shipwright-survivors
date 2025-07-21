@@ -11,6 +11,10 @@ const MAX_DIGITS = 10000;
 // of all digits, independent of the atlas pixel size.
 export const BASE_SCALE = 48;
 
+// Scaling multipliers on "impact pop"
+const NORMAL_SCALE = 1.5; 
+const CRIT_SCALE = 2.5;
+
 // Spacing between glyph centers, as a fraction of BASE_SCALE.
 // 0.75 gives a slightly tight monospace look (digits visually adjacent).
 export const SPACING_FACTOR = 0.75;
@@ -102,7 +106,7 @@ export class DamageTextManager {
 
       this.soa.digitOffset[index] = i - centerOffset;
 
-      const popMultiplier = crit ? 4.0 : 2.0;
+      const popMultiplier = crit ? CRIT_SCALE : NORMAL_SCALE;
       this.soa.impactScale[index] = BASE_SCALE * popMultiplier;
 
       this.soa.neonPhase[index] = 0;

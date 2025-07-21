@@ -1328,7 +1328,7 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'heatSeeker',
         fireDamage: 1,
-        explosionDamage: 0,
+        explosionDamage: 2,
         explosionRadiusBlocks: 3,
         turningPower: 2.0,
         targetingRange: 2000,
