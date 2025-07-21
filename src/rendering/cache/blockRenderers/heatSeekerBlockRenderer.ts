@@ -1,7 +1,5 @@
 // src/rendering/cache/blockRenderers/heatSeekerBlockRenderer.ts
 
-// src/rendering/cache/blockRenderers/heatSeekerRenderer.ts
-
 export function renderHeatSeeker(
   baseCtx: CanvasRenderingContext2D,
   overlayCtx: CanvasRenderingContext2D,

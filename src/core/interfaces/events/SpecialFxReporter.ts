@@ -60,6 +60,8 @@ export function spawnLightningBolt(
 export function emitFire(params: {
   x: number;
   y: number;
+  vx?: number;
+  vy?: number;
   radius?: number;
   life?: number;
   intensity?: number;
@@ -77,10 +79,12 @@ export function emitFire(params: {
 
 // === Prefab Emitters ===
 
-export function emitDefaultFlames(x: number, y: number, radius = 250, life = 1.0, light = true, count = 5, color = '#ff9933'): void {
+export function emitDefaultFlames(x: number, y: number, radius = 250, life = 1.0, light = true, count = 5, color = '#ff9933', vx: number = 0, vy: number = 0): void {
   emitFire({
     x,
     y,
+    vx,
+    vy,
     radius,
     life,
     intensity: 0.25,

@@ -106,3 +106,13 @@ export const PICKUP_FLASH_COLORS: Record<string, string> = {
   repair:   '#FF4444', // bright lively red (more energizing than mint)
   block:    '#CC66FF', // keep base purple, tier overrides handled elsewhere
 };
+
+export const FLAMETHROWER_TIER_COLORS: Record<number, string> = {
+  0: '#ff9933', // Tier 0 – normal fire
+  1: '#ff9933', // Tier 1 – normal fire
+  2: '#00aa33', // Tier 2 – emerald green
+  3: '#0033cc', // Tier 3 – cobalt blue
+  4: '#6600cc', // Tier 4 – royal purple
+  5: '#ff3366', // Tier 5 – gold (optional)
+  10: '#ff3366', // Cockpit tier – exotic pink-red (for story-critical parts)
+};

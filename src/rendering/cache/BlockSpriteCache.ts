@@ -20,6 +20,7 @@ import { renderHarvester } from './blockRenderers/harvestBlockRenderer';
 import { renderExplosiveLance } from './blockRenderers/explosiveLanceBlockRenderer';
 import { renderHaloBladeBlock } from './blockRenderers/haloBladeBlockRenderer';
 import { renderFuelTankBlock } from './blockRenderers/fuelTankBlockRenderer';
+import { renderFlameThrower } from './blockRenderers/flameThrowerBlockRenderer';
 
 import { getAllAsteroidBlockTypes, getAsteroidBlockType } from '@/game/blocks/AsteroidBlockRegistry';
 import { AsteroidDamageLevel, getAsteroidBlockSprite } from '@/rendering/cache/AsteroidSpriteCache';
@@ -510,6 +511,85 @@ function drawProceduralBlock(typeId: string): void {
         });
         break;
 
+      // === FlameThrower: Grey Tier (0–1) ===
+      case 'flameThrower0':
+      case 'flameThrower1':
+        renderFlameThrower(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#777', '#555', '#333'],                  // Plate
+          emitterGradientStops: [
+            [0, '#ff9966'],
+            [0.5, '#cc3300'],
+            [1, '#550000'],
+          ],
+          fuelTubeColors: ['#ffaa33', '#772200'],                        // Side reservoirs
+          nozzleOuterColor: '#cc3300',
+          nozzleCoreColor: '#ffff66',
+        });
+        break;
+
+      // === FlameThrower: Green Tier (2) ===
+      case 'flameThrower2':
+        renderFlameThrower(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#66BB6A', '#4CAF50', '#2E7D32'],
+          emitterGradientStops: [
+            [0, '#A5D6A7'],   // soft glow start
+            [0.4, '#4CAF50'],
+            [1, '#1B5E20'],
+          ],
+          fuelTubeColors: ['#81C784', '#388E3C'],
+          nozzleOuterColor: '#4CAF50',
+          nozzleCoreColor: '#DCE775',  // pale yellow-green
+        });
+        break;
+
+      // === FlameThrower: Blue Tier (3) ===
+      case 'flameThrower3':
+        renderFlameThrower(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#64B5F6', '#2196F3', '#1565C0'],
+          emitterGradientStops: [
+            [0, '#90CAF9'],
+            [0.4, '#42A5F5'],
+            [1, '#0D47A1'],
+          ],
+          fuelTubeColors: ['#64B5F6', '#1976D2'],
+          nozzleOuterColor: '#2196F3',
+          nozzleCoreColor: '#E3F2FD',  // cool pale cyan
+        });
+        break;
+
+      // === FlameThrower: Purple Tier (4) ===
+      case 'flameThrower4':
+        renderFlameThrower(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#E1BEE7', '#BA68C8', '#9C27B0', '#7B1FA2', '#4A148C'],
+          emitterGradientStops: [
+            [0, '#F3E5F5'],
+            [0.25, '#CE93D8'],
+            [0.6, '#8E24AA'],
+            [1, '#4A148C'],
+          ],
+          fuelTubeColors: ['#CE93D8', '#6A1B99'],
+          nozzleOuterColor: '#9C27B0',
+          nozzleCoreColor: '#F8BBD0',  // soft pinkish glow
+        });
+        break;
+
+      // === FlameThrower: Legendary Gold Tier (5) ===
+      case 'flameThrower5':
+        renderFlameThrower(baseCtx, overlayCtx, BLOCK_SIZE, {
+          baseGradientColors: ['#FFF8E1', '#FFE082', '#FFC107', '#FFA000', '#FF6F00'],
+          emitterGradientStops: [
+            [0, '#FFF3E0'],
+            [0.2, '#FFD54F'],
+            [0.5, '#FFB300'],
+            [0.8, '#FB8C00'],
+            [1, '#FF6F00'],
+          ],
+          fuelTubeColors: ['#FFE082', '#FF8F00'],
+          nozzleOuterColor: '#FFB300',
+          nozzleCoreColor: '#FFFDE7',  // blazing white-yellow
+        });
+        break;
+
     case 'laser0':
       renderLaserWeapon(baseCtx, BLOCK_SIZE, {
         body: ['#3A3A3A', '#2A2A2A', '#1A1A1A', '#101010'],
@@ -972,7 +1052,8 @@ function drawProceduralBlock(typeId: string): void {
     overlay: (
       typeId.startsWith('turret') ||
       typeId.startsWith('explosiveLance') ||
-      typeId.startsWith('heatSeeker')
+      typeId.startsWith('heatSeeker') || 
+      typeId.startsWith('flameThrower')
     )
       ? overlayCanvas
       : undefined,

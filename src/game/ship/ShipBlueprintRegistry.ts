@@ -105,6 +105,25 @@ export class ShipBlueprintRegistry {
         } as CollectableShipMetadata,
       },
     ],
+    [
+      'salimander',
+      {
+        name: 'Salimander',
+        filepath: 'player/salimander',
+        iconImagePath: 'assets/ships/icons/salimander.png',
+        unlockCostInCores: 1000,
+        metaData: {
+          additionalDescription: 'A ship that breathes fire.',
+          tier: 1,
+          offenseRating: 5,
+          defenseRating: 2,
+          speedRating: 2,
+          weaponSpecialization: 'Flame Throwers',
+          weaponBlocks: ['flameThrower1', 'flameThrower2', 'flameThrower3', 'flameThrower4', 'flameThrower5'],
+          affinity: 'flameThrower',
+        } as CollectableShipMetadata,
+      },
+    ]
     // Add additional ships here...
   ]);
 

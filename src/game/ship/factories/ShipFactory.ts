@@ -6,6 +6,7 @@ import { TurretBackend } from '@/systems/combat/backends/weapons/TurretBackend';
 import { LaserBackend } from '@/systems/combat/backends/weapons/LaserBackend';
 import { ExplosiveLanceBackend } from '@/systems/combat/backends/weapons/ExplosiveLanceBackend';
 import { HeatSeekerBackend } from '@/systems/combat/backends/weapons/HeatSeekerBackend';
+import { FlameThrowerBackend } from '@/systems/combat/backends/weapons/FlameThrowerBackend';
 import { HaloBladeBackend } from '@/systems/combat/backends/weapons/HaloBladeBackend';
 import { UtilitySystem } from '@/systems/combat/UtilitySystem';
 import { ShieldToggleBackend } from '@/systems/combat/backends/utility/ShieldToggleBackend';
@@ -97,7 +98,8 @@ export class ShipFactory {
       new LaserBackend(this.combatService, this.particleManager, this.grid),
       new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
-      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
+      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship),
+      new FlameThrowerBackend(this.combatService, this.particleManager)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
@@ -203,7 +205,8 @@ export class ShipFactory {
       new LaserBackend(this.combatService, this.particleManager, this.grid),
       new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
-      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship)
+      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship),
+      new FlameThrowerBackend(this.combatService, this.particleManager)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 

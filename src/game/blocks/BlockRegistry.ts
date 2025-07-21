@@ -1450,6 +1450,150 @@ const blockTypes: Record<string, BlockType> = {
     dropRate: 0.28,
     metatags: ['heatSeeker']
   },
+  flameThrower0: {
+    id: 'flameThrower0',
+    tier: 0,
+    name: 'Flamethrower Mk 0',
+    armor: 60,
+    mass: 70,
+    cost: 300,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 10.0,           // very fast stream
+        fireType: 'flameThrower',
+        fireDamage: 1,
+        radius: 40,               // small spread area
+        projectileSpeed: 600,     // short but quick flame
+        lifetime: 2.5,            // flame dissipates quickly
+      }
+    },
+    sprite: 'flameThrower0',
+    category: 'weapon',
+    subcategory: 'flameThrower',
+    dropRate: 0.3,
+    metatags: ['flameThrower']
+  },
+  flameThrower1: {
+    id: 'flameThrower1',
+    tier: 1,
+    name: 'Flamethrower Mk I',
+    armor: 70,
+    mass: 70,
+    cost: 400,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 10.0,
+        fireType: 'flameThrower',
+        fireDamage: 2,
+        radius: 45,
+        projectileSpeed: 650,
+        lifetime: 2.5,
+      }
+    },
+    sprite: 'flameThrower1',
+    category: 'weapon',
+    subcategory: 'flameThrower',
+    dropRate: 0.3,
+    metatags: ['flameThrower']
+  },
+  flameThrower2: {
+    id: 'flameThrower2',
+    tier: 2,
+    name: 'Flamethrower Mk II',
+    armor: 80,
+    mass: 70,
+    cost: 600,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 10.0,
+        fireType: 'flameThrower',
+        fireDamage: 4,
+        radius: 50,
+        projectileSpeed: 700,
+        lifetime: 2.6,
+      }
+    },
+    sprite: 'flameThrower2',
+    category: 'weapon',
+    subcategory: 'flameThrower',
+    dropRate: 0.28,
+    metatags: ['flameThrower']
+  },
+  flameThrower3: {
+    id: 'flameThrower3',
+    tier: 3,
+    name: 'Flamethrower Mk III',
+    armor: 90,
+    mass: 70,
+    cost: 900,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 10.0,
+        fireType: 'flameThrower',
+        fireDamage: 6,
+        radius: 55,
+        projectileSpeed: 750,
+        lifetime: 2.7,
+      }
+    },
+    sprite: 'flameThrower3',
+    category: 'weapon',
+    subcategory: 'flameThrower',
+    dropRate: 0.28,
+    metatags: ['flameThrower']
+  },
+  flameThrower4: {
+    id: 'flameThrower4',
+    tier: 4,
+    name: 'Flamethrower Mk IV',
+    armor: 110,
+    mass: 80,
+    cost: 1400,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 10.0,
+        fireType: 'flameThrower',
+        fireDamage: 8,
+        radius: 60,
+        projectileSpeed: 800,
+        lifetime: 2.8,
+      }
+    },
+    sprite: 'flameThrower4',
+    category: 'weapon',
+    subcategory: 'flameThrower',
+    dropRate: 0.25,
+    metatags: ['flameThrower']
+  },
+  flameThrower5: {
+    id: 'flameThrower5',
+    tier: 5,
+    name: 'Flamethrower Mk V',
+    armor: 130,
+    mass: 90,
+    cost: 2000,
+    behavior: {
+      canFire: true,
+      fire: {
+        fireRate: 10.0,
+        fireType: 'flameThrower',
+        fireDamage: 12,
+        radius: 70,
+        projectileSpeed: 850,
+        lifetime: 2.9,
+      }
+    },
+    sprite: 'flameThrower5',
+    category: 'weapon',
+    subcategory: 'flameThrower',
+    dropRate: 0.25,
+    metatags: ['flameThrower']
+  },
   fuelTank0: {
     id: 'fuelTank0',
     tier: 0,
