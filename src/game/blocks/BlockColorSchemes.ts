@@ -116,3 +116,32 @@ export const FLAMETHROWER_TIER_COLORS: Record<number, string> = {
   5: '#ff3366', // Tier 5 – gold (optional)
   10: '#ff3366', // Cockpit tier – exotic pink-red (for story-critical parts)
 };
+
+export const FlameColorIndex = {
+  Default: 0,
+  Emerald: 1,
+  Cobalt: 2,
+  Royal: 3,
+  Gold: 4,
+  Exotic: 5,
+} as const;
+
+export const FLAME_COLORS: string[] = [
+  '#ff9933', // Default (Tier 0–1)
+  '#00aa33', // Emerald (Tier 2)
+  '#0033cc', // Cobalt (Tier 3)
+  '#6600cc', // Royal Purple (Tier 4)
+  '#ff3366', // Gold (Tier 5)
+  '#ff3366', // Exotic
+];
+
+// Map from tiers to FlameColorIndex values
+export const TierToColorIndex: Record<number, number> = {
+  0: FlameColorIndex.Default,
+  1: FlameColorIndex.Default,
+  2: FlameColorIndex.Emerald,
+  3: FlameColorIndex.Cobalt,
+  4: FlameColorIndex.Royal,
+  5: FlameColorIndex.Gold,
+  10: FlameColorIndex.Exotic,
+};

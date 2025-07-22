@@ -3,6 +3,15 @@
 import { GlobalEventBus } from '@/core/EventBus';
 import type { QuestStepId } from '@/game/quests/interfaces/QuestStep';
 
+
+export function closeQuestTrackerMenu(): void {
+  GlobalEventBus.emit('quests:tracker:close', undefined);
+}
+
+export function openQuestTrackerMenu(): void {
+  GlobalEventBus.emit('quests:tracker:open', undefined);
+}
+
 export function openQuestsMenu(planetName: string): void {
   GlobalEventBus.emit('quests:menu:open', { planetName });
 }

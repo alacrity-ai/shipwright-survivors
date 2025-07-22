@@ -9,6 +9,9 @@ import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { FiringMode, TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
+import { PROJECTILE_TYPE_TO_INDEX } from '@/systems/physics/interfaces/ProjectileTypes';
+import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
+
 type TargetPoint = { x: number; y: number };
 
 export class TurretBackend implements WeaponBackend {
@@ -235,12 +238,12 @@ export class TurretBackend implements WeaponBackend {
     this.projectileSystem.spawnProjectileWithVelocity(
       { x: worldX, y: worldY },
       { x: vx, y: vy },
-      fire.fireType!,
+      PROJECTILE_TYPE_TO_INDEX[fire.fireType!], // numeric type index
       baseDamage * damageBonus,
       fire.lifetime ?? 2,
       1, // accuracy already applied
-      ship.id,
-      ship.getFaction(),
+      ship.numericId,
+      FACTION_TO_INDEX[ship.getFaction()],
       particleColors,
       'delayed',
       turretSplitShots,

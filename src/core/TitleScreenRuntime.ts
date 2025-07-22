@@ -223,14 +223,11 @@ export class TitleScreenRuntime {
     this.collisionSystem = new BlockObjectCollisionSystem(this.combatService);
 
     this.projectileSystem = new ProjectileSystem(
-      this.canvasManager,
       this.grid,
       this.combatService,
       this.particleManager,
     );
     this.shipConstructionAnimator = new ShipConstructionAnimatorService(this.shipBuilderEffects);
-
-    // this.registerLoopHandlers();
   }
 
   public async initialize(): Promise<void> {

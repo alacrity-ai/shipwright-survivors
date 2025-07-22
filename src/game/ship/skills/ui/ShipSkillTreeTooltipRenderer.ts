@@ -240,6 +240,12 @@ export class ShipSkillTreeTooltipRenderer {
       laserChain: 'Chain Lasers',
       laserAreaOfEffect: 'Area of Effect Damage',
 
+      flameThrowerDamage: 'Fire Damage',
+      flameThrowerSize: 'Flame Size',
+      flameThrowerCriticalChance: 'Critical Chance',
+      endlessIgnition: 'Endless Ignition',
+      innerFlame: 'Inner Flame',
+
       startingBlocks: 'Starting Blocks',
     };
 

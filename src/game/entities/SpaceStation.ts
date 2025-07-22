@@ -39,6 +39,7 @@ export class SpaceStation extends CompositeBlockObject {
     const block: BlockInstance = {
       ownerFaction: Faction.Neutral,
       id: crypto.randomUUID(),
+      ownerShipNumericId: this.numericId,  // Associate the block with this ship's numeric ID
       type,
       hp: type.armor,
       ownerShipId: this.id,  // Associate the block with this ship's ID

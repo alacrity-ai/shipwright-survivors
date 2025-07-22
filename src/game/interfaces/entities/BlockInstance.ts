@@ -15,6 +15,7 @@ export interface BlockInstance {
   type: BlockType;       // reference to immutable block definition
   hp: number;            // current health
   ownerShipId: string;   // unique ID of the ship this block belongs to
+  ownerShipNumericId: number;   // numeric ID of the ship this block belongs to (for flamethrower)
   ownerFaction: Faction;
   indestructible?: boolean; // if true, block cannot be destroyed
   cooldown?: number;     // used for turret/engine action delay

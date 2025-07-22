@@ -67,7 +67,10 @@
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             z-index: 1000;
-            min-width: 300px;
+            min-width: 400px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .description-popup h3 {
             margin-top: 0;
@@ -81,6 +84,15 @@
             border-radius: 4px;
             font-family: Arial, sans-serif;
             resize: vertical;
+        }
+        .description-popup input[type="text"], 
+        .description-popup input[type="number"], 
+        .description-popup select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
         .description-popup .buttons {
             margin-top: 15px;
@@ -98,6 +110,54 @@
             background: rgba(0,0,0,0.5);
             z-index: 999;
         }
+        .metadata-section {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+        }
+        .metadata-entry {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .metadata-entry input[type="text"] {
+            flex: 1;
+        }
+        .metadata-entry select {
+            width: 100px;
+        }
+        .metadata-entry .value-input {
+            flex: 2;
+        }
+        .metadata-entry button {
+            background-color: #dc3545;
+            padding: 5px 8px;
+            font-size: 12px;
+            margin: 0;
+        }
+        .metadata-entry button:hover {
+            background-color: #c82333;
+        }
+        .add-metadata-btn {
+            background-color: #28a745;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        .add-metadata-btn:hover {
+            background-color: #218838;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -106,7 +166,7 @@
             <h2>Grid Canvas App</h2>
             <p>Click on the grid to place or remove squares</p>
             <p><strong>Hold CTRL + Click</strong> two black squares to connect them with a line</p>
-            <p><strong>Hold SHIFT + Click</strong> a black square to add/edit its description</p>
+            <p><strong>Hold SHIFT + Click</strong> a black square to add/edit its properties</p>
         </div>
         
         <canvas id="canvas" width="400" height="400"></canvas>
@@ -124,26 +184,19 @@
         const exportBtn = document.getElementById('exportBtn');
         const loadBtn = document.getElementById('loadBtn');
         const fileInput = document.getElementById('fileInput');
-        
+
         const GRID_SIZE = 12;
         const CELL_SIZE = canvas.width / GRID_SIZE;
-        
-        // Grid state - true means square is placed
+
         let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
-        
-        // Connections - array of connections between squares
         let connections = [];
-        
-        // Node descriptions - object with position keys
         let nodeDescriptions = {};
-        
-        // Selection state for connecting squares
         let selectedSquare = null;
-        
+
         function drawGrid() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw connections first (so they appear behind squares)
+
+            // Draw connections
             ctx.strokeStyle = '#007bff';
             ctx.lineWidth = 2;
             for (let connection of connections) {
@@ -151,31 +204,28 @@
                 const y1 = connection.from.y * CELL_SIZE + CELL_SIZE / 2;
                 const x2 = connection.to.x * CELL_SIZE + CELL_SIZE / 2;
                 const y2 = connection.to.y * CELL_SIZE + CELL_SIZE / 2;
-                
+
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
-            
+
             // Draw grid lines
             ctx.strokeStyle = '#ddd';
             ctx.lineWidth = 1;
-            
             for (let i = 0; i <= GRID_SIZE; i++) {
-                // Vertical lines
                 ctx.beginPath();
                 ctx.moveTo(i * CELL_SIZE, 0);
                 ctx.lineTo(i * CELL_SIZE, canvas.height);
                 ctx.stroke();
-                
-                // Horizontal lines
+
                 ctx.beginPath();
                 ctx.moveTo(0, i * CELL_SIZE);
                 ctx.lineTo(canvas.width, i * CELL_SIZE);
                 ctx.stroke();
             }
-            
+
             // Draw filled squares
             ctx.fillStyle = '#333';
             for (let row = 0; row < GRID_SIZE; row++) {
@@ -190,8 +240,8 @@
                     }
                 }
             }
-            
-            // Draw description indicators (small dots)
+
+            // Draw red indicator dots for nodes with metadata
             ctx.fillStyle = '#ff4444';
             for (let key in nodeDescriptions) {
                 const [x, y] = key.split(',').map(Number);
@@ -207,7 +257,7 @@
                     ctx.fill();
                 }
             }
-            
+
             // Highlight selected square
             if (selectedSquare) {
                 ctx.strokeStyle = '#007bff';
@@ -220,190 +270,327 @@
                 );
             }
         }
-        
+
+        function parseValue(value, type) {
+            switch(type) {
+                case 'number':
+                    const num = parseFloat(value);
+                    return isNaN(num) ? 0 : num;
+                case 'boolean':
+                    return value.toLowerCase() === 'true';
+                case 'array':
+                    try {
+                        // Try to parse as JSON array first
+                        const parsed = JSON.parse(value);
+                        if (Array.isArray(parsed)) {
+                            return parsed.map(item => String(item));
+                        }
+                    } catch (e) {
+                        // If JSON parsing fails, split by comma and trim
+                        return value.split(',').map(item => item.trim()).filter(item => item);
+                    }
+                    return [];
+                default:
+                    return String(value);
+            }
+        }
+
+        function formatValueForInput(value, type) {
+            if (type === 'array' && Array.isArray(value)) {
+                return JSON.stringify(value);
+            }
+            return String(value);
+        }
+
+        function createMetadataEntry(key = '', value = '', type = 'string') {
+            const entry = document.createElement('div');
+            entry.className = 'metadata-entry';
+            
+            const formattedValue = formatValueForInput(value, type);
+            
+            entry.innerHTML = `
+                <input type="text" class="metadata-key" placeholder="Key" value="${key}">
+                <select class="metadata-type">
+                    <option value="string" ${type === 'string' ? 'selected' : ''}>String</option>
+                    <option value="number" ${type === 'number' ? 'selected' : ''}>Number</option>
+                    <option value="boolean" ${type === 'boolean' ? 'selected' : ''}>Boolean</option>
+                    <option value="array" ${type === 'array' ? 'selected' : ''}>Array</option>
+                </select>
+                <input type="text" class="metadata-value value-input" placeholder="Value" value="${formattedValue}">
+                <button type="button" class="remove-metadata">×</button>
+            `;
+
+            const removeBtn = entry.querySelector('.remove-metadata');
+            removeBtn.addEventListener('click', () => entry.remove());
+
+            const typeSelect = entry.querySelector('.metadata-type');
+            const valueInput = entry.querySelector('.metadata-value');
+            
+            typeSelect.addEventListener('change', () => {
+                const newType = typeSelect.value;
+                const currentValue = valueInput.value;
+                
+                // Provide helpful placeholder based on type
+                switch(newType) {
+                    case 'number':
+                        valueInput.placeholder = 'e.g., 0.08 or 10';
+                        break;
+                    case 'boolean':
+                        valueInput.placeholder = 'true or false';
+                        break;
+                    case 'array':
+                        valueInput.placeholder = '["item1", "item2"] or item1, item2';
+                        break;
+                    default:
+                        valueInput.placeholder = 'Value';
+                }
+            });
+
+            return entry;
+        }
+
         function showDescriptionPopup(x, y) {
             const key = `${x},${y}`;
-            const currentDescription = nodeDescriptions[key] || '';
-            
-            // Create overlay
+            const existing = nodeDescriptions[key] || {};
+            const data = typeof existing === 'string' ? { description: existing } : existing;
+
             const overlay = document.createElement('div');
             overlay.className = 'overlay';
-            
-            // Create popup
+
             const popup = document.createElement('div');
             popup.className = 'description-popup';
             popup.innerHTML = `
-                <h3>Node Description (${x}, ${y})</h3>
-                <textarea id="descriptionText" placeholder="Enter description for this node...">${currentDescription}</textarea>
+                <h3>Node Properties (${x}, ${y})</h3>
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input id="nodeId" type="text" value="${data.id || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input id="nodeName" type="text" value="${data.name || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <textarea id="nodeDescription" placeholder="Enter description...">${data.description || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Icon:</label>
+                    <input id="nodeIcon" type="text" value="${data.icon || ''}" placeholder="icon.png">
+                </div>
+                <div class="form-group">
+                    <label>Node Size:</label>
+                    <select id="nodeSize">
+                        <option value="major" ${data.nodeSize === 'major' ? 'selected' : ''}>Major</option>
+                        <option value="minor" ${data.nodeSize === 'minor' ? 'selected' : ''}>Minor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cost:</label>
+                    <input id="nodeCost" type="number" value="${data.cost || 0}" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Mastery Requirement:</label>
+                    <input id="nodeMastery" type="number" value="${data.masteryRequirement || 0}" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Metadata:</label>
+                    <div class="metadata-section">
+                        <div id="metadataEntries"></div>
+                        <button type="button" class="add-metadata-btn">+ Add Metadata</button>
+                    </div>
+                </div>
                 <div class="buttons">
                     <button id="cancelDesc">Cancel</button>
                     <button id="saveDesc">Save</button>
                 </div>
             `;
-            
+
             document.body.appendChild(overlay);
             document.body.appendChild(popup);
-            
-            const textarea = document.getElementById('descriptionText');
+
+            const metadataContainer = document.getElementById('metadataEntries');
+            const addMetadataBtn = popup.querySelector('.add-metadata-btn');
+
+            // Populate existing metadata
+            if (data.metadata && typeof data.metadata === 'object') {
+                for (const [metaKey, metaValue] of Object.entries(data.metadata)) {
+                    let valueType = 'string';
+                    if (typeof metaValue === 'number') valueType = 'number';
+                    else if (typeof metaValue === 'boolean') valueType = 'boolean';
+                    else if (Array.isArray(metaValue)) valueType = 'array';
+                    
+                    const entry = createMetadataEntry(metaKey, metaValue, valueType);
+                    metadataContainer.appendChild(entry);
+                }
+            }
+
+            addMetadataBtn.addEventListener('click', () => {
+                const entry = createMetadataEntry();
+                metadataContainer.appendChild(entry);
+            });
+
             const cancelBtn = document.getElementById('cancelDesc');
             const saveBtn = document.getElementById('saveDesc');
-            
-            textarea.focus();
-            textarea.select();
-            
+
             function closePopup() {
                 document.body.removeChild(overlay);
                 document.body.removeChild(popup);
             }
-            
+
             cancelBtn.addEventListener('click', closePopup);
             overlay.addEventListener('click', closePopup);
-            
+
             saveBtn.addEventListener('click', () => {
-                const description = textarea.value.trim();
-                if (description) {
-                    nodeDescriptions[key] = description;
+                const newData = {
+                    id: document.getElementById('nodeId').value.trim(),
+                    name: document.getElementById('nodeName').value.trim(),
+                    description: document.getElementById('nodeDescription').value.trim(),
+                    icon: document.getElementById('nodeIcon').value.trim(),
+                    nodeSize: document.getElementById('nodeSize').value,
+                    cost: parseInt(document.getElementById('nodeCost').value, 10) || 0,
+                    masteryRequirement: parseInt(document.getElementById('nodeMastery').value, 10) || 0,
+                    metadata: {}
+                };
+
+                // Collect metadata
+                const metadataEntries = metadataContainer.querySelectorAll('.metadata-entry');
+                metadataEntries.forEach(entry => {
+                    const keyInput = entry.querySelector('.metadata-key');
+                    const typeSelect = entry.querySelector('.metadata-type');
+                    const valueInput = entry.querySelector('.metadata-value');
+
+                    const metaKey = keyInput.value.trim();
+                    const metaType = typeSelect.value;
+                    const metaValue = valueInput.value.trim();
+
+                    if (metaKey && metaValue !== '') {
+                        newData.metadata[metaKey] = parseValue(metaValue, metaType);
+                    }
+                });
+
+                // Check if data is empty
+                const isEmpty = !newData.id && !newData.name && !newData.description &&
+                                !newData.icon && newData.cost === 0 && newData.masteryRequirement === 0 &&
+                                Object.keys(newData.metadata).length === 0;
+
+                if (!isEmpty) {
+                    // Clean up empty metadata object
+                    if (Object.keys(newData.metadata).length === 0) {
+                        delete newData.metadata;
+                    }
+                    nodeDescriptions[key] = newData;
                 } else {
                     delete nodeDescriptions[key];
                 }
+
                 closePopup();
                 drawGrid();
             });
-            
-            // Handle Enter key to save
-            textarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && e.ctrlKey) {
-                    saveBtn.click();
-                }
-            });
         }
-        
+
         function handleCanvasClick(event) {
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
-            
+
             const col = Math.floor(x / CELL_SIZE);
             const row = Math.floor(y / CELL_SIZE);
-            
+
             if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
                 if (event.shiftKey) {
-                    // SHIFT + Click: Description mode
-                    if (grid[row][col]) { // Only add description to existing squares
-                        showDescriptionPopup(col, row);
-                    }
+                    if (grid[row][col]) showDescriptionPopup(col, row);
                 } else if (event.ctrlKey) {
-                    // CTRL + Click: Connection mode
-                    if (grid[row][col]) { // Only connect existing squares
+                    if (grid[row][col]) {
                         const clickedSquare = { x: col, y: row };
-                        
                         if (!selectedSquare) {
-                            // First square selected
                             selectedSquare = clickedSquare;
                         } else {
-                            // Second square selected - create connection
                             if (selectedSquare.x !== clickedSquare.x || selectedSquare.y !== clickedSquare.y) {
-                                // Check if connection already exists
-                                const connectionExists = connections.some(conn => 
-                                    (conn.from.x === selectedSquare.x && conn.from.y === selectedSquare.y &&
-                                     conn.to.x === clickedSquare.x && conn.to.y === clickedSquare.y) ||
-                                    (conn.from.x === clickedSquare.x && conn.from.y === clickedSquare.y &&
-                                     conn.to.x === selectedSquare.x && conn.to.y === selectedSquare.y)
+                                const existsForward = connections.some(conn =>
+                                    conn.from.x === selectedSquare.x && conn.from.y === selectedSquare.y &&
+                                    conn.to.x === clickedSquare.x && conn.to.y === clickedSquare.y
                                 );
-                                
-                                if (!connectionExists) {
-                                    connections.push({
-                                        from: { ...selectedSquare },
-                                        to: { ...clickedSquare }
-                                    });
+                                const existsReverse = connections.some(conn =>
+                                    conn.from.x === clickedSquare.x && conn.from.y === clickedSquare.y &&
+                                    conn.to.x === selectedSquare.x && conn.to.y === selectedSquare.y
+                                );
+
+                                if (!existsForward) {
+                                    connections.push({ from: { ...selectedSquare }, to: { ...clickedSquare } });
+                                }
+                                if (!existsReverse) {
+                                    connections.push({ from: { ...clickedSquare }, to: { ...selectedSquare } });
                                 }
                             }
-                            selectedSquare = null; // Clear selection
+                            selectedSquare = null;
                         }
                     }
                 } else {
-                    // Normal click: Toggle square
-                    selectedSquare = null; // Clear any selection
+                    selectedSquare = null;
                     grid[row][col] = !grid[row][col];
-                    
-                    // If removing a square, remove all its connections and description
+
                     if (!grid[row][col]) {
-                        connections = connections.filter(conn => 
+                        connections = connections.filter(conn =>
                             !(conn.from.x === col && conn.from.y === row) &&
                             !(conn.to.x === col && conn.to.y === row)
                         );
-                        
-                        // Remove description
-                        const key = `${col},${row}`;
-                        delete nodeDescriptions[key];
+                        delete nodeDescriptions[`${col},${row}`];
                     }
                 }
                 drawGrid();
             }
         }
-        
+
         function exportToJSON() {
             const squares = [];
-            
             for (let row = 0; row < GRID_SIZE; row++) {
                 for (let col = 0; col < GRID_SIZE; col++) {
                     if (grid[row][col]) {
                         const key = `${col},${row}`;
                         const square = { x: col, y: row };
-                        
                         if (nodeDescriptions[key]) {
-                            square.description = nodeDescriptions[key];
+                            square.metadata = nodeDescriptions[key];
                         }
-                        
                         squares.push(square);
                     }
                 }
             }
-            
             const exportData = {
                 gridSize: GRID_SIZE,
-                squares: squares,
-                connections: connections,
+                squares,
+                connections,
                 timestamp: new Date().toISOString()
             };
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
+            link.href = URL.createObjectURL(blob);
             link.download = 'grid-design.json';
             link.click();
         }
-        
+
         function loadFromJSON(jsonData) {
             try {
                 const data = JSON.parse(jsonData);
-                
-                // Reset current state
                 grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
                 connections = [];
                 nodeDescriptions = {};
                 selectedSquare = null;
-                
-                // Load squares
+
                 if (data.squares) {
-                    data.squares.forEach(square => {
-                        if (square.x >= 0 && square.x < GRID_SIZE && square.y >= 0 && square.y < GRID_SIZE) {
-                            grid[square.y][square.x] = true;
-                            
-                            // Load description if it exists
-                            if (square.description) {
-                                const key = `${square.x},${square.y}`;
-                                nodeDescriptions[key] = square.description;
+                    data.squares.forEach(sq => {
+                        if (sq.x >= 0 && sq.x < GRID_SIZE && sq.y >= 0 && sq.y < GRID_SIZE) {
+                            grid[sq.y][sq.x] = true;
+                            if (sq.metadata) {
+                                nodeDescriptions[`${sq.x},${sq.y}`] = sq.metadata;
+                            } else if (sq.description) {
+                                nodeDescriptions[`${sq.x},${sq.y}`] = { description: sq.description };
                             }
                         }
                     });
                 }
-                
-                // Load connections
+
                 if (data.connections) {
-                    connections = data.connections.filter(conn => 
+                    connections = data.connections.filter(conn =>
                         conn.from && conn.to &&
                         conn.from.x >= 0 && conn.from.x < GRID_SIZE &&
                         conn.from.y >= 0 && conn.from.y < GRID_SIZE &&
@@ -411,34 +598,26 @@
                         conn.to.y >= 0 && conn.to.y < GRID_SIZE
                     );
                 }
-                
+
                 drawGrid();
                 alert('JSON loaded successfully!');
-            } catch (error) {
-                alert('Error loading JSON: ' + error.message);
+            } catch (err) {
+                alert('Error loading JSON: ' + err.message);
             }
         }
-        
-        // Event listeners
+
         canvas.addEventListener('click', handleCanvasClick);
         exportBtn.addEventListener('click', exportToJSON);
-        
-        loadBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
-        fileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
+        loadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    loadFromJSON(e.target.result);
-                };
+                reader.onload = evt => loadFromJSON(evt.target.result);
                 reader.readAsText(file);
             }
         });
-        
-        // Initial draw
+
         drawGrid();
     </script>
 </body>

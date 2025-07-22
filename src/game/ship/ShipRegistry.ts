@@ -7,6 +7,7 @@ export class ShipRegistry {
 
   private ships: Set<Ship> = new Set();
   private shipIdMap: Map<string, Ship> = new Map();
+  private shipNumericIdMap: Map<number, Ship> = new Map();
 
   private playerShip: Ship | null = null;
 
@@ -23,9 +24,14 @@ export class ShipRegistry {
     return this.shipIdMap.get(id);
   }
 
+  getByNumericId(id: number): Ship | undefined {
+    return this.shipNumericIdMap.get(id);
+  }
+
   add(ship: Ship): void {
     this.ships.add(ship);
     this.shipIdMap.set(ship.id, ship);
+    this.shipNumericIdMap.set(ship.numericId, ship);
   }
 
   remove(ship: Ship, cause: string = 'combat'): void {
@@ -36,6 +42,8 @@ export class ShipRegistry {
 
     this.ships.delete(ship);
     this.shipIdMap.delete(ship.id);
+    this.shipNumericIdMap.delete(ship.numericId);
+
     if (this.playerShip === ship) {
       this.playerShip = null;
     }
@@ -48,6 +56,7 @@ export class ShipRegistry {
   clear(): void {
     this.ships.clear();
     this.shipIdMap.clear();
+    this.shipNumericIdMap.clear();
     this.playerShip = null;
   }
 

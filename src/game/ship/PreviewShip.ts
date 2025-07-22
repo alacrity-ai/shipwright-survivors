@@ -55,6 +55,7 @@ export class PreviewShip {
 
     const block: BlockInstance = {
       id: crypto.randomUUID(),
+      ownerShipNumericId: 0,
       type,
       hp: type.armor ?? 1,
       position: {

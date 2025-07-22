@@ -16,6 +16,7 @@ import type { StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects'
 import type { StatusEffect } from '@/game/ship/status/StatusEffect';
 import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/ArtifactEffectMetadata';
 
+import { hashStringToInt32 } from '@/shared/hashUtils';
 import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { PlayerArtifactsManager } from '../player/PlayerArtifactsManager';
@@ -101,8 +102,10 @@ export class Ship extends CompositeBlockObject {
   private rasterizedTextureSize: { width: number; height: number } = { width: 0, height: 0 };
   private rasterDirty: boolean = true; // true means "must rerasterize"
 
-  protected override generateId(): string {
-    return 'ship-' + Math.random().toString(36).slice(2, 9);
+  protected override generateId(): { stringId: string; numericId: number } {
+    const stringId = 'ship-' + Math.random().toString(36).slice(2, 9);
+    const numericId = hashStringToInt32(stringId); // same hash as CompositeBlockObject
+    return { stringId, numericId };
   }
 
   constructor(
@@ -826,6 +829,7 @@ export class Ship extends CompositeBlockObject {
     const block: BlockInstance = {
       ownerFaction: this.faction,
       id: uniqueId,
+      ownerShipNumericId: this.numericId,
       type,
       hp: Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus),
       ownerShipId: this.id,

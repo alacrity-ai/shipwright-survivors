@@ -5,6 +5,7 @@ import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedBlockObject } from '@/systems/serialization/CompositeBlockObjectSerializer';
 
+import { hashStringToInt32 } from '@/shared/hashUtils';
 import { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 
 import { randomFromArray } from '@/shared/arrayUtils';
@@ -18,6 +19,7 @@ import { AnchorPointComponent } from '@/game/ship/anchors/AnchorPointComponent';
 
 export abstract class CompositeBlockObject {
   readonly id: string;
+  readonly numericId: number;
   protected grid: Grid;
 
   private cachedBlockList: [GridCoord, BlockInstance][] | null = null;
@@ -54,7 +56,9 @@ export abstract class CompositeBlockObject {
     faction?: Faction
   ) {
     this.grid = grid;
-    this.id = this.generateId();
+    const ids = this.generateId();
+    this.id = ids.stringId;
+    this.numericId = ids.numericId;
     this.faction = faction ?? Faction.Neutral;
 
     this.transform = {
@@ -563,6 +567,7 @@ export abstract class CompositeBlockObject {
       const block: BlockInstance = {
         ownerFaction: Faction.Neutral,
         id: uniqueId,
+        ownerShipNumericId: this.numericId,
         type,
         rotation: blockData.rotation ?? 0,
         hp: type.armor,
@@ -582,7 +587,9 @@ export abstract class CompositeBlockObject {
     this.updateBlockPositions();
   }
 
-  protected generateId(): string {
-    return 'entity-' + Math.random().toString(36).slice(2, 10);
+  protected generateId(): { stringId: string; numericId: number } {
+    const stringId = 'entity-' + Math.random().toString(36).slice(2, 10);
+    const numericId = hashStringToInt32(stringId);
+    return { stringId, numericId };
   }
 }

@@ -24,7 +24,7 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
 
   switchFiringMode: { keys: [], gamepadButtons: [] },
   openMenu:         { keys: ['Escape'], gamepadButtons: ['start'] },
-  openShipBuilder:  { keys: ['Tab'], gamepadButtons: ['select'] },
+  openShipBuilder:  { keys: ['Tab'], gamepadButtons: [] },
   select:           { keys: ['Enter'], gamepadButtons: ['A'] },
   cancel:           { keys: ['Escape'], gamepadButtons: ['B'] },
   pause:            { keys: ['Escape'], gamepadButtons: ['start'] },
@@ -41,5 +41,5 @@ export const DefaultInputMapping: Record<InputAction, InputBinding> = {
   cycleBlockRight:  { keys: [], gamepadButtons: ['dpadRight'] },
 
   jumpHome:         { keys: ['KeyH'], gamepadButtons: ['rightStickButton'] },
-  activeContractsButton: { keys: ['KeyC'], gamepadButtons: ['select'] },
+  activeContractsButton: { keys: ['KeyZ'], gamepadButtons: ['select'] },
 };

@@ -16,13 +16,15 @@ import type { ExtraDamageOptions } from '@/systems/combat/CombatService';
 import { Ship } from '@/game/ship/Ship';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
+import { PROJECTILE_TYPE_TO_INDEX } from '@/systems/physics/interfaces/ProjectileTypes';
+import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
+
 import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { createPointLight } from '@/lighting/lights/createPointLight';
-import { PointLightInstance } from '@/lighting/lights/types';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 
@@ -404,12 +406,12 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       const projectile = this.projectileSystem.spawnProjectileWithVelocity(
         origin,
         { x: vx, y: vy },
-        'explosiveLance',
+        PROJECTILE_TYPE_TO_INDEX['explosiveLance'],
         damage * 2,
         life,
         1,
-        ship.id,
-        ship.getFaction(),
+        ship.numericId,
+        FACTION_TO_INDEX[ship.getFaction()],
         colorPalette,
         'delayed',
         false,

@@ -133,20 +133,12 @@ TODOS:
     The swapIntentSOA + rebind logic should be atomic. Right now, a bug here will desync controllers.
     Wrap it in a moveControllerSlot(from, to) method to enforce invariants.
 
-  - [x] Autofire system can suddenly stop firing if an enemy is killed by a DOT.
-  - [ ] Open Communications Label should not display while dialogue is active
   - [ ] Potentially give enemies "callout sounds" and have them use playSpatialSfx
-  - [ ] Quests
-        - [x] Quest tracker button
-          - [ ] Button opens list of tracked quests
-          - [ ] Tracked quests show steps completed.
-          - [ ] When quest Step is incremented, show visually in the tracker with a little notification badge
-    - [ ] Test and verify all quests:
-      - [ ] Quests shown as completed in galaxy map
 
-  - [ ] Add quest log/mission objectives. Trackable in game, and in galaxymap menu
+  - [ ] Quest completion total Trackable in Galaxymap menu
 
   - [ ] Add some more powerups
+    - [ ] Add parallel powerup lines which are independent of leveling (gotten from incidents, NPC interactions, see Death Must die with NPCs which give powerup lines)
 
   - [ ] Finish All Ship Skill Tree Implementations
 

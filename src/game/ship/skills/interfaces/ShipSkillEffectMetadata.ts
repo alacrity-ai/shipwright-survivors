@@ -38,6 +38,13 @@ export interface ShipSkillEffectMetadata {
   laserChain?: boolean; // Implemented 
   laserAreaOfEffect?: boolean;
 
+  // Salamander Nodes
+  flameThrowerDamage?: number; // Flat // Implemented
+  flameThrowerSize?: number; // Percentage // Implemented
+  flameThrowerCriticalChance?: number; // Percentage // Implemented
+  endlessIgnition?: boolean; // Implemented in Backend
+  innerFlame?: boolean; // Implemented in Backend
+
   // Universal Nodes
   startingBlocks?: string[]; // Implemented
 }

@@ -2,14 +2,19 @@
 
 import type { Ship } from '@/game/ship/Ship';
 import type { StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
+import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
 
 export abstract class StatusEffect {
+  private skillEffects: ShipSkillEffectMetadata = {};
+
   constructor(
     public readonly type: StatusEffectType,
     protected duration: number,
     protected sourceShip: Ship | null,
     protected intensity: number = 1,
-  ) {}
+  ) {
+    this.skillEffects = sourceShip?.getSkillEffects() ?? {};
+  }
 
   public abstract update(dt: number, ship: Ship): void;
 

@@ -100,6 +100,8 @@ export interface EventTypes {
   // Quests
   'quests:step:update': { stepId: QuestStepId; value: number | boolean | string };
   'quests:menu:open': { planetName: string };
+  'quests:tracker:open': undefined;
+  'quests:tracker:close': undefined;
   'quests:complete': { questId: string };
   'quests:announcement:open': { questId: string };
   'quests:announcement:ship': { shipId: string };

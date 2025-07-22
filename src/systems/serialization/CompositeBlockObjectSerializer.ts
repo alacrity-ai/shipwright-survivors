@@ -84,6 +84,7 @@ export async function loadAsteroidFromJson(
 
     const block: BlockInstance = {
       id: crypto.randomUUID(),
+      ownerShipNumericId: asteroid.numericId,
       ownerFaction: Faction.Neutral, // Asteroids are neutral by default
       type,
       hp: type.armor,

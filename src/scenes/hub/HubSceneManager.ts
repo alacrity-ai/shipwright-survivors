@@ -147,10 +147,6 @@ export class HubSceneManager {
       playerShipCollection.discover('SW-1 Standard Issue');
       playerShipCollection.unlock('SW-1 Standard Issue');
     }
-    
-    // TODO : Temp debug remove this
-    playerShipCollection.discover('Salimander');
-    playerShipCollection.unlock('Salimander');
 
     // Dialogue Tree
     if (!flags.has('hub.introduction-1.complete')) {

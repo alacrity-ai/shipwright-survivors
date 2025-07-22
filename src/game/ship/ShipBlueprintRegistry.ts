@@ -106,11 +106,11 @@ export class ShipBlueprintRegistry {
       },
     ],
     [
-      'salimander',
+      'salamander',
       {
-        name: 'Salimander',
-        filepath: 'player/salimander',
-        iconImagePath: 'assets/ships/icons/salimander.png',
+        name: 'Salamander',
+        filepath: 'player/salamander',
+        iconImagePath: 'assets/ships/icons/salamander.png',
         unlockCostInCores: 1000,
         metaData: {
           additionalDescription: 'A ship that breathes fire.',

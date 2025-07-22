@@ -7,7 +7,7 @@ import { vanguardSkillTree } from '@/game/ship/skills/registry/definitions/vangu
 import { monarchSkillTree } from '@/game/ship/skills/registry/definitions/monarch';
 import { haloSkillTree } from '@/game/ship/skills/registry/definitions/halo';
 import { godhandSkillTree } from '@/game/ship/skills/registry/definitions/godhand';
-import { salimanderSkillTree } from '@/game/ship/skills/registry/definitions/salimander';
+import { salamanderSkillTree } from '@/game/ship/skills/registry/definitions/salamander';
 
 
 const internalRegistry: Record<string, StarterShipSkillTree> = {
@@ -16,7 +16,7 @@ const internalRegistry: Record<string, StarterShipSkillTree> = {
   [monarchSkillTree.shipId]: monarchSkillTree,
   [haloSkillTree.shipId]: haloSkillTree,
   [godhandSkillTree.shipId]: godhandSkillTree,
-  [salimanderSkillTree.shipId]: salimanderSkillTree,
+  [salamanderSkillTree.shipId]: salamanderSkillTree,
 };
 
 export function getStarterShipSkillTree(shipId: string): StarterShipSkillTree {

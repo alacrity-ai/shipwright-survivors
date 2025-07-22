@@ -99,7 +99,7 @@ export class ShipFactory {
       new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship),
-      new FlameThrowerBackend(this.combatService, this.particleManager)
+      new FlameThrowerBackend(this.combatService, this.particleManager, this.grid)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
@@ -206,7 +206,7 @@ export class ShipFactory {
       new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
       new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
       new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship),
-      new FlameThrowerBackend(this.combatService, this.particleManager)
+      new FlameThrowerBackend(this.combatService, this.particleManager, this.grid)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 

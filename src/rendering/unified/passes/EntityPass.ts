@@ -225,6 +225,7 @@ export class EntityPass {
     gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
     gl.uniform1f(this.uniforms.uTime, time);
     gl.uniform3f(this.uniforms.uAmbientLight, ...this.ambientLight);
+    gl.uniform1f(this.uniforms.uBlockColorIntensity, 1.0); // Or desired factor
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightTexture);

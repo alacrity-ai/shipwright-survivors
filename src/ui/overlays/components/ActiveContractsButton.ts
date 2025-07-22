@@ -19,6 +19,12 @@ import { InputDeviceTracker }       from '@/core/input/InputDeviceTracker';
 
 import { UIButtonTooltipRenderer }  from '@/ui/overlays/components/ButtonTooltip';
 
+import { 
+  openQuestTrackerMenu, 
+  closeQuestTrackerMenu 
+}  from '@/core/interfaces/events/QuestReporter';
+
+
 export class ActiveContractsButton {
   /* ──────────────────────────── state ──────────────────────────── */
   private isHovered = false;
@@ -93,7 +99,6 @@ export class ActiveContractsButton {
     const clickedPad   = this.inputManager.wasActionJustPressed('activeContractsButton');
 
     if (!this.locked && (clickedMouse || clickedPad)) {
-      if (this.globalMenu.isAnyMenuOpen()) return;
       this.activate();
     }
   }
@@ -127,7 +132,7 @@ export class ActiveContractsButton {
     /* tooltip */
     if (this.isHovered) {
       const sw = this.width * this.scale;
-      const hotkey = InputDeviceTracker.getInstance().gamepadLastUsed() ? '(B)' : '(C)';
+      const hotkey = InputDeviceTracker.getInstance().gamepadLastUsed() ? '(B)' : '(Z)';
       this.tooltip.render(hotkey, x, y, sw, this.scale);
     }
   }
@@ -138,9 +143,16 @@ export class ActiveContractsButton {
    * Business wiring deferred.
    */
   private activate(): void {
-    // TODO: Dispatch open‑contracts overlay event / state change.
-    audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 8 });
-    this.pulseController.trigger(0.25, 1);
+    if (this.globalMenu.isAnyMenuOpen()) {
+      if (this.globalMenu.isMenuOpen('questTrackerMenu')) {
+        closeQuestTrackerMenu();
+        return;
+      }
+    } else {
+      openQuestTrackerMenu();
+      audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 8 });
+      this.pulseController.trigger(0.25, 1);
+    }
   }
 
   /* external lock helpers */
