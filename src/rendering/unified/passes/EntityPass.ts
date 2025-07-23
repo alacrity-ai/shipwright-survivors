@@ -12,9 +12,10 @@ import entityFragSrc from '../shaders/entityPass.frag?raw';
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/unified/utils/bufferUtils';
 
+import { MAX_BLOCKS_GL, getSafeUniformCount } from '@/config/graphicsConfig';
+
 const FLOATS_PER_INSTANCE = 12; // 12 float attributes per block
-const MAX_BLOCK_INSTANCES = 8192; // Conservative upper bound for blocks with overlays
-const INSTANCE_BUFFER_SIZE = MAX_BLOCK_INSTANCES * FLOATS_PER_INSTANCE;
+const INSTANCE_BUFFER_SIZE = MAX_BLOCKS_GL * FLOATS_PER_INSTANCE;
 
 export class EntityPass {
   private readonly gl: WebGL2RenderingContext;
@@ -28,6 +29,8 @@ export class EntityPass {
   private tileSize: [number, number];
 
   private frameBudgetMs: number = entityFrameBudgetMs;
+  private maxBlocks: number = MAX_BLOCKS_GL;
+  private instanceBufferSize: number = INSTANCE_BUFFER_SIZE;
 
   private ambientLight: [number, number, number] = [3.2, 3.2, 3.2];
 
@@ -59,6 +62,9 @@ export class EntityPass {
   ) {
     this.gl = gl;
     this.program = createProgramFromSources(gl, entityVertSrc, entityFragSrc);
+
+    this.maxBlocks = Math.min(MAX_BLOCKS_GL, getSafeUniformCount(gl));
+    this.instanceBufferSize = this.maxBlocks * FLOATS_PER_INSTANCE;
 
     const atlas = initializeUnifiedBlockAtlas(gl);
     this.blockAtlasTexture = atlas.texture;
@@ -177,7 +183,7 @@ export class EntityPass {
     useColor: number
   ): void {
     // Bounds check to prevent buffer overflow
-    if (this.dataIndex + FLOATS_PER_INSTANCE > INSTANCE_BUFFER_SIZE) {
+    if (this.dataIndex + FLOATS_PER_INSTANCE > this.instanceBufferSize) {
       console.warn('EntityPass: Instance buffer overflow, skipping remaining blocks');
       return;
     }
@@ -342,7 +348,7 @@ export class EntityPass {
     return {
       bufferSize: INSTANCE_BUFFER_SIZE,
       usedInstances: this.instanceCount,
-      utilization: this.instanceCount / MAX_BLOCK_INSTANCES,
+      utilization: this.instanceCount / this.maxBlocks,
       estimatedMemoryKB
     };
   }

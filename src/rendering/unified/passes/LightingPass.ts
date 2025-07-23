@@ -11,7 +11,8 @@ import lightFragSrc from '@/rendering/unified/shaders/lightingPassInstanced.frag
 import postVertSrc from '@/rendering/unified/shaders/lightingPassPost.vert?raw';
 import postFragSrc from '@/rendering/unified/shaders/lightingPassPost.frag?raw';
 
-const MAX_POINT_LIGHTS = 10000;
+import { MAX_LIGHTS_GL, getSafeUniformCount } from '@/config/graphicsConfig';
+
 const FLOATS_PER_LIGHT = 12; // 3 vec4s: pos+radius, color+intensity, falloff
 const LIGHTBLOCK_BINDING_INDEX = 2;
 
@@ -40,6 +41,7 @@ export class LightingPass {
   private readonly postTextureLoc: WebGLUniformLocation;
   private readonly postMaxBrightnessLoc: WebGLUniformLocation;
 
+  private maxPointLights: number = MAX_LIGHTS_GL;
   private readonly lightData: Float32Array;
 
   private framebuffer: WebGLFramebuffer;
@@ -71,6 +73,8 @@ export class LightingPass {
     this.postTextureLoc = gl.getUniformLocation(this.postProgram, 'uTexture')!;
     this.postMaxBrightnessLoc = gl.getUniformLocation(this.postProgram, 'uMaxBrightness')!;
 
+    this.maxPointLights = Math.min(MAX_LIGHTS_GL, getSafeUniformCount(gl));
+
     this.quadBuffer = createQuadBuffer(gl);
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
@@ -80,7 +84,7 @@ export class LightingPass {
     gl.bindVertexArray(null);
 
     // Prepare Float32Array for all lights
-    this.lightData = new Float32Array(MAX_POINT_LIGHTS * FLOATS_PER_LIGHT);
+    this.lightData = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
 
     // --- Create double-buffered UBOs ---
     const NUM_UBOS = 4; // Increase to 3 if stalls still occur on your GPU
@@ -171,7 +175,7 @@ export class LightingPass {
     gl.bindVertexArray(this.vao);
 
     const { soa, indices, count } = visible;
-    const maxCount = Math.min(count, MAX_POINT_LIGHTS);
+    const maxCount = Math.min(count, this.maxPointLights);
 
     // === Populate CPU buffer directly from master SOA via visible indices ===
     for (let i = 0; i < maxCount; i++) {

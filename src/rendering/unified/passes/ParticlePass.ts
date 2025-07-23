@@ -8,6 +8,7 @@ import particleVertSrc from '@/rendering/unified/shaders/particlePass.vert?raw';
 import particleFragSrc from '@/rendering/unified/shaders/particlePass.frag?raw';
 
 import type { ParticleSOA } from '@/systems/fx/ParticleManager';
+import { MAX_PARTICLES_GL, getSafeUniformCount } from '@/config/graphicsConfig';
 
 export class ParticlePass {
   private readonly gl: WebGL2RenderingContext;
@@ -17,11 +18,14 @@ export class ParticlePass {
   private readonly instanceBuffer: WebGLBuffer;
 
   // Fixed-size buffers to avoid runtime allocations
-  private static readonly MAX_PARTICLES = 30000;
   private readonly dataBuffer: Float32Array;
+
+  private maxParticles: number = MAX_PARTICLES_GL;
 
   constructor(gl: WebGL2RenderingContext, cameraUBO: WebGLBuffer) {
     this.gl = gl;
+
+    this.maxParticles = Math.min(MAX_PARTICLES_GL, getSafeUniformCount(gl));
 
     this.program = createProgramFromSources(gl, particleVertSrc, particleFragSrc);
     this.quadBuffer = createQuadBuffer(gl);
@@ -30,7 +34,8 @@ export class ParticlePass {
 
     // Pre-allocate fixed-size buffers
     const stride = 7;
-    this.dataBuffer = new Float32Array(ParticlePass.MAX_PARTICLES * stride);
+    this.maxParticles = Math.min(MAX_PARTICLES_GL, getSafeUniformCount(gl));
+    this.dataBuffer = new Float32Array(this.maxParticles * stride);
 
     gl.bindVertexArray(this.vao);
 
@@ -64,7 +69,7 @@ export class ParticlePass {
 
     // Pre-allocate GPU buffer at maximum capacity
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, ParticlePass.MAX_PARTICLES * stride * 4, gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, this.maxParticles * stride * 4, gl.DYNAMIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     const cameraBlockIndex = gl.getUniformBlockIndex(this.program, 'CameraMatrices');
@@ -80,7 +85,7 @@ export class ParticlePass {
 
     const stride = 7;
     const data = this.dataBuffer;
-    const maxCount = Math.min(particleData.count, ParticlePass.MAX_PARTICLES);
+    const maxCount = Math.min(particleData.count, this.maxParticles);
 
     let count = 0;
 
@@ -115,7 +120,7 @@ export class ParticlePass {
   }
 
   getMaxParticleCount(): number {
-    return ParticlePass.MAX_PARTICLES;
+    return this.maxParticles;
   }
 
   destroy(): void {
