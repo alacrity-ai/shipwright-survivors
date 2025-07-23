@@ -25,7 +25,7 @@ interface TrackerRow {
 export class QuestTrackerMenu {
   private readonly input: InputManager;
   private readonly cm    = CanvasManager.getInstance();
-  private readonly ctx   = this.cm.getContext('ui');
+  private readonly ctx   = this.cm.getContext('overlay');
 
   private rows: TrackerRow[] = [];
   private open = false;
@@ -87,8 +87,8 @@ export class QuestTrackerMenu {
 
   private resize(): void {
     const scale = getUniformScaleFactor();
-    const vpW = this.cm.getCanvas('ui').width;
-    const vpH = this.cm.getCanvas('ui').height;
+    const vpW = this.cm.getCanvas('overlay').width;
+    const vpH = this.cm.getCanvas('overlay').height;
 
     this.winW = 600 * scale;
     this.winH = 360 * scale;

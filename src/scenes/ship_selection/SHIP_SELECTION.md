@@ -83,8 +83,8 @@ export class ShipSelectionSceneManager {
     if (this.mission) {
       const scale = getUniformScaleFactor();
       this.launchButton = {
-        x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
-        y: this.canvasManager.getContext('ui').canvas.height - (70 * scale),
+        x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
+        y: this.canvasManager.getContext('overlay').canvas.height - (70 * scale),
         width: 360,
         height: 40,
         label: `Launch "${this.mission.name}"`,
@@ -133,7 +133,7 @@ export class ShipSelectionSceneManager {
     this.canvasManager.clearAll();
 
     const bgCtx = this.canvasManager.getContext('background');
-    const uiCtx = this.canvasManager.getContext('ui');
+    const uiCtx = this.canvasManager.getContext('overlay');
     const overlayCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 
@@ -181,8 +181,8 @@ export class ShipSelectionMenu {
     this.inputManager = inputManager;
 
     const scale = getUniformScaleFactor();
-    const viewportWidth = this.canvasManager.getCanvas('ui').width;
-    const viewportHeight = this.canvasManager.getCanvas('ui').height;
+    const viewportWidth = this.canvasManager.getCanvas('overlay').width;
+    const viewportHeight = this.canvasManager.getCanvas('overlay').height;
 
     this.windowWidth = 1000 * scale;
     this.windowHeight = 500 * scale;

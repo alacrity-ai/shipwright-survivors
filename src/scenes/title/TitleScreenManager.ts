@@ -604,8 +604,7 @@ export class TitleScreenManager {
     CanvasManager.getInstance().clearAll();
 
     const uiScale = this.scale;
-    const bgCtx = CanvasManager.getInstance().getContext('background');
-    const uiCtx = CanvasManager.getInstance().getContext('ui');
+    const uiCtx = CanvasManager.getInstance().getContext('overlay');
 
     // Render the Titlescreen Runtime
     if (this.titleScreenRuntime) {

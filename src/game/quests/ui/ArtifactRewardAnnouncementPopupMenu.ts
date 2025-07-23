@@ -38,7 +38,7 @@ enum PopupPhase { PRELOADING, ENTERING, CORRECTING, DISPLAYING, EXITING, CLOSED 
 export class ArtifactRewardAnnouncementPopupMenu {
   /* ——— Dependencies ——— */
   private readonly canvasManager = CanvasManager.getInstance();
-  private readonly ctx           = this.canvasManager.getContext('dialogue');
+  private readonly ctx           = this.canvasManager.getContext('overlay');
 
   /* ——— State ——— */
   private phase: PopupPhase   = PopupPhase.CLOSED;

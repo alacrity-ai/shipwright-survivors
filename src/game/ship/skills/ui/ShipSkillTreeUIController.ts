@@ -154,7 +154,7 @@ export class ShipSkillTreeUIController {
     }
   }
 
-  public render(): void {
+  public async render(): Promise<void> {
     if (!this.currentShip) return;
 
     const ctx = this.canvasManager.getContext('overlay');

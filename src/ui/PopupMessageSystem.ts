@@ -27,7 +27,7 @@ export class PopupMessageSystem {
   } | null = null;
 
   constructor() {
-    this.ctx = CanvasManager.getInstance().getContext('ui');
+    this.ctx = CanvasManager.getInstance().getContext('overlay');
   }
 
   /**

@@ -129,7 +129,7 @@ export class MiniMap {
   }
 
 render(): void {
-  const ctx = this.canvasManager.getContext('ui');
+  const ctx = this.canvasManager.getContext('overlay');
   const currentTime = performance.now();
   const deltaTime = currentTime - this.lastFrameTime;
   this.lastFrameTime = currentTime;

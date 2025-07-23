@@ -253,7 +253,7 @@ export class EngineRuntime {
 
   constructor() {
     this.canvasManager = CanvasManager.getInstance();
-    this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
+    this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
     this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
@@ -985,11 +985,7 @@ export class EngineRuntime {
     if (!this.ship || this.isDestroyed) return;
     const transform = this.ship.getTransform();
 
-    this.canvasManager.clearLayer('fx');
-    this.canvasManager.clearLayer('particles');
-    this.canvasManager.clearLayer('ui');
     this.canvasManager.clearLayer('overlay');
-    this.canvasManager.clearLayer('dialogue');
 
     this.renderables.forEach(system => system.render(dt));
 
@@ -1025,28 +1021,28 @@ export class EngineRuntime {
     }
 
     if (this.shipBuilderMenu.isOpen()) {
-      this.shipBuilderController.render(this.canvasManager.getContext('entities'), transform);
-      this.shipBuilderMenu.render(this.canvasManager.getContext('ui'));
+      this.shipBuilderController.render(this.canvasManager.getContext('overlay'), transform);
+      this.shipBuilderMenu.render(this.canvasManager.getContext('overlay'));
     }
 
     if (this.blockDropDecisionMenu.isOpen()) {
-      this.blockDropDecisionMenu.render(this.canvasManager.getContext('ui'));
-      this.blockPlacementController.render(this.canvasManager.getContext('entities'), transform);
+      this.blockDropDecisionMenu.render(this.canvasManager.getContext('overlay'));
+      this.blockPlacementController.render(this.canvasManager.getContext('overlay'), transform);
     }
 
     if (this.spaceStationBuilderMenu!.isOpen()) {
       if (this.spaceStation) {
-        this.spaceStationBuilderController!.render(this.canvasManager.getContext('entities'), this.spaceStation.getTransform());
-        this.spaceStationBuilderMenu!.render(this.canvasManager.getContext('ui'));
+        this.spaceStationBuilderController!.render(this.canvasManager.getContext('overlay'), this.spaceStation.getTransform());
+        this.spaceStationBuilderMenu!.render(this.canvasManager.getContext('overlay'));
       }
     }
 
     if (this.pauseMenu!.isOpen()) {
-      this.pauseMenu!.render(this.canvasManager.getContext('ui'));
+      this.pauseMenu!.render(this.canvasManager.getContext('overlay'));
     }
 
     if (this.settingsMenu!.isOpen()) {
-      this.settingsMenu!.render(this.canvasManager.getContext('ui'));
+      this.settingsMenu!.render(this.canvasManager.getContext('overlay'));
     }
 
     this.cursorRenderer.render();

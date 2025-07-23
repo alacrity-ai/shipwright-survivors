@@ -16,7 +16,7 @@ export class MultiShipRenderer {
     private readonly cullingSystem: ShipCullingSystem,
     private readonly inputManager: InputManager
   ) {
-    this.ctx = canvasManager.getContext('entities');
+    this.ctx = canvasManager.getContext('overlay');
     this.inputManager = inputManager;
   }
 

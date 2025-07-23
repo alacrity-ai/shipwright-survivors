@@ -167,8 +167,8 @@ export class GalaxyMapSceneManager {
         if (!mission) return;
 
         this.selectedLocationLaunchButton = {
-          x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
-          y: this.canvasManager.getContext('ui').canvas.height / 2 + (140 * scale),
+          x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
+          y: this.canvasManager.getContext('overlay').canvas.height / 2 + (140 * scale),
           width: 360,
           height: 40,
           label: `Choose Loadout`,
@@ -243,7 +243,7 @@ export class GalaxyMapSceneManager {
     this.canvasManager.clearAll();
     const scale = getUniformScaleFactor();
     const bgCtx = this.canvasManager.getContext('background');
-    const uiCtx = this.canvasManager.getContext('ui');
+    const uiCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 
     if (this.backgroundImage) {

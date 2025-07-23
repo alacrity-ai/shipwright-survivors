@@ -6,28 +6,16 @@ import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRenderer
 
 export type CanvasLayer =
   | 'background'
-  | 'entities'
   | 'polygon'
-  | 'fx'
-  | 'particles'
-  | 'ui'
   | 'overlay'
-  | 'dialogue'
   | 'unifiedgl2'
-  | 'gl2fx'
   | 'fade';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
   background: 'background-canvas',
-  entities: 'entity-canvas',
   polygon: 'polygon-canvas',
-  fx: 'fx-canvas',
-  particles: 'particles-canvas',
-  ui: 'ui-canvas',
   overlay: 'overlay-canvas',
-  dialogue: 'dialogue-canvas',
   unifiedgl2: 'unifiedgl2-canvas',
-  gl2fx: 'gl2fx-canvas',
   fade: 'fade-canvas'
 };
 
@@ -66,14 +54,14 @@ export class CanvasManager {
       }
 
       // === 2D Context Initialization ===
-      if (!['polygon', 'unifiedgl2', 'gl2fx'].includes(layer)) {
+      if (!['polygon', 'unifiedgl2'].includes(layer)) {
         const ctx = canvas.getContext('2d', { willReadFrequently: false });
         if (!ctx) throw new Error(`2D context not supported for "${id}"`);
         this.contexts[layer] = ctx;
       }
 
       canvas.style.zIndex = this.getZIndexForLayer(layer).toString();
-      canvas.style.pointerEvents = layer === 'ui' ? 'auto' : 'none';
+      canvas.style.pointerEvents = layer === 'overlay' ? 'auto' : 'none';
       canvas.style.position = 'absolute';
 
       this.canvases[layer] = canvas;
@@ -95,16 +83,10 @@ export class CanvasManager {
   private getZIndexForLayer(layer: CanvasLayer): number {
     switch (layer) {
       case 'background': return 1;
-      case 'polygon': return 3;
-      case 'entities': return 4;
-      case 'unifiedgl2': return 6;
-      case 'fx': return 7;
-      case 'particles': return 8;
-      case 'ui': return 9;
-      case 'gl2fx': return 10;
-      case 'overlay': return 11;
-      case 'dialogue': return 12;
-      case 'fade': return 13;
+      case 'polygon': return 2;
+      case 'unifiedgl2': return 3;
+      case 'overlay': return 4;
+      case 'fade': return 5;
     }
   }
 
@@ -135,8 +117,6 @@ export class CanvasManager {
       this.clearWebGL2Layer(layer);
     } else if (layer === 'polygon') {
       this.clearWebGLLayer(layer);
-    } else if (layer === 'gl2fx') {
-      this.clearWebGL2Layer(layer);
     } else {
       const ctx = this.getContext(layer);
       ctx.clearRect(0, 0, getViewportWidth(), getViewportHeight());

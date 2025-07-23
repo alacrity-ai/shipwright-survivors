@@ -16,6 +16,7 @@ import { createCameraUBO, updateCameraUBO } from '@/rendering/unified/CameraUBO'
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 import { BackgroundPass } from '@/rendering/unified/passes/BackgroundPass';
+import { CloudPass } from '@/rendering/unified/passes/CloudPass';
 import { PlanetPass } from '@/rendering/unified/passes/PlanetPass';
 import { LightingPass } from '@/rendering/unified/passes/LightingPass';
 import { EntityPass } from '@/rendering/unified/passes/EntityPass';
@@ -45,6 +46,8 @@ export class UnifiedSceneRendererGL {
   private readonly gl: WebGL2RenderingContext;
 
   private readonly backgroundPass: BackgroundPass;
+  private readonly cloudPass: CloudPass;
+  private readonly cloudPassFront: CloudPass;
   private readonly planetPass: PlanetPass;
   private readonly lightingPass: LightingPass;
   private readonly firePass: FirePass;
@@ -83,6 +86,10 @@ export class UnifiedSceneRendererGL {
 
   private playerSettings: PlayerSettingsManager;
 
+  private elapsedSeconds = 0;
+  private drawFrontClouds: boolean = false;
+  private drawBackClouds: boolean = false;
+
   constructor(camera: Camera, private readonly inputManager: InputManager) {
     const canvasManager = CanvasManager.getInstance();
     this.gl = canvasManager.getWebGL2Context('unifiedgl2');
@@ -96,6 +103,8 @@ export class UnifiedSceneRendererGL {
 
     // Primary Passes
     this.backgroundPass = new BackgroundPass(this.gl);
+    this.cloudPass = new CloudPass(this.gl);
+    this.cloudPassFront = new CloudPass(this.gl);
     this.planetPass = new PlanetPass(this.gl);
     this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
     this.entityPass = new EntityPass(this.gl, this.inputManager);
@@ -105,6 +114,26 @@ export class UnifiedSceneRendererGL {
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.damageTextPass = new DamageTextPass(this.gl, digitAtlas, this.cameraUBO);
+
+    // // Configure front cloudpass
+    // this.cloudPass.setParams({
+    //   speed: 0.5,
+    //   density: 1.2,
+    //   quantity: 2.0,
+    //   scale: 1.0,
+    //   alpha: 0.10,
+    //   color: [0.0, 1.0, 0.0],
+    // });
+
+    // // Configure front cloudpass
+    // this.cloudPassFront.setParams({
+    //   speed: 0.5,
+    //   density: 1.2,
+    //   quantity: 2.0,
+    //   scale: 3.0,
+    //   alpha: 0.10,
+    //   color: [0.8, 0.8, 0.8],
+    // });
 
     // World FX
     this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
@@ -246,6 +275,8 @@ export class UnifiedSceneRendererGL {
   ): void {
     const gl = this.gl;
 
+    this.elapsedSeconds += dt;
+
     // === Step 1: Update camera matrices ===
     updateCameraUBO(gl, this.cameraUBO, camera);
 
@@ -255,7 +286,15 @@ export class UnifiedSceneRendererGL {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    this.backgroundPass.render(camera.getOffset());
+    const cameraOffset = camera.getOffset();
+
+    // Draw background image
+    this.backgroundPass.render(cameraOffset);
+
+    // Draw procedural parallax clouds atop the background
+    if (this.drawBackClouds) {
+      this.cloudPass.render(this.elapsedSeconds, cameraOffset);
+    }
 
     // === Step 3: Apply background post-processing ===
     const backgroundEffectChain = Array.from(this.backgroundPostProcessEffects.entries()).map(
@@ -308,6 +347,11 @@ export class UnifiedSceneRendererGL {
       if (group.length > 0) {
         this.spritePass.renderBatch(texture, group);
       }
+    }
+
+    // Render front cloud pass
+    if (this.drawFrontClouds) {
+      this.cloudPassFront.render(this.elapsedSeconds, cameraOffset);
     }
 
     // === Step 8: Render particles ===
@@ -367,6 +411,7 @@ export class UnifiedSceneRendererGL {
     gl.deleteTexture(this.backgroundTexture);
 
     this.backgroundPass.destroy();
+    this.cloudPass.destroy();
     this.lightingPass.destroy();
     this.entityPass.destroy();
     this.spritePass.destroy();
@@ -442,6 +487,19 @@ export class UnifiedSceneRendererGL {
   public setBackgroundImage(imageId: string | null): void {
     this.backgroundImageId = imageId;
     this.backgroundPass.loadImage(imageId ?? '');
+  }
+
+  public setBackCloudParams(params: { speed?: number; density?: number; mist?: number }): void {
+    this.cloudPass.setParams(params);
+  }
+
+  public setFrontCloudParams(params: { speed?: number; density?: number; mist?: number }): void {
+    this.cloudPassFront.setParams(params);
+  }
+
+  public setCloudVisibility(back: boolean, front: boolean): void {
+    this.drawBackClouds = back;
+    this.drawFrontClouds = front;
   }
 
   public addPlanet(config: PlanetSpawnConfig, scale: number, imagePath: string): void {

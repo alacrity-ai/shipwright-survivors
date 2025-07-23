@@ -24,7 +24,7 @@ export class ShieldEffectsSystem {
   private shieldedBlocks: Set<BlockInstance> = new Set();
 
   private constructor(canvasManager: CanvasManager, camera: Camera) {
-    this.ctx = canvasManager.getContext('fx');
+    this.ctx = canvasManager.getContext('overlay'); // deprecated, should be webgl2
     this.camera = camera;
   }
 

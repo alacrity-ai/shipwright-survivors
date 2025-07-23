@@ -59,15 +59,9 @@ export default function App() {
   return (
     <div id="canvas-root">
       <canvas id="background-canvas" />
-      <canvas id="entity-canvas" />
       <canvas id="polygon-canvas" />
-      <canvas id="fx-canvas" />
-      <canvas id="particles-canvas" />
       <canvas id="unifiedgl2-canvas" />
-      <canvas id="ui-canvas" />
       <canvas id="overlay-canvas" />
-      <canvas id="dialogue-canvas" />
-      <canvas id="gl2fx-canvas" />
       <canvas id="fade-canvas" />
       {scene === 'mission' && <MissionRuntimeScreen />}
     </div>

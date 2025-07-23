@@ -36,7 +36,7 @@
 //     this.canvasManager = CanvasManager.getInstance();
 
 //     const scale = getUniformScaleFactor();
-//     const viewportWidth = this.canvasManager.getCanvas('ui').width;
+//     const viewportWidth = this.canvasManager.getCanvas('overlay').width;
 
 //     this.windowWidth = this.windowWidth * scale;
 //     this.windowHeight = this.windowHeight * scale;
@@ -99,7 +99,7 @@
 //   render(): void {
 //     if (!this.open) return;
 
-//     const ctx = this.canvasManager.getContext('ui');
+//     const ctx = this.canvasManager.getContext('overlay');
 //     const scale = getUniformScaleFactor();
 
 //     drawWindow({

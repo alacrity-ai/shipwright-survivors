@@ -25,11 +25,18 @@ export function getUniformScaleFactor(): number {
   return Math.min(getWidthScaleFactor(), getHeightScaleFactor());
 }
 
+export function isSteamDeck(): boolean {
+  return getViewportWidth() === 1280 && getViewportHeight() === 800;
+}
+
 export function getResolutionScaleFactor(): number {
   const w = getViewportWidth();
   const h = getViewportHeight();
-  if (w >= 3840) return 1.8;
-  if (w >= 2560) return 1.2;
-  if (h >= 1200) return 1.0;
-  return 0.8;
+
+  if (w >= 3840) return 1.8;        // 4K
+  if (w >= 2560) return 1.2;        // QHD/WQHD
+  if (h >= 1200) return 1.0;        // 1080p and above
+  if (w === 1280 && h === 800) return 0.9;  // Steam Deck (~720p with 16:10)
+  return 0.8;                       // Fallback (low res)
 }
+

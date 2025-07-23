@@ -50,7 +50,7 @@ export class ArtifactCollectionUIController {
 
   constructor(inputManager: InputManager, private currentShipName: string, private slotIndex: 0 | 1 | 2) {
     const canvasManager = CanvasManager.getInstance();
-    this.ctx = canvasManager.getContext('ui');
+    this.ctx = canvasManager.getContext('overlay');
     this.scale = getUniformScaleFactor();
     
     this.uiRenderer = new ArtifactCollectionUIRenderer();
@@ -88,7 +88,7 @@ export class ArtifactCollectionUIController {
         const artifact = sortedArtifacts[index];
 
         const x = GRID_ORIGIN_X * this.scale + col * (tileSize + spacing);
-        const y = GRID_ORIGIN_Y * this.scale + row * (tileSize + spacing);
+        const y = (GRID_ORIGIN_Y * this.scale) + row * (tileSize + spacing);
 
         this.slots.push({
           artifact,
@@ -152,10 +152,10 @@ export class ArtifactCollectionUIController {
     }
   }
 
-  render(): void {
+  async render(): Promise<void> {
     if (!this.ctx) return;
 
-    this.uiRenderer.render(this.ctx, this.getSlots());
+    await this.uiRenderer.render(this.ctx, this.getSlots());
     this.renderTooltip();
   }
 
@@ -223,7 +223,7 @@ export class ArtifactCollectionUIController {
     }
 
     // Add nav point for Close button
-    const ctx = CanvasManager.getInstance().getContext('ui');
+    const ctx = CanvasManager.getInstance().getContext('overlay');
     const canvasWidth = ctx.canvas.width;
     const canvasHeight = ctx.canvas.height;
 

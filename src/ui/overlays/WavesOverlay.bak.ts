@@ -71,7 +71,7 @@
 //   render(): void {
 //     if (this.hidden) return;
 
-//     const ctx = this.canvasManager.getContext('ui');
+//     const ctx = this.canvasManager.getContext('overlay');
 //     const canvas = ctx.canvas;
 
 //     const wave = this.waveOrchestrator.getCurrentWaveNumber();

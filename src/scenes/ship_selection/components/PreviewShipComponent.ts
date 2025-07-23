@@ -52,7 +52,7 @@ export class PreviewShipComponent {
     // Spin or animation handled in renderer
   }
 
-  public render(_ctx: CanvasRenderingContext2D): void {
+  public async render(_ctx: CanvasRenderingContext2D): Promise<void> {
     if (this.currentShip) {
       this.renderer.render(this.currentShip, 1 / 60); // Replace 1/60 with real delta if you track it
     }

@@ -36,7 +36,7 @@ export class DebugOverlay {
 
   render(dt: number): void {
     const DEBUG_MODE = PlayerSettingsManager.getInstance().getDebugMode();
-    const ctx = this.canvasManager.getContext('ui');
+    const ctx = this.canvasManager.getContext('overlay');
     const canvas = ctx.canvas;
 
     // === Label layout

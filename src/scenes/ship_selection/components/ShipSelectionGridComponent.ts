@@ -138,7 +138,7 @@ export class ShipSelectionGridComponent {
     }
   }
 
-  render(ctx: CanvasRenderingContext2D): void {
+  async render(ctx: CanvasRenderingContext2D): Promise<void> {
     if (!this.isInitialized) return;
 
     const pulseAmount = 0 + 0.5 * Math.sin(this.hoverPulseTime * 4); // range: 0.5 → 1.0

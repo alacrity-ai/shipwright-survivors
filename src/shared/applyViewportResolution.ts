@@ -19,14 +19,8 @@ export function applyViewportResolution(
   const height = settings.getViewportHeight();
 
   const canvasIds = [
-    'background-canvas',
-    'entity-canvas',
     'polygon-canvas',
-    'fx-canvas',
-    'particles-canvas',
-    'ui-canvas',
     'overlay-canvas',
-    'dialogue-canvas',
     'unifiedgl2-canvas',
     'gl2fx-canvas',
     'fade-canvas'

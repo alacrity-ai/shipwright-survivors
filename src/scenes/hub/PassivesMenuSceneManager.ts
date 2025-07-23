@@ -111,8 +111,8 @@ export class PassivesMenuSceneManager {
 
     // Center virtual mouse position
     this.inputManager.setVirtualMousePosition(
-      this.canvasManager.getContext('ui').canvas.width / 2,
-      this.canvasManager.getContext('ui').canvas.height / 2
+      this.canvasManager.getContext('overlay').canvas.width / 2,
+      this.canvasManager.getContext('overlay').canvas.height / 2
     );
     // Set virtual mouse speed/sensitivity low
     this.inputManager.setVirtualMouseSpeed(80);
@@ -169,7 +169,7 @@ export class PassivesMenuSceneManager {
     this.canvasManager.clearAll();
 
     const bgCtx = this.canvasManager.getContext('background');
-    const uiCtx = this.canvasManager.getContext('ui');
+    const uiCtx = this.canvasManager.getContext('overlay');
     const overlayCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 

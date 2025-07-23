@@ -89,14 +89,14 @@ export class MissionDialogueManager implements IUpdatable, IRenderable {
   }
 
   public render(): void {
-    const ctx = this.canvasManager.getContext('dialogue');
+    const ctx = this.canvasManager.getContext('overlay');
     this.dialogueQueueManager.render(ctx);
   }
 
   public destroy(): void {
     this.dialogueQueueManager.clear();
     this.dialogueQueueManager.destroy();
-    const ctx = this.canvasManager.getContext('dialogue');
+    const ctx = this.canvasManager.getContext('overlay');
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   }
 }

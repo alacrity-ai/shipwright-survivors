@@ -239,7 +239,7 @@ export class HubSceneManager {
     this.canvasManager.clearAll();
 
     const bgCtx = this.canvasManager.getContext('background');
-    const uiCtx = this.canvasManager.getContext('ui');
+    const uiCtx = this.canvasManager.getContext('overlay');
     const m = this.inputManager.getMousePosition();
 
     if (this.backgroundImage) {

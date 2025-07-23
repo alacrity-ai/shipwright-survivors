@@ -123,7 +123,7 @@ export class BlockQueueDisplayManager {
     private readonly blockDropDecisionMenu: BlockDropDecisionMenu,
     private readonly inputManager: InputManager
   ) {
-    this.ctx = CanvasManager.getInstance().getContext('ui');
+    this.ctx = CanvasManager.getInstance().getContext('overlay');
     this.canvas = this.ctx.canvas;
 
     this.placeBlockButton = new PlaceBlockButton(
@@ -223,7 +223,7 @@ export class BlockQueueDisplayManager {
   /** Call this on resolution change or scale change */
   public resize(): void {
     this.scale = getUniformScaleFactor();
-    const canvas = this.canvasManager.getContext('ui').canvas;
+    const canvas = this.canvasManager.getContext('overlay').canvas;
 
     this.cardWidth = Math.floor(32 * this.scale);
     this.cardHeight = Math.floor(32 * this.scale);

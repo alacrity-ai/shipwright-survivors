@@ -146,7 +146,7 @@ export class HudOverlay {
     if (!this.ship) return;
 
     const scale = getUniformScaleFactor();
-    const ctx = this.canvasManager.getContext('ui');
+    const ctx = this.canvasManager.getContext('overlay');
     const canvas = ctx.canvas;
 
     const barWidth = Math.floor(140 * scale);

@@ -139,7 +139,7 @@ export class TitleScreenRuntime {
 
   constructor() {
     this.canvasManager = CanvasManager.getInstance();
-    this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
+    this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
     this.grid = new Grid();  // Initialize global grid
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
@@ -434,11 +434,8 @@ export class TitleScreenRuntime {
   };
 
   public render = (dt: number) => {
-    this.canvasManager.clearLayer('fx');
-    this.canvasManager.clearLayer('particles');
-    this.canvasManager.clearLayer('ui');
     this.canvasManager.clearLayer('overlay');
-    this.canvasManager.clearLayer('dialogue');
+    this.canvasManager.clearLayer('overlay');
 
     this.renderables.forEach(system => system.render(dt));
 

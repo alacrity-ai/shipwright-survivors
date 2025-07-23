@@ -169,8 +169,8 @@ export class JumpCastProgressPopup {
   // ──────────────────────────────────── helpers ─────────────────────────────────────────
   private resize(): void {
     const scale   = getUniformScaleFactor();
-    const vpW     = this.cvs.getCanvas('ui').width;
-    const vpH     = this.cvs.getCanvas('ui').height;
+    const vpW     = this.cvs.getCanvas('overlay').width;
+    const vpH     = this.cvs.getCanvas('overlay').height;
 
     this.windowW  = 380 * scale;
     this.windowH  = 140 * scale;

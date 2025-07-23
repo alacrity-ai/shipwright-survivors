@@ -56,7 +56,7 @@ export class TradePostMenu {
     this.inputManager = inputManager;
     this.navManager = new GamepadMenuInteractionManager(inputManager);
     this.canvasManager = CanvasManager.getInstance();
-    this.ctx = this.canvasManager.getContext('ui');
+    this.ctx = this.canvasManager.getContext('overlay');
 
     GlobalEventBus.on('tradepost:open', this.boundOpenMenu);
 
@@ -75,8 +75,8 @@ export class TradePostMenu {
 
   resize(): void {
     const scale = getUniformScaleFactor();
-    const viewportWidth = this.canvasManager.getCanvas('ui').width;
-    const viewportHeight = this.canvasManager.getCanvas('ui').height;
+    const viewportWidth = this.canvasManager.getCanvas('overlay').width;
+    const viewportHeight = this.canvasManager.getCanvas('overlay').height;
 
     this.windowWidth = 600 * scale;
     this.windowHeight = 420 * scale;

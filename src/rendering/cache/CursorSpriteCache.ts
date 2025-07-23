@@ -20,6 +20,7 @@ export function drawCursor(
   const scaledWidth = sprite.width * scale;
   const scaledHeight = sprite.height * scale;
 
+  // Draw the cursor sprite centered at the given position
   ctx.drawImage(
     sprite,
     x - scaledWidth / 2,

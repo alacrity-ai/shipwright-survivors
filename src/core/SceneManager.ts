@@ -102,7 +102,7 @@ class SceneManager {
 
   private ensureInputManager(): InputManager {
     this.canvasManager = this.ensureCanvasManager();
-    this.inputManager = new InputManager(this.canvasManager.getCanvas('ui'));
+    this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
     return this.inputManager;
   }
 

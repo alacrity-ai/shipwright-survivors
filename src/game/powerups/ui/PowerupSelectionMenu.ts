@@ -85,7 +85,7 @@ export class PowerupSelectionMenu implements Menu {
     this.levelUpsRemaining = levelUps;
 
     const scale = getUniformScaleFactor();
-    const viewportWidth = this.canvasManager.getCanvas('ui').width;
+    const viewportWidth = this.canvasManager.getCanvas('overlay').width;
 
     this.windowWidth = BASE_WINDOW_WIDTH * scale;
     this.windowHeight = BASE_WINDOW_HEIGHT * scale;
@@ -242,7 +242,7 @@ export class PowerupSelectionMenu implements Menu {
 
       case 'slidingOut':
         this.animatedX += dt * this.SLIDE_OUT_SPEED;
-        if (this.animatedX >= this.canvasManager.getCanvas('ui').width) {
+        if (this.animatedX >= this.canvasManager.getCanvas('overlay').width) {
           this.closeMenu();
           if (this.choice) {
             flags.set('mission.intro-briefing.powerupMenuClosed');
@@ -256,7 +256,7 @@ export class PowerupSelectionMenu implements Menu {
   render(): void {
     if (!this.open) return;
 
-    const ctx = this.canvasManager.getContext('ui');
+    const ctx = this.canvasManager.getContext('overlay');
     const scale = getUniformScaleFactor();
 
     // Calculate selection animation values

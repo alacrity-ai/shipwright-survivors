@@ -37,7 +37,7 @@ enum PopupPhase { ENTERING, CORRECTING, DISPLAYING, EXITING, CLOSED }
 export class CoreRewardAnnouncementPopupMenu {
   /* ——— Dependencies ——— */
   private readonly canvasManager = CanvasManager.getInstance();
-  private readonly ctx           = this.canvasManager.getContext('dialogue');
+  private readonly ctx           = this.canvasManager.getContext('overlay');
 
   /* ——— State ——— */
   private phase: PopupPhase   = PopupPhase.CLOSED;

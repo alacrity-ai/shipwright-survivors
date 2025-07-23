@@ -63,8 +63,8 @@ export class ShipSelectionMenu {
     initializeShipSkillTreeSpriteCache();
 
     const scale = getUniformScaleFactor();
-    const viewportWidth = this.canvasManager.getCanvas('ui').width;
-    const viewportHeight = this.canvasManager.getCanvas('ui').height;
+    const viewportWidth = this.canvasManager.getCanvas('overlay').width;
+    const viewportHeight = this.canvasManager.getCanvas('overlay').height;
 
     this.windowWidth = 1200 * scale;
     this.windowHeight = 560 * scale;
@@ -185,7 +185,7 @@ export class ShipSelectionMenu {
     this.artifactsComponent.update(dt);
   }
 
-  render(uiCtx: CanvasRenderingContext2D, _overlayCtx: CanvasRenderingContext2D): void {
+  async render(uiCtx: CanvasRenderingContext2D, _overlayCtx: CanvasRenderingContext2D): Promise<void> {
     const scale = getUniformScaleFactor();
 
     drawMinimalistWindow(uiCtx, this.windowX, this.windowY, this.windowWidth, this.windowHeight, { ...this.config.window.options, alpha: 0.5 });
@@ -202,18 +202,6 @@ export class ShipSelectionMenu {
         glow: true
       }
     );
-
-    // === Ship Tooltip Rendering ===
-    const hoveredShip = this.gridComponent.getHoveredShip();
-    if (hoveredShip) {
-      const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
-      this.tooltipRenderer.renderTooltip(
-        hoveredShip,
-        mouseX,
-        mouseY,
-        scale
-      );
-    }
 
     // === Preview Ship Name ===
     const selected = this.gridComponent.getSelectedShip();
@@ -307,10 +295,22 @@ export class ShipSelectionMenu {
     });
 
     // === Components ===
-    this.skillTreeController.render();
-    this.previewComponent.render(uiCtx);
-    this.gridComponent.render(uiCtx);
-    this.artifactsComponent.render(uiCtx, selected?.name);
+    await this.skillTreeController.render();
+    await this.previewComponent.render(uiCtx);
+    await this.gridComponent.render(uiCtx);
+    await this.artifactsComponent.render(uiCtx, selected?.name);
+
+    // === Ship Tooltip Rendering ===
+    const hoveredShip = this.gridComponent.getHoveredShip();
+    if (hoveredShip) {
+      const { x: mouseX, y: mouseY } = this.inputManager.getMousePosition();
+      this.tooltipRenderer.renderTooltip(
+        hoveredShip,
+        mouseX,
+        mouseY,
+        scale
+      );
+    }
   }
 
   getColorButtons(): [UIButton, UIButton] {

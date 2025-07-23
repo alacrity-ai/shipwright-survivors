@@ -49,7 +49,7 @@ export class FloatingTextManager {
 
   constructor() {
     const cm  = CanvasManager.getInstance();
-    this.ctx  = cm.getContext('ui');
+    this.ctx  = cm.getContext('overlay');
     this.scale = getUniformScaleFactor() * ADDITIONAL_FONT_SCALE;
   }
 

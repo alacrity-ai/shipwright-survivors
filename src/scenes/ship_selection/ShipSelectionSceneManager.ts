@@ -9,7 +9,7 @@ import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
-import { getUniformScaleFactor } from '@/config/view';
+import { getUniformScaleFactor, isSteamDeck } from '@/config/view';
 import { loadImage } from '@/shared/imageCache';
 
 import { GlobalEventBus } from '@/core/EventBus';
@@ -76,6 +76,8 @@ export class ShipSelectionSceneManager {
   private selectedShipIndex: number = 0;
   private shipSelectionMenu: ShipSelectionMenu;
 
+  private isSteamDeck: boolean = false;
+
   constructor(
     canvasManager: CanvasManager,
     gameLoop: GameLoop,
@@ -88,15 +90,17 @@ export class ShipSelectionSceneManager {
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
     this.mission = mission;
 
+    this.isSteamDeck = isSteamDeck();
+
     const scale = getUniformScaleFactor();
-    const viewportWidth = this.canvasManager.getCanvas('ui').width;
-    const viewportHeight = this.canvasManager.getCanvas('ui').height;
+    const viewportWidth = this.canvasManager.getCanvas('overlay').width;
+    const viewportHeight = this.canvasManager.getCanvas('overlay').height;
     this.windowWidth = 1200 * scale;
     this.windowHeight = 560 * scale;
     this.windowX = (viewportWidth / 2) - (this.windowWidth / 2);
     this.windowY = (viewportHeight / 2) - (this.windowHeight / 2);
 
-    this.uiCtx = this.canvasManager.getContext('ui');
+    this.uiCtx = this.canvasManager.getContext('overlay');
     this.overlayCtx = this.canvasManager.getContext('overlay');
     this.bgCtx = this.canvasManager.getContext('background');
 
@@ -158,15 +162,15 @@ export class ShipSelectionSceneManager {
   }
 
   async start() {
-    initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
+    initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
     this.backgroundImage = await loadImage(BACKGROUND_PATH);
     const scale = getUniformScaleFactor();
 
     if (this.mission) {
       this.launchButton = {
-        x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
-        y: this.canvasManager.getContext('ui').canvas.height - (58 * scale),
+        x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
+        y: this.canvasManager.getContext('overlay').canvas.height - (58 * scale),
         width: 360,
         height: 40,
         label: `Launch "${this.mission.name}"`,
@@ -180,8 +184,8 @@ export class ShipSelectionSceneManager {
     }
 
     this.closeCollectionButton = {
-      x: this.canvasManager.getContext('ui').canvas.width / 2 - (180 * scale),
-      y: this.canvasManager.getContext('ui').canvas.height - (58 * scale),
+      x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
+      y: this.canvasManager.getContext('overlay').canvas.height - (58 * scale),
       width: 360,
       height: 40,
       label: 'Close',
@@ -223,7 +227,7 @@ export class ShipSelectionSceneManager {
     this.gameLoop.offRender(this.render);
     this.shipSelectionMenu.destroy();
     this.gamepadNavManager.clearNavMap();
-    destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('gl2fx'));
+    destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
     CoachMarkManager.getInstance().clear();
 
     GlobalEventBus.off('ui:artifacts:collection-opened', this.handleOpenArtifactsCollection); // Needs to handle the options
@@ -333,7 +337,7 @@ export class ShipSelectionSceneManager {
     }
   }
 
-  private render = () => {
+  private render = async () => {
     const scale = getUniformScaleFactor();
     this.canvasManager.clearAll();
 
@@ -350,12 +354,11 @@ export class ShipSelectionSceneManager {
 
     // === Artifact Collection Mode ===
     if (this.uiMode === 'artifact-collection') {
-      this.artifactCollectionController?.render();
 
       drawLabel(
         this.uiCtx,
         this.windowX + this.windowWidth / 2,
-        this.windowY - 40 * scale,
+        this.windowY - (this.isSteamDeck ? 80 : 40 * scale),
         'Artifact Collection',
         {
           font: `${20 * scale}px monospace`,
@@ -378,7 +381,7 @@ export class ShipSelectionSceneManager {
         drawButton(this.uiCtx, this.launchButton, scale);
       }
 
-      this.shipSelectionMenu.render(this.uiCtx, this.overlayCtx);
+      await this.shipSelectionMenu.render(this.uiCtx, this.overlayCtx);
 
       // Draw Coachmark Label
       if (InputDeviceTracker.getInstance().getLastUsed() === 'gamepad') {
@@ -396,7 +399,9 @@ export class ShipSelectionSceneManager {
         );
       }
     }
-
+    
+    await this.artifactCollectionController?.render();
+    
     if (!this.inputManager.isUsingGamepad()) {
       drawCursor(this.overlayCtx, getCrosshairCursorSprite(), x, y, scale);
     }

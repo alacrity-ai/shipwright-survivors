@@ -57,7 +57,7 @@ export class PlayerExperienceBar {
     this.entropiumForNextLevel = xp.getEntropiumForNextLevel();
 
     const scale = getUniformScaleFactor();
-    const ctx = CanvasManager.getInstance().getContext('ui');
+    const ctx = CanvasManager.getInstance().getContext('overlay');
     const screenX = Math.floor(550 * scale) + Math.floor(80 * scale);
     const y = ctx.canvas.height - Math.floor(100 * scale);
     const screenY = y - Math.floor(12 * scale);
@@ -98,7 +98,7 @@ export class PlayerExperienceBar {
   public render(): void {
     if (this.hidden) return;
 
-    const ctx = CanvasManager.getInstance().getContext('ui');
+    const ctx = CanvasManager.getInstance().getContext('overlay');
     const scale = getUniformScaleFactor();
 
     const barWidth = Math.floor(300 * scale);

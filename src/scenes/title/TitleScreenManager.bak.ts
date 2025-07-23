@@ -390,7 +390,7 @@
 
 //     const uiScale = getUniformScaleFactor();
 //     const bgCtx = this.canvasManager.getContext('background');
-//     const uiCtx = this.canvasManager.getContext('ui');
+//     const uiCtx = this.canvasManager.getContext('overlay');
 
 //     if (this.backgroundImage) {
 //       bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);

@@ -54,7 +54,7 @@ export class AbilityUnlockAnnouncementPopupMenu {
    *  Dependencies & drawing context
    * ────────────────────────────────────────────────────────── */
   private readonly canvasManager = CanvasManager.getInstance();
-  private readonly ctx           = this.canvasManager.getContext('dialogue');
+  private readonly ctx           = this.canvasManager.getContext('overlay');
 
   /* ──────────────────────────────────────────────────────────────
    *  State

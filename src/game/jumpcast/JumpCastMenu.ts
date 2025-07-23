@@ -49,7 +49,7 @@ export class JumpCastMenu {
   private readonly nav: GamepadMenuInteractionManager;
 
   private readonly canvasMgr = CanvasManager.getInstance();
-  private readonly ctx       = this.canvasMgr.getContext('ui');
+  private readonly ctx       = this.canvasMgr.getContext('overlay');
 
   // ────────────────────────── state ──────────────────────────
   private state: MenuState = MenuState.CLOSED;
@@ -256,8 +256,8 @@ export class JumpCastMenu {
   // ────────────────────────── layout helpers ──────────────────────────
   private resize(): void {
     const s            = getUniformScaleFactor();
-    const vpW          = this.canvasMgr.getCanvas('ui').width;
-    const vpH          = this.canvasMgr.getCanvas('ui').height;
+    const vpW          = this.canvasMgr.getCanvas('overlay').width;
+    const vpH          = this.canvasMgr.getCanvas('overlay').height;
 
     this.windowW = 420 * s;
     this.windowH = 420 * s;

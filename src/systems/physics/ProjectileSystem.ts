@@ -310,8 +310,6 @@ export class ProjectileSystem {
         y + size,
         INDEX_TO_FACTION[this.soa.faction[i]]
       );
-      // Add this right after the faction lookup in checkCollisions
-      console.log(`Projectile ${i}: faction=${this.soa.faction[i]} (${INDEX_TO_FACTION[this.soa.faction[i]]}), owner=${this.soa.ownerShipId[i]}, blocks found: ${blocks.length}`);
       let shouldRemove = false;
 
       for (const block of blocks) {
@@ -333,7 +331,6 @@ export class ProjectileSystem {
         if (!hitSet) continue;
 
         if (hitSet.has(obj.id)) continue;
-        console.log(`  Checking collision with obj ${obj.id}, hitSet has: ${Array.from(hitSet).join(',')}`);
 
         // Record the hit BEFORE applying damage
         hitSet.add(obj.id);

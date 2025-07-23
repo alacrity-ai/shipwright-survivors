@@ -238,6 +238,7 @@ export class SettingsMenu implements Menu {
     const currentRes = `${settings.getViewportWidth()}x${settings.getViewportHeight()}`;
 
     const resolutionItems = [
+      { label: '1280x800', value: '1280x800' },
       { label: '1920x1080', value: '1920x1080' },
       { label: '1920x1200', value: '1920x1200' },
       { label: '2560x1440', value: '2560x1440' },

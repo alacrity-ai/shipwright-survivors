@@ -72,7 +72,7 @@ export class PlanetInteractionOptionsMenu {
   constructor(input: InputManager) {
     this.input = input;
     this.cm    = CanvasManager.getInstance();
-    this.ctx   = this.cm.getContext('ui');
+    this.ctx   = this.cm.getContext('overlay');
     this.nav   = new GamepadMenuInteractionManager(this.input);
 
     /* ---------- Button Definitions ---------- */
@@ -257,8 +257,8 @@ export class PlanetInteractionOptionsMenu {
 
   private resize(): void {
     const scale = getUniformScaleFactor();
-    const vpW = this.cm.getCanvas('ui').width;
-    const vpH = this.cm.getCanvas('ui').height;
+    const vpW = this.cm.getCanvas('overlay').width;
+    const vpH = this.cm.getCanvas('overlay').height;
 
     this.winW = 320 * scale;
     this.winH = 300 * scale;  // ↑ slightly taller for extra button

@@ -20,7 +20,7 @@ export class AsteroidRenderer {
     private readonly cullingSystem: CompositeBlockObjectCullingSystem,
     private readonly inputManager: InputManager
   ) {
-    this.ctx = canvasManager.getContext('entities');
+    this.ctx = canvasManager.getContext('overlay');
   }
 
   render(): void {

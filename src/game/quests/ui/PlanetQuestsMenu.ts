@@ -44,7 +44,7 @@ export class PlanetQuestsMenu {
   private readonly input      : InputManager;
   private readonly nav        : GamepadMenuInteractionManager;
   private readonly cm         = CanvasManager.getInstance();
-  private readonly ctx        = this.cm.getContext('ui');
+  private readonly ctx        = this.cm.getContext('overlay');
 
   /* ---------- Window geometry ---------- */
   private winX = 0; private winY = 0;
@@ -137,8 +137,8 @@ export class PlanetQuestsMenu {
    * ──────────────────────────────────────────── */
   private resize(): void {
     const scale = getUniformScaleFactor();
-    const vpW   = this.cm.getCanvas('ui').width;
-    const vpH   = this.cm.getCanvas('ui').height;
+    const vpW   = this.cm.getCanvas('overlay').width;
+    const vpH   = this.cm.getCanvas('overlay').height;
 
     this.winW = 680 * scale;
     this.winH = 420 * scale;

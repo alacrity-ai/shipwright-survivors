@@ -450,7 +450,7 @@ export class DebriefingSceneManager {
 
     this.canvasManager.clearAll();
 
-    const uiCtx = this.canvasManager.getContext('ui');
+    const uiCtx = this.canvasManager.getContext('overlay');
     const scale = getUniformScaleFactor();
 
     this.headerLabel.render(uiCtx, scale);
