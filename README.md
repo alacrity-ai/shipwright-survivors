@@ -125,6 +125,9 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] Turret weapon just feels weak. I think it's time to upgrade implicit weapons, and make it an insta super accurate machine gun on the turret ship.
+  - [ ] Await loading of images (artifacts and ships) in tradepost menu so cursor is on top.
+
   - [ ] AI Phase 2
       Kill Per-Frame Blind Zeroing:
     Instead of zeroIntentSlot on every frame, have each state guarantee it fully overwrites all its fields (which updateSOA already does).

@@ -2,6 +2,7 @@
 
 import { BlockStore } from '@/game/blocks/system/BlockStore';
 
+
 /**
  * Transform interface for ship positioning and rotation
  */
@@ -21,6 +22,7 @@ export interface CreateBlockParams {
   localX: number;  // ship-relative grid X
   localY: number;  // ship-relative grid Y
   localRotation?: number; // block's local rotation relative to ship
+  overlayRotation?: number; // for turrets, etc. not "rotated" with the turret, instead aims to x,y coords.
   blockTypeId?: string; // for looking up armor/hp from registry
 }
 
@@ -39,6 +41,8 @@ export interface BlockSpatialGrid {
   registerBlock(index: number, worldX: number, worldY: number): void;
   deregisterBlock(index: number): void;
   rehomeBlockIndex(index: number, worldX: number, worldY: number): void;
+  getBlocksInArea(minX: number, minY: number, maxX: number, maxY: number): Uint32Array;
+  clear(): void;
 }
 
 /**
@@ -99,6 +103,7 @@ export class BlockOrchestrator {
     this.store.localY[index] = params.localY;
     this.store.localRotation[index] = localRotation; // Local rotation relative to ship
     this.store.rotation[index] = localRotation;      // World rotation placeholder (updated later)
+    this.store.overlayRotation[index] = params.overlayRotation ?? 0;
     this.store.hp[index] = initialHp;
 
     // Initialize other state fields
@@ -355,6 +360,7 @@ export class BlockOrchestrator {
       },
       rotation: this.store.rotation[index],
       localRotation: this.store.localRotation[index],
+      overlayRotation: this.store.overlayRotation[index],
       destroyed: this.store.destroyed[index] === 1,
       indestructible: this.store.indestructible[index] === 1,
       hidden: this.store.hidden[index] === 1,
@@ -401,6 +407,7 @@ export class BlockOrchestrator {
     // For larger worlds, you might need a different approach (e.g., string keys)
     return (cellX & 0xFFFF) | ((cellY & 0xFFFF) << 16);
   }
+  
   /**
    * @param shipId Ship ID
    * @param blockIndex Block index to add

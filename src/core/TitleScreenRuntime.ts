@@ -6,6 +6,7 @@ import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalMenuReporter } from './GlobalMenuReporter';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -84,6 +85,8 @@ export class TitleScreenRuntime {
 
   private isInitialized = false;
 
+  private blockManager: BlockManager;
+
   private inputManager: InputManager;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
 
@@ -140,6 +143,8 @@ export class TitleScreenRuntime {
   constructor() {
     this.canvasManager = CanvasManager.getInstance();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
+    this.blockManager = BlockManager.initialize();
+
     this.grid = new Grid();  // Initialize global grid
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
@@ -512,6 +517,7 @@ export class TitleScreenRuntime {
     SpriteRendererGL.destroyInstance();
     GlobalMenuReporter.getInstance().destroy();
     DamageTextManager.getInstance().clear();
+    this.blockManager.clear();
 
     // Additional cleanup
     this.pickupSystem.destroy();

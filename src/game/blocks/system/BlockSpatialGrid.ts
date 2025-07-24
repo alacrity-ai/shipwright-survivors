@@ -30,7 +30,7 @@ export class BlockSpatialGrid {
 
     // Reverse lookup: which cell a block is currently in (0 if none).
     this.blockToCellKey = new Int32Array(store.capacity);
-    this.blockToCellKey.fill(0);
+    this.blockToCellKey.fill(-1);
   }
 
   /**
@@ -51,9 +51,14 @@ export class BlockSpatialGrid {
    */
   deregisterBlock(index: number): void {
     const cellKey = this.blockToCellKey[index];
-    if (!cellKey) return; // Not registered
+    if (cellKey === -1) return; // Not registered
     this.removeFromCell(cellKey, index);
-    this.blockToCellKey[index] = 0;
+    this.blockToCellKey[index] = -1;
+  }
+
+  /** Returns true if the block is registered in the grid. */
+  public isRegistered(index: number): boolean {
+    return this.blockToCellKey[index] !== -1;
   }
 
   /**
@@ -67,7 +72,7 @@ export class BlockSpatialGrid {
     const oldCellKey = this.blockToCellKey[index];
     if (newCellKey === oldCellKey) return;
 
-    if (oldCellKey) {
+    if (oldCellKey !== -1) {
       this.removeFromCell(oldCellKey, index);
     }
     this.addToCell(newCellKey, index);
@@ -175,6 +180,6 @@ export class BlockSpatialGrid {
   clear(): void {
     this.cells.clear();
     this.cellCounts.clear();
-    this.blockToCellKey.fill(0);
+    this.blockToCellKey.fill(-1);
   }
 }

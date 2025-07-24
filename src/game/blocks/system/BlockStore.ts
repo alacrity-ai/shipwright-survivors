@@ -20,6 +20,7 @@ export class BlockStore {
   public readonly worldY: Float32Array;
   public readonly rotation: Float32Array;       // World rotation (composed)
   public readonly localRotation: Float32Array;  // Rotation relative to ship
+  public readonly overlayRotation: Float32Array; // Rotation relative to ship, for turrets, etc.
   public readonly hidden: Uint8Array;
 
   // Combat / State arrays
@@ -57,6 +58,7 @@ export class BlockStore {
     this.worldY = new Float32Array(capacity);
     this.rotation = new Float32Array(capacity);
     this.localRotation = new Float32Array(capacity);
+    this.overlayRotation = new Float32Array(capacity);
     this.hidden = new Uint8Array(capacity);
 
     // Combat / State
@@ -123,6 +125,7 @@ export class BlockStore {
     this.worldY[index] = 0;
     this.rotation[index] = 0;
     this.localRotation[index] = 0;
+    this.overlayRotation[index] = 0;
     this.hidden[index] = 0;
 
     this.hp[index] = 0;
@@ -168,6 +171,7 @@ export class BlockStore {
     this.worldY.fill(0);
     this.rotation.fill(0);
     this.localRotation.fill(0);
+    this.overlayRotation.fill(0);
     this.hidden.fill(0);
 
     this.hp.fill(0);

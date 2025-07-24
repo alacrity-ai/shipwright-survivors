@@ -66,7 +66,7 @@ Path: `src/game/blocks/system/BlockStore.ts`
     
 - Provides **typed arrays** for every field:
     
-    - Spatial: `localX`, `localY`, `worldX`, `worldY`, `rotation`, `localRotation`
+    - Spatial: `localX`, `localY`, `worldX`, `worldY`, `rotation`, `localRotation`, `overlayRotation`
         
     - State: `hp`, `destroyed`, `indestructible`, `cooldown`
         

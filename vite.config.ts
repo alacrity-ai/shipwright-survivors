@@ -20,6 +20,16 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, 'src'),
         '/static': path.resolve(__dirname, 'public/static'),
       }
-    }
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      include: ['**/*.test.ts'],
+      exclude: ['**/test/integration/**', '**/test/live/**'],
+      coverage: {
+        reporter: ['text', 'html'],
+        reportsDirectory: 'coverage',
+      },
+    },
   };
 });

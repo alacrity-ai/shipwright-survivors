@@ -5,6 +5,7 @@ import { getViewportWidth, getViewportHeight, getUniformScaleFactor } from '@/co
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { audioManager } from '@/audio/Audio';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
@@ -163,6 +164,8 @@ export class EngineRuntime {
 
   private isInitialized = false;
 
+  private blockManager: BlockManager;
+
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager | null = null;
   private coachMarkManager: CoachMarkManager | null = null;
@@ -259,6 +262,7 @@ export class EngineRuntime {
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
+    this.blockManager = BlockManager.initialize();
 
     PowerupRegistry.initialize();
 
@@ -1164,6 +1168,7 @@ export class EngineRuntime {
     this.waveOrchestrator!.destroy();
     this.shipRegistry.clear();
     this.aiOrchestrator.clear();
+    this.blockManager.clear();
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();
