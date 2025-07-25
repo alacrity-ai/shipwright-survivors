@@ -30,7 +30,7 @@ export class BlockStore {
   public readonly cooldown: Float32Array;
 
   // Ownership & Typing arrays
-  public readonly ownerShipId: Int32Array;
+  public readonly ownerShipId: Float64Array;
   public readonly ownerFaction: Uint8Array; // 1=Player, 2=Enemy, 3=Neutral
   public readonly typeIndex: Int32Array;
 
@@ -85,7 +85,7 @@ export class BlockStore {
     this.cooldown = new Float32Array(capacity);
 
     // Ownership & Typing
-    this.ownerShipId = new Int32Array(capacity);
+    this.ownerShipId = new Float64Array(capacity);
     this.ownerFaction = new Uint8Array(capacity);
     this.typeIndex = new Int32Array(capacity);
 

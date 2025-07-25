@@ -5,7 +5,9 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import { getAffixesSafe } from '@/game/ship/utils/getAffixesSafe';
 
-import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
+
 import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 
@@ -16,24 +18,63 @@ interface AABB {
   height: number;
 }
 
+interface Vec2 {
+  x: number;
+  y: number;
+}
+
+interface BlockCacheEntry {
+  idx: number;
+  localX: number;
+  localY: number;
+}
+
 export class BlockObjectCollisionSystem {
   private static readonly BLOCK_SIZE = 32;
-  private static readonly PENETRATION_SLOP = 4; // pixels allowed to overlap before correction
-  private static readonly PENETRATION_CORRECTION_RATIO = 0.4; // percent of MSV to resolve per frame
-  private static readonly RESTITUTION = 0.2; // 0 = inelastic, 1 = elastic
-  private static readonly IMPULSE_EPSILON = 0.05; // minimum impulse magnitude to apply
+  private static readonly PENETRATION_SLOP = 4;
+  private static readonly PENETRATION_CORRECTION_RATIO = 0.4;
+  private static readonly RESTITUTION = 0.2;
+  private static readonly IMPULSE_EPSILON = 0.05;
   private static readonly MAX_OVERLAP_PAIRS = 10;
 
-  // Cache now stores only Uint32Array of block indices
-  private _blockCache = new Map<CompositeBlockObject, Uint32Array>();
-  private readonly store: BlockStore
+  // Block cache - stores full block data when needed
+  private _blockCache = new Map<CompositeBlockObject, BlockCacheEntry[]>();
+  
+  // Index-only cache for AABB computation
+  private _indexCache = new Map<CompositeBlockObject, Uint32Array>();
+  
+  private readonly _seenOwnerIds: Float64Array;
+
+  private readonly _damageBuffer: {
+    target: CompositeBlockObject;
+    source: CompositeBlockObject;
+    idx: number;
+    x: number;
+    y: number;
+    amount: number;
+  }[] = [];
+
+  private readonly _scratchAABB: AABB = { x: 0, y: 0, width: 0, height: 0 };
+  private readonly _scratchAABB2: AABB = { x: 0, y: 0, width: 0, height: 0 };
+  private readonly _scratchCoord: Vec2 = { x: 0, y: 0 };
+  private readonly _scratchCoord2: Vec2 = { x: 0, y: 0 };
+  
+  // Reusable array for nearby objects (avoid Set allocation)
+  private readonly _nearbyObjectsBuffer: CompositeBlockObject[] = [];
+
+  private readonly store: BlockStore;
 
   constructor(private readonly combatService: CombatService) {
     this.store = BlockManager.getInstance().getBlockStore();
+
+    // Assume a reasonable max number of objects (expandable if needed)
+    const MAX_OWNER_IDS = 8192; 
+    this._seenOwnerIds = new Float64Array(MAX_OWNER_IDS);
   }
 
   public resolveCollisions(movingObject: CompositeBlockObject): void {
-    this._blockCache.clear(); // Critical to ensure per-frame freshness
+    this._blockCache.clear();
+    this._indexCache.clear();
 
     const nearbyObjects = this.getNearbyObjects(movingObject);
     for (const otherObject of nearbyObjects) {
@@ -53,50 +94,95 @@ export class BlockObjectCollisionSystem {
     }
   }
 
-  /**
-   * Returns the cached list of block indices for a composite object,
-   * sourced from the orchestrator (always a Uint32Array, no allocations).
-   */
-  private getCachedBlocks(obj: CompositeBlockObject): Uint32Array {
+  private getCachedBlocks(obj: CompositeBlockObject): BlockCacheEntry[] {
     const cached = this._blockCache.get(obj);
     if (cached) return cached;
 
-    const indices = obj.getAllBlockIndices(); // already a Uint32Array
-    this._blockCache.set(obj, indices);
+    const indices = obj.getAllBlockIndices();
+    const store = this.store;
+    const result: BlockCacheEntry[] = [];
+
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      result.push({
+        idx,
+        localX: store.localX[idx],
+        localY: store.localY[idx],
+      });
+    }
+
+    this._blockCache.set(obj, result);
+    return result;
+  }
+
+  private getCachedIndices(obj: CompositeBlockObject): Uint32Array {
+    const cached = this._indexCache.get(obj);
+    if (cached) return cached;
+
+    const indices = obj.getAllBlockIndices();
+    this._indexCache.set(obj, indices);
     return indices;
   }
 
   public clearCache(): void {
     this._blockCache.clear();
+    this._indexCache.clear();
   }
 
   private getNearbyObjects(target: CompositeBlockObject): CompositeBlockObject[] {
-    const aabb = this.computeAABB(target);
+    // Reset dedup list per frame (just reset length, don’t fill array)
+    let seenCount = 0;
+
+    // Compute target AABB
+    this.computeAABBInPlace(target, this._scratchAABB);
 
     const grid = target.getGrid();
     const nearbyIndices = grid.getBlocksInArea(
-      aabb.x,
-      aabb.y,
-      aabb.x + aabb.width,
-      aabb.y + aabb.height
+      this._scratchAABB.x,
+      this._scratchAABB.y,
+      this._scratchAABB.x + this._scratchAABB.width,
+      this._scratchAABB.y + this._scratchAABB.height
     );
 
-    const nearbyObjects = new Set<CompositeBlockObject>();
+    const store = this.store;
+    this._nearbyObjectsBuffer.length = 0;
 
-    for (let i = 0; i < nearbyIndices.length; i++) {
+    scan: for (let i = 0; i < nearbyIndices.length; i++) {
       const idx = nearbyIndices[i];
-      const obj = BlockToObjectIndex.getObject(idx); // Registry maps SOA index → object
-      if (!obj || obj === target) continue;
+      const ownerId = store.ownerShipId[idx];
+      if (ownerId === target.numericId) continue;
 
-      nearbyObjects.add(obj);
+      // Deduplicate via linear search (safe even for 64-bit IDs)
+      for (let j = 0; j < seenCount; j++) {
+        if (this._seenOwnerIds[j] === ownerId) {
+          continue scan; // Already seen
+        }
+      }
+
+      // Add new owner
+      this._seenOwnerIds[seenCount++] = ownerId;
+
+      // Resolve object
+      let obj = ShipRegistry.getInstance().getByNumericId(ownerId) as CompositeBlockObject | undefined;
+      if (!obj) {
+        obj = CompositeBlockObjectRegistry.getInstance().getByNumericId(ownerId);
+      }
+      if (obj) {
+        this._nearbyObjectsBuffer.push(obj);
+      }
     }
 
-    return Array.from(nearbyObjects);
+    return this._nearbyObjectsBuffer;
   }
 
   private aabbOverlap(a: CompositeBlockObject, b: CompositeBlockObject): boolean {
-    const aBox = this.computeAABB(a);
-    const bBox = this.computeAABB(b);
+    // Compute AABBs for both objects into scratch slots
+    this.computeAABBInPlace(a, this._scratchAABB);
+    this.computeAABBInPlace(b, this._scratchAABB2);
+
+    const aBox = this._scratchAABB;
+    const bBox = this._scratchAABB2;
+
     return !(
       aBox.x + aBox.width < bBox.x ||
       aBox.x > bBox.x + bBox.width ||
@@ -105,68 +191,67 @@ export class BlockObjectCollisionSystem {
     );
   }
 
-  private computeAABB(obj: CompositeBlockObject): AABB {
-    const indices = this.getCachedBlocks(obj);
-
+  private computeAABBInPlace(obj: CompositeBlockObject, result: AABB): void {
+    const indices = this.getCachedIndices(obj);
+    const store = this.store;
+    
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
     for (let i = 0; i < indices.length; i++) {
       const idx = indices[i];
-      const x = this.store.worldX[idx];
-      const y = this.store.worldY[idx];
+      const x = store.worldX[idx];
+      const y = store.worldY[idx];
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
       minY = Math.min(minY, y);
       maxY = Math.max(maxY, y);
     }
 
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX + BlockObjectCollisionSystem.BLOCK_SIZE,
-      height: maxY - minY + BlockObjectCollisionSystem.BLOCK_SIZE,
-    };
+    result.x = minX;
+    result.y = minY;
+    result.width = maxX - minX + BlockObjectCollisionSystem.BLOCK_SIZE;
+    result.height = maxY - minY + BlockObjectCollisionSystem.BLOCK_SIZE;
   }
 
   private computeMinimumSeparationVector(
     a: CompositeBlockObject,
     b: CompositeBlockObject
   ): { x: number; y: number } | null {
-    const overlapPairs: { a: { x: number; y: number }, b: { x: number; y: number } }[] = [];
-
     const store = this.store;
-    const indicesA = this.getCachedBlocks(a);
-    const indicesB = this.getCachedBlocks(b);
+    const blocksA = this.getCachedBlocks(a);
+    const blocksB = this.getCachedBlocks(b);
 
-    outer: for (let i = 0; i < indicesA.length; i++) {
-      const idxA = indicesA[i];
-      const posA = { x: store.worldX[idxA], y: store.worldY[idxA] };
+    let overlapCount = 0;
+    let dx = 0, dy = 0;
 
-      for (let j = 0; j < indicesB.length; j++) {
-        const idxB = indicesB[j];
-        const posB = { x: store.worldX[idxB], y: store.worldY[idxB] };
+    // Process overlaps directly without building array
+    outer: for (let i = 0; i < blocksA.length; i++) {
+      const idxA = blocksA[i].idx;
+      const worldXA = store.worldX[idxA];
+      const worldYA = store.worldY[idxA];
 
-        if (this.blocksOverlap(posA, posB)) {
-          overlapPairs.push({ a: posA, b: posB });
-          if (overlapPairs.length >= BlockObjectCollisionSystem.MAX_OVERLAP_PAIRS) {
+      for (let j = 0; j < blocksB.length; j++) {
+        const idxB = blocksB[j].idx;
+        const worldXB = store.worldX[idxB];
+        const worldYB = store.worldY[idxB];
+
+        if (this.blocksOverlapDirect(worldXA, worldYA, worldXB, worldYB)) {
+          dx += worldXA - worldXB;
+          dy += worldYA - worldYB;
+          overlapCount++;
+          
+          if (overlapCount >= BlockObjectCollisionSystem.MAX_OVERLAP_PAIRS) {
             break outer;
           }
         }
       }
     }
 
-    if (overlapPairs.length === 0) return null;
+    if (overlapCount === 0) return null;
 
-    let dx = 0, dy = 0;
-    for (const pair of overlapPairs) {
-      dx += pair.a.x - pair.b.x;
-      dy += pair.a.y - pair.b.y;
-    }
-
-    const n = overlapPairs.length;
-    dx /= n;
-    dy /= n;
+    dx /= overlapCount;
+    dy /= overlapCount;
 
     const mag = Math.sqrt(dx * dx + dy * dy);
     if (mag === 0) return null;
@@ -182,11 +267,11 @@ export class BlockObjectCollisionSystem {
     };
   }
 
-  private blocksOverlap(posA: { x: number; y: number }, posB: { x: number; y: number }): boolean {
+  private blocksOverlapDirect(x1: number, y1: number, x2: number, y2: number): boolean {
     const size = BlockObjectCollisionSystem.BLOCK_SIZE;
     return (
-      Math.abs(posA.x - posB.x) < size &&
-      Math.abs(posA.y - posB.y) < size
+      Math.abs(x1 - x2) < size &&
+      Math.abs(y1 - y2) < size
     );
   }
 
@@ -202,20 +287,16 @@ export class BlockObjectCollisionSystem {
     const tB = b.getTransform();
 
     if (immovableA && immovableB) {
-      // Both are immoveable; no resolution
       return;
     } else if (immovableA) {
-      // A is fixed, push only B
       tB.position.x -= msv.x;
       tB.position.y -= msv.y;
       b.updateBlockPositions();
     } else if (immovableB) {
-      // B is fixed, push only A
       tA.position.x += msv.x;
       tA.position.y += msv.y;
       a.updateBlockPositions();
     } else {
-      // Both are movable; split displacement proportionally
       const massA = a.getTotalMass();
       const massB = b.getTotalMass();
       const totalMass = massA + massB || 1;
@@ -271,7 +352,6 @@ export class BlockObjectCollisionSystem {
     const damping = 0.95;
 
     if (immovableA && immovableB) {
-      // Do nothing; both objects fixed
       return;
     } else if (immovableA) {
       vB.x += impulseX;
@@ -298,88 +378,79 @@ export class BlockObjectCollisionSystem {
 
   private applyCollisionDamage(a: CompositeBlockObject, b: CompositeBlockObject): void {
     const relativeVelocity = this.computeRelativeVelocity(a, b);
-    const speed = Math.sqrt(relativeVelocity.x ** 2 + relativeVelocity.y ** 2);
+    const speed = Math.sqrt(relativeVelocity.x * relativeVelocity.x + relativeVelocity.y * relativeVelocity.y);
 
+    // Early out if relative speed is too low
     const minDamageSpeed = 70;
-    const softCapSpeed = 1500;
-    const maxDamage = 50;
-
     if (speed < minDamageSpeed) return;
 
+    // Precompute base damage scaling
+    const softCapSpeed = 1500;
+    const maxDamage = 50;
     const clampedSpeed = Math.min(speed, softCapSpeed);
     const normalized = (clampedSpeed - minDamageSpeed) / (softCapSpeed - minDamageSpeed);
-    const curveExponent = 1.35;
-    const baseDamage = Math.pow(normalized, curveExponent) * maxDamage;
+    const baseDamage = Math.pow(normalized, 1.35) * maxDamage;
 
     const store = this.store;
-    const indicesA = this.getCachedBlocks(a);
-    const indicesB = this.getCachedBlocks(b);
+    const blocksA = this.getCachedBlocks(a);
+    const blocksB = this.getCachedBlocks(b);
+
+    // Cache affixes once
+    const affixesA = getAffixesSafe(a) ?? {};
+    const affixesB = getAffixesSafe(b) ?? {};
 
     let blocksDamaged = 0;
     const MAX_BLOCK_DAMAGE = 10;
 
-    outer: for (let i = 0; i < indicesA.length; i++) {
-      const idxA = indicesA[i];
-      const posA = { x: store.worldX[idxA], y: store.worldY[idxA] };
+    this._damageBuffer.length = 0;
+
+    outer: for (let i = 0; i < blocksA.length; i++) {
+      const { idx: idxA, localX: localXA, localY: localYA } = blocksA[i];
+      const worldXA = store.worldX[idxA];
+      const worldYA = store.worldY[idxA];
       const typeA = getBlockTypeByIndex(store.typeIndex[idxA]);
       const behaviorA = typeA?.behavior ?? {};
 
-      for (let j = 0; j < indicesB.length; j++) {
-        const idxB = indicesB[j];
-        const posB = { x: store.worldX[idxB], y: store.worldY[idxB] };
+      for (let j = 0; j < blocksB.length; j++) {
+        const { idx: idxB, localX: localXB, localY: localYB } = blocksB[j];
+        const worldXB = store.worldX[idxB];
+        const worldYB = store.worldY[idxB];
         const typeB = getBlockTypeByIndex(store.typeIndex[idxB]);
         const behaviorB = typeB?.behavior ?? {};
 
-        if (!this.blocksOverlap(posA, posB)) continue;
+        if (!this.blocksOverlapDirect(worldXA, worldYA, worldXB, worldYB)) continue;
 
-        // === Behavior-derived multipliers ===
+        // Precompute multipliers
         const damageMultiplierA = behaviorA.rammingDamageMultiplier ?? 1;
         const damageMultiplierB = behaviorB.rammingDamageMultiplier ?? 1;
 
         const baseArmorA = behaviorA.rammingArmor ?? 0;
         const baseArmorB = behaviorB.rammingArmor ?? 0;
 
-        // === Affix lookups ===
-        const affixesA = getAffixesSafe(a) ?? {};
-        const affixesB = getAffixesSafe(b) ?? {};
+        const effectiveArmorA = baseArmorA * (affixesA.rammingArmorMultiplier ?? 1);
+        const effectiveArmorB = baseArmorB * (affixesB.rammingArmorMultiplier ?? 1);
 
         const inflictMultiplierA = affixesA.rammingDamageInflictMultiplier ?? 1;
         const inflictMultiplierB = affixesB.rammingDamageInflictMultiplier ?? 1;
 
-        const armorMultiplierA = affixesA.rammingArmorMultiplier ?? 1;
-        const armorMultiplierB = affixesB.rammingArmorMultiplier ?? 1;
+        const damageToB = Math.max(0, baseDamage * damageMultiplierA * inflictMultiplierA - effectiveArmorB);
+        const damageToA = Math.max(0, baseDamage * damageMultiplierB * inflictMultiplierB - effectiveArmorA);
 
-        const effectiveArmorA = baseArmorA * armorMultiplierA;
-        const effectiveArmorB = baseArmorB * armorMultiplierB;
+        // Queue both hits
+        this._damageBuffer.push({ target: b, source: a, idx: idxB, x: localXB, y: localYB, amount: damageToB });
+        this._damageBuffer.push({ target: a, source: b, idx: idxA, x: localXA, y: localYA, amount: damageToA });
 
-        // === Apply damage symmetrically ===
-
-        // Damage to B from A
-        const rawToB = baseDamage * damageMultiplierA * inflictMultiplierA;
-        const reducedToB = Math.max(0, rawToB - effectiveArmorB);
-
-        const coordB = {
-          x: store.localX[idxB],
-          y: store.localY[idxB],
-        };
-
-        this.combatService.applyDamageToBlock(b, a, idxB, coordB, reducedToB, 'collision');
-        blocksDamaged++;
-        if (blocksDamaged >= MAX_BLOCK_DAMAGE) break outer;
-
-        // Damage to A from B
-        const rawToA = baseDamage * damageMultiplierB * inflictMultiplierB;
-        const reducedToA = Math.max(0, rawToA - effectiveArmorA);
-
-        const coordA = {
-          x: store.localX[idxA],
-          y: store.localY[idxA],
-        };
-
-        this.combatService.applyDamageToBlock(a, b, idxA, coordA, reducedToA, 'collision');
-        blocksDamaged++;
+        blocksDamaged += 2;
         if (blocksDamaged >= MAX_BLOCK_DAMAGE) break outer;
       }
+    }
+
+    // Flush queued damage
+    for (let i = 0; i < this._damageBuffer.length; i++) {
+      const d = this._damageBuffer[i];
+      this._scratchCoord.x = d.x;
+      this._scratchCoord.y = d.y;
+      this.combatService.applyDamageToBlock(d.target, d.source, d.idx, this._scratchCoord, d.amount, 'collision');
     }
   }
 

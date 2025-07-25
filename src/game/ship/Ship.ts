@@ -340,6 +340,10 @@ export class Ship extends CompositeBlockObject {
     return this.engineBlocks.size > 0 && this.hadEngines;
   }
 
+  public hasAnyActiveEngine(): boolean {
+    return this.engineBlocks.size > 0;
+  }
+
   public getInitialMass(): number {
     return this.initialMass;
   }

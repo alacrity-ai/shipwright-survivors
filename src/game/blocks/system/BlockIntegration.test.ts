@@ -34,7 +34,7 @@ describe('Ship Construction Integration', () => {
       });
     }
 
-    store = new BlockStore(128);
+    store = new BlockStore(1000);
     grid = new BlockSpatialGrid(store, 64);
     orchestrator = new BlockOrchestrator(store, grid);
   });
@@ -499,4 +499,215 @@ describe('Ship Construction Integration', () => {
       expect(store.rotation[idx]).toBeCloseTo(Math.PI / 4);
     });
   });
+
+  it('maintains isolation across multiple ships during mixed block destruction (with logging)', () => {
+    const totalShips = 10;
+    const blocksPerShip = 20;
+    const requiredBlocks = totalShips * blocksPerShip;
+
+    console.log(`--- Diagnostic Start ---`);
+    console.log(`BlockStore capacity: ${store.capacity}`);
+    console.log(`Total ships: ${totalShips}, Blocks per ship: ${blocksPerShip}, Total required: ${requiredBlocks}`);
+
+    // Sanity check: Ensure we don't exceed capacity
+    if (requiredBlocks > store.capacity) {
+      console.warn(
+        `⚠️ Test requests ${requiredBlocks} blocks, but BlockStore only supports ${store.capacity}. Test will fail by design.`
+      );
+    }
+
+    const shipIds: number[] = [];
+    const allBlocksByShip: Map<number, number[]> = new Map();
+
+    const blockType = 'hull0';
+    const typeIndex = 0;
+
+    // Step 1: Spawn 10 ships, each with 20 blocks
+    for (let s = 0; s < totalShips; s++) {
+      const shipId = 1000 + s;
+      shipIds.push(shipId);
+      const indices: number[] = [];
+
+      for (let i = 0; i < blocksPerShip; i++) {
+        const idx = orchestrator.createAndRegisterBlock({
+          ownerShipId: shipId,
+          ownerFaction: 1,
+          typeIndex,
+          localX: i,
+          localY: 0,
+          blockTypeId: blockType,
+        }, makeTransform());
+
+        // Log any allocation failure immediately
+        if (idx === -1) {
+          console.error(`❌ Allocation failed for ship ${shipId}, block ${i}. Store count: ${store.count}, capacity: ${store.capacity}`);
+        }
+
+        expect(idx).not.toBe(-1); // will still fail the test if we exceeded capacity
+        indices.push(idx);
+      }
+
+      console.log(`Ship ${shipId} created ${indices.length} blocks. Store count: ${store.count}`);
+      allBlocksByShip.set(shipId, indices);
+    }
+
+    // Step 2: Randomly pick 3 ships and destroy 5 blocks each (deterministic subset)
+    const victimShips = shipIds.slice(0, 3);
+    for (const shipId of victimShips) {
+      const indices = allBlocksByShip.get(shipId)!;
+      const toDestroy = indices.slice(0, 5);
+      console.log(`Destroying ${toDestroy.length} blocks from Ship ${shipId}:`, toDestroy);
+      toDestroy.forEach(idx => orchestrator.destroyBlock(idx));
+
+      // Track the survivors
+      allBlocksByShip.set(shipId, indices.slice(5));
+    }
+
+    // Step 3: Validate every ship's state with logging
+    for (const shipId of shipIds) {
+      const expected = allBlocksByShip.get(shipId)!;
+      const view = orchestrator.getShipBlocksView(shipId);
+
+      console.log(`Ship ${shipId}: expected ${expected.length} blocks, view reports ${view.length}`);
+
+      expect(view.length).toBe(expected.length);
+
+      for (const idx of expected) {
+        if (!store.isAllocated(idx)) {
+          console.error(`❌ Block ${idx} of Ship ${shipId} is unexpectedly unallocated`);
+        }
+        expect(store.isAllocated(idx)).toBe(true);
+        expect(grid.isRegistered(idx)).toBe(true);
+        expect(store.ownerShipId[idx]).toBe(shipId);
+      }
+    }
+
+    // Step 4: Check for duplicate indices across ships
+    const allSurvivors = Array.from(allBlocksByShip.values()).flat();
+    const unique = new Set(allSurvivors);
+    console.log(`Total surviving blocks: ${allSurvivors.length}, Unique indices: ${unique.size}`);
+    expect(unique.size).toBe(allSurvivors.length);
+
+    // Step 5: Validate grid consistency
+    const area = orchestrator.spatialGrid.getBlocksInArea(-5000, -5000, 5000, 5000);
+    console.log(`Grid reports ${area.length} total blocks`);
+    for (const idx of area) {
+      if (!store.isAllocated(idx)) {
+        console.error(`❌ Grid contains unallocated index ${idx}`);
+      }
+      expect(store.isAllocated(idx)).toBe(true);
+      const shipId = store.ownerShipId[idx];
+      expect(allBlocksByShip.has(shipId)).toBe(true);
+      expect(allBlocksByShip.get(shipId)!.includes(idx)).toBe(true);
+    }
+
+    console.log(`--- Diagnostic End ---`);
+  });
+
+    it('handles partial and total destruction (clearShip) across ships with varying configurations without corruption', () => {
+      // Ships with varied block configurations
+      const shipConfigs = [
+        { shipId: 3001, blockCount: 8 },    // small scout
+        { shipId: 3002, blockCount: 20 },   // mid-size
+        { shipId: 3003, blockCount: 35 },   // heavy ship
+        { shipId: 3004, blockCount: 12 },   // light escort
+        { shipId: 3005, blockCount: 25 },   // support cruiser
+      ];
+
+      const blockType = 'hull2';
+      const typeIndex = 0;
+      const allBlocksByShip: Map<number, number[]> = new Map();
+
+      // Step 1: Populate all ships with their blocks
+      for (const cfg of shipConfigs) {
+        const indices: number[] = [];
+        for (let i = 0; i < cfg.blockCount; i++) {
+          const localX = i % 6;
+          const localY = Math.floor(i / 6); // some varied grid layout
+
+          const idx = orchestrator.createAndRegisterBlock({
+            ownerShipId: cfg.shipId,
+            ownerFaction: 1,
+            typeIndex,
+            localX,
+            localY,
+            blockTypeId: blockType,
+          }, makeTransform());
+
+          expect(idx).not.toBe(-1);
+          indices.push(idx);
+        }
+        allBlocksByShip.set(cfg.shipId, indices);
+      }
+
+      // Step 2: Apply mixed destruction:
+      // - Partially destroy 1/4 of blocks from mid/large ships
+      // - Totally destroy (clearShip) one ship (the heavy ship, 3003)
+      for (const cfg of shipConfigs) {
+        const indices = allBlocksByShip.get(cfg.shipId)!;
+
+        if (cfg.shipId === 3003) {
+          // Full wipe
+          orchestrator.clearShip(cfg.shipId);
+          allBlocksByShip.set(cfg.shipId, []); // no survivors
+          continue;
+        }
+
+        if (cfg.blockCount >= 15) {
+          const toDestroyCount = Math.floor(cfg.blockCount / 4);
+          const toDestroy = indices.slice(0, toDestroyCount);
+          toDestroy.forEach(idx => orchestrator.destroyBlock(idx));
+
+          allBlocksByShip.set(cfg.shipId, indices.slice(toDestroyCount)); // survivors
+        }
+      }
+
+      // Step 3: Validate integrity post-destruction
+      for (const cfg of shipConfigs) {
+        const survivors = allBlocksByShip.get(cfg.shipId)!;
+        const view = orchestrator.getShipBlocksView(cfg.shipId);
+
+        // View length must match survivors (0 for fully cleared ships)
+        expect(view.length).toBe(survivors.length);
+
+        for (const idx of survivors) {
+          // Each survivor must be allocated, registered, and owned properly
+          expect(store.isAllocated(idx)).toBe(true);
+          expect(grid.isRegistered(idx)).toBe(true);
+          expect(store.ownerShipId[idx]).toBe(cfg.shipId);
+        }
+
+        // No extra indices
+        const unexpected = view.filter(idx => !survivors.includes(idx));
+        expect(unexpected.length).toBe(0);
+      }
+
+      // Step 4: Check that the fully cleared ship (3003) has no allocated blocks
+      const clearedShipBlocks = orchestrator.getShipBlocksView(3003);
+      expect(clearedShipBlocks.length).toBe(0);
+      for (const [shipId, indices] of allBlocksByShip.entries()) {
+        if (shipId === 3003) {
+          expect(indices.length).toBe(0);
+        } else {
+          for (const idx of indices) {
+            expect(store.ownerShipId[idx]).not.toBe(3003);
+          }
+        }
+      }
+
+      // Step 5: Global checks
+      const allSurvivors = Array.from(allBlocksByShip.values()).flat();
+      const unique = new Set(allSurvivors);
+      expect(unique.size).toBe(allSurvivors.length); // no duplicates
+
+      const gridBlocks = orchestrator.spatialGrid.getBlocksInArea(-5000, -5000, 5000, 5000);
+      for (const idx of gridBlocks) {
+        expect(store.isAllocated(idx)).toBe(true);
+        const shipId = store.ownerShipId[idx];
+        expect(allBlocksByShip.has(shipId)).toBe(true);
+        expect(allBlocksByShip.get(shipId)!.includes(idx)).toBe(true);
+      }
+    });
+
+
 });

@@ -6,6 +6,7 @@ import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { FloatingTextManager } from '@/rendering/floatingtext/FloatingTextManager';
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -389,6 +390,7 @@ export class CombatService {
       orphanCoords.push(coord);
     }
 
+    // After orphan pruning:
     if (orphanCoords.length > 0) {
       entity.removeBlocks(orphanCoords);
       if (entity.getIsPlayerShip?.()) {
@@ -396,6 +398,77 @@ export class CombatService {
       }
     }
 
+    // === Non-player ship destruction invariants ===
+    if (entity instanceof Ship && !entity.getIsPlayerShip()) {
+      const remainingIndices = entity.getAllBlockIndices();
+      const remainingCount = remainingIndices.length;
+
+      // --- Low block count fallback ---
+      if (remainingCount <= 5) {
+        return this.destroyEntireShipWithAllBlocksSOA(entity, cause);
+      }
+
+      // --- Engine-loss fallback ---
+      if (entity.getHasAtleastOneOriginalEngine?.() && !entity.hasAnyActiveEngine()) {
+        return this.destroyEntireShipWithAllBlocksSOA(entity, cause);
+      }
+    }
+
+    return true;
+
+  }
+
+  private destroyEntireShipWithAllBlocksSOA(
+    entity: Ship,
+    cause: DestructionCause,
+  ): boolean {
+    const store = this.store; // BlockStore reference
+    const transform = entity.getTransform();
+    const indices = entity.getAllBlockIndices();
+
+    const coords: GridCoord[] = [];
+
+    for (const idx of indices) {
+      const coord: GridCoord = {
+        x: store.localX[idx],
+        y: store.localY[idx],
+      };
+
+      this.explosionSystem.createBlockExplosion(
+        entity.id,
+        transform.position,
+        transform.rotation,
+        coord,
+        60 + Math.random() * 30,
+        0.7 + Math.random() * 0.3,
+        undefined,
+        DEFAULT_EXPLOSION_SPARK_PALETTE,
+        undefined,
+        'lightless',
+      );
+
+      const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
+      this.pickupSpawner.spawnPickupOnBlockDestruction(idx, blockDropRateMulti);
+      coords.push(coord);
+    }
+
+    // Remove all blocks
+    entity.removeBlocks(coords);
+    this.destructionService.destroyEntity(entity, cause);
+
+    playSpatialSfx(entity, ShipRegistry.getInstance().getPlayerShip(), {
+      file: 'assets/sounds/sfx/explosions/explosion_01.wav',
+      channel: 'sfx',
+      baseVolume: 0.8,
+      pitchRange: [0.9, 1.4],
+      volumeJitter: 0.2,
+    });
+
+    if (entity.getIsPlayerShip?.()) {
+      missionResultStore.incrementBlocksLost(indices.length);
+    }
+
     return true;
   }
+
 }

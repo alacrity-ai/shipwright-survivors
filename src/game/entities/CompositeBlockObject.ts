@@ -300,28 +300,39 @@ export abstract class CompositeBlockObject {
     this.invalidateMass();
   }
 
-  /**
-   * Removes multiple blocks by their local grid coordinates.
-   * Operates entirely on SOA indices — no BlockInstance.
-   */
-  public removeBlocks(coords: GridCoord[]): void {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    const store = this.blockManager.getBlockStore();
+/**
+ * Removes multiple blocks by their local grid coordinates.
+ * Operates entirely on SOA indices — no BlockInstance.
+ */
+public removeBlocks(coords: GridCoord[]): void {
+  const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+  const store = this.blockManager.getBlockStore();
+  const targetShipId = this.numericId;
 
-    for (const coord of coords) {
-      // Find matching block index for each coordinate
-      for (let i = 0; i < indices.length; i++) {
-        const idx = indices[i];
-        if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
-          this.blockOrchestrator.destroyBlock(idx);
-          break; // Move to next coord after removing the first match
-        }
+  for (const coord of coords) {
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+
+      // Verify ownership before any action
+      const ownerShipId = store.ownerShipId[idx];
+      if (ownerShipId !== targetShipId) {
+        console.error(
+          `[CompositeBlockObject] ⚠ Attempting to remove block ${idx} at (${coord.x},${coord.y}) ` +
+          `but it belongs to ship ${ownerShipId}, not ${targetShipId}`
+        );
+      }
+
+      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        this.blockOrchestrator.destroyBlock(idx);
+        break; // move to next coordinate
       }
     }
-
-    // Recalculate mass next time it's queried
-    this.invalidateMass();
   }
+
+  // Recalculate mass next time it's queried
+  this.invalidateMass();
+}
+
 
   // --- Color customization (RGBA)
   public setBlockColor(color: string | null): void {

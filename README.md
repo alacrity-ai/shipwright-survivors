@@ -125,6 +125,21 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+
+  - [ ] Block SOA
+    - [ ] Verify explosive lance explosion does damage (not just projectile spawn)
+    - [ ] Fix heat seeker missile explosion doing no damage
+    - [ ] Verify flamethrower works
+    - [ ] Verify haloblade works
+    - [ ] Verify penetrating shots works on turret
+    - [ ] Verify laser works
+    - [ ] Fix regression in "no engines" block kill invariant (space stations are dying instantly)
+    - [ ] Fix regression in blocks rendering when "hidden" (ship construction animator service)
+    - [ ] Fix regression in block damage not showing
+    - [ ] Verify block color override still works
+    - [ ] Quality pass - verify we are taking advantage of all SOA benefits.
+    - [ ] Check AI system for SOA benefits/regressions
+
   - [ ] Turret weapon just feels weak. I think it's time to upgrade implicit weapons, and make it an insta super accurate machine gun on the turret ship.
   - [ ] Await loading of images (artifacts and ships) in tradepost menu so cursor is on top.
 
