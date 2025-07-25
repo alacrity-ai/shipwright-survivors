@@ -3,8 +3,17 @@
 import type { IUpdatable } from '@/core/interfaces/types';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+
 export class EnergyRechargeSystem implements IUpdatable {
-  constructor(private readonly shipRegistry: ShipRegistry) {}
+  private store: BlockStore;
+
+  constructor(private readonly shipRegistry: ShipRegistry) {
+    this.store = BlockManager.getInstance().getBlockStore();
+  }
 
   update(dt: number): void {
     for (const ship of this.shipRegistry.getAll()) {
@@ -20,8 +29,12 @@ export class EnergyRechargeSystem implements IUpdatable {
       if (shield.isActive()) {
         let totalDrain = 0;
 
-        for (const block of ship.getShieldBlocks()) {
-          const baseDrain = block.type.behavior?.shieldEnergyDrain ?? 0;
+        for (const idx of ship.getShieldBlockIndices()) {
+          const typeIdx = this.store.typeIndex[idx];
+          const blockType = getBlockTypeByIndex(typeIdx);
+          if (!blockType) continue;
+
+          const baseDrain = blockType.behavior?.shieldEnergyDrain ?? 0;
           totalDrain += baseDrain;
         }
 

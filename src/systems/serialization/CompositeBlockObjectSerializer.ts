@@ -1,14 +1,14 @@
-import type { Grid } from '@/systems/physics/Grid';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { AsteroidJsonBlueprint } from '@/game/spawners/types/AsteroidJsonBlueprint';
 import type { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
 
 import { Asteroid } from '@/game/entities/Asteroid';
 import { getAsteroidBlockType } from '@/game/blocks/AsteroidBlockRegistry';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { Faction } from '@/game/interfaces/types/Faction';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 export interface SerializedBlockObject {
   transform: BlockEntityTransform;
@@ -22,36 +22,51 @@ export interface SerializedBlockObject {
   };
 }
 
+/**
+ * Serializes a CompositeBlockObject (Ship, Asteroid, etc.) into a JSON-friendly format.
+ * Uses SOA BlockStore rather than legacy BlockInstance maps.
+ */
 export function serializeCompositeBlockObject(
-  object: CompositeBlockObject,
-  grid: Grid
+  object: CompositeBlockObject
 ): SerializedBlockObject {
   const transform = object.getTransform();
+  const store = BlockManager.getInstance().getBlockStore();
+  const indices = object.getAllBlockIndices();
 
-  const serializedTransform = {
-    position: transform.position,
-    velocity: transform.velocity,
-    rotation: transform.rotation,
-    angularVelocity: transform.angularVelocity,
-  };
+  const serializedBlocks = new Array<{
+    id: string;
+    coord: { x: number; y: number };
+    rotation?: number;
+  }>(indices.length);
 
-  const serializedBlocks = object.getAllBlocks().map(([coord, block]) => {
-    grid.addBlockToCell(block); // Ensure it's registered
-    return {
-      id: block.type.id,
-      coord,
-      rotation: block.rotation ?? 0,
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    const typeIdx = store.typeIndex[idx];
+    const type = getBlockTypeByIndex(typeIdx);
+
+    serializedBlocks[i] = {
+      id: type?.id ?? 'unknown',
+      coord: { x: store.localX[idx], y: store.localY[idx] },
+      rotation: store.localRotation[idx] ?? 0
     };
-  });
+  }
 
   return {
-    transform: serializedTransform,
+    transform: {
+      position: transform.position,
+      velocity: transform.velocity,
+      rotation: transform.rotation,
+      angularVelocity: transform.angularVelocity
+    },
     blocks: serializedBlocks,
-    behavior: { type: 'default' },
+    behavior: { type: 'default' }
   };
 }
 
-
+/**
+ * Loads a prefab JSON blueprint for an asteroid.
+ * Caches results for repeated use.
+ */
 const asteroidBlueprintCache = new Map<string, AsteroidJsonBlueprint>();
 
 export async function loadAsteroidPrefab(fileName: string): Promise<AsteroidJsonBlueprint> {
@@ -59,45 +74,50 @@ export async function loadAsteroidPrefab(fileName: string): Promise<AsteroidJson
     return asteroidBlueprintCache.get(fileName)!;
   }
   const url = getAssetPath(`/assets/environment/asteroids/${fileName}`);
-  const json: AsteroidJsonBlueprint = await fetch(url).then((res) => res.json());
+  const json: AsteroidJsonBlueprint = await fetch(url).then(res => res.json());
   asteroidBlueprintCache.set(fileName, json);
   return json;
 }
 
+/**
+ * Instantiates a new Asteroid from a prefab JSON definition.
+ * Uses SOA-based orchestration (no legacy BlockInstance objects).
+ */
 export async function loadAsteroidFromJson(
   fileName: string,
-  grid: Grid,
   objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
 ): Promise<Asteroid> {
   const json = await loadAsteroidPrefab(fileName);
 
-  const asteroid = new Asteroid(grid, objectGrid, [], {
-    position: json.transform.position,
-    rotation: json.transform.rotation,
-    velocity: { x: 0, y: 0 },
-    angularVelocity: 0,
-  });
+  const asteroid = new Asteroid(
+    objectGrid,
+    undefined,
+    {
+      position: json.transform.position,
+      rotation: json.transform.rotation,
+      velocity: { x: 0, y: 0 },
+      angularVelocity: 0
+    },
+    Faction.Neutral
+  );
 
-  for (const b of json.blocks) {
-    const type = getAsteroidBlockType(b.id);
-    if (!type) throw new Error(`Unknown block type: ${b.id}`);
+  // Normalize blueprint into SerializedBlockObject format
+  const serialized: SerializedBlockObject = {
+    transform: {
+      position: json.transform.position,
+      velocity: { x: 0, y: 0 },
+      rotation: json.transform.rotation,
+      angularVelocity: 0
+    },
+    blocks: json.blocks.map(b => ({
+      id: b.id,
+      coord: b.coord,
+      rotation: b.rotation
+    })),
+    behavior: { type: 'default' } // Asteroids use default behavior
+  };
 
-    const block: BlockInstance = {
-      id: crypto.randomUUID(),
-      ownerShipNumericId: asteroid.numericId,
-      ownerFaction: Faction.Neutral, // Asteroids are neutral by default
-      type,
-      hp: type.armor,
-      ownerShipId: asteroid.id,
-      position: { x: 0, y: 0 },
-      rotation: b.rotation,
-      destroyed: false,
-    };
-
-    asteroid.placeBlock(b.coord, block);
-  }
+  asteroid.loadFromJson(serialized);
 
   return asteroid;
 }
-
-

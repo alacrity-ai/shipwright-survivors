@@ -1,6 +1,5 @@
 // src/rendering/cache/AsteroidSpriteCache.ts
 
-import { BLOCK_SIZE } from '@/config/view';
 import { getAllAsteroidBlockTypes } from '@/game/blocks/AsteroidBlockRegistry';
 
 import { drawRoundedRock } from '@/rendering/cache/asteroidBlockRenderers/roundedRockBlockRenderer';
@@ -13,6 +12,8 @@ import {
 
 import { createGL2TextureFromCanvas } from '@/rendering/gl/glTextureUtils';
 import { BlockType } from '@/game/interfaces/types/BlockType';
+
+const BLOCK_SIZE = 32;
 
 // --- Damage Level Enum ---
 

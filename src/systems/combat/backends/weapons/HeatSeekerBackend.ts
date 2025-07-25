@@ -6,8 +6,11 @@ import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTr
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
-import type { Grid } from '@/systems/physics/Grid';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
+
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 import { Faction } from '@/game/interfaces/types/Faction';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
@@ -15,7 +18,6 @@ import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { findNearestTarget, findRandomTargetInRange } from '@/systems/ai/helpers/ShipUtils';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
-import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { BLOCK_TIER_COLORS } from '@/game/blocks/BlockColorSchemes';
 import { normalizeAngle } from '@/shared/mathUtils';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
@@ -29,7 +31,7 @@ interface ActiveSeekerMissile {
   ttl: number;
   age: number;
   targetShip: Ship | null;
-  ownerShipId: string;
+  ownerShipId: number;
   particleHandle: number;
   firingBlockId: string;
   turningPower: number;
@@ -52,18 +54,27 @@ const TURNING_POWER_COMPENSATION = 1.3; // Increase turning power to compensate 
 export class HeatSeekerBackend implements WeaponBackend {
   private activeMissiles: ActiveSeekerMissile[] = [];
   private frameCounter: number = 0;
+  private store: BlockStore;
 
   constructor(
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
-    private readonly grid: Grid,
-    private readonly explosionSystem: ExplosionSystem
-  ) {}
+  ) {
+    this.store = BlockManager.getInstance().getBlockStore();
+  }
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
     this.frameCounter++;
 
-    const plan = ship.getFiringPlan().filter(p => p.block.type.behavior?.fire?.fireType === 'heatSeeker');
+    const store = this.store; // BlockStore shortcut
+    const plan = ship
+      .getFiringPlan()
+      .filter(p => {
+        const typeIdx = store.typeIndex[p.blockIndex];
+        const type = getBlockTypeByIndex(typeIdx);
+        return type?.behavior?.fire?.fireType === 'heatSeeker';
+      });
+
     if (plan.length === 0) return;
 
     const fireRequested = intent?.firePrimary ?? false;
@@ -80,16 +91,19 @@ export class HeatSeekerBackend implements WeaponBackend {
     } = ship.getSkillEffects();
 
     for (const seeker of plan) {
-      const fire = seeker.block.type.behavior!.fire!;
+      const typeIdx = store.typeIndex[seeker.blockIndex];
+      const type = getBlockTypeByIndex(typeIdx)!;
+      const fire = type.behavior!.fire!;
+
       seeker.timeSinceLastShot += dt;
       if (!fireRequested || seeker.timeSinceLastShot < seeker.fireCooldown / fireRateBonus) continue;
       seeker.timeSinceLastShot = 0;
 
-      const coord = seeker.coord;
+      const { x: cx, y: cy } = seeker.coord; // grid coordinate
       const cos = Math.cos(transform.rotation);
       const sin = Math.sin(transform.rotation);
-      const localX = coord.x * 32;
-      const localY = coord.y * 32;
+      const localX = cx * 32;
+      const localY = cy * 32;
       const worldX = transform.position.x + localX * cos - localY * sin;
       const worldY = transform.position.y + localX * sin + localY * cos;
 
@@ -111,7 +125,7 @@ export class HeatSeekerBackend implements WeaponBackend {
 
         const ttl = fire.lifetime ?? 4.0;
         const turningPower = (fire.turningPower ?? 0) * TURNING_POWER_COMPENSATION;
-        const color = BLOCK_TIER_COLORS[seeker.block.type.tier] ?? '#ccc';
+        const color = BLOCK_TIER_COLORS[type.tier] ?? '#ccc';
 
         const particleHandle = this.particleManager.emitParticleWithHandle({ x: worldX, y: worldY }, {
           colors: [color],
@@ -142,9 +156,9 @@ export class HeatSeekerBackend implements WeaponBackend {
           ttl,
           age: 0,
           targetShip: target,
-          ownerShipId: ship.id,
+          ownerShipId: ship.numericId, // switched to numeric ID
           particleHandle,
-          firingBlockId: seeker.block.type.id,
+          firingBlockId: type.id,
           turningPower,
           exploded: false,
           targetingRange: fire.targetingRange ?? 1000,
@@ -160,11 +174,9 @@ export class HeatSeekerBackend implements WeaponBackend {
 
       const isDoubleShot = Math.random() < doubleSeekerMissileShotChance;
       if (fire.seekerForwardFire) {
-        // Straight forward (possibly double forward)
         fireMissile(targetAngle);
         if (isDoubleShot) fireMissile(targetAngle);
       } else {
-        // Perpendicular (left/right) or double symmetrical
         if (isDoubleShot) {
           fireMissile(targetAngle + Math.PI / 2);
           fireMissile(targetAngle - Math.PI / 2);
@@ -272,19 +284,29 @@ export class HeatSeekerBackend implements WeaponBackend {
         );
       }
 
-      // ── 2·D  Impact detection & damage application ───────────────────────────────────
-      if (missile.targetShip) {
-        if (missile.targetShip.isNoClip()) continue;
+      // ── 2·D  Impact detection & damage application ───────────────────────────────
+      if (missile.targetShip && !missile.targetShip.isNoClip()) {
+        const store = this.store; // cached BlockStore
+        const blocks = missile.targetShip.getAllBlockIndices(); // now Uint32Array of block indices
 
-        for (const [coord, block] of missile.targetShip.getAllBlocks()) {
-          if (!block.position) continue;
+        for (let j = 0; j < blocks.length; j++) {
+          const idx = blocks[j];
+          const bx = store.worldX[idx];
+          const by = store.worldY[idx];
 
-          const dx = missile.position.x - block.position.x;
-          const dy = missile.position.y - block.position.y;
+          const dx = missile.position.x - bx;
+          const dy = missile.position.y - by;
           if (dx * dx + dy * dy < 32 * 32) {
+            // Look up local grid coord for proper damage reporting
+            const coord = { x: store.localX[idx], y: store.localY[idx] };
+
             this.combatService.applyDamageToBlock(
-              missile.targetShip, ownerShip, block, coord,
-              missile.fireDamage, 'heatSeekerDirect'
+              missile.targetShip,
+              ownerShip,
+              idx,        // block index, not BlockInstance
+              coord,
+              missile.fireDamage,
+              'heatSeekerDirect'
             );
 
             missile.exploded = true;
@@ -305,28 +327,33 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     this.particleManager.killParticle(missile.particleHandle);
 
+    const store = this.store; // cached BlockStore
     const color = BLOCK_TIER_COLORS[getTierFromBlockId(missile.firingBlockId)] ?? '#FFFFFF';
     emitDefaultFlames(missile.position.x, missile.position.y, 200, 1.2, true, 1, color);
 
+    // Find the nearest block (index-based) to use as explosion center
     let centerCoord: GridCoord | null = null;
     let minDistSq = Infinity;
 
-    for (const [coord, block] of missile.targetShip.getAllBlocks()) {
-      if (!block.position) continue;
+    const allBlocks = missile.targetShip.getAllBlockIndices();
+    for (let i = 0; i < allBlocks.length; i++) {
+      const idx = allBlocks[i];
+      const bx = store.worldX[idx];
+      const by = store.worldY[idx];
 
-      const dx = missile.position.x - block.position.x;
-      const dy = missile.position.y - block.position.y;
+      const dx = missile.position.x - bx;
+      const dy = missile.position.y - by;
       const distSq = dx * dx + dy * dy;
 
       if (distSq < minDistSq) {
-        centerCoord = coord;
         minDistSq = distSq;
+        centerCoord = { x: store.localX[idx], y: store.localY[idx] };
       }
     }
 
     if (!centerCoord) return;
 
-    // Apply status effects if applicable
+    // Apply status effects (unchanged)
     if (missile.igniteOnSeekerMissileExplosion) {
       missile.targetShip.addStatusEffect('ignite', 12.0, sourceShip, missile.explosionDamage * 0.8);
     }
@@ -334,17 +361,22 @@ export class HeatSeekerBackend implements WeaponBackend {
       missile.targetShip.addStatusEffect('frozen', 3.0, sourceShip, 1.0);
     }
 
+    // Compute final damage with bonuses
     let damageBonusPercent = sourceShip.getPassiveBonus('heat-seeker-damage');
     const { baseDamageMultiplier = 0 } = sourceShip.getPowerupBonus();
     damageBonusPercent += baseDamageMultiplier;
     const totalDamage = missile.explosionDamage * damageBonusPercent;
 
-    const blocks = missile.targetShip.getBlocksWithinGridDistance(centerCoord, missile.explosionRadius);
-    for (const [coord, block] of blocks) {
+    // Get affected blocks (already returns Uint32Array of indices)
+    const affectedBlocks = missile.targetShip.getBlocksWithinGridDistance(centerCoord, missile.explosionRadius);
+    for (let i = 0; i < affectedBlocks.length; i++) {
+      const idx = affectedBlocks[i];
+      const coord = { x: store.localX[idx], y: store.localY[idx] };
+
       this.combatService.applyDamageToBlock(
         missile.targetShip,
         sourceShip,
-        block,
+        idx,            // block index, not BlockInstance
         coord,
         totalDamage,
         'heatSeekerAoE'

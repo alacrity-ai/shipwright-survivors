@@ -1,10 +1,8 @@
 // src/game/ship/Ship.ts
 
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedShip } from '@/systems/serialization/ShipSerializer';
-import type { CoordKey } from '@/game/ship/utils/shipBlockUtils';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { WeaponFiringPlanEntry } from '@/systems/combat/types/WeaponTypes';
 import type { TurretClassId, TurretSequenceState } from '@/systems/combat/types/WeaponTypes';
@@ -19,7 +17,6 @@ import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/Ar
 import { hashStringToInt32 } from '@/shared/hashUtils';
 import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
-import { PlayerArtifactsManager } from '../player/PlayerArtifactsManager';
 import { getAggregatedPowerupEffects } from '@/game/powerups/runtime/ActivePowerupEffectResolver';
 import { PowerupEffectMetadata } from '../powerups/types/PowerupMetadataTypes';
 import { PlayerPassiveManager } from '../player/PlayerPassiveManager';
@@ -28,14 +25,12 @@ import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { PlayerStats } from '@/game/player/PlayerStats';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
-import { Grid } from '@/systems/physics/Grid';
-import { getBlockType } from '@/game/blocks/BlockRegistry';
+import { getBlockType, getBlockTypeByIndex, getBlockIndexByType } from '@/game/blocks/BlockRegistry';
+import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
 import { EnergyComponent } from '@/game/ship/components/EnergyComponent';
 import { ShieldComponent } from '@/game/ship/components/ShieldComponent';
 import { AfterburnerComponent } from './components/AfterburnerComponent';
-import { toKey, fromKey } from '@/game/ship/utils/shipBlockUtils';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { StatusEffectFactory } from '@/game/ship/status/StatusEffectFactory';
 
@@ -59,18 +54,21 @@ export class Ship extends CompositeBlockObject {
   private afterburnerComponent: AfterburnerComponent | null = null;
   private energyComponent: EnergyComponent | null = null;
   private shieldComponent: ShieldComponent;
-  private shieldBlocks: Set<BlockInstance> = new Set();
-  private engineBlocks: Set<BlockInstance> = new Set();
-  private finBlocks: Set<BlockInstance> = new Set();
-  private fuelTankBlocks: Set<BlockInstance> = new Set();
+
+  // Index-based containers (store indices, not BlockInstances)
+  private shieldBlocks: Set<number> = new Set();
+  private engineBlocks: Set<number> = new Set();
+  private finBlocks: Set<number> = new Set();
+  private fuelTankBlocks: Set<number> = new Set();
   private firingPlan: WeaponFiringPlanEntry[] = [];
-  private firingPlanIndex: Map<BlockInstance, number> = new Map();
+  private firingPlanIndex: Map<number, number> = new Map();
   private turretSequenceState: Record<TurretClassId, TurretSequenceState> = {};
   private firingMode: FiringMode = FiringMode.Synced;
-  private harvesterBlocks: Map<BlockInstance, number> = new Map();
-  private haloBladeBlocks: Map<BlockInstance, HaloBladeProperties> = new Map();
-  private heatSeekerBlocks: Map<BlockInstance, number> = new Map();
+  private harvesterBlocks: Map<number, number> = new Map(); // index → harvestRate
+  private haloBladeBlocks: Map<number, HaloBladeProperties> = new Map();
+  private heatSeekerBlocks: Map<number, number> = new Map(); // index → tier
   private heatSeekerEmitProbability: number = HEATSEEKER_MAX_EMIT_PROBABILITY;
+
   private isPlayerShip: boolean;
   private destroyedListeners: ShipDestroyedCallback[] = [];
   private lightAuraId: number | null = null;
@@ -89,7 +87,7 @@ export class Ship extends CompositeBlockObject {
   private homeCoordinates: { x: number; y: number } = { x: 0, y: 0 };
   private jumping: boolean = false;
 
-  // Check to see if the ship has or had engines ever
+  // Tracks whether engines ever existed (for boost checks)
   private hadEngines: boolean = false;
   private initialMass: number = 0;
 
@@ -109,17 +107,19 @@ export class Ship extends CompositeBlockObject {
   }
 
   constructor(
-    grid: Grid,
-    initialBlocks?: [GridCoord, BlockInstance][],
+    initialBlocks?: Array<{ coord: GridCoord; typeId: string; rotation?: number }>,
     initialTransform?: Partial<BlockEntityTransform>,
     isPlayerShip?: boolean,
     affixes?: ShipAffixes,
     faction?: Faction
   ) {
-    super(grid, initialBlocks, initialTransform);
+    // CompositeBlockObject now handles BlockManager & BlockOrchestrator internally
+    super(initialBlocks, initialTransform, faction);
+
     this.shieldComponent = new ShieldComponent(this);
     this.afterburnerComponent = new AfterburnerComponent(100, 5);
     this.validateFiringPlan();
+
     this.isPlayerShip = isPlayerShip ?? false;
     this.affixes = affixes ?? {};
     this.faction = faction ?? Faction.Enemy;
@@ -488,28 +488,40 @@ export class Ship extends CompositeBlockObject {
 
   // === Cockpit ===
 
-  getCockpit(): BlockInstance | undefined {
-    return this.blocks.get(toKey({ x: 0, y: 0 }))?.block;
+  /**
+   * Returns the SOA index of the cockpit block (at local 0,0) if present.
+   */
+  public getCockpitIndex(): number | undefined {
+    return this.getBlockIndex({ x: 0, y: 0 });
   }
 
+  /**
+   * Retrieves the cockpit block’s current HP from BlockStore.
+   * Logs a warning if the cockpit block is missing.
+   */
   public getCockpitHp(): number | null {
-    const cockpit = this.getCockpit();
-    if (!cockpit) {
+    const idx = this.getCockpitIndex();
+    if (idx === undefined) {
       console.warn(`[Ship ${this.id}] Cockpit block missing.`);
       return null;
     }
-    return cockpit.hp;
+
+    const store = this.blockManager.getBlockStore();
+    return store.hp[idx];
   }
-  
-  getCockpitCoord(): GridCoord | undefined {
-    if (this.getCockpit()) {
-      return { x: 0, y: 0 };
-    }
-    return undefined;
+
+  /**
+   * Returns the cockpit’s grid coordinate if present.
+   */
+  public getCockpitCoord(): GridCoord | undefined {
+    return this.getCockpitIndex() !== undefined ? { x: 0, y: 0 } : undefined;
   }
 
   // === Firing Plan ===
 
+  /**
+   * Each entry now tracks a block index instead of a BlockInstance.
+   */
   public getFiringPlan(): WeaponFiringPlanEntry[] {
     return this.firingPlan;
   }
@@ -527,20 +539,20 @@ export class Ship extends CompositeBlockObject {
 
   /**
    * Prunes stale turret entries and rebuilds the turret plan index map.
-   * Useful as a periodic consistency safeguard.
+   * Removes any entries whose block index is no longer valid.
    */
   public validateFiringPlan(): void {
     const valid: WeaponFiringPlanEntry[] = [];
-    const newIndex = new Map<BlockInstance, number>();
+    const newIndex = new Map<number, number>();
+    const store = this.blockManager.getBlockStore();
 
     for (const entry of this.firingPlan) {
-      const existing = this.blocks.get(toKey(entry.coord));
-      const isStillPresent = existing?.block === entry.block;
-
-      if (isStillPresent) {
+      const idx = entry.blockIndex;
+      // A valid block index must still be allocated in the store
+      if (store.isAllocated(idx)) {
         const newIndexValue = valid.length;
         valid.push(entry);
-        newIndex.set(entry.block, newIndexValue);
+        newIndex.set(idx, newIndexValue);
       }
     }
 
@@ -549,15 +561,19 @@ export class Ship extends CompositeBlockObject {
   }
 
   /**
-   * Adds a weapon to the firing plan if the block qualifies.
+   * Adds a weapon block (by index) to the firing plan if the block can fire.
    */
-  private addWeaponToPlanIfApplicable(coord: GridCoord, block: BlockInstance): void {
-    const fire = block.type.behavior?.fire;
-    if (!fire || !block.type?.behavior?.canFire) return;
+  private addWeaponToPlanIfApplicable(idx: number): void {
+    const store = this.blockManager.getBlockStore();
+    const typeIdx = store.typeIndex[idx];
+    const type = getBlockTypeByIndex(typeIdx);
+    const fire = type?.behavior?.fire;
+
+    if (!fire || !type?.behavior?.canFire) return;
 
     const entry: WeaponFiringPlanEntry = {
-      coord,
-      block,
+      blockIndex: idx,
+      coord: { x: store.localX[idx], y: store.localY[idx] },
       fireRate: fire.fireRate || 1,
       fireCooldown: 1 / (fire.fireRate || 1),
       timeSinceLastShot: 0,
@@ -565,45 +581,44 @@ export class Ship extends CompositeBlockObject {
 
     const index = this.firingPlan.length;
     this.firingPlan.push(entry);
-    this.firingPlanIndex.set(block, index);
+    this.firingPlanIndex.set(idx, index);
   }
 
   /**
-   * Removes a weapon from the firing plan using swap-and-pop for O(1) deletion.
+   * Removes a weapon block from the firing plan using swap-and-pop.
    */
-  private removeWeaponFromPlanIfApplicable(block: BlockInstance): void {
-    const index = this.firingPlanIndex.get(block);
-    if (index === undefined) return; // Not in plan
+  private removeWeaponFromPlanIfApplicable(idx: number): void {
+    const index = this.firingPlanIndex.get(idx);
+    if (index === undefined) return;
 
     const lastIndex = this.firingPlan.length - 1;
     const lastEntry = this.firingPlan[lastIndex];
 
-    // Move last into deleted slot if needed
+    // Move last entry into removed slot if needed
     if (index !== lastIndex) {
       this.firingPlan[index] = lastEntry;
-      this.firingPlanIndex.set(lastEntry.block, index);
+      this.firingPlanIndex.set(lastEntry.blockIndex, index);
     }
 
     this.firingPlan.pop();
-    this.firingPlanIndex.delete(block);
+    this.firingPlanIndex.delete(idx);
   }
 
   /**
-   * Efficiently removes multiple weapon blocks from the firing plan in a single pass.
-   * Maintains correctness of firingPlan array and firingPlanIndex map.
+   * Bulk-removes multiple weapon blocks by index.
    */
-  private removeWeaponsFromPlan(blocks: BlockInstance[]): void {
-    if (blocks.length === 0) return;
+  private removeWeaponsFromPlan(indices: number[]): void {
+    if (indices.length === 0) return;
 
-    const toRemove = new Set<BlockInstance>(blocks);
+    const toRemove = new Set(indices);
     const newPlan: WeaponFiringPlanEntry[] = [];
-    const newIndex = new Map<BlockInstance, number>();
+    const newIndex = new Map<number, number>();
 
     for (const entry of this.firingPlan) {
-      if (!toRemove.has(entry.block)) {
+      if (!toRemove.has(entry.blockIndex)) {
         const newIdx = newPlan.length;
         newPlan.push(entry);
-        newIndex.set(entry.block, newIdx);
+        newIndex.set(entry.blockIndex, newIdx);
       }
     }
 
@@ -615,19 +630,28 @@ export class Ship extends CompositeBlockObject {
     this.turretSequenceState = {};
   }
 
-  // === Ship affixes ===
+  // === Fuel Tanks ===
 
-  // === Fuel Tanks
-
-  public getFuelTankBlocks(): Iterable<BlockInstance> {
+  /**
+   * Returns the BlockStore indices of all fuel tank blocks on this ship.
+   */
+  public getFuelTankIndices(): Iterable<number> {
     return this.fuelTankBlocks;
   }
 
+  /**
+   * Recalculates the total fuel capacity contribution of all fuel tank blocks.
+   * Updates the AfterburnerComponent with the new maximum fuel.
+   */
   public updateFuelCapacity(): void {
+    const store = this.blockManager.getBlockStore();
     let totalCapacity = 0;
 
-    for (const block of this.fuelTankBlocks) {
-      const behavior = block.type.behavior;
+    for (const idx of this.fuelTankBlocks) {
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+      const behavior = type?.behavior;
+
       if (behavior?.fuelCapacityIncrease) {
         totalCapacity += behavior.fuelCapacityIncrease;
       }
@@ -648,7 +672,10 @@ export class Ship extends CompositeBlockObject {
     return this.shieldComponent;
   }
 
-  public getShieldBlocks(): Iterable<BlockInstance> {
+  /**
+   * Returns the BlockStore indices of all shield blocks on this ship.
+   */
+  public getShieldBlockIndices(): Iterable<number> {
     return this.shieldBlocks;
   }
 
@@ -678,13 +705,23 @@ export class Ship extends CompositeBlockObject {
     this.energyComponent = new EnergyComponent(max, regen);
   }
 
+  /**
+   * Computes the total energy capacity and recharge rate of the ship
+   * by iterating over all blocks and checking their behavior/metatags.
+   */
   private computeEnergyStats(): { max: number; regen: number } {
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
+
     let totalMax = 0;
     let totalRegen = 0;
 
-    for (const { block } of this.blocks.values()) {
-      const behavior = block.type.behavior;
-      const tags = block.type.metatags ?? [];
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+      const behavior = type?.behavior;
+      const tags = type?.metatags ?? [];
 
       if (behavior?.energyMaxIncrease) {
         if (tags.includes('battery')) {
@@ -709,34 +746,61 @@ export class Ship extends CompositeBlockObject {
     };
   }
 
-  public getHaloBladeBlocks(): Map<BlockInstance, HaloBladeProperties> {
+  // === Halo Blades, Engines, Fins, Heat Seekers ===
+
+  /**
+   * Returns a map of BlockStore indices to HaloBladeProperties.
+   */
+  public getHaloBladeIndices(): Map<number, HaloBladeProperties> {
     return this.haloBladeBlocks;
   }
 
-  public getEngineBlocks(): Iterable<BlockInstance> {
+  /**
+   * Returns the BlockStore indices for all engine blocks.
+   */
+  public getEngineIndices(): Iterable<number> {
     return this.engineBlocks;
   }
 
-  public getFinBlocks(): Iterable<BlockInstance> {
+  /**
+   * Returns the BlockStore indices for all fin blocks.
+   */
+  public getFinIndices(): Iterable<number> {
     return this.finBlocks;
   }
 
-  public getHeatSeekerBlocks(): Map<BlockInstance, number> {
+  /**
+   * Returns a map of BlockStore indices to their heat seeker tier.
+   */
+  public getHeatSeekerIndices(): Map<number, number> {
     return this.heatSeekerBlocks;
   }
 
+  /**
+   * Rebuilds the heat seeker index by iterating through all blocks in this ship.
+   */
   public rebuildHeatSeekerIndex(): void {
     this.heatSeekerBlocks.clear();
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
 
-    for (const { block } of this.blocks.values()) {
-      const behavior = block.type.behavior;
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+      const behavior = type?.behavior;
+
       if (behavior?.fire?.fireType === 'heatSeeker') {
-        this.heatSeekerBlocks.set(block, block.type.tier);
+        this.heatSeekerBlocks.set(idx, type?.tier ?? 0);
       }
     }
+
     this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
   }
 
+  /**
+   * Adjusts smoke emission probability based on the number of active heat seeker blocks.
+   */
   private calculateHeatSeekerSmokeEmissionProbability(numberBlocks: number): void {
     this.heatSeekerEmitProbability = Math.min(
       HEATSEEKER_MAX_EMIT_PROBABILITY,
@@ -753,6 +817,9 @@ export class Ship extends CompositeBlockObject {
 
   // === Utility Systems: Harvesting, etc ===
 
+  /**
+   * Computes the ship’s total harvesting rate, adjusted by passive bonuses.
+   */
   public getTotalHarvestRate(): number {
     let total = 0;
     for (const rate of this.harvesterBlocks.values()) {
@@ -761,33 +828,61 @@ export class Ship extends CompositeBlockObject {
     return total * this.getPassiveBonus('harvester-range');
   }
 
+  /**
+   * Rebuilds the halo blade block index by scanning all blocks in the ship.
+   */
   private rebuildHaloBladeIndex(): void {
     this.haloBladeBlocks.clear();
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
 
-    for (const { block } of this.blocks.values()) {
-      const halo = block.type.behavior?.haloBladeProperties;
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+      const halo = type?.behavior?.haloBladeProperties;
+
       if (halo) {
-        this.haloBladeBlocks.set(block, halo);
+        this.haloBladeBlocks.set(idx, halo);
       }
     }
   }
 
+  /**
+   * Rebuilds the engine block index by scanning all blocks.
+   */
   private rebuildEngineBlockIndex(): void {
     this.engineBlocks.clear();
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
 
-    for (const { block } of this.blocks.values()) {
-      if (block.type.behavior?.canThrust) {
-        this.engineBlocks.add(block);
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+
+      if (type?.behavior?.canThrust) {
+        this.engineBlocks.add(idx);
+        this.hadEngines = true; // Preserves legacy behavior
       }
     }
   }
 
+  /**
+   * Rebuilds the fin block index by scanning all blocks.
+   */
   private rebuildFinBlockIndex(): void {
     this.finBlocks.clear();
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
 
-    for (const { block } of this.blocks.values()) {
-      if (block.type.metatags?.includes('fin')) {
-        this.finBlocks.add(block);
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+
+      if (type?.metatags?.includes('fin')) {
+        this.finBlocks.add(idx);
       }
     }
   }
@@ -800,271 +895,289 @@ export class Ship extends CompositeBlockObject {
 
   private getArmorBonusForBlockType(type: BlockType): number {
     let bonus = 0;
-
     for (const tag of type.metatags ?? []) {
       const passiveId = Ship.armorTagToPassiveId[tag];
       if (passiveId) {
         bonus += this.getPassiveBonus(passiveId);
       }
     }
-
     return bonus;
   }
 
-  // === Ship Specific Block Placement & Removal Overrides ===
-  placeBlockById(coord: GridCoord, blockId: string, rotation?: number): boolean {
+
+  // === Ship-Specific Block Placement & Removal Overrides ===
+
+  public placeBlockById(coord: GridCoord, blockId: string, rotation: number = 0): boolean {
     const type = getBlockType(blockId);
     if (!type) throw new Error(`Unknown block type: ${blockId}`);
 
-    const key = toKey(coord);
-    if (this.blocks.has(key)) {
-      return false; // Placement failed: cell already occupied
+    // Avoid placing if a block already exists at this grid coordinate
+    if (this.hasBlockAt(coord)) {
+      return false;
     }
-
-    const worldPos = this.calculateBlockWorldPosition(coord);
-    const uniqueId = crypto.randomUUID();
 
     const durabilityMultiplier = this.getPassiveBonus('block-durability');
     const passiveFlatBonus = this.getArmorBonusForBlockType(type);
-    const block: BlockInstance = {
-      ownerFaction: this.faction,
-      id: uniqueId,
-      ownerShipNumericId: this.numericId,
-      type,
-      hp: Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus),
-      ownerShipId: this.id,
-      position: worldPos,
-      ...(rotation !== undefined ? { rotation } : {}),
-      destroyed: false,
-    };
+    const hp = Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus);
 
-    this.placeBlock(coord, block);
-    return true;
+    const idx = this.placeBlock(coord, blockId, rotation, hp);
+    return idx !== -1;
   }
 
-  placeBlock(coord: GridCoord, block: BlockInstance): void {
-    const key = toKey(coord);
-    this.blocks.set(key, { coord, block });
-    this.grid.addBlockToCell(block);
-    this.blockToCoordMap.set(block, coord);
-    this.blockIdMap.set(block.id, block);
+  /**
+   * Places a block in the SOA BlockStore and updates all ship-specific indices.
+   * @param coord Local grid coordinate
+   * @param typeId Block type ID (registry key)
+   * @param rotation Optional local rotation (radians)
+   * @param hp Optional precomputed hit points (defaults to base armor)
+   * @returns BlockStore index of the placed block, or -1 on failure
+   */
+  public placeBlock(coord: GridCoord, typeId: string, rotation: number = 0, hp?: number): number {
+    const type = getBlockType(typeId);
+    if (!type) return -1;
 
-    // Register block-to-object index
-    BlockToObjectIndex.registerBlock(block, this);
+    const typeIndex = getBlockIndexByType(typeId) ?? 0;
+    const factionIndex = FACTION_TO_INDEX[this.faction];
+    const store = this.blockManager.getBlockStore();
 
-    // Track if it's a shield block
-    if (block.type.behavior?.shieldRadius) {
-      this.shieldBlocks.add(block);
+    // Compute HP if not provided
+    const computedHp = hp ?? type.armor;
+
+    // Allocate block in BlockStore + grid via Orchestrator
+    const idx = this.blockOrchestrator.createAndRegisterBlock(
+      {
+        ownerShipId: this.numericId,
+        ownerFaction: factionIndex,
+        typeIndex,
+        localX: coord.x,
+        localY: coord.y,
+        localRotation: rotation,
+        blockTypeId: typeId,
+      },
+      this.transform
+    );
+
+    if (idx === -1) {
+      return -1; // Allocation failed (capacity limit reached)
     }
 
-    // Engine blocks
-    if (block.type.metatags?.includes('engine')) {
-      this.engineBlocks.add(block);
+    // Initialize HP
+    store.hp[idx] = computedHp;
+
+    // Track in subsystem indices
+    const behavior = type.behavior ?? {};
+
+    if (behavior.shieldRadius) {
+      this.shieldBlocks.add(idx);
+    }
+
+    if (type.metatags?.includes('engine')) {
+      this.engineBlocks.add(idx);
       this.hadEngines = true;
     }
 
-    // Fins
-    if (block.type.metatags?.includes('fin')) {
-      this.finBlocks.add(block);
+    if (type.metatags?.includes('fin')) {
+      this.finBlocks.add(idx);
     }
 
-    // Harvest Blocks
-    const harvestRate = block.type.behavior?.harvestRate;
-    if (harvestRate) {
-      this.harvesterBlocks.set(block, harvestRate);
+    if (behavior.harvestRate) {
+      this.harvesterBlocks.set(idx, behavior.harvestRate);
     }
 
-    // Haloblades
-    const halo = block.type.behavior?.haloBladeProperties;
+    const halo = behavior.haloBladeProperties;
     if (halo) {
-      this.haloBladeBlocks.set(block, halo);
+      this.haloBladeBlocks.set(idx, halo);
     }
 
-    // Heat Seekers
-    if (block.type.behavior?.fire?.fireType === 'heatSeeker') {
-      this.heatSeekerBlocks.set(block, block.type.tier);
+    if (behavior.fire?.fireType === 'heatSeeker') {
+      this.heatSeekerBlocks.set(idx, type.tier ?? 0);
     }
 
-    // Fuel Tanks
-    if (block.type.metatags?.includes('fuelTank')) {
-      this.fuelTankBlocks.add(block);
+    if (type.metatags?.includes('fuelTank')) {
+      this.fuelTankBlocks.add(idx);
     }
 
-    // QUEST: Tier5 special broadcast
-    if (block.type.tier === 5) {
-      if (this.isPlayerShip) {
-        reportQuestStepUpdated('tier5BlocksAttached', 1);
-      }
+    // Quest trigger for tier 5 blocks (player ship only)
+    if (type.tier === 5 && this.isPlayerShip) {
+      reportQuestStepUpdated('tier5BlocksAttached', 1);
     }
 
+    // Update derived ship state
     this.updateFuelCapacity();
     this.invalidateMass();
-    this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
-    this.addWeaponToPlanIfApplicable(coord, block);
+    this.addWeaponToPlanIfApplicable(idx);
     this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
+
+    return idx;
   }
 
   public removeBlock(coord: GridCoord): void {
-    const key = toKey(coord);
-    const entry = this.blocks.get(key);
-    if (!entry) return;
-
-    const { block } = entry;
-
-    // Remove from spatial partitioning grid
-    this.grid.removeBlockFromCell(block);
-
-    // Remove from tracking maps
-    this.blockToCoordMap.delete(block);
-    this.blockIdMap.delete(block.id);
-    this.blocks.delete(key);
+    const idx = this.getBlockIndex(coord);
+    if (idx === undefined) return;
 
     // Remove from subsystem indices
-    this.engineBlocks.delete(block);
-    this.finBlocks.delete(block);
-    this.harvesterBlocks.delete(block);
-    this.shieldBlocks.delete(block);
-    this.haloBladeBlocks.delete(block);
-    this.heatSeekerBlocks.delete(block);
-    this.fuelTankBlocks.delete(block);
+    this.engineBlocks.delete(idx);
+    this.finBlocks.delete(idx);
+    this.harvesterBlocks.delete(idx);
+    this.shieldBlocks.delete(idx);
+    this.haloBladeBlocks.delete(idx);
+    this.heatSeekerBlocks.delete(idx);
+    this.fuelTankBlocks.delete(idx);
 
-    this.removeWeaponFromPlanIfApplicable(block);
+    // Remove from firing plan
+    this.removeWeaponFromPlanIfApplicable(idx);
 
-    // Unregister from global index
-    BlockToObjectIndex.unregisterBlock(block);
+    // Free from BlockStore + deregister from BlockSpatialGrid
+    this.blockOrchestrator.destroyBlock(idx);
 
-    // Recompute ship state
+    // Update derived ship state
     this.updateFuelCapacity();
     this.invalidateMass();
-    this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
     this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
   }
 
-  public removeBlocks(coords: GridCoord[], preResolvedBlocks?: BlockInstance[]): void {
+  public removeBlocks(coords: GridCoord[]): void {
     if (coords.length === 0) return;
 
-    const blocksToRemove: BlockInstance[] = preResolvedBlocks ?? [];
+    const indicesToRemove: number[] = [];
 
-    if (!preResolvedBlocks) {
-      for (const coord of coords) {
-        const key = toKey(coord);
-        const entry = this.blocks.get(key);
-        if (!entry) continue;
-
-        const { block } = entry;
-        blocksToRemove.push(block);
-        this.blocks.delete(key);
-        this.blockToCoordMap.delete(block);
-        this.blockIdMap.delete(block.id);
-      }
-    } else {
-      for (const block of preResolvedBlocks) {
-        const coord = this.blockToCoordMap.get(block);
-        if (coord) {
-          const key = toKey(coord);
-          this.blocks.delete(key);
-        }
-        this.blockToCoordMap.delete(block);
-        this.blockIdMap.delete(block.id);
+    // Resolve block indices from provided coordinates
+    for (const coord of coords) {
+      const idx = this.getBlockIndex(coord);
+      if (idx !== undefined) {
+        indicesToRemove.push(idx);
       }
     }
 
-    if (blocksToRemove.length === 0) return;
+    if (indicesToRemove.length === 0) return;
 
-    // Step 2: Remove from grid in batch
-    this.grid.removeBlocksFromCells(blocksToRemove);
+    // Step 1: Clean up subsystem tracking and firing plan
+    for (const idx of indicesToRemove) {
+      this.engineBlocks.delete(idx);
+      this.finBlocks.delete(idx);
+      this.harvesterBlocks.delete(idx);
+      this.shieldBlocks.delete(idx);
+      this.haloBladeBlocks.delete(idx);
+      this.heatSeekerBlocks.delete(idx);
+      this.fuelTankBlocks.delete(idx);
 
-    // Step 3: Bulk-remove from subsystems
-    for (const block of blocksToRemove) {
-      this.engineBlocks.delete(block);
-      this.finBlocks.delete(block);
-      this.harvesterBlocks.delete(block);
-      this.shieldBlocks.delete(block);
-      this.haloBladeBlocks.delete(block);
-      this.heatSeekerBlocks.delete(block);
-      this.fuelTankBlocks.delete(block);
-      BlockToObjectIndex.unregisterBlock(block);
+      this.removeWeaponFromPlanIfApplicable(idx);
     }
 
-    this.removeWeaponsFromPlan(blocksToRemove);
+    // Step 2: Bulk-destroy in BlockStore + deregister from BlockSpatialGrid
+    for (const idx of indicesToRemove) {
+      this.blockOrchestrator.destroyBlock(idx);
+    }
 
-    // Step 4: Recompute affected state only once
+    // Step 3: Update derived ship state (only once)
     this.updateFuelCapacity();
     this.invalidateMass();
-    this.invalidateBlockCache();
     this.recomputeEnergyStats();
     this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
     this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
   }
 
-  /** Returns true if removing the given block would not disconnect other blocks */
+  /**
+   * Returns true if removing the block at the given grid coordinate would not
+   * disconnect the remaining blocks (i.e., the rest of the ship stays connected).
+   */
   public isDeletionSafe(coord: GridCoord): boolean {
-    const removeKey = toKey(coord);
-    if (!this.blocks.has(removeKey)) return true;
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    if (indices.length === 0) return true;
 
-    // Clone the current block map (shallow copy)
-    const remaining = new Map(this.blocks);
-    remaining.delete(removeKey);
+    const store = this.blockManager.getBlockStore();
 
-    // Find cockpit or fallback to first block
-    const rootKey = [...remaining.entries()]
-      .find(([, entry]) => entry.block.type.metatags?.includes('cockpit'))?.[0]
-      ?? [...remaining.keys()][0];
+    // Build a set of coordinate keys for all blocks except the one being removed
+    const coordSet: Set<string> = new Set();
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const x = store.localX[idx];
+      const y = store.localY[idx];
+      if (x === coord.x && y === coord.y) continue; // skip the target
+      coordSet.add(`${x},${y}`);
+    }
 
-    if (!rootKey) return true; // Nothing left, safe to remove
+    if (coordSet.size === 0) {
+      return true; // Nothing left, trivially safe
+    }
 
-    // Flood-fill to count reachable blocks
-    const visited = new Set<CoordKey>();
-    const queue: CoordKey[] = [rootKey];
+    // Pick a root for the flood-fill: prefer a cockpit if one exists
+    let rootKey: string | undefined;
+    for (const key of coordSet) {
+      const [x, y] = key.split(',').map(Number);
+      const typeIdx = store.typeIndex[
+        indices.find(idx => store.localX[idx] === x && store.localY[idx] === y)!
+      ];
+      const type = getBlockTypeByIndex(typeIdx);
+      if (type?.metatags?.includes('cockpit')) {
+        rootKey = key;
+        break;
+      }
+    }
+    if (!rootKey) {
+      // fallback: just use the first block
+      rootKey = coordSet.values().next().value;
+    }
+
+    // Flood-fill from rootKey to count connected blocks
+    const visited = new Set<string>();
+    const queue: string[] = [rootKey!];
 
     while (queue.length > 0) {
       const key = queue.pop()!;
       if (visited.has(key)) continue;
       visited.add(key);
 
-      const { x, y } = fromKey(key);
-      const neighbors: GridCoord[] = [
-        { x: x + 1, y },
-        { x: x - 1, y },
-        { x, y: y + 1 },
-        { x, y: y - 1 }
+      const [cx, cy] = key.split(',').map(Number);
+      const neighbors = [
+        `${cx + 1},${cy}`,
+        `${cx - 1},${cy}`,
+        `${cx},${cy + 1}`,
+        `${cx},${cy - 1}`,
       ];
 
       for (const n of neighbors) {
-        const nk = toKey(n);
-        if (remaining.has(nk) && !visited.has(nk)) {
-          queue.push(nk);
+        if (coordSet.has(n) && !visited.has(n)) {
+          queue.push(n);
         }
       }
     }
 
-    // Safe if all remaining blocks are still connected
-    return visited.size === remaining.size;
+    // Safe if all remaining blocks are reachable
+    return visited.size === coordSet.size;
   }
 
-  loadFromJson(data: SerializedShip): void {
+  public loadFromJson(data: SerializedShip): void {
     const transform = this.getTransform();
     transform.position = data.transform.position;
     transform.rotation = data.transform.rotation;
 
-    data.blocks.forEach(blockData => {
-      const { coord, id, rotation } = blockData;
-      this.placeBlockById(coord, id, rotation);
-    });
+    // Ensure a ship block list exists in orchestrator
+    this.blockOrchestrator.ensureShipBlocks(this.numericId);
 
+    // Populate blocks via orchestrator
+    for (const { coord, id, rotation } of data.blocks) {
+      this.placeBlockById(coord, id, rotation);
+    }
+
+    // Rebuild derived systems
     this.updateFuelCapacity();
     this.validateFiringPlan();
     this.rebuildHaloBladeIndex();
     this.rebuildEngineBlockIndex();
     this.rebuildFinBlockIndex();
     this.rebuildHeatSeekerIndex();
+
+    // Update positions and grid immediately
+    this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
+
     this.markRasterDirty();
   }
 
@@ -1078,19 +1191,18 @@ export class Ship extends CompositeBlockObject {
     this.destroyed = true;
     this.deathTimestamp = performance.now() - 10000;
 
-    for (const { block } of this.blocks.values()) {
-      this.grid.removeBlockFromCell(block);
-    }
-    this.blocks.clear();
-    this.blockToCoordMap.clear();
+    // Completely clear all blocks for this ship (frees BlockStore slots and removes from grid)
+    this.blockOrchestrator.clearShip(this.numericId);
 
     // --- Aura Light Cleanup ---
     this.cleanupAuraLight();
 
+    // Notify all registered listeners
     for (const callback of this.destroyedListeners) {
       callback(this, this.destructionCause);
     }
     this.destroyedListeners.length = 0;
+
     this.markRasterDirty();
 
     this.onDestroyed();

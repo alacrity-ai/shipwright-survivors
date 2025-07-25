@@ -1,27 +1,36 @@
-// src/game/registries/BlockToObjectIndex.ts
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
+// src/game/blocks/BlockToObjectIndexRegistry.ts
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 
-const map = new Map<BlockInstance, CompositeBlockObject>();
+// Map SOA block index → owning CompositeBlockObject
+const indexMap = new Map<number, CompositeBlockObject>();
 
 export const BlockToObjectIndex = {
-  registerBlock(block: BlockInstance, parent: CompositeBlockObject) {
-    map.set(block, parent);
+  /**
+   * Registers a mapping from a BlockStore index to its owning CompositeBlockObject.
+   */
+  registerBlock(idx: number, parent: CompositeBlockObject) {
+    indexMap.set(idx, parent);
   },
 
-  unregisterBlock(block: BlockInstance) {
-    map.delete(block);
+  /**
+   * Removes a block index mapping.
+   */
+  unregisterBlock(idx: number) {
+    indexMap.delete(idx);
   },
 
-  getObject(block: BlockInstance): CompositeBlockObject | undefined {
-    return map.get(block);
+  /**
+   * Resolves the CompositeBlockObject for a given BlockStore index.
+   */
+  getObject(idx: number): CompositeBlockObject | undefined {
+    return indexMap.get(idx);
   },
 
   clear() {
-    map.clear();
+    indexMap.clear();
   },
 
   size(): number {
-    return map.size;
+    return indexMap.size;
   }
 };

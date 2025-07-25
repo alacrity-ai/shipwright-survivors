@@ -20,9 +20,12 @@ export class BlockSpatialGrid {
   private static readonly INITIAL_CELL_CAPACITY = 64;
   private static readonly MAX_CELL_CAPACITY = 4096;
 
+  private static readonly SCRATCH = new Uint32Array(4096);
+  private scratchCount: number = 0;
+
   constructor(
     private readonly store: BlockStore,
-    gridCellSize: number = 64
+    gridCellSize: number = 128
   ) {
     this.gridCellSize = gridCellSize;
     this.cells = new Map();
@@ -79,9 +82,13 @@ export class BlockSpatialGrid {
     this.blockToCellKey[index] = newCellKey;
   }
 
+  getCellSize(): number {
+    return this.gridCellSize;
+  }
+
   /**
    * Queries all blocks overlapping a rectangular region.
-   * Returns a merged array of block indices (copy-free).
+   * Returns a view into a static scratch buffer (no allocations).
    * @param minX Left bound
    * @param minY Top bound
    * @param maxX Right bound
@@ -90,11 +97,13 @@ export class BlockSpatialGrid {
   getBlocksInArea(minX: number, minY: number, maxX: number, maxY: number): Uint32Array {
     const minCellX = Math.floor(minX / this.gridCellSize);
     const minCellY = Math.floor(minY / this.gridCellSize);
-    const maxCellX = Math.floor(maxX / this.gridCellSize);
-    const maxCellY = Math.floor(maxY / this.gridCellSize);
 
-    // Collect all relevant cells
-    const results: number[] = [];
+    // Use floor, not ceil-minus-one, to ensure we include the last touched cell
+    const maxCellX = Math.floor((maxX - 1e-6) / this.gridCellSize);
+    const maxCellY = Math.floor((maxY - 1e-6) / this.gridCellSize);
+
+    this.scratchCount = 0;
+
     for (let cy = minCellY; cy <= maxCellY; cy++) {
       for (let cx = minCellX; cx <= maxCellX; cx++) {
         const cellKey = this.packCellKey(cx, cy);
@@ -103,11 +112,43 @@ export class BlockSpatialGrid {
         if (!blocks || count === 0) continue;
 
         for (let i = 0; i < count; i++) {
-          results.push(blocks[i]);
+          BlockSpatialGrid.SCRATCH[this.scratchCount++] = blocks[i];
         }
       }
     }
-    return Uint32Array.from(results);
+
+    return BlockSpatialGrid.SCRATCH.subarray(0, this.scratchCount);
+  }
+
+  /**
+   * Returns a subarray of block indices in the specified cell,
+   * optionally excluding blocks of a given faction.
+   * Allocation-free: returns a view into the static scratch buffer.
+   *
+   * @param cellX Grid cell X (in world cell coordinates, not pixels)
+   * @param cellY Grid cell Y (in world cell coordinates, not pixels)
+   * @param excludeFaction Optional numeric faction index to exclude
+   */
+  public getBlocksInCellFiltered(cellX: number, cellY: number, excludeFaction?: number): Uint32Array {
+    const cellKey = this.packCellKey(cellX, cellY);
+    const blocks = this.cells.get(cellKey);
+    const count = this.cellCounts.get(cellKey) ?? 0;
+
+    this.scratchCount = 0;
+
+    if (!blocks || count === 0) {
+      return BlockSpatialGrid.SCRATCH.subarray(0, 0); // Empty view
+    }
+
+    const s = this.store;
+    for (let i = 0; i < count; i++) {
+      const idx = blocks[i];
+      if (excludeFaction === undefined || s.ownerFaction[idx] !== excludeFaction) {
+        BlockSpatialGrid.SCRATCH[this.scratchCount++] = idx;
+      }
+    }
+
+    return BlockSpatialGrid.SCRATCH.subarray(0, this.scratchCount);
   }
 
   /**
@@ -136,6 +177,7 @@ export class BlockSpatialGrid {
 
   /**
    * Helper to remove a block from a cell via swap-with-last.
+   * Ensures the last slot is cleared to avoid stale indices.
    */
   private removeFromCell(cellKey: number, index: number): void {
     const blocks = this.cells.get(cellKey);
@@ -155,7 +197,54 @@ export class BlockSpatialGrid {
     if (found !== last) {
       blocks[found] = blocks[last];
     }
+
+    // Clear the last slot to prevent stale data
+    blocks[last] = 0;
+
     this.cellCounts.set(cellKey, last);
+  }
+
+  /**
+   * Removes multiple blocks from a single grid cell in bulk.
+   * Filters the cell array in-place, preserving surviving entries.
+   * Assumes `toRemove` only contains indices present in this cell.
+   *
+   * @param cellKey Cell key whose contents should be filtered
+   * @param toRemove Contiguous list of block indices to remove (cell-specific)
+   * @param removeCount Number of valid entries in `toRemove`
+   */
+  public bulkRemoveBlocks(cellKey: number, toRemove: Uint32Array, removeCount: number): void {
+    const blocks = this.cells.get(cellKey);
+    const count = this.cellCounts.get(cellKey) ?? 0;
+    if (!blocks || count === 0 || removeCount === 0) return;
+
+    const blockToCellKey = this.blockToCellKey;
+
+    let write = 0;
+    outer: for (let i = 0; i < count; i++) {
+      const idx = blocks[i];
+
+      // Skip any blocks scheduled for removal
+      for (let r = 0; r < removeCount; r++) {
+        if (toRemove[r] === idx) {
+          blockToCellKey[idx] = -1; // explicitly mark as unregistered
+          continue outer;
+        }
+      }
+
+      // Keep this block
+      blocks[write++] = idx;
+
+      // Ensure its reverse mapping still points to this cell
+      blockToCellKey[idx] = cellKey;
+    }
+
+    // Clear out trailing slots to avoid stale indices
+    for (let i = write; i < count; i++) {
+      blocks[i] = 0;
+    }
+
+    this.cellCounts.set(cellKey, write);
   }
 
   /**
@@ -168,10 +257,14 @@ export class BlockSpatialGrid {
   }
 
   /**
-   * Packs cell coordinates into a 32-bit key.
+   * Packs cell coordinates into a 32-bit key, preserving sign.
+   * Supports world extents [-32768, 32767] cells per axis, which
+   * covers your map (even at 500px per cell, that's ~32M world units).
    */
   private packCellKey(cellX: number, cellY: number): number {
-    return (cellX & 0xFFFF) | ((cellY & 0xFFFF) << 16);
+    const bx = cellX + 32768; // bias to avoid negative wrap
+    const by = cellY + 32768;
+    return (bx & 0xFFFF) | ((by & 0xFFFF) << 16);
   }
 
   /**

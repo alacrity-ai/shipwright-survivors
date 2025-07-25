@@ -1,3 +1,5 @@
+// src/game/ship/utils/generateTestShipsNear.ts
+
 import { Ship } from '@/game/ship/Ship';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { Grid } from '@/systems/physics/Grid';
@@ -20,7 +22,7 @@ export function generateTestShipsNear(
     const x = center.x + Math.cos(angle) * radius;
     const y = center.y + Math.sin(angle) * radius;
 
-    const ship = new Ship(grid);
+    const ship = new Ship();
 
     // === Minimalist NPC ship ===
     ship.placeBlockById({ x: 0, y: 0 }, 'cockpit0');

@@ -1,6 +1,6 @@
 // src/config/virtualResolution.ts
 
-import { getViewportWidth, getViewportHeight } from './view';
+import { getViewportWidth, getViewportHeight } from '@/config/view';
 
 export const VIRTUAL_WIDTH = 1280;
 export const VIRTUAL_HEIGHT = 720;

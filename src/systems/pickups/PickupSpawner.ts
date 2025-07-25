@@ -9,16 +9,20 @@ import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
 import { SETTINGS } from '@/config/settings';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
 
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
 export class PickupSpawner {
   private pickupSystem: PickupSystem;
-
+  private store: BlockStore;
   private pickupDropsDisabled: boolean = false;
 
   constructor(pickupSystem: PickupSystem) {
     this.pickupSystem = pickupSystem;
+    this.store = BlockManager.getInstance().getBlockStore();
 
     GlobalEventBus.on('pickup:spawn:block', this.handleSpawnBlockPickup);
     GlobalEventBus.on('pickup:spawn:currency', this.handleSpawnCurrencyPickup);
@@ -119,46 +123,68 @@ export class PickupSpawner {
 
   // === Block destruction hooks ===
 
-  spawnPickupOnBlockDestruction(block: BlockInstance, blockDropRateMulti: number, repairOrbDropRateMulti: number = 0): void {
+  spawnPickupOnBlockDestruction(
+    blockIndex: number,
+    blockDropRateMulti: number,
+    repairOrbDropRateMulti: number = 0
+  ): void {
     if (this.pickupDropsDisabled) return;
 
-    const blockType = block.type;
+    const store = this.store;
+
+    // Validate the block slot
+    if (!store.isAllocated(blockIndex) || store.destroyed[blockIndex]) {
+      return;
+    }
+
+    const blockType = getBlockTypeByIndex(store.typeIndex[blockIndex]);
+    if (!blockType) return;
+
+    // === Drop rate calculation (unchanged) ===
     const baseDropRate = blockType.dropRate ?? 0;
     const missionMultiplier = missionLoader.getDropMultiplier();
     const passiveDropMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('block-drop-rate');
-    const effectiveDropRate = Math.min(baseDropRate * missionMultiplier * passiveDropMultiplier * blockDropRateMulti, 1.0);
+    const effectiveDropRate = Math.min(
+      baseDropRate * missionMultiplier * passiveDropMultiplier * blockDropRateMulti,
+      1.0
+    );
 
+    // Use world-space position if available, otherwise fallback to local
     const pickupPosition = {
-      x: block.position?.x ?? 0,
-      y: block.position?.y ?? 0,
+      x: store.worldX?.[blockIndex] ?? store.localX[blockIndex],
+      y: store.worldY?.[blockIndex] ?? store.localY[blockIndex],
     };
 
+    // === Primary block pickup ===
     if (Math.random() < effectiveDropRate * missionSettings.getGlobalBlockDropRate()) {
       this.pickupSystem.spawnBlockPickup(pickupPosition, blockType);
       return;
     }
 
-    // First check if a sub-drop should occur
+    // === Sub-drops: repair orbs or currency ===
     if (Math.random() < 0.2) {
-      const repairOrbChance = 0.07 * (PlayerPassiveManager.getInstance().getPassiveBonus('repair-orb-drop-rate') + repairOrbDropRateMulti);
+      const repairOrbChance = 0.07 * (
+        PlayerPassiveManager.getInstance().getPassiveBonus('repair-orb-drop-rate') + repairOrbDropRateMulti
+      );
 
       if (Math.random() < repairOrbChance) {
-        const repairAmount = this.getRepairAmountForBlock(block);
+        const repairAmount = this.getRepairAmountForBlock(blockIndex);
         this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
-      } else {
-        if (Math.random() < 0.8) {
-          let currencyAmount = this.getCurrencyAmountForBlock(block);
-          const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
-          currencyAmount = Math.floor(currencyAmount * currencyMultiplier);
-          this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
-        }
+      } else if (Math.random() < 0.8) {
+        let currencyAmount = this.getCurrencyAmountForBlock(blockIndex);
+        const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
+        currencyAmount = Math.floor(currencyAmount * currencyMultiplier);
+        this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
       }
     }
   }
 
-  private getCurrencyAmountForBlock(block: BlockInstance): number {
-    const id = block.type.id;
-    const tier = getTierFromBlockId(id);
+  private getCurrencyAmountForBlock(blockIndex: number): number {
+    const typeIndex = this.store.typeIndex[blockIndex];
+    const blockType = getBlockTypeByIndex(typeIndex);
+    if (!blockType) return 0;
+
+    const tier = getTierFromBlockId(blockType.id);
 
     const tierToBaseValue: Record<number, number> = {
       0: 15, 1: 35, 2: 60, 3: 80, 4: 120, 5: 200,
@@ -171,9 +197,12 @@ export class PickupSpawner {
     return base + bonus;
   }
 
-  private getRepairAmountForBlock(block: BlockInstance): number {
-    const id = block.type.id;
-    const tier = getTierFromBlockId(id);
+  private getRepairAmountForBlock(blockIndex: number): number {
+    const typeIndex = this.store.typeIndex[blockIndex];
+    const blockType = getBlockTypeByIndex(typeIndex);
+    if (!blockType) return 0;
+
+    const tier = getTierFromBlockId(blockType.id);
 
     const tierToBaseRepair: Record<number, number> = {
       0: 10, 1: 15, 2: 20, 3: 30, 4: 40,

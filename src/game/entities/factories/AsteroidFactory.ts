@@ -1,6 +1,5 @@
 // src/game/entities/factories/AsteroidFactory.ts
 
-import type { Grid } from '@/systems/physics/Grid';
 import { Asteroid } from '@/game/entities/Asteroid';
 import { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
 
@@ -10,7 +9,6 @@ import { CompositeBlockObject } from '../CompositeBlockObject';
 
 export class AsteroidFactory {
   public constructor(
-    private readonly grid: Grid,
     private readonly registry: CompositeBlockObjectRegistry<CompositeBlockObject>,
     private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
   ) {}
@@ -21,7 +19,7 @@ export class AsteroidFactory {
     velocity: { x: number; y: number } = { x: 0, y: 0 },
     angularVelocity: number = 0
   ): Promise<Asteroid> {
-    const asteroid = await loadAsteroidFromJson(jsonFileName + '.json', this.grid, this.objectGrid);
+    const asteroid = await loadAsteroidFromJson(jsonFileName + '.json', this.objectGrid);
 
     const transform = asteroid.getTransform();
     transform.position = { ...position };

@@ -4,7 +4,6 @@ import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { IncidentOrchestrator } from '@/systems/incidents/IncidentOrchestrator';
 import type { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 
-import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
@@ -26,7 +25,6 @@ import { WaveExecutor } from '@/game/waves/executor/WaveExecutor';
 export class WaveOrchestratorFactory {
   static create(
     waves: WaveDefinition[],
-    grid: Grid,
     shipRegistry: ShipRegistry,
     aiOrchestrator: AIOrchestratorSystem,
     particleManager: ParticleManager,
@@ -40,7 +38,6 @@ export class WaveOrchestratorFactory {
   ): WaveOrchestrator {
     // === Build core factories
     const shipFactory = new ShipFactory(
-      grid,
       shipRegistry,
       particleManager,
       projectileSystem,

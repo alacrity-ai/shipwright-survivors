@@ -2,11 +2,17 @@
 
 // npx vitest run src/game/blocks/system/BlockIntegration.test.ts
 
+import { blockAtlasUVMap, DamageLevel, type AtlasUVOffset } from '@/rendering/cache/BlockSpriteCache';
+
+import { getBlockIndexByType, BlockTypeMass } from '@/game/blocks/BlockRegistry';
+
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { BlockStore } from '@/game/blocks/system/BlockStore';
 import { BlockOrchestrator, type BlockEntityTransform } from '@/game/blocks/system/BlockOrchestrator';
 import { BlockSpatialGrid } from '@/game/blocks/system/BlockSpatialGrid';
-import * as BlockRegistryModule from '@/game/blocks/BlockRegistry';
+
+const BLOCK_SIZE = 32;
 
 describe('Ship Construction Integration', () => {
   let store: BlockStore;
@@ -14,9 +20,23 @@ describe('Ship Construction Integration', () => {
   let orchestrator: BlockOrchestrator;
 
   beforeEach(() => {
+    const fakeOffset: AtlasUVOffset = {
+      baseUV: [0, 0] as [number, number],
+      overlayUV: [0, 0] as [number, number],
+    };
+
+    for (let i = 0; i < 128; i++) {
+      blockAtlasUVMap.set(String(i), {
+        [DamageLevel.NONE]: fakeOffset,
+        [DamageLevel.LIGHT]: fakeOffset,
+        [DamageLevel.MODERATE]: fakeOffset,
+        [DamageLevel.HEAVY]: fakeOffset,
+      });
+    }
+
     store = new BlockStore(128);
-    grid = new BlockSpatialGrid(store, 64); // Use the real grid
-    orchestrator = new BlockOrchestrator(store, grid, BlockRegistryModule);
+    grid = new BlockSpatialGrid(store, 64);
+    orchestrator = new BlockOrchestrator(store, grid);
   });
 
   function makeTransform(): BlockEntityTransform {
@@ -30,6 +50,7 @@ describe('Ship Construction Integration', () => {
   it('creates a ship with 10 blocks and registers everything', () => {
     const shipId = 77;
     const blockType = 'hull2'; // armor: 75 per BlockRegistry
+    const typeIndex = getBlockIndexByType(blockType)!; // resolve numeric index
     const createdIndices: number[] = [];
 
     // Lay out 10 blocks in a line along +X local axis
@@ -37,7 +58,7 @@ describe('Ship Construction Integration', () => {
       const idx = orchestrator.createAndRegisterBlock({
         ownerShipId: shipId,
         ownerFaction: 1,
-        typeIndex: 0,
+        typeIndex,           // <-- use the resolved type index here
         localX: i * 5,
         localY: 0,
         blockTypeId: blockType,
@@ -61,12 +82,12 @@ describe('Ship Construction Integration', () => {
     expect(indices.length).toBe(10);
 
     indices.forEach((idx, i) => {
-      const lx = i * 5, ly = 0;
+      const lx = i * 5 * BLOCK_SIZE;  // <-- incorporate scaling
+      const ly = 0;
       const expectedX = shipX + lx * cos - ly * sin;
       const expectedY = shipY + lx * sin + ly * cos;
       expect(store.worldX[idx]).toBeCloseTo(expectedX);
       expect(store.worldY[idx]).toBeCloseTo(expectedY);
-      // Rotation composed of ship rotation and local (0)
       expect(store.rotation[idx]).toBeCloseTo(Math.PI / 4);
     });
   });
@@ -264,15 +285,16 @@ describe('Ship Construction Integration', () => {
     const blockType = 'hull2'; // armor 75
     const created: number[] = [];
 
-    // Spawn a small cluster (5x5 grid of blocks) for the ship
-    for (let x = 0; x < 5; x++) {
-      for (let y = 0; y < 5; y++) {
+    // Centered 5×5 grid of blocks (grid coords span -2..+2 on each axis)
+    const halfGrid = 2; // half-width/height in grid units
+    for (let x = -halfGrid; x <= halfGrid; x++) {
+      for (let y = -halfGrid; y <= halfGrid; y++) {
         const idx = orchestrator.createAndRegisterBlock({
           ownerShipId: shipId,
           ownerFaction: 1,
           typeIndex: 0,
-          localX: x * 8,
-          localY: y * 8,
+          localX: x,  // centered grid coordinates
+          localY: y,
           blockTypeId: blockType,
         }, makeTransform());
         expect(idx).not.toBe(-1);
@@ -280,11 +302,24 @@ describe('Ship Construction Integration', () => {
       }
     }
 
-    // Initial query around the ship’s starting position
-    let areaBlocks = (orchestrator.spatialGrid as any).getBlocksInArea(80, 40, 140, 100);
+    // Each grid unit becomes 32px in world space, cluster spans ±80px
+    const halfW = (halfGrid + 0.5) * BLOCK_SIZE * 2 / 2; // 80px half-width
+    const halfH = (halfGrid + 0.5) * BLOCK_SIZE * 2 / 2; // 80px half-height
+
+    const initialTransform = makeTransform();
+    const shipX = initialTransform.position.x;
+    const shipY = initialTransform.position.y;
+
+    // Initial query – should find all 25 blocks
+    let areaBlocks = (orchestrator.spatialGrid as any).getBlocksInArea(
+      shipX - halfW,
+      shipY - halfH,
+      shipX + halfW,
+      shipY + halfH
+    );
     expect(areaBlocks.length).toBe(created.length);
 
-    // Move ship 100 units along +X and update
+    // Move ship and update grid positions
     const movedTransform = {
       position: { x: 200, y: 50 },
       velocity: { x: 0, y: 0 },
@@ -292,19 +327,24 @@ describe('Ship Construction Integration', () => {
     };
     orchestrator.updateShipBlocks(shipId, movedTransform);
 
-    // Query an area overlapping the ship’s new bounds
-    const minX = 180, minY = 30, maxX = 240, maxY = 70;
-    areaBlocks = (orchestrator.spatialGrid as any).getBlocksInArea(minX, minY, maxX, maxY);
+    // Query again at new position – still expect all 25
+    const movedX = movedTransform.position.x;
+    const movedY = movedTransform.position.y;
 
-    // Expect all ship blocks to be present (25 blocks total)
+    areaBlocks = (orchestrator.spatialGrid as any).getBlocksInArea(
+      movedX - halfW,
+      movedY - halfH,
+      movedX + halfW,
+      movedY + halfH
+    );
+
     expect(areaBlocks.length).toBe(created.length);
 
-    // Ensure there are no duplicates in the query result
+    // Ensure uniqueness
     const unique = new Set(areaBlocks);
     expect(unique.size).toBe(areaBlocks.length);
 
-    // Check that no old cells still contain the moved blocks
-    // (by comparing blockToCellKey with current computed keys)
+    // Verify each block is in the correct spatial cell
     const grid = orchestrator.spatialGrid as any;
     for (const idx of created) {
       const key = grid.blockToCellKey[idx];
@@ -320,13 +360,13 @@ describe('Ship Construction Integration', () => {
     const created1: number[] = [];
     const created2: number[] = [];
 
-    // Spawn 5 blocks for Ship 1 near (100, 100)
+    // Spawn 5 blocks for Ship 1 near (100, 100), spaced 32px apart
     for (let i = 0; i < 5; i++) {
       const idx = orchestrator.createAndRegisterBlock({
         ownerShipId: ship1,
         ownerFaction: 1,
         typeIndex: 0,
-        localX: i * 4,
+        localX: i,          // 1 grid unit = 32px
         localY: 0,
         blockTypeId: blockType,
       }, {
@@ -338,13 +378,13 @@ describe('Ship Construction Integration', () => {
       created1.push(idx);
     }
 
-    // Spawn 5 blocks for Ship 2 overlapping near (110, 100)
+    // Spawn 5 blocks for Ship 2 overlapping near (110, 100), spaced 32px apart
     for (let i = 0; i < 5; i++) {
       const idx = orchestrator.createAndRegisterBlock({
         ownerShipId: ship2,
         ownerFaction: 2,
         typeIndex: 0,
-        localX: i * 4,
+        localX: i,          // 1 grid unit = 32px
         localY: 0,
         blockTypeId: blockType,
       }, {
@@ -357,7 +397,7 @@ describe('Ship Construction Integration', () => {
     }
 
     // Query overlapping region that contains both ships
-    let areaBlocks = orchestrator.spatialGrid.getBlocksInArea(90, 80, 140, 120);
+    let areaBlocks = orchestrator.spatialGrid.getBlocksInArea(90, 80, 250, 120);
     const setBefore = new Set(areaBlocks);
     expect(setBefore.size).toBe(created1.length + created2.length);
     created1.forEach(idx => expect(setBefore.has(idx)).toBe(true));
@@ -373,7 +413,7 @@ describe('Ship Construction Integration', () => {
     });
 
     // Query again — should only return Ship 2’s blocks
-    areaBlocks = orchestrator.spatialGrid.getBlocksInArea(90, 80, 140, 120);
+    areaBlocks = orchestrator.spatialGrid.getBlocksInArea(90, 80, 250, 120);
     const setAfter = new Set(areaBlocks);
     created2.forEach(idx => {
       expect(store.isAllocated(idx)).toBe(true);
@@ -390,13 +430,15 @@ describe('Ship Construction Integration', () => {
     const blockType = 'hull0'; // armor 15
     const indices: number[] = [];
 
-    // Place 4 blocks in a cross shape around local origin
+    // Place 4 blocks in a cross shape around local origin (grid units)
     const localOffsets = [
       { x: -10, y: 0 },
       { x: 10, y: 0 },
       { x: 0, y: -10 },
       { x: 0, y: 10 },
     ];
+
+    const BLOCK_SIZE = 32; // scale grid units → pixels
 
     for (const { x, y } of localOffsets) {
       const idx = orchestrator.createAndRegisterBlock({
@@ -423,13 +465,12 @@ describe('Ship Construction Integration', () => {
     };
     orchestrator.updateShipBlocks(shipId, transform1);
 
-    // Expected positions after a 90° rotation:
-    // (x, y) becomes (-y, x) relative to origin, then translated
     const cos90 = Math.cos(Math.PI / 2);
     const sin90 = Math.sin(Math.PI / 2);
+
     indices.forEach((idx, i) => {
-      const lx = localOffsets[i].x;
-      const ly = localOffsets[i].y;
+      const lx = localOffsets[i].x * BLOCK_SIZE;
+      const ly = localOffsets[i].y * BLOCK_SIZE;
       const expectedX = transform1.position.x + lx * cos90 - ly * sin90;
       const expectedY = transform1.position.y + lx * sin90 + ly * cos90;
       expect(store.worldX[idx]).toBeCloseTo(expectedX);
@@ -445,12 +486,12 @@ describe('Ship Construction Integration', () => {
     };
     orchestrator.updateShipBlocks(shipId, transform2);
 
-    // Check positions for 45° rotation around new center
     const cos45 = Math.cos(Math.PI / 4);
     const sin45 = Math.sin(Math.PI / 4);
+
     indices.forEach((idx, i) => {
-      const lx = localOffsets[i].x;
-      const ly = localOffsets[i].y;
+      const lx = localOffsets[i].x * BLOCK_SIZE;
+      const ly = localOffsets[i].y * BLOCK_SIZE;
       const expectedX = transform2.position.x + lx * cos45 - ly * sin45;
       const expectedY = transform2.position.y + lx * sin45 + ly * cos45;
       expect(store.worldX[idx]).toBeCloseTo(expectedX);

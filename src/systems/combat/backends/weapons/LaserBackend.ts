@@ -32,8 +32,11 @@ import type { BlockEntityTransform }   from '@/game/interfaces/types/BlockEntity
 import type { WeaponIntent }           from '@/core/intent/interfaces/WeaponIntent';
 import type { CombatService }          from '@/systems/combat/CombatService';
 import type { ParticleManager }        from '@/systems/fx/ParticleManager';
-import type { Grid }                   from '@/systems/physics/Grid';
 import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/ShipSkillEffectMetadata';
+
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -52,41 +55,43 @@ export class LaserBackend implements WeaponBackend {
 
   private skillEffects: ShipSkillEffectMetadata = {};
 
+  private store: BlockStore;
+
   // ═════════════════════════════════════════════════════════════════════════════
   // Construction
   // ═════════════════════════════════════════════════════════════════════════════
   constructor(
     private readonly combatService : CombatService,
     private readonly particleManager: ParticleManager,
-    private readonly grid          : Grid,
   ) {
+    this.store = BlockManager.getInstance().getBlockStore();
     this.skillEffects = PlayerShipCollection.getInstance().getSkillEffectsForActiveShip();
   }
 
   // ═════════════════════════════════════════════════════════════════════════════
   // Public API
   // ═════════════════════════════════════════════════════════════════════════════
-  /**
-   * Main per-frame hook driven by `WeaponSystem`.
-   */
+  
+  // Per frame
   update(
-    dt       : number,
-    ship     : Ship,
-    xform    : BlockEntityTransform,
-    intent   : WeaponIntent | null,
+    dt: number,
+    ship: Ship,
+    xform: BlockEntityTransform,
+    intent: WeaponIntent | null,
   ): void {
-
-    // ─── Short-circuit: no firing intent ───────────────────────────────────────
     if (!intent?.firePrimary) return;
 
-    // ─── Extract candidate laser blocks (fireType === 'laser') ────────────────
-    const firingPlan = ship
-      .getFiringPlan()
-      .filter(p => p.block.type.behavior?.fire?.fireType === 'laser');
+    const store = this.store;
 
+    // ─── Filter only laser-emitter blocks (via BlockStore) ──────────────────────
+    const firingPlan = ship.getFiringPlan().filter(entry => {
+      const typeIdx = store.typeIndex[entry.blockIndex];
+      const type = getBlockTypeByIndex(typeIdx);
+      return type?.behavior?.fire?.fireType === 'laser';
+    });
     if (firingPlan.length === 0) return;
 
-    // ─── Passive / power-up modifiers ─────────────────────────────────────────
+    // ─── Passive / power-up modifiers ───────────────────────────────────────────
     const {
       laserDamage = 0,
       laserFiringRate = 0,
@@ -95,29 +100,26 @@ export class LaserBackend implements WeaponBackend {
       laserAreaOfEffect = false,
     } = this.skillEffects;
 
-    let passiveRangeMultiplier = ship.getPassiveBonus('laser-firing-range');
-    let fireRateBonus   = 1.0
-    let damageBonus     = ship.getPassiveBonus('laser-damage');
+    const passiveRangeMultiplier = ship.getPassiveBonus('laser-firing-range');
+    let fireRateBonus = 1.0;
+    let damageBonus = ship.getPassiveBonus('laser-damage');
     const { fireRateMultiplier = 0, baseDamageMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus   += fireRateMultiplier + laserFiringRate;
-    damageBonus     += baseDamageMultiplier;
+    fireRateBonus += fireRateMultiplier + laserFiringRate;
+    damageBonus += baseDamageMultiplier;
 
-    // ========================================================================
-    // Iterate over each laser emitter block
-    // ========================================================================
+    // ─── Iterate over each firing block (SOA indices) ───────────────────────────
     for (const emitter of firingPlan) {
-      const fireDef = emitter.block.type.behavior!.fire!;
+      const typeIdx = store.typeIndex[emitter.blockIndex];
+      const type = getBlockTypeByIndex(typeIdx)!;
+      const fireDef = type.behavior!.fire!;
 
-      // Cool-down gate
       emitter.timeSinceLastShot += dt;
       if (emitter.timeSinceLastShot < emitter.fireCooldown / fireRateBonus) continue;
       emitter.timeSinceLastShot = 0;
 
-      // ─── World-space muzzle coordinates ────────────────────────────────────
-      const { x: cx, y: cy } = emitter.coord;       // grid coord (in tiles)
-      const localX = cx * 32;                       // convert to pixels
-      const localY = cy * 32;
-
+      // World-space muzzle position (from BlockStore local coords)
+      const localX = store.localX[emitter.blockIndex] * 32;
+      const localY = store.localY[emitter.blockIndex] * 32;
       const cos = Math.cos(xform.rotation);
       const sin = Math.sin(xform.rotation);
 
@@ -126,7 +128,7 @@ export class LaserBackend implements WeaponBackend {
         y: xform.position.y + localX * sin + localY * cos,
       };
 
-      // ─── Target acquisition ───────────────────────────────────────────────────
+      // Acquire target ship
       const targetShip = findRandomTargetInRange(
         ship,
         fireDef.targetingRange! * (laserRange + passiveRangeMultiplier),
@@ -135,10 +137,12 @@ export class LaserBackend implements WeaponBackend {
 
       const targetPos = targetShip.getTransform().position;
 
-      // ─── Fire the initial laser beam ──────────────────────────────────────────
+      // Final damage & color
       const dmg = (fireDef.fireDamage! + laserDamage) * damageBonus;
-      const tierColour = LASER_TIER_COLORS_RGBA[emitter.block.type.tier] ?? [0.2, 0.9, 1.0, 1.0];
-      
+      const tier = type.tier ?? 0;
+      const tierColour = LASER_TIER_COLORS_RGBA[tier] ?? [0.2, 0.9, 1.0, 1.0];
+
+      // Fire beam
       this.fireLaserBeam(
         origin,
         targetPos,
@@ -146,10 +150,10 @@ export class LaserBackend implements WeaponBackend {
         ship,
         dmg,
         tierColour,
-        emitter.block.type.tier
+        tier
       );
 
-      // ─── Chain lightning if skill is active ───────────────────────────────────
+      // Chain lightning effect (optional)
       if (laserChain) {
         this.executeChainLightning(
           targetPos,
@@ -157,8 +161,8 @@ export class LaserBackend implements WeaponBackend {
           ship,
           dmg * 0.5,
           tierColour,
-          emitter.block.type.tier,
-          2 // Maximum 2 chains
+          tier,
+          2,
         );
       }
     }
@@ -184,6 +188,8 @@ export class LaserBackend implements WeaponBackend {
   ): void {
     if (targetShip.isDestroyed()) return;
 
+    const store = this.store;
+
     /* ── 1. Beam geometry (unchanged) ───────────────────────────────────────── */
     const dx   = targetPos.x - origin.x;
     const dy   = targetPos.y - origin.y;
@@ -196,33 +202,25 @@ export class LaserBackend implements WeaponBackend {
       y: targetPos.y + dirY * LASER_BEAM_EXTENSION_PX,
     };
 
-    /* ── 2. Block selection – bulletproofed ─────────────────────────────────── */
-    let candidateBlock = targetShip.getRandomBlock();
-
-    if (!candidateBlock) {
-      const cockpit = targetShip.getCockpit();
-      if (cockpit) {
-        candidateBlock = cockpit;
-      } else {
-        // Early exit if: target ship has no blocks (likely destroyed)
-        spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
-        return;
-      }
+    /* ── 2. Block selection (SOA, not BlockInstance) ────────────────────────── */
+    // Get a random valid block index from the target ship
+    let blockIndex = targetShip.getRandomBlockIndex();
+    if (blockIndex == null || blockIndex === -1) {
+      // Fallback: cockpit index (if ship still has one)
+      blockIndex = targetShip.getCockpitIndex?.() ?? -1;
     }
 
-    const canonicalBlock = targetShip.getBlockById(candidateBlock.id);
-    if (!canonicalBlock) {
-      // Early exit if: block lookup failed (shouldn't happen)
+    // Early exit if there are no blocks left
+    if (blockIndex === -1) {
       spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
       return;
     }
 
-    const coord = targetShip.getBlockCoord(canonicalBlock);
-    if (!coord) {
-      // Early exit if: block coord missing (shouldn't happen)
-      spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
-      return;
-    }
+    // Derive local grid coordinate for damage/visuals
+    const coord = { 
+      x: store.localX[blockIndex], 
+      y: store.localY[blockIndex] 
+    };
 
     /* ── 3. Visual + SFX output (unchanged) ─────────────────────────────────── */
     spawnLaserBeam(origin.x, origin.y, extendedEnd.x, extendedEnd.y, tierColour);
@@ -247,7 +245,6 @@ export class LaserBackend implements WeaponBackend {
       light             : false,
     });
 
-    // Create a light flash at location
     createLightFlash(
       targetPos.x,
       targetPos.y,
@@ -255,15 +252,15 @@ export class LaserBackend implements WeaponBackend {
       1.0,
       0.4,
       sparkColor,
-      `laser-hit-${targetShip.id}`
+      `laser-hit-${targetShip.id}`,
     );
 
-    /* ── 4. Damage application (only if valid block) ────────────────────────── */
+    /* ── 4. Damage application (blockIndex, not BlockInstance) ──────────────── */
     this.combatService.applyDamageToBlock(
       targetShip,
       sourceShip,
-      canonicalBlock,
-      coord,
+      blockIndex,   // now block index, not a BlockInstance
+      coord,        // local grid coord from BlockStore
       damage,
       'laser',
     );

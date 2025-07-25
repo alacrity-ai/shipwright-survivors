@@ -6,14 +6,41 @@
 // Then this should be a drop-in replacement for shipUtils
 // When all ships are moved out of the ship registry, then we can replace this with CompositeBlockObjectUtils
 
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 export type CoordKey = string;
+
+/**
+ * Finds the object (Ship or CompositeBlockObject) that owns a given block index.
+ * Prioritizes ShipRegistry for performance/consistency with legacy systems.
+ */
+export function findObjectByBlock(blockIndex: number): CompositeBlockObject | null {
+  const store = BlockManager.getInstance().getBlockStore();
+  const ownerShipId = store.ownerShipId[blockIndex]; // stored as string (legacy IDs)
+
+  // First check ShipRegistry (player/enemy ships)
+  const shipRegistry = ShipRegistry.getInstance();
+  const ship = shipRegistry.getByNumericId(ownerShipId);
+  if (ship) return ship;
+
+  // Fallback to CompositeBlockObjectRegistry (stations, asteroids, etc.)
+  const compositeRegistry = CompositeBlockObjectRegistry.getInstance<CompositeBlockObject>();
+  const object = compositeRegistry.getByNumericId(ownerShipId);
+  return object || null;
+}
+
+/**
+ * Gets the total mass of the block's ownerShip (or owner CompositeBlockObject).
+ */
+export function getObjectTotalMassByBlock(blockIndex: number): number {
+  const object = findObjectByBlock(blockIndex);
+  return object ? object.getTotalMass() : 0;
+}
 
 export function getAllCompositeObjects(): Iterable<CompositeBlockObject> {
   const compositeRegistry = CompositeBlockObjectRegistry.getInstance<CompositeBlockObject>();
@@ -24,33 +51,22 @@ export function getAllCompositeObjects(): Iterable<CompositeBlockObject> {
 }
 
 /**
- * Finds the object (Ship or CompositeBlockObject) that owns a given block.
- * Prioritizes ShipRegistry for lookup performance and legacy consistency.
- */
-export function findObjectByBlock(block: BlockInstance): CompositeBlockObject | null {
-  const shipRegistry = ShipRegistry.getInstance();
-  const ship = shipRegistry.getById(block.ownerShipId);
-  if (ship) return ship;
-
-  const compositeRegistry = CompositeBlockObjectRegistry.getInstance<CompositeBlockObject>();
-  const object = compositeRegistry.getById(block.ownerShipId);
-  return object || null;
-}
-
-// Gets the total mass of the block's ownerShip (or owner CompositeBlockObject)
-export function getObjectTotalMassByBlock(block: BlockInstance): number {
-  const object = findObjectByBlock(block);
-  return object ? object.getTotalMass() : 0;
-}
-
-/**
- * Gets the block's local grid coordinate within the owning object.
+ * Gets the block’s local grid coordinate (relative to its owning object) given its SOA index.
  */
 export function findBlockCoordinatesInObject(
-  block: BlockInstance,
+  blockIdx: number,
   object: CompositeBlockObject
 ): GridCoord | null {
-  return object.getBlockCoord(block);
+  const store = BlockManager.getInstance().getBlockStore();
+
+  if (!store.isAllocated(blockIdx)) {
+    return null;
+  }
+
+  return {
+    x: store.localX[blockIdx],
+    y: store.localY[blockIdx],
+  };
 }
 
 export function getConnectedBlockCoords(blockObject: CompositeBlockObject, startCoord: GridCoord): Set<string> {

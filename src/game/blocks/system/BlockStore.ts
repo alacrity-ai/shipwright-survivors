@@ -18,7 +18,7 @@ export class BlockStore {
   public readonly localY: Float32Array;
   public readonly worldX: Float32Array;
   public readonly worldY: Float32Array;
-  public readonly rotation: Float32Array;       // World rotation (composed)
+  public readonly rotation: Float32Array;       // World rotation (composed in radians)
   public readonly localRotation: Float32Array;  // Rotation relative to ship
   public readonly overlayRotation: Float32Array; // Rotation relative to ship, for turrets, etc.
   public readonly hidden: Uint8Array;
@@ -31,14 +31,31 @@ export class BlockStore {
 
   // Ownership & Typing arrays
   public readonly ownerShipId: Int32Array;
-  public readonly ownerFaction: Uint8Array;
+  public readonly ownerFaction: Uint8Array; // 1=Player, 2=Enemy, 3=Neutral
   public readonly typeIndex: Int32Array;
 
   // Shielding arrays
-  public readonly isShielded: Uint8Array;
+  public readonly isShielded: Uint8Array; // 1 = shielded, 0 = not shielded
   public readonly shieldEfficiency: Float32Array;
   public readonly shieldHighlightColor: Int32Array;
   public readonly shieldSourceId: Int32Array;
+
+  // Rendering color (RGBA packed as floats 0–1)
+  public readonly colorR: Float32Array;
+  public readonly colorG: Float32Array;
+  public readonly colorB: Float32Array;
+  public readonly colorA: Float32Array;
+
+  // Per-frame culling mask (1 = visible, 0 = culled)
+  public readonly visible: Uint8Array;
+
+  // Texture atlas UVs (precomputed per block, so renderer can read directly)
+  public readonly uvBaseX: Float32Array;
+  public readonly uvBaseY: Float32Array;
+  public readonly uvOverlayX: Float32Array;
+  public readonly uvOverlayY: Float32Array;
+  public readonly armor: Float32Array;   // cached max HP for damage tier math
+  public readonly atlasKey: Int32Array;  // numeric key (usually typeIndex)
 
   constructor(capacity: number) {
     if (capacity <= 0 || !Number.isInteger(capacity)) {
@@ -77,6 +94,23 @@ export class BlockStore {
     this.shieldEfficiency = new Float32Array(capacity);
     this.shieldHighlightColor = new Int32Array(capacity);
     this.shieldSourceId = new Int32Array(capacity);
+
+    // Rendering color (RGBA)
+    this.colorR = new Float32Array(capacity).fill(1);
+    this.colorG = new Float32Array(capacity).fill(1);
+    this.colorB = new Float32Array(capacity).fill(1);
+    this.colorA = new Float32Array(capacity).fill(1);
+
+    // Per-frame culling mask (1 = visible, 0 = culled)
+    this.visible = new Uint8Array(capacity).fill(1);
+
+    // Rendering UVs (initialize to invalid or 0)
+    this.uvBaseX = new Float32Array(capacity).fill(0);
+    this.uvBaseY = new Float32Array(capacity).fill(0);
+    this.uvOverlayX = new Float32Array(capacity).fill(-1);  // -1 signals "no overlay"
+    this.uvOverlayY = new Float32Array(capacity).fill(-1);
+    this.armor = new Float32Array(capacity).fill(0);
+    this.atlasKey = new Int32Array(capacity).fill(-1);
 
     // Initialize defaults
     this.shieldSourceId.fill(-1);
@@ -142,6 +176,20 @@ export class BlockStore {
     this.shieldHighlightColor[index] = 0;
     this.shieldSourceId[index] = -1;
 
+    this.colorR[index] = 1;
+    this.colorG[index] = 1;
+    this.colorB[index] = 1;
+    this.colorA[index] = 1;
+
+    this.visible[index] = 1;
+
+    this.uvBaseX[index] = 0;
+    this.uvBaseY[index] = 0;
+    this.uvOverlayX[index] = -1;
+    this.uvOverlayY[index] = -1;
+    this.armor[index] = 0;
+    this.atlasKey[index] = -1;
+
     // Recycle the index
     this.freeList.push(index);
   }
@@ -187,5 +235,19 @@ export class BlockStore {
     this.shieldEfficiency.fill(0);
     this.shieldHighlightColor.fill(0);
     this.shieldSourceId.fill(-1);
+
+    this.colorR.fill(1);
+    this.colorG.fill(1);
+    this.colorB.fill(1);
+    this.colorA.fill(1);
+
+    this.uvBaseX.fill(0);
+    this.uvBaseY.fill(0);
+    this.uvOverlayX.fill(-1);
+    this.uvOverlayY.fill(-1);
+    this.armor.fill(0);
+    this.atlasKey.fill(-1);
+
+    this.visible.fill(1);
   }
 }

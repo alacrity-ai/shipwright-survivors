@@ -1,54 +1,79 @@
 // src/game/entities/SpaceStation.ts
 
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 
 import { Faction } from '@/game/interfaces/types/Faction';
-import { getBlockType } from '../blocks/BlockRegistry';
+import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
 import { CompositeBlockObject } from './CompositeBlockObject';
-import { Grid } from '@/systems/physics/Grid';
+
+import { getBlockIndexByType } from '@/game/blocks/BlockRegistry';
 
 export class SpaceStation extends CompositeBlockObject {
   constructor(
-    grid: Grid,
-    initialBlocks?: [GridCoord, BlockInstance][],
+    initialBlocks?: { coord: GridCoord; typeId: string; rotation?: number }[],
     initialTransform?: Partial<BlockEntityTransform>
   ) {
-    super(grid, initialBlocks, initialTransform);
+    super(initialBlocks, initialTransform); // CompositeBlockObject now only needs transform
+
     this.setImmoveable(true);
+
+    if (initialBlocks && initialBlocks.length > 0) {
+      const orchestrator = this.getBlockOrchestrator();
+      for (const { coord, typeId, rotation } of initialBlocks) {
+        const typeIndex = getBlockIndexByType(typeId);
+        if (typeIndex === -1 || typeIndex === undefined) {
+          console.warn(`Unknown block type: ${typeId}`);
+          continue;
+        }
+
+        orchestrator.createAndRegisterBlock(
+          {
+            ownerShipId: this.numericId,
+            ownerFaction: FACTION_TO_INDEX[Faction.Neutral],
+            typeIndex,
+            localX: coord.x,
+            localY: coord.y,
+            localRotation: rotation ?? 0,
+            blockTypeId: typeId,
+          },
+          this.getTransform()
+        );
+      }
+    }
   }
 
   public override update(_dt: number): void {
-    // Space stations do not move — static entities.
-    // If needed, implement docking logic here in the future.
+    // Stations are static — nothing to do unless docking/interaction logic is added.
   }
 
   public override onDestroyed(): void {
-    // Trigger an explosion cascade, mission failure, etc.
-    // Leave no-op for now.
+    // Could trigger explosion effects or mission events here.
   }
 
-  placeBlockById(coord: GridCoord, blockId: string, rotation?: number): void {
-    const type = getBlockType(blockId);
-    if (!type) throw new Error(`Unknown block type: ${blockId}`);
+  /**
+   * Places a new block into the station using the orchestrator and SOA store.
+   */
+  public placeBlockById(coord: GridCoord, blockId: string, rotation?: number): void {
+    const typeIndex = getBlockIndexByType(blockId);
+    if (typeIndex === -1) {
+      throw new Error(`Unknown block type: ${blockId}`);
+    }
 
-    // Calculate the proper world position immediately
-    const worldPos = this.calculateBlockWorldPosition(coord);  // Use the helper method to calculate world position
-    
-    const block: BlockInstance = {
-      ownerFaction: Faction.Neutral,
-      id: crypto.randomUUID(),
-      ownerShipNumericId: this.numericId,  // Associate the block with this ship's numeric ID
-      type,
-      hp: type.armor,
-      ownerShipId: this.id,  // Associate the block with this ship's ID
-      position: worldPos,  // Set the calculated world position
-      ...(rotation !== undefined ? { rotation } : {}),  // Set the rotation if provided
-      destroyed: false,
-    };
+    const orchestrator = this.getBlockOrchestrator();
+    if (!typeIndex) return;
 
-    this.placeBlock(coord, block);  // Place the block into the grid and the ship
+    orchestrator.createAndRegisterBlock(
+      {
+        ownerShipId: this.numericId,
+        ownerFaction: FACTION_TO_INDEX[Faction.Neutral],
+        typeIndex,
+        localX: coord.x,
+        localY: coord.y,
+        localRotation: rotation ?? 0,
+        blockTypeId: blockId,
+      },
+      this.getTransform()
+    );
   }
-
 }

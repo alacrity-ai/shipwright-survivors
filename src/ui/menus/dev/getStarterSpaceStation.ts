@@ -3,8 +3,8 @@
 import type { Grid } from '@/systems/physics/Grid';
 import { SpaceStation } from '@/game/entities/SpaceStation';
 
-export function getStarterSpaceStation(grid: Grid): SpaceStation {
-  const station = new SpaceStation(grid);
+export function getStarterSpaceStation(): SpaceStation {
+  const station = new SpaceStation();
   station.placeBlockById({ x: -10000, y: 10000 }, 'hull1');
   return station;
 }

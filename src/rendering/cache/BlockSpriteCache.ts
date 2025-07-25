@@ -1,7 +1,5 @@
 // src/rendering/BlockSpriteCache.ts
 
-import { BLOCK_SIZE } from '@/config/view';
-
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
@@ -22,8 +20,10 @@ import { renderHaloBladeBlock } from './blockRenderers/haloBladeBlockRenderer';
 import { renderFuelTankBlock } from './blockRenderers/fuelTankBlockRenderer';
 import { renderFlameThrower } from './blockRenderers/flameThrowerBlockRenderer';
 
-import { getAllAsteroidBlockTypes, getAsteroidBlockType } from '@/game/blocks/AsteroidBlockRegistry';
+import { getAllAsteroidBlockTypes } from '@/game/blocks/AsteroidBlockRegistry';
 import { AsteroidDamageLevel, getAsteroidBlockSprite } from '@/rendering/cache/AsteroidSpriteCache';
+
+const BLOCK_SIZE = 32;
 
 interface BlockAtlas {
   texture: WebGLTexture;
@@ -1260,32 +1260,28 @@ export function initializeUnifiedBlockAtlas(gl: WebGL2RenderingContext): BlockAt
 
     for (let bx = 0; bx < allBlocks.length; bx++) {
       const block = allBlocks[bx];
+      const atlasKey = bx; // numeric ID = atlas column index
+
       const x = bx * BLOCK_SIZE;
       const baseY = (dy * 2) * BLOCK_SIZE;
       const overlayY = (dy * 2 + 1) * BLOCK_SIZE;
 
-      // Determine whether this is an asteroid block
       const isAsteroid = asteroidBlocks.includes(block);
 
-      let sprite: { base: HTMLCanvasElement; overlay?: HTMLCanvasElement };
-      if (isAsteroid) {
-        const asteroidLevel = mapDamageLevelToAsteroid(level);
-        sprite = getAsteroidBlockSprite(block.id, asteroidLevel);
-      } else {
-        sprite = getBlockSprite(block, level);
-      }
+      const sprite = isAsteroid
+        ? getAsteroidBlockSprite(block.id, mapDamageLevelToAsteroid(level))
+        : getBlockSprite(block, level);
 
       ctx.drawImage(sprite.base, x, baseY);
-
-      if (sprite.overlay) {
-        ctx.drawImage(sprite.overlay, x, overlayY);
-      } else {
-        ctx.clearRect(x, overlayY, BLOCK_SIZE, BLOCK_SIZE);
-      }
+      sprite.overlay
+        ? ctx.drawImage(sprite.overlay, x, overlayY)
+        : ctx.clearRect(x, overlayY, BLOCK_SIZE, BLOCK_SIZE);
 
       const baseUV: [number, number] = [x / atlasWidth, baseY / atlasHeight];
       const overlayUV: [number, number] = [x / atlasWidth, overlayY / atlasHeight];
 
+      // Register under *both* numeric atlasKey and legacy string for compatibility
+      registerBlockAtlasUV(atlasKey, level, baseUV, sprite.overlay ? overlayUV : undefined);
       registerBlockAtlasUV(block.id, level, baseUV, sprite.overlay ? overlayUV : undefined);
     }
   }
@@ -1312,35 +1308,39 @@ function mapDamageLevelToAsteroid(level: DamageLevel): AsteroidDamageLevel {
 
 
 // UV map container
-interface AtlasUVOffset {
+export interface AtlasUVOffset {
   baseUV: [number, number];
   overlayUV?: [number, number];
 }
 
-const blockAtlasUVMap = new Map<string, Record<DamageLevel, AtlasUVOffset>>();
+// Allow number or string as key (internally normalize to string for Map)
+export const blockAtlasUVMap = new Map<string, Record<DamageLevel, AtlasUVOffset>>();
 
-/** Registers UV offset for a block ID + damage level */
+/** Registers UV offset for a block type (numeric index or string ID) + damage level */
 export function registerBlockAtlasUV(
-  typeId: string,
+  typeKey: number | string,
   damageLevel: DamageLevel,
   baseUV: [number, number],
   overlayUV?: [number, number]
 ): void {
-  let levels = blockAtlasUVMap.get(typeId);
+  const key = String(typeKey);
+  let levels = blockAtlasUVMap.get(key);
   if (!levels) {
     levels = {} as Record<DamageLevel, AtlasUVOffset>;
-    blockAtlasUVMap.set(typeId, levels);
+    blockAtlasUVMap.set(key, levels);
   }
   levels[damageLevel] = { baseUV, overlayUV };
 }
 
+/** Retrieves UV offset by numeric index or string type ID */
 export function getBlockAtlasUVOffset(
-  typeId: string,
+  typeKey: number | string,
   damageLevel: DamageLevel
 ): AtlasUVOffset {
-  const levels = blockAtlasUVMap.get(typeId);
-  if (!levels) throw new Error(`No UV mapping found for typeId: ${typeId}`);
+  const key = String(typeKey);
+  const levels = blockAtlasUVMap.get(key);
+  if (!levels) throw new Error(`No UV mapping found for type=${key}`);
   const entry = levels[damageLevel];
-  if (!entry) throw new Error(`No UV for typeId=${typeId}, level=${damageLevel}`);
+  if (!entry) throw new Error(`No UV for type=${key}, level=${damageLevel}`);
   return entry;
 }

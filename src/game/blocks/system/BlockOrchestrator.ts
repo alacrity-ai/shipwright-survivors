@@ -2,6 +2,13 @@
 
 import { BlockStore } from '@/game/blocks/system/BlockStore';
 
+import { getBlockAtlasUVOffset } from '@/rendering/cache/BlockSpriteCache';
+import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
+
+import { BlockTypesByIndex } from '@/game/blocks/BlockRegistry';
+
+
+const BLOCK_SIZE = 32;
 
 /**
  * Transform interface for ship positioning and rotation
@@ -42,6 +49,7 @@ export interface BlockSpatialGrid {
   deregisterBlock(index: number): void;
   rehomeBlockIndex(index: number, worldX: number, worldY: number): void;
   getBlocksInArea(minX: number, minY: number, maxX: number, maxY: number): Uint32Array;
+  bulkRemoveBlocks(cellKey: number, toRemove: Uint32Array, removeCount: number): void;
   clear(): void;
 }
 
@@ -53,7 +61,6 @@ export interface BlockSpatialGrid {
 export class BlockOrchestrator {
   private store: BlockStore;
   private grid: BlockSpatialGrid;
-  private registry?: BlockRegistry;
   
   // Per-ship block management
   private shipBlocks: Map<number, Uint32Array> = new Map();
@@ -67,67 +74,66 @@ export class BlockOrchestrator {
   constructor(store: BlockStore, grid: BlockSpatialGrid, registry?: BlockRegistry) {
     this.store = store;
     this.grid = grid;
-    this.registry = registry;
   }
 
-  /**
-   * Allocates and initializes a new block for a ship.
-   * World positions are set to match local positions initially.
-   * Call updateWorldPositions() and registerBlockWithGrid() afterwards.
-   * @param params Block creation parameters
-   * @returns The block index or -1 on failure
-   */
   createBlock(params: CreateBlockParams): number {
-    // Allocate index from store
     const index = this.store.allocateIndex();
-    if (index === -1) {
-      return -1; // Store is at capacity
-    }
+    if (index === -1) return -1;
 
-    // Get initial HP from block registry if available
-    let initialHp = 100; // fallback default
-    if (this.registry && params.blockTypeId) {
-      const blockType = this.registry.getBlockType(params.blockTypeId);
-      if (blockType) {
-        initialHp = blockType.armor;
-      }
-    }
+    const blockType = BlockTypesByIndex[params.typeIndex];
+    const blockTypeArmor = blockType?.armor ?? 100;
+    const initialHp = blockTypeArmor;
 
-    const localRotation = params.localRotation ?? 0;
+    // Normalize localRotation to radians (if provided in degrees)
+    const localRotDeg = params.localRotation ?? 0;
+    const localRot = (Math.PI / 180) * localRotDeg;
 
-    // Initialize BlockStore fields
-    this.store.ownerShipId[index] = params.ownerShipId;
-    this.store.ownerFaction[index] = params.ownerFaction;
-    this.store.typeIndex[index] = params.typeIndex;
-    this.store.localX[index] = params.localX;
-    this.store.localY[index] = params.localY;
-    this.store.localRotation[index] = localRotation; // Local rotation relative to ship
-    this.store.rotation[index] = localRotation;      // World rotation placeholder (updated later)
-    this.store.overlayRotation[index] = params.overlayRotation ?? 0;
-    this.store.hp[index] = initialHp;
+    const overlayRotDeg = params.overlayRotation ?? 0;
+    const overlayRot = (Math.PI / 180) * overlayRotDeg;
 
-    // Initialize other state fields
-    this.store.destroyed[index] = 0;
-    this.store.indestructible[index] = 0;
-    this.store.cooldown[index] = 0;
-    this.store.hidden[index] = 0;
-    this.store.isShielded[index] = 0;
-    this.store.shieldEfficiency[index] = 0;
-    this.store.shieldHighlightColor[index] = 0;
-    this.store.shieldSourceId[index] = -1;
+    const s = this.store;
+    s.ownerShipId[index] = params.ownerShipId;
+    s.ownerFaction[index] = params.ownerFaction;
+    s.typeIndex[index] = params.typeIndex;
 
-    // Remove: cellKey initialization (grid owns keys now)
+    // Store unscaled grid-relative coordinates for later world updates
+    s.localX[index] = params.localX;
+    s.localY[index] = params.localY;
 
-    // Add to ship’s block list (enforce per-ship max)
+    s.localRotation[index] = localRot;   // store in radians
+    s.rotation[index] = localRot;        // initialize world rotation in radians
+    s.overlayRotation[index] = overlayRot;
+    s.hp[index] = initialHp;
+
+    s.armor[index] = blockTypeArmor;
+    s.atlasKey[index] = params.typeIndex;
+
+    s.destroyed[index] = 0;
+    s.indestructible[index] = 0;
+    s.cooldown[index] = 0;
+    s.hidden[index] = 0;
+    s.isShielded[index] = 0;
+    s.shieldEfficiency[index] = 0;
+    s.shieldHighlightColor[index] = 0;
+    s.shieldSourceId[index] = -1;
+    s.visible[index] = 1;
+
+    const damageLevel = getDamageLevel(initialHp, blockTypeArmor);
+    const atlasUV = getBlockAtlasUVOffset(params.typeIndex, damageLevel);
+
+    s.uvBaseX[index] = atlasUV.baseUV[0];
+    s.uvBaseY[index] = atlasUV.baseUV[1];
+    s.uvOverlayX[index] = atlasUV.overlayUV?.[0] ?? -1;
+    s.uvOverlayY[index] = atlasUV.overlayUV?.[1] ?? -1;
+
     if (!this.addBlockToShip(params.ownerShipId, index)) {
-      // Ship at capacity — recycle the slot and abort
-      this.store.freeIndex(index);
+      s.freeIndex(index);
       return -1;
     }
 
-    // Initialize world positions as placeholders (properly updated later)
-    this.store.worldX[index] = params.localX;
-    this.store.worldY[index] = params.localY;
+    // Do not scale here — world positions will be set by setWorldTransformForBlock
+    s.worldX[index] = params.localX;
+    s.worldY[index] = params.localY;
 
     return index;
   }
@@ -177,6 +183,7 @@ export class BlockOrchestrator {
 
   /**
    * Updates all world positions for the given ship's blocks, given its transform.
+   * Scales local grid coordinates by BLOCK_SIZE so blocks are spaced correctly.
    * @param shipId Ship ID
    * @param transform Ship's current transform
    */
@@ -191,7 +198,7 @@ export class BlockOrchestrator {
       return;
     }
 
-    // Hoist trigonometric calculations once per ship
+    // Precompute trig and ship transform values once per ship
     const cos = Math.cos(transform.rotation);
     const sin = Math.sin(transform.rotation);
     const shipX = transform.position.x;
@@ -200,15 +207,17 @@ export class BlockOrchestrator {
     // Update world positions and rotations for all ship blocks
     for (let i = 0; i < count; i++) {
       const blockIndex = blockIndices[i];
-      const localX = this.store.localX[blockIndex];
-      const localY = this.store.localY[blockIndex];
+      
+      // Scale local grid coordinates by BLOCK_SIZE
+      const localX = this.store.localX[blockIndex] * BLOCK_SIZE;
+      const localY = this.store.localY[blockIndex] * BLOCK_SIZE;
       const localRotation = this.store.localRotation[blockIndex];
 
-      // Apply 2D rotation and translation for position
+      // Rotate around ship origin and translate to world position
       this.store.worldX[blockIndex] = shipX + localX * cos - localY * sin;
       this.store.worldY[blockIndex] = shipY + localX * sin + localY * cos;
 
-      // Compose rotations: ship rotation + local block rotation
+      // Combine ship rotation and block’s own rotation
       this.store.rotation[blockIndex] = transform.rotation + localRotation;
     }
   }
@@ -306,26 +315,52 @@ export class BlockOrchestrator {
 
   /**
    * Removes all blocks for a specific ship.
+   * Uses BlockSpatialGrid.bulkRemoveBlocks to avoid swap-with-last corruption.
+   * GC-neutral and allocation-free.
    * @param shipId Ship ID to clear
    */
   clearShip(shipId: number): void {
     const blockIndices = this.shipBlocks.get(shipId);
     const count = this.shipBlockCounts.get(shipId) ?? 0;
-    
-    if (!blockIndices || count === 0) {
-      return;
-    }
+    if (!blockIndices || count === 0) return;
 
-    // Destroy all blocks for this ship
+    const grid = this.grid as any;
+    const store = this.store;
+
+    const affectedCells = new Set<number>();
     for (let i = 0; i < count; i++) {
-      const blockIndex = blockIndices[i];
-      this.grid.deregisterBlock(blockIndex);
-      this.store.freeIndex(blockIndex);
+      const idx = blockIndices[i];
+      const cellKey = grid.blockToCellKey[idx];
+      if (cellKey !== -1) affectedCells.add(cellKey);
     }
 
-    // Clear ship's block tracking
+    const scratch = new Uint32Array(count);
+
+    for (const cellKey of affectedCells) {
+      const cellBlocks = grid.cells.get(cellKey);
+      const cellCount = grid.cellCounts.get(cellKey) ?? 0;
+      if (!cellBlocks || cellCount === 0) continue;
+
+      let removeCount = 0;
+      for (let i = 0; i < count; i++) {
+        const idx = blockIndices[i];
+        if (grid.blockToCellKey[idx] === cellKey) {
+          scratch[removeCount++] = idx;
+        }
+      }
+
+      if (removeCount > 0) {
+        this.grid.bulkRemoveBlocks(cellKey, scratch, removeCount);
+      }
+    }
+
+    for (let i = 0; i < count; i++) {
+      this.store.freeIndex(blockIndices[i]);
+    }
+
     this.shipBlockCounts.set(shipId, 0);
   }
+
 
   /**
    * Clears all blocks and resets all ship lists.
@@ -383,31 +418,20 @@ export class BlockOrchestrator {
     const sin = Math.sin(transform.rotation);
     const shipX = transform.position.x;
     const shipY = transform.position.y;
-    
-    const localX = this.store.localX[index];
-    const localY = this.store.localY[index];
+
+    // Scale local grid coordinates to pixel units (BLOCK_SIZE) just like updateWorldPositions
+    const localX = this.store.localX[index] * BLOCK_SIZE;
+    const localY = this.store.localY[index] * BLOCK_SIZE;
     const localRot = this.store.localRotation[index];
 
-    // Apply 2D rotation and translation for position
+    // Apply rotation around ship origin and translate to world space
     this.store.worldX[index] = shipX + localX * cos - localY * sin;
     this.store.worldY[index] = shipY + localX * sin + localY * cos;
 
-    // Compose rotations: ship rotation + local block rotation
+    // Combine ship rotation and block’s own rotation
     this.store.rotation[index] = transform.rotation + localRot;
   }
 
-  /**
-   * Packs grid cell coordinates into a single key for efficient comparison.
-   * @param cellX Grid cell X coordinate
-   * @param cellY Grid cell Y coordinate  
-   * @returns Packed cell key
-   */
-  private packCellKey(cellX: number, cellY: number): number {
-    // Simple bit-packing: assume coordinates fit in 16 bits each
-    // For larger worlds, you might need a different approach (e.g., string keys)
-    return (cellX & 0xFFFF) | ((cellY & 0xFFFF) << 16);
-  }
-  
   /**
    * @param shipId Ship ID
    * @param blockIndex Block index to add
@@ -504,5 +528,34 @@ export class BlockOrchestrator {
 
   public get spatialGrid(): BlockSpatialGrid {
     return this.grid;
+  }
+
+  // Ship Helpers
+  /**
+   * Updates the faction for all blocks belonging to a ship.
+   * Ensures BlockStore.ownerFaction is kept consistent.
+   * @param shipId Ship ID
+   * @param factionIndex Numeric faction index (e.g., from FACTION_TO_INDEX)
+   */
+  public setShipFaction(shipId: number, factionIndex: number): void {
+    const indices = this.getShipBlocksView(shipId);
+    const store = this.store;
+
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      store.ownerFaction[idx] = factionIndex;
+    }
+  }
+
+  public setShipColor(shipId: number, r: number, g: number, b: number, a: number = 1): void {
+    const indices = this.getShipBlocksView(shipId);
+    const store = this.store;
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      store.colorR[idx] = r;
+      store.colorG[idx] = g;
+      store.colorB[idx] = b;
+      store.colorA[idx] = a;
+    }
   }
 }

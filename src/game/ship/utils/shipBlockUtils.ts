@@ -1,12 +1,11 @@
-// src/game/ship/utils/ShipBlockUtils.ts
-
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { Ship } from '@/game/ship/Ship';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 
 export type CoordKey = string;
+
 
 export function getConnectedBlockCoords(ship: Ship, startCoord: GridCoord): Set<string> {
   const visited = new Set<string>();
@@ -17,7 +16,7 @@ export function getConnectedBlockCoords(ship: Ship, startCoord: GridCoord): Set<
     { x: c.x + 1, y: c.y },
     { x: c.x - 1, y: c.y },
     { x: c.x,     y: c.y + 1 },
-    { x: c.x,     y: c.y - 1 }
+    { x: c.x,     y: c.y - 1 },
   ];
 
   while (queue.length > 0) {
@@ -39,15 +38,33 @@ export function getConnectedBlockCoords(ship: Ship, startCoord: GridCoord): Set<
   return visited;
 }
 
-export function findShipByBlock(block: BlockInstance): Ship | null {
+/**
+ * Gets the block’s local grid coordinate by SOA index.
+ */
+export function findBlockCoordinatesInShip(blockIndex: number, ship: Ship): GridCoord | null {
+  const store = BlockManager.getInstance().getBlockStore();
+  if (!store.isAllocated(blockIndex)) return null;
+
+  return {
+    x: store.localX[blockIndex],
+    y: store.localY[blockIndex],
+  };
+}
+
+/**
+ * Finds the owning Ship for a block by SOA index.
+ */
+export function findShipByBlockIndex(blockIndex: number): Ship | null {
+  const store = BlockManager.getInstance().getBlockStore();
+  if (!store.isAllocated(blockIndex)) return null;
+  const shipId = store.ownerShipId[blockIndex];
   const shipRegistry = ShipRegistry.getInstance();
-  return shipRegistry.getById(block.ownerShipId) || null;
+  return shipRegistry.getByNumericId?.(shipId) ?? null;
 }
 
-export function findBlockCoordinatesInShip(targetBlock: BlockInstance, ship: Ship): GridCoord | null {
-  return ship.getBlockCoord(targetBlock);
-}
-
+/**
+ * World position from ship-local coord (unchanged).
+ */
 export function getWorldPositionFromShipCoord(
   transform: BlockEntityTransform,
   coord: { x: number; y: number }

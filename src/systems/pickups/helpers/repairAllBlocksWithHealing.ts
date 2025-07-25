@@ -1,8 +1,13 @@
+// src/systems/pickups/helpers/repairAllBlocksWithHealing.ts
+
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { audioManager } from '@/audio/Audio';
 import { randomInRange } from '@/shared/mathUtils';
+
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 /**
  * Applies a fixed healing amount to each damaged block on a ship.
@@ -19,16 +24,32 @@ export function repairAllBlocksWithHealing(
 ): void {
   if (repairAmount <= 0) return;
 
-  const damagedBlocks = ship.getAllBlocks()
-    .filter(([, block]) => block.hp < block.type.armor);
+  const store = BlockManager.getInstance().getBlockStore();
 
-  for (const [, block] of damagedBlocks) {
-    const missingHp = block.type.armor - block.hp;
+  // Iterate over all block indices for this ship
+  const blockIndices = ship.getAllBlockIndices();
+
+  for (const idx of blockIndices) {
+    const typeIdx = store.typeIndex[idx];
+    const blockType = getBlockTypeByIndex(typeIdx);
+    if (!blockType) continue;
+
+    const maxHp = blockType.armor ?? 0;
+    const currentHp = store.hp[idx];
+
+    if (currentHp >= maxHp) continue; // Skip undamaged blocks
+
+    const missingHp = maxHp - currentHp;
     const heal = Math.min(missingHp, repairAmount);
 
     if (heal > 0) {
-      block.hp += heal;
-      shipBuilderEffects.createRepairEffect(block.position!);
+      store.hp[idx] = currentHp + heal;
+
+      // Trigger repair effect at block's world position
+      shipBuilderEffects.createRepairEffect({
+        x: store.worldX[idx],
+        y: store.worldY[idx],
+      });
     }
   }
 }
@@ -51,13 +72,31 @@ export function repairRandomBlockWithHealing(
 ): void {
   if (repairAmount <= 0) return;
 
-  const damagedBlocks = ship.getAllBlocks()
-    .filter(([, block]) => block.hp < block.type.armor);
+  const store = BlockManager.getInstance().getBlockStore();
+  const blockIndices = ship.getAllBlockIndices();
 
-  if (damagedBlocks.length === 0) return;
+  // Collect only damaged blocks
+  const damagedIndices: number[] = [];
+  for (const idx of blockIndices) {
+    const typeIdx = store.typeIndex[idx];
+    const blockType = getBlockTypeByIndex(typeIdx);
+    if (!blockType) continue;
 
-  const [_, block] = damagedBlocks[Math.floor(Math.random() * damagedBlocks.length)];
-  const missingHp = block.type.armor - block.hp;
+    if (store.hp[idx] < (blockType.armor ?? 0)) {
+      damagedIndices.push(idx);
+    }
+  }
+
+  if (damagedIndices.length === 0) return;
+
+  // Pick a random damaged block
+  const blockIdx = damagedIndices[Math.floor(Math.random() * damagedIndices.length)];
+  const typeIdx = store.typeIndex[blockIdx];
+  const blockType = getBlockTypeByIndex(typeIdx)!;
+
+  const maxHp = blockType.armor ?? 0;
+  const currentHp = store.hp[blockIdx];
+  const missingHp = maxHp - currentHp;
   const heal = Math.min(missingHp, repairAmount);
 
   if (heal > 0) {
@@ -68,8 +107,14 @@ export function repairRandomBlockWithHealing(
       audioManager.play('assets/sounds/sfx/magic/magic_poof.wav', 'sfx', { pitch, maxSimultaneous: 3 });
     }
 
-    block.hp += heal;
-    shipBuilderEffects.createRepairEffect(block.position!, 48, 0.5, colorPalette);
+    store.hp[blockIdx] = currentHp + heal;
+
+    shipBuilderEffects.createRepairEffect(
+      { x: store.worldX[blockIdx], y: store.worldY[blockIdx] },
+      48,
+      0.5,
+      colorPalette
+    );
   }
 }
 

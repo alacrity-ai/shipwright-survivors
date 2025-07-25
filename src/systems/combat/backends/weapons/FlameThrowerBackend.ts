@@ -6,6 +6,10 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+
 import { Ship } from '@/game/ship/Ship';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 import { Grid } from '@/systems/physics/Grid';
@@ -86,18 +90,26 @@ export class FlameThrowerBackend implements WeaponBackend {
   private readonly soa: FlameProjectileSOA;
   private readonly freeIndices: number[] = [];
 
+  private store: BlockStore;
+
   private innerFlameTimeSinceLastShot: number = 0;
 
   constructor(
     private readonly combatService: CombatService,
-    private readonly particleManager: ParticleManager,
-    private readonly grid: Grid
   ) {
+    this.store = BlockManager.getInstance().getBlockStore();
     this.soa = createFlameSOABuffer(MAX_FLAME_PROJECTILES);
   }
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
-    const plan = ship.getFiringPlan().filter(p => p.block.type.behavior?.fire?.fireType === 'flameThrower');
+    const store = this.store;
+
+    // Filter firing plan to only include flamethrowers by inspecting type via BlockStore
+    const plan = ship.getFiringPlan().filter(entry => {
+      const typeIdx = store.typeIndex[entry.blockIndex];
+      const type = getBlockTypeByIndex(typeIdx);
+      return type?.behavior?.fire?.fireType === 'flameThrower';
+    });
     if (plan.length === 0 || !intent?.firePrimary) return;
 
     const { 
@@ -108,22 +120,33 @@ export class FlameThrowerBackend implements WeaponBackend {
     if (!innerFlame && !intent.aimAt) return;
 
     const blockCount = plan.length;
-    const avgTier = plan.reduce((sum, p) => sum + (p.block.type.tier ?? 0), 0) / blockCount;
+
+    // Compute average tier for DOT scaling using typeIndex
+    let tierSum = 0;
+    for (let i = 0; i < plan.length; i++) {
+      const typeIdx = store.typeIndex[plan[i].blockIndex];
+      const type = getBlockTypeByIndex(typeIdx);
+      tierSum += type?.tier ?? 0;
+    }
+    const avgTier = tierSum / blockCount;
     const dotMultiplier = DOT_BASE_DAMAGE * blockCount + DOT_TIER_BONUS * avgTier;
 
-    // Determine highest-tier turret for color and stat scaling
+    // Determine highest-tier turret for stat scaling (fire stats and color index)
     let totalBlockDamage = 0;
     let maxTier = -Infinity;
     let highestTierFire: any = null;
 
-    for (const flame of plan) {
-      const fire = flame.block.type.behavior!.fire!;
+    for (let i = 0; i < plan.length; i++) {
+      const idx = plan[i].blockIndex;
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx)!;
+      const fire = type.behavior!.fire!;
       totalBlockDamage += fire.fireDamage ?? 1;
 
-      const tier = flame.block.type.tier ?? 0;
+      const tier = type.tier ?? 0;
       if (tier > maxTier) {
         maxTier = tier;
-        highestTierFire = fire; // Track fire data for highest-tier turret
+        highestTierFire = fire;
       }
     }
 
@@ -206,12 +229,18 @@ export class FlameThrowerBackend implements WeaponBackend {
 
     // Handle NORMAL (non-innerFlame) flamethrowers
     for (const flame of plan) {
-      const fire = flame.block.type.behavior!.fire!;
+      const idx = flame.blockIndex;
+
+      // Resolve block type and fire stats from BlockStore
+      const typeIdx = this.store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx)!;
+      const fire = type.behavior!.fire!;
+
       flame.timeSinceLastShot += dt;
       if (flame.timeSinceLastShot < (1.0 / (fire.fireRate ?? 8.0))) continue;
       flame.timeSinceLastShot = 0;
 
-      const tier = flame.block.type.tier ?? 0;
+      const tier = type.tier ?? 0;
       const colorIndex = TierToColorIndex[tier] ?? TierToColorIndex[0];
       const color = FLAME_COLORS[colorIndex];
       const speed = fire.projectileSpeed ?? 700;
@@ -225,8 +254,8 @@ export class FlameThrowerBackend implements WeaponBackend {
       const cos = Math.cos(transform.rotation);
       const sin = Math.sin(transform.rotation);
 
-      const coord = flame.coord ?? ship.getBlockCoord(flame.block);
-      if (!coord) continue;
+      // Prefer the firing plan's cached coord, otherwise reconstruct from BlockStore
+      const coord = flame.coord ?? { x: this.store.localX[idx], y: this.store.localY[idx] };
 
       const localX = coord.x * BLOCK_SIZE;
       const localY = coord.y * BLOCK_SIZE;
@@ -257,7 +286,7 @@ export class FlameThrowerBackend implements WeaponBackend {
       emitDefaultFlames(
         spawnX,
         spawnY,
-        fire.radius! * (1 + flameThrowerSize),
+        (fire.radius ?? 60) * (1 + flameThrowerSize),
         ttl,
         hasLight,
         4,
@@ -279,9 +308,10 @@ export class FlameThrowerBackend implements WeaponBackend {
         1 + flameThrowerSize
       );
 
+      // Emit visual-only flame bursts for aesthetics
       const visualFlamesPerTurret = Math.max(1, Math.floor(MAX_VISUAL_FLAMES_PER_FRAME / plan.length));
       for (let i = 0; i < visualFlamesPerTurret; i++) {
-        const sizeJitter = (fire.radius! * (1 + flameThrowerSize)) * (0.5 + Math.random() * 0.5);
+        const sizeJitter = (fire.radius ?? 60) * (1 + flameThrowerSize) * (0.5 + Math.random() * 0.5);
         const lifeJitter = ttl * (0.6 + Math.random() * 0.5);
         const angleJitter = finalAngle + (Math.random() - 0.5) * 0.15;
 
@@ -302,6 +332,7 @@ export class FlameThrowerBackend implements WeaponBackend {
           vjy
         );
       }
+
       hasLight = false;
     }
 
@@ -340,6 +371,8 @@ export class FlameThrowerBackend implements WeaponBackend {
 
   private updateFlames(dt: number, ownerShip: Ship): void {
     const { flameThrowerCriticalChance = 0, endlessIgnition = false } = ownerShip.getSkillEffects();
+    const grid = BlockManager.getInstance().getBlockSpatialGrid();
+    const store = this.store;
 
     for (let i = 0; i < this.soa.count; ) {
       this.soa.age[i] += dt;
@@ -353,55 +386,58 @@ export class FlameThrowerBackend implements WeaponBackend {
       this.soa.x[i] += this.soa.vx[i] * dt;
       this.soa.y[i] += this.soa.vy[i] * dt;
 
-      const ownerFaction = INDEX_TO_FACTION[this.soa.ownerFaction[i]];
-      const cells = this.grid.getRelevantCells({ x: this.soa.x[i], y: this.soa.y[i] });
+      const projectileOwnerInt = this.soa.ownerShipId[i];
+      const x = this.soa.x[i];
+      const y = this.soa.y[i];
+      const effectiveRadius = PROJECTILE_RADIUS * (1 + this.soa.radiusMulti[i]);
+      const radiusSq = effectiveRadius * effectiveRadius;
+
+      // Query spatial grid for candidate block indices (SOA-friendly)
+      const hits = grid.getBlocksInArea(
+        x - effectiveRadius,
+        y - effectiveRadius,
+        x + effectiveRadius,
+        y + effectiveRadius
+      );
+
       let hitSomething = false;
 
-      for (const cell of cells) {
-        if (hitSomething) break;
+      for (let h = 0; h < hits.length; h++) {
+        const blockIdx = hits[h];
+        if (store.ownerShipId[blockIdx] === projectileOwnerInt) continue;
 
-        const blocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y, ownerFaction);
-        for (const block of blocks) {
-          if (!block.position) continue;
+        const bx = store.worldX[blockIdx];
+        const by = store.worldY[blockIdx];
+        const dx = x - bx;
+        const dy = y - by;
+        if (dx * dx + dy * dy >= radiusSq) continue;
 
-          // Skip projectiles hitting their owner ship by comparing int IDs via ShipIdMapper
-          const projectileOwnerInt = this.soa.ownerShipId[i];
-          if (block.ownerShipNumericId === projectileOwnerInt) continue;
+        const compositeObject = findObjectByBlock(blockIdx);
+        const coord = compositeObject ? findBlockCoordinatesInObject(blockIdx, compositeObject) : null;
+        if (!compositeObject || !coord || compositeObject.isNoClip()) continue;
 
-          const dx = this.soa.x[i] - block.position.x;
-          const dy = this.soa.y[i] - block.position.y;
-          const distSq = dx * dx + dy * dy;
-          const effectiveRadius = PROJECTILE_RADIUS * (1 + this.soa.radiusMulti[i]);
-
-          if (distSq < effectiveRadius * effectiveRadius) {
-            const compositeObject = findObjectByBlock(block);
-            const coord = compositeObject ? findBlockCoordinatesInObject(block, compositeObject) : null;
-            if (!compositeObject || !coord || compositeObject.isNoClip()) continue;
-
-            if (compositeObject instanceof Ship) {
-              compositeObject.addStatusEffect(
-                'ignite',
-                endlessIgnition ? 120 : IGNITE_DURATION,
-                ownerShip,
-                this.soa.damage[i]
-              );
-            }
-
-            this.combatService.applyDamageToBlock(
-              compositeObject,
-              ownerShip,
-              block,
-              coord,
-              this.soa.damage[i] * 0.5,
-              'dot',
-              true,
-              1 + flameThrowerCriticalChance
-            );
-
-            hitSomething = true;
-            break;
-          }
+        if (compositeObject instanceof Ship) {
+          compositeObject.addStatusEffect(
+            'ignite',
+            endlessIgnition ? 120 : IGNITE_DURATION,
+            ownerShip,
+            this.soa.damage[i]
+          );
         }
+
+        this.combatService.applyDamageToBlock(
+          compositeObject,
+          ownerShip,
+          blockIdx,                     // now passing block index, not object
+          coord,
+          this.soa.damage[i] * 0.5,
+          'dot',
+          true,
+          1 + flameThrowerCriticalChance
+        );
+
+        hitSomething = true;
+        break;
       }
 
       if (hitSomething) {

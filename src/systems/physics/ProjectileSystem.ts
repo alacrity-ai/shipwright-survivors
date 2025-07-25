@@ -1,13 +1,15 @@
 // src/systems/physics/ProjectileSystem.ts
 
 import type { Projectile } from '@/game/interfaces/types/Projectile';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import type { BlockSpatialGrid } from '@/game/blocks/system/BlockSpatialGrid';
+
 import { INDEX_TO_PROJECTILE_TYPE } from '@/systems/physics/interfaces/ProjectileTypes';
-import { INDEX_TO_FACTION } from '@/game/interfaces/types/Faction';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
@@ -20,12 +22,17 @@ export class ProjectileSystem {
   private hitSets: Map<number, Set<string>> = new Map(); // Maps hitSetIndex to actual Set
   private nextHitSetIndex = 0;
 
+  private store: BlockStore;
+  private spatialGrid: BlockSpatialGrid;
+
   constructor(
-    private readonly grid: Grid,
+    // private readonly grid: Grid, // Removed
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
     maxProjectiles = 8192,
   ) {
+    this.store = BlockManager.getInstance().getBlockStore();
+    this.spatialGrid = BlockManager.getInstance().getBlockSpatialGrid();
     this.soa = createProjectileSOA(maxProjectiles);
     this.pendingSoa = createProjectileSOA(maxProjectiles);
   }
@@ -297,57 +304,71 @@ export class ProjectileSystem {
   }
 
   private checkCollisions(): void {
+    const store = this.store;
+    const spatialGrid = this.spatialGrid;
+
     // Process projectiles backwards to handle removals safely
     for (let i = this.soa.count - 1; i >= 0; i--) {
-      const size = 32;
+      const size = 32; // Broad-phase radius for projectile vicinity
       const x = this.soa.x[i];
       const y = this.soa.y[i];
 
-      const blocks = this.grid.getBlocksInArea(
+      // Broad-phase: get block indices within this projectile's area
+      const blocks = spatialGrid.getBlocksInArea(
         x - size,
         y - size,
         x + size,
-        y + size,
-        INDEX_TO_FACTION[this.soa.faction[i]]
+        y + size
       );
+
       let shouldRemove = false;
 
-      for (const block of blocks) {
-        
-        if (!this.checkCollisionAtIndex(i, block)) continue;
+      for (let b = 0; b < blocks.length; b++) {
+        const blockIdx = blocks[b];
 
-        const obj = BlockToObjectIndex.getObject(block);
-        
-        if (!obj) continue;
-        if (obj.isNoClip()) continue;
+        // Skip self-owned blocks (prevent hitting owner's own ship)
+        if (store.ownerShipId[blockIdx] === this.soa.ownerShipId[i]) continue;
 
-        const coord = obj.getBlockCoord(block);
+        // Precise collision check
+        if (!this.checkCollisionAtIndex(i, blockIdx)) continue;
+
+        // Resolve composite object for this block
+        const obj = BlockToObjectIndex.getObject(blockIdx);
+        if (!obj || obj.isNoClip()) continue;
+
+        // Get local coord of block for damage application
+        const coord = obj.getBlockCoordByIndex(blockIdx);
         if (!coord) continue;
 
+        // Resolve shooter ship
         const ownerShipInstance = ShipRegistry.getInstance().getByNumericId(this.soa.ownerShipId[i]);
         if (!ownerShipInstance) continue;
 
+        // Retrieve this projectile's hit set
         const hitSet = this.hitSets.get(this.soa.hitSetIndex[i]);
         if (!hitSet) continue;
 
+        // Skip duplicate hits on same object this frame
         if (hitSet.has(obj.id)) continue;
 
-        // Record the hit BEFORE applying damage
+        // Mark object as hit BEFORE damage
         hitSet.add(obj.id);
 
-        // Apply damage
+        // Apply damage to the block
         this.combatService.applyDamageToBlock(
           obj,
           ownerShipInstance,
-          block,
+          blockIdx, // Use numeric block index (SOA)
           coord,
           this.soa.damage[i],
           INDEX_TO_PROJECTILE_TYPE[this.soa.typeIndex[i]] as 'turret' | 'projectile',
         );
 
         if (this.soa.penetrate[i] === 1) {
-          break; // continue checking for additional targets this frame
+          // Projectile pierces: continue to next target, no removal
+          break;
         } else {
+          // Non-piercing: optionally split, then mark for removal
           if (this.soa.split[i] === 1) {
             this.handleSplitProjectile(i, obj.id);
           }
@@ -356,12 +377,13 @@ export class ProjectileSystem {
         }
       }
 
-      // Remove immediately to avoid index invalidation
+      // Remove projectile after processing (if needed)
       if (shouldRemove) {
         this.removeProjectileAtIndex(i);
       }
     }
   }
+
 
   private handleSplitProjectile(index: number, hitObjectId: string): void {
     const remainingLife = this.soa.life[index];
@@ -429,16 +451,25 @@ export class ProjectileSystem {
     this.pendingSoa.count++;
   }
 
-  private checkCollisionAtIndex(index: number, block: BlockInstance): boolean {
-    if (!block.position) return false;
+  private checkCollisionAtIndex(index: number, blockIdx: number): boolean {
+    const store = this.store;
+
+    // Retrieve world-space position directly from BlockStore
+    const bx = store.worldX[blockIdx];
+    const by = store.worldY[blockIdx];
+
+    // Determine block size using its type index
+    const typeIdx = store.typeIndex[blockIdx];
+    const blockType = getBlockTypeByIndex(typeIdx);
+    const blockSize = blockType?.size ?? 32;
+
+    // Compute Euclidean distance between projectile and block center
+    const dx = this.soa.x[index] - bx;
+    const dy = this.soa.y[index] - by;
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
     const projectileRadius = 15;
-    const blockSize = block.type.size || 32;
-    const dx = this.soa.x[index] - block.position.x;
-    const dy = this.soa.y[index] - block.position.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    return distance < (projectileRadius + blockSize / 2);
+    return dist < (projectileRadius + blockSize / 2);
   }
 
   private removeProjectileAtIndex(index: number): void {

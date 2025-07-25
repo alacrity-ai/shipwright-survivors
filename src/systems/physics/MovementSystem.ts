@@ -9,6 +9,7 @@ import { GlobalEventBus } from '@/core/EventBus';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
@@ -64,7 +65,7 @@ export class MovementSystem {
 
   private readonly thrustGroups: Record<
     ThrustDirection,
-    Array<{ coord: GridCoord; power: number; rotation: number }>
+    Array<{ idx: number, coord: GridCoord; power: number; rotation: number }>
   > = {
     forward: [],
     strafeLeft: [],
@@ -160,24 +161,22 @@ export class MovementSystem {
       strafeRight,
     } = this.currentIntent;
 
-    // === Update afterburner charge ===
+    // === Update afterburner state ===
     const justActivatedAfterburner = this.updateAfterburnerCharge(dt);
     const afterburnerMultipliers = this.getAfterburnerMultipliers();
 
-    // === Update Ship Movement Flags ===
+    // === Movement intent flags ===
     this.ship.setThrusting(thrustForward);
     this.ship.setStrafingLeft(strafeLeft);
     this.ship.setStrafingRight(strafeRight);
 
-    // === Apply any external impulses from prior frame ===
+    // === Apply accumulated external impulses ===
     velocity.x += this.externalImpulse.x;
     velocity.y += this.externalImpulse.y;
-
-    // Clear after applying
     this.externalImpulse.x = 0;
     this.externalImpulse.y = 0;
 
-    // === Evaluate mass and scaling ===
+    // === Mass + angular scaling factors ===
     const mass = this.ship.getTotalMass();
     const angularScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), ANGULAR_MASS_SCALE_EXPONENT));
 
@@ -185,51 +184,60 @@ export class MovementSystem {
     const thrustGroups = this.thrustGroups;
 
     let rawTurnPower = BASE_TURN_POWER;
+    const store = this.ship['blockManager'].getBlockStore();
 
-    for (const block of this.ship.getEngineBlocks()) {
-      const behavior = block.type.behavior;
-      const power = behavior?.thrustPower ?? this.baseThrust;
-      const dir = classifyThrustDirection(block.rotation ?? 0);
+    // === Engines: populate thrust groups via indices ===
+    for (const idx of this.ship.getEngineIndices()) {
+      if (!store.isAllocated(idx)) continue;
+
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+      const behavior = type?.behavior;
+
+      const thrustPower = behavior?.thrustPower ?? this.baseThrust;
+      const localRot = store.localRotation[idx];
+
+      const dir = classifyThrustDirection(localRot);
       if (dir) {
-        const coord = this.ship.getBlockCoord(block);
-        if (coord) {
-          thrustGroups[dir].push({ coord, power, rotation: block.rotation ?? 0 });
-        }
+        thrustGroups[dir].push({
+          idx,
+          coord: { x: store.localX[idx], y: store.localY[idx] },
+          power: thrustPower,
+          rotation: localRot ?? 0,
+        });
       }
     }
 
-    for (const block of this.ship.getFinBlocks()) {
-      rawTurnPower += block.type.behavior?.turnPower ?? 0;
+    // === Fins: accumulate turn power via indices ===
+    for (const idx of this.ship.getFinIndices()) {
+      if (!store.isAllocated(idx)) continue;
+
+      const typeIdx = store.typeIndex[idx];
+      const type = getBlockTypeByIndex(typeIdx);
+      rawTurnPower += type?.behavior?.turnPower ?? 0;
     }
 
-    // === Add player passive bonus to turn power ===
+    // === Passive bonuses for turn power ===
     rawTurnPower *= this.ship.getPassiveBonus('fin-turn-power');
 
-    // === Angular motion with assist (enhanced by afterburner) ===
+    // === Compute angular velocity target ===
     const totalTurnPower = Math.min(MAXIMUM_TURN_POWER, Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT));
-
     const maxAngularSpeed = Math.min(
       totalTurnPower * angularScale * BASE_ROTATION_STRENGTH * afterburnerMultipliers.turning,
       MAXIMUM_ROTATION_SPEED
     );
-    let targetAngularVelocity = 0;
 
+    let targetAngularVelocity = 0;
     if (this.currentIntent.turnToAngle !== undefined) {
       const { rotation } = transform;
       const target = this.currentIntent.turnToAngle;
-
       let delta = target - rotation;
 
-      // Wrap to [-π, π] for shortest rotation direction
       while (delta > Math.PI) delta -= 2 * Math.PI;
       while (delta < -Math.PI) delta += 2 * Math.PI;
 
-      // Use rotation assist proportional to angle (enhanced by afterburner)
       targetAngularVelocity = delta * ROTATIONAL_ASSIST_STRENGTH * afterburnerMultipliers.turning;
-      targetAngularVelocity = Math.max(
-        -maxAngularSpeed,
-        Math.min(targetAngularVelocity, maxAngularSpeed)
-      );
+      targetAngularVelocity = Math.max(-maxAngularSpeed, Math.min(targetAngularVelocity, maxAngularSpeed));
     } else {
       if (rotateLeft) targetAngularVelocity = -maxAngularSpeed;
       else if (rotateRight) targetAngularVelocity = maxAngularSpeed;
@@ -237,27 +245,34 @@ export class MovementSystem {
 
     const angularDelta = targetAngularVelocity - transform.angularVelocity;
     transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * afterburnerMultipliers.turning * dt;
-    transform.angularVelocity = Math.max(
-      -maxAngularSpeed,
-      Math.min(transform.angularVelocity, maxAngularSpeed)
-    );
+    transform.angularVelocity = Math.max(-maxAngularSpeed, Math.min(transform.angularVelocity, maxAngularSpeed));
 
     const cameraBounds = Camera.getInstance().getViewportBounds();
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
 
-    // === Linear thrust
+    // === Forward thrust
     if (thrustForward && playerShip) {
-      this.applyDirectionalThrust(dt, 'forward', thrustGroups.forward, transform, position, afterburnerMultipliers, justActivatedAfterburner, cameraBounds, playerShip);
+      this.applyDirectionalThrust(
+        dt,
+        'forward',
+        thrustGroups.forward,
+        transform,
+        position,
+        afterburnerMultipliers,
+        justActivatedAfterburner,
+        cameraBounds,
+        playerShip
+      );
     }
 
-    // === Inertial dampening
+    // === Inertial dampening when no thrust ===
     if (!thrustForward && !strafeLeft && !strafeRight) {
       const dampen = Math.pow(INERTIAL_DAMPENING_FACTOR, dt);
       velocity.x *= dampen;
       velocity.y *= dampen;
     }
 
-    // === Braking logic
+    // === Braking logic ===
     if (brake) {
       const vx = velocity.x;
       const vy = velocity.y;
@@ -290,27 +305,22 @@ export class MovementSystem {
       }
     }
 
-    // === Step 1: Resolve collisions *before* integration
+    // === Resolve collisions before integrating motion ===
     if (this.collisionSystem) {
       this.collisionSystem.resolveCollisions(this.ship);
 
-      // Optional: Clamp very small residuals to zero
       const v = transform.velocity;
       v.x = Math.round(v.x * 1000) / 1000;
       v.y = Math.round(v.y * 1000) / 1000;
     }
 
-    // === Step 2: Integrate motion (velocity → position)
-    const {
-      thrustPowerMulti = 1,
-      turnPowerMulti = 1,
-    } = this.ship.getAffixes() ?? {};
-
+    // === Integrate motion ===
+    const { thrustPowerMulti = 1, turnPowerMulti = 1 } = this.ship.getAffixes() ?? {};
     transform.rotation += transform.angularVelocity * dt * turnPowerMulti;
     position.x += velocity.x * dt * thrustPowerMulti;
     position.y += velocity.y * dt * thrustPowerMulti;
 
-    // === Update Aura Light Position ===
+    // === Aura light sync ===
     const auraId = this.ship.getLightAuraId?.();
     if (auraId) {
       try {
@@ -319,8 +329,8 @@ export class MovementSystem {
         console.warn(`[MovementSystem] Aura light update failed for ship ${this.ship.id}`, e);
       }
     }
-    
-    // === Step 3: Update world-space block positions
+
+    // === Update block world positions if ship moved ===
     if (this.ship.hasMovedSinceLastUpdate?.() !== false) {
       this.ship.updateBlockPositions();
       this.ship.markTransformChecked();
@@ -330,7 +340,7 @@ export class MovementSystem {
   private applyDirectionalThrust(
     dt: number,
     thrustDirection: ThrustDirection,
-    thrusters: { coord: GridCoord; power: number; rotation: number }[],
+    thrusters: { idx: number; coord: GridCoord; power: number; rotation: number }[],
     transform: BlockEntityTransform,
     position: { x: number; y: number },
     afterburnerMultipliers: { speed: number; accel: number; turning: number },
@@ -364,7 +374,7 @@ export class MovementSystem {
     const speedScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
     const maxSpeed = baseMaxSpeed * afterburnerMultipliers.speed * speedScale;
 
-    // === Afterburner FX Context (cached from movementSystem)
+    // === Afterburner FX Context
     const isPlayer = this.ship === playerShip;
     const shipCenter = this.ship.getTransform().position;
     const MARGIN = 100;
@@ -392,12 +402,13 @@ export class MovementSystem {
       }
     }
 
-    // === Apply per-thruster impulse + emit particles
-    for (const { coord, power, rotation: blockRotation } of thrusters) {
-      const block = this.ship.getBlock(coord);
-      if (!block) continue;
+    // === BlockStore access for thrust + particles ===
+    const store = this.ship['blockManager'].getBlockStore();
 
-      // Inline getBlockThrustDirection
+    for (const { idx, coord, power, rotation: blockRotation } of thrusters) {
+      if (!store.isAllocated(idx)) continue;
+
+      // Inline thrust vector (local block → world)
       const localX = 0;
       const localY = -1;
       const cosBlock = Math.cos(blockRotation);
@@ -414,9 +425,9 @@ export class MovementSystem {
 
       if (emit) {
         this.emitter.emit({
-          coord,
-          block,
-          blockRotation,
+          idx,                     // SOA index for particle systems
+          coord,                   // Local coordinate (for offsets)
+          rotation: blockRotation, // Local rotation
           shipRotation: transform.rotation,
           shipPosition: position,
           afterBurner: afterburnerActive,
@@ -428,7 +439,7 @@ export class MovementSystem {
       }
     }
 
-    // === Apply impulse (accel scaled)
+    // === Apply impulse (scaled by accel & afterburner)
     const accelScale = Math.min(1, Math.pow(BASE_MASS / Math.max(mass, 1), LINEAR_MASS_SCALE_EXPONENT));
     transform.velocity.x += totalThrustX * dt * accelScale * afterburnerMultipliers.accel;
     transform.velocity.y += totalThrustY * dt * accelScale * afterburnerMultipliers.accel;
@@ -451,7 +462,7 @@ export class MovementSystem {
       transform.velocity.y += steerY * assist * Math.sqrt(speedSq) * dt;
     }
 
-    // === Soft speed cap (project onto thrust direction)
+    // === Soft speed cap (project velocity along thrust dir)
     const velocityInDir = transform.velocity.x * fallbackX + transform.velocity.y * fallbackY;
     if (velocityInDir > maxSpeed) {
       const excessRatio = velocityInDir / maxSpeed;

@@ -20,6 +20,7 @@ describe('BlockOrchestrator', () => {
       deregisterBlock: vi.fn(),
       rehomeBlockIndex: vi.fn(),
       getBlocksInArea: vi.fn(),
+      bulkRemoveBlocks: vi.fn(),
       clear: vi.fn(),
     };
 

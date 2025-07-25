@@ -13,10 +13,15 @@ import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 type ConstructionPhase = 'building' | 'shockwave';
 type DeconstructionPhase = 'deconstructing' | 'complete';
 
+interface QueueEntry {
+  coord: GridCoord;  // Local grid coordinate for toKey() and effect position
+  idx: number;       // Block index in the BlockStore
+}
+
 interface ConstructingShipState {
   ship: Ship;
-  queue: [GridCoord, BlockInstance][];
-  revealed: Set<string>;
+  queue: QueueEntry[];
+  revealed: Set<string>; // keys from toKey(coord)
   animationTimers: Map<string, number>;
   timeSinceLastReveal: number;
   blockRevealInterval: number;
@@ -29,8 +34,8 @@ interface ConstructingShipState {
 
 interface DeconstructingShipState {
   ship: Ship;
-  queue: [GridCoord, BlockInstance][];
-  hidden: Set<string>;
+  queue: QueueEntry[];
+  hidden: Set<string>; // keys from toKey(coord)
   animationTimers: Map<string, number>;
   timeSinceLastHide: number;
   blockHideInterval: number;
@@ -78,20 +83,31 @@ export class ShipConstructionAnimatorService {
   }
 
   public animateShipConstruction(ship: Ship, auraLightOptions?: AuraLightOptions): void {
-    const blocks = ship.getAllBlocks();
+    const orchestrator = ship.getBlockOrchestrator();
+    const store = orchestrator.blockStore;
+    const indices = orchestrator.getShipBlocksView(ship.numericId);
 
-    for (const [, block] of blocks) {
-      block.hidden = true;
+    const queue: QueueEntry[] = [];
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+
+      // Hide each block at the start
+      store.hidden[idx] = 1;
+
+      queue.push({
+        coord: { x: store.localX[idx], y: store.localY[idx] }, // local grid coord
+        idx,                                                   // BlockStore index
+      });
     }
 
     this.activeShips.push({
       ship,
-      queue: [...blocks],
-      revealed: new Set(),
-      animationTimers: new Map(),
+      queue,
+      revealed: new Set<string>(),
+      animationTimers: new Map<string, number>(),
       timeSinceLastReveal: 0,
       blockRevealInterval: this.startBlockRevealInterval,
-      totalBlockCount: blocks.length,
+      totalBlockCount: indices.length,
       blocksRevealed: 0,
       phase: 'building',
       shockwaveTimer: this.animationDuration,
@@ -100,11 +116,14 @@ export class ShipConstructionAnimatorService {
   }
 
   public animateShipDeconstruction(ship: Ship, onComplete?: () => void): void {
-    const blocks = ship.getAllBlocks();
+    const orchestrator = ship.getBlockOrchestrator();
+    const store = orchestrator.blockStore;
+    const indices = orchestrator.getShipBlocksView(ship.numericId);
 
-    // Ensure all blocks are visible at start
-    for (const [, block] of blocks) {
-      block.hidden = false;
+    // Ensure all blocks start visible
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      store.hidden[idx] = 0;
     }
 
     // Remove aura light if present
@@ -112,21 +131,30 @@ export class ShipConstructionAnimatorService {
       ship.cleanupAuraLight();
     }
 
-    // Shuffle blocks for more interesting deconstruction pattern
-    const shuffledBlocks = [...blocks];
-    for (let i = shuffledBlocks.length - 1; i > 0; i--) {
+    // Build queue entries (local coords + index) for each block
+    const queue: QueueEntry[] = [];
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      queue.push({
+        coord: { x: store.localX[idx], y: store.localY[idx] },
+        idx,
+      });
+    }
+
+    // Shuffle for random deconstruction order
+    for (let i = queue.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffledBlocks[i], shuffledBlocks[j]] = [shuffledBlocks[j], shuffledBlocks[i]];
+      [queue[i], queue[j]] = [queue[j], queue[i]];
     }
 
     this.deconstructingShips.push({
       ship,
-      queue: shuffledBlocks,
-      hidden: new Set(),
-      animationTimers: new Map(),
+      queue,
+      hidden: new Set<string>(),
+      animationTimers: new Map<string, number>(),
       timeSinceLastHide: 0,
       blockHideInterval: this.startBlockHideInterval,
-      totalBlockCount: blocks.length,
+      totalBlockCount: indices.length,
       blocksHidden: 0,
       phase: 'deconstructing',
       completeTimer: this.animationDuration,
@@ -164,6 +192,9 @@ export class ShipConstructionAnimatorService {
       const state = this.activeShips[index];
       if (!state) break;
 
+      const orchestrator = state.ship.getBlockOrchestrator();
+      const store = orchestrator.blockStore;
+
       state.timeSinceLastReveal += ms;
 
       // === Block Reveal Phase ===
@@ -171,8 +202,8 @@ export class ShipConstructionAnimatorService {
         state.timeSinceLastReveal >= state.blockRevealInterval &&
         state.queue.length > 0
       ) {
-        const [coord, block] = state.queue.shift()!;
-        block.hidden = false;
+        const { coord, idx } = state.queue.shift()!;
+        store.hidden[idx] = 0; // reveal this block
 
         const key = toKey(coord);
         state.revealed.add(key);
@@ -278,6 +309,9 @@ export class ShipConstructionAnimatorService {
       const state = this.deconstructingShips[index];
       if (!state) break;
 
+      const orchestrator = state.ship.getBlockOrchestrator();
+      const store = orchestrator.blockStore;
+
       state.timeSinceLastHide += ms;
 
       // === Block Hide Phase ===
@@ -286,8 +320,8 @@ export class ShipConstructionAnimatorService {
         state.queue.length > 0 &&
         state.phase === 'deconstructing'
       ) {
-        const [coord, block] = state.queue.shift()!;
-        block.hidden = true;
+        const { coord, idx } = state.queue.shift()!;
+        store.hidden[idx] = 1; // hide the block
 
         const key = toKey(coord);
         state.hidden.add(key);
