@@ -4,11 +4,16 @@ import type { WeaponBackend } from '@/systems/combat/WeaponSystem';
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
-import type { Grid } from '@/systems/physics/Grid';
 import type { GLProjectileSprite } from '@/rendering/cache/ProjectileSpriteCache';
+
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import type { BlockSpatialGrid } from '@/game/blocks/system/BlockSpatialGrid';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
+
+import { findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
 
 import { Faction } from '@/game/interfaces/types/Faction';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
@@ -18,7 +23,7 @@ import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { findObjectByBlock } from '@/game/entities/utils/universalBlockInterfaceUtils';
 
 interface OrbitingBlade {
-  block: BlockInstance;
+  blockIdx: number; // Changed to blockIdx
   angle: number;
   radius: number;
   position: { x: number; y: number };
@@ -33,14 +38,19 @@ export class HaloBladeBackend implements WeaponBackend {
   private energyRingSprites: Map<string, GLProjectileSprite> = new Map();
   private static readonly MAX_DAMAGE_APPLICATIONS_PER_FRAME = 1;
 
+  private store: BlockStore;
+  private grid: BlockSpatialGrid;
+  private gridCellSize: number;
+
   constructor(
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
-    private readonly grid: Grid,
     private readonly ship: Ship
   ) {
+    this.store = BlockManager.getInstance().getBlockStore();
+    this.grid = BlockManager.getInstance().getBlockSpatialGrid();
+    this.gridCellSize = this.grid.getCellSize();
 
-    // New
     this.energyRingSprites = new Map([
       ['energyRing0', getGLProjectileSprite('energyRing0')],
       ['energyRing1', getGLProjectileSprite('energyRing1')],
@@ -53,112 +63,77 @@ export class HaloBladeBackend implements WeaponBackend {
 
   render(dt: number): void {}
 
-  // haloBladeSplitBlades?: boolean; 
-  // haloBladeDetonateOnHit?: boolean;
-  // haloBladeFreezeOnHit?: boolean;
-
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
-    const bladeMap = this.ship.getHaloBladeBlocks();
+    const bladeMap = this.ship.getHaloBladeIndices();
 
-    // === Multiplicative percentage (e.g. 1.0 is no change, 1.25 is +25%)
     let sizeBonus = ship.getPassiveBonus('halo-blade-size');
-
-    // === Add flat skill-based increase to the size multiplier (still multiplicative)
-    const {
-      haloBladeDamage = 0,
-      haloBladeSize = 0,
-      haloBladeOrbitRadius = 0,
-    } = ship.getSkillEffects();
-
+    const { haloBladeDamage = 0, haloBladeSize = 0, haloBladeOrbitRadius = 0 } = ship.getSkillEffects();
     sizeBonus += haloBladeSize;
 
-    // === Passive + powerup-based scalar multiplier for damage
     let damageBonus = ship.getPassiveBonus('halo-blade-damage');
     const { baseDamageMultiplier = 0 } = ship.getPowerupBonus();
     damageBonus += baseDamageMultiplier;
 
-    const currentBlades = Array.from(bladeMap.keys());
+    const currentIndices = Array.from(bladeMap.keys());
 
-    // === Prune removed orbiters ===
-    this.orbiters = this.orbiters.filter(o => bladeMap.has(o.block));
+    // Prune orbiters for missing blades
+    this.orbiters = this.orbiters.filter(o => bladeMap.has(o.blockIdx));
 
-    // === Add new orbiters ===
-    for (const block of currentBlades) {
-      if (!this.orbiters.find(o => o.block === block)) {
-        const props = bladeMap.get(block)!;
-
+    // Add new orbiters for any new blades
+    for (const idx of currentIndices) {
+      if (!this.orbiters.find(o => o.blockIdx === idx)) {
+        const props = bladeMap.get(idx)!;
         this.orbiters.push({
-          block,
-          angle: 0, // will be set by tier logic
-
-          // === Skill-augmented orbit radius (multiplier)
+          blockIdx: idx,
+          angle: 0,
           radius: props.orbitingRadius * (1 + haloBladeOrbitRadius),
-
-          // === Local position (recomputed every frame elsewhere presumably)
           position: { x: 0, y: 0 },
-
-          // === Sprite lookup remains unchanged
           sprite: this.energyRingSprites.get(props.sprite)!,
-
-          // === Skill-enhanced size (add to size multiplier)
           size: props.size * sizeBonus,
-
-          // === Base damage with multiplicative bonus + flat additive bonus
           damage: props.damage * damageBonus + haloBladeDamage,
         });
       }
     }
 
     const shipCenter = ship.getTransform().position;
+    const store = this.store;
 
-    // === Group orbiters by tier ID ===
-    const tierGroups = new Map<string, OrbitingBlade[]>();
+    // === Group orbiters by tier (SOA, no BlockType) ===
+    const tierGroups = new Map<number, OrbitingBlade[]>();
     for (const orbiter of this.orbiters) {
-      const id = orbiter.block.type.id; // e.g., 'haloBlade2'
-      if (!tierGroups.has(id)) tierGroups.set(id, []);
-      tierGroups.get(id)!.push(orbiter);
+      const tier = store.tier[orbiter.blockIdx] || 0;
+      if (!tierGroups.has(tier)) tierGroups.set(tier, []);
+      tierGroups.get(tier)!.push(orbiter);
     }
 
-    // === Update each tier group with uniform distribution ===
-    for (const [tierId, group] of tierGroups.entries()) {
+    // === Update each tier group ===
+    for (const [tier, group] of tierGroups.entries()) {
       if (group.length === 0) continue;
 
-      const props = bladeMap.get(group[0].block);
+      const firstIdx = group[0].blockIdx;
+      const props = bladeMap.get(firstIdx);
       if (!props) continue;
 
-      // Determine rotation direction based on firing mode
       const firingModeIsSequence = ship.getFiringMode() === FiringMode.Sequence;
       const rotationDirection = firingModeIsSequence ? 1 : -1;
 
-      // Initialize or advance the tier's base phase
-      let baseAngle = this.tierPhases.get(tierId) ?? Math.random() * Math.PI * 2;
-      baseAngle += props.orbitingSpeed * dt * rotationDirection; // Apply direction to base rotation
-      this.tierPhases.set(tierId, baseAngle);
+      let baseAngle = this.tierPhases.get(String(tier)) ?? Math.random() * Math.PI * 2;
+      baseAngle += props.orbitingSpeed * dt * rotationDirection;
+      this.tierPhases.set(String(tier), baseAngle);
 
-      // FIX: Sort orbiters by stable identifier to ensure consistent ordering
-      group.sort((a, b) => {
-        const idA = a.block.id;
-        const idB = b.block.id;
-        return idA.localeCompare(idB);
-      });
+      group.sort((a, b) => a.blockIdx - b.blockIdx);
 
-      // Distribute blades evenly around the circle
       const count = group.length;
       for (let i = 0; i < count; i++) {
         const orbiter = group[i];
-        // For distribution, we can keep it simple since base rotation handles direction
         const angle = baseAngle + (i / count) * Math.PI * 2;
 
         orbiter.angle = angle;
-
-        // Determine radius based on firing mode
         const firingModeRadius = firingModeIsSequence ? orbiter.radius : orbiter.radius * 0.5;
 
-        // Update world position
         orbiter.position.x = shipCenter.x + Math.cos(angle) * firingModeRadius;
         orbiter.position.y = shipCenter.y + Math.sin(angle) * firingModeRadius;
 
-        // Send SpriteRenderRequests through singleton bus
         GlobalSpriteRequestBus.add({
           texture: orbiter.sprite.texture,
           worldX: orbiter.position.x,
@@ -167,76 +142,77 @@ export class HaloBladeBackend implements WeaponBackend {
           heightPx: 64 * sizeBonus,
           alpha: 1.0,
         });
-        
-        // Emit particles 50% of the time
-        if (Math.random() > 0.5) continue;
 
-        // Determine if source ship is Faction.Enemy
-        const isEnemy = ship.getFaction() === Faction.Enemy;
-        // Emit particle from orbiter blade
-        let color = isEnemy ? '#ff0000' : props.color;
-        this.particleManager.emitParticle(orbiter.position, {
-          colors: [color],
-          baseSpeed: 0,
-          sizeRange: [1.2, 1.6],
-          lifeRange: [0.3, 0.8],
-          fadeOut: true,
-          light: true,
-          lightRadiusScalar: 32,
-          lightIntensity: 0.7,
-        });
+        if (Math.random() <= 0.5) {
+          const isEnemy = ship.getFaction() === Faction.Enemy;
+          const color = isEnemy ? '#ff0000' : props.color;
+          this.particleManager.emitParticle(orbiter.position, {
+            colors: [color],
+            baseSpeed: 0,
+            sizeRange: [1.2, 1.6],
+            lifeRange: [0.3, 0.8],
+            fadeOut: true,
+            light: true,
+            lightRadiusScalar: 32,
+            lightIntensity: 0.7,
+          });
+        }
       }
     }
 
-    // === Clean up phases for removed tiers ===
-    const activeTiers = new Set(tierGroups.keys());
+    // Remove tier phases for tiers no longer active
+    const activeTiers = new Set([...tierGroups.keys()].map(t => String(t)));
     for (const tierId of this.tierPhases.keys()) {
       if (!activeTiers.has(tierId)) {
         this.tierPhases.delete(tierId);
       }
     }
 
-    // === Collision and damage pass ===
+    // === Collision & damage pass (unchanged) ===
     let damageApplications = 0;
+    const spatialGrid = this.grid;
+    const gridCellSize = this.gridCellSize;
 
     for (const orbiter of this.orbiters) {
       const x = orbiter.position.x;
       const y = orbiter.position.y;
 
-      const cells = this.grid.getRelevantCells({ x, y });
-      for (const cell of cells) {
-        const enemyBlocks = this.grid.getBlocksInCellByCoords(cell.x, cell.y, ship.getFaction());
-        for (const block of enemyBlocks) {
-          if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
+      const cellX = Math.floor(x / gridCellSize);
+      const cellY = Math.floor(y / gridCellSize);
 
-          if (!block.position) continue;
+      const enemyIndices = spatialGrid.getBlocksInCellFiltered(cellX, cellY, FACTION_TO_INDEX[ship.getFaction()]);
 
-          const dx = x - block.position.x;
-          const dy = y - block.position.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+      for (let i = 0; i < enemyIndices.length; i++) {
+        if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
 
-          if (dist < orbiter.size / 2 + 16) {
-            const enemyShip = findObjectByBlock(block);
-            const coord = enemyShip?.getBlockCoord(block);
+        const idx = enemyIndices[i];
+        const bx = store.worldX[idx];
+        const by = store.worldY[idx];
+        const dx = x - bx;
+        const dy = y - by;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-            const chanceOfLightFlash = Math.random() < 0.2;
+        if (dist < orbiter.size / 2 + 16) {
+          const enemyShip = findObjectByBlock(idx);
+          const coord = enemyShip ? findBlockCoordinatesInObject(idx, enemyShip) : null;
 
-            if (enemyShip && coord) {
-              this.combatService.applyDamageToBlock(
-                enemyShip,
-                ship,
-                block,
-                coord,
-                orbiter.damage,
-                'haloBlade',
-                chanceOfLightFlash
-              );
-              damageApplications++;
-            }
+          const chanceOfLightFlash = Math.random() < 0.2;
+
+          if (enemyShip && coord) {
+            this.combatService.applyDamageToBlock(
+              enemyShip,
+              ship,
+              idx,
+              coord,
+              orbiter.damage,
+              'haloBlade',
+              chanceOfLightFlash
+            );
+            damageApplications++;
           }
         }
-        if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
       }
+
       if (damageApplications >= HaloBladeBackend.MAX_DAMAGE_APPLICATIONS_PER_FRAME) break;
     }
   }

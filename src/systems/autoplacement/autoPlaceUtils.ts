@@ -1,4 +1,4 @@
-// src/ui/menus/helpers/autoPlaceBlock.ts
+// src/systems/autoplacement/autoPlaceUtils.ts
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Ship } from '@/game/ship/Ship';
@@ -6,6 +6,9 @@ import { audioManager } from '@/audio/Audio';
 import { isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 const SEARCH_RADIUS = 20;
 
@@ -22,9 +25,11 @@ export function autoPlaceBlock(
   const success = ship.placeBlockById(placement.coord, blockType.id, placement.rotation);
   if (!success) return false;
 
-  const placedBlock = ship.getBlock(placement.coord);
-  if (placedBlock?.position) {
-    shipBuilderEffects.createRepairEffect(placedBlock.position);
+  const idx = ship.getBlockIndex(placement.coord);
+  if (idx !== undefined) {
+    const store = BlockManager.getInstance().getBlockStore();
+    const position = { x: store.worldX[idx], y: store.worldY[idx] };
+    shipBuilderEffects.createRepairEffect(position);
   }
 
   const placementSound = blockType.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
@@ -32,7 +37,6 @@ export function autoPlaceBlock(
 
   return true;
 }
-
 
 // === IMPROVED PLACEMENT SYSTEM ===
 
@@ -116,24 +120,25 @@ export function isValidStructuralSupport(coord: { x: number; y: number }, ship: 
     { x: 0, y: 1 }, { x: 0, y: -1 },
     { x: 1, y: 0 }, { x: -1, y: 0 }
   ];
-  
-  let hasStrongSupport = false;
-  
+
+  const store = BlockManager.getInstance().getBlockStore();
+
   for (const dir of directions) {
     const adjacentCoord = { x: coord.x + dir.x, y: coord.y + dir.y };
-    const adjacentBlock = ship.getBlock(adjacentCoord);
-    
-    if (adjacentBlock) {
-      const blockName = adjacentBlock.type.name.toLowerCase();
-      // If we find at least one adjacent block that's not a fin or facetplate, placement is valid
-      if (!blockName.includes('fin') && !blockName.includes('facetplate')) {
-        hasStrongSupport = true;
-        break;
-      }
+    const idx = ship.getBlockIndex(adjacentCoord);
+    if (idx === undefined) continue;
+
+    const typeIdx = store.typeIndex[idx];
+    const type = getBlockTypeByIndex(typeIdx);
+    const name = type?.name.toLowerCase() ?? '';
+
+    // If we find at least one adjacent block that's not a fin or facetplate, it's valid support
+    if (!name.includes('fin') && !name.includes('facetplate')) {
+      return true;
     }
   }
-  
-  return hasStrongSupport;
+
+  return false;
 }
 
 export function isValidFinAttachment(coord: { x: number; y: number }, rotation: number, ship: Ship): boolean {
@@ -171,13 +176,17 @@ export function isValidFinAttachment(coord: { x: number; y: number }, rotation: 
 
   // Check if at least one of the required support positions has a strong support block
   for (const supportCoord of requiredSupportCoords) {
-    const supportBlock = ship.getBlock(supportCoord);
-    if (supportBlock) {
-      const name = supportBlock.type.name.toLowerCase();
-      // Ensure the support block is NOT a facetplate or fin (strong structural support)
-      if (!name.includes('facetplate') && !name.includes('fin')) {
-        return true; // Found valid strong support
-      }
+    const idx = ship.getBlockIndex(supportCoord);
+    if (idx === undefined) continue;
+
+    const store = BlockManager.getInstance().getBlockStore();
+    const typeIdx = store.typeIndex[idx];
+    const type = getBlockTypeByIndex(typeIdx);
+    const name = type?.name.toLowerCase() ?? '';
+
+    // Ensure the support block is NOT a facetplate or fin (strong structural support)
+    if (!name.includes('facetplate') && !name.includes('fin')) {
+      return true; // Found valid strong support
     }
   }
 
@@ -205,11 +214,14 @@ export function isValidfacetplateAttachment(coord: { x: number; y: number }, rot
       return false;
   }
 
-  const supportBlock = ship.getBlock(supportCoord);
-  if (!supportBlock) return false;
+  const idx = ship.getBlockIndex(supportCoord);
+  if (idx === undefined) return false;
 
-  // Ensure the support block is NOT a facetplate or fin
-  const name = supportBlock.type.name.toLowerCase();
+  const store = BlockManager.getInstance().getBlockStore();
+  const typeIdx = store.typeIndex[idx];
+  const type = getBlockTypeByIndex(typeIdx);
+  const name = type?.name.toLowerCase() ?? '';
+
   return !name.includes('facetplate') && !name.includes('fin');
 }
 

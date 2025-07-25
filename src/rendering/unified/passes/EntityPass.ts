@@ -1,10 +1,9 @@
 // src/rendering/unified/passes/EntityPass.ts
 
-import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/config/view';
-import { getDamageLevel, initializeUnifiedBlockAtlas, getBlockAtlasUVOffset } from '@/rendering/cache/BlockSpriteCache';
+import { initializeUnifiedBlockAtlas } from '@/rendering/cache/BlockSpriteCache';
 import { entityFrameBudgetMs } from '@/config/graphicsConfig';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
@@ -13,6 +12,8 @@ import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/unified/utils/bufferUtils';
 
 import { MAX_BLOCKS_GL, getSafeUniformCount } from '@/config/graphicsConfig';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { BlockStore } from '@/game/blocks/system/BlockStore';
 
 const FLOATS_PER_INSTANCE = 12; // 12 float attributes per block
 const INSTANCE_BUFFER_SIZE = MAX_BLOCKS_GL * FLOATS_PER_INSTANCE;
@@ -43,6 +44,10 @@ export class EntityPass {
   private readonly tempColor = { r: 0, g: 0, b: 0 };
   private readonly tempTransform = { x: 0, y: 0, rotation: 0 };
 
+  // SOA Block system
+  private readonly blockManager: BlockManager;
+  private readonly blockStore: BlockStore;
+
   private readonly uniforms: {
     uBlockScale: WebGLUniformLocation | null;
     uLightMap: WebGLUniformLocation | null;
@@ -62,6 +67,9 @@ export class EntityPass {
   ) {
     this.gl = gl;
     this.program = createProgramFromSources(gl, entityVertSrc, entityFragSrc);
+
+    this.blockManager = BlockManager.getInstance();
+    this.blockStore = this.blockManager.getBlockStore();
 
     this.maxBlocks = Math.min(MAX_BLOCKS_GL, getSafeUniformCount(gl));
     this.instanceBufferSize = this.maxBlocks * FLOATS_PER_INSTANCE;
@@ -159,17 +167,6 @@ export class EntityPass {
   }
 
   /**
-   * GC-free helper to parse hex color into RGB components
-   * Reuses tempColor object to avoid allocations
-   */
-  private parseHexColor(hex: string): { r: number; g: number; b: number } {
-    this.tempColor.r = parseInt(hex.slice(1, 3), 16) / 255;
-    this.tempColor.g = parseInt(hex.slice(3, 5), 16) / 255;
-    this.tempColor.b = parseInt(hex.slice(5, 7), 16) / 255;
-    return this.tempColor;
-  }
-
-  /**
    * GC-free helper to add instance data to the buffer
    * Directly writes to Float32Array to avoid intermediate allocations
    */
@@ -207,19 +204,15 @@ export class EntityPass {
     this.dataIndex += FLOATS_PER_INSTANCE;
   }
 
-  render(entities: CompositeBlockObject[], lightTexture: WebGLTexture, camera: Camera): void {
-    const { gl } = this;
-    const now = performance.now();
-    const deadline = now + this.frameBudgetMs;
-    const time = now / 1000;
+  render(lightTexture: WebGLTexture, camera: Camera): void {
+    const { gl, blockStore } = this;
+    const time = performance.now() / 1000;
 
-    if (entities.length === 0) return;
-
-    // ─── Reset Instance Data Buffer ────────────────────────────────────────
+    // ─── Reset Instance Data Buffer ──────────────────────────────────────────
     this.dataIndex = 0;
     this.instanceCount = 0;
 
-    // ─── Per-frame GL State ────────────────────────────────────────────────
+    // ─── Per-frame GL State ──────────────────────────────────────────────────
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
@@ -227,11 +220,11 @@ export class EntityPass {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // ─── Shared Uniforms ───────────────────────────────────────────────────
+    // ─── Shared Uniforms ─────────────────────────────────────────────────────
     gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
     gl.uniform1f(this.uniforms.uTime, time);
     gl.uniform3f(this.uniforms.uAmbientLight, ...this.ambientLight);
-    gl.uniform1f(this.uniforms.uBlockColorIntensity, 1.0); // Or desired factor
+    gl.uniform1f(this.uniforms.uBlockColorIntensity, 1.0);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightTexture);
@@ -242,73 +235,44 @@ export class EntityPass {
     gl.uniform1i(this.uniforms.uBlockAtlas, 0);
     gl.uniform2f(this.uniforms.uTileSize, this.tileSize[0], this.tileSize[1]);
 
-    // ─── Per-Instance Aggregation (GC-Optimized) ───────────────────────────
-    for (const entity of entities) {
-      const transform = entity.getTransform();
-      
-      // Reuse temp object to avoid allocation
-      this.tempTransform.x = transform.position.x;
-      this.tempTransform.y = transform.position.y;
-      this.tempTransform.rotation = transform.rotation;
+    // ─── Iterate through BlockStore directly ─────────────────────────────────
+    const capacity = blockStore.capacity;
+    for (let idx = 0; idx < capacity; idx++) {
+      if (!blockStore.isAllocated(idx)) continue;
+      if (blockStore.visible[idx] === 0 || blockStore.hidden[idx] === 1) continue; // Should this check be handled on the shader side to be faster?
 
-      const cosRot = Math.cos(this.tempTransform.rotation);
-      const sinRot = Math.sin(this.tempTransform.rotation);
+      const worldX = blockStore.worldX[idx];
+      const worldY = blockStore.worldY[idx];
+      const rotation = blockStore.rotation[idx];
 
-      const colorOverride = entity.getBlockColor?.();
-      let colorR = 0, colorG = 0, colorB = 0, useColor = 0;
+      const baseUVX = blockStore.uvBaseX[idx];
+      const baseUVY = blockStore.uvBaseY[idx];
+      const overlayUVX = blockStore.uvOverlayX[idx];
+      const overlayUVY = blockStore.uvOverlayY[idx];
+      const useOverlay = overlayUVX >= 0 ? 1 : 0;
 
-      if (colorOverride) {
-        const color = this.parseHexColor(colorOverride);
-        colorR = color.r;
-        colorG = color.g;
-        colorB = color.b;
-        useColor = 1;
+      const r = blockStore.colorR[idx];
+      const g = blockStore.colorG[idx];
+      const b = blockStore.colorB[idx];
+      const useColor = 1;
+
+      // Always draw the base
+      this.addInstanceData(worldX, worldY, rotation,
+        baseUVX, baseUVY,
+        0, 0, 0,
+        r, g, b, useColor);
+
+      // If overlay exists, draw it separately
+      if (useOverlay) {
+        this.addInstanceData(worldX, worldY, rotation,
+          0, 0,
+          overlayUVX, overlayUVY, 1,
+          r, g, b, useColor);
       }
-
-      entity.forEachBlock((coord, block) => {
-        if (performance.now() > deadline) return;
-        if (block.hidden) return;
-
-        const localX = coord.x * BLOCK_SIZE;
-        const localY = coord.y * BLOCK_SIZE;
-        const worldX = this.tempTransform.x + localX * cosRot - localY * sinRot;
-        const worldY = this.tempTransform.y + localX * sinRot + localY * cosRot;
-        const localRotation = (block.rotation ?? 0) * Math.PI / 180;
-        const composedRotation = this.tempTransform.rotation + localRotation;
-
-        const damageLevel = getDamageLevel(block.hp, block.type.armor ?? 1);
-        const { baseUV, overlayUV } = getBlockAtlasUVOffset(block.type.id, damageLevel);
-
-        // ─── Base layer ────────────────────────────────────────
-        this.addInstanceData(
-          worldX, worldY,
-          composedRotation,
-          baseUV[0], baseUV[1],
-          0, 0, // no overlay UV
-          0,    // aUseOverlay = false
-          colorR, colorG, colorB,
-          useColor
-        );
-
-        // ─── Overlay layer (if present) ────────────────────────
-        if (overlayUV) {
-          const overlayRotation = composedRotation; // optionally compute overlay-specific
-          this.addInstanceData(
-            worldX, worldY,
-            overlayRotation,
-            0, 0, // no baseUV
-            overlayUV[0], overlayUV[1],
-            1,    // aUseOverlay = true
-            colorR, colorG, colorB,
-            useColor
-          );
-        }
-      });
     }
 
-    // ─── Upload Instance Buffer ────────────────────────────────────────────
+    // ─── Upload Instance Buffer & Draw ───────────────────────────────────────
     this.instanceCount = this.dataIndex / FLOATS_PER_INSTANCE;
-    
     if (this.instanceCount === 0) {
       gl.disable(gl.BLEND);
       gl.bindVertexArray(null);
@@ -317,15 +281,11 @@ export class EntityPass {
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    
-    // Use subarray to avoid copying unused portions of the buffer
     const usedData = this.instanceData.subarray(0, this.dataIndex);
     gl.bufferData(gl.ARRAY_BUFFER, usedData, gl.DYNAMIC_DRAW);
 
-    // ─── Draw Call ─────────────────────────────────────────────────────────
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.instanceCount);
 
-    // ─── Cleanup ───────────────────────────────────────────────────────────
     gl.disable(gl.BLEND);
     gl.bindVertexArray(null);
     gl.useProgram(null);

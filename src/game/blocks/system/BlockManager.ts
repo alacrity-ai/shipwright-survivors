@@ -36,7 +36,7 @@ export class BlockManager {
     return this._instance;
   }
 
-  public static get instance(): BlockManager {
+  public static getInstance(): BlockManager {
     if (!this._instance) {
       throw new Error('BlockManager has not been initialized');
     }

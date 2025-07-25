@@ -105,7 +105,6 @@ import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/Compo
 import { CompositeBlockObjectUpdateSystem } from '@/game/entities/systems/CompositeBlockObjectUpdateSystem';
 import { getStarterShip, getStarterShipFromJson } from '@/game/ship/utils/PrefabHelpers';
 import { getStarterSpaceStation } from '@/ui/menus/dev/getStarterSpaceStation';
-import { Grid } from '@/systems/physics/Grid';
 import { Ship } from '@/game/ship/Ship';
 import { SpaceStation } from '@/game/entities/SpaceStation';
 
@@ -197,7 +196,6 @@ export class EngineRuntime {
   private blockObjectUpdate: CompositeBlockObjectUpdateSystem | null = null;
   private aiOrchestrator: AIOrchestratorSystem;
 
-  private grid: Grid | null = null;
   private ship: Ship | null = null;
   private shipGrid: ShipGrid | null = null;
   private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
@@ -257,7 +255,6 @@ export class EngineRuntime {
   constructor() {
     this.canvasManager = CanvasManager.getInstance();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
-    this.grid = new Grid();  // Initialize global grid
     this.gameLoop = new GameLoop();
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
@@ -409,7 +406,6 @@ export class EngineRuntime {
     this.collisionSystem = new BlockObjectCollisionSystem(this.combatService);
 
     this.projectileSystem = new ProjectileSystem(
-      this.grid,
       this.combatService,
       this.particleManager,
     );
@@ -422,7 +418,6 @@ export class EngineRuntime {
     const activeShipFilepath = PlayerShipCollection.getInstance().getActiveShipFilepath();
 
     const { ship, controller, emitter, movement, weapons, utility } = await getStarterShip(
-      this.grid!,
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
@@ -484,7 +479,7 @@ export class EngineRuntime {
 
     // Dev Tools
     this.spaceStationBuilderMenu = new SpaceStationBuilderMenu(this.inputManager, this.cursorRenderer);
-    this.spaceStation = getStarterSpaceStation(this.grid!);
+    this.spaceStation = getStarterSpaceStation();
     this.spaceStationBuilderController = new SpaceStationBuilderController(
       this.spaceStation, 
       this.spaceStationBuilderMenu, 
@@ -504,7 +499,6 @@ export class EngineRuntime {
 
     this.waveOrchestrator = WaveOrchestratorFactory.create(
       this.mission.waves,
-      this.grid!,
       this.shipRegistry,
       this.aiOrchestrator,
       this.particleManager,
@@ -543,7 +537,7 @@ export class EngineRuntime {
     this.jumpCastMenu = new JumpCastMenu(this.inputManager, this.planetSystem!, this.jumpCastTransitionController!);
 
     // AsteroidSpawner
-    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid!, this.blockObjectRegistry, this.objectGrid!);
+    this.asteroidSpawner = new AsteroidSpawningSystem(this.blockObjectRegistry, this.objectGrid!);
 
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
@@ -651,7 +645,7 @@ export class EngineRuntime {
   }
 
   public async setShip(jsonData: string): Promise<void> {
-    if (!this.grid || !this.camera) {
+    if (!this.camera) {
       throw new Error('EngineRuntime: grid or camera not initialized');
     }
 
@@ -671,7 +665,6 @@ export class EngineRuntime {
     // === 2. Load New Ship ===
     const { ship, controller, emitter, movement, weapons, utility } = await getStarterShipFromJson(
       jsonData,
-      this.grid,
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
@@ -995,13 +988,10 @@ export class EngineRuntime {
 
     // == Render all graphics through Unified Rendering Pipeline
     if (this.camera) {
-      const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
-      const visibleShips = this.shipCulling!.getVisibleShips();
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
       const lightningSegments = this.lightningSystem.getSegments();
       const fireSOA = this.fireManager.getFireSOA();
-      const visibleObjects = [...visibleBlockObjects, ...visibleShips, this.ship];
       const damageTextSOA = this.damageTextManager.getSOA();
 
       const particleSOA1 = this.particleManager.getParticleSOA();
@@ -1014,7 +1004,6 @@ export class EngineRuntime {
       this.unifiedSceneRenderer!.render(
         dt,
         this.camera,
-        visibleObjects,
         visibleLights,
         spriteRequests,
         [particleSOA1, particleSOA2],
@@ -1236,7 +1225,6 @@ export class EngineRuntime {
     // Null references (defensive)
     this.ship = null;
     this.camera = null;
-    this.grid = null;
     this.shipGrid = null;
     this.objectGrid = null;
     this.spaceStation = null;

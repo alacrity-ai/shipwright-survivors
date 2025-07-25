@@ -8,6 +8,7 @@ import { initializeBlockSpriteCache } from '@/rendering/cache/BlockSpriteCache';
 import { initializePickupSpriteCache } from '@/rendering/cache/PickupSpriteCache';
 import { initializeAsteroidBlockSpriteCache } from '@/rendering/cache/AsteroidSpriteCache';
 import { initializeProjectileSpriteCache } from './rendering/cache/ProjectileSpriteCache';
+import { BlockManager } from './game/blocks/system/BlockManager';
 import { audioManager } from '@/audio/Audio'; // Lazy instantiation
 
 import React from 'react';
@@ -17,6 +18,9 @@ import App from './App';
 (async () => {
   // === Global guards and initialization
   bootstrapGlobalGuards();
+
+  // === Initialize Block Manager
+  BlockManager.initialize();
 
   // === Parallelized cache preloading
   await Promise.all([

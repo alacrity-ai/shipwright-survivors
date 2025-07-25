@@ -2,6 +2,8 @@ import type { Ship } from '@/game/ship/Ship';
 import type { Vec2 } from './VectorUtils';
 import { normalize } from './VectorUtils';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+
 /**
  * Converts a block's thrust angle (degrees) into a local unit vector.
  * Engines push opposite the direction they face.
@@ -27,16 +29,23 @@ export function rotateVector(vec: Vec2, angleRad: number): Vec2 {
 
 /**
  * Computes the normalized net thrust vector of a ship in world space.
- * This is the direction the ship will accelerate when thrust is applied.
+ * Uses only SOA data (no BlockType lookups) for maximum performance.
  */
 export function getNetThrustDirection(ship: Ship): Vec2 {
   let sumX = 0;
   let sumY = 0;
 
+  const store = BlockManager.getInstance().getBlockStore();
   const shipRotation = ship.getTransform().rotation;
-  for (const block of ship.getEngineBlocks()) {
-    const power = block.type.behavior!.thrustPower ?? 5;
-    const local = getBlockThrustDirection(block.rotation ?? 0);
+
+  for (const idx of ship.getEngineIndices()) {
+    if (store.canThrust[idx] === 0) continue;
+
+    const power = store.thrustPower[idx];
+    if (power <= 0) continue;
+
+    // Compute the thrust direction relative to the block’s local rotation
+    const local = getBlockThrustDirection(store.rotation[idx] ?? 0);
     const world = rotateVector(local, shipRotation);
 
     sumX += world.x * power;

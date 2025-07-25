@@ -64,7 +64,6 @@ import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 import { CompositeBlockObjectCullingSystem } from '@/game/entities/systems/CompositeBlockObjectCullingSystem';
 import { CompositeBlockObjectUpdateSystem } from '@/game/entities/systems/CompositeBlockObjectUpdateSystem';
-import { Grid } from '@/systems/physics/Grid';
 import { Ship } from '@/game/ship/Ship';
 import { Faction } from '@/game/interfaces/types/Faction';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -101,7 +100,6 @@ export class TitleScreenRuntime {
   private blockObjectUpdate: CompositeBlockObjectUpdateSystem | null = null;
   private aiOrchestrator: AIOrchestratorSystem;
 
-  private grid: Grid | null = null;
   private shipGrid: ShipGrid | null = null;
   private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
 
@@ -145,7 +143,6 @@ export class TitleScreenRuntime {
     this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
     this.blockManager = BlockManager.initialize();
 
-    this.grid = new Grid();  // Initialize global grid
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
@@ -228,7 +225,6 @@ export class TitleScreenRuntime {
     this.collisionSystem = new BlockObjectCollisionSystem(this.combatService);
 
     this.projectileSystem = new ProjectileSystem(
-      this.grid,
       this.combatService,
       this.particleManager,
     );
@@ -262,7 +258,6 @@ export class TitleScreenRuntime {
 
     this.waveOrchestrator = WaveOrchestratorFactory.create(
       this.mission.waves,
-      this.grid!,
       this.shipRegistry,
       this.aiOrchestrator,
       this.particleManager,
@@ -298,7 +293,7 @@ export class TitleScreenRuntime {
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
 
     // AsteroidSpawner
-    this.asteroidSpawner = new AsteroidSpawningSystem(this.grid!, this.blockObjectRegistry, this.objectGrid!);
+    this.asteroidSpawner = new AsteroidSpawningSystem(this.blockObjectRegistry, this.objectGrid!);
 
     // All systems that need to be updated every frame
     this.initializeFixedUpdatables();
@@ -318,7 +313,6 @@ export class TitleScreenRuntime {
     ];
 
     const { ship } = await getStarterShip(
-      this.grid!,
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
@@ -446,21 +440,17 @@ export class TitleScreenRuntime {
 
     // Render all graphics through Unified Rendering Pipeline
     if (this.camera) {
-      const visibleBlockObjects = this.blockObjectCulling!.getVisibleObjects();
-      const visibleShips = this.shipCulling!.getVisibleShips();
       const visibleLights = this.lightingOrchestrator.collectVisibleLights(this.camera);
       const visibleParticles1 = this.particleManager.getParticleSOA();
       const visibleParticles2 = this.persistentParticleManager.getParticleSOA();
       const visibleParticles = [visibleParticles1, visibleParticles2];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
       const fireSOA = this.fireManager.getFireSOA();
-      const visibleObjects = [...visibleBlockObjects, ...visibleShips];
       const damageTextSOA = this.damageTextManager.getSOA();
 
       this.unifiedSceneRenderer!.render(
         dt,
         this.camera,
-        visibleObjects,
         visibleLights,
         spriteRequests,
         visibleParticles,
@@ -552,7 +542,6 @@ export class TitleScreenRuntime {
 
     // Null references (defensive)
     this.camera = null;
-    this.grid = null;
     this.shipGrid = null;
     this.objectGrid = null;
     this.shipCulling = null;
@@ -564,15 +553,3 @@ export class TitleScreenRuntime {
     this.unifiedSceneRenderer = null;
   }
 }
-
-/*
-GOAL / TODOS:
-
-Create a "mission" for the title screen
-Create a "wave" for the title screen, with formations that roam around
-Create a cameraCutsceneController or something to move the camera around sans a player ship
-Make sure that the settings menu is openable via "escape", an event (better) triggered in the titlescreen menu
-
-Question: Does the titlescreen scene manager own this runtime? Or does this runtime own the titlescreen scene manager?
-Answer: The title screen scene manager should own this runtime, essentially using it as a background layer, and displaying its normal options above it
-*/

@@ -1,6 +1,5 @@
 // src/game/spawners/AsteroidSpawningSystem.ts
 
-import type { Grid } from '@/systems/physics/Grid';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
 
@@ -10,17 +9,15 @@ import { getAsteroidFieldDefinition } from '@/game/spawners/registries/asteroidF
 import type { AsteroidFieldDefinition } from '@/game/spawners/types/AsteroidFieldDefinition';
 
 import { getWorldCenter, getWorldWidth, getWorldHeight } from '@/config/world';
-import { Asteroid } from '../entities/Asteroid';
 
 export class AsteroidSpawningSystem {
   private readonly factory: AsteroidFactory;
 
   constructor(
-    grid: Grid,
     registry: CompositeBlockObjectRegistry<CompositeBlockObject>,
     objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>
   ) {
-    this.factory = new AsteroidFactory(grid, registry, objectGrid);
+    this.factory = new AsteroidFactory(registry, objectGrid);
   }
 
   /**

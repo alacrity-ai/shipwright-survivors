@@ -1,16 +1,18 @@
 // src/systems/physics/ProjectileSystem.ts
 
 import type { Projectile } from '@/game/interfaces/types/Projectile';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import type { Grid } from '@/systems/physics/Grid';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import type { BlockSpatialGrid } from '@/game/blocks/system/BlockSpatialGrid';
+import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
+import { CompositeBlockObjectRegistry } from '@/game/entities/registries/CompositeBlockObjectRegistry';
+
 import { INDEX_TO_PROJECTILE_TYPE } from '@/systems/physics/interfaces/ProjectileTypes';
-import { INDEX_TO_FACTION } from '@/game/interfaces/types/Faction';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
-import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
 import { createProjectileSOA, type ProjectileSOA } from '@/systems/physics/interfaces/ProjectileSOA';
 
 export class ProjectileSystem {
@@ -20,12 +22,16 @@ export class ProjectileSystem {
   private hitSets: Map<number, Set<string>> = new Map(); // Maps hitSetIndex to actual Set
   private nextHitSetIndex = 0;
 
+  private store: BlockStore;
+  private spatialGrid: BlockSpatialGrid;
+
   constructor(
-    private readonly grid: Grid,
     private readonly combatService: CombatService,
     private readonly particleManager: ParticleManager,
     maxProjectiles = 8192,
   ) {
+    this.store = BlockManager.getInstance().getBlockStore();
+    this.spatialGrid = BlockManager.getInstance().getBlockSpatialGrid();
     this.soa = createProjectileSOA(maxProjectiles);
     this.pendingSoa = createProjectileSOA(maxProjectiles);
   }
@@ -168,6 +174,10 @@ export class ProjectileSystem {
     this.soa.typeIndex[projectileIndex] = type;
     this.soa.faction[projectileIndex] = ownerFaction;
     this.soa.ownerShipId[projectileIndex] = ownerShipId;
+
+    // Cache shooter ship reference for fast collision resolution
+    this.soa.ownerShipRef[projectileIndex] = ship ?? null;
+
     this.soa.split[projectileIndex] = split ? 1 : 0;
     this.soa.penetrate[projectileIndex] = penetrate ? 1 : 0;
     this.soa.particleHandle[projectileIndex] = particleHandle;
@@ -221,6 +231,7 @@ export class ProjectileSystem {
         // Release resources for dead projectile
         this.particleManager.killParticle(this.soa.particleHandle[readIndex]);
         this.releaseHitSet(this.soa.hitSetIndex[readIndex]);
+        this.soa.ownerShipRef[readIndex] = null;
       }
     }
 
@@ -237,6 +248,7 @@ export class ProjectileSystem {
     this.soa.typeIndex[toIndex] = this.soa.typeIndex[fromIndex];
     this.soa.faction[toIndex] = this.soa.faction[fromIndex];
     this.soa.ownerShipId[toIndex] = this.soa.ownerShipId[fromIndex];
+    this.soa.ownerShipRef[toIndex] = this.soa.ownerShipRef[fromIndex];
     this.soa.split[toIndex] = this.soa.split[fromIndex];
     this.soa.penetrate[toIndex] = this.soa.penetrate[fromIndex];
     this.soa.particleHandle[toIndex] = this.soa.particleHandle[fromIndex];
@@ -274,6 +286,7 @@ export class ProjectileSystem {
     this.soa.typeIndex[toIndex] = this.pendingSoa.typeIndex[fromIndex];
     this.soa.faction[toIndex] = this.pendingSoa.faction[fromIndex];
     this.soa.ownerShipId[toIndex] = this.pendingSoa.ownerShipId[fromIndex];
+    this.soa.ownerShipRef[toIndex] = this.pendingSoa.ownerShipRef[fromIndex]; // NEW
     this.soa.split[toIndex] = this.pendingSoa.split[fromIndex];
     this.soa.penetrate[toIndex] = this.pendingSoa.penetrate[fromIndex];
     this.soa.particleHandle[toIndex] = this.pendingSoa.particleHandle[fromIndex];
@@ -290,6 +303,7 @@ export class ProjectileSystem {
     this.pendingSoa.typeIndex[toIndex] = this.pendingSoa.typeIndex[fromIndex];
     this.pendingSoa.faction[toIndex] = this.pendingSoa.faction[fromIndex];
     this.pendingSoa.ownerShipId[toIndex] = this.pendingSoa.ownerShipId[fromIndex];
+    this.pendingSoa.ownerShipRef[toIndex] = this.pendingSoa.ownerShipRef[fromIndex]; // NEW
     this.pendingSoa.split[toIndex] = this.pendingSoa.split[fromIndex];
     this.pendingSoa.penetrate[toIndex] = this.pendingSoa.penetrate[fromIndex];
     this.pendingSoa.particleHandle[toIndex] = this.pendingSoa.particleHandle[fromIndex];
@@ -297,66 +311,85 @@ export class ProjectileSystem {
   }
 
   private checkCollisions(): void {
-    // Process projectiles backwards to handle removals safely
+    const store = this.store;
+    const spatialGrid = this.spatialGrid;
+    const scratchCoord = { x: 0, y: 0 }; // Reused object for GC neutrality
+
     for (let i = this.soa.count - 1; i >= 0; i--) {
       const size = 32;
       const x = this.soa.x[i];
       const y = this.soa.y[i];
 
-      const blocks = this.grid.getBlocksInArea(
-        x - size,
-        y - size,
-        x + size,
-        y + size,
-        INDEX_TO_FACTION[this.soa.faction[i]]
-      );
+      const shooterShip = this.soa.ownerShipRef[i];
+      if (!shooterShip) {
+        continue; // Skip projectiles whose owner ship no longer exists
+      }
+
+      const blocks = spatialGrid.getBlocksInArea(x - size, y - size, x + size, y + size);
       let shouldRemove = false;
 
-      for (const block of blocks) {
-        
-        if (!this.checkCollisionAtIndex(i, block)) continue;
+      for (let b = 0; b < blocks.length; b++) {
+        const blockIdx = blocks[b];
+        const shipId = store.ownerShipId[blockIdx];
 
-        const obj = BlockToObjectIndex.getObject(block);
-        
-        if (!obj) continue;
-        if (obj.isNoClip()) continue;
+        // Skip self-hits
+        if (shipId === this.soa.ownerShipId[i]) {
+          continue;
+        }
 
-        const coord = obj.getBlockCoord(block);
-        if (!coord) continue;
+        // Try resolving the owning object (ship, asteroid, station, etc.)
+        let ownerObj: CompositeBlockObject | undefined =
+          ShipRegistry.getInstance().getByNumericId(shipId) as CompositeBlockObject | undefined;
 
-        const ownerShipInstance = ShipRegistry.getInstance().getByNumericId(this.soa.ownerShipId[i]);
-        if (!ownerShipInstance) continue;
+        if (!ownerObj) {
+          ownerObj = CompositeBlockObjectRegistry.getInstance().getByNumericId(shipId);
+        }
+        if (!ownerObj || ownerObj.isNoClip()) {
+          continue;
+        }
 
+        // Narrow-phase collision test
+        if (!this.checkCollisionAtIndex(i, blockIdx)) {
+          continue;
+        }
+
+        // Validate hit set
         const hitSet = this.hitSets.get(this.soa.hitSetIndex[i]);
-        if (!hitSet) continue;
+        if (!hitSet) {
+          this.removeProjectileAtIndex(i);
+          break;
+        }
 
-        if (hitSet.has(obj.id)) continue;
+        // Skip duplicate hits on the same object
+        if (hitSet.has(ownerObj.id)) {
+          continue;
+        }
+        hitSet.add(ownerObj.id);
 
-        // Record the hit BEFORE applying damage
-        hitSet.add(obj.id);
+        // Use scratchCoord (local grid coords) for damage calculation
+        scratchCoord.x = store.localX[blockIdx];
+        scratchCoord.y = store.localY[blockIdx];
 
         // Apply damage
         this.combatService.applyDamageToBlock(
-          obj,
-          ownerShipInstance,
-          block,
-          coord,
+          ownerObj,
+          shooterShip,
+          blockIdx,
+          scratchCoord,
           this.soa.damage[i],
-          INDEX_TO_PROJECTILE_TYPE[this.soa.typeIndex[i]] as 'turret' | 'projectile',
+          INDEX_TO_PROJECTILE_TYPE[this.soa.typeIndex[i]] as 'turret' | 'projectile'
         );
 
-        if (this.soa.penetrate[i] === 1) {
-          break; // continue checking for additional targets this frame
-        } else {
+        // Handle projectile lifecycle (penetration/split logic)
+        if (this.soa.penetrate[i] !== 1) {
           if (this.soa.split[i] === 1) {
-            this.handleSplitProjectile(i, obj.id);
+            this.handleSplitProjectile(i, ownerObj.id);
           }
           shouldRemove = true;
           break;
         }
       }
 
-      // Remove immediately to avoid index invalidation
       if (shouldRemove) {
         this.removeProjectileAtIndex(i);
       }
@@ -397,7 +430,7 @@ export class ProjectileSystem {
     }
 
     const origin = { x: this.soa.x[parentIndex], y: this.soa.y[parentIndex] };
-    
+
     const particleHandle = this.particleManager.emitParticleWithHandle(origin, {
       colors: ['#ff88cc', '#ffaaee', '#ff66bb'],
       baseSpeed: 0,
@@ -412,6 +445,7 @@ export class ProjectileSystem {
 
     const targetIndex = this.pendingSoa.count;
 
+    // Copy scalar fields from parent projectile
     this.pendingSoa.x[targetIndex] = origin.x;
     this.pendingSoa.y[targetIndex] = origin.y;
     this.pendingSoa.vx[targetIndex] = velocity.x;
@@ -421,7 +455,11 @@ export class ProjectileSystem {
     this.pendingSoa.typeIndex[targetIndex] = this.soa.typeIndex[parentIndex];
     this.pendingSoa.faction[targetIndex] = this.soa.faction[parentIndex];
     this.pendingSoa.ownerShipId[targetIndex] = this.soa.ownerShipId[parentIndex];
-    this.pendingSoa.split[targetIndex] = 0; // Don't allow nested splits
+
+    // Also cache the shooter reference from parent, for collision attribution
+    this.pendingSoa.ownerShipRef[targetIndex] = this.soa.ownerShipRef[parentIndex];
+
+    this.pendingSoa.split[targetIndex] = 0; // No nested splits
     this.pendingSoa.penetrate[targetIndex] = this.soa.penetrate[parentIndex];
     this.pendingSoa.particleHandle[targetIndex] = particleHandle;
     this.pendingSoa.hitSetIndex[targetIndex] = inheritedHitSetIndex;
@@ -429,28 +467,39 @@ export class ProjectileSystem {
     this.pendingSoa.count++;
   }
 
-  private checkCollisionAtIndex(index: number, block: BlockInstance): boolean {
-    if (!block.position) return false;
+  private checkCollisionAtIndex(index: number, blockIdx: number): boolean {
+    const store = this.store;
+
+    // Retrieve world-space position directly from BlockStore
+    const bx = store.worldX[blockIdx];
+    const by = store.worldY[blockIdx];
+
+    // Determine block size using its type index
+    const blockSize = 32;
+
+    // Compute Euclidean distance between projectile and block center
+    const dx = this.soa.x[index] - bx;
+    const dy = this.soa.y[index] - by;
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
     const projectileRadius = 15;
-    const blockSize = block.type.size || 32;
-    const dx = this.soa.x[index] - block.position.x;
-    const dy = this.soa.y[index] - block.position.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    return distance < (projectileRadius + blockSize / 2);
+    return dist < (projectileRadius + blockSize / 2);
   }
 
   private removeProjectileAtIndex(index: number): void {
-    // Release resources
+    // Release FX and hit set
     this.particleManager.killParticle(this.soa.particleHandle[index]);
     this.releaseHitSet(this.soa.hitSetIndex[index]);
 
-    // Move last projectile to this position
     const lastIndex = this.soa.count - 1;
+
+    // If not the last, overwrite this slot with the last projectile
     if (index !== lastIndex) {
-      this.copyProjectile(lastIndex, index);
+      this.copyProjectile(lastIndex, index); // already copies ownerShipRef
     }
+
+    // Clear reference from the last slot to avoid leaks
+    this.soa.ownerShipRef[lastIndex] = null;
 
     this.soa.count--;
   }

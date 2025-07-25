@@ -7,6 +7,9 @@ import type { PickupSpawner } from '@/systems/pickups/PickupSpawner';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
 
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { GlobalEventBus } from '@/core/EventBus';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
@@ -47,6 +50,7 @@ interface DestructionJob {
 export class CompositeBlockDestructionService {
   private destructionCallbacks: Set<(entity: CompositeBlockObject, cause: DestructionCause) => void> = new Set();
   private activeDestructions: Map<string, DestructionJob> = new Map();
+  private store: BlockStore;
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -54,6 +58,7 @@ export class CompositeBlockDestructionService {
     private readonly shipRegistry: ShipRegistry,
     private readonly aiOrchestrator: AIOrchestratorSystem
   ) {
+    this.store = BlockManager.getInstance().getBlockStore();
     GlobalEventBus.on('entity:destroy', this.handleDestroyEntity);
   }
 
@@ -96,8 +101,9 @@ export class CompositeBlockDestructionService {
 
   public destroyEntity(entity: CompositeBlockObject, cause: DestructionCause = 'scripted'): void {
     const transform = entity.getTransform();
-    const blocks = entity.getAllBlocks();
+    const indices = entity.getAllBlockIndices(); // SOA-based
     const entityId = entity.id;
+    const store = this.store;
 
     // Notify observers
     for (const cb of this.destructionCallbacks) {
@@ -123,13 +129,16 @@ export class CompositeBlockDestructionService {
         entity.setDestructionCause('replaced');
       }
       return;
-    } 
+    }
 
     const steps: BlockDestructionStep[] = [];
 
-    // Animate primary block explosions
-    blocks.forEach(([coord, block], index) => {
-      const delay = index * 0.05 * 0.5;
+    // Animate primary block explosions using block indices
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const coord: GridCoord = { x: store.localX[idx], y: store.localY[idx] };
+
+      const delay = i * 0.05 * 0.5;
       steps.push({
         delay,
         callback: () => {
@@ -144,15 +153,13 @@ export class CompositeBlockDestructionService {
             DEFAULT_EXPLOSION_SPARK_PALETTE,
             undefined,
           );
-          // const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-          // this.pickupSpawner.spawnPickupOnBlockDestruction(block, blockDropRateMulti);
         },
       });
-    });
+    }
 
-    // Handle ship-specific effects
+    // Handle ship-specific secondary explosions for disconnected blocks
     if (entity instanceof Ship) {
-      // Create Light Flash identical to the pointlight
+      // Create Light Flash (identical to pointlight)
       createLightFlash(
         transform.position.x,
         transform.position.y,
@@ -168,32 +175,36 @@ export class CompositeBlockDestructionService {
         const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
         const serialize = (c: GridCoord) => `${c.x},${c.y}`;
 
-        for (const [coord, block] of blocks) {
-          if (!connectedSet.has(serialize(coord))) {
-            const delay = 0.5 + Math.random() * 0.5; // delay is arbitrary but can be tuned
-            steps.push({
-              delay,
-              callback: () => {
-                this.explosionSystem.createBlockExplosion(
-                  entity.id,
-                  transform.position,
-                  transform.rotation,
-                  coord,
-                  60 + Math.random() * 20,
-                  0.5 + Math.random() * 0.3,
-                  undefined,
-                  DEFAULT_EXPLOSION_SPARK_PALETTE,
-                );
-              },
-            });
-          }
+        for (let i = 0; i < indices.length; i++) {
+          const idx = indices[i];
+          const coord: GridCoord = { x: store.localX[idx], y: store.localY[idx] };
+
+          if (connectedSet.has(serialize(coord))) continue;
+
+          const delay = 0.5 + Math.random() * 0.5; // same stagger logic as before
+          steps.push({
+            delay,
+            callback: () => {
+              this.explosionSystem.createBlockExplosion(
+                entity.id,
+                transform.position,
+                transform.rotation,
+                coord,
+                60 + Math.random() * 20,
+                0.5 + Math.random() * 0.3,
+                undefined,
+                DEFAULT_EXPLOSION_SPARK_PALETTE,
+              );
+            },
+          });
         }
       }
     }
 
+    // Register the job for incremental destruction animation
     this.activeDestructions.set(entityId, {
       entityId,
-      steps: steps.sort((a, b) => a.delay - b.delay), // ensure sorted order
+      steps: steps.sort((a, b) => a.delay - b.delay), // keep steps ordered by time
       elapsed: 0,
     });
   }

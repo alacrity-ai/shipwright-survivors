@@ -15,6 +15,9 @@ import { Camera } from '@/core/Camera';
 import { savePlayerShip } from '@/systems/serialization/savePlayerShip';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+
 import { getUniformScaleFactor } from '@/config/view';
 import { getUIScale } from '@/ui/menus/helpers/getUIScale';
 import { getResolutionScaleFactor } from '@/config/view';
@@ -44,7 +47,7 @@ export class ShipBuilderMenu implements Menu {
   private selectedBlockId: string | null = 'hull1';
 
   private activeTool: ShipBuilderTool = ShipBuilderTool.PLACE;
-  private hoveredShipBlock: BlockInstance | undefined = undefined;
+  private hoveredShipBlockIdx: number | undefined = undefined;
   private hoveredUtilityTool: ShipBuilderTool | null = null;
 
   private open = false;
@@ -172,9 +175,10 @@ export class ShipBuilderMenu implements Menu {
       this.renderToolInfo(ctx, this.hoveredUtilityTool, infoX, infoY, this.BLOCKINFO_WINDOW_WIDTH);
       this.cursorRenderer.setHoveredCursor();
     }
-    // === Repair mode
+    // === Repair mode: show hovered block info by block index
     else if (this.activeTool === ShipBuilderTool.REPAIR) {
-      this.renderRepairInfoForBlock(ctx, this.hoveredShipBlock, infoX, infoY, this.BLOCKINFO_WINDOW_WIDTH);
+      // this.hoveredShipBlock is now a block index (number | undefined)
+      this.renderRepairInfoForBlock(ctx, this.hoveredShipBlockIdx, infoX, infoY, this.BLOCKINFO_WINDOW_WIDTH);
       this.cursorRenderer.setWrenchCursor();
     }
     // === Block grid or selected block
@@ -346,7 +350,7 @@ export class ShipBuilderMenu implements Menu {
 
   private renderRepairInfoForBlock(
     ctx: CanvasRenderingContext2D,
-    block: BlockInstance | undefined,
+    blockIndex: number | undefined,
     x: number,
     y: number,
     width: number
@@ -375,22 +379,25 @@ export class ShipBuilderMenu implements Menu {
     const textX = x + this.PADDING;
     let textY = y + 32;
     const wrapWidth = width;
-
     const textScale = Math.max(0.75, getUITextScale(getUIScale()));
 
-    if (!block) {
+    // No hovered block
+    if (blockIndex === undefined) {
       textY = drawLabelLine(ctx, textX, textY, 'Hover block', 'to inspect', '#888', wrapWidth, textScale);
       textY = drawLabelLine(ctx, textX, textY, 'Repair', 'Left-click', '#888', wrapWidth, textScale);
       return;
     }
 
-    const { type, hp } = block;
+    const store = BlockManager.getInstance().getBlockStore();
+    const typeIdx = store.typeIndex[blockIndex];
+    const type = getBlockTypeByIndex(typeIdx)!;
+    const hp = store.hp[blockIndex];
     const missingHp = type.armor - hp;
 
     textY = drawLabelLine(ctx, textX, textY, 'Name', type.name, '#6cf', wrapWidth, textScale);
     textY = drawLabelLine(ctx, textX, textY, 'Armor', `${hp} / ${type.armor}`, '#09f', wrapWidth, textScale);
     textY = drawLabelLine(ctx, textX, textY, 'Damage', missingHp > 0 ? missingHp : 'None', '#f66', wrapWidth, textScale);
-    textY = drawLabelLine(ctx, textX, textY, 'Repair Cost', missingHp > 0 ? getRepairCost(block) : '—', '#6f6', wrapWidth, textScale);
+    textY = drawLabelLine(ctx, textX, textY, 'Repair Cost', missingHp > 0 ? getRepairCost(blockIndex) : '—', '#6f6', wrapWidth, textScale);
   }
 
   private renderUtilityWindow(
@@ -463,7 +470,7 @@ export class ShipBuilderMenu implements Menu {
 
           if (input && input.trim() !== '') {
             const filename = input.trim().endsWith('.json') ? input.trim() : `${input.trim()}.json`;
-            savePlayerShip(ship, ship.getGrid(), filename);
+            savePlayerShip(ship, filename);
           }
         }
       },
@@ -658,8 +665,8 @@ export class ShipBuilderMenu implements Menu {
     this.selectedBlockId = id;
   }
 
-  setHoveredShipBlock(block: BlockInstance | undefined): void {
-    this.hoveredShipBlock = block;
+  setHoveredShipBlock(idx: number | undefined): void {
+    this.hoveredShipBlockIdx = idx;
   }
 
   isOpen(): boolean {

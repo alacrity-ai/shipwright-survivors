@@ -1,5 +1,7 @@
 // src/systems/physics/interfaces/ProjectileSOA.ts
 
+import type { Ship } from '@/game/ship/Ship';
+
 /**
  * Structure-of-Arrays (SOA) buffer for all active projectiles.
  * Each field is a contiguous typed array for SIMD/JIT friendliness.
@@ -16,20 +18,23 @@ export interface ProjectileSOA {
 
   // Combat attributes
   damage: Float32Array;
-  life: Float32Array;         // remaining life in seconds
-  typeIndex: Int16Array;      // maps to a projectile type registry (string → index)
-  faction: Uint8Array;        // 1=Player, 2=Enemy, 3=Neutral
+  life: Float32Array;
+  typeIndex: Int16Array;
+  faction: Uint8Array;
   ownerShipId: Float64Array;
 
+  // Cached owner ship reference
+  ownerShipRef: (Ship | null)[];  // <- add this
+
   // Behavioral flags
-  split: Uint8Array;          // 0/1
-  penetrate: Uint8Array;      // 0/1
+  split: Uint8Array;
+  penetrate: Uint8Array;
 
   // Visual linkage
-  particleHandle: Int32Array; // handle for particle trail/visual FX
+  particleHandle: Int32Array;
 
   // Collision bookkeeping
-  hitSetIndex: Int32Array;    // index into hitSet pool; -1 if none
+  hitSetIndex: Int32Array;
 }
 
 /**
@@ -48,6 +53,7 @@ export function createProjectileSOA(max: number): ProjectileSOA {
     typeIndex: new Int16Array(max),
     faction: new Uint8Array(max),
     ownerShipId: new Float64Array(max),
+    ownerShipRef: new Array<Ship | null>(max).fill(null),  // new
     split: new Uint8Array(max),
     penetrate: new Uint8Array(max),
     particleHandle: new Int32Array(max),

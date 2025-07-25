@@ -39,4 +39,3 @@ export function getResolutionScaleFactor(): number {
   if (w === 1280 && h === 800) return 0.9;  // Steam Deck (~720p with 16:10)
   return 0.8;                       // Fallback (low res)
 }
-

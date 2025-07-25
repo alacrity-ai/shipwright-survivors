@@ -12,6 +12,7 @@ import { checkWebGLSupport } from '@/lighting/webgl/helpers/checkWebGLSupport';
 import { CanvasManager } from '@/core/CanvasManager';
 import { FadeManager } from '@/rendering/FadeManager';
 
+
 export default function App() {
   const [scene, setScene] = useState<Scene>(sceneManager.getScene());
 

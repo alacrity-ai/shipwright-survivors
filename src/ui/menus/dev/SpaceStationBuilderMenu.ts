@@ -14,6 +14,9 @@ import { audioManager } from '@/audio/Audio';
 import { getAllBlockTypes } from '@/game/blocks/BlockRegistry';
 import { getBlockSprite } from '@/rendering/cache/BlockSpriteCache';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+
 import type { CursorRenderer } from '@/rendering/CursorRenderer';
 import type { BlockCategory } from '@/game/interfaces/types/BlockType';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
@@ -58,7 +61,7 @@ export class SpaceStationBuilderMenu implements Menu {
   private selectedBlockId: string | null = 'hull1';
 
   private activeTool: ShipBuilderTool = ShipBuilderTool.PLACE;
-  private hoveredShipBlock: BlockInstance | undefined = undefined;
+  private hoveredShipBlockIndex: number | undefined = undefined;
   private hoveredUtilityTool: ShipBuilderTool | null = null;
 
   private open = false;
@@ -130,7 +133,8 @@ export class SpaceStationBuilderMenu implements Menu {
     }
     // === Repair mode
     else if (this.activeTool === ShipBuilderTool.REPAIR) {
-      this.renderRepairInfoForBlock(ctx, this.hoveredShipBlock, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
+      // hoveredShipBlock is now a block index (number | undefined)
+      this.renderRepairInfoForBlock(ctx, this.hoveredShipBlockIndex, infoX, infoY, BLOCKINFO_WINDOW_WIDTH);
       this.cursorRenderer.setWrenchCursor();
     }
     // === Block grid or selected block
@@ -300,11 +304,13 @@ export class SpaceStationBuilderMenu implements Menu {
 
   private renderRepairInfoForBlock(
     ctx: CanvasRenderingContext2D,
-    block: BlockInstance | undefined,
+    blockIndex: number | undefined,
     x: number,
     y: number,
     width: number
   ): void {
+    const store = BlockManager.getInstance().getBlockStore();
+
     drawWindow({
       ctx,
       x,
@@ -330,19 +336,28 @@ export class SpaceStationBuilderMenu implements Menu {
     let textY = y + 32;
     const wrapWidth = width + 10;
 
-    if (!block) {
+    if (blockIndex === undefined) {
       textY = drawLabelLine(ctx, textX, textY, 'Hover block', 'to inspect', '#888', wrapWidth);
       textY = drawLabelLine(ctx, textX, textY, 'Repair', 'Left-click', '#888', wrapWidth);
       return;
     }
 
-    const { type, hp } = block;
-    const missingHp = type.armor - hp;
+    // Look up block type + HP via SOA
+    const typeIdx = store.typeIndex[blockIndex];
+    const blockType = getBlockTypeByIndex(typeIdx);
+    if (!blockType) {
+      textY = drawLabelLine(ctx, textX, textY, 'Unknown', '-', '#888', wrapWidth);
+      return;
+    }
 
-    textY = drawLabelLine(ctx, textX, textY, 'Name', type.name, '#6cf', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Armor', `${hp} / ${type.armor}`, '#09f', wrapWidth);
+    const hp = store.hp[blockIndex];
+    const maxHp = blockType.armor ?? 0;
+    const missingHp = Math.max(0, maxHp - hp);
+
+    textY = drawLabelLine(ctx, textX, textY, 'Name', blockType.name, '#6cf', wrapWidth);
+    textY = drawLabelLine(ctx, textX, textY, 'Armor', `${hp} / ${maxHp}`, '#09f', wrapWidth);
     textY = drawLabelLine(ctx, textX, textY, 'Damage', missingHp > 0 ? missingHp : 'None', '#f66', wrapWidth);
-    textY = drawLabelLine(ctx, textX, textY, 'Repair Cost', missingHp > 0 ? getRepairCost(block) : '—', '#6f6', wrapWidth);
+    textY = drawLabelLine(ctx, textX, textY, 'Repair Cost', missingHp > 0 ? getRepairCost(blockIndex) : '—', '#6f6', wrapWidth);
   }
 
   private renderUtilityWindow(
@@ -546,8 +561,8 @@ export class SpaceStationBuilderMenu implements Menu {
     this.selectedBlockId = id;
   }
 
-  setHoveredShipBlock(block: BlockInstance | undefined): void {
-    this.hoveredShipBlock = block;
+  setHoveredShipBlock(blockIndex: number | undefined): void {
+    this.hoveredShipBlockIndex = blockIndex;
   }
 
   isOpen(): boolean {

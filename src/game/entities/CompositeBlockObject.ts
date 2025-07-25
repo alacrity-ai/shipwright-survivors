@@ -1,31 +1,31 @@
 // src/game/entities/CompositeBlockObject.ts
 
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
 import type { SerializedBlockObject } from '@/systems/serialization/CompositeBlockObjectSerializer';
 
+import { BlockManager } from '../blocks/system/BlockManager';
+import type { BlockOrchestrator } from '@/game/blocks/system/BlockOrchestrator';
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
+import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
+
 import { hashStringToInt32 } from '@/shared/hashUtils';
+import { hexToRgbaVec4 } from '@/rendering/unified/helpers/hexToRgbaVec4';
 import { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 
-import { randomFromArray } from '@/shared/arrayUtils';
-import { Grid } from '@/systems/physics/Grid';
-import { BlockToObjectIndex } from '@/game/blocks/BlockToObjectIndexRegistry';
-import { getBlockType } from '@/game/blocks/BlockRegistry';
-import { toKey, fromKey, type CoordKey } from '@/game/ship/utils/shipBlockUtils';
+import { BlockSpatialGrid } from '../blocks/system/BlockSpatialGrid';
+import { getBlockType, BlockTypeIndex, BlockTypeMass } from '@/game/blocks/BlockRegistry';
 
 import { Faction } from '@/game/interfaces/types/Faction';
 import { AnchorPointComponent } from '@/game/ship/anchors/AnchorPointComponent';
 
+
 export abstract class CompositeBlockObject {
   readonly id: string;
   readonly numericId: number;
-  protected grid: Grid;
 
-  private cachedBlockList: [GridCoord, BlockInstance][] | null = null;
-  protected blocks: Map<CoordKey, { coord: GridCoord; block: BlockInstance }> = new Map();
-  protected blockToCoordMap: Map<BlockInstance, GridCoord> = new Map();
-  protected blockIdMap: Map<string, BlockInstance> = new Map();
+  protected blockManager: BlockManager;
+  protected blockOrchestrator: BlockOrchestrator;
 
   protected transform: BlockEntityTransform;
   protected destroyed: boolean = false;
@@ -50,16 +50,17 @@ export abstract class CompositeBlockObject {
   private _lastTransformCheckRot: number = NaN; // optional
 
   constructor(
-    grid: Grid,
-    initialBlocks?: [GridCoord, BlockInstance][],
+    initialBlocks?: Array<{ coord: GridCoord; typeId: string; rotation?: number }>,
     initialTransform?: Partial<BlockEntityTransform>,
     faction?: Faction
   ) {
-    this.grid = grid;
     const ids = this.generateId();
     this.id = ids.stringId;
     this.numericId = ids.numericId;
     this.faction = faction ?? Faction.Neutral;
+
+    this.blockManager = BlockManager.getInstance();
+    this.blockOrchestrator = this.blockManager.getBlockOrchestrator();
 
     this.transform = {
       position: initialTransform?.position ?? { x: 0, y: 0 },
@@ -68,15 +69,29 @@ export abstract class CompositeBlockObject {
       angularVelocity: initialTransform?.angularVelocity ?? 0,
     };
 
+    // Preallocate SOA slot list for this ship
+    this.blockOrchestrator.ensureShipBlocks(this.numericId);
+
     if (initialBlocks) {
-      for (const [coord, block] of initialBlocks) {
-        this.blocks.set(toKey(coord), { coord, block });
-        this.grid.addBlockToCell(block);
-        this.blockToCoordMap.set(block, coord);
-        this.blockIdMap.set(block.id, block);
-        BlockToObjectIndex.registerBlock(block, this);
+      for (const { coord, typeId, rotation } of initialBlocks) {
+        const typeIndex = BlockTypeIndex[typeId] ?? 0;
+        this.blockOrchestrator.createAndRegisterBlock(
+          {
+            ownerShipId: this.numericId,
+            ownerFaction: FACTION_TO_INDEX[this.faction],
+            typeIndex,
+            localX: coord.x,
+            localY: coord.y,
+            localRotation: rotation ?? 0,
+            blockTypeId: typeId,
+          },
+          this.transform
+        );
       }
     }
+
+    // Ensure positions and grid registration are correct immediately
+    this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
   }
 
   public isConstructed(): boolean {
@@ -92,6 +107,10 @@ export abstract class CompositeBlockObject {
   // Faction System
   public setFaction(faction: Faction): void {
     this.faction = faction;
+
+    // Mirror to SOA system
+    const factionIndex = FACTION_TO_INDEX[faction];
+    this.blockOrchestrator.setShipFaction(this.numericId, factionIndex);
   }
 
   public getFaction(): Faction {
@@ -105,45 +124,68 @@ export abstract class CompositeBlockObject {
 
   // --- Block Access & Placement ---
 
-  public placeBlock(coord: GridCoord, block: BlockInstance): void {
-    const key = toKey(coord);
-    this.blocks.set(key, { coord, block });
-    this.grid.addBlockToCell(block);
-    this.blockToCoordMap.set(block, coord);
-    this.blockIdMap.set(block.id, block);
-    BlockToObjectIndex.registerBlock(block, this);
-    this.invalidateBlockCache();
-    this.invalidateMass();
-  }
-
-  public getBlock(coord: GridCoord): BlockInstance | undefined {
-    return this.blocks.get(toKey(coord))?.block;
-  }
-
   /**
-   * O(1) lookup of a block by its UUID.
-   * @returns the canonical BlockInstance or `undefined` if not part of this object.
+   * Places a block at the given grid coordinate and returns its SOA index.
+   * @param coord Local grid coordinate (relative to the ship)
+   * @param typeId Block type identifier
+   * @param rotation Optional local rotation (radians)
+   * @returns The SOA index of the created block, or -1 if allocation failed
    */
-  public getBlockById(id: string): BlockInstance | undefined {
-    return this.blockIdMap.get(id);
+  public placeBlock(coord: GridCoord, typeId: string, rotation: number = 0): number {
+    const typeIndex = BlockTypeIndex[typeId] ?? 0;
+    const factionIndex = FACTION_TO_INDEX[this.faction];
+
+    const idx = this.blockOrchestrator.createAndRegisterBlock(
+      {
+        ownerShipId: this.numericId,
+        ownerFaction: factionIndex,
+        typeIndex,
+        localX: coord.x,
+        localY: coord.y,
+        localRotation: rotation,
+        blockTypeId: typeId,
+      },
+      this.transform
+    );
+
+    if (idx !== -1) {
+      this.invalidateMass(); // Recalculate ship mass lazily
+    }
+
+    return idx;
   }
 
-  public getRandomBlock(): BlockInstance | undefined {
-    if (!this.blocks.size) return undefined;
-    const randomKey = randomFromArray(Array.from(this.blocks.keys()));
-    return this.blocks.get(randomKey)?.block;
+  public getBlockIndex(coord: GridCoord): number | undefined {
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
+
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        return idx;
+      }
+    }
+    return undefined;
+  }
+
+  public getRandomBlockIndex(): number | undefined {
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    if (indices.length === 0) return undefined;
+
+    return indices[Math.floor(Math.random() * indices.length)];
   }
 
   public hasBlockAt(coord: GridCoord): boolean {
-    return this.blocks.has(toKey(coord));
-  }
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
 
-  public getBlockMap(): Map<string, BlockInstance> {
-    const result = new Map<string, BlockInstance>();
-    for (const [key, entry] of this.blocks.entries()) {
-      result.set(key, entry.block);
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        return true;
+      }
     }
-    return result;
+    return false;
   }
 
   // --- Clipping
@@ -161,140 +203,114 @@ export abstract class CompositeBlockObject {
     return {};
   }
 
-  /**
- * Returns all [coord, block] pairs.
- * This allocates and should not be used in performance-sensitive paths.
- */
-  public getAllBlocks(): [GridCoord, BlockInstance][] {
-    if (this.cachedBlockList === null) {
-      this.cachedBlockList = Array.from(this.blocks.values()).map(({ coord, block }) => [coord, block]);
-    }
-    return this.cachedBlockList;
+  public getBlockStore(): BlockStore {
+    return this.blockManager.getBlockStore();
   }
 
-  /**
-   * Calls the provided callback for each [coord, block] in this object without allocating.
-   */
-  public forEachBlock(callback: (coord: GridCoord, block: BlockInstance) => void): void {
-    for (const { coord, block } of this.blocks.values()) {
-      callback(coord, block);
-    }
+  public getBlockOrchestrator(): BlockOrchestrator {
+    return this.blockManager.getBlockOrchestrator();
   }
 
-  public invalidateBlockCache(): void {
-    this.cachedBlockList = null;
+  public getAllBlockIndices(): Uint32Array {
+    // Always use the orchestrator’s existing subarray — no caching/allocation needed.
+    return this.blockOrchestrator.getShipBlocksView(this.numericId);
   }
 
   public getBlockCount(): number {
-    return this.blocks.size;
+    // Use the orchestrator’s block tracking (SOA)
+    return this.blockOrchestrator.getShipBlockCount(this.numericId);
   }
 
-  public getCenterBlock(): BlockInstance | undefined {
-    return this.blocks.get('0,0')?.block;
-  }
-
-  public getBlockCoord(block: BlockInstance): GridCoord | null {
-    return this.blockToCoordMap.get(block) ?? null;
-  }
-
-  getBlocksWithinGridDistance(centerCoord: GridCoord, distance: number): Array<[GridCoord, BlockInstance]> {
-    const result: Array<[GridCoord, BlockInstance]> = [];
-
-    for (const [_, block] of this.getAllBlocks()) {
-      const blockCoord = this.getBlockCoord(block);
-      if (!blockCoord) continue;
-
-      const dx = Math.abs(blockCoord.x - centerCoord.x);
-      const dy = Math.abs(blockCoord.y - centerCoord.y);
-
-      const gridDistance = Math.max(dx, dy); // Chebyshev distance
-      if (gridDistance <= distance) {
-        result.push([blockCoord, block]);
-      }
-    }
-
-    return result;
+  public getBlockCoordByIndex(idx: number): GridCoord {
+    const store = this.blockManager.getBlockStore();
+    return { x: store.localX[idx], y: store.localY[idx] };
   }
 
   public hideAllBlocks(): void {
-    for (const { block } of this.blocks.values()) {
-      block.hidden = true;
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
+    for (let i = 0; i < indices.length; i++) {
+      store.hidden[indices[i]] = 1;
     }
   }
 
   public showAllBlocks(): void {
-    for (const { block } of this.blocks.values()) {
-      block.hidden = false;
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
+    for (let i = 0; i < indices.length; i++) {
+      store.hidden[indices[i]] = 0;
     }
   }
 
   /**
-   * Given a block instance, return its corresponding grid coordinate within the ship.
-   * Returns null if the block is not found or no longer exists.
+   * Removes a block at the given local grid coordinate (if it exists).
+   * Operates entirely on SOA indices — no BlockInstance.
    */
-  public findBlockCoord(block: BlockInstance): GridCoord | null {
-    for (const { coord, block: stored } of this.blocks.values()) {
-      if (stored === block) {
-        return coord;
-      }
-    }
-    return null;
-  }
-
   public removeBlock(coord: GridCoord): void {
-    const key = toKey(coord);
-    const entry = this.blocks.get(key);
-    if (!entry) return;
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
 
-    const { block } = entry;
-
-    BlockToObjectIndex.unregisterBlock(block);
-    this.grid.removeBlockFromCell(block);
-    this.blocks.delete(key);
-    this.blockToCoordMap.delete(block);
-    this.blockIdMap.delete(block.id);
-    this.invalidateBlockCache();
-    this.invalidateMass();
-  }
-
-  public removeBlocks(coords: GridCoord[], preResolved?: BlockInstance[]): void {
-    const toRemove: BlockInstance[] = preResolved ?? [];
-
-    if (!preResolved) {
-      for (const coord of coords) {
-        const key = toKey(coord);
-        const entry = this.blocks.get(key);
-        if (!entry) continue;
-
-        const { block } = entry;
-        toRemove.push(block);
-        this.blocks.delete(key);
-        this.blockToCoordMap.delete(block);
-        this.blockIdMap.delete(block.id);
-      }
-    } else {
-      for (const block of preResolved) {
-        const coord = this.blockToCoordMap.get(block);
-        if (coord) {
-          this.blocks.delete(toKey(coord));
-          this.blockToCoordMap.delete(block);
-          this.blockIdMap.delete(block.id);
-        }
+    // Find the block index matching the coordinate
+    let foundIdx: number | undefined;
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        foundIdx = idx;
+        break;
       }
     }
 
-    for (const block of toRemove) {
-      BlockToObjectIndex.unregisterBlock(block);
-    }
+    if (foundIdx === undefined) return;
 
-    this.grid.removeBlocksFromCells(toRemove);
-    this.invalidateBlockCache();
+    // Destroy the block (handles deregistration from BlockSpatialGrid + frees store slot)
+    this.blockOrchestrator.destroyBlock(foundIdx);
+
+    // Invalidate cached mass (ship weight) so it recalculates next time
     this.invalidateMass();
   }
+
+/**
+ * Removes multiple blocks by their local grid coordinates.
+ * Operates entirely on SOA indices — no BlockInstance.
+ */
+public removeBlocks(coords: GridCoord[]): void {
+  const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+  const store = this.blockManager.getBlockStore();
+  const targetShipId = this.numericId;
+
+  for (const coord of coords) {
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+
+      // Verify ownership before any action
+      const ownerShipId = store.ownerShipId[idx];
+      if (ownerShipId !== targetShipId) {
+        console.error(
+          `[CompositeBlockObject] ⚠ Attempting to remove block ${idx} at (${coord.x},${coord.y}) ` +
+          `but it belongs to ship ${ownerShipId}, not ${targetShipId}`
+        );
+      }
+
+      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        this.blockOrchestrator.destroyBlock(idx);
+        break; // move to next coordinate
+      }
+    }
+  }
+
+  // Recalculate mass next time it's queried
+  this.invalidateMass();
+}
+
 
   // --- Color customization (RGBA)
   public setBlockColor(color: string | null): void {
     this.blockColor = color;
+
+    if (color) {
+      const [r, g, b] = hexToRgbaVec4(color);
+      this.blockOrchestrator.setShipColor(this.numericId, r, g, b, 1);
+    }
   }
 
   public getBlockColor(): string | null {
@@ -317,15 +333,19 @@ export abstract class CompositeBlockObject {
 
   public setTransform(newTransform: BlockEntityTransform): void {
     this.transform = { ...newTransform };
-    this.updateBlockPositions();   
+
+    // Update SOA system (positions + rehome in BlockSpatialGrid)
+    if (this.blockOrchestrator) {
+      this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
+    }
   }
 
   public getVelocity(): { x: number; y: number } {
     return this.transform.velocity;
   }
 
-  public getGrid(): Grid {
-    return this.grid;
+  public getGrid(): BlockSpatialGrid {
+    return this.blockManager.getBlockSpatialGrid();
   }
 
   public setImmoveable(value: boolean): void {
@@ -405,70 +425,81 @@ export abstract class CompositeBlockObject {
     return performance.now() < this.collidingUntil;
   }
 
-  // FROM COMPOSITE BLOCK OBJECT
-
-  public getBlockWorldPosition(block: BlockInstance): { x: number; y: number } {
-    const coord = this.getBlockCoord(block);
-    if (!coord) return { x: 0, y: 0 };
-    return this.calculateBlockWorldPosition(coord);
+  /**
+   * Returns the world-space position of a block by its SOA index.
+   * @param idx Block index in BlockStore
+   * @returns World position { x, y }
+   */
+  public getBlockWorldPositionByIndex(idx: number): { x: number; y: number } {
+    const store = this.blockManager.getBlockStore();
+    return { x: store.worldX[idx], y: store.worldY[idx] };
   }
 
   // Helper for effects on blocks
   public getRandomBlockWorldPosition(): { x: number; y: number } {
-    const block = this.getRandomBlock();
-    if (!block) return { x: 0, y: 0 };
-    return this.getBlockWorldPosition(block);
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    if (indices.length === 0) return { x: 0, y: 0 };
+
+    const randomIdx = indices[Math.floor(Math.random() * indices.length)];
+    const store = this.blockManager.getBlockStore();
+
+    return { x: store.worldX[randomIdx], y: store.worldY[randomIdx] };
   }
 
+  /**
+   * Calculates the world-space position of a block by its local grid coordinate.
+   * Looks up the block via its coordinate and returns its world position from BlockStore.
+   */
   protected calculateBlockWorldPosition(coord: GridCoord): { x: number; y: number } {
-    const { position, rotation } = this.transform;
-    const { x: px, y: py } = position;
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
 
-    const cos = Math.cos(rotation);
-    const sin = Math.sin(rotation);
-
-    const worldX = px + coord.x * 32 * cos - coord.y * 32 * sin;
-    const worldY = py + coord.x * 32 * sin + coord.y * 32 * cos;
-
-    return { x: worldX, y: worldY };
-  }
-
-  public updateBlockPositions(): void {
-    const { position, rotation } = this.transform;
-    const { x: px, y: py } = position;
-    const cos = Math.cos(rotation);
-    const sin = Math.sin(rotation);
-
-    for (const { coord, block } of this.blocks.values()) {
-      const { x: cx, y: cy } = coord;
-
-      /* Fast inlined world‑space transform (unchanged) */
-      const worldX = px + cx * 32 * cos - cy * 32 * sin;
-      const worldY = py + cx * 32 * sin + cy * 32 * cos;
-
-      block.position = { x: worldX, y: worldY };
-
-      /* Conditional re‑home */
-      this.grid.rehomeBlock(block);
+    // Find the block index with this local coordinate
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        return { x: store.worldX[idx], y: store.worldY[idx] };
+      }
     }
 
-    // Update Anchor Points
+    // If no block found, default to origin
+    return { x: 0, y: 0 };
+  }
+
+  /**
+   * Updates all block world positions and rehomes them in the spatial grid.
+   * Also updates any attached anchor point component.
+   */
+  public updateBlockPositions(): void {
+    // Update SOA positions and handle spatial rehoming via BlockOrchestrator
+    this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
+
+    // Update anchor points (used for AI targeting, etc.)
     if (this.anchorPointComponent) {
       this.anchorPointComponent.updateFromTransform(this.transform);
     }
   }
 
   // --- Mass ---
-
   public getTotalMass(): number {
-    if (this.totalMass == null) {
-      let total = 0;
-      for (const { block } of this.blocks.values()) {
-        total += block.type.mass;
-      }
-      this.totalMass = total;
+    if (this.totalMass != null) {
+      return this.totalMass;
     }
-    return this.totalMass;
+
+    let total = 0;
+
+    // Prefer SOA iteration for performance
+    const shipIndices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
+
+    for (let i = 0; i < shipIndices.length; i++) {
+      const idx = shipIndices[i];
+      const typeIdx = store.typeIndex[idx];
+      total += BlockTypeMass[typeIdx];
+    }
+
+    this.totalMass = total;
+    return total;
   }
 
   protected invalidateMass(): void {
@@ -477,19 +508,18 @@ export abstract class CompositeBlockObject {
 
   // --- Destruction Lifecycle ---
 
+  /**
+   * Marks the ship as destroyed, clears all blocks, and triggers destruction hooks.
+   */
   public destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
     this.deathTimestamp = performance.now();
 
-    for (const { block } of this.blocks.values()) {
-      this.grid.removeBlockFromCell(block);
-      BlockToObjectIndex.unregisterBlock(block);
-    }
+    // Clear all blocks for this ship (handles BlockStore + BlockSpatialGrid teardown)
+    this.blockOrchestrator.clearShip(this.numericId);
 
-    this.blocks.clear();
-    this.blockToCoordMap.clear();
-    
+    // Notify any subclass-specific destruction logic
     this.onDestroyed();
   }
 
@@ -509,41 +539,48 @@ export abstract class CompositeBlockObject {
 
   // --- Connectivity Check ---
 
-  public isDeletionSafe(coord: GridCoord): boolean {
-    const removeKey = toKey(coord);
-    if (!this.blocks.has(removeKey)) return true;
+  public isDeletionSafeSOA(removeCoord: GridCoord): boolean {
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    if (indices.length === 0) return true;
 
-    const remaining = new Map(this.blocks);
-    remaining.delete(removeKey);
+    const store = this.blockOrchestrator.blockStore;
 
-    const rootKey = [...remaining.keys()][0];
-    if (!rootKey) return true;
+    // Build a map of remaining coords
+    const coords: Array<{ x: number; y: number; index: number }> = [];
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const x = store.localX[idx];
+      const y = store.localY[idx];
+      if (x === removeCoord.x && y === removeCoord.y) continue;
+      coords.push({ x, y, index: idx });
+    }
+    if (coords.length === 0) return true;
 
-    const visited = new Set<CoordKey>();
-    const queue: CoordKey[] = [rootKey];
+    // BFS connectivity traversal
+    const visited = new Set<string>();
+    const toKey = (x: number, y: number) => `${x},${y}`;
+    const start = toKey(coords[0].x, coords[0].y);
+    const queue = [start];
+    const coordSet = new Set(coords.map(c => toKey(c.x, c.y)));
 
     while (queue.length > 0) {
       const key = queue.pop()!;
       if (visited.has(key)) continue;
       visited.add(key);
 
-      const { x, y } = fromKey(key);
-      const neighbors: GridCoord[] = [
-        { x: x + 1, y },
-        { x: x - 1, y },
-        { x, y: y + 1 },
-        { x, y: y - 1 },
+      const [cx, cy] = key.split(',').map(Number);
+      const neighbors = [
+        `${cx + 1},${cy}`,
+        `${cx - 1},${cy}`,
+        `${cx},${cy + 1}`,
+        `${cx},${cy - 1}`,
       ];
-
       for (const n of neighbors) {
-        const nk = toKey(n);
-        if (remaining.has(nk) && !visited.has(nk)) {
-          queue.push(nk);
-        }
+        if (coordSet.has(n) && !visited.has(n)) queue.push(n);
       }
     }
 
-    return visited.size === remaining.size;
+    return visited.size === coords.length;
   }
 
   // --- Misc ---
@@ -556,35 +593,38 @@ export abstract class CompositeBlockObject {
     this.transform.rotation = rotation;
     this.transform.angularVelocity = angularVelocity;
 
-    data.blocks.forEach(blockData => {
+    // Ensure a block list is allocated for this ship in the orchestrator
+    this.blockOrchestrator.ensureShipBlocks(this.numericId);
+
+    // Create all blocks directly in SOA
+    for (const blockData of data.blocks) {
       const type = getBlockType(blockData.id);
       if (!type) {
         console.warn(`Unknown block type during deserialization: ${blockData.id}`);
-        return;
+        continue;
       }
 
-      const uniqueId = crypto.randomUUID();
-      const block: BlockInstance = {
-        ownerFaction: Faction.Neutral,
-        id: uniqueId,
-        ownerShipNumericId: this.numericId,
-        type,
-        rotation: blockData.rotation ?? 0,
-        hp: type.armor,
-        ownerShipId: this.id,
-        position: { x: 0, y: 0 },
-        destroyed: false,
-      };
+      const typeIndex = BlockTypeIndex[type.id] ?? 0;
 
-      const coordKey = toKey(blockData.coord);
-      this.blocks.set(coordKey, { coord: blockData.coord, block });
-      this.blockToCoordMap.set(block, blockData.coord);
-      this.grid.addBlockToCell(block);
-    });
+      this.blockOrchestrator.createAndRegisterBlock(
+        {
+          ownerShipId: this.numericId,
+          ownerFaction: FACTION_TO_INDEX[this.faction],
+          typeIndex,
+          localX: blockData.coord.x,
+          localY: blockData.coord.y,
+          localRotation: blockData.rotation ?? 0,
+          blockTypeId: type.id,
+        },
+        this.transform
+      );
+    }
 
+    // Recompute derived state
     this.invalidateMass();
-    this.invalidateBlockCache();
-    this.updateBlockPositions();
+
+    // Sync world transforms and spatial grid registration
+    this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
   }
 
   protected generateId(): { stringId: string; numericId: number } {

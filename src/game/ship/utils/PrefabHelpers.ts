@@ -1,5 +1,4 @@
 import { Ship } from '@/game/ship/Ship';
-import { Grid } from '@/systems/physics/Grid';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { ShipFactory } from '@/game/ship/factories/ShipFactory';
 
@@ -35,7 +34,6 @@ export interface ShipResult {
  * @returns A Promise resolving to the player Ship instance.
  */
 export async function getStarterShip(
-  grid: Grid,
   registry: ShipRegistry,
   particleManager: ParticleManager,
   projectileSystem: ProjectileSystem,
@@ -47,7 +45,6 @@ export async function getStarterShip(
   createInstantly: boolean = false
 ): Promise<ShipResult> {
   const factory = new ShipFactory(
-    grid,
     registry,
     particleManager,
     projectileSystem,
@@ -80,7 +77,6 @@ export async function getStarterShip(
 
 export async function getStarterShipFromJson(
   jsonData: any,
-  grid: Grid,
   registry: ShipRegistry,
   particleManager: ParticleManager,
   projectileSystem: ProjectileSystem,
@@ -90,7 +86,6 @@ export async function getStarterShipFromJson(
   constructionAnimator: ShipConstructionAnimatorService
 ): Promise<ShipResult> {
   const factory = new ShipFactory(
-    grid,
     registry,
     particleManager,
     projectileSystem,

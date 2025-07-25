@@ -1,43 +1,48 @@
-// src/game/blocks/helpers/upgradeBlocksOnShip.ts
+// src/game/blocks/helpers/upgradeUtils.ts
 
 import type { Ship } from '@/game/ship/Ship';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
-import { getNextTierBlock } from '@/game/blocks/BlockRegistry';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { getNextTierBlock, getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 /**
  * Upgrades all blocks on the ship matching the given affinity tags,
  * advancing their tier by `tierDelta` (clamped to max tier).
- * 
- * Blocks are removed and re-placed in-place to trigger proper subsystem updates.
+ *
+ * Uses SOA BlockStore instead of BlockInstance objects.
  */
 export function upgradeAffinityBlocksOnShip(
   ship: Ship,
   affinityTags: string[],
   tierDelta: number
 ): void {
+  const store = BlockManager.getInstance().getBlockStore();
+  const indices = ship.getAllBlockIndices();
+
   const upgrades: Array<{
     coord: GridCoord;
     newBlockId: string;
     rotation: number;
   }> = [];
 
-  for (const [, block] of ship.getAllBlocks()) {
-    const [tag] = block.type.metatags ?? [];
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    const typeIndex = store.typeIndex[idx];
+    const blockType = getBlockTypeByIndex(typeIndex);
+    if (!blockType) continue;
+
+    const [tag] = blockType.metatags ?? [];
     if (!tag || !affinityTags.includes(tag)) continue;
 
-    const upgradedType = getNextTierBlock(block.type, tierDelta);
-    if (!upgradedType || upgradedType.tier <= block.type.tier) continue;
-
-    const coord = ship.getBlockCoord(block);
-    if (!coord) continue;
+    const upgradedType = getNextTierBlock(blockType, tierDelta);
+    if (!upgradedType || upgradedType.tier <= blockType.tier) continue;
 
     upgrades.push({
-      coord,
+      coord: { x: store.localX[idx], y: store.localY[idx] },
       newBlockId: upgradedType.id,
-      rotation: block.rotation ?? 0,
+      rotation: store.rotation[idx] ?? 0,
     });
   }
 
@@ -48,22 +53,24 @@ export function upgradeAffinityBlocksOnShip(
 }
 
 /**
- * Upgrades a single block on the given ship by `delta` tiers (default 1).
+ * Upgrades a single block (by SOA index) by `delta` tiers (default 1).
  * Removes the old block and places a new one in its place.
- * Returns true if the upgrade occurred.
  */
-export function upgradeBlockInstanceOnShip(
+export function upgradeBlockIndexOnShip(
   ship: Ship,
-  block: BlockInstance,
+  blockIndex: number,
   delta: number = 1
 ): boolean {
-  const upgradedType = getNextTierBlock(block.type, delta);
-  if (!upgradedType || upgradedType.tier <= block.type.tier) return false;
+  const store = BlockManager.getInstance().getBlockStore();
+  const typeIndex = store.typeIndex[blockIndex];
+  const blockType = getBlockTypeByIndex(typeIndex);
+  if (!blockType) return false;
 
-  const coord: GridCoord | null = ship.getBlockCoord(block);
-  if (!coord) return false;
+  const upgradedType = getNextTierBlock(blockType, delta);
+  if (!upgradedType || upgradedType.tier <= blockType.tier) return false;
 
-  const rotation = block.rotation ?? 0;
+  const coord: GridCoord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
+  const rotation = store.rotation[blockIndex] ?? 0;
 
   ship.removeBlock(coord);
   ship.placeBlockById(coord, upgradedType.id, rotation);
@@ -72,19 +79,18 @@ export function upgradeBlockInstanceOnShip(
 }
 
 /**
- * Replaces a block instance on the ship with a new block of the given type.
- * Preserves rotation and coordinate.
- * Returns true if the replacement succeeded.
+ * Replaces a block (by SOA index) with a new type, preserving coord and rotation.
  */
-export function replaceBlockOnShip(
+export function replaceBlockOnShipByIndex(
   ship: Ship,
-  block: BlockInstance,
+  blockIndex: number,
   newType: BlockType
 ): boolean {
-  const coord: GridCoord | null = ship.getBlockCoord(block);
-  if (!coord) return false;
+  const store = BlockManager.getInstance().getBlockStore();
+  if (!store.isAllocated(blockIndex)) return false;
 
-  const rotation = block.rotation ?? 0;
+  const coord: GridCoord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
+  const rotation = store.rotation[blockIndex] ?? 0;
 
   ship.removeBlock(coord);
   ship.placeBlockById(coord, newType.id, rotation);

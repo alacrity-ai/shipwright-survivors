@@ -1,3 +1,5 @@
+// src/game/ship/factories/ShipFactory.ts
+
 import { loadShipFromJson, loadShipFromJsonObject } from '@/systems/serialization/ShipSerializer';
 import { ThrusterEmitter } from '@/systems/physics/ThrusterEmitter';
 import { MovementSystem } from '@/systems/physics/MovementSystem';
@@ -17,7 +19,6 @@ import { Faction } from '@/game/interfaces/types/Faction';
 import { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 
-import type { Grid } from '@/systems/physics/Grid';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
@@ -45,7 +46,6 @@ function isBehaviorTypeKey(value: string): value is BehaviorTypeKey {
 
 export class ShipFactory {
   public constructor(
-    private readonly grid: Grid,
     private readonly registry: ShipRegistry,
     private readonly particleManager: ParticleManager,
     private readonly projectileSystem: ProjectileSystem,
@@ -71,7 +71,7 @@ export class ShipFactory {
     createInstantly: boolean = false,
     noClip: boolean = false
   ): Promise<{ ship: Ship; controller: AIControllerSystem | null, emitter: ThrusterEmitter, movement: MovementSystem, weapons: WeaponSystem, utility: UtilitySystem }> {
-    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, this.grid, faction, isPlayerShip);
+    const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, faction, isPlayerShip);
 
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
@@ -95,21 +95,21 @@ export class ShipFactory {
     const movement = new MovementSystem(ship, emitter, isPlayerShip ? this.collisionSystem : null);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
-      new LaserBackend(this.combatService, this.particleManager, this.grid),
-      new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
-      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
-      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship),
-      new FlameThrowerBackend(this.combatService, this.particleManager, this.grid)
+      new LaserBackend(this.combatService, this.particleManager),
+      new HeatSeekerBackend(this.combatService, this.particleManager),
+      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.projectileSystem),
+      new HaloBladeBackend(this.combatService, this.particleManager, ship),
+      new FlameThrowerBackend(this.combatService)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
     let controller: AIControllerSystem | null = null;
 
     if (!isPlayerShip) {
-      let engineBlockCount = 0;
-      for (const _ of ship.getEngineBlocks()) {
-        engineBlockCount++;
-        if (engineBlockCount > 0) break; // short-circuit for performance
+      let hasEngine = false;
+      for (const _ of ship.getEngineIndices()) {
+        hasEngine = true;
+        break; // we only care if at least one exists
       }
 
       const effectiveProfile =
@@ -117,7 +117,7 @@ export class ShipFactory {
         (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
           ? BehaviorProfileRegistry[behaviorType]
           : undefined) ??
-        (engineBlockCount === 0 ? SpaceStationBehaviorProfile : DefaultBehaviorProfile);
+        (hasEngine ? DefaultBehaviorProfile : SpaceStationBehaviorProfile);
 
       controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
 
@@ -175,7 +175,7 @@ export class ShipFactory {
     weapons: WeaponSystem;
     utility: UtilitySystem;
   }> {
-    const { ship, behaviorType } = loadShipFromJsonObject(jsonData, this.grid, faction, isPlayerShip);
+    const { ship, behaviorType } = loadShipFromJsonObject(jsonData, faction, isPlayerShip);
 
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);
@@ -202,21 +202,21 @@ export class ShipFactory {
     const movement = new MovementSystem(ship, emitter, this.collisionSystem);
     const weapons = new WeaponSystem(
       new TurretBackend(this.projectileSystem),
-      new LaserBackend(this.combatService, this.particleManager, this.grid),
-      new HeatSeekerBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem),
-      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.grid, this.explosionSystem, this.projectileSystem),
-      new HaloBladeBackend(this.combatService, this.particleManager, this.grid, ship),
-      new FlameThrowerBackend(this.combatService, this.particleManager, this.grid)
+      new LaserBackend(this.combatService, this.particleManager),
+      new HeatSeekerBackend(this.combatService, this.particleManager),
+      new ExplosiveLanceBackend(this.combatService, this.particleManager, this.projectileSystem),
+      new HaloBladeBackend(this.combatService, this.particleManager, ship),
+      new FlameThrowerBackend(this.combatService)
     );
     const utility = new UtilitySystem(new ShieldToggleBackend());
 
     let controller: AIControllerSystem | null = null;
 
     if (!isPlayerShip) {
-      let engineBlockCount = 0;
-      for (const _ of ship.getEngineBlocks()) {
-        engineBlockCount++;
-        if (engineBlockCount > 0) break; // short-circuit for performance
+      let hasEngine = false;
+      for (const _ of ship.getEngineIndices()) {
+        hasEngine = true;
+        break; // we only care if at least one exists
       }
 
       const effectiveProfile =
@@ -224,8 +224,7 @@ export class ShipFactory {
         (typeof behaviorType === 'string' && isBehaviorTypeKey(behaviorType)
           ? BehaviorProfileRegistry[behaviorType]
           : undefined) ??
-        (engineBlockCount === 0 ? SpaceStationBehaviorProfile : DefaultBehaviorProfile);
-
+        (hasEngine ? DefaultBehaviorProfile : SpaceStationBehaviorProfile);
 
       controller = new AIControllerSystem(ship, movement, weapons, utility, effectiveProfile);
 

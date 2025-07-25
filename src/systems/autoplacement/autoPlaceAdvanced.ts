@@ -1,3 +1,5 @@
+// src/systems/autoplacement/autoPlaceAdvanced.ts
+
 // Enhanced placement scoring system with archetype integration
 // This integrates with your existing autoPlaceBlock.ts system
 
@@ -5,10 +7,11 @@ import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipArchetypeProfile } from '@/systems/autoplacement/ShipArchetypeSystem';
 
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+
 import { calculateSymmetryScore, getCoordZones, isInZones } from '@/systems/autoplacement/ShipArchetypeSystem';
 import { audioManager } from '@/audio/Audio';
 import { isCoordConnectedToShip } from '@/systems/subsystems/utils/ShipBuildingUtils';
-import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import { 
   getEngineScore, 
   getWeaponScore, 
@@ -174,44 +177,46 @@ function calculateZoneAffinityScore(
   return score;
 }
 
-function calculateStructuralGoalScore(
+export function calculateStructuralGoalScore(
   coord: Coord,
   cockpitCoord: Coord,
   ship: Ship,
   archetype: ShipArchetypeProfile
 ): number {
   if (!archetype.minimumStructureRules) return 0;
-  
+
+  const store = BlockManager.getInstance().getBlockStore();
+  const indices = ship.getAllBlockIndices();
+
   let score = 0;
-  
-  // Check each structural rule
+
   for (const rule of archetype.minimumStructureRules) {
     const zoneFunction = archetype.featureZones[rule.zone];
     if (!zoneFunction) continue;
-    
-    // Count existing blocks in this zone
+
+    // Count existing blocks in this zone (using SOA coords)
     let existingCount = 0;
-    const allBlocks = ship.getAllBlocks();
-    
-    for (const [coord, block] of allBlocks) {
-      if (zoneFunction(coord, cockpitCoord)) {
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const x = store.localX[idx];
+      const y = store.localY[idx];
+
+      if (zoneFunction({ x, y }, cockpitCoord)) {
         existingCount++;
       }
     }
 
-    // If this coordinate is in the zone, check if we need more blocks here
+    // Evaluate this coordinate (where we're considering placing a new block)
     if (zoneFunction(coord, cockpitCoord)) {
       if (existingCount < rule.minCount) {
-        // We need more blocks in this zone - strong bonus
         const deficit = rule.minCount - existingCount;
-        score += 30 + deficit * 10; // Increasing bonus for larger deficits
+        score += 30 + deficit * 10; // bonus if we’re under target
       } else if (rule.maxCount && existingCount >= rule.maxCount) {
-        // We have too many blocks in this zone - penalty
-        score -= 20;
+        score -= 20; // penalty if we’re over target
       }
     }
   }
-  
+
   return score;
 }
 
@@ -322,9 +327,13 @@ export function autoPlaceBlockWithArchetype(
   const success = ship.placeBlockById(placement.coord, blockType.id, placement.rotation);
   if (!success) return false;
 
-  const placedBlock = ship.getBlock(placement.coord);
-  if (placedBlock?.position) {
-    shipBuilderEffects.createRepairEffect(placedBlock.position);
+  // Resolve the newly placed block via SOA
+  const idx = ship.getBlockIndex(placement.coord);
+  if (idx !== undefined) {
+    const store = BlockManager.getInstance().getBlockStore();
+    const position = { x: store.worldX[idx], y: store.worldY[idx] };
+
+    shipBuilderEffects.createRepairEffect(position);
   }
 
   const placementSound = blockType.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';

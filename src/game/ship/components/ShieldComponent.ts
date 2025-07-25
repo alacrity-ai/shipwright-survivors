@@ -1,35 +1,40 @@
 // src/game/ship/components/ShieldComponent.ts
 
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { Ship } from '@/game/ship/Ship';
 import { BLOCK_SIZE } from '@/config/view';
 import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
 import { SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { BlockOrchestrator } from '@/game/blocks/system/BlockOrchestrator';
+import { hexToRgbaVec4, packColorToInt } from '@/rendering/unified/helpers/hexToRgbaVec4';
 
 export class ShieldComponent {
   private active = false;
   private ownerShip: Ship;
-  private protectedBlocks = new Set<BlockInstance>();
+  private protectedBlocks = new Set<number>(); // BlockStore indices
+  private orchestrator: BlockOrchestrator;
 
   constructor(ownerShip: Ship) {
     this.ownerShip = ownerShip;
+    this.orchestrator = BlockManager.getInstance().getBlockOrchestrator();
   }
 
   /** Recomputes shield coverage from all registered emitters */
   recalculateCoverage(): void {
+    const store = BlockManager.getInstance().getBlockStore();
+
     // Step 1: Clear old flags and cached efficiencies
-    for (const block of this.protectedBlocks) {
-      block.isShielded = false;
-      block.shieldEfficiency = undefined;
-      block.shieldHighlightColor = undefined;
-      block.shieldSourceId = undefined;
+    for (const idx of this.protectedBlocks) {
+      store.isShielded[idx] = 0;
+      store.shieldEfficiency[idx] = 0;
+      store.shieldHighlightColor[idx] = 0;
+      store.shieldSourceId[idx] = 0;
     }
     this.protectedBlocks.clear();
 
-    const emittersIterable = this.ownerShip.getShieldBlocks();
-    const emitters = Array.from(emittersIterable);
+    const emitters = Array.from(this.ownerShip.getShieldBlockIndices());
     const fx = ShieldEffectsSystem.getInstance();
-    fx.clearVisualsForShip(this.ownerShip.id);
+    fx.clearVisualsForShip(this.ownerShip.numericId);
 
     // If no shield blocks remain, force deactivation
     if (emitters.length === 0) {
@@ -41,80 +46,85 @@ export class ShieldComponent {
     const passiveRadiusBonus = this.ownerShip.getPassiveBonus('shield-radius');         // additive
     const passiveEfficiencyBonus = this.ownerShip.getPassiveBonus('shield-efficiency'); // multiplicative
 
-    // Step 2: Recalculate coverage from emitters
-    for (const emitter of emitters) {
-      const emitterCoord = this.ownerShip.getBlockCoord(emitter);
-      if (!emitterCoord) continue;
-
-      const baseRadius = emitter.type.behavior?.shieldRadius ?? 0;
-      const baseEfficiency = emitter.type.behavior?.shieldEfficiency ?? 0;
+    // Step 2: Recalculate coverage from each emitter
+    for (const emitterIdx of emitters) {
+      const baseRadius = store.shieldRadius[emitterIdx] ?? 0;
+      const baseEfficiency = store.shieldEfficiency[emitterIdx] ?? 0;
 
       const gridRadius = baseRadius + passiveRadiusBonus;
       const shieldEfficiency = baseEfficiency * passiveEfficiencyBonus;
 
-      const highlightColor =
-        SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES[emitter.type.id] ?? 'rgba(100, 255, 255, 0.4)';
+      const highlightColor = SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES[store.tier[emitterIdx]] ?? 'rgba(100, 255, 255, 0.4)';
 
-      const coveredBlocks = this.ownerShip.getBlocksWithinGridDistance(emitterCoord, gridRadius);
+      // Retrieve the emitter's grid coordinate from BlockStore
+      const ex = store.localX[emitterIdx];
+      const ey = store.localY[emitterIdx];
+      const centerCoord = { x: ex, y: ey };
 
-      for (const [, block] of coveredBlocks) {
-        this.protectedBlocks.add(block);
+      // Query blocks within the grid radius
+      const coveredIndices = this.orchestrator.getBlocksWithinGridDistanceForCompositeBlockObject(this.ownerShip, centerCoord, gridRadius);
 
-        const existingEfficiency = block.shieldEfficiency ?? 0;
+      for (const idx of coveredIndices) {
+        this.protectedBlocks.add(idx);
 
-        // Only update if this emitter is as strong or stronger
-        if (shieldEfficiency >= existingEfficiency) {
-          block.shieldEfficiency = shieldEfficiency;
-          block.shieldHighlightColor = highlightColor;
-          block.shieldSourceId = emitter.type.id;
+        const currentEff = store.shieldEfficiency[idx] ?? 0;
+        if (shieldEfficiency >= currentEff) {
+          const [r, g, b, a] = hexToRgbaVec4(highlightColor);
+          const packedColor = packColorToInt(r, g, b, a);
+
+          store.shieldEfficiency[idx] = shieldEfficiency;
+          store.shieldHighlightColor[idx] = packedColor;
+          store.shieldSourceId[idx] = emitterIdx;
         }
 
         if (this.active) {
-          block.isShielded = true;
-          fx.registerShieldedBlock(block);
+          store.isShielded[idx] = 1;
+          fx.registerShieldedBlock(idx);
         }
       }
 
-      // Step 3: Visual FX
+      // Step 3: Visual FX (shield bubble itself)
       if (this.active) {
         const worldRadius = gridRadius * BLOCK_SIZE;
-        fx.registerShield(emitter, worldRadius);
+        fx.registerShield(emitterIdx, worldRadius);
       }
     }
   }
 
+  /** Activates shield visual + logic */
   activate(): void {
     this.active = true;
-
-    // Always recompute coverage when (re)activating
     this.recalculateCoverage();
 
     const fx = ShieldEffectsSystem.getInstance();
-    fx.clearVisualsForShip(this.ownerShip.id);
+    fx.clearVisualsForShip(this.ownerShip.numericId);
 
-    for (const block of this.protectedBlocks) {
-      block.isShielded = true;
-      fx.registerShieldedBlock(block);
+    const store = BlockManager.getInstance().getBlockStore();
+    for (const idx of this.protectedBlocks) {
+      store.isShielded[idx] = 1;
+      fx.registerShieldedBlock(idx);
     }
 
-    for (const emitter of this.ownerShip.getShieldBlocks()) {
-      const gridRadius = emitter.type.behavior?.shieldRadius ?? 0;
+    for (const emitterIdx of this.ownerShip.getShieldBlockIndices()) {
+      const gridRadius = store.shieldRadius[emitterIdx] ?? 0;
       const worldRadius = gridRadius * BLOCK_SIZE;
-      fx.registerShield(emitter, worldRadius);
+      fx.registerShield(emitterIdx, worldRadius);
     }
   }
 
+  /** Deactivates shield, clears all flags + FX */
   deactivate(): void {
     this.active = false;
 
+    const store = BlockManager.getInstance().getBlockStore();
     const fx = ShieldEffectsSystem.getInstance();
-    fx.clearVisualsForShip(this.ownerShip.id);
+    fx.clearVisualsForShip(this.ownerShip.numericId);
 
-    for (const block of this.protectedBlocks) {
-      block.isShielded = false;
-      block.shieldEfficiency = undefined;
-      block.shieldHighlightColor = undefined;
-      block.shieldSourceId = undefined;
+    for (const idx of this.protectedBlocks) {
+      store.isShielded[idx] = 0;
+      store.shieldEfficiency[idx] = 0;
+      store.shieldHighlightColor[idx] = 0;
+      store.shieldSourceId[idx] = 0;
     }
   }
 
@@ -122,9 +132,9 @@ export class ShieldComponent {
     return this.active;
   }
 
-  /** True if any shield blocks exist on the ship */
+  /** True if any shield-emitter blocks exist on this ship */
   hasShieldBlocks(): boolean {
-    for (const _ of this.ownerShip.getShieldBlocks()) {
+    for (const _ of this.ownerShip.getShieldBlockIndices()) {
       return true;
     }
     return false;

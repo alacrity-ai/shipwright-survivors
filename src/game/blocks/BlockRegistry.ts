@@ -2,6 +2,7 @@
 
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 
+import { getAllAsteroidBlockTypes } from '@/game/blocks/AsteroidBlockRegistry';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { randomFromArray } from '@/shared/arrayUtils';
 
@@ -27,7 +28,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     sprite: 'cockpit0',
     category: 'system',
-    subcategory: 'system',
+    subcategory: 'turret',
     dropRate: 0,
     metatags: ['cockpit']
   },
@@ -52,7 +53,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     sprite: 'cockpit1',
     category: 'system',
-    subcategory: 'system',
+    subcategory: 'turret',
     dropRate: 0,
     metatags: ['cockpit']
   },
@@ -256,7 +257,7 @@ const blockTypes: Record<string, BlockType> = {
       } 
     },
     category: 'system',
-    subcategory: 'system',
+    subcategory: 'turret',
     dropRate: 0.2,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']
@@ -1692,6 +1693,16 @@ const blockTypes: Record<string, BlockType> = {
   }
 };
 
+// ──────────────────────────────────────────────
+// Merge asteroid types *before* any derived structures
+// ──────────────────────────────────────────────
+for (const asteroidType of getAllAsteroidBlockTypes()) {
+  blockTypes[asteroidType.id] = asteroidType;
+}
+
+// ──────────────────────────────────────────────
+// Unified Accessors (ship + asteroid blocks)
+// ──────────────────────────────────────────────
 export function getAllBlockTypes(): BlockType[] {
   return Object.values(blockTypes);
 }
@@ -1701,8 +1712,7 @@ export function getBlockType(id: string): BlockType | undefined {
 }
 
 export function getBlockCost(id: string): number | undefined {
-  const blockType = getBlockType(id);
-  return blockType ? blockType.cost : undefined;
+  return blockTypes[id]?.cost;
 }
 
 export function getAllBlocksInTier(tier: number): BlockType[] {
@@ -1712,8 +1722,7 @@ export function getAllBlocksInTier(tier: number): BlockType[] {
 }
 
 export function getRandomBlockInTier(tier: number): BlockType {
-  const candidates = getAllBlocksInTier(tier);
-  return randomFromArray(candidates);
+  return randomFromArray(getAllBlocksInTier(tier));
 }
 
 export function getAllBlocksInTierFromBlockType(blockType: BlockType): BlockType[] {
@@ -1727,13 +1736,11 @@ export function getTierFromBlockType(blockType: BlockType): number {
   return getTierFromBlockId(blockType.id);
 }
 
-/** ─────────────────────────────────────────────────────────────
- * Affinity-based upgrade chains, grouped by primary metatag.
- * This map is lazily built from blockTypes.
- * ───────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Affinity Upgrade Chains (built once from all blocks)
+// ──────────────────────────────────────────────
 const affinityUpgradeChains: Map<string, BlockType[]> = new Map();
 
-// Build affinity chains from metatag
 for (const block of Object.values(blockTypes)) {
   const [tag] = block.metatags ?? [];
   if (!tag) continue;
@@ -1744,15 +1751,10 @@ for (const block of Object.values(blockTypes)) {
   affinityUpgradeChains.get(tag)!.push(block);
 }
 
-// Ensure tier order within each chain
 for (const chain of affinityUpgradeChains.values()) {
   chain.sort((a, b) => a.tier - b.tier);
 }
 
-/**
- * Gets the upgraded block for a given base block and delta.
- * Will not exceed the max tier in the affinity group.
- */
 export function getNextTierBlock(current: BlockType, delta: number): BlockType | undefined {
   const [tag] = current.metatags ?? [];
   if (!tag) return undefined;
@@ -1767,12 +1769,48 @@ export function getNextTierBlock(current: BlockType, delta: number): BlockType |
   return chain[newIndex];
 }
 
-/**
- * Returns the full upgrade chain (sorted by tier) for a given BlockType.
- */
 export function getAffinityChainFor(block: BlockType): BlockType[] {
   const [tag] = block.metatags ?? [];
-  if (!tag) return [];
+  return tag ? affinityUpgradeChains.get(tag) ?? [] : [];
+}
 
-  return affinityUpgradeChains.get(tag) ?? [];
+// ──────────────────────────────────────────────
+// Lookup Tables (index-based, now unified)
+// ──────────────────────────────────────────────
+export const BlockTypeIndex: Record<string, number> = {};
+export const BlockTypesByIndex: BlockType[] = [];
+
+export function getBlockTypeByIndex(index: number): BlockType | undefined {
+  return BlockTypesByIndex[index];
+}
+
+export function getBlockIndexByType(id: string): number | undefined {
+  return BlockTypeIndex[id];
+}
+
+// Build numeric lookup tables including asteroids
+export const BlockTypeMass: Float32Array = (() => {
+  const types = getAllBlockTypes();
+  const arr = new Float32Array(types.length);
+
+  types.forEach((t, i) => {
+    BlockTypeIndex[t.id] = i;
+    BlockTypesByIndex[i] = t;
+    arr[i] = t.mass ?? 0;
+  });
+
+  return arr;
+})();
+
+export const BlockAtlasKeyByIndex: Int32Array = (() => {
+  const types = getAllBlockTypes();
+  const arr = new Int32Array(types.length);
+  for (let i = 0; i < types.length; i++) {
+    arr[i] = i; // column index by default
+  }
+  return arr;
+})();
+
+export function getAtlasKeyByIndex(index: number): number {
+  return BlockAtlasKeyByIndex[index];
 }

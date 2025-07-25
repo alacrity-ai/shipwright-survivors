@@ -4,7 +4,7 @@ import { getDistance, subtract, normalize, dot } from './VectorUtils';
 import type { Vec2 } from './VectorUtils';
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
-import { getNetThrustDirection } from './ThrustUtils';
+import { getNetThrustDirection } from '@/systems/ai/helpers/ThrustUtils';
 import { ShipGrid } from '@/game/ship/ShipGrid';
 import { Faction } from '@/game/interfaces/types/Faction';
 

@@ -10,8 +10,7 @@ import type { ShipBuilderMenu } from '@/ui/menus/ShipBuilderMenu';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
-// These should be replaced with GL2 textures, and then drawn in place of the damage placeholders below in render
-import { drawBlockHighlight, drawBlockDeletionHighlight } from '@/rendering/primitives/HighlightUtils'; // Get this in GL
+import { getBlockIndexByType, getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 import { BLOCK_SIZE } from '@/config/view';
 import type { InputManager } from '@/core/InputManager';
@@ -22,6 +21,8 @@ import { audioManager } from '@/audio/Audio';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import type { BlockStore } from '@/game/blocks/system/BlockStore';
 
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
@@ -34,13 +35,16 @@ export class ShipBuilderController {
   private hoveredShipCoord: GridCoord | null = null;
 
   private ship: Ship | null = null;
+  private store: BlockStore;
 
   constructor(
     private readonly menu: ShipBuilderMenu,
     private readonly camera: Camera,
     private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly inputManager: InputManager
-  ) {}
+  ) {
+    this.store = BlockManager.getInstance().getBlockStore();
+  }
 
   setPlayerShip(ship: Ship): void {
     this.ship = ship;
@@ -61,10 +65,10 @@ export class ShipBuilderController {
     // REPAIR MODE: Update hovered ship block for repair mode
     // -- handle repair mode BEFORE early return --
     if (this.menu.getActiveTool() === ShipBuilderTool.REPAIR) {
-      const hoveredBlock = this.ship.getBlock(coord);
-      this.menu.setHoveredShipBlock(hoveredBlock);
+      const hoveredBlockIdx = this.ship.getBlockIndex(coord);
+      this.menu.setHoveredShipBlock(hoveredBlockIdx);
 
-      if (hoveredBlock && this.inputManager.wasMouseClicked()) {
+      if (hoveredBlockIdx !== undefined && this.inputManager.wasMouseClicked()) {
         audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
         this.repairBlockAt(coord);
       }
@@ -88,20 +92,21 @@ export class ShipBuilderController {
 
     // == Handles deleting the Block (right click)
     if (this.inputManager.wasRightClicked()) {
-      const block = this.ship.getBlock(coord);
-      if (!block) return;
+      const blockIdx = this.ship.getBlockIndex(coord);
+      if (blockIdx === undefined) return;
 
-      if (!block.type.metatags?.includes('cockpit')) {
+      const blockType = getBlockTypeByIndex(this.store.typeIndex[blockIdx]);
+      if (!blockType) return;
+
+      if (!blockType.metatags?.includes('cockpit')) {
         const deletionSafe = this.ship.isDeletionSafe(coord);
         if (!deletionSafe) {
           audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 3 });
           return;
         }
-        this.shipBuilderEffects.createSellEffect(block.position!);
+        this.shipBuilderEffects.createSellEffect({ x: this.store.worldX[blockIdx], y: this.store.worldY[blockIdx] });
         this.ship.removeBlock(coord);
         audioManager.play('assets/sounds/sfx/ui/click_00.wav', 'sfx', { maxSimultaneous: 3 });
-        // const refundCost = Math.round(blockCost / 2);
-        // PlayerExperienceManager.getInstance().addEntropium(refundCost);
       }
     }
 
@@ -109,10 +114,10 @@ export class ShipBuilderController {
     if (this.inputManager.wasMouseClicked()) {
       if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
         this.ship.placeBlockById(coord, blockId, this.rotation);
-        const placedBlock = this.ship.getBlock(coord);
-        if (placedBlock?.position) {
+        const placedBlockIdx = this.ship.getBlockIndex(coord);
+        if (placedBlockIdx !== undefined) {
           // Repair effect here is a misnomer, it's just a visual effect to show block placement
-          this.shipBuilderEffects.createRepairEffect(placedBlock.position);
+          this.shipBuilderEffects.createRepairEffect({ x: this.store.worldX[placedBlockIdx], y: this.store.worldY[placedBlockIdx] });
         }
         const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
         audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
@@ -129,7 +134,7 @@ export class ShipBuilderController {
 
     const coord = getHoveredGridCoord(mouse, this.camera, transform.position, transform.rotation);
 
-    // Convert grid coord → world space
+    // Convert grid coord → world space for cursor position
     const localX = coord.x * BLOCK_SIZE;
     const localY = coord.y * BLOCK_SIZE;
 
@@ -143,6 +148,7 @@ export class ShipBuilderController {
     const worldY = transform.position.y + rotatedY;
 
     const tool = this.menu.getActiveTool();
+    const store = this.store;
 
     const SPRITE_ROTATION_CORRECTION = Math.PI;
     const FIN_ROTATION_CORRECTION = Math.PI * 1.5;
@@ -152,49 +158,52 @@ export class ShipBuilderController {
       return baseRotation + SPRITE_ROTATION_CORRECTION + (needsFinCorrection ? FIN_ROTATION_CORRECTION : 0);
     }
 
-    // These are placeholders until the drawBlockHighlight and drawBlockDeletionHighlight are in GL2
-    // Repair is deprecated, but we'll keep it here, would be green ordinarily
     if (tool === ShipBuilderTool.REPAIR) {
-      const hoveredBlock = this.ship.getBlock(coord);
-      if (hoveredBlock) {
-        const sprite = getGL2BlockSprite(hoveredBlock.type, DamageLevel.NONE);
+      const hoveredIdx = this.ship.getBlockIndex(coord);
+      if (hoveredIdx !== undefined) {
+        const typeIdx = store.typeIndex[hoveredIdx];
+        const blockType = getBlockTypeByIndex(typeIdx);
+        if (!blockType) return;
+
+        const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
         GlobalSpriteRequestBus.add({
           texture: sprite.base,
-          worldX,
-          worldY,
+          worldX: store.worldX[hoveredIdx],
+          worldY: store.worldY[hoveredIdx],
           widthPx: BLOCK_SIZE,
           heightPx: BLOCK_SIZE,
           alpha: 0.4,
-          rotation: getCorrectedRotation(transform.rotation, hoveredBlock.type.id),
+          rotation: getCorrectedRotation(transform.rotation, blockType.id),
         });
       }
     } else if (tool === ShipBuilderTool.PLACE) {
       const blockId = this.menu.getSelectedBlockId();
       if (!blockId) return;
 
-      const existingBlock = this.ship.getBlock(coord);
+      const existingIdx = this.ship.getBlockIndex(coord);
+      if (existingIdx !== undefined) {
+        const typeIdx = store.typeIndex[existingIdx];
+        const blockType = getBlockTypeByIndex(typeIdx);
+        if (!blockType) return;
 
-      // Highlight red if deleteable
-      if (existingBlock) {
         const isSafe = this.ship.isDeletionSafe(coord);
         const overlayColor = isSafe ? DamageLevel.NONE : DamageLevel.HEAVY;
-        const sprite = getGL2BlockSprite(existingBlock.type, overlayColor);
 
+        const sprite = getGL2BlockSprite(blockType, overlayColor);
         GlobalSpriteRequestBus.add({
           texture: sprite.base,
-          worldX,
-          worldY,
+          worldX: store.worldX[existingIdx],
+          worldY: store.worldY[existingIdx],
           widthPx: BLOCK_SIZE,
           heightPx: BLOCK_SIZE,
           alpha: 0.6,
-          rotation: getCorrectedRotation(transform.rotation, existingBlock.type.id),
+          rotation: getCorrectedRotation(transform.rotation, blockType.id),
         });
       } else {
-        // Show the block we're placing itself as a preview over the cursor
         const blockType = getBlockType(blockId);
         if (!blockType) return;
-        const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
 
+        const sprite = getGL2BlockSprite(blockType, DamageLevel.NONE);
         GlobalSpriteRequestBus.add({
           texture: sprite.base,
           worldX,
@@ -218,45 +227,72 @@ export class ShipBuilderController {
   repairBlockAt(coord: { x: number; y: number }): void {
     if (!this.ship) return;
 
-    const block = this.ship.getBlock(coord);
-    if (!block) return;
+    const blockIdx = this.ship.getBlockIndex(coord);
+    if (blockIdx === undefined) return;
 
-    const missingHp = block.type.armor - block.hp;
+    const typeIdx = this.store.typeIndex[blockIdx];
+    const blockType = getBlockTypeByIndex(typeIdx);
+    if (!blockType) return;
+
+    const hp = this.store.hp[blockIdx];
+    const missingHp = blockType.armor - hp;
     if (missingHp <= 0) return;
 
-    block.hp = block.type.armor;
-    this.shipBuilderEffects.createRepairEffect(block.position!);
+    // Fully repair the block
+    this.store.hp[blockIdx] = blockType.armor;
+
+    // Trigger visual effect at the block’s world position
+    this.shipBuilderEffects.createRepairEffect({
+      x: this.store.worldX[blockIdx],
+      y: this.store.worldY[blockIdx],
+    });
   }
 
   repairAllBlocks(): void {
     if (!this.ship) return;
 
     const playerResources = PlayerResources.getInstance();
+    const store = this.store;
 
-    // Get all damaged blocks
-    const damagedBlocks = this.ship.getAllBlocks()
-      .filter(([, block]) => block.hp < block.type.armor)
-      .map(([coord, block]) => ({ coord, block }))
+    // Gather all damaged block indices
+    const damagedBlocks = this.ship.getAllBlockIndices()
+      .filter(idx => {
+        const type = getBlockTypeByIndex(store.typeIndex[idx]);
+        if (!type) return false;
+        return store.hp[idx] < type.armor;
+      })
       .sort((a, b) => {
-        const missingA = a.block.type.armor - a.block.hp;
-        const missingB = b.block.type.armor - b.block.hp;
+        const typeA = getBlockTypeByIndex(store.typeIndex[a])!;
+        const typeB = getBlockTypeByIndex(store.typeIndex[b])!;
+
+        const missingA = typeA.armor - store.hp[a];
+        const missingB = typeB.armor - store.hp[b];
         if (missingA !== missingB) {
-          return missingB - missingA; // Repair most damaged first
+          return missingB - missingA; // Prioritize most damaged first
         }
-        const costA = getRepairCost(a.block);
-        const costB = getRepairCost(b.block);
-        return costA - costB; // Then cheaper to repair first
+
+        const costA = getRepairCost(a);
+        const costB = getRepairCost(b);
+        return costA - costB; // Then cheapest repair cost first
       });
 
-    for (const { coord, block } of damagedBlocks) {
-      const repairCost = getRepairCost(block);
+    for (const idx of damagedBlocks) {
+      const repairCost = getRepairCost(idx);
       audioManager.play('assets/sounds/sfx/ship/repair_00.wav', 'sfx');
-      this.repairBlockAt(coord);
+      // Fully repair via store
+      const type = getBlockTypeByIndex(store.typeIndex[idx])!;
+      store.hp[idx] = type.armor;
+
+      // Spawn a repair effect at the world position
+      this.shipBuilderEffects.createRepairEffect({
+        x: store.worldX[idx],
+        y: store.worldY[idx],
+      });
     }
   }
 
-  getHoveredShipBlock(): BlockInstance | undefined {
-    if (!this.ship) return;
-    return this.hoveredShipCoord ? this.ship.getBlock(this.hoveredShipCoord) : undefined;
+  getHoveredShipBlockIndex(): number | undefined {
+    if (!this.ship || !this.hoveredShipCoord) return undefined;
+    return this.ship.getBlockIndex(this.hoveredShipCoord);
   }
 }

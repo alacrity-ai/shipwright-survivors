@@ -315,7 +315,7 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       if (controller) {
         const ship = controller.getShip();
 
-        if (!ship?.getAllBlocks) {
+        if (!ship /*|| ship.getAllBlockIndices().length === 0*/) {
           toRemove.push(controller);
         } else if (!isCulled) {
           try {

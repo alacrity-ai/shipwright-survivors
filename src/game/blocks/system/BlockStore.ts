@@ -1,9 +1,5 @@
 // src/game/blocks/system/BlockStore.ts
 
-/**
- * BlockStore - Low-level, fixed-capacity SOA data container for block instances.
- * Provides dense, cache-friendly storage with zero runtime allocations.
- */
 export class BlockStore {
   // Fixed capacity and state tracking
   public readonly capacity: number;
@@ -18,27 +14,71 @@ export class BlockStore {
   public readonly localY: Float32Array;
   public readonly worldX: Float32Array;
   public readonly worldY: Float32Array;
-  public readonly rotation: Float32Array;       // World rotation (composed)
+  public readonly rotation: Float32Array;       // World rotation (composed in radians)
   public readonly localRotation: Float32Array;  // Rotation relative to ship
   public readonly overlayRotation: Float32Array; // Rotation relative to ship, for turrets, etc.
   public readonly hidden: Uint8Array;
 
   // Combat / State arrays
-  public readonly hp: Float32Array;
+  public readonly hp: Float32Array; // Current HP
+  public readonly armor: Float32Array;   // cached max HP for damage tier math
   public readonly destroyed: Uint8Array;
   public readonly indestructible: Uint8Array;
   public readonly cooldown: Float32Array;
 
+  // Fire Attributes
+  public readonly fireDamage: Float32Array;
+  public readonly fireRate: Float32Array;
+  public readonly fireAccuracy: Float32Array;
+  public readonly projectileSpeed: Float32Array;
+  public readonly projectileLifetime: Float32Array;
+  public readonly explosionDamage: Float32Array;
+  public readonly explosionRadiusBlocks: Float32Array;
+  public readonly targetingRange: Float32Array;
+  public readonly fireTurningPower: Float32Array;
+
+  // Weapon Specific 
+  public readonly seekerForwardFire: Uint8Array; // 0 = false, 1 = true
+
   // Ownership & Typing arrays
-  public readonly ownerShipId: Int32Array;
-  public readonly ownerFaction: Uint8Array;
+  public readonly ownerShipId: Float64Array;
+  public readonly ownerFaction: Uint8Array; // 1=Player, 2=Enemy, 3=Neutral
   public readonly typeIndex: Int32Array;
 
+  // Movement arrays
+  public readonly thrustPower: Float32Array; // Thrust power (e.g. 5 for small engine, 10 for large engine)
+  public readonly canThrust: Uint8Array; // 1 = can thrust, 0 = cannot thrust
+  public readonly turnPower: Float32Array; // Turn power (e.g. 1 for small fin, 2 for large fin)
+
+  // *** New cached BlockType attributes for SOA hot-path access ***
+  public readonly categoryCode: Uint8Array;    // Enum-mapped BlockCategory
+  public readonly subcategoryCode: Uint8Array; // Enum-mapped BlockSubcategory
+  public readonly dropRate: Float32Array;      // 0–1, drop chance
+  public readonly tier: Uint8Array;            // Tier (1–5 typically)
+
   // Shielding arrays
-  public readonly isShielded: Uint8Array;
+  public readonly isShielded: Uint8Array; // 1 = shielded, 0 = not shielded
   public readonly shieldEfficiency: Float32Array;
   public readonly shieldHighlightColor: Int32Array;
   public readonly shieldSourceId: Int32Array;
+  public readonly shieldEnergyDrain: Float32Array;
+  public readonly shieldRadius: Float32Array;
+
+  // Rendering color (RGBA packed as floats 0–1)
+  public readonly colorR: Float32Array;
+  public readonly colorG: Float32Array;
+  public readonly colorB: Float32Array;
+  public readonly colorA: Float32Array;
+
+  // Per-frame culling mask (1 = visible, 0 = culled)
+  public readonly visible: Uint8Array;
+
+  // Texture atlas UVs (precomputed per block, so renderer can read directly)
+  public readonly uvBaseX: Float32Array;
+  public readonly uvBaseY: Float32Array;
+  public readonly uvOverlayX: Float32Array;
+  public readonly uvOverlayY: Float32Array;
+  public readonly atlasKey: Int32Array;  // numeric key (usually typeIndex)
 
   constructor(capacity: number) {
     if (capacity <= 0 || !Number.isInteger(capacity)) {
@@ -50,7 +90,7 @@ export class BlockStore {
     // Allocation tracking
     this.allocated = new Uint8Array(capacity);
 
-    // Preallocate all arrays to fixed capacity
+    // Preallocate arrays
     // Spatial / Transform
     this.localX = new Float32Array(capacity);
     this.localY = new Float32Array(capacity);
@@ -63,62 +103,87 @@ export class BlockStore {
 
     // Combat / State
     this.hp = new Float32Array(capacity);
+    this.armor = new Float32Array(capacity).fill(0);
     this.destroyed = new Uint8Array(capacity);
     this.indestructible = new Uint8Array(capacity);
     this.cooldown = new Float32Array(capacity);
 
+    // Fire Attributes
+    this.fireDamage = new Float32Array(capacity);
+    this.fireRate = new Float32Array(capacity);
+    this.fireAccuracy = new Float32Array(capacity);
+    this.projectileSpeed = new Float32Array(capacity);
+    this.projectileLifetime = new Float32Array(capacity);
+    this.explosionDamage = new Float32Array(capacity);
+    this.explosionRadiusBlocks = new Float32Array(capacity);
+    this.targetingRange = new Float32Array(capacity);
+    this.fireTurningPower = new Float32Array(capacity);
+
+    // Weapon Specific 
+    this.seekerForwardFire = new Uint8Array(capacity); // 0 = false, 1 = true
+
     // Ownership & Typing
-    this.ownerShipId = new Int32Array(capacity);
+    this.ownerShipId = new Float64Array(capacity);
     this.ownerFaction = new Uint8Array(capacity);
     this.typeIndex = new Int32Array(capacity);
+
+    // Cached BlockType attributes
+    this.categoryCode = new Uint8Array(capacity);
+    this.subcategoryCode = new Uint8Array(capacity);
+    this.dropRate = new Float32Array(capacity);
+    this.tier = new Uint8Array(capacity);
+
+    // Thrusting
+    this.thrustPower = new Float32Array(capacity);
+    this.canThrust = new Uint8Array(capacity);
+    this.turnPower = new Float32Array(capacity);
 
     // Shielding
     this.isShielded = new Uint8Array(capacity);
     this.shieldEfficiency = new Float32Array(capacity);
     this.shieldHighlightColor = new Int32Array(capacity);
-    this.shieldSourceId = new Int32Array(capacity);
+    this.shieldSourceId = new Int32Array(capacity).fill(-1);
+    this.shieldEnergyDrain = new Float32Array(capacity);
+    this.shieldRadius = new Float32Array(capacity);
 
-    // Initialize defaults
-    this.shieldSourceId.fill(-1);
+    // Rendering color defaults (white, opaque)
+    this.colorR = new Float32Array(capacity).fill(1);
+    this.colorG = new Float32Array(capacity).fill(1);
+    this.colorB = new Float32Array(capacity).fill(1);
+    this.colorA = new Float32Array(capacity).fill(1);
+
+    // Per-frame visibility (default visible)
+    this.visible = new Uint8Array(capacity).fill(1);
+
+    // Texture atlas UVs
+    this.uvBaseX = new Float32Array(capacity).fill(0);
+    this.uvBaseY = new Float32Array(capacity).fill(0);
+    this.uvOverlayX = new Float32Array(capacity).fill(-1);
+    this.uvOverlayY = new Float32Array(capacity).fill(-1);
+    this.atlasKey = new Int32Array(capacity).fill(-1);
+
     this.allocated.fill(0);
   }
 
-  /**
-   * Allocates a new block index, either from the free list or sequentially.
-   * @returns Block index (0 to capacity-1) or -1 if at capacity
-   */
   allocateIndex(): number {
-    // Reuse a freed index first
     if (this.freeList.length > 0) {
       const index = this.freeList.pop()!;
       this.allocated[index] = 1;
       return index;
     }
-
-    // If no free slots and at capacity, return -1
-    if (this.count >= this.capacity) {
-      return -1;
-    }
-
-    // Allocate next sequential index
+    if (this.count >= this.capacity) return -1;
     const index = this.count++;
     this.allocated[index] = 1;
     return index;
   }
 
-  /**
-   * Frees a block index, clearing its data and marking it unallocated.
-   * @param index Block index to free
-   */
   freeIndex(index: number): void {
     if (index < 0 || index >= this.capacity) {
       throw new Error(`Invalid block index: ${index}`);
     }
-
-    // Mark as unallocated
     this.allocated[index] = 0;
 
-    // Clear all fields
+    // Clear scalar fields (performance-friendly, avoids object churn)
     this.localX[index] = 0;
     this.localY[index] = 0;
     this.worldX[index] = 0;
@@ -133,38 +198,65 @@ export class BlockStore {
     this.indestructible[index] = 0;
     this.cooldown[index] = 0;
 
+    this.fireDamage[index] = 0;
+    this.fireRate[index] = 0;
+    this.fireAccuracy[index] = 0;
+    this.projectileSpeed[index] = 0;
+    this.projectileLifetime[index] = 0;
+    this.explosionDamage[index] = 0;
+    this.explosionRadiusBlocks[index] = 0;
+    this.targetingRange[index] = 0;
+    this.fireTurningPower[index] = 0;
+
+    this.seekerForwardFire[index] = 0; // 0 = false, 1 = true
+
     this.ownerShipId[index] = 0;
     this.ownerFaction[index] = 0;
     this.typeIndex[index] = 0;
+
+    // Reset new cached fields
+    this.categoryCode[index] = 0;
+    this.subcategoryCode[index] = 0;
+    this.dropRate[index] = 0;
+    this.tier[index] = 0;
+
+    this.thrustPower[index] = 0;
+    this.canThrust[index] = 0;
+    this.turnPower[index] = 0;
 
     this.isShielded[index] = 0;
     this.shieldEfficiency[index] = 0;
     this.shieldHighlightColor[index] = 0;
     this.shieldSourceId[index] = -1;
+    this.shieldEnergyDrain[index] = 0;
+    this.shieldRadius[index] = 0;
 
-    // Recycle the index
+    this.colorR[index] = 1;
+    this.colorG[index] = 1;
+    this.colorB[index] = 1;
+    this.colorA[index] = 1;
+
+    this.visible[index] = 1;
+
+    this.uvBaseX[index] = 0;
+    this.uvBaseY[index] = 0;
+    this.uvOverlayX[index] = -1;
+    this.uvOverlayY[index] = -1;
+    this.armor[index] = 0;
+    this.atlasKey[index] = -1;
+
     this.freeList.push(index);
   }
 
-  /**
-   * Checks whether a given index is currently allocated (active).
-   * @param index Block index
-   * @returns true if allocated, false otherwise
-   */
   isAllocated(index: number): boolean {
-    if (index < 0 || index >= this.capacity) return false;
-    return this.allocated[index] === 1;
+    return index >= 0 && index < this.capacity && this.allocated[index] === 1;
   }
 
-  /**
-   * Clears all data and resets the store to initial state.
-   */
   clear(): void {
     this.count = 0;
     this.freeList.length = 0;
     this.allocated.fill(0);
 
-    // Zero out all arrays
     this.localX.fill(0);
     this.localY.fill(0);
     this.worldX.fill(0);
@@ -179,13 +271,50 @@ export class BlockStore {
     this.indestructible.fill(0);
     this.cooldown.fill(0);
 
+    this.fireDamage.fill(0);
+    this.fireRate.fill(0);
+    this.fireAccuracy.fill(0);
+    this.projectileSpeed.fill(0);
+    this.projectileLifetime.fill(0);
+    this.explosionDamage.fill(0);
+    this.explosionRadiusBlocks.fill(0);
+    this.targetingRange.fill(0);
+    this.fireTurningPower.fill(0);
+
+    this.seekerForwardFire.fill(0); // 0 = false, 1 = true
+
     this.ownerShipId.fill(0);
     this.ownerFaction.fill(0);
     this.typeIndex.fill(0);
+
+    this.categoryCode.fill(0);
+    this.subcategoryCode.fill(0);
+    this.dropRate.fill(0);
+    this.tier.fill(0);
+
+    this.thrustPower.fill(0);
+    this.canThrust.fill(0);
+    this.turnPower.fill(0);
 
     this.isShielded.fill(0);
     this.shieldEfficiency.fill(0);
     this.shieldHighlightColor.fill(0);
     this.shieldSourceId.fill(-1);
+    this.shieldEnergyDrain.fill(0);
+    this.shieldRadius.fill(0);
+
+    this.colorR.fill(1);
+    this.colorG.fill(1);
+    this.colorB.fill(1);
+    this.colorA.fill(1);
+
+    this.uvBaseX.fill(0);
+    this.uvBaseY.fill(0);
+    this.uvOverlayX.fill(-1);
+    this.uvOverlayY.fill(-1);
+    this.armor.fill(0);
+    this.atlasKey.fill(-1);
+
+    this.visible.fill(1);
   }
 }

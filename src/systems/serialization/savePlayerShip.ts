@@ -2,7 +2,6 @@
 
 import { Ship } from '@/game/ship/Ship';
 import { serializeShip } from '@/systems/serialization/ShipSerializer';
-import type { Grid } from '@/systems/physics/Grid';
 
 /**
  * Saves the current player ship to a JSON string.
@@ -10,8 +9,8 @@ import type { Grid } from '@/systems/physics/Grid';
  * @param filename The desired filename for saving the ship (e.g., 'player_ship.json').
  * @returns A promise indicating when the ship is saved.
  */
-export function savePlayerShip(ship: Ship, grid: Grid, filename: string): void {
-  const serializedShip = serializeShip(ship, grid);
+export function savePlayerShip(ship: Ship, filename: string): void {
+  const serializedShip = serializeShip(ship);
   const jsonString = JSON.stringify(serializedShip, null, 2); // Pretty print with 2 spaces
 
   // Saving to localStorage (For browser-based use)
