@@ -1,28 +1,33 @@
 // src/game/ship/systems/ShipConstructionAnimatorService.ts
 
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
-import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { AuraLightOptions } from '@/game/ship/factories/ShipFactory';
 
 import { constructionFrameBudgetMs } from '@/config/graphicsConfig';
 import { Ship } from '@/game/ship/Ship';
-import { toKey, getWorldPositionFromShipCoord } from '@/game/ship/utils/shipBlockUtils';
+import { getWorldPositionFromShipCoord } from '@/game/ship/utils/shipBlockUtils';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
 type ConstructionPhase = 'building' | 'shockwave';
 type DeconstructionPhase = 'deconstructing' | 'complete';
 
-interface QueueEntry {
-  coord: GridCoord;  // Local grid coordinate for toKey() and effect position
-  idx: number;       // Block index in the BlockStore
-}
-
 interface ConstructingShipState {
   ship: Ship;
-  queue: QueueEntry[];
-  revealed: Set<string>; // keys from toKey(coord)
-  animationTimers: Map<string, number>;
+
+  // Preallocated block queue
+  queueIdx: Uint32Array;   // Block indices to reveal
+  queueX: Int16Array;      // Local X (for FX)
+  queueY: Int16Array;      // Local Y (for FX)
+  queueLength: number;     // Total items in queue
+  queueCursor: number;     // Next element to process
+
+  revealedKeys: Uint32Array;
+  revealedCount: number;
+
+  timerKeys: Uint32Array;
+  timerValues: Float32Array;
+  timerCount: number;
+
   timeSinceLastReveal: number;
   blockRevealInterval: number;
   totalBlockCount: number;
@@ -34,9 +39,21 @@ interface ConstructingShipState {
 
 interface DeconstructingShipState {
   ship: Ship;
-  queue: QueueEntry[];
-  hidden: Set<string>; // keys from toKey(coord)
-  animationTimers: Map<string, number>;
+
+  // Preallocated block queue
+  queueIdx: Uint32Array; 
+  queueX: Int16Array;
+  queueY: Int16Array;
+  queueLength: number;
+  queueCursor: number;
+
+  hiddenKeys: Uint32Array;
+  hiddenCount: number;
+
+  timerKeys: Uint32Array;
+  timerValues: Float32Array;
+  timerCount: number;
+
   timeSinceLastHide: number;
   blockHideInterval: number;
   totalBlockCount: number;
@@ -55,6 +72,9 @@ export class ShipConstructionAnimatorService {
   private readonly startBlockRevealInterval = 200;
   private readonly decrementPerBlock = 5;
   private readonly finalBlockRevealInterval = 5;
+
+  private scratchConstructRemovals: ConstructingShipState[] = [];
+  private scratchDeconstructRemovals: DeconstructingShipState[] = [];
 
   // Deconstruction timing (faster than construction)
   private readonly startBlockHideInterval = 150;
@@ -86,28 +106,44 @@ export class ShipConstructionAnimatorService {
     const orchestrator = ship.getBlockOrchestrator();
     const store = orchestrator.blockStore;
     const indices = orchestrator.getShipBlocksView(ship.numericId);
+    const blockCount = indices.length;
 
-    const queue: QueueEntry[] = [];
-    for (let i = 0; i < indices.length; i++) {
+    // Preallocate typed queue buffers
+    const queueIdx = new Uint32Array(blockCount);
+    const queueX = new Int16Array(blockCount);
+    const queueY = new Int16Array(blockCount);
+
+    for (let i = 0; i < blockCount; i++) {
       const idx = indices[i];
 
       // Hide each block at the start
       store.hidden[idx] = 1;
 
-      queue.push({
-        coord: { x: store.localX[idx], y: store.localY[idx] }, // local grid coord
-        idx,                                                   // BlockStore index
-      });
+      queueIdx[i] = idx;
+      queueX[i] = store.localX[idx];
+      queueY[i] = store.localY[idx];
     }
 
     this.activeShips.push({
       ship,
-      queue,
-      revealed: new Set<string>(),
-      animationTimers: new Map<string, number>(),
+
+      // Typed queue
+      queueIdx,
+      queueX,
+      queueY,
+      queueLength: blockCount,
+      queueCursor: 0,
+
+      revealedKeys: new Uint32Array(blockCount),
+      revealedCount: 0,
+
+      timerKeys: new Uint32Array(blockCount),
+      timerValues: new Float32Array(blockCount),
+      timerCount: 0,
+
       timeSinceLastReveal: 0,
       blockRevealInterval: this.startBlockRevealInterval,
-      totalBlockCount: indices.length,
+      totalBlockCount: blockCount,
       blocksRevealed: 0,
       phase: 'building',
       shockwaveTimer: this.animationDuration,
@@ -119,9 +155,10 @@ export class ShipConstructionAnimatorService {
     const orchestrator = ship.getBlockOrchestrator();
     const store = orchestrator.blockStore;
     const indices = orchestrator.getShipBlocksView(ship.numericId);
+    const blockCount = indices.length;
 
     // Ensure all blocks start visible
-    for (let i = 0; i < indices.length; i++) {
+    for (let i = 0; i < blockCount; i++) {
       const idx = indices[i];
       store.hidden[idx] = 0;
     }
@@ -131,30 +168,46 @@ export class ShipConstructionAnimatorService {
       ship.cleanupAuraLight();
     }
 
-    // Build queue entries (local coords + index) for each block
-    const queue: QueueEntry[] = [];
-    for (let i = 0; i < indices.length; i++) {
+    // Preallocate typed queue buffers
+    const queueIdx = new Uint32Array(blockCount);
+    const queueX = new Int16Array(blockCount);
+    const queueY = new Int16Array(blockCount);
+
+    for (let i = 0; i < blockCount; i++) {
       const idx = indices[i];
-      queue.push({
-        coord: { x: store.localX[idx], y: store.localY[idx] },
-        idx,
-      });
+      queueIdx[i] = idx;
+      queueX[i] = store.localX[idx];
+      queueY[i] = store.localY[idx];
     }
 
-    // Shuffle for random deconstruction order
-    for (let i = queue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [queue[i], queue[j]] = [queue[j], queue[i]];
+    // Shuffle queue order (Fisher–Yates on typed buffers)
+    for (let i = blockCount - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      const tmpIdx = queueIdx[i], tmpX = queueX[i], tmpY = queueY[i];
+      queueIdx[i] = queueIdx[j]; queueX[i] = queueX[j]; queueY[i] = queueY[j];
+      queueIdx[j] = tmpIdx; queueX[j] = tmpX; queueY[j] = tmpY;
     }
 
     this.deconstructingShips.push({
       ship,
-      queue,
-      hidden: new Set<string>(),
-      animationTimers: new Map<string, number>(),
+
+      // Typed queue
+      queueIdx,
+      queueX,
+      queueY,
+      queueLength: blockCount,
+      queueCursor: 0,
+
+      hiddenKeys: new Uint32Array(blockCount),
+      hiddenCount: 0,
+
+      timerKeys: new Uint32Array(blockCount),
+      timerValues: new Float32Array(blockCount),
+      timerCount: 0,
+
       timeSinceLastHide: 0,
       blockHideInterval: this.startBlockHideInterval,
-      totalBlockCount: indices.length,
+      totalBlockCount: blockCount,
       blocksHidden: 0,
       phase: 'deconstructing',
       completeTimer: this.animationDuration,
@@ -186,7 +239,10 @@ export class ShipConstructionAnimatorService {
 
     let index = this.lastShipIndex % total;
     let processed = 0;
-    const shipsToRemove = new Set<ConstructingShipState>();
+    
+    // Use preallocated scratch array for removals
+    const shipsToRemove = this.scratchConstructRemovals;
+    shipsToRemove.length = 0;
 
     for (; processed < total; processed++) {
       const state = this.activeShips[index];
@@ -197,17 +253,22 @@ export class ShipConstructionAnimatorService {
 
       state.timeSinceLastReveal += ms;
 
-      // === Block Reveal Phase ===
+      // === Block Reveal Phase (cursor-based queue iteration) ===
       while (
         state.timeSinceLastReveal >= state.blockRevealInterval &&
-        state.queue.length > 0
+        state.queueCursor < state.queueLength
       ) {
-        const { coord, idx } = state.queue.shift()!;
-        store.hidden[idx] = 0; // reveal this block
+        const idx = state.queueIdx[state.queueCursor++];
+        store.hidden[idx] = 0;
 
-        const key = toKey(coord);
-        state.revealed.add(key);
-        state.animationTimers.set(key, this.animationDuration);
+        // Append revealed index
+        state.revealedKeys[state.revealedCount++] = idx;
+
+        // Add timer
+        const tIndex = state.timerCount++;
+        state.timerKeys[tIndex] = idx;
+        state.timerValues[tIndex] = this.animationDuration;
+
         state.timeSinceLastReveal -= state.blockRevealInterval;
 
         const pitch = Math.min(
@@ -224,7 +285,15 @@ export class ShipConstructionAnimatorService {
           maxSimultaneous: 5,
         });
 
-        const position = getWorldPositionFromShipCoord(state.ship.getTransform(), coord);
+        // Safe FX position access with bounds check
+        const cursorIdx = state.queueCursor - 1;
+        const x = cursorIdx >= 0 && cursorIdx < state.queueLength ? state.queueX[cursorIdx] : 0;
+        const y = cursorIdx >= 0 && cursorIdx < state.queueLength ? state.queueY[cursorIdx] : 0;
+        
+        const position = getWorldPositionFromShipCoord(
+          state.ship.getTransform(),
+          { x, y }
+        );
         this.shipBuilderEffectsSystem.createRepairEffect(position);
 
         state.blockRevealInterval = Math.max(
@@ -236,30 +305,32 @@ export class ShipConstructionAnimatorService {
 
         if (performance.now() > deadline) {
           this.lastShipIndex = (index + 1) % total;
-          this.activeShips = this.activeShips.filter(s => !shipsToRemove.has(s));
+          this.compactActiveShips(shipsToRemove);
           return;
         }
       }
 
       // === Timer Cleanup ===
-      for (const [key, time] of state.animationTimers.entries()) {
-        const newTime = time - ms;
-        if (newTime <= 0) {
-          state.animationTimers.delete(key);
-        } else {
-          state.animationTimers.set(key, newTime);
+      let write = 0;
+      for (let i = 0; i < state.timerCount; i++) {
+        const newTime = state.timerValues[i] - ms;
+        if (newTime > 0) {
+          state.timerKeys[write] = state.timerKeys[i];
+          state.timerValues[write] = newTime;
+          write++;
         }
+      }
+      state.timerCount = write;
 
-        if (performance.now() > deadline) {
-          this.lastShipIndex = (index + 1) % total;
-          this.activeShips = this.activeShips.filter(s => !shipsToRemove.has(s));
-          return;
-        }
+      if (performance.now() > deadline) {
+        this.lastShipIndex = (index + 1) % total;
+        this.compactActiveShips(shipsToRemove);
+        return;
       }
 
       // === Phase Transition ===
       if (state.phase === 'building') {
-        if (state.revealed.size === state.ship.getBlockCount()) {
+        if (state.revealedCount === state.ship.getBlockCount()) {
           state.phase = 'shockwave';
           state.shockwaveTimer = this.animationDuration;
 
@@ -272,21 +343,24 @@ export class ShipConstructionAnimatorService {
             maxSimultaneous: 3,
           });
 
-          if (state.auraLightOptions) {
-            if (!state.ship.isDestroyed()) {
-              state.ship.registerAuraLight(
-                state.auraLightOptions.color,
-                state.auraLightOptions.radius,
-                state.auraLightOptions.intensity
-              );
-            }
+          if (state.auraLightOptions && !state.ship.isDestroyed()) {
+            state.ship.registerAuraLight(
+              state.auraLightOptions.color,
+              state.auraLightOptions.radius,
+              state.auraLightOptions.intensity
+            );
           }
         }
       } else if (state.phase === 'shockwave') {
         state.shockwaveTimer -= ms;
         if (state.shockwaveTimer <= 0) {
           state.ship.setConstructed(true);
-          shipsToRemove.add(state);
+          // Reset cursor for potential reuse
+          state.queueCursor = 0;
+          state.revealedCount = 0;
+          state.blocksRevealed = 0;
+          state.timerCount = 0;
+          shipsToRemove.push(state);
         }
       }
 
@@ -294,7 +368,7 @@ export class ShipConstructionAnimatorService {
     }
 
     this.lastShipIndex = 0;
-    this.activeShips = this.activeShips.filter(s => !shipsToRemove.has(s));
+    this.compactActiveShips(shipsToRemove);
   }
 
   private updateDeconstruction(ms: number, deadline: number): void {
@@ -303,7 +377,10 @@ export class ShipConstructionAnimatorService {
 
     let index = this.lastDeconstructionIndex % total;
     let processed = 0;
-    const shipsToRemove = new Set<DeconstructingShipState>();
+    
+    // Use preallocated scratch array for removals
+    const shipsToRemove = this.scratchDeconstructRemovals;
+    shipsToRemove.length = 0;
 
     for (; processed < total; processed++) {
       const state = this.deconstructingShips[index];
@@ -314,18 +391,21 @@ export class ShipConstructionAnimatorService {
 
       state.timeSinceLastHide += ms;
 
-      // === Block Hide Phase ===
+      // === Block Hide Phase (cursor-based queue iteration) ===
       while (
         state.timeSinceLastHide >= state.blockHideInterval &&
-        state.queue.length > 0 &&
+        state.queueCursor < state.queueLength &&
         state.phase === 'deconstructing'
       ) {
-        const { coord, idx } = state.queue.shift()!;
-        store.hidden[idx] = 1; // hide the block
+        const idx = state.queueIdx[state.queueCursor++];
+        store.hidden[idx] = 1;
 
-        const key = toKey(coord);
-        state.hidden.add(key);
-        state.animationTimers.set(key, this.animationDuration);
+        state.hiddenKeys[state.hiddenCount++] = idx;
+
+        const tIndex = state.timerCount++;
+        state.timerKeys[tIndex] = idx;
+        state.timerValues[tIndex] = this.animationDuration;
+
         state.timeSinceLastHide -= state.blockHideInterval;
 
         const pitch = Math.max(
@@ -342,7 +422,15 @@ export class ShipConstructionAnimatorService {
           maxSimultaneous: 8,
         });
 
-        const position = getWorldPositionFromShipCoord(state.ship.getTransform(), coord);
+        // Safe FX position access with bounds check
+        const cursorIdx = state.queueCursor - 1;
+        const x = cursorIdx >= 0 && cursorIdx < state.queueLength ? state.queueX[cursorIdx] : 0;
+        const y = cursorIdx >= 0 && cursorIdx < state.queueLength ? state.queueY[cursorIdx] : 0;
+        
+        const position = getWorldPositionFromShipCoord(
+          state.ship.getTransform(),
+          { x, y }
+        );
         this.shipBuilderEffectsSystem.createRepairEffect(position);
 
         state.blockHideInterval = Math.max(
@@ -354,34 +442,35 @@ export class ShipConstructionAnimatorService {
 
         if (performance.now() > deadline) {
           this.lastDeconstructionIndex = (index + 1) % total;
-          this.deconstructingShips = this.deconstructingShips.filter(s => !shipsToRemove.has(s));
+          this.compactDeconstructingShips(shipsToRemove);
           return;
         }
       }
 
       // === Timer Cleanup ===
-      for (const [key, time] of state.animationTimers.entries()) {
-        const newTime = time - ms;
-        if (newTime <= 0) {
-          state.animationTimers.delete(key);
-        } else {
-          state.animationTimers.set(key, newTime);
+      let write = 0;
+      for (let i = 0; i < state.timerCount; i++) {
+        const newTime = state.timerValues[i] - ms;
+        if (newTime > 0) {
+          state.timerKeys[write] = state.timerKeys[i];
+          state.timerValues[write] = newTime;
+          write++;
         }
+      }
+      state.timerCount = write;
 
-        if (performance.now() > deadline) {
-          this.lastDeconstructionIndex = (index + 1) % total;
-          this.deconstructingShips = this.deconstructingShips.filter(s => !shipsToRemove.has(s));
-          return;
-        }
+      if (performance.now() > deadline) {
+        this.lastDeconstructionIndex = (index + 1) % total;
+        this.compactDeconstructingShips(shipsToRemove);
+        return;
       }
 
       // === Phase Transition ===
       if (state.phase === 'deconstructing') {
-        if (state.hidden.size === state.ship.getBlockCount()) {
+        if (state.hiddenCount === state.ship.getBlockCount()) {
           state.phase = 'complete';
           state.completeTimer = this.animationDuration;
 
-          // Play completion sound
           playSpatialSfx(state.ship, this.playerShip, {
             file: 'assets/sounds/sfx/ship/repair_00.wav',
             channel: 'sfx',
@@ -394,10 +483,13 @@ export class ShipConstructionAnimatorService {
       } else if (state.phase === 'complete') {
         state.completeTimer -= ms;
         if (state.completeTimer <= 0) {
-          if (state.onComplete) {
-            state.onComplete();
-          }
-          shipsToRemove.add(state);
+          state.onComplete?.();
+          // Reset cursor for potential reuse
+          state.queueCursor = 0;
+          state.hiddenCount = 0;
+          state.blocksHidden = 0;
+          state.timerCount = 0;
+          shipsToRemove.push(state);
         }
       }
 
@@ -405,7 +497,7 @@ export class ShipConstructionAnimatorService {
     }
 
     this.lastDeconstructionIndex = 0;
-    this.deconstructingShips = this.deconstructingShips.filter(s => !shipsToRemove.has(s));
+    this.compactDeconstructingShips(shipsToRemove);
   }
 
   public render(): void {
@@ -413,18 +505,91 @@ export class ShipConstructionAnimatorService {
   }
 
   public isShipConstructing(ship: Ship): boolean {
-    return this.activeShips.some(state => state.ship === ship);
+    for (let i = 0; i < this.activeShips.length; i++) {
+      if (this.activeShips[i].ship === ship) return true;
+    }
+    return false;
   }
 
   public isShipDeconstructing(ship: Ship): boolean {
-    return this.deconstructingShips.some(state => state.ship === ship);
+    for (let i = 0; i < this.deconstructingShips.length; i++) {
+      if (this.deconstructingShips[i].ship === ship) return true;
+    }
+    return false;
   }
 
   public cancelShipConstruction(ship: Ship): void {
-    this.activeShips = this.activeShips.filter(state => state.ship !== ship);
+    let write = 0;
+    for (let i = 0; i < this.activeShips.length; i++) {
+      const state = this.activeShips[i];
+      if (state.ship !== ship) {
+        this.activeShips[write++] = state;
+      }
+    }
+    this.activeShips.length = write;
   }
 
   public cancelShipDeconstruction(ship: Ship): void {
-    this.deconstructingShips = this.deconstructingShips.filter(state => state.ship !== ship);
+    let write = 0;
+    for (let i = 0; i < this.deconstructingShips.length; i++) {
+      const state = this.deconstructingShips[i];
+      if (state.ship !== ship) {
+        this.deconstructingShips[write++] = state;
+      }
+    }
+    this.deconstructingShips.length = write;
+  }
+
+  // == Private Helpers
+  private compactActiveShips(removals: ConstructingShipState[]): void {
+    if (removals.length === 0) return;
+
+    // GC-neutral compaction using double loop instead of flagging
+    let write = 0;
+    for (let i = 0; i < this.activeShips.length; i++) {
+      const state = this.activeShips[i];
+      let shouldRemove = false;
+      
+      // Check if this state is in the removal list
+      for (let j = 0; j < removals.length; j++) {
+        if (removals[j] === state) {
+          shouldRemove = true;
+          break;
+        }
+      }
+      
+      if (!shouldRemove) {
+        this.activeShips[write++] = state;
+      }
+    }
+
+    this.activeShips.length = write;
+    removals.length = 0;
+  }
+
+  private compactDeconstructingShips(removals: DeconstructingShipState[]): void {
+    if (removals.length === 0) return;
+
+    // GC-neutral compaction using double loop instead of flagging
+    let write = 0;
+    for (let i = 0; i < this.deconstructingShips.length; i++) {
+      const state = this.deconstructingShips[i];
+      let shouldRemove = false;
+      
+      // Check if this state is in the removal list
+      for (let j = 0; j < removals.length; j++) {
+        if (removals[j] === state) {
+          shouldRemove = true;
+          break;
+        }
+      }
+      
+      if (!shouldRemove) {
+        this.deconstructingShips[write++] = state;
+      }
+    }
+
+    this.deconstructingShips.length = write;
+    removals.length = 0;
   }
 }

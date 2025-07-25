@@ -1,5 +1,3 @@
-// src/audio/utils/playSpatialSfx.ts
-
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { AudioChannel } from '@/audio/AudioManager';
 import { audioManager } from '@/audio/Audio';
@@ -8,10 +6,12 @@ type SpatialAudioOptions = {
   file: string;
   channel: AudioChannel;
   maxSimultaneous?: number;
-  baseVolume?: number; // default 1.0
-  pitchRange?: [number, number]; // e.g. [0.7, 1.0]
-  volumeJitter?: number; // default 0.2
+  baseVolume?: number;
+  pitchRange?: [number, number];
+  volumeJitter?: number;
 };
+
+const scratchAudioParams = { pitch: 0, volume: 0, pan: 0, maxSimultaneous: 0 };
 
 export function playSpatialSfx(
   emitterShip: CompositeBlockObject,
@@ -29,39 +29,30 @@ export function playSpatialSfx(
   let attenuation = 1;
 
   if (listenerShip && emitterShip !== listenerShip) {
-    const emitterPos = emitterShip.getTransform().position;
+    const emitterPos = emitterShip.getTransform().position; // ensure this is a persistent vector
     const listenerPos = listenerShip.getTransform().position;
 
     const dx = emitterPos.x - listenerPos.x;
     const dy = emitterPos.y - listenerPos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // === Distance attenuation ===
     const maxHearingDistance = 2450;
     const nearThreshold = 300;
     const linearAttenuation = Math.max(0, 1 - (dist - nearThreshold) / (maxHearingDistance - nearThreshold));
-    attenuation = Math.min(1, linearAttenuation);
+    attenuation = linearAttenuation > 1 ? 1 : linearAttenuation;
 
-    // === Stereo pan based on horizontal offset ===
     pan = Math.max(-0.7, Math.min(0.7, dx / 300));
   }
 
-  // === Early exit optimization: skip if volume is imperceptible ===
-  const maxJitteredVolume = baseVolume * (1.0 - volumeJitter);
-  const maxFinalVolume = maxJitteredVolume * attenuation;
-
+  const maxFinalVolume = baseVolume * (1.0 - volumeJitter) * attenuation;
   if (maxFinalVolume < 0.01) return;
 
-  // === Now generate pitch and jittered volume ===
-  const [minPitch, maxPitch] = pitchRange;
-  const pitch = minPitch + Math.random() * (maxPitch - minPitch);
-  const jitteredVolume = baseVolume * (1.0 - volumeJitter * Math.random());
-  const finalVolume = jitteredVolume * attenuation;
+  const minPitch = pitchRange[0];
+  const maxPitch = pitchRange[1];
+  scratchAudioParams.pitch = minPitch + Math.random() * (maxPitch - minPitch);
+  scratchAudioParams.volume = baseVolume * (1.0 - volumeJitter * Math.random()) * attenuation;
+  scratchAudioParams.pan = pan;
+  scratchAudioParams.maxSimultaneous = maxSimultaneous;
 
-  audioManager.play(file, channel, {
-    pitch,
-    volume: finalVolume,
-    pan,
-    maxSimultaneous,
-  });
+  audioManager.play(file, channel, scratchAudioParams);
 }

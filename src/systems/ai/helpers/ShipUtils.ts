@@ -22,7 +22,11 @@ export function getThrustAlignmentDelta(ship: Ship, targetPos: Vec2): number {
   return Math.acos(Math.max(-1, Math.min(1, dotProduct))); // Clamp to avoid floating point errors
 }
 
-export function isThrustFacingTarget(ship: Ship, targetPos: Vec2, thresholdRad = 0.15): boolean {
+export function isThrustFacingTarget(
+  ship: Ship,
+  targetPos: Vec2,
+  thresholdRad = 0.15
+): boolean {
   return getThrustAlignmentDelta(ship, targetPos) <= thresholdRad;
 }
 
@@ -35,16 +39,20 @@ export function findNearestTarget(originShip: Ship, range: number): Ship | null 
   if (originFaction === Faction.Neutral) return null;
 
   const originPos = originShip.getTransform().position;
-  const candidates = ShipGrid.getInstance().getShipsInRadius(originPos.x, originPos.y, range);
+  const { ships, count } = ShipGrid.getInstance().getShipsInRadius(
+    originPos.x,
+    originPos.y,
+    range
+  );
 
   let nearest: Ship | null = null;
   let nearestDist = Infinity;
 
-  for (const candidate of candidates) {
+  for (let i = 0; i < count; i++) {
+    const candidate = ships[i];
     if (candidate === originShip || candidate.isDestroyed()) continue;
 
     const faction = candidate.getFaction();
-
     if (faction === originFaction || faction === Faction.Neutral) continue;
     if (candidate.getAffixes()?.invulnerable) continue;
 
@@ -69,12 +77,17 @@ export function findFarthestTarget(originShip: Ship, range: number): Ship | null
   if (originFaction === Faction.Neutral) return null;
 
   const originPos = originShip.getTransform().position;
-  const candidates = ShipGrid.getInstance().getShipsInRadius(originPos.x, originPos.y, range);
+  const { ships, count } = ShipGrid.getInstance().getShipsInRadius(
+    originPos.x,
+    originPos.y,
+    range
+  );
 
   let farthest: Ship | null = null;
   let farthestDist = -Infinity;
 
-  for (const candidate of candidates) {
+  for (let i = 0; i < count; i++) {
+    const candidate = ships[i];
     if (candidate === originShip) continue;
 
     const faction = candidate.getFaction();
@@ -102,18 +115,12 @@ export function findFarthestTarget(originShip: Ship, range: number): Ship | null
  * @param targetFaction   If supplied, **only** ships of this faction are eligible
  *
  * @returns A random enemy ship satisfying all criteria, otherwise `null`.
- *
- * Design invariants
- * -----------------
- * • Neutral or invulnerable ships are never returned.  
- * • Line-of-sight is *not* evaluated; the caller may add that filter if required.  
- * • The function is deterministic only up to the PRNG used by `Math.random()`.
  */
 export function findRandomTargetInRange(
-  originShip    : Ship,
-  range         : number,
-  excludeShip?  : Ship,
-  targetFaction?: Faction,
+  originShip: Ship,
+  range: number,
+  excludeShip?: Ship,
+  targetFaction?: Faction
 ): Ship | null {
   const originFaction = originShip.getFaction();
 
@@ -122,15 +129,15 @@ export function findRandomTargetInRange(
 
   const { x: ox, y: oy } = originShip.getTransform().position;
 
-  // Spatial query – coarse filter
-  const candidates = ShipGrid.getInstance().getShipsInRadius(ox, oy, range);
+  const { ships, count } = ShipGrid.getInstance().getShipsInRadius(ox, oy, range);
 
   const eligible: Ship[] = [];
 
-  for (const ship of candidates) {
-    if (ship === originShip)     continue;              // self
-    if (ship === excludeShip)    continue;              // user-explicit exclusion
-    if (ship.isDestroyed())      continue;              // destroyed
+  for (let i = 0; i < count; i++) {
+    const ship = ships[i];
+    if (ship === originShip) continue;
+    if (ship === excludeShip) continue;
+    if (ship.isDestroyed()) continue;
 
     const faction = ship.getFaction();
 

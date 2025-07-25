@@ -6,22 +6,27 @@ export class BlockStore {
   public count: number = 0;
   private freeList: number[] = [];
 
-  // Track allocated slots (0 = free, 1 = allocated)
+  // Allocation state
   private readonly allocated: Uint8Array;
+
+  // === New: Active index tracking ===
+  public readonly activeIndices: Uint32Array;
+  public activeCount: number = 0;
+  private readonly blockToActivePos: Int32Array;
 
   // Spatial / Transform arrays
   public readonly localX: Float32Array;
   public readonly localY: Float32Array;
   public readonly worldX: Float32Array;
   public readonly worldY: Float32Array;
-  public readonly rotation: Float32Array;       // World rotation (composed in radians)
-  public readonly localRotation: Float32Array;  // Rotation relative to ship
-  public readonly overlayRotation: Float32Array; // Rotation relative to ship, for turrets, etc.
+  public readonly rotation: Float32Array;
+  public readonly localRotation: Float32Array;
+  public readonly overlayRotation: Float32Array;
   public readonly hidden: Uint8Array;
 
   // Combat / State arrays
-  public readonly hp: Float32Array; // Current HP
-  public readonly armor: Float32Array;   // cached max HP for damage tier math
+  public readonly hp: Float32Array;
+  public readonly armor: Float32Array;
   public readonly destroyed: Uint8Array;
   public readonly indestructible: Uint8Array;
   public readonly cooldown: Float32Array;
@@ -37,48 +42,48 @@ export class BlockStore {
   public readonly targetingRange: Float32Array;
   public readonly fireTurningPower: Float32Array;
 
-  // Weapon Specific 
-  public readonly seekerForwardFire: Uint8Array; // 0 = false, 1 = true
+  // Weapon Specific
+  public readonly seekerForwardFire: Uint8Array;
 
-  // Ownership & Typing arrays
+  // Ownership & Typing
   public readonly ownerShipId: Float64Array;
-  public readonly ownerFaction: Uint8Array; // 1=Player, 2=Enemy, 3=Neutral
+  public readonly ownerFaction: Uint8Array;
   public readonly typeIndex: Int32Array;
 
-  // Movement arrays
-  public readonly thrustPower: Float32Array; // Thrust power (e.g. 5 for small engine, 10 for large engine)
-  public readonly canThrust: Uint8Array; // 1 = can thrust, 0 = cannot thrust
-  public readonly turnPower: Float32Array; // Turn power (e.g. 1 for small fin, 2 for large fin)
+  // Movement
+  public readonly thrustPower: Float32Array;
+  public readonly canThrust: Uint8Array;
+  public readonly turnPower: Float32Array;
 
-  // *** New cached BlockType attributes for SOA hot-path access ***
-  public readonly categoryCode: Uint8Array;    // Enum-mapped BlockCategory
-  public readonly subcategoryCode: Uint8Array; // Enum-mapped BlockSubcategory
-  public readonly dropRate: Float32Array;      // 0–1, drop chance
-  public readonly tier: Uint8Array;            // Tier (1–5 typically)
+  // Cached BlockType attributes
+  public readonly categoryCode: Uint8Array;
+  public readonly subcategoryCode: Uint8Array;
+  public readonly dropRate: Float32Array;
+  public readonly tier: Uint8Array;
 
-  // Shielding arrays
-  public readonly isShielded: Uint8Array; // 1 = shielded, 0 = not shielded
+  // Shielding
+  public readonly isShielded: Uint8Array;
   public readonly shieldEfficiency: Float32Array;
   public readonly shieldHighlightColor: Int32Array;
   public readonly shieldSourceId: Int32Array;
   public readonly shieldEnergyDrain: Float32Array;
   public readonly shieldRadius: Float32Array;
 
-  // Rendering color (RGBA packed as floats 0–1)
+  // Rendering color (RGBA floats 0–1)
   public readonly colorR: Float32Array;
   public readonly colorG: Float32Array;
   public readonly colorB: Float32Array;
   public readonly colorA: Float32Array;
 
-  // Per-frame culling mask (1 = visible, 0 = culled)
+  // Per-frame visibility (1 = visible)
   public readonly visible: Uint8Array;
 
-  // Texture atlas UVs (precomputed per block, so renderer can read directly)
+  // Texture atlas UVs
   public readonly uvBaseX: Float32Array;
   public readonly uvBaseY: Float32Array;
   public readonly uvOverlayX: Float32Array;
   public readonly uvOverlayY: Float32Array;
-  public readonly atlasKey: Int32Array;  // numeric key (usually typeIndex)
+  public readonly atlasKey: Int32Array;
 
   constructor(capacity: number) {
     if (capacity <= 0 || !Number.isInteger(capacity)) {
@@ -90,8 +95,12 @@ export class BlockStore {
     // Allocation tracking
     this.allocated = new Uint8Array(capacity);
 
-    // Preallocate arrays
-    // Spatial / Transform
+    // === New active-index tracking arrays ===
+    this.activeIndices = new Uint32Array(capacity);
+    this.blockToActivePos = new Int32Array(capacity).fill(-1);
+    this.activeCount = 0;
+
+    // Preallocate SOA arrays (unchanged from your original)
     this.localX = new Float32Array(capacity);
     this.localY = new Float32Array(capacity);
     this.worldX = new Float32Array(capacity);
@@ -101,14 +110,12 @@ export class BlockStore {
     this.overlayRotation = new Float32Array(capacity);
     this.hidden = new Uint8Array(capacity);
 
-    // Combat / State
     this.hp = new Float32Array(capacity);
     this.armor = new Float32Array(capacity).fill(0);
     this.destroyed = new Uint8Array(capacity);
     this.indestructible = new Uint8Array(capacity);
     this.cooldown = new Float32Array(capacity);
 
-    // Fire Attributes
     this.fireDamage = new Float32Array(capacity);
     this.fireRate = new Float32Array(capacity);
     this.fireAccuracy = new Float32Array(capacity);
@@ -119,26 +126,21 @@ export class BlockStore {
     this.targetingRange = new Float32Array(capacity);
     this.fireTurningPower = new Float32Array(capacity);
 
-    // Weapon Specific 
-    this.seekerForwardFire = new Uint8Array(capacity); // 0 = false, 1 = true
+    this.seekerForwardFire = new Uint8Array(capacity);
 
-    // Ownership & Typing
     this.ownerShipId = new Float64Array(capacity);
     this.ownerFaction = new Uint8Array(capacity);
     this.typeIndex = new Int32Array(capacity);
 
-    // Cached BlockType attributes
     this.categoryCode = new Uint8Array(capacity);
     this.subcategoryCode = new Uint8Array(capacity);
     this.dropRate = new Float32Array(capacity);
     this.tier = new Uint8Array(capacity);
 
-    // Thrusting
     this.thrustPower = new Float32Array(capacity);
     this.canThrust = new Uint8Array(capacity);
     this.turnPower = new Float32Array(capacity);
 
-    // Shielding
     this.isShielded = new Uint8Array(capacity);
     this.shieldEfficiency = new Float32Array(capacity);
     this.shieldHighlightColor = new Int32Array(capacity);
@@ -146,16 +148,13 @@ export class BlockStore {
     this.shieldEnergyDrain = new Float32Array(capacity);
     this.shieldRadius = new Float32Array(capacity);
 
-    // Rendering color defaults (white, opaque)
     this.colorR = new Float32Array(capacity).fill(1);
     this.colorG = new Float32Array(capacity).fill(1);
     this.colorB = new Float32Array(capacity).fill(1);
     this.colorA = new Float32Array(capacity).fill(1);
 
-    // Per-frame visibility (default visible)
     this.visible = new Uint8Array(capacity).fill(1);
 
-    // Texture atlas UVs
     this.uvBaseX = new Float32Array(capacity).fill(0);
     this.uvBaseY = new Float32Array(capacity).fill(0);
     this.uvOverlayX = new Float32Array(capacity).fill(-1);
@@ -166,14 +165,18 @@ export class BlockStore {
   }
 
   allocateIndex(): number {
+    let index: number;
     if (this.freeList.length > 0) {
-      const index = this.freeList.pop()!;
-      this.allocated[index] = 1;
-      return index;
+      index = this.freeList.pop()!;
+    } else {
+      if (this.count >= this.capacity) return -1;
+      index = this.count++;
     }
-    if (this.count >= this.capacity) return -1;
-    const index = this.count++;
     this.allocated[index] = 1;
+
+    // Add to active list
+    this.activeIndices[this.activeCount] = index;
+    this.blockToActivePos[index] = this.activeCount++;
     return index;
   }
 
@@ -181,9 +184,24 @@ export class BlockStore {
     if (index < 0 || index >= this.capacity) {
       throw new Error(`Invalid block index: ${index}`);
     }
+    if (!this.allocated[index]) return;
+
     this.allocated[index] = 0;
 
-    // Clear scalar fields (performance-friendly, avoids object churn)
+    // Remove from active list via swap-with-last (only affects list, not SOA data)
+    const pos = this.blockToActivePos[index];
+    const last = this.activeCount - 1;
+    if (pos >= 0 && pos < this.activeCount) {
+      if (pos !== last) {
+        const movedIdx = this.activeIndices[last];
+        this.activeIndices[pos] = movedIdx;
+        this.blockToActivePos[movedIdx] = pos;
+      }
+      this.activeCount--;
+      this.blockToActivePos[index] = -1;
+    }
+
+    // Reset all scalar fields (as before)...
     this.localX[index] = 0;
     this.localY[index] = 0;
     this.worldX[index] = 0;
@@ -192,12 +210,10 @@ export class BlockStore {
     this.localRotation[index] = 0;
     this.overlayRotation[index] = 0;
     this.hidden[index] = 0;
-
     this.hp[index] = 0;
     this.destroyed[index] = 0;
     this.indestructible[index] = 0;
     this.cooldown[index] = 0;
-
     this.fireDamage[index] = 0;
     this.fireRate[index] = 0;
     this.fireAccuracy[index] = 0;
@@ -207,37 +223,28 @@ export class BlockStore {
     this.explosionRadiusBlocks[index] = 0;
     this.targetingRange[index] = 0;
     this.fireTurningPower[index] = 0;
-
-    this.seekerForwardFire[index] = 0; // 0 = false, 1 = true
-
+    this.seekerForwardFire[index] = 0;
     this.ownerShipId[index] = 0;
     this.ownerFaction[index] = 0;
     this.typeIndex[index] = 0;
-
-    // Reset new cached fields
     this.categoryCode[index] = 0;
     this.subcategoryCode[index] = 0;
     this.dropRate[index] = 0;
     this.tier[index] = 0;
-
     this.thrustPower[index] = 0;
     this.canThrust[index] = 0;
     this.turnPower[index] = 0;
-
     this.isShielded[index] = 0;
     this.shieldEfficiency[index] = 0;
     this.shieldHighlightColor[index] = 0;
     this.shieldSourceId[index] = -1;
     this.shieldEnergyDrain[index] = 0;
     this.shieldRadius[index] = 0;
-
     this.colorR[index] = 1;
     this.colorG[index] = 1;
     this.colorB[index] = 1;
     this.colorA[index] = 1;
-
     this.visible[index] = 1;
-
     this.uvBaseX[index] = 0;
     this.uvBaseY[index] = 0;
     this.uvOverlayX[index] = -1;
@@ -256,7 +263,9 @@ export class BlockStore {
     this.count = 0;
     this.freeList.length = 0;
     this.allocated.fill(0);
-
+    this.activeCount = 0;
+    this.blockToActivePos.fill(-1);
+    // Zero all SOA arrays (same as your existing implementation)...
     this.localX.fill(0);
     this.localY.fill(0);
     this.worldX.fill(0);
@@ -265,12 +274,11 @@ export class BlockStore {
     this.localRotation.fill(0);
     this.overlayRotation.fill(0);
     this.hidden.fill(0);
-
     this.hp.fill(0);
+    this.armor.fill(0);
     this.destroyed.fill(0);
     this.indestructible.fill(0);
     this.cooldown.fill(0);
-
     this.fireDamage.fill(0);
     this.fireRate.fill(0);
     this.fireAccuracy.fill(0);
@@ -280,41 +288,32 @@ export class BlockStore {
     this.explosionRadiusBlocks.fill(0);
     this.targetingRange.fill(0);
     this.fireTurningPower.fill(0);
-
-    this.seekerForwardFire.fill(0); // 0 = false, 1 = true
-
+    this.seekerForwardFire.fill(0);
     this.ownerShipId.fill(0);
     this.ownerFaction.fill(0);
     this.typeIndex.fill(0);
-
     this.categoryCode.fill(0);
     this.subcategoryCode.fill(0);
     this.dropRate.fill(0);
     this.tier.fill(0);
-
     this.thrustPower.fill(0);
     this.canThrust.fill(0);
     this.turnPower.fill(0);
-
     this.isShielded.fill(0);
     this.shieldEfficiency.fill(0);
     this.shieldHighlightColor.fill(0);
     this.shieldSourceId.fill(-1);
     this.shieldEnergyDrain.fill(0);
     this.shieldRadius.fill(0);
-
     this.colorR.fill(1);
     this.colorG.fill(1);
     this.colorB.fill(1);
     this.colorA.fill(1);
-
+    this.visible.fill(1);
     this.uvBaseX.fill(0);
     this.uvBaseY.fill(0);
     this.uvOverlayX.fill(-1);
     this.uvOverlayY.fill(-1);
-    this.armor.fill(0);
     this.atlasKey.fill(-1);
-
-    this.visible.fill(1);
   }
 }

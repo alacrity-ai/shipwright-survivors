@@ -126,6 +126,8 @@ What's needed to get to Demo:
 
 TODOS:
 
+  - [ ] Remove all usages of getShipBlocksView (GC Heavy)
+
   - [ ] Remove background and polygon canvas
 
   - [ ] Turret weapon just feels weak. I think it's time to upgrade implicit weapons, and make it an insta super accurate machine gun on the turret ship.

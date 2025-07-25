@@ -6,7 +6,6 @@ import { destroyEntityExternally } from '@/core/interfaces/events/EntityReporter
 import type { Ship } from '@/game/ship/Ship';
 
 // src/shared/vectorUtils.ts
-
 export function getDistanceSquared(
   a: { x: number; y: number },
   b: { x: number; y: number }
@@ -43,12 +42,16 @@ export class GlobalEnemyCullingSystem {
     const py = playerPos.y;
 
     // === Spatial fetch: Nearby candidates (with buffer)
-    const fetchRadius = GlobalEnemyCullingSystem.CULL_RADIUS + GlobalEnemyCullingSystem.RADIUS_FETCH_PADDING;
-    const nearbyCandidates = this.shipGrid.getShipsInRadius(px, py, fetchRadius, playerFaction);
+    const fetchRadius =
+      GlobalEnemyCullingSystem.CULL_RADIUS +
+      GlobalEnemyCullingSystem.RADIUS_FETCH_PADDING;
+
+    const { ships: nearbyShips, count: nearbyCount } =
+      this.shipGrid.getShipsInRadius(px, py, fetchRadius, playerFaction);
 
     // === Distance-based culling
-    for (let i = 0; i < nearbyCandidates.length; i++) {
-      const ship = nearbyCandidates[i];
+    for (let i = 0; i < nearbyCount; i++) {
+      const ship = nearbyShips[i];
       if (ship.getIsPlayerShip()) continue;
       if (ship.hasTag?.('persistent')) continue;
 
@@ -64,13 +67,14 @@ export class GlobalEnemyCullingSystem {
     }
 
     // === Global cap enforcement
-    const allEnemies = this.shipGrid.getAllShips(playerFaction);
+    const { ships: allShips, count: allCount } =
+      this.shipGrid.getAllShips(playerFaction);
 
     let overflowShips: { ship: Ship; distSq: number }[] = [];
     let activeCount = 0;
 
-    for (let i = 0; i < allEnemies.length; i++) {
-      const ship = allEnemies[i];
+    for (let i = 0; i < allCount; i++) {
+      const ship = allShips[i];
       if (ship.getIsPlayerShip()) continue;
       if (ship.hasTag?.('persistent')) continue;
 

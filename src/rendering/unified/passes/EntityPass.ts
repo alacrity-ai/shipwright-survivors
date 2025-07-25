@@ -1,10 +1,8 @@
 // src/rendering/unified/passes/EntityPass.ts
 
 import type { Camera } from '@/core/Camera';
-import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/config/view';
 import { initializeUnifiedBlockAtlas } from '@/rendering/cache/BlockSpriteCache';
-import { entityFrameBudgetMs } from '@/config/graphicsConfig';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
 import entityFragSrc from '../shaders/entityPass.frag?raw';
@@ -29,7 +27,6 @@ export class EntityPass {
 
   private tileSize: [number, number];
 
-  private frameBudgetMs: number = entityFrameBudgetMs;
   private maxBlocks: number = MAX_BLOCKS_GL;
   private instanceBufferSize: number = INSTANCE_BUFFER_SIZE;
 
@@ -41,8 +38,7 @@ export class EntityPass {
   private dataIndex = 0;
 
   // Pre-allocated reusable objects to avoid allocations in hot paths
-  private readonly tempColor = { r: 0, g: 0, b: 0 };
-  private readonly tempTransform = { x: 0, y: 0, rotation: 0 };
+  private readonly uploadView: Float32Array;
 
   // SOA Block system
   private readonly blockManager: BlockManager;
@@ -61,12 +57,14 @@ export class EntityPass {
     uTileSize: WebGLUniformLocation | null;
   };
 
-  constructor(
-    gl: WebGL2RenderingContext,
-    private readonly inputManager?: InputManager
-  ) {
+  constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
     this.program = createProgramFromSources(gl, entityVertSrc, entityFragSrc);
+
+    // Preallocate backing Float32Array for all possible instances
+    this.instanceData = new Float32Array(INSTANCE_BUFFER_SIZE);
+    // Persistent view over the same ArrayBuffer (avoids per-frame subarray allocations)
+    this.uploadView = new Float32Array(this.instanceData.buffer);
 
     this.blockManager = BlockManager.getInstance();
     this.blockStore = this.blockManager.getBlockStore();
@@ -100,7 +98,7 @@ export class EntityPass {
     // ── Instanced Block Data ──
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
 
-    const stride = 12 * 4;
+    const stride = FLOATS_PER_INSTANCE * 4; // 48 bytes per instance
     let offset = 0;
 
     // location = 1 → vec2 aPos
@@ -143,9 +141,13 @@ export class EntityPass {
     gl.enableVertexAttribArray(7);
     gl.vertexAttribPointer(7, 1, gl.FLOAT, false, stride, offset);
     gl.vertexAttribDivisor(7, 1);
-    // Total: 12 floats = 48 bytes
 
     gl.bindVertexArray(null);
+
+    // Allocate the GPU buffer to full capacity once (no per-frame orphaning)
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, INSTANCE_BUFFER_SIZE * 4, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // ─── Uniforms ──────────────────────────────────────────────────────────
     this.uniforms = {
@@ -160,10 +162,6 @@ export class EntityPass {
       uBlockAtlas: gl.getUniformLocation(this.program, 'uBlockAtlas'),
       uTileSize: gl.getUniformLocation(this.program, 'uTileSize'),
     };
-  }
-
-  setFrameBudget(ms: number): void {
-    this.frameBudgetMs = ms;
   }
 
   /**
@@ -235,11 +233,13 @@ export class EntityPass {
     gl.uniform1i(this.uniforms.uBlockAtlas, 0);
     gl.uniform2f(this.uniforms.uTileSize, this.tileSize[0], this.tileSize[1]);
 
-    // ─── Iterate through BlockStore directly ─────────────────────────────────
-    const capacity = blockStore.capacity;
-    for (let idx = 0; idx < capacity; idx++) {
-      if (!blockStore.isAllocated(idx)) continue;
-      if (blockStore.visible[idx] === 0 || blockStore.hidden[idx] === 1) continue; // Should this check be handled on the shader side to be faster?
+    // ─── Iterate through *only allocated* blocks via activeIndices ──────────
+    const { activeIndices, activeCount } = blockStore;
+    for (let i = 0; i < activeCount; i++) {
+      const idx = activeIndices[i];
+
+      // Dynamic culling
+      if (blockStore.visible[idx] === 0 || blockStore.hidden[idx] === 1) continue;
 
       const worldX = blockStore.worldX[idx];
       const worldY = blockStore.worldY[idx];
@@ -256,18 +256,22 @@ export class EntityPass {
       const b = blockStore.colorB[idx];
       const useColor = 1;
 
-      // Always draw the base
-      this.addInstanceData(worldX, worldY, rotation,
+      // Base sprite
+      this.addInstanceData(
+        worldX, worldY, rotation,
         baseUVX, baseUVY,
         0, 0, 0,
-        r, g, b, useColor);
+        r, g, b, useColor
+      );
 
-      // If overlay exists, draw it separately
+      // Overlay (draw as separate instance if present)
       if (useOverlay) {
-        this.addInstanceData(worldX, worldY, rotation,
+        this.addInstanceData(
+          worldX, worldY, rotation,
           0, 0,
           overlayUVX, overlayUVY, 1,
-          r, g, b, useColor);
+          r, g, b, useColor
+        );
       }
     }
 
@@ -281,8 +285,15 @@ export class EntityPass {
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-    const usedData = this.instanceData.subarray(0, this.dataIndex);
-    gl.bufferData(gl.ARRAY_BUFFER, usedData, gl.DYNAMIC_DRAW);
+
+    // Stream data without allocating a subarray
+    gl.bufferSubData(
+      gl.ARRAY_BUFFER,
+      0,
+      this.uploadView,
+      0,
+      this.dataIndex
+    );
 
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.instanceCount);
 

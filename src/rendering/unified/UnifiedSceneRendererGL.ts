@@ -2,7 +2,6 @@
 
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
-import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
 import { initializeDigitAtlas } from '@/rendering/cache/DigitAtlas';
@@ -107,7 +106,7 @@ export class UnifiedSceneRendererGL {
     this.cloudPassFront = new CloudPass(this.gl);
     this.planetPass = new PlanetPass(this.gl);
     this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
-    this.entityPass = new EntityPass(this.gl, this.inputManager);
+    this.entityPass = new EntityPass(this.gl);
     this.spritePass = new SpritePass(this.gl, this.cameraUBO);
     this.specialFxPass = new SpecialFxPass(this.gl, this.cameraUBO);
     this.particlePass = new ParticlePass(this.gl, this.cameraUBO);

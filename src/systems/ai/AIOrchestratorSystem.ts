@@ -261,11 +261,14 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
     // === 2. Reevaluate relevance every REEVALUATE_FRAMES ===
     if (this.frameCounter++ % this.REEVALUATE_FRAMES === 0) {
       const playerPos = this.playerShip.getTransform().position;
-      const nearbyShips = ShipGrid.getInstance().getShipsInRadius(
-        playerPos.x,
-        playerPos.y,
-        SCAN_RADIUS
-      );
+
+      // Updated: ShipGrid returns { ships, count }
+      const { ships: nearbyShips, count: nearbyCount } =
+        ShipGrid.getInstance().getShipsInRadius(
+          playerPos.x,
+          playerPos.y,
+          SCAN_RADIUS
+        );
 
       // Start with everyone culled (1)
       for (let i = 0; i < this.intents.count; i++) {
@@ -281,7 +284,8 @@ export class AIOrchestratorSystem implements IUpdatable, CullabilityDelegate {
       }
 
       // Un-cull any ships near the player
-      for (const ship of nearbyShips) {
+      for (let i = 0; i < nearbyCount; i++) {
+        const ship = nearbyShips[i];
         const controller = this.shipIdToControllerMap.get(ship.id);
         if (controller) {
           const idx = controller.getSOAIndex();

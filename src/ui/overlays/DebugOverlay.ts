@@ -73,8 +73,6 @@ export class DebugOverlay {
     drawLabel(ctx, x, y, `Mouse (virtual): ${virtualMouseX.toFixed(0)}, ${virtualMouseY.toFixed(0)}`); y += lineHeight;
 
     const shipCount = this.shipRegistry.count();
-    const visibleShips = ShipGrid.getInstance().getShipsInCameraView(0).length;
-    const activeAIShips = ShipGrid.getInstance().getShipsInCameraView(2000).length;
 
     const compositeBlockObjectsInGrid = this.objectGrid.getAllObjects();
 
@@ -101,8 +99,6 @@ export class DebugOverlay {
 
     // === Render Metrics ===
     drawLabel(ctx, x, y, `Ships: ${shipCount}`); y += lineHeight;
-    drawLabel(ctx, x, y, `Visible Ships: ${visibleShips}`); y += lineHeight;
-    drawLabel(ctx, x, y, `Active AI Ships (2000): ${activeAIShips}`); y += lineHeight;
     drawLabel(ctx, x, y, `Enemy Power: ${enemyPower}`); y += lineHeight;
     drawLabel(ctx, x, y, `Formation: ${inFormation} (Leaders: ${formationLeaders}, Followers: ${formationFollowers})`); y += lineHeight;
     drawLabel(ctx, x, y, `Composite Block Objects: ${compositeBlockObjectsInGrid.length}`); y += lineHeight;
