@@ -21,12 +21,12 @@ export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
 };
 
 export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
-  turret0: ['#ffff88', '#ffaa00', '#ffcc33'],
-  turret1: ['#ff8888', '#ff3333', '#ffaaaa'], // alt red-orange
-  turret2: ['#88ff88', '#33dd33', '#aaffaa'], // green
-  turret3: ['#88ccff', '#3399ff', '#66ddff'], // blue
-  turret4: ['#cc88ff', '#9933ff', '#ddaaff'], // purple
-  turret5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
+  0: ['#ffff88', '#ffaa00', '#ffcc33'],
+  1: ['#ff8888', '#ff3333', '#ffaaaa'], // alt red-orange
+  2: ['#88ff88', '#33dd33', '#aaffaa'], // green
+  3: ['#88ccff', '#3399ff', '#66ddff'], // blue
+  4: ['#cc88ff', '#9933ff', '#ddaaff'], // purple
+  5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const LASER_BEAM_COLORS: Record<string, string[]> = {
@@ -54,12 +54,12 @@ export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
 };
 
 export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {
-  explosiveLance0: ['#ffcc00', '#ff6600', '#cc2200'], // fiery orange
-  explosiveLance1: ['#ffcc00', '#ff6600', '#cc2200'], // fiery orange
-  explosiveLance2: ['#aaffaa', '#66dd66', '#228822'], // verdant green
-  explosiveLance3: ['#ccccff', '#9999ff', '#4444aa'], // lavender/blue
-  explosiveLance4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
-  explosiveLance5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
+  0: ['#ffcc00', '#ff6600', '#cc2200'], // fiery orange
+  1: ['#ffcc00', '#ff6600', '#cc2200'], // fiery orange
+  2: ['#aaffaa', '#66dd66', '#228822'], // verdant green
+  3: ['#ccccff', '#9999ff', '#4444aa'], // lavender/blue
+  4: ['#ff66cc', '#ff3399', '#990066'], // pink/magenta
+  5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const BLOCK_PICKUP_LIGHT_TIER_COLORS: Record<number, string> = {

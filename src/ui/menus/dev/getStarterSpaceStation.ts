@@ -1,6 +1,5 @@
 // src/game/entities/factories/getStarterSpaceStation.ts
 
-import type { Grid } from '@/systems/physics/Grid';
 import { SpaceStation } from '@/game/entities/SpaceStation';
 
 export function getStarterSpaceStation(): SpaceStation {

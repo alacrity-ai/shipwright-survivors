@@ -333,11 +333,9 @@ export class Ship extends CompositeBlockObject {
     return this.afterburnerComponent?.getAccelerationMultiplier() ?? 1;
   }
 
-  // Returns true if the ship has engines and has ever had engines
-  // NOTE: If the ship never had engines, this will also return true
+  // Returns true only if the ship originally had engines (not a station)
   public getHasAtleastOneOriginalEngine(): boolean {
-    if (!this.hadEngines) return true;
-    return this.engineBlocks.size > 0 && this.hadEngines;
+    return this.hadEngines;  // True if engines were present at spawn
   }
 
   public hasAnyActiveEngine(): boolean {

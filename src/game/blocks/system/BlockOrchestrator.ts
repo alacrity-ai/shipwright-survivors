@@ -8,6 +8,9 @@ import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 import { BlockTypesByIndex } from '@/game/blocks/BlockRegistry';
 import { BlockCategoryEnum, BlockSubcategoryEnum } from '@/game/interfaces/types/BlockType'
 
+import type { GridCoord } from '@/game/interfaces/types/GridCoord';
+import { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
+
 
 const BLOCK_SIZE = 32;
 
@@ -71,6 +74,10 @@ export class BlockOrchestrator {
   private static readonly INITIAL_SHIP_CAPACITY = 32;
   // Maximum blocks per ship (should not exceed BlockStore capacity)
   private static readonly MAX_SHIP_BLOCKS = 1000;
+
+  // Dedicated scratch buffer for AoE grid-distance queries
+  private static readonly SCRATCH_BLOCKS_GRID_DISTANCE = new Uint32Array(2048);
+  private scratchCountBlocksGridDistance = 0;
 
   constructor(store: BlockStore, grid: BlockSpatialGrid, registry?: BlockRegistry) {
     this.store = store;
@@ -158,6 +165,10 @@ export class BlockOrchestrator {
     s.explosionDamage[index] = blockType?.behavior?.fire?.explosionDamage ?? 0;
     s.explosionRadiusBlocks[index] = blockType?.behavior?.fire?.explosionRadiusBlocks ?? 0;
     s.targetingRange[index] = blockType?.behavior?.fire?.targetingRange ?? 0;
+    s.fireTurningPower[index] = blockType?.behavior?.fire?.turningPower ?? 0;
+
+    // Weapon specific
+    s.seekerForwardFire[index] = blockType?.behavior?.fire?.seekerForwardFire ? 1 : 0;
 
     // UV offsets for rendering
     const damageLevel = getDamageLevel(initialHp, blockTypeArmor);
@@ -178,6 +189,30 @@ export class BlockOrchestrator {
     s.worldY[index] = params.localY;
 
     return index;
+  }
+
+  /** 
+   * Updates the damage UV for a block. Assumes `armor` and `atlasKey` were pre-populated when the block was created.
+   */
+  updateDamageUV(blockIndex: number): void {
+    const s = this.store;
+
+    // Skip unallocated or invalid atlas keys
+    if (!s.isAllocated(blockIndex) || s.atlasKey[blockIndex] < 0) {
+      return;
+    }
+
+    const hp = s.hp[blockIndex];
+    const armor = s.armor[blockIndex];
+
+    // Clamp to avoid NaN if armor is 0
+    const damageLevel = getDamageLevel(Math.max(0, hp), Math.max(1, armor));
+    const atlasUV = getBlockAtlasUVOffset(s.atlasKey[blockIndex], damageLevel);
+
+    s.uvBaseX[blockIndex] = atlasUV.baseUV[0];
+    s.uvBaseY[blockIndex] = atlasUV.baseUV[1];
+    s.uvOverlayX[blockIndex] = atlasUV.overlayUV?.[0] ?? -1;
+    s.uvOverlayY[blockIndex] = atlasUV.overlayUV?.[1] ?? -1;
   }
 
   /**
@@ -353,6 +388,41 @@ export class BlockOrchestrator {
    */
   getShipBlockCount(shipId: number): number {
     return this.shipBlockCounts.get(shipId) ?? 0;
+  }
+
+  /**
+   * Gets all block indices within a grid distance of a center coordinate for a specific composite block object.
+   * @param compositeBlockObject Target object
+   * @param centerCoord Center coordinate
+   * @param radius Grid distance radius
+   * @returns Array of block indices
+   */
+  getBlocksWithinGridDistanceForCompositeBlockObject(
+    compositeBlockObject: CompositeBlockObject,
+    centerCoord: GridCoord,
+    radius: number
+  ): Uint32Array {
+    const store = this.store;
+    const indices = compositeBlockObject.getAllBlockIndices();
+
+    this.scratchCountBlocksGridDistance = 0;
+
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+
+      const dx = Math.abs(store.localX[idx] - centerCoord.x);
+      const dy = Math.abs(store.localY[idx] - centerCoord.y);
+      const gridDistance = Math.max(dx, dy);
+
+      if (gridDistance <= radius) {
+        BlockOrchestrator.SCRATCH_BLOCKS_GRID_DISTANCE[this.scratchCountBlocksGridDistance++] = idx;
+      }
+    }
+
+    return BlockOrchestrator.SCRATCH_BLOCKS_GRID_DISTANCE.subarray(
+      0,
+      this.scratchCountBlocksGridDistance
+    );
   }
 
   /**

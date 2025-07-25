@@ -51,6 +51,7 @@ export const BlockSubcategoryEnum = {
   HeatSeeker: 11,
   FlameThrower: 12,
   Fuel: 13,
+  Cockpit: 14
 } as const;
 
 export type BlockSubcategoryCode = typeof BlockSubcategoryEnum[keyof typeof BlockSubcategoryEnum];

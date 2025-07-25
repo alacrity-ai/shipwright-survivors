@@ -5,16 +5,18 @@ import { BLOCK_SIZE } from '@/config/view';
 import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
 import { SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-
+import { BlockOrchestrator } from '@/game/blocks/system/BlockOrchestrator';
 import { hexToRgbaVec4, packColorToInt } from '@/rendering/unified/helpers/hexToRgbaVec4';
 
 export class ShieldComponent {
   private active = false;
   private ownerShip: Ship;
   private protectedBlocks = new Set<number>(); // BlockStore indices
+  private orchestrator: BlockOrchestrator;
 
   constructor(ownerShip: Ship) {
     this.ownerShip = ownerShip;
+    this.orchestrator = BlockManager.getInstance().getBlockOrchestrator();
   }
 
   /** Recomputes shield coverage from all registered emitters */
@@ -60,7 +62,7 @@ export class ShieldComponent {
       const centerCoord = { x: ex, y: ey };
 
       // Query blocks within the grid radius
-      const coveredIndices = this.ownerShip.getBlocksWithinGridDistance(centerCoord, gridRadius);
+      const coveredIndices = this.orchestrator.getBlocksWithinGridDistanceForCompositeBlockObject(this.ownerShip, centerCoord, gridRadius);
 
       for (const idx of coveredIndices) {
         this.protectedBlocks.add(idx);

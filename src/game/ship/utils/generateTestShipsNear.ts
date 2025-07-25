@@ -2,7 +2,6 @@
 
 import { Ship } from '@/game/ship/Ship';
 import type { ShipRegistry } from '@/game/ship/ShipRegistry';
-import type { Grid } from '@/systems/physics/Grid';
 
 /**
  * Spawns N small ships in a radial pattern around a central position.
@@ -13,7 +12,6 @@ export function generateTestShipsNear(
   registry: ShipRegistry,
   count: number = 6,
   radius: number = 300,
-  grid: Grid
 ): void {
   const angleStep = (2 * Math.PI) / count;
 

@@ -7,13 +7,13 @@ import type { WeaponIntent } from '@/core/intent/interfaces/WeaponIntent';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
-import type { Grid } from '@/systems/physics/Grid';
 import type { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import type { ExtraDamageOptions } from '@/systems/combat/CombatService';
 
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+import { BlockOrchestrator } from '@/game/blocks/system/BlockOrchestrator';
+import { BlockSubcategoryEnum } from '@/game/interfaces/types/BlockType';
 
 import { Ship } from '@/game/ship/Ship';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
@@ -23,13 +23,13 @@ import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
 
 import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { EXPLOSIVE_LANCE_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
-import { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
 import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { createPointLight } from '@/lighting/lights/createPointLight';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 
+const DETONATION_DELAY = 1.5;
 
 export interface ActiveExplosiveLance {
   /** Current world-space position of the lance projectile */
@@ -70,8 +70,8 @@ export interface ActiveExplosiveLance {
   emissionAccumulatorTrail: number;
   /** Particle emission accumulator for when stuck */
   emissionAccumulatorStuck: number;
-  /** Block type ID of the firing block (for color palette lookups) */
-  firingBlockId: string;
+  /** Block's tier (for color palette lookups) */
+  firingBlockTier: number;
   /** Associated light ID (if any) for point light visuals */
   lightId: number | null;
   /** Internal timer for radiate effects (if applicable) */
@@ -82,6 +82,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
   private activeLances: ActiveExplosiveLance[] = [];
   private lightingOrchestrator: LightingOrchestrator;
   private store: BlockStore;
+  private orchestrator: BlockOrchestrator;
 
   constructor(
     private readonly combatService: CombatService,
@@ -89,15 +90,18 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     private readonly projectileSystem: ProjectileSystem
   ) {
     this.store = BlockManager.getInstance().getBlockStore();
+    this.orchestrator = BlockManager.getInstance().getBlockOrchestrator();
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
   }
 
   update(dt: number, ship: Ship, transform: BlockEntityTransform, intent: WeaponIntent | null): void {
-    const plan = ship.getFiringPlan().filter(entry => {
-      const typeIdx = this.store.typeIndex[entry.blockIndex];
-      const type = getBlockTypeByIndex(typeIdx);
-      return type?.behavior?.fire?.fireType === 'explosiveLance';
-    });
+    const store = this.store;
+
+    // Filter firing plan by SOA subcategory (no BlockType dereferencing)
+    const plan = ship.getFiringPlan().filter(entry =>
+      store.subcategoryCode[entry.blockIndex] === BlockSubcategoryEnum.ExplosiveLance
+    );
+
     if (plan.length === 0) return;
 
     const target = intent?.aimAt;
@@ -116,14 +120,20 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       const lance = plan[i];
       lance.timeSinceLastShot += dt;
 
+      // Check cooldown relative to bonuses
       if (!fireRequested || lance.timeSinceLastShot < lance.fireCooldown / fireRateBonus) continue;
       lance.timeSinceLastShot = 0;
 
-      const typeIdx = this.store.typeIndex[lance.blockIndex];
-      const type = getBlockTypeByIndex(typeIdx)!;
-      const fire = type.behavior!.fire!;
+      const idx = lance.blockIndex;
 
-      const lifetime = fire.lifetime! + (explosiveLanceRange * 0.001);
+      // Pull pre-flattened fire attributes from SOA (no registry lookup)
+      const lifetime = store.projectileLifetime[idx] + (explosiveLanceRange * 0.001);
+      const fireDamage = store.fireDamage[idx];
+      const explosionDamage = (store.explosionDamage[idx] * totalDamageBonus) + explosiveLanceDamage;
+      const explosionRadius = (store.explosionRadiusBlocks[idx] || 2) * radiusBonus;
+      const projectileSpeed = store.projectileSpeed[idx] || 300;
+      const detonationDelay = DETONATION_DELAY;
+
       const { x: cx, y: cy } = lance.coord;
 
       const cos = Math.cos(transform.rotation);
@@ -139,18 +149,21 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       if (mag === 0) continue;
 
       let angle = Math.atan2(dy, dx);
-      const spread = (1 - (fire.accuracy ?? 1)) * Math.PI / 8;
+      const accuracy = 1; // store doesn’t currently flatten accuracy; default to 1 (perfect) unless you add it
+      const spread = (1 - accuracy) * Math.PI / 8;
       angle += (Math.random() * 2 - 1) * spread;
 
-      const vx = Math.cos(angle) * (fire.projectileSpeed ?? 300);
-      const vy = Math.sin(angle) * (fire.projectileSpeed ?? 300);
+      const vx = Math.cos(angle) * projectileSpeed;
+      const vy = Math.sin(angle) * projectileSpeed;
 
-      const colors = EXPLOSIVE_LANCE_COLOR_PALETTES[type.id] ?? ['#ccc', '#aaa', '#888'];
+      // Color palette keyed by typeIndex (atlas key) rather than BlockType
+      const colors = EXPLOSIVE_LANCE_COLOR_PALETTES[store.atlasKey[idx]] ?? ['#ccc', '#aaa', '#888'];
+
       const particleHandle = this.particleManager.emitParticleWithHandle({ x: worldX, y: worldY }, {
         colors,
         baseSpeed: 0,
         sizeRange: [4, 4],
-        lifeRange: [fire.lifetime ?? 1.5, (fire.lifetime ?? 1.5) + 0.1],
+        lifeRange: [store.projectileLifetime[idx], store.projectileLifetime[idx] + 0.1],
         velocity: { x: vx, y: vy },
       });
 
@@ -177,13 +190,13 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       this.activeLances.push({
         position: { x: worldX, y: worldY },
         velocity: { x: vx, y: vy },
-        fireDamage: fire.fireDamage ?? 10,
-        explosionDamage: (fire.explosionDamage! * totalDamageBonus) + explosiveLanceDamage,
-        explosionRadius: (fire.explosionRadiusBlocks ?? 2) * radiusBonus,
-        detonationDelay: fire.detonationDelayMs! / 1000,
+        fireDamage,
+        explosionDamage,
+        explosionRadius,
+        detonationDelay,
         elapsed: 0,
         stuck: false,
-        targetBlockIndex: null, // will replace with index later
+        targetBlockIndex: null,
         targetShip: null,
         coord: null,
         ownerShipId: ship.numericId,
@@ -193,7 +206,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         age: 0,
         emissionAccumulatorTrail: 0,
         emissionAccumulatorStuck: 0,
-        firingBlockId: type.id,
+        firingBlockTier: store.tier[idx], // Use tier for color lookups
         lightId,
       });
     }
@@ -210,13 +223,13 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     } = ship.getSkillEffects();
 
     const grid = BlockManager.getInstance().getBlockSpatialGrid();
-    const store = this.store; // already cached in constructor
+    const store = this.store; // cached in constructor
 
     for (const lance of this.activeLances) {
       lance.age += dt;
 
-      // Emit trail particles while in flight
-      const trailColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#ccc', '#aaa', '#888'];
+      // Use tier-based palette for trails
+      const trailColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ?? ['#ccc', '#aaa', '#888'];
       lance.emissionAccumulatorTrail += dt * 20;
       const trailCount = Math.floor(lance.emissionAccumulatorTrail);
       lance.emissionAccumulatorTrail -= trailCount;
@@ -230,14 +243,14 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         });
       }
 
-      // Remove if expired (only if free-flying)
+      // Expire free-flying lances
       if (lance.age > lance.ttl && !lance.stuck) {
         this.particleManager.killParticle(lance.particleHandle);
         exploded.add(lance);
         continue;
       }
 
-      // Handle stuck lances (attached to a ship block)
+      // Handle stuck lances
       if (lance.stuck) {
         if (lance.targetShip && lance.anchorOffset) {
           const shipPos = lance.targetShip.getTransform().position;
@@ -261,7 +274,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         lance.emissionAccumulatorStuck += dt * 20;
         const stuckCount = Math.floor(lance.emissionAccumulatorStuck);
         lance.emissionAccumulatorStuck -= stuckCount;
-        const stuckColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ?? ['#ccc', '#aaa', '#888'];
+        const stuckColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ?? ['#ccc', '#aaa', '#888'];
         for (let i = 0; i < stuckCount; i++) {
           this.particleManager.emitParticle(lance.position, {
             colors: stuckColors,
@@ -280,7 +293,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         continue;
       }
 
-      // Free-flying: update position
+      // Update free-flight motion
       lance.position.x += lance.velocity.x * dt;
       lance.position.y += lance.velocity.y * dt;
 
@@ -291,8 +304,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         });
       }
 
-      // Broad-phase query using BlockSpatialGrid
-      const queryRadius = 32; // approximate collision range
+      // Broad-phase collision query
+      const queryRadius = 32;
       const hits = grid.getBlocksInArea(
         lance.position.x - queryRadius,
         lance.position.y - queryRadius,
@@ -308,9 +321,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         const by = store.worldY[idx];
         const dx = lance.position.x - bx;
         const dy = lance.position.y - by;
-        if (dx * dx + dy * dy >= queryRadius * queryRadius) continue; // skip if outside radius
+        if (dx * dx + dy * dy >= queryRadius * queryRadius) continue;
 
-        // Get owning object and block coord for damage context
+        // Resolve owning object and block coordinates
         const compositeBlockObject = findObjectByBlock(idx);
         const coord = compositeBlockObject
           ? findBlockCoordinatesInObject(idx, compositeBlockObject)
@@ -320,14 +333,13 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           continue;
         }
 
-        // Attach lance to target
+        // Attach lance to target ship/block
         lance.stuck = true;
         lance.radiateTimer = 0;
         lance.targetBlockIndex = idx;
         lance.targetShip = compositeBlockObject;
         lance.coord = coord;
 
-        // Apply electrocution effect if skill is active
         if (explosiveLanceElectrocution && compositeBlockObject instanceof Ship) {
           compositeBlockObject.addStatusEffect('electrocuted', 8, ship, 1);
         }
@@ -356,7 +368,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         }
         shakeCamera(6, 0.16, 10, 'explosiveLance');
 
-        // Deal direct impact damage
+        // Deal impact damage
         const destroyed = this.combatService.applyDamageToBlock(
           compositeBlockObject,
           ship,
@@ -374,38 +386,40 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       }
     }
 
-    // Clean up detonated/expired lances
+    // Remove detonated or expired lances
     this.activeLances = this.activeLances.filter(l => !exploded.has(l));
   }
 
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship, lifeSteal?: boolean): void {
-    // Remove visuals
+    // Remove visual effects
     if (lance.lightId) {
       this.lightingOrchestrator.removeLight(lance.lightId);
     }
     this.particleManager.killParticle(lance.particleHandle);
 
+    // Use tier-based palette (flattened at creation time)
     const colorPalette =
-      EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??
+      EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ??
       ['#cccccc', '#aaaaaa', '#888888'];
 
-    // Emit secondary projectile burst
+    // Emit secondary projectile burst (16-way radial by default)
     this.emitProjectileBurst(ship, lance, 16);
 
-    // Flash at impact (fallback if targetShip is gone)
+    // Flash at impact point (fallback to projectile pos if target ship is gone)
     const flashX = lance.targetShip?.getTransform().position.x ?? lance.position.x;
     const flashY = lance.targetShip?.getTransform().position.y ?? lance.position.y;
     emitDefaultFlames(flashX, flashY, lance.explosionRadius * 24, 0.8, true, 1, colorPalette[0]);
 
-    // Apply AoE damage if targetShip is alive
+    // Apply AoE damage if the target ship is still alive
     if (lance.targetShip && lance.coord && !lance.targetShip.isDestroyed()) {
-      // Now returns a Uint32Array of block indices
-      const blockIndices = lance.targetShip.getBlocksWithinGridDistance(
-        lance.coord,
+      // This returns a Uint32Array of block indices (no objects)
+      const blockIndices = this.orchestrator.getBlocksWithinGridDistanceForCompositeBlockObject(
+        lance.targetShip, 
+        lance.coord, 
         lance.explosionRadius
       );
 
-      const store = this.store; // BlockStore reference (already available on class)
+      const store = this.store; // Already cached at class level
       const options: ExtraDamageOptions = {
         repairOrbDropRateMulti: lifeSteal ? 0.3 : 0,
         hideExplosionParticlesOnHit: false,
@@ -414,38 +428,44 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       for (let i = 0; i < blockIndices.length; i++) {
         const blockIndex = blockIndices[i];
 
-        // Look up local coord for correct explosion text/effects
+        // Compute local grid coordinate for damage text and hit effects
         const coord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
 
         this.combatService.applyDamageToBlock(
           lance.targetShip,
           ship,
-          blockIndex,          // Pass block index, not BlockInstance
+          blockIndex,          // SOA index
           coord,               // Local grid coord
           lance.explosionDamage,
           'explosiveLanceAoE',
-          true,                // lightFlash
-          0,                   // baseCritChance
-          1.5,                 // baseCritMultiplier
+          true,                // Flash effect
+          0,                   // Base crit chance
+          1.5,                 // Base crit multiplier
           options
         );
 
-        // Hide particles after the first hit
+        // Only show explosion particles on the first block hit
         options.hideExplosionParticlesOnHit = true;
       }
     }
   }
 
-  private emitProjectileBurst(ship: Ship, lance: ActiveExplosiveLance, quantity: number = 16, speed: number = 1600): void {
+  private emitProjectileBurst(
+    ship: Ship,
+    lance: ActiveExplosiveLance,
+    quantity: number = 16,
+    speed: number = 1600
+  ): void {
+    // Palette lookup is now tier-based
     const colorPalette =
-      EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockId] ??
+      EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ??
       ['#cccccc', '#aaaaaa', '#888888'];
 
     const origin = { x: lance.position.x, y: lance.position.y };
     const damage = lance.explosionDamage;
     const life = 1.2;
 
-    // Emit radial projectiles
+    // Emit radial projectiles evenly spaced around a full circle
     const initialAngle = Math.random() * Math.PI * 2;
     for (let i = 0; i < quantity; i++) {
       const angle = initialAngle + (i / quantity) * Math.PI * 2;
@@ -456,17 +476,18 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         origin,
         { x: vx, y: vy },
         PROJECTILE_TYPE_TO_INDEX['explosiveLance'],
-        damage * 2,
+        damage * 2,            // Double damage for burst projectiles
         life,
-        1,
+        1,                      // Scale factor
         ship.numericId,
         FACTION_TO_INDEX[ship.getFaction()],
-        colorPalette,
-        'delayed',
+        colorPalette,           // Tier-based color set
+        'delayed',              // Projectile behavior preset
         false,
         true
       );
 
+      // Prevent the spawned projectiles from instantly colliding with the ship
       if (lance.targetShip) {
         projectile.hitShipIds.add(lance.targetShip.id);
       }

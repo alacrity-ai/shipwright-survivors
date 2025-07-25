@@ -28,7 +28,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     sprite: 'cockpit0',
     category: 'system',
-    subcategory: 'system',
+    subcategory: 'turret',
     dropRate: 0,
     metatags: ['cockpit']
   },
@@ -53,7 +53,7 @@ const blockTypes: Record<string, BlockType> = {
     },
     sprite: 'cockpit1',
     category: 'system',
-    subcategory: 'system',
+    subcategory: 'turret',
     dropRate: 0,
     metatags: ['cockpit']
   },
@@ -257,7 +257,7 @@ const blockTypes: Record<string, BlockType> = {
       } 
     },
     category: 'system',
-    subcategory: 'system',
+    subcategory: 'turret',
     dropRate: 0.2,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret']

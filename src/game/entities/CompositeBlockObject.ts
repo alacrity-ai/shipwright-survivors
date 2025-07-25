@@ -226,37 +226,6 @@ export abstract class CompositeBlockObject {
     return { x: store.localX[idx], y: store.localY[idx] };
   }
 
-  public getBlocksWithinGridDistance(centerCoord: GridCoord, distance: number): Uint32Array {
-    const store = this.blockManager.getBlockStore();
-    const grid = this.blockManager.getBlockSpatialGrid();
-    
-    // Compute an approximate world-space bounding box around the query
-    // (Assuming each grid cell is BLOCK_SIZE in size, typically 32px)
-    const BLOCK_SIZE = 32; 
-    const minX = (centerCoord.x - distance - 1) * BLOCK_SIZE;
-    const maxX = (centerCoord.x + distance + 1) * BLOCK_SIZE;
-    const minY = (centerCoord.y - distance - 1) * BLOCK_SIZE;
-    const maxY = (centerCoord.y + distance + 1) * BLOCK_SIZE;
-
-    // Broad-phase: get candidate block indices in the area
-    const candidates = grid.getBlocksInArea(minX, minY, maxX, maxY);
-
-    // Narrow-phase: filter by actual grid distance (local coords)
-    const results: number[] = [];
-    for (let i = 0; i < candidates.length; i++) {
-      const idx = candidates[i];
-      const dx = Math.abs(store.localX[idx] - centerCoord.x);
-      const dy = Math.abs(store.localY[idx] - centerCoord.y);
-      const gridDistance = Math.max(dx, dy);
-
-      if (gridDistance <= distance) {
-        results.push(idx);
-      }
-    }
-
-    return Uint32Array.from(results);
-  }
-
   public hideAllBlocks(): void {
     const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
     const store = this.blockManager.getBlockStore();

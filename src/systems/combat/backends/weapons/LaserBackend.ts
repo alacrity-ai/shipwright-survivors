@@ -36,7 +36,7 @@ import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/Ship
 
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+import { BlockSubcategoryEnum } from '@/game/interfaces/types/BlockType';
 
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -83,21 +83,19 @@ export class LaserBackend implements WeaponBackend {
 
     const store = this.store;
 
-    // ─── Filter only laser-emitter blocks (via BlockStore) ──────────────────────
-    const firingPlan = ship.getFiringPlan().filter(entry => {
-      const typeIdx = store.typeIndex[entry.blockIndex];
-      const type = getBlockTypeByIndex(typeIdx);
-      return type?.behavior?.fire?.fireType === 'laser';
-    });
+    // ─── Filter only laser-emitter blocks via SOA subcategory (no BlockType) ─────
+    const firingPlan = ship.getFiringPlan().filter(entry =>
+      store.subcategoryCode[entry.blockIndex] === BlockSubcategoryEnum.Laser
+    );
     if (firingPlan.length === 0) return;
 
-    // ─── Passive / power-up modifiers ───────────────────────────────────────────
+    // ─── Passive and skill bonuses (frame-level) ─────────────────────────────────
     const {
       laserDamage = 0,
       laserFiringRate = 0,
       laserRange = 0,
       laserChain = false,
-      laserAreaOfEffect = false,
+      laserAreaOfEffect = false, // Reserved for future AoE behavior
     } = this.skillEffects;
 
     const passiveRangeMultiplier = ship.getPassiveBonus('laser-firing-range');
@@ -107,19 +105,26 @@ export class LaserBackend implements WeaponBackend {
     fireRateBonus += fireRateMultiplier + laserFiringRate;
     damageBonus += baseDamageMultiplier;
 
-    // ─── Iterate over each firing block (SOA indices) ───────────────────────────
+    // ─── Iterate over each laser-emitting block (SOA indices) ────────────────────
     for (const emitter of firingPlan) {
-      const typeIdx = store.typeIndex[emitter.blockIndex];
-      const type = getBlockTypeByIndex(typeIdx)!;
-      const fireDef = type.behavior!.fire!;
+      const idx = emitter.blockIndex;
+
+      // Skip removed or deallocated blocks
+      if (store.ownerShipId[idx] === 0) continue;
 
       emitter.timeSinceLastShot += dt;
       if (emitter.timeSinceLastShot < emitter.fireCooldown / fireRateBonus) continue;
       emitter.timeSinceLastShot = 0;
 
-      // World-space muzzle position (from BlockStore local coords)
-      const localX = store.localX[emitter.blockIndex] * 32;
-      const localY = store.localY[emitter.blockIndex] * 32;
+      // Pre-flattened laser-specific attributes (energyCost is deprecated; assume 0)
+      const targetingRange = store.targetingRange[idx] || 0;
+      const fireDamage = store.fireDamage[idx] || 0;
+      const lifetime = store.projectileLifetime[idx] || 0.5; // lasers use lifetime as beam duration
+      const tier = store.tier[idx] || 0;
+
+      // Compute muzzle world position using local coords and ship transform
+      const localX = store.localX[idx] * 32;
+      const localY = store.localY[idx] * 32;
       const cos = Math.cos(xform.rotation);
       const sin = Math.sin(xform.rotation);
 
@@ -128,21 +133,20 @@ export class LaserBackend implements WeaponBackend {
         y: xform.position.y + localX * sin + localY * cos,
       };
 
-      // Acquire target ship
+      // Acquire target within effective range (apply skill and passive multipliers)
       const targetShip = findRandomTargetInRange(
         ship,
-        fireDef.targetingRange! * (laserRange + passiveRangeMultiplier),
+        targetingRange * (laserRange + passiveRangeMultiplier),
       );
       if (!targetShip) continue;
 
       const targetPos = targetShip.getTransform().position;
 
-      // Final damage & color
-      const dmg = (fireDef.fireDamage! + laserDamage) * damageBonus;
-      const tier = type.tier ?? 0;
+      // Final damage calculation and color palette (tier-based)
+      const dmg = (fireDamage + laserDamage) * damageBonus;
       const tierColour = LASER_TIER_COLORS_RGBA[tier] ?? [0.2, 0.9, 1.0, 1.0];
 
-      // Fire beam
+      // Fire beam (visual + damage application handled downstream)
       this.fireLaserBeam(
         origin,
         targetPos,
@@ -153,7 +157,7 @@ export class LaserBackend implements WeaponBackend {
         tier
       );
 
-      // Chain lightning effect (optional)
+      // Optional chain-lightning behavior
       if (laserChain) {
         this.executeChainLightning(
           targetPos,
@@ -162,7 +166,7 @@ export class LaserBackend implements WeaponBackend {
           dmg * 0.5,
           tierColour,
           tier,
-          2,
+          2, // default chain depth
         );
       }
     }

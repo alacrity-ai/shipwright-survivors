@@ -9,6 +9,7 @@ import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 
 import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { BlockOrchestrator } from '@/game/blocks/system/BlockOrchestrator';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
@@ -51,6 +52,7 @@ export class CombatService {
 
   private readonly damageTextAggregator: DamageTextAggregator;
   private readonly store: BlockStore
+  private readonly orchestrator: BlockOrchestrator;
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -63,6 +65,7 @@ export class CombatService {
     GlobalEventBus.on('status:damageOverTime', this.handleDamageOverTime);
 
     this.store = BlockManager.getInstance().getBlockStore();
+    this.orchestrator = BlockManager.getInstance().getBlockOrchestrator();
     this.damageTextAggregator = DamageTextAggregator.getInstance();
   }
 
@@ -265,6 +268,7 @@ export class CombatService {
 
     // === HP reduction ===
     store.hp[blockIndex] -= damage;
+    this.orchestrator.updateDamageUV(blockIndex);
 
     // === Visual + feedback ===
     const worldX = entity.getTransform().position.x + coord.x;
@@ -413,7 +417,6 @@ export class CombatService {
     }
 
     return true;
-
   }
 
   private destroyEntireShipWithAllBlocksSOA(

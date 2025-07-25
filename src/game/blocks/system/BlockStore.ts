@@ -29,11 +29,16 @@ export class BlockStore {
   // Fire Attributes
   public readonly fireDamage: Float32Array;
   public readonly fireRate: Float32Array;
+  public readonly fireAccuracy: Float32Array;
   public readonly projectileSpeed: Float32Array;
   public readonly projectileLifetime: Float32Array;
   public readonly explosionDamage: Float32Array;
   public readonly explosionRadiusBlocks: Float32Array;
   public readonly targetingRange: Float32Array;
+  public readonly fireTurningPower: Float32Array;
+
+  // Weapon Specific 
+  public readonly seekerForwardFire: Uint8Array; // 0 = false, 1 = true
 
   // Ownership & Typing arrays
   public readonly ownerShipId: Float64Array;
@@ -106,11 +111,16 @@ export class BlockStore {
     // Fire Attributes
     this.fireDamage = new Float32Array(capacity);
     this.fireRate = new Float32Array(capacity);
+    this.fireAccuracy = new Float32Array(capacity);
     this.projectileSpeed = new Float32Array(capacity);
     this.projectileLifetime = new Float32Array(capacity);
     this.explosionDamage = new Float32Array(capacity);
     this.explosionRadiusBlocks = new Float32Array(capacity);
     this.targetingRange = new Float32Array(capacity);
+    this.fireTurningPower = new Float32Array(capacity);
+
+    // Weapon Specific 
+    this.seekerForwardFire = new Uint8Array(capacity); // 0 = false, 1 = true
 
     // Ownership & Typing
     this.ownerShipId = new Float64Array(capacity);
@@ -190,11 +200,15 @@ export class BlockStore {
 
     this.fireDamage[index] = 0;
     this.fireRate[index] = 0;
+    this.fireAccuracy[index] = 0;
     this.projectileSpeed[index] = 0;
     this.projectileLifetime[index] = 0;
     this.explosionDamage[index] = 0;
     this.explosionRadiusBlocks[index] = 0;
     this.targetingRange[index] = 0;
+    this.fireTurningPower[index] = 0;
+
+    this.seekerForwardFire[index] = 0; // 0 = false, 1 = true
 
     this.ownerShipId[index] = 0;
     this.ownerFaction[index] = 0;
@@ -259,11 +273,15 @@ export class BlockStore {
 
     this.fireDamage.fill(0);
     this.fireRate.fill(0);
+    this.fireAccuracy.fill(0);
     this.projectileSpeed.fill(0);
     this.projectileLifetime.fill(0);
     this.explosionDamage.fill(0);
     this.explosionRadiusBlocks.fill(0);
     this.targetingRange.fill(0);
+    this.fireTurningPower.fill(0);
+
+    this.seekerForwardFire.fill(0); // 0 = false, 1 = true
 
     this.ownerShipId.fill(0);
     this.ownerFaction.fill(0);
