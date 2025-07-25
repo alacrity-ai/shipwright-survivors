@@ -5,7 +5,6 @@ import { BLOCK_SIZE } from '@/config/view';
 import { ShieldEffectsSystem } from '@/systems/fx/ShieldEffectsSystem';
 import { SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES } from '@/game/blocks/BlockColorSchemes';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 import { hexToRgbaVec4, packColorToInt } from '@/rendering/unified/helpers/hexToRgbaVec4';
 
@@ -47,18 +46,13 @@ export class ShieldComponent {
 
     // Step 2: Recalculate coverage from each emitter
     for (const emitterIdx of emitters) {
-      const typeIdx = store.typeIndex[emitterIdx];
-      const type = getBlockTypeByIndex(typeIdx);
-      if (!type) continue;
-
-      const baseRadius = type.behavior?.shieldRadius ?? 0;
-      const baseEfficiency = type.behavior?.shieldEfficiency ?? 0;
+      const baseRadius = store.shieldRadius[emitterIdx] ?? 0;
+      const baseEfficiency = store.shieldEfficiency[emitterIdx] ?? 0;
 
       const gridRadius = baseRadius + passiveRadiusBonus;
       const shieldEfficiency = baseEfficiency * passiveEfficiencyBonus;
 
-      const highlightColor =
-        SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES[type.id] ?? 'rgba(100, 255, 255, 0.4)';
+      const highlightColor = SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES[store.tier[emitterIdx]] ?? 'rgba(100, 255, 255, 0.4)';
 
       // Retrieve the emitter's grid coordinate from BlockStore
       const ex = store.localX[emitterIdx];
@@ -78,7 +72,7 @@ export class ShieldComponent {
 
           store.shieldEfficiency[idx] = shieldEfficiency;
           store.shieldHighlightColor[idx] = packedColor;
-          store.shieldSourceId[idx] = type.id as any; // store id for FX/debug
+          store.shieldSourceId[idx] = emitterIdx;
         }
 
         if (this.active) {
@@ -110,9 +104,7 @@ export class ShieldComponent {
     }
 
     for (const emitterIdx of this.ownerShip.getShieldBlockIndices()) {
-      const typeIdx = store.typeIndex[emitterIdx];
-      const type = getBlockTypeByIndex(typeIdx);
-      const gridRadius = type?.behavior?.shieldRadius ?? 0;
+      const gridRadius = store.shieldRadius[emitterIdx] ?? 0;
       const worldRadius = gridRadius * BLOCK_SIZE;
       fx.registerShield(emitterIdx, worldRadius);
     }

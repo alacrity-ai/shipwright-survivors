@@ -9,7 +9,6 @@ import { GlobalEventBus } from '@/core/EventBus';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 import type { Ship } from '@/game/ship/Ship';
 import type { BlockEntityTransform } from '@/game/interfaces/types/BlockEntityTransform';
@@ -165,7 +164,7 @@ export class MovementSystem {
     const justActivatedAfterburner = this.updateAfterburnerCharge(dt);
     const afterburnerMultipliers = this.getAfterburnerMultipliers();
 
-    // === Movement intent flags ===
+    // === Intent flags for ship state ===
     this.ship.setThrusting(thrustForward);
     this.ship.setStrafingLeft(strafeLeft);
     this.ship.setStrafingRight(strafeRight);
@@ -186,15 +185,12 @@ export class MovementSystem {
     let rawTurnPower = BASE_TURN_POWER;
     const store = this.ship['blockManager'].getBlockStore();
 
-    // === Engines: populate thrust groups via indices ===
+    // === Engines: populate thrust groups entirely via SOA ===
     for (const idx of this.ship.getEngineIndices()) {
       if (!store.isAllocated(idx)) continue;
+      if (store.canThrust[idx] === 0) continue;
 
-      const typeIdx = store.typeIndex[idx];
-      const type = getBlockTypeByIndex(typeIdx);
-      const behavior = type?.behavior;
-
-      const thrustPower = behavior?.thrustPower ?? this.baseThrust;
+      const thrustPower = store.thrustPower[idx];
       const localRot = store.localRotation[idx];
 
       const dir = classifyThrustDirection(localRot);
@@ -208,16 +204,13 @@ export class MovementSystem {
       }
     }
 
-    // === Fins: accumulate turn power via indices ===
+    // === Fins: accumulate turn power via SOA ===
     for (const idx of this.ship.getFinIndices()) {
       if (!store.isAllocated(idx)) continue;
-
-      const typeIdx = store.typeIndex[idx];
-      const type = getBlockTypeByIndex(typeIdx);
-      rawTurnPower += type?.behavior?.turnPower ?? 0;
+      rawTurnPower += store.turnPower[idx];
     }
 
-    // === Passive bonuses for turn power ===
+    // === Apply passive bonuses for turn power ===
     rawTurnPower *= this.ship.getPassiveBonus('fin-turn-power');
 
     // === Compute angular velocity target ===
@@ -247,10 +240,10 @@ export class MovementSystem {
     transform.angularVelocity += angularDelta * ROTATIONAL_ASSIST_STRENGTH * afterburnerMultipliers.turning * dt;
     transform.angularVelocity = Math.max(-maxAngularSpeed, Math.min(transform.angularVelocity, maxAngularSpeed));
 
+    // === Forward thrust application (unchanged except for data feeding) ===
     const cameraBounds = Camera.getInstance().getViewportBounds();
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
 
-    // === Forward thrust
     if (thrustForward && playerShip) {
       this.applyDirectionalThrust(
         dt,
@@ -272,7 +265,7 @@ export class MovementSystem {
       velocity.y *= dampen;
     }
 
-    // === Braking logic ===
+    // === Braking logic (unchanged except thrustGroups now SOA-fed) ===
     if (brake) {
       const vx = velocity.x;
       const vy = velocity.y;
@@ -305,7 +298,7 @@ export class MovementSystem {
       }
     }
 
-    // === Resolve collisions before integrating motion ===
+    // === Collision resolution ===
     if (this.collisionSystem) {
       this.collisionSystem.resolveCollisions(this.ship);
 

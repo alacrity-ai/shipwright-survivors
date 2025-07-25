@@ -14,7 +14,6 @@ import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 
 import { DamageTextAggregator } from '@/systems/damagetext/DamageTextAggregator';
 
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import { getAggregatedSkillEffects } from '@/game/ship/skills/runtime/UnlockedShipSkillTreeResolver';
 import { repairBlockViaLifesteal } from '../pickups/helpers/repairAllBlocksWithHealing';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
@@ -115,8 +114,6 @@ export class CombatService {
     // === Block properties via SOA ===
     if (store.indestructible[blockIndex] || store.destroyed[blockIndex]) return false;
 
-    const typeIndex = store.typeIndex[blockIndex];
-    const blockType = getBlockTypeByIndex(typeIndex);
     const isShielded = store.isShielded[blockIndex] ?? false;
     const shieldEfficiency = store.shieldEfficiency[blockIndex] ?? 0;
 
@@ -182,7 +179,7 @@ export class CombatService {
 
         this.explosionSystem.createShieldDeflection(
           worldPos,
-          getBlockTypeByIndex(store.shieldSourceId?.[blockIndex])?.id ?? 'shield0',
+          'shield1', // Later on maybe slice by tier
           lightOptions
         );
         return false;
@@ -223,7 +220,8 @@ export class CombatService {
     damage *= (1 - flatDamageReductionPercent);
     damage /= (affixes?.blockDurabilityMulti ?? 1);
 
-    const isCockpit = blockType?.metatags?.includes('cockpit') ?? false;
+    // Cockpit is always at 0,0 local coords
+    const isCockpit = store.localX[blockIndex] === 0 && store.localY[blockIndex] === 0;
     const isImmune = isCockpit && Math.random() < cockpitInvulnChance;
     if (isImmune) {
       damage = 0;

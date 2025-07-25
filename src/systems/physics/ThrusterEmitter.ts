@@ -6,7 +6,6 @@ import { BLOCK_SIZE } from '@/config/view';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 interface ThrusterEmitDefinition {
   idx: number;                     // BlockStore index (SOA)
@@ -50,16 +49,16 @@ export class ThrusterEmitter {
 
     if (!this.store.isAllocated(idx)) return;
 
-    // Resolve block type via SOA
-    const typeIdx = this.store.typeIndex[idx];
-    const type = getBlockTypeByIndex(typeIdx);
-    const blockId = type?.id ?? '';
-
-    const flameColors = this.colorCache.get(typeIdx)
-      ?? ENGINE_COLOR_PALETTES[blockId]
+    // Resolve engine flame colors based on tier directly
+    const tier = this.store.tier[idx];
+    const flameColors = this.colorCache.get(tier)
+      ?? ENGINE_COLOR_PALETTES[tier]
       ?? DEFAULT_FLAME_COLORS;
 
-    this.colorCache.set(typeIdx, flameColors);
+    // Cache by tier (not typeIdx) since the palette is tier-based
+    if (!this.colorCache.has(tier)) {
+      this.colorCache.set(tier, flameColors);
+    }
 
     // === Compute world position of the block ===
     const shipCos = Math.cos(shipRotation);

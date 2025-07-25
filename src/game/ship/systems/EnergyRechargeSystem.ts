@@ -6,8 +6,6 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
-
 export class EnergyRechargeSystem implements IUpdatable {
   private store: BlockStore;
 
@@ -30,11 +28,7 @@ export class EnergyRechargeSystem implements IUpdatable {
         let totalDrain = 0;
 
         for (const idx of ship.getShieldBlockIndices()) {
-          const typeIdx = this.store.typeIndex[idx];
-          const blockType = getBlockTypeByIndex(typeIdx);
-          if (!blockType) continue;
-
-          const baseDrain = blockType.behavior?.shieldEnergyDrain ?? 0;
+          const baseDrain = this.store.shieldEnergyDrain[idx];
           totalDrain += baseDrain;
         }
 

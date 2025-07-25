@@ -5,7 +5,6 @@ import type { CombatService } from '@/systems/combat/CombatService';
 import type { ParticleManager } from '@/systems/fx/ParticleManager';
 
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import type { BlockSpatialGrid } from '@/game/blocks/system/BlockSpatialGrid';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -476,9 +475,7 @@ export class ProjectileSystem {
     const by = store.worldY[blockIdx];
 
     // Determine block size using its type index
-    const typeIdx = store.typeIndex[blockIdx];
-    const blockType = getBlockTypeByIndex(typeIdx);
-    const blockSize = blockType?.size ?? 32;
+    const blockSize = 32;
 
     // Compute Euclidean distance between projectile and block center
     const dx = this.soa.x[index] - bx;

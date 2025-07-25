@@ -6,6 +6,7 @@ import { getBlockAtlasUVOffset } from '@/rendering/cache/BlockSpriteCache';
 import { getDamageLevel } from '@/rendering/cache/BlockSpriteCache';
 
 import { BlockTypesByIndex } from '@/game/blocks/BlockRegistry';
+import { BlockCategoryEnum, BlockSubcategoryEnum } from '@/game/interfaces/types/BlockType'
 
 
 const BLOCK_SIZE = 32;
@@ -84,7 +85,6 @@ export class BlockOrchestrator {
     const blockTypeArmor = blockType?.armor ?? 100;
     const initialHp = blockTypeArmor;
 
-    // Normalize localRotation to radians (if provided in degrees)
     const localRotDeg = params.localRotation ?? 0;
     const localRot = (Math.PI / 180) * localRotDeg;
 
@@ -96,18 +96,48 @@ export class BlockOrchestrator {
     s.ownerFaction[index] = params.ownerFaction;
     s.typeIndex[index] = params.typeIndex;
 
-    // Store unscaled grid-relative coordinates for later world updates
+    // New: flatten BlockType attributes into SOA
+    if (blockType) {
+      const categoryCode = BlockCategoryEnum[
+        (blockType.category.charAt(0).toUpperCase() + blockType.category.slice(1)) as keyof typeof BlockCategoryEnum
+      ] ?? 0;
+
+      const subcategoryCode = blockType.subcategory
+        ? BlockSubcategoryEnum[
+            (blockType.subcategory.charAt(0).toUpperCase() + blockType.subcategory.slice(1)) as keyof typeof BlockSubcategoryEnum
+          ] ?? 0
+        : 0;
+
+      s.categoryCode[index] = categoryCode;
+      s.subcategoryCode[index] = subcategoryCode;
+      s.dropRate[index] = blockType.dropRate ?? 0;
+      s.tier[index] = blockType.tier ?? 0;
+    } else {
+      // Default values for safety
+      s.categoryCode[index] = 0;
+      s.subcategoryCode[index] = 0;
+      s.dropRate[index] = 0;
+      s.tier[index] = 0;
+    }
+
+    // Coordinates and rotation
     s.localX[index] = params.localX;
     s.localY[index] = params.localY;
-
-    s.localRotation[index] = localRot;   // store in radians
-    s.rotation[index] = localRot;        // initialize world rotation in radians
+    s.localRotation[index] = localRot;
+    s.rotation[index] = localRot;
     s.overlayRotation[index] = overlayRot;
-    s.hp[index] = initialHp;
 
+    // HP, armor, atlas
+    s.hp[index] = initialHp;
     s.armor[index] = blockTypeArmor;
     s.atlasKey[index] = params.typeIndex;
 
+    // Thrusting
+    s.thrustPower[index] = blockType?.behavior?.thrustPower ?? 0;
+    s.canThrust[index] = blockType?.behavior?.canThrust ? 1 : 0;
+    s.turnPower[index] = blockType?.behavior?.turnPower ?? 0;
+
+    // Default state
     s.destroyed[index] = 0;
     s.indestructible[index] = 0;
     s.cooldown[index] = 0;
@@ -116,22 +146,34 @@ export class BlockOrchestrator {
     s.shieldEfficiency[index] = 0;
     s.shieldHighlightColor[index] = 0;
     s.shieldSourceId[index] = -1;
+    s.shieldEnergyDrain[index] = blockType?.behavior?.shieldEnergyDrain ?? 0;
+    s.shieldRadius[index] = blockType?.behavior?.shieldRadius ?? 0;
     s.visible[index] = 1;
 
+    // Fire attributes
+    s.fireDamage[index] = blockType?.behavior?.fire?.fireDamage ?? 0;
+    s.fireRate[index] = blockType?.behavior?.fire?.fireRate ?? 0;
+    s.projectileSpeed[index] = blockType?.behavior?.fire?.projectileSpeed ?? 0;
+    s.projectileLifetime[index] = blockType?.behavior?.fire?.lifetime ?? 0;
+    s.explosionDamage[index] = blockType?.behavior?.fire?.explosionDamage ?? 0;
+    s.explosionRadiusBlocks[index] = blockType?.behavior?.fire?.explosionRadiusBlocks ?? 0;
+    s.targetingRange[index] = blockType?.behavior?.fire?.targetingRange ?? 0;
+
+    // UV offsets for rendering
     const damageLevel = getDamageLevel(initialHp, blockTypeArmor);
     const atlasUV = getBlockAtlasUVOffset(params.typeIndex, damageLevel);
-
     s.uvBaseX[index] = atlasUV.baseUV[0];
     s.uvBaseY[index] = atlasUV.baseUV[1];
     s.uvOverlayX[index] = atlasUV.overlayUV?.[0] ?? -1;
     s.uvOverlayY[index] = atlasUV.overlayUV?.[1] ?? -1;
 
+    // Attach to ship's block list; free the index if it fails
     if (!this.addBlockToShip(params.ownerShipId, index)) {
       s.freeIndex(index);
       return -1;
     }
 
-    // Do not scale here — world positions will be set by setWorldTransformForBlock
+    // World positions will be updated later by transform logic
     s.worldX[index] = params.localX;
     s.worldY[index] = params.localY;
 

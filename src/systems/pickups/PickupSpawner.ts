@@ -3,17 +3,14 @@
 import { GlobalEventBus } from '@/core/EventBus';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
-import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
-import { SETTINGS } from '@/config/settings';
 
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
 
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 
 export class PickupSpawner {
   private pickupSystem: PickupSystem;
@@ -137,11 +134,8 @@ export class PickupSpawner {
       return;
     }
 
-    const blockType = getBlockTypeByIndex(store.typeIndex[blockIndex]);
-    if (!blockType) return;
-
-    // === Drop rate calculation (unchanged) ===
-    const baseDropRate = blockType.dropRate ?? 0;
+    // === Drop rate calculation using cached SOA field ===
+    const baseDropRate = store.dropRate[blockIndex];
     const missionMultiplier = missionLoader.getDropMultiplier();
     const passiveDropMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('block-drop-rate');
     const effectiveDropRate = Math.min(
@@ -149,7 +143,7 @@ export class PickupSpawner {
       1.0
     );
 
-    // Use world-space position if available, otherwise fallback to local
+    // World-space fallback to local position
     const pickupPosition = {
       x: store.worldX?.[blockIndex] ?? store.localX[blockIndex],
       y: store.worldY?.[blockIndex] ?? store.localY[blockIndex],
@@ -157,7 +151,10 @@ export class PickupSpawner {
 
     // === Primary block pickup ===
     if (Math.random() < effectiveDropRate * missionSettings.getGlobalBlockDropRate()) {
-      this.pickupSystem.spawnBlockPickup(pickupPosition, blockType);
+      // If spawnBlockPickup still needs a BlockType, resolve it lazily (but only here)
+      const typeIndex = store.typeIndex[blockIndex];
+      const blockType = getBlockTypeByIndex(typeIndex);
+      this.pickupSystem.spawnBlockPickup(pickupPosition, blockType!);
       return;
     }
 
@@ -179,12 +176,10 @@ export class PickupSpawner {
     }
   }
 
-  private getCurrencyAmountForBlock(blockIndex: number): number {
-    const typeIndex = this.store.typeIndex[blockIndex];
-    const blockType = getBlockTypeByIndex(typeIndex);
-    if (!blockType) return 0;
 
-    const tier = getTierFromBlockId(blockType.id);
+  private getCurrencyAmountForBlock(blockIndex: number): number {
+    // Directly read tier from SOA (already cached at block creation)
+    const tier = this.store.tier[blockIndex];
 
     const tierToBaseValue: Record<number, number> = {
       0: 15, 1: 35, 2: 60, 3: 80, 4: 120, 5: 200,
@@ -198,11 +193,8 @@ export class PickupSpawner {
   }
 
   private getRepairAmountForBlock(blockIndex: number): number {
-    const typeIndex = this.store.typeIndex[blockIndex];
-    const blockType = getBlockTypeByIndex(typeIndex);
-    if (!blockType) return 0;
-
-    const tier = getTierFromBlockId(blockType.id);
+    // Directly read tier from SOA (already cached at block creation)
+    const tier = this.store.tier[blockIndex];
 
     const tierToBaseRepair: Record<number, number> = {
       0: 10, 1: 15, 2: 20, 3: 30, 4: 40,

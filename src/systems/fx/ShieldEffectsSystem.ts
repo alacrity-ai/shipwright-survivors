@@ -82,12 +82,12 @@ export class ShieldEffectsSystem {
       visual.age += dt;
     }
 
-    // Retain visuals only for valid emitters (must still exist & have shieldRadius or be shielded)
+    // Retain visuals only for valid emitters (still allocated and has any shield effect)
     this.activeVisuals = this.activeVisuals.filter(v => {
       const idx = v.blockIndex;
       return (
         store.isAllocated(idx) &&
-        (store.shieldEfficiency[idx] > 0 || getBlockTypeByIndex(store.typeIndex[idx])?.behavior?.shieldRadius != null)
+        (store.shieldEfficiency[idx] > 0 || store.shieldRadius[idx] > 0)
       );
     });
   }
@@ -113,9 +113,9 @@ export class ShieldEffectsSystem {
       const radius = visual.radius;
       const alpha = 0.75 + 0.1 * Math.sin(visual.age * 3);
 
-      const typeIdx = store.typeIndex[idx];
-      const type = getBlockTypeByIndex(typeIdx);
-      const palette = type ? SHIELD_COLOR_PALETTES[type.id] : ['#88ddff', '#44bbff', '#00aaff'];
+      // Use tier directly to select palette
+      const tier = store.tier[idx];
+      const palette = SHIELD_COLOR_PALETTES[tier] ?? ['#88ddff', '#44bbff', '#00aaff'];
       const [innerColor, , outerColor] = palette;
 
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
@@ -154,21 +154,22 @@ export class ShieldEffectsSystem {
       ctx.translate(screen.x / this.camera.getZoom(), screen.y / this.camera.getZoom());
       ctx.rotate(transform.rotation);
 
-      // The highlight color is already packed as int in store; convert to a string if drawBlockHighlightWithMask needs one
-      const packedColor = store.shieldHighlightColor[idx];
-      const glowColor = typeof packedColor === 'number'
-        ? `#${(packedColor >>> 0).toString(16).padStart(8, '0')}` // fallback conversion
-        : 'rgba(255, 0, 0, 0.4)';
+      // Need to render this in EntityPass WebGL2
+      // // Mask highlight (legacy 2D fallback, slated for removal in WebGL2)
+      // const packedColor = store.shieldHighlightColor[idx];
+      // const glowColor = typeof packedColor === 'number'
+      //   ? `#${(packedColor >>> 0).toString(16).padStart(8, '0')}`
+      //   : 'rgba(255, 0, 0, 0.4)';
 
-      const typeIdx = store.typeIndex[idx];
-      const type = getBlockTypeByIndex(typeIdx);
-      drawBlockHighlightWithMask(ctx, type?.id ?? 'unknown', store.localRotation[idx], glowColor);
+      // // // Pass tier or id? We only need tier now (remove id dependency entirely)
+      // // drawBlockHighlightWithMask(ctx, `tier-${store.tier[idx]}`, store.localRotation[idx], glowColor);
 
       ctx.restore();
     }
 
     ctx.restore();
   }
+
   
   public clear(): void {
     this.activeVisuals.length = 0;

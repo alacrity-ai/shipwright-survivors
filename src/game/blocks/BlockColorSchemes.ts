@@ -12,12 +12,12 @@ export const BLOCK_PICKUP_SPARK_COLOR_PALETTES: Array<string[]> = [
 export const DEFAULT_EXPLOSION_SPARK_PALETTE: string[] = ['#ffdd00', '#ffaa00', '#ff6600', '#ff2200', '#ffffff'];
 
 export const ENGINE_COLOR_PALETTES: Record<string, string[]> = {
-  engine0: ['#ffeeb0', '#ffc04d', '#ffd966'], // pale fire yellow, rich fire orange, yellow-orange glow
-  engine1: ['#ffeeb0', '#ffc04d', '#ffd966'],
-  engine2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
-  engine3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
-  engine4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust
-  engine5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
+  0: ['#ffeeb0', '#ffc04d', '#ffd966'], // pale fire yellow, rich fire orange, yellow-orange glow
+  1: ['#ffeeb0', '#ffc04d', '#ffd966'],
+  2: ['#66ff66', '#33cc33', '#99ff99'],  // green exhaust
+  3: ['#66ccff', '#3399ff', '#99ddff'],  // blue exhaust
+  4: ['#cc88ff', '#9933ff', '#ddaaff'],  // purple exhaust
+  5: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const TURRET_COLOR_PALETTES: Record<string, string[]> = {
@@ -38,19 +38,19 @@ export const LASER_BEAM_COLORS: Record<string, string[]> = {
 };
 
 export const SHIELD_COLOR_PALETTES: Record<string, string[]> = {
-  shield0: ['#88ddff', '#44bbff', '#00aaff'], // cyan
-  shield1: ['#88ddff', '#44bbff', '#00aaff'], // same
-  shield2: ['#aaffaa', '#66dd66', '#22bb22'], // green
-  shield3: ['#ffbbff', '#dd66dd', '#cc33cc'], // magenta
-  shield4: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
+  0: ['#88ddff', '#44bbff', '#00aaff'], // cyan
+  1: ['#88ddff', '#44bbff', '#00aaff'], // same
+  2: ['#aaffaa', '#66dd66', '#22bb22'], // green
+  3: ['#ffbbff', '#dd66dd', '#cc33cc'], // magenta
+  4: ['#ffcc00', '#ff953d', '#ff3232'],  // orange exhaust
 };
 
 export const SHIELDED_BLOCK_HIGHLIGHT_COLOR_PALETTES: Record<string, string> = {
-  shield0: 'rgba(100, 255, 255, 0.4)',  // cyan default
-  shield1: 'rgba(100, 255, 255, 0.4)',  // cyan again
-  shield2: 'rgba(91, 255, 91, 0.4)',  // soft green
-  shield3: 'rgba(255, 86, 255, 0.4)',  // soft magenta
-  shield4: 'rgba(255, 180, 0, 0.4)',  // orange
+  1: 'rgba(100, 255, 255, 0.4)',  // cyan default
+  2: 'rgba(100, 255, 255, 0.4)',  // cyan again
+  3: 'rgba(91, 255, 91, 0.4)',  // soft green
+  4: 'rgba(255, 86, 255, 0.4)',  // soft magenta
+  5: 'rgba(255, 180, 0, 0.4)',  // orange
 };
 
 export const EXPLOSIVE_LANCE_COLOR_PALETTES: Record<string, string[]> = {

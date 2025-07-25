@@ -1,10 +1,9 @@
 // src/rendering/unified/passes/EntityPass.ts
 
-import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { Camera } from '@/core/Camera';
 import type { InputManager } from '@/core/InputManager';
 import { BLOCK_SIZE } from '@/config/view';
-import { getDamageLevel, initializeUnifiedBlockAtlas, getBlockAtlasUVOffset } from '@/rendering/cache/BlockSpriteCache';
+import { initializeUnifiedBlockAtlas } from '@/rendering/cache/BlockSpriteCache';
 import { entityFrameBudgetMs } from '@/config/graphicsConfig';
 
 import entityVertSrc from '../shaders/entityPass.vert?raw';
@@ -240,7 +239,7 @@ export class EntityPass {
     const capacity = blockStore.capacity;
     for (let idx = 0; idx < capacity; idx++) {
       if (!blockStore.isAllocated(idx)) continue;
-      if (blockStore.visible[idx] === 0) continue;
+      if (blockStore.visible[idx] === 0 || blockStore.hidden[idx] === 1) continue; // Should this check be handled on the shader side to be faster?
 
       const worldX = blockStore.worldX[idx];
       const worldY = blockStore.worldY[idx];
