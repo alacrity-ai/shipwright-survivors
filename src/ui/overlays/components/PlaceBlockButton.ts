@@ -102,8 +102,6 @@ export class PlaceBlockButton {
 
     if (!this.locked && !this.isCooling && blockCount > 0 && (clickedMouse || clickedPad)) {
       if (this.globalMenu.isAnyMenuOpen()) return;
-      if (this.globalMenu.hasSpecialBlocker('planet-interaction-overlay')
-          && InputDeviceTracker.getInstance().gamepadLastUsed()) return;
       this.activate();
     }
   }
