@@ -157,6 +157,10 @@ export class ShipBlueprintRegistry {
     return Array.from(this.shipMap.keys());
   }
 
+  static getAllShipLongNames(): string[] {
+    return Array.from(this.shipMap.values()).map(ship => ship.name);
+  }
+
   /** Returns the full ship name-to-definition map. */
   static getAllAsMap(): Map<string, CollectableShipDefinition> {
     return new Map(this.shipMap); // defensive copy

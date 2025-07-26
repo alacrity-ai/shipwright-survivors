@@ -146,7 +146,7 @@ export class PlayerShipCollection {
   // Testing
 
   unlockAndDiscoverAll(): void {
-    const allShips = ShipBlueprintRegistry.getAllShipNames();
+    const allShips = ShipBlueprintRegistry.getAllShipLongNames();
     allShips.forEach(name => this.discover(name));
   }
 
