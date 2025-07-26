@@ -35,7 +35,7 @@ export class PlanetOverlayRenderer {
       const isUsingGamepad = lastUsed === 'gamepad';
 
       const messageLabel = isUsingGamepad
-        ? 'Open Communications: [A]'
+        ? 'Open Communications: [Select]'
         : 'Open Communications: [C]';
 
       drawCRTText(overlayCtx, screenCenterX, topOffsetY + (32 * uiScale), messageLabel, {

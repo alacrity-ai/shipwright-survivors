@@ -96,7 +96,10 @@ export class ActiveContractsButton {
 
     /* activation */
     const clickedMouse = this.isHovered && this.inputManager.wasMouseClicked(true);
-    const clickedPad   = this.inputManager.wasActionJustPressed('activeContractsButton');
+    let clickedPad = false;
+    if (!GlobalMenuReporter.getInstance().isSpecialBlocked()) {
+      clickedPad = this.inputManager.wasActionJustPressed('activeContractsButton');
+    }
 
     if (!this.locked && (clickedMouse || clickedPad)) {
       this.activate();

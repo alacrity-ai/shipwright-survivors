@@ -27,6 +27,7 @@ import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteracti
 import { NavPoint } from '@/core/input/interfaces/NavMap';
 
 import { scaleRect } from '@/config/virtualResolution';
+import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 
 const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
 
@@ -147,6 +148,11 @@ export class HubSceneManager {
       playerShipCollection.discover('SW-1 Standard Issue');
       playerShipCollection.unlock('SW-1 Standard Issue');
     }
+
+    // DEBUG: TODO: (Remove this) : Unlock all ships for testing
+    playerShipCollection.unlockAndDiscoverAll();
+    playerShipCollection.masterAllShips();
+    PlayerMetaCurrencyManager.getInstance().setMetaCurrency(100000);
 
     // Dialogue Tree
     if (!flags.has('hub.introduction-1.complete')) {

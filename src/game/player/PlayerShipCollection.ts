@@ -143,6 +143,16 @@ export class PlayerShipCollection {
     this.shipMasteryMap.delete(shipName);
   }
 
+  // Testing
+
+  unlockAndDiscoverAll(): void {
+    const allShips = ShipBlueprintRegistry.getAllShipNames();
+    allShips.forEach(name => {
+      this.discoveredShipNames.add(name);
+      this.unlockedShipNames.add(name);
+    });
+  }
+
   // === Mastery Getters ===
 
   public getShipMasteryLevel(shipName: string): number {

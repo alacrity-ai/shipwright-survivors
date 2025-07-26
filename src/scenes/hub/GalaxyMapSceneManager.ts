@@ -20,22 +20,12 @@ import { GalaxyMapController } from '@/systems/galaxymap/GalaxyMapController';
 import { missionUnlocked } from '@/systems/galaxymap/helpers/missionUnlocked';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 
+import { isSteamDeck } from '@/config/view';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_galaxy-map.png';
 const crtStyle = DEFAULT_CONFIG.button.style;
-
-const PLANET_COORDS_UNSCALED = [
-  { x: 262, y: 293, missionId: 'mission_005_00' },
-  { x: 321, y: 504, missionId: 'mission_002' },
-  { x: 645, y: 363, missionId: 'mission_006_00' },
-  { x: 816, y: 198, missionId: 'mission_004_00' },
-  { x: 991, y: 337, missionId: 'mission_003_00' },
-];
-
-
-const LOADOUT_BUTTON_COORD = { x: 643, y: 519 };
 
 export class GalaxyMapSceneManager {
   private canvasManager: CanvasManager;
@@ -54,6 +44,8 @@ export class GalaxyMapSceneManager {
 
   private buttons: UIButton[];
 
+  private planetCoordsUnscaled: { x: number; y: number; missionId: string }[];
+  private loadoutButtonCoord: { x: number; y: number };
   private gamepadNavManager: GamepadMenuInteractionManager;
 
   constructor(
@@ -67,6 +59,10 @@ export class GalaxyMapSceneManager {
     this.inputManager = inputManager;
     this.galaxyMapController = new GalaxyMapController(canvasManager, inputManager);
     this.gamepadNavManager = new GamepadMenuInteractionManager(inputManager);
+    
+    // Hacky coordinate swapping for Steamdeck's higher screen
+    this.planetCoordsUnscaled = this.getPlanetCoordsUnscaled();
+    this.loadoutButtonCoord = isSteamDeck() ? { x: 643, y: 574 }: { x: 643, y: 519 };
 
     this.buttons = [
       {
@@ -83,6 +79,28 @@ export class GalaxyMapSceneManager {
         },
         style: crtStyle
       }
+    ];
+  }
+
+  // Hacky coordinate swapping for steamdeck's higher screen
+  private getPlanetCoordsUnscaled() {
+    if (!isSteamDeck()) {
+      console.log('[GalaxyMapSceneManager] Non-Steam Deck detected, using default planet coords');
+      return [
+        { x: 262, y: 293, missionId: 'mission_005_00' },
+        { x: 321, y: 504, missionId: 'mission_002' },
+        { x: 645, y: 363, missionId: 'mission_006_00' },
+        { x: 816, y: 198, missionId: 'mission_004_00' },
+        { x: 991, y: 337, missionId: 'mission_003_00' },
+      ];
+    }
+    console.log('[GalaxyMapSceneManager] Steam Deck detected, using Steam Deck planet coords');
+    return [
+      { x: 262, y: 293, missionId: 'mission_005_00' },
+      { x: 271, y: 574, missionId: 'mission_002' },
+      { x: 645, y: 363, missionId: 'mission_006_00' },
+      { x: 816, y: 198, missionId: 'mission_004_00' },
+      { x: 1011, y: 357, missionId: 'mission_003_00' },
     ];
   }
 
@@ -116,21 +134,21 @@ export class GalaxyMapSceneManager {
       navPoints.push({
         gridX: 0,
         gridY: 0,
-        screenX: LOADOUT_BUTTON_COORD.x * scale,
-        screenY: LOADOUT_BUTTON_COORD.y * scale,
+        screenX: this.loadoutButtonCoord.x * scale,
+        screenY: this.loadoutButtonCoord.y * scale,
         isEnabled: true
       });
     } else {
       // === Not zoomed in, nav between *unlocked* planets only
       let unlockedIndex = 0;
-      for (const coord of PLANET_COORDS_UNSCALED) {
+      for (const coord of this.planetCoordsUnscaled) {
         if (!missionUnlocked(coord.missionId)) continue;
 
         navPoints.push({
           gridX: unlockedIndex % 3,
           gridY: Math.floor(unlockedIndex / 3),
           screenX: coord.x * scale,
-          screenY: coord.y * scale,
+          screenY: coord.y,
           isEnabled: true
         });
 
@@ -258,7 +276,7 @@ export class GalaxyMapSceneManager {
 
     if (hovered && !selected) {
       const hoveredMissionId = hovered.missionId;
-      const match = PLANET_COORDS_UNSCALED.find(p => p.missionId === hoveredMissionId);
+      const match = this.planetCoordsUnscaled.find(p => p.missionId === hoveredMissionId);
       if (match) {
         const labelX = match.x * scale;
         const labelY = match.y * scale;

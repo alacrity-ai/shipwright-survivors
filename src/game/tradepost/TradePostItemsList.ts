@@ -11,6 +11,8 @@ import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId
 
 import { audioManager } from '@/audio/Audio';
 
+import { isSteamDeck } from '@/config/view';
+
 import type { TradePostInstance } from './interfaces/TradePostInstance';
 import type { InputManager } from '@/core/InputManager';
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
@@ -318,8 +320,9 @@ export class TradePostItemsList {
     const navPoints: NavPoint[] = [];
 
     // These constants are based on empirically determined visual alignment
+    const verticalOffset = isSteamDeck() ? 10 : 0;
     const baseScreenX = 410 * scale;
-    const baseScreenY = 270 * scale;
+    const baseScreenY = 270 * scale + verticalOffset;
     const rowSpacing = 100 * scale;
 
     for (let i = 0; i < entries.length; i++) {

@@ -7,7 +7,7 @@ import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
-import { getUniformScaleFactor } from '@/config/view';
+import { getUniformScaleFactor, isSteamDeck } from '@/config/view';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import { audioManager } from '@/audio/Audio';
 
@@ -113,6 +113,7 @@ export class TradePostMenu {
       navPoints.push(...this.itemsList.getNavPoints());
     }
 
+    const verticalOffset = isSteamDeck() ? 25 : 0;
     const scale = getUniformScaleFactor();
     const buttonActualX = 640 * scale;
     const buttonActualY = 580 * scale;
@@ -121,7 +122,7 @@ export class TradePostMenu {
       gridX: 0,
       gridY: 3,
       screenX: buttonActualX,
-      screenY: buttonActualY,
+      screenY: buttonActualY + verticalOffset,
       isEnabled: true,
     });
 

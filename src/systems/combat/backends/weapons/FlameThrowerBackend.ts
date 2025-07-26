@@ -9,6 +9,7 @@ import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { BlockSubcategoryEnum } from '@/game/interfaces/types/BlockType';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { Ship } from '@/game/ship/Ship';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 import { Faction } from '@/game/interfaces/types/Faction';
@@ -378,16 +379,15 @@ export class FlameThrowerBackend implements WeaponBackend {
       }
 
       // Move projectile
-      this.soa.x[i] += this.soa.vx[i] * dt;
-      this.soa.y[i] += this.soa.vy[i] * dt;
+      const x = (this.soa.x[i] += this.soa.vx[i] * dt);
+      const y = (this.soa.y[i] += this.soa.vy[i] * dt);
 
       const projectileOwnerInt = this.soa.ownerShipId[i];
-      const x = this.soa.x[i];
-      const y = this.soa.y[i];
+      const projectileFaction = this.soa.ownerFaction[i];
       const effectiveRadius = PROJECTILE_RADIUS * (1 + this.soa.radiusMulti[i]);
       const radiusSq = effectiveRadius * effectiveRadius;
 
-      // Query spatial grid for candidate block indices (SOA-friendly)
+      // Broad-phase query for nearby block indices
       const hits = grid.getBlocksInArea(
         x - effectiveRadius,
         y - effectiveRadius,
@@ -399,7 +399,10 @@ export class FlameThrowerBackend implements WeaponBackend {
 
       for (let h = 0; h < hits.length; h++) {
         const blockIdx = hits[h];
+
+        // Skip same ship and same faction (prevents self and ally ignition)
         if (store.ownerShipId[blockIdx] === projectileOwnerInt) continue;
+        if (store.ownerFaction[blockIdx] === projectileFaction) continue;
 
         const bx = store.worldX[blockIdx];
         const by = store.worldY[blockIdx];
@@ -407,12 +410,14 @@ export class FlameThrowerBackend implements WeaponBackend {
         const dy = y - by;
         if (dx * dx + dy * dy >= radiusSq) continue;
 
-        const compositeObject = findObjectByBlock(blockIdx);
-        const coord = compositeObject ? findBlockCoordinatesInObject(blockIdx, compositeObject) : null;
-        if (!compositeObject || !coord || compositeObject.isNoClip()) continue;
+        // Resolve owning ship and grid coordinates without legacy utils
+        const targetShip = ShipRegistry.getInstance().getByNumericId(store.ownerShipId[blockIdx]);
+        if (!targetShip || targetShip.isNoClip()) continue;
 
-        if (compositeObject instanceof Ship) {
-          compositeObject.addStatusEffect(
+        const coord = { x: store.localX[blockIdx], y: store.localY[blockIdx] };
+
+        if (targetShip instanceof Ship) {
+          targetShip.addStatusEffect(
             'ignite',
             endlessIgnition ? 120 : IGNITE_DURATION,
             ownerShip,
@@ -421,10 +426,10 @@ export class FlameThrowerBackend implements WeaponBackend {
         }
 
         this.combatService.applyDamageToBlock(
-          compositeObject,
+          targetShip,
           ownerShip,
-          blockIdx,                     // now passing block index, not object
-          coord,
+          blockIdx,                // SOA index
+          coord,                   // local grid coord for effects
           this.soa.damage[i] * 0.5,
           'dot',
           true,
@@ -437,7 +442,7 @@ export class FlameThrowerBackend implements WeaponBackend {
 
       if (hitSomething) {
         this.recycleFlame(i);
-        continue; // Skip increment because we swapped
+        continue; // Recycled, so don't increment
       }
 
       i++; // Only increment if not recycled

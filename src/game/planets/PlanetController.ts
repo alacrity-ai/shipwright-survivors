@@ -100,7 +100,7 @@ export class PlanetController {
         this.interactionLatched = true;
         GlobalMenuReporter.getInstance().setSpecialBlocker('planet-interaction-overlay');
       }
-      if ((this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('A')) && !this.isInteracting) {
+      if ((this.inputManager.wasKeyJustPressed('KeyC') || this.inputManager.wasGamepadAliasJustPressed('select')) && !this.isInteracting) {
         if (this.definition.tradePostId) {
           this.isInteracting = true;
           audioManager.play('assets/sounds/sfx/ui/activate_01.wav', 'sfx');
