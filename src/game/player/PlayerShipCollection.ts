@@ -147,10 +147,7 @@ export class PlayerShipCollection {
 
   unlockAndDiscoverAll(): void {
     const allShips = ShipBlueprintRegistry.getAllShipNames();
-    allShips.forEach(name => {
-      this.discoveredShipNames.add(name);
-      this.unlockedShipNames.add(name);
-    });
+    allShips.forEach(name => this.discover(name));
   }
 
   // === Mastery Getters ===
