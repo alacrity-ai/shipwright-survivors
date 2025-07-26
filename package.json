@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start:electron": "electron .",
+    "start:electron:inspect": "electron --inspect .",
     "dist:electron": "npm run build:electron && electron-builder --win"
   },
   "build": {
