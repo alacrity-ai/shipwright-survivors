@@ -86,8 +86,16 @@ export class GamePadManager {
   private getPrimaryGamepad(): Gamepad | null {
     const pads = navigator.getGamepads?.() ?? [];
     for (const pad of pads) {
-      if (pad && pad.connected && pad.mapping === 'standard') {
-        return pad;
+      if (pad && pad.connected) {
+        // Log for diagnostics (Steam Deck often reports empty mapping)
+        console.debug(
+          `[GamePadManager] Detected gamepad: id="${pad.id}", mapping="${pad.mapping}", buttons=${pad.buttons.length}, axes=${pad.axes.length}`
+        );
+
+        // Prefer standard, but accept any mapping (Steam Deck often uses "")
+        if (pad.mapping === 'standard' || pad.mapping === '') {
+          return pad;
+        }
       }
     }
     return null;
