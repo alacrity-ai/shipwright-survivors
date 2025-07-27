@@ -5,6 +5,7 @@ import { getAssetPath } from '@/shared/assetHelpers';
 import { Faction } from '@/game/interfaces/types/Faction';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
+import { snapToRightAngle } from '@/shared/mathUtils';
 
 export interface SerializedShip {
   transform: {
@@ -19,14 +20,6 @@ export interface SerializedShip {
   behavior: {
     type: 'default' | 'spaceStation' | 'rammer' | string;
   };
-}
-
-function snapToRightAngle(degrees: number): number {
-  // Normalize to [0, 360)
-  let deg = ((degrees % 360) + 360) % 360;
-  // Snap to the nearest 90°
-  const snapped = Math.round(deg / 90) * 90;
-  return snapped % 360;
 }
 
 export function serializeShip(ship: Ship): SerializedShip {

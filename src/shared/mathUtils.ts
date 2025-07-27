@@ -25,3 +25,22 @@ export function normalizeAngle(angle: number): number {
   while (angle < -Math.PI) angle += 2 * Math.PI;
   return angle;
 }
+
+/**
+ * Snap a local rotation (radians) to the nearest 90° step.
+ * Ensures blocks always stay aligned to the ship grid.
+ */
+export function snapToRightAngleRadians(angleRad: number): number {
+  const angleDeg = (angleRad * 180) / Math.PI;
+  const normalizedDeg = ((angleDeg % 360) + 360) % 360;
+  const snappedDeg = Math.round(normalizedDeg / 90) * 90;
+  return (snappedDeg * Math.PI) / 180;
+}
+
+export function snapToRightAngle(degrees: number): number {
+  // Normalize to [0, 360)
+  let deg = ((degrees % 360) + 360) % 360;
+  // Snap to the nearest 90°
+  const snapped = Math.round(deg / 90) * 90;
+  return snapped % 360;
+}
