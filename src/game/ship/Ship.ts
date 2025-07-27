@@ -1180,6 +1180,11 @@ export class Ship extends CompositeBlockObject {
     // Update positions and grid immediately
     this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
 
+    // Only register collision box for non-player ships
+    if (!this.isPlayerShip) {
+      this.registerCollisionBox();
+    }
+
     this.markRasterDirty();
   }
 
@@ -1196,6 +1201,10 @@ export class Ship extends CompositeBlockObject {
     // Completely clear all blocks for this ship (frees BlockStore slots and removes from grid)
     this.blockOrchestrator.clearShip(this.numericId);
 
+
+    // Clear Collision Box
+    this.clearCollisionBox();
+
     // --- Aura Light Cleanup ---
     this.cleanupAuraLight();
 
@@ -1208,6 +1217,13 @@ export class Ship extends CompositeBlockObject {
     this.markRasterDirty();
 
     this.onDestroyed();
+  }
+
+  public clearCollisionBox(): void {
+    const boxIndex = this.collisionBoxOrchestrator.getBoxIndexByShipId(this.numericId);
+    if (boxIndex !== undefined) {
+      this.collisionBoxOrchestrator.destroyCollisionBox(boxIndex);
+    }
   }
 
   public onDestroyedCallback(callback: ShipDestroyedCallback): void {

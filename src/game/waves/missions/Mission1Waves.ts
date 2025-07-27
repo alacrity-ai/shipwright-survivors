@@ -139,8 +139,8 @@ const cruiserLargeWedgeFormation = createLargeWedgeFormation(
   'large-wedge',
   'ship_scrapper_4',
   ['ship_scrapper_3', 'ship_scrapper_3', 'ship_0_02', 'ship_0_02', 'ship_0_02', 'ship_0_02'],
-  FAST_AFFIXES,
-  FAST_AFFIXES,
+  TIER3_AFFIXES,
+  TIER3_AFFIXES,
   600,
   2,
   true

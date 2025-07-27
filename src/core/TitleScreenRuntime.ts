@@ -7,6 +7,7 @@ import { InputManager } from './InputManager';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalMenuReporter } from './GlobalMenuReporter';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { CollisionBoxManager } from '@/game/entities/collisionbox/CollisionBoxManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -85,6 +86,7 @@ export class TitleScreenRuntime {
   private isInitialized = false;
 
   private blockManager: BlockManager;
+  private collisionBoxManager: CollisionBoxManager;
 
   private inputManager: InputManager;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
@@ -142,6 +144,7 @@ export class TitleScreenRuntime {
     this.canvasManager = CanvasManager.getInstance();
     this.inputManager = new InputManager(this.canvasManager.getCanvas('overlay'));
     this.blockManager = BlockManager.initialize();
+    this.collisionBoxManager = CollisionBoxManager.initialize();
 
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
@@ -508,6 +511,7 @@ export class TitleScreenRuntime {
     GlobalMenuReporter.getInstance().destroy();
     DamageTextManager.getInstance().clear();
     this.blockManager.clear();
+    this.collisionBoxManager.clear();
 
     // Additional cleanup
     this.pickupSystem.destroy();

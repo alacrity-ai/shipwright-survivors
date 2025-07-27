@@ -16,6 +16,9 @@ import { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import { BlockSpatialGrid } from '../blocks/system/BlockSpatialGrid';
 import { getBlockType, BlockTypeIndex, BlockTypeMass } from '@/game/blocks/BlockRegistry';
 
+import { CollisionBoxManager } from './collisionbox/CollisionBoxManager';
+import { CollisionBoxOrchestrator } from './collisionbox/CollisionBoxOrchestrator';
+
 import { Faction } from '@/game/interfaces/types/Faction';
 import { AnchorPointComponent } from '@/game/ship/anchors/AnchorPointComponent';
 
@@ -26,6 +29,8 @@ export abstract class CompositeBlockObject {
 
   protected blockManager: BlockManager;
   protected blockOrchestrator: BlockOrchestrator;
+  protected collisionBoxManager: CollisionBoxManager;
+  protected collisionBoxOrchestrator: CollisionBoxOrchestrator;
 
   protected transform: BlockEntityTransform;
   protected destroyed: boolean = false;
@@ -60,7 +65,9 @@ export abstract class CompositeBlockObject {
     this.faction = faction ?? Faction.Neutral;
 
     this.blockManager = BlockManager.getInstance();
+    this.collisionBoxManager = CollisionBoxManager.getInstance();
     this.blockOrchestrator = this.blockManager.getBlockOrchestrator();
+    this.collisionBoxOrchestrator = this.collisionBoxManager.getCollisionBoxOrchestrator();
 
     this.transform = {
       position: initialTransform?.position ?? { x: 0, y: 0 },
@@ -468,7 +475,7 @@ public removeBlocks(coords: GridCoord[]): void {
 
   /**
    * Updates all block world positions and rehomes them in the spatial grid.
-   * Also updates any attached anchor point component.
+   * Also updates any attached anchor point component and collision box.
    */
   public updateBlockPositions(): void {
     // Update SOA positions and handle spatial rehoming via BlockOrchestrator
@@ -477,6 +484,16 @@ public removeBlocks(coords: GridCoord[]): void {
     // Update anchor points (used for AI targeting, etc.)
     if (this.anchorPointComponent) {
       this.anchorPointComponent.updateFromTransform(this.transform);
+    }
+
+    // ─── Sync Collision Box Transform ──────────────────────────────────────
+    const boxIndex = this.collisionBoxOrchestrator.getBoxIndexByShipId(this.numericId);
+    if (boxIndex !== undefined) {
+      this.collisionBoxOrchestrator.updateAndSync(
+        boxIndex,
+        this.transform.position,
+        this.transform.rotation ?? 0
+      );
     }
   }
 
@@ -518,6 +535,12 @@ public removeBlocks(coords: GridCoord[]): void {
 
     // Clear all blocks for this ship (handles BlockStore + BlockSpatialGrid teardown)
     this.blockOrchestrator.clearShip(this.numericId);
+
+    // ─── Clear Collision Box ───────────────────────────────────────────────
+    const boxIndex = this.collisionBoxOrchestrator.getBoxIndexByShipId(this.numericId);
+    if (boxIndex !== undefined) {
+      this.collisionBoxOrchestrator.destroyCollisionBox(boxIndex);
+    }
 
     // Notify any subclass-specific destruction logic
     this.onDestroyed();
@@ -625,6 +648,51 @@ public removeBlocks(coords: GridCoord[]): void {
 
     // Sync world transforms and spatial grid registration
     this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
+
+    this.registerCollisionBox();
+  }
+
+  protected registerCollisionBox(): void {
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    if (indices.length === 0) return;
+
+    const store = this.blockManager.getBlockStore();
+
+    // Compute min/max local-space extents (block coords × BLOCK_SIZE)
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+    const BLOCK_SIZE = 32;
+
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const x = store.localX[idx] * BLOCK_SIZE;
+      const y = store.localY[idx] * BLOCK_SIZE;
+
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x + BLOCK_SIZE > maxX) maxX = x + BLOCK_SIZE;
+      if (y + BLOCK_SIZE > maxY) maxY = y + BLOCK_SIZE;
+    }
+
+    // Allocate and register the collision box.
+    // The store will compute pivotOffset and re-center local extents.
+    const boxIndex = this.collisionBoxOrchestrator.createCollisionBox({
+      shipNumericId: this.numericId,
+      localX1: minX,
+      localY1: minY,
+      localX2: maxX,
+      localY2: maxY,
+    });
+
+    if (boxIndex !== -1) {
+      // Let the orchestrator compute the true world center (shipPos + rotated pivot)
+      this.collisionBoxOrchestrator.updateWorldTransform(
+        boxIndex,
+        this.transform.position,
+        this.transform.rotation ?? 0
+      );
+      this.collisionBoxOrchestrator.rehomeBox(boxIndex);
+    }
   }
 
   protected generateId(): { stringId: string; numericId: number } {

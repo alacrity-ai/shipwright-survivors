@@ -31,6 +31,7 @@ import {
   type UnderwaterParams
 } from '@/rendering/unified/passes/PostProcessPass';
 import { DamageTextPass } from '@/rendering/unified/passes/fx/DamageTextPass';
+import { CollisionBoxPass } from '@/rendering/unified/passes/debug/CollisionBoxPass';
 
 import type { ParticleSOA } from '@/systems/fx/ParticleManager';
 import type { LightSOA } from '@/lighting/interfaces/LightSOA';
@@ -56,6 +57,7 @@ export class UnifiedSceneRendererGL {
   private readonly postProcessPass: PostProcessPass;
   private readonly backgroundPostProcessPass: PostProcessPass;
   private readonly damageTextPass: DamageTextPass;
+  private readonly collisionBoxPass: CollisionBoxPass;
 
   private sceneFramebufferFX: WebGLFramebuffer;
   private sceneTextureFX: WebGLTexture;
@@ -89,6 +91,8 @@ export class UnifiedSceneRendererGL {
   private drawFrontClouds: boolean = false;
   private drawBackClouds: boolean = false;
 
+  private debugDrawCollisionBoxes = false; // Debug only
+
   constructor(camera: Camera, private readonly inputManager: InputManager) {
     const canvasManager = CanvasManager.getInstance();
     this.gl = canvasManager.getWebGL2Context('unifiedgl2');
@@ -113,6 +117,7 @@ export class UnifiedSceneRendererGL {
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.damageTextPass = new DamageTextPass(this.gl, digitAtlas, this.cameraUBO);
+    this.collisionBoxPass = new CollisionBoxPass(this.gl);
 
     // // Configure front cloudpass
     // this.cloudPass.setParams({
@@ -352,6 +357,10 @@ export class UnifiedSceneRendererGL {
       this.cloudPassFront.render(this.elapsedSeconds, cameraOffset);
     }
 
+    if (this.debugDrawCollisionBoxes) {
+      this.collisionBoxPass.render(camera);
+    }
+
     // === Step 8: Render particles ===
     for (const particleSOA of particleSOAs) {
       this.particlePass.renderSOA(particleSOA, camera);
@@ -419,6 +428,7 @@ export class UnifiedSceneRendererGL {
     this.specialFxPass.destroy();
     this.specialFxController.destroy();
     this.damageTextPass.destroy();
+    this.collisionBoxPass.destroy();
     for (const fx of this.worldFxPasses) fx.destroy();
 
     this.spriteGroups.clear();
@@ -498,6 +508,10 @@ export class UnifiedSceneRendererGL {
   public setCloudVisibility(back: boolean, front: boolean): void {
     this.drawBackClouds = back;
     this.drawFrontClouds = front;
+  }
+
+  public setDebugDrawCollisionBoxes(enabled: boolean): void {
+    this.debugDrawCollisionBoxes = enabled;
   }
 
   public addPlanet(config: PlanetSpawnConfig, scale: number, imagePath: string): void {

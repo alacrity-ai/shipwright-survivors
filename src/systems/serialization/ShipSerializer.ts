@@ -101,6 +101,10 @@ export async function loadShipFromJson(
   const ship = new Ship(undefined, undefined, isPlayerShip, undefined, faction);
   ship.loadFromJson(data);
 
+  if (data.behavior?.type === 'spaceStation') {
+    ship.clearCollisionBox();
+  }
+
   return { ship, behaviorType: data.behavior?.type };
 }
 

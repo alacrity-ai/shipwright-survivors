@@ -6,6 +6,8 @@ import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
 import { audioManager } from '@/audio/Audio';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { CollisionBoxManager } from '@/game/entities/collisionbox/CollisionBoxManager';
+import { CollisionBoxSystem } from '@/game/entities/collisionbox/CollisionBoxSystem';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
@@ -164,6 +166,8 @@ export class EngineRuntime {
   private isInitialized = false;
 
   private blockManager: BlockManager;
+  private collisionBoxManager: CollisionBoxManager;
+  private collisionBoxSystem: CollisionBoxSystem;
 
   private inputManager: InputManager;
   private missionDialogueManager: MissionDialogueManager | null = null;
@@ -260,6 +264,8 @@ export class EngineRuntime {
     this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
     this.blockManager = BlockManager.initialize();
+    this.collisionBoxManager = CollisionBoxManager.initialize();
+    this.collisionBoxSystem = new CollisionBoxSystem(32);
 
     PowerupRegistry.initialize();
 
@@ -629,6 +635,7 @@ export class EngineRuntime {
       this.damageTextManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
+      this.collisionBoxSystem,
       this.destructionService,
       this.explosionSystem,
       ShieldEffectsSystem.getInstance(),
@@ -1158,6 +1165,7 @@ export class EngineRuntime {
     this.shipRegistry.clear();
     this.aiOrchestrator.clear();
     this.blockManager.clear();
+    this.collisionBoxManager.clear();
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();
