@@ -321,8 +321,12 @@ export class CombatService {
     // === Cockpit/center destruction ===
     const isCenterBlock = coord.x === 0 && coord.y === 0;
     if (isCenterBlock) {
-      this.destructionService.destroyEntity(entity, cause);
-      return true;
+      if (entity instanceof Ship) {
+        return this.destroyEntireShipWithAllBlocksSOA(entity, cause);
+      } else {
+        this.destructionService.destroyEntity(entity, cause);
+        return true;
+      }
     }
 
     // Explosion for the destroyed block

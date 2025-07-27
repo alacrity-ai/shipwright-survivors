@@ -8,6 +8,17 @@ import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { getNextTierBlock, getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 
 /**
+ * Snap a local rotation (radians) to the nearest 90° step.
+ * Ensures blocks always stay aligned to the ship grid.
+ */
+function snapToRightAngleRadians(angleRad: number): number {
+  const angleDeg = (angleRad * 180) / Math.PI;
+  const normalizedDeg = ((angleDeg % 360) + 360) % 360;
+  const snappedDeg = Math.round(normalizedDeg / 90) * 90;
+  return (snappedDeg * Math.PI) / 180;
+}
+
+/**
  * Upgrades all blocks on the ship matching the given affinity tags,
  * advancing their tier by `tierDelta` (clamped to max tier).
  *
@@ -24,7 +35,7 @@ export function upgradeAffinityBlocksOnShip(
   const upgrades: Array<{
     coord: GridCoord;
     newBlockId: string;
-    rotation: number;
+    rotation: number; // snapped local radians
   }> = [];
 
   for (let i = 0; i < indices.length; i++) {
@@ -39,10 +50,12 @@ export function upgradeAffinityBlocksOnShip(
     const upgradedType = getNextTierBlock(blockType, tierDelta);
     if (!upgradedType || upgradedType.tier <= blockType.tier) continue;
 
+    const localRot = store.localRotation[idx] ?? 0;
+
     upgrades.push({
       coord: { x: store.localX[idx], y: store.localY[idx] },
       newBlockId: upgradedType.id,
-      rotation: store.rotation[idx] ?? 0,
+      rotation: snapToRightAngleRadians(localRot),
     });
   }
 
@@ -70,10 +83,10 @@ export function upgradeBlockIndexOnShip(
   if (!upgradedType || upgradedType.tier <= blockType.tier) return false;
 
   const coord: GridCoord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
-  const rotation = store.rotation[blockIndex] ?? 0;
+  const localRot = store.localRotation[blockIndex] ?? 0;
 
   ship.removeBlock(coord);
-  ship.placeBlockById(coord, upgradedType.id, rotation);
+  ship.placeBlockById(coord, upgradedType.id, snapToRightAngleRadians(localRot));
 
   return true;
 }
@@ -90,10 +103,10 @@ export function replaceBlockOnShipByIndex(
   if (!store.isAllocated(blockIndex)) return false;
 
   const coord: GridCoord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
-  const rotation = store.rotation[blockIndex] ?? 0;
+  const localRot = store.localRotation[blockIndex] ?? 0;
 
   ship.removeBlock(coord);
-  ship.placeBlockById(coord, newType.id, rotation);
+  ship.placeBlockById(coord, newType.id, snapToRightAngleRadians(localRot));
 
   return true;
 }

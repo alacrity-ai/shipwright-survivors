@@ -21,9 +21,14 @@ export interface SerializedShip {
   };
 }
 
-/**
- * Serializes a Ship into JSON-friendly format using SOA BlockStore.
- */
+function snapToRightAngle(degrees: number): number {
+  // Normalize to [0, 360)
+  let deg = ((degrees % 360) + 360) % 360;
+  // Snap to the nearest 90°
+  const snapped = Math.round(deg / 90) * 90;
+  return snapped % 360;
+}
+
 export function serializeShip(ship: Ship): SerializedShip {
   const transform = ship.getTransform();
   const store = BlockManager.getInstance().getBlockStore();
@@ -32,7 +37,7 @@ export function serializeShip(ship: Ship): SerializedShip {
   const serializedBlocks = new Array<{
     id: string;
     coord: { x: number; y: number };
-    rotation?: number;
+    rotation: number; // Always 0, 90, 180, 270
   }>(indices.length);
 
   for (let i = 0; i < indices.length; i++) {
@@ -40,10 +45,14 @@ export function serializeShip(ship: Ship): SerializedShip {
     const typeIdx = store.typeIndex[idx];
     const type = getBlockTypeByIndex(typeIdx);
 
+    const radians = store.localRotation[idx] ?? 0;
+    const degrees = radians * (180 / Math.PI);
+    const rotationDeg = snapToRightAngle(degrees);
+
     serializedBlocks[i] = {
       id: type?.id ?? 'unknown',
       coord: { x: store.localX[idx], y: store.localY[idx] },
-      rotation: store.localRotation[idx] ?? 0
+      rotation: rotationDeg
     };
   }
 
@@ -56,6 +65,7 @@ export function serializeShip(ship: Ship): SerializedShip {
     behavior: { type: 'default' }
   };
 }
+
 
 /**
  * Deserializes JSON-friendly ship data into a new Ship.
