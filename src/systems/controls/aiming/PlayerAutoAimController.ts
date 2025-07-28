@@ -76,7 +76,7 @@ export class PlayerAutoAimController implements AimProvider {
         selfTransform.position,
         targetTransform.position,
         this.target.getVelocity(),
-        600
+        1400
       );
     }
 

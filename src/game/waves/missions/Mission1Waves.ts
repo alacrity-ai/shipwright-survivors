@@ -32,8 +32,9 @@ const GIANT_CRUISER_AFFIXES: ShipAffixes = {
   thrustPowerMulti: 1.0,
   turnPowerMulti: 0.25,
   fireRateMulti: 2.0,
-  projectileSpeedMulti: 3.0,
-  blockDurabilityMulti: 1.5,
+  projectileSpeedMulti: 1.5,
+  projectileLifetimeMulti: 2.0,
+  blockDurabilityMulti: 1.2,
   blockDropRateMulti: 0.4,
 };
 
@@ -51,15 +52,15 @@ const TIER2_AFFIXES: ShipAffixes = {
   turnPowerMulti: 2.0,
   fireRateMulti: 2.0,
   projectileSpeedMulti: 1.5,
-  blockDurabilityMulti: 2.0,
+  blockDurabilityMulti: 1.2,
 };
 
 const TIER2_AFFIXES_FIGHTER: ShipAffixes = {
   thrustPowerMulti: 4.5,
   turnPowerMulti: 2.0,
-  fireRateMulti: 1.2,
-  projectileSpeedMulti: 1.2,
-  blockDurabilityMulti: 1.0,
+  fireRateMulti: 0.8,
+  projectileSpeedMulti: 0.6,
+  blockDurabilityMulti: 0.8,
 };
 
 const TIER3_AFFIXES: ShipAffixes = {
@@ -67,7 +68,7 @@ const TIER3_AFFIXES: ShipAffixes = {
   turnPowerMulti: 2.0,
   fireRateMulti: 2.5,
   projectileSpeedMulti: 2.5,
-  blockDurabilityMulti: 2.0,
+  blockDurabilityMulti: 1.2,
 };
 
 const cursedCargoTier1Params = {
@@ -481,7 +482,7 @@ export const waveDefinitions: WaveDefinition[] = [
         },
       },
       { shipId: 'ship_scrapper_2', count: 4, hunter: true, affixes: SUPER_FAST_AFFIXES },
-      { shipId: 'ship_scrapper_3', count: 2, hunter: true, affixes: FAST_AFFIXES },
+      { shipId: 'mission_02/cruiser_huge_00', count: 2, hunter: true, affixes: GIANT_CRUISER_AFFIXES, behaviorProfile: GIANT_CRUISER_BEHAVIOR },
       { shipId: 'mission_02/tier2_sieger_00', count: 4, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
       { shipId: 'mission_02/tier3_station_00', count: 4, affixes: TIER2_AFFIXES },
     ],
@@ -504,8 +505,7 @@ export const waveDefinitions: WaveDefinition[] = [
     spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
-      { shipId: 'mission_02/tier2_fighter_00', count: 8, hunter: true, affixes: TIER2_AFFIXES_FIGHTER },
-      { shipId: 'mission_02/cruiser_huge_00', count: 4, hunter: true, affixes: GIANT_CRUISER_AFFIXES, behaviorProfile: GIANT_CRUISER_BEHAVIOR },
+      { shipId: 'mission_02/tier2_fighter_00', count: 6, hunter: true, affixes: TIER2_AFFIXES_FIGHTER },
     ],
     incidents: [
       {
@@ -564,7 +564,6 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'mission_02/tier2_fighter_00', count: 4, hunter: true, affixes: TIER2_AFFIXES_FIGHTER },
       { shipId: 'mission_02/tier2_cruiser_01', count: 4, hunter: true, affixes: TIER3_AFFIXES },
       { shipId: 'mission_02/tier3_station_00', count: 6, affixes: TIER2_AFFIXES },
-      { shipId: 'mission_02/cruiser_huge_00', count: 2, hunter: true, affixes: GIANT_CRUISER_AFFIXES, behaviorProfile: GIANT_CRUISER_BEHAVIOR },
       { shipId: 'mission_02/tier2_sieger_00', count: 6, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
     ],
   },

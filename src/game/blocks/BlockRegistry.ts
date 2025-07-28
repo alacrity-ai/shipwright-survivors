@@ -46,8 +46,8 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'bullet',
         fireDamage: 14,
-        projectileSpeed: 800,
-        lifetime: 1.8,
+        projectileSpeed: 2000,
+        lifetime: 0.8,
         accuracy: 0.75
       } 
     },
@@ -276,8 +276,8 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.6,
         fireType: 'bullet',
         fireDamage: 10,
-        projectileSpeed: 600,
-        lifetime: 1.8,
+        projectileSpeed: 2000,
+        lifetime: 0.6,
         accuracy: 0.65,
       } 
     },
@@ -301,8 +301,8 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 0.8,
         fireType: 'bullet',
         fireDamage: 16,
-        projectileSpeed: 700,
-        lifetime: 2.2,
+        projectileSpeed: 2000,
+        lifetime: 0.8,
         accuracy: 0.75
       } 
     },
@@ -326,8 +326,8 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 1.2,
         fireType: 'bullet',
         fireDamage: 20,
-        projectileSpeed: 800,
-        lifetime: 2.2,
+        projectileSpeed: 2000,
+        lifetime: 0.9,
         accuracy: 0.9
       } 
     },
@@ -351,8 +351,8 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 1.4,
         fireType: 'bullet',
         fireDamage: 28,
-        projectileSpeed: 900,
-        lifetime: 2.2,
+        projectileSpeed: 2000,
+        lifetime: 1.0,
         accuracy: 0.95
       } 
     },
@@ -376,8 +376,8 @@ const blockTypes: Record<string, BlockType> = {
         fireRate: 1.6,
         fireType: 'bullet',
         fireDamage: 42,
-        projectileSpeed: 1100,
-        lifetime: 2.2,
+        projectileSpeed: 2000,
+        lifetime: 1.0,
         accuracy: 0.98
       } 
     },

@@ -15,6 +15,9 @@ export class CollisionBoxSystem {
   private static readonly PENETRATION_SLOP = 4;          // pixels of tolerance before separation
   private static readonly PENETRATION_CORRECTION_RATIO = 0.5; // fraction of overlap to resolve
 
+  // At the top of the class, add:
+  private static readonly MAX_QUERY_RADIUS = 1500; // pixels, tune as needed
+
   private readonly store = CollisionBoxManager.getInstance().getCollisionBoxStore();
   private readonly grid = CollisionBoxManager.getInstance().getBoxSpatialGrid();
   private readonly orchestrator = CollisionBoxManager.getInstance().getCollisionBoxOrchestrator();
@@ -33,7 +36,7 @@ export class CollisionBoxSystem {
   public update(dt: number): void {
     const { store, grid } = this;
     const active = store.activeIndices;
-    const count = active.length;
+    const count = store.activeCount;
 
     if (count <= 1) return;
 
@@ -43,11 +46,17 @@ export class CollisionBoxSystem {
       const yA = store.worldY[idxA];
       const rA = Math.max(store.halfWidth[idxA], store.halfHeight[idxA]);
 
+      // Clamp query radius to prevent performance spikes from huge ships
+      const queryRadius = Math.min(
+        rA * CollisionBoxSystem.QUERY_RADIUS_FACTOR,
+        CollisionBoxSystem.MAX_QUERY_RADIUS
+      );
+
       // Broad-phase query for nearby boxes
       const candidateCount = grid.getBoxesInArea(
         xA,
         yA,
-        rA * CollisionBoxSystem.QUERY_RADIUS_FACTOR,
+        queryRadius,
         this._candidateBuffer
       );
 
@@ -68,36 +77,35 @@ export class CollisionBoxSystem {
   private resolvePair(idxA: number, idxB: number): void {
     const { store } = this;
 
-    const xA = store.worldX[idxA];
-    const yA = store.worldY[idxA];
-    const rA = Math.max(store.halfWidth[idxA], store.halfHeight[idxA]);
+    const xA = store.worldX[idxA], yA = store.worldY[idxA];
+    const xB = store.worldX[idxB], yB = store.worldY[idxB];
 
-    const xB = store.worldX[idxB];
-    const yB = store.worldY[idxB];
+    const rA = Math.max(store.halfWidth[idxA], store.halfHeight[idxA]);
     const rB = Math.max(store.halfWidth[idxB], store.halfHeight[idxB]);
 
-    const dx = xB - xA;
-    const dy = yB - yA;
+    const dx = xB - xA, dy = yB - yA;
     const distSq = dx * dx + dy * dy;
     const minDist = rA + rB;
 
-    // No overlap → skip
     if (distSq >= minDist * minDist) return;
 
     const dist = Math.sqrt(distSq) || 0.0001;
     const overlap = minDist - dist;
-
-    // Slop threshold & correction scaling
     const depth = Math.max(overlap - CollisionBoxSystem.PENETRATION_SLOP, 0) *
                   CollisionBoxSystem.PENETRATION_CORRECTION_RATIO;
     if (depth <= 0) return;
 
-    const nx = dx / dist;
-    const ny = dy / dist;
-    const pushX = nx * depth;
-    const pushY = ny * depth;
+    const nx = dx / dist, ny = dy / dist;
+    const pushX = nx * depth, pushY = ny * depth;
 
-    // Resolve owning ships
+    // Infer mass from size (area ~ r²)
+    const massA = rA * rA;
+    const massB = rB * rB;
+    const totalMass = massA + massB || 1;
+
+    const moveA = massB / totalMass;
+    const moveB = massA / totalMass;
+
     const shipA = ShipRegistry.getInstance().getByNumericId(store.shipNumericId[idxA]) as CompositeBlockObject | null;
     const shipB = ShipRegistry.getInstance().getByNumericId(store.shipNumericId[idxB]) as CompositeBlockObject | null;
     if (!shipA || !shipB) return;
@@ -105,22 +113,14 @@ export class CollisionBoxSystem {
     const tA = shipA.getTransform();
     const tB = shipB.getTransform();
 
-    const massA = shipA.getTotalMass();
-    const massB = shipB.getTotalMass();
-    const totalMass = massA + massB || 1;
-
-    // Heavier ships move less
-    const moveA = massB / totalMass;
-    const moveB = massA / totalMass;
-
     tA.position.x -= pushX * moveA;
     tA.position.y -= pushY * moveA;
 
     tB.position.x += pushX * moveB;
     tB.position.y += pushY * moveB;
 
-    // Trigger per-ship sync (updates collision boxes via orchestrator automatically)
-    shipA.updateBlockPositions();
-    shipB.updateBlockPositions();
+    // This call doesn't seem to be necessary
+    // shipA.updateBlockPositions();
+    // shipB.updateBlockPositions();
   }
 }

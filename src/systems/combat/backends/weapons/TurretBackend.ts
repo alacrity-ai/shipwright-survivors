@@ -306,9 +306,15 @@ export class TurretBackend implements WeaponBackend {
     // Pull SOA attributes
     const fireDamage = store.fireDamage[blockIdx] || 1;
     const fireAccuracy = store.fireAccuracy[blockIdx] || 1;
-    const projectileSpeed = store.projectileSpeed[blockIdx] || 300;
-    const lifetime = store.projectileLifetime[blockIdx] || 2;
+    let projectileSpeed = store.projectileSpeed[blockIdx] || 300;
+    let lifetime = store.projectileLifetime[blockIdx] || 2;
     const tier = store.tier[blockIdx];
+
+    // Adjust turret speeds down for NPCs
+    if (!ship.getIsPlayerShip()) {
+      projectileSpeed *= 0.35;
+      lifetime *= 2;
+    }
 
     const particleColors = TURRET_COLOR_PALETTES[tier] ?? TURRET_COLOR_PALETTES[0];
 
