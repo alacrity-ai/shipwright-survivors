@@ -20,10 +20,6 @@ export class BoxSpatialGrid {
   private static readonly INITIAL_CELL_CAPACITY = 64;
   private static readonly MAX_CELL_CAPACITY = 4096;
 
-  // Scratch buffer for allocation-free query results
-  private static readonly SCRATCH = new Uint32Array(4096);
-  private scratchCount: number = 0;
-
   constructor(
     private readonly store: CollisionBoxStore,
     gridCellSize: number = 256 // boxes are larger than blocks, so bigger cell size
