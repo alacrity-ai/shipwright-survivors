@@ -13,6 +13,7 @@ export const PLANETARY_LOCATIONS: LocationDefinition[] = [
     color: vec3FromValues(0.1, 0.4, 0.1), // Green
     rotationSpeed: -0.15,
     missionId: 'mission_002',
+    texture: 'assets/backgrounds/background_13_00.png',
   },
   {
     id: 'naxos',
@@ -22,6 +23,7 @@ export const PLANETARY_LOCATIONS: LocationDefinition[] = [
     color: vec3FromValues(0.4, 0.0, 0.0), // Dark red
     rotationSpeed: -0.3,
     missionId: 'mission_003_00',
+    texture: 'assets/backgrounds/background_13_00.png',
   },
   {
     id: 'prexus',
@@ -31,6 +33,7 @@ export const PLANETARY_LOCATIONS: LocationDefinition[] = [
     color: vec3FromValues(0.8, 0.3, 0.9), // High-tech magenta/violet hue
     rotationSpeed: 0.3,
     missionId: 'mission_004_00',
+    texture: 'assets/backgrounds/background_13_00.png',
   },
   {
     id: 'mitron',
@@ -40,6 +43,7 @@ export const PLANETARY_LOCATIONS: LocationDefinition[] = [
     color: vec3FromValues(0.2, 0.6, 1.0), // Earth-like blue with atmospheric tint
     rotationSpeed: 0.2,
     missionId: 'mission_005_00',
+    texture: 'assets/backgrounds/background_13_00.png',
   },
   {
     id: 'solarum',
@@ -49,5 +53,6 @@ export const PLANETARY_LOCATIONS: LocationDefinition[] = [
     color: vec3FromValues(1.0, 0.8, 0.1), // Radiant sun-yellow
     rotationSpeed: -0.1,
     missionId: 'mission_006_00',
+    texture: 'assets/backgrounds/background_13_00.png',
   },
 ];

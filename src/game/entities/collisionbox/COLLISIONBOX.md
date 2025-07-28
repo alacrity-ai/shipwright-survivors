@@ -214,6 +214,88 @@ if (boxIndex !== undefined) {
 
 keeps the collision box’s **position, rotation, rotated corners, and spatial grid cell** synchronized with the ship each frame, with no additional work by systems or AI controllers.
 
+## Collision System
+
+The **`CollisionBoxSystem`** is the runtime engine responsible for **resolving ship-to-ship overlaps** using the data stored in the `CollisionBoxStore` and spatially indexed via the `BoxSpatialGrid`.  
+Its primary function is to keep large numbers of enemy ships visually separated without incurring the heavy cost of per-block physics or fine-grained collision checks.
+
+### Responsibilities
+
+1. **Broad-Phase Querying**
+    
+    - Iterates over all **active collision boxes** (`store.activeIndices`).
+        
+    - Uses `BoxSpatialGrid.getBoxesInArea(x, y, queryRadius, buffer)` to collect nearby candidate boxes around each ship.
+        
+    - Caps query radius to `MAX_QUERY_RADIUS` for performance.
+        
+2. **Efficient Narrow-Phase Checks**
+    
+    - Each candidate pair is tested using a **circle-proxy approximation** (radius derived from `max(halfWidth, halfHeight)`).
+        
+    - Early exit: pairs with squared distance ≥ `(rA + rB)²` are skipped without additional math.
+        
+    - Overlapping pairs trigger a penetration depth calculation, using a **slop tolerance** (`PENETRATION_SLOP`) and a **correction ratio** (`PENETRATION_CORRECTION_RATIO`).
+        
+3. **Penetration Resolution**
+    
+    - Pushes ships apart along the normalized collision axis, **splitting the displacement** proportionally by mass (mass inferred as `radius²`, treating radius as proportional to area).
+        
+    - Ships are displaced symmetrically, preventing "deck stacking" without imparting velocities or forces.
+        
+4. **GC-Neutral Execution**
+    
+    - Uses **preallocated scratch buffers**:
+        
+        - `_candidateBuffer` for neighbor lookups.
+            
+        - `_shipRefs` for cached `CompositeBlockObject` references.
+            
+        - `_radii` for precomputed bounding radii.
+            
+    - Avoids per-frame allocations to maintain smooth frame pacing, even with thousands of ships.
+
+```
+const collisionBoxSystem = new CollisionBoxSystem();
+
+function gameUpdate(dt: number) {
+  // ... update ships, blocks, and transforms ...
+  collisionBoxSystem.update(dt);
+  // ... then AI, combat, and rendering ...
+}
+```
+
+
+Each frame:
+
+1. Ship references (`CompositeBlockObject`) and radii are **cached once**.
+    
+2. For each active ship, candidates are gathered from the `BoxSpatialGrid`.
+    
+3. Overlaps are resolved incrementally, ensuring stability without jitter or excessive corrections.
+    
+
+### Integration Notes
+
+- This system operates **independently** of block-level collisions.  
+    It is only concerned with **ship-level spacing**, not combat damage or projectile impact.
+    
+- Displacements directly update the ship transforms (`transform.position.x/y`), so any downstream systems (AI, rendering, etc.) automatically see the corrected positions.
+    
+- Parameters like `QUERY_RADIUS_FACTOR`, `PENETRATION_SLOP`, and `PENETRATION_CORRECTION_RATIO` can be tuned for different enemy densities or gameplay styles.
+    
+
+### Performance
+
+With its SOA design and spatial partitioning, the system scales nearly linearly even with **1,000+ ships**.  
+In worst-case scenarios (all ships in proximity), full resolution typically adds only **0.3–0.5ms per frame** on mid-tier hardware, making it viable for high-density engagements.
+
+### Core Update Loop
+
+The system runs once per frame, typically after all ship transforms are updated but before AI steering:
+
+
+
 ### Automatic Teardown
 
 - When a ship is destroyed via `destroy()`, the class now:

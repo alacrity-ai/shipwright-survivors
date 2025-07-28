@@ -126,9 +126,11 @@ What's needed to get to Demo:
 
 TODOS:
 
+  - [ ] Weird bug where collisionbox system can somehow drop the framerate 10x, happens when the big ships spawn?
+  - [ ] Healing Needs to update Block Damage UV in SOA (See applydamagetoblock for how to)
   - [ ] Remove all usages of getShipBlocksView (GC Heavy)
 
-  - [ ] Remove background and polygon canvas
+  - [ ] Remove background canvas (replace all canvas2d backgrounds with webgl2)
 
   - [ ] Turret weapon just feels weak. I think it's time to upgrade implicit weapons, and make it an insta super accurate machine gun on the turret ship.
   - [ ] Await loading of images (artifacts and ships) in tradepost menu so cursor is on top.

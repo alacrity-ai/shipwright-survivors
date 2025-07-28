@@ -10,6 +10,5 @@ export interface LocationDefinition {
   color: Vec3;
   rotationSpeed: number;
   missionId: string; // This mission ID refers to the key in the mission definition, e.g. 'mission_001'
+  texture: string;
 }
-
-

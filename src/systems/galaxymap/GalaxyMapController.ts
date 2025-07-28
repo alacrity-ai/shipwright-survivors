@@ -2,7 +2,7 @@
 
 import { InputManager } from '@/core/InputManager';
 import { CanvasManager } from '@/core/CanvasManager';
-import { GalaxyMapRenderer } from '@/systems/galaxymap/GalaxyMapRenderer';
+import { GalaxyMapRenderer } from '@/systems/galaxymap/GalaxyMapRendererGL2';
 import { GalaxyMapCamera } from '@/systems/galaxymap/camera/GalaxyMapCamera';
 import { GalaxyMapRegistry } from '@/systems/galaxymap/registry/GalaxyMapRegistry';
 import { raySphereIntersect } from '@/systems/galaxymap/helpers/raySphereIntersect';
@@ -20,7 +20,7 @@ interface LocationHoverState {
 }
 
 export class GalaxyMapController {
-  private readonly gl: WebGLRenderingContext;
+  private readonly gl: WebGL2RenderingContext;
   private readonly camera: GalaxyMapCamera;
   private readonly renderer: GalaxyMapRenderer;
 
@@ -39,7 +39,7 @@ export class GalaxyMapController {
     private readonly canvasManager: CanvasManager,
     private readonly inputManager: InputManager
   ) {
-    this.gl = this.canvasManager.getWebGLContext('polygon');
+    this.gl = this.canvasManager.getWebGL2Context('unifiedgl2');
     this.camera = new GalaxyMapCamera();
     this.renderer = new GalaxyMapRenderer(this.gl, this.camera);
     
@@ -77,7 +77,7 @@ export class GalaxyMapController {
   }
 
   public initialize(): void {
-    this.renderer.initialize();
+    // NOOP
   }
 
   public update(): void {
@@ -233,5 +233,9 @@ export class GalaxyMapController {
       this.selectedLocation = null;
       this.camera.resetView();
     }
+  }
+
+  public async preloadTextures(): Promise<void> {
+    await this.renderer.preloadTextures(this.locations);
   }
 }

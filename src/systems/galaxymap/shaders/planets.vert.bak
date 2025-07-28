@@ -1,0 +1,66 @@
+#version 300 es
+precision highp float;
+
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec3 instanceOffset;
+layout(location = 3) in float instanceScale;
+layout(location = 4) in vec3 instanceColor;
+layout(location = 5) in float instanceAlpha;
+layout(location = 6) in float instanceRotationSpeed;
+
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
+uniform float time;
+
+out vec3 vNormal;
+out vec3 vWorldPosition;
+out vec3 vColor;
+out float vAlpha;
+
+void main() {
+    // Compute rotation angle for this instance
+    float rotation = time * instanceRotationSpeed;
+
+    // Rotation around Y (right-handed, standard)
+    mat4 rotationY = mat4(
+        cos(rotation), 0.0, sin(rotation), 0.0,
+        0.0,           1.0, 0.0,           0.0,
+       -sin(rotation), 0.0, cos(rotation), 0.0,
+        0.0,           0.0, 0.0,           1.0
+    );
+
+    // Uniform scale
+    mat4 scaleM = mat4(
+        instanceScale, 0.0, 0.0, 0.0,
+        0.0, instanceScale, 0.0, 0.0,
+        0.0, 0.0, instanceScale, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    );
+
+    // Translation
+    mat4 translation = mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        instanceOffset.x, instanceOffset.y, instanceOffset.z, 1.0
+    );
+
+    // Compose full model matrix: T * R * S (note: column-major order)
+    mat4 modelMatrix = translation * rotationY * scaleM;
+
+    // Transform vertex position
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPosition.xyz;
+
+    // Proper normal transform (upper 3x3, uniform scale so no inverse-transpose)
+    mat3 normalMatrix = mat3(modelMatrix);
+    vNormal = normalize(normalMatrix * normal);
+
+    // Pass color and alpha
+    vColor = instanceColor;
+    vAlpha = instanceAlpha;
+
+    // Final clip-space position
+    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+}

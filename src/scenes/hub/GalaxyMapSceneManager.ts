@@ -24,7 +24,7 @@ import { isSteamDeck } from '@/config/view';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
 
-const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_galaxy-map.png';
+const BACKGROUND_PATH = 'assets/backgrounds/background_4_00.png';
 const crtStyle = DEFAULT_CONFIG.button.style;
 
 export class GalaxyMapSceneManager {
@@ -113,6 +113,7 @@ export class GalaxyMapSceneManager {
     audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
     audioManager.play('assets/sounds/sfx/ui/galaxymap_00.wav', 'sfx', { maxSimultaneous: 1 });
 
+    await this.galaxyMapController.preloadTextures();
     this.buildNavMap(); // initialize nav map
   }
 
