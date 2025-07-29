@@ -85,6 +85,9 @@ export class BlockStore {
   public readonly uvOverlayY: Float32Array;
   public readonly atlasKey: Int32Array;
 
+  // Light ID
+  public readonly lightId: Float64Array;
+
   constructor(capacity: number) {
     if (capacity <= 0 || !Number.isInteger(capacity)) {
       throw new Error("BlockStore capacity must be a positive integer");
@@ -160,6 +163,8 @@ export class BlockStore {
     this.uvOverlayX = new Float32Array(capacity).fill(-1);
     this.uvOverlayY = new Float32Array(capacity).fill(-1);
     this.atlasKey = new Int32Array(capacity).fill(-1);
+
+    this.lightId = new Float64Array(capacity).fill(-1);
 
     this.allocated.fill(0);
   }
@@ -251,6 +256,7 @@ export class BlockStore {
     this.uvOverlayY[index] = -1;
     this.armor[index] = 0;
     this.atlasKey[index] = -1;
+    this.lightId[index] = -1;
 
     this.freeList.push(index);
   }
@@ -315,5 +321,6 @@ export class BlockStore {
     this.uvOverlayX.fill(-1);
     this.uvOverlayY.fill(-1);
     this.atlasKey.fill(-1);
+    this.lightId.fill(-1);
   }
 }

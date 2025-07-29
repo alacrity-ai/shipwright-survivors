@@ -3,6 +3,7 @@ import { BlockStore } from './BlockStore';
 import { BlockSpatialGrid } from './BlockSpatialGrid';
 import { BlockOrchestrator, BlockRegistry } from './BlockOrchestrator';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 export class BlockManager {
   private static _instance: BlockManager | null = null;
@@ -40,6 +41,8 @@ export class BlockManager {
     if (!this._instance) {
       throw new Error('BlockManager has not been initialized');
     }
+    // Re-set the lighting orchestrator on the block orchestrator
+    this._instance.orchestrator.setLightingOrchestrator(LightingOrchestrator.getInstance());
     return this._instance;
   }
 

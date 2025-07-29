@@ -6,6 +6,15 @@ import { getAllAsteroidBlockTypes } from '@/game/blocks/AsteroidBlockRegistry';
 import { getTierFromBlockId } from '@/systems/pickups/helpers/getTierFromBlockId';
 import { randomFromArray } from '@/shared/arrayUtils';
 
+const LIGHT_COLOR_TIERS = {
+  0: '#feac29', // Tier 0 – white (for consistency)
+  1: '#feac29', // Tier 1 – neutral white
+  2: '#29fe5e', // Tier 2 – emerald green
+  3: '#7eb1ff', // Tier 3 – cobalt blue
+  4: '#ff2bfb', // Tier 4 – royal purple
+  5: '#fbff00', // Tier 5 – gold (optional)
+}
+
 const blockTypes: Record<string, BlockType> = {
   cockpit0: {
     id: 'cockpit0',
@@ -51,6 +60,34 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.75
       } 
     },
+    sprite: 'cockpit1',
+    category: 'system',
+    subcategory: 'turret',
+    dropRate: 0,
+    metatags: ['cockpit']
+  },
+  cockpitsw1: {
+    id: 'cockpitsw1',
+    tier: 1,
+    name: 'Cockpit SW-1',
+    armor: 150,
+    cost: 50,
+    mass: 50,
+    behavior: {
+      canFire: true,
+      isCockpit: true,
+      fire: {
+        fireRate: 0.8,
+        fireType: 'bullet',
+        fireDamage: 14,
+        projectileSpeed: 2000,
+        lifetime: 0.8,
+        accuracy: 0.75
+      } 
+    },
+    lightColor: '#00ffff',
+    lightRadius: 82,
+    lightIntensity: 2.0,
     sprite: 'cockpit1',
     category: 'system',
     subcategory: 'turret',
@@ -256,6 +293,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.5
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     category: 'system',
     subcategory: 'turret',
     dropRate: 0.2,
@@ -286,9 +326,9 @@ const blockTypes: Record<string, BlockType> = {
     dropRate: 0.2,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
     metatags: ['turret'],
-    lightColor: '#ffffff',
-    lightRadius: 64,
-    lightIntensity: 2.0,
+    lightColor: '#feac29',
+    lightRadius: 48,
+    lightIntensity: 1.6,
   },
   turret2: {
     id: 'turret2',
@@ -309,6 +349,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.75
       } 
     },
+    lightColor: '#29fe5e',
+    lightRadius: 64,
+    lightIntensity: 1.6,
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.2,
@@ -334,6 +377,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.9
       } 
     },
+    lightColor: '#438eff',
+    lightRadius: 64,
+    lightIntensity: 1.4,
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.18,
@@ -359,6 +405,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.95
       } 
     },
+    lightColor: '#ff2bfb',
+    lightRadius: 64,
+    lightIntensity: 1.4,
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.16,
@@ -384,6 +433,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.98
       } 
     },
+    lightColor: '#fbff00',
+    lightRadius: 64,
+    lightIntensity: 1.4,
     category: 'weapon',
     subcategory: 'turret',
     dropRate: 0.14,
@@ -414,6 +466,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.95
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.2,
     metatags: ['explosiveLance']
   },
@@ -441,6 +496,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.95
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[1],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.15,
     metatags: ['explosiveLance']
   },
@@ -468,6 +526,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.97
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.14,
     metatags: ['explosiveLance']
   },
@@ -495,6 +556,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.98
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.13,
     metatags: ['explosiveLance']
   },
@@ -522,6 +586,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.99
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.1,
     metatags: ['explosiveLance']
   },
@@ -549,6 +616,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 0.99
       } 
     },
+    lightColor: LIGHT_COLOR_TIERS[5],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.08,
     metatags: ['explosiveLance']
     },
@@ -574,6 +644,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.16,
     metatags: ['laser']
   },
@@ -600,6 +673,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
+    lightColor: LIGHT_COLOR_TIERS[1],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.16,
     metatags: ['laser']
   },
@@ -626,6 +702,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.14,
     metatags: ['laser']
   },
@@ -652,6 +731,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.12,
     metatags: ['laser']
   },
@@ -678,6 +760,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.1,
     metatags: ['laser']
   },
@@ -704,6 +789,9 @@ const blockTypes: Record<string, BlockType> = {
         accuracy: 1.0,
       },
     },
+    lightColor: LIGHT_COLOR_TIERS[5],
+    lightRadius: 64,
+    lightIntensity: 1.4,
     dropRate: 0.08,
     metatags: ['laser']
   },
@@ -721,7 +809,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'system',
     subcategory: 'system',
     dropRate: 0.08,
-    metatags: ['reactor']
+    metatags: ['reactor'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   reactor1: {
     id: 'reactor1',
@@ -737,7 +828,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'energy',
     dropRate: 0.06,
-    metatags: ['reactor']
+    metatags: ['reactor'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 128,
+    lightIntensity: 1.6,
   },
   reactor2: {
     id: 'reactor2',
@@ -753,7 +847,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'energy',
     dropRate: 0.03,
-    metatags: ['reactor']
+    metatags: ['reactor'],
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 128,
+    lightIntensity: 1.6,
   },
   battery0: {
     id: 'battery0',
@@ -769,7 +866,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'system',
     subcategory: 'system',
     dropRate: 0.08,
-    metatags: ['battery']
+    metatags: ['battery'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   battery1: {
     id: 'battery1',
@@ -785,7 +885,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'energy',
     dropRate: 0.06,
-    metatags: ['battery']
+    metatags: ['battery'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   battery2: {
     id: 'battery2',
@@ -801,7 +904,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'energy',
     dropRate: 0.03,
-    metatags: ['battery']
+    metatags: ['battery'],
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   shield0: {
     id: 'shield0',
@@ -820,7 +926,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'system',
     subcategory: 'system',
     dropRate: 0.08,
-    metatags: ['shield']
+    metatags: ['shield'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   shield1: {
     id: 'shield1',
@@ -839,7 +948,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'shield',
     dropRate: 0.08,
-    metatags: ['shield']
+    metatags: ['shield'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   shield2: {
     id: 'shield2',
@@ -858,7 +970,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'shield',
     dropRate: 0.03,
-    metatags: ['shield']
+    metatags: ['shield'],
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   shield3: {
     id: 'shield3',
@@ -877,7 +992,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'shield',
     dropRate: 0.02,
-    metatags: ['shield']
+    metatags: ['shield'],
+    lightColor: LIGHT_COLOR_TIERS[5],
+    lightRadius: 64,
+    lightIntensity: 1.6,
   },
   engine0: {
     id: 'engine0',
@@ -1091,7 +1209,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'system',
     subcategory: 'system',
     dropRate: 0.1,
-    metatags: ['harvester']
+    metatags: ['harvester'],
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 84,
+    lightIntensity: 1.6,
   },
   harvester1: {
     id: 'harvester1',
@@ -1107,7 +1228,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'exploration',
     dropRate: 0.1,
-    metatags: ['harvester']
+    metatags: ['harvester'],
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 84,
+    lightIntensity: 1.6,
   },
   harvester2: {
     id: 'harvester2',
@@ -1123,7 +1247,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'utility',
     subcategory: 'exploration',
     dropRate: 0.1,
-    metatags: ['harvester']
+    metatags: ['harvester'],
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 128,
+    lightIntensity: 1.8,
   },
   haloBlade0: {
     id: 'haloBlade0',
@@ -1146,7 +1273,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'system',
     subcategory: 'haloBlade',
     dropRate: 0.1,
-    metatags: ['haloBlade']
+    metatags: ['haloBlade'],
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   haloBlade1: {
     id: 'haloBlade1',
@@ -1169,7 +1299,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'haloBlade',
     dropRate: 0.18,
-    metatags: ['haloBlade']
+    metatags: ['haloBlade'],
+    lightColor: LIGHT_COLOR_TIERS[1],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   haloBlade2: {
     id: 'haloBlade2',
@@ -1192,7 +1325,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'haloBlade',
     dropRate: 0.14,
-    metatags: ['haloBlade']
+    metatags: ['haloBlade'],
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   haloBlade3: {
     id: 'haloBlade3',
@@ -1215,7 +1351,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'haloBlade',
     dropRate: 0.12,
-    metatags: ['haloBlade']
+    metatags: ['haloBlade'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   haloBlade4: {
     id: 'haloBlade4',
@@ -1238,7 +1377,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'haloBlade',
     dropRate: 0.1,
-    metatags: ['haloBlade']
+    metatags: ['haloBlade'],
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   haloBlade5: {
     id: 'haloBlade5',
@@ -1261,7 +1403,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'haloBlade',
     dropRate: 0.1,
-    metatags: ['haloBlade']
+    metatags: ['haloBlade'],
+    lightColor: LIGHT_COLOR_TIERS[5],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   npcseeker0: {
     id: 'npcseeker0',
@@ -1290,7 +1435,10 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'heatSeeker',
     dropRate: 0.42,
     blockDropOverride: 'heatSeeker1',
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   heatSeeker0: {
     id: 'heatSeeker0',
@@ -1317,7 +1465,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   heatSeeker1: {
     id: 'heatSeeker1',
@@ -1344,7 +1495,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[1],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   heatSeeker2: {
     id: 'heatSeeker2',
@@ -1371,7 +1525,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   heatSeeker3: {
     id: 'heatSeeker3',
@@ -1398,7 +1555,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   heatSeeker4: {
     id: 'heatSeeker4',
@@ -1425,7 +1585,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   heatSeeker5: {
     id: 'heatSeeker5',
@@ -1452,7 +1615,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'heatSeeker',
     dropRate: 0.28,
-    metatags: ['heatSeeker']
+    metatags: ['heatSeeker'],
+    lightColor: LIGHT_COLOR_TIERS[5],
+    lightRadius: 48,
+    lightIntensity: 1.8,
   },
   flameThrower0: {
     id: 'flameThrower0',
@@ -1476,7 +1642,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'flameThrower',
     dropRate: 0.3,
-    metatags: ['flameThrower']
+    metatags: ['flameThrower'],
+    lightColor: LIGHT_COLOR_TIERS[0],
+    lightRadius: 84,
+    lightIntensity: 1.4,
   },
   flameThrower1: {
     id: 'flameThrower1',
@@ -1500,7 +1669,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'flameThrower',
     dropRate: 0.3,
-    metatags: ['flameThrower']
+    metatags: ['flameThrower'],
+    lightColor: LIGHT_COLOR_TIERS[1],
+    lightRadius: 84,
+    lightIntensity: 1.4,
   },
   flameThrower2: {
     id: 'flameThrower2',
@@ -1524,7 +1696,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'flameThrower',
     dropRate: 0.28,
-    metatags: ['flameThrower']
+    metatags: ['flameThrower'],
+    lightColor: LIGHT_COLOR_TIERS[2],
+    lightRadius: 84,
+    lightIntensity: 1.4,
   },
   flameThrower3: {
     id: 'flameThrower3',
@@ -1548,7 +1723,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'flameThrower',
     dropRate: 0.28,
-    metatags: ['flameThrower']
+    metatags: ['flameThrower'],
+    lightColor: LIGHT_COLOR_TIERS[3],
+    lightRadius: 84,
+    lightIntensity: 1.4,
   },
   flameThrower4: {
     id: 'flameThrower4',
@@ -1572,7 +1750,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'flameThrower',
     dropRate: 0.25,
-    metatags: ['flameThrower']
+    metatags: ['flameThrower'],
+    lightColor: LIGHT_COLOR_TIERS[4],
+    lightRadius: 84,
+    lightIntensity: 1.4,
   },
   flameThrower5: {
     id: 'flameThrower5',
@@ -1596,7 +1777,10 @@ const blockTypes: Record<string, BlockType> = {
     category: 'weapon',
     subcategory: 'flameThrower',
     dropRate: 0.25,
-    metatags: ['flameThrower']
+    metatags: ['flameThrower'],
+    lightColor: LIGHT_COLOR_TIERS[5],
+    lightRadius: 84,
+    lightIntensity: 1.4,
   },
   fuelTank0: {
     id: 'fuelTank0',

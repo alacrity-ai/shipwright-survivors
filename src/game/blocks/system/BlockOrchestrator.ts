@@ -11,6 +11,8 @@ import { BlockCategoryEnum, BlockSubcategoryEnum } from '@/game/interfaces/types
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 
+import { createPointLight } from '@/lighting/lights/createPointLight';
+import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
 const BLOCK_SIZE = 32;
 
@@ -65,7 +67,8 @@ export interface BlockSpatialGrid {
 export class BlockOrchestrator {
   private store: BlockStore;
   private grid: BlockSpatialGrid;
-  
+  private lightingOrchestrator: LightingOrchestrator | null = null;
+
   // Per-ship block management
   private shipBlocks: Map<number, Uint32Array> = new Map();
   private shipBlockCounts: Map<number, number> = new Map();
@@ -184,6 +187,23 @@ export class BlockOrchestrator {
       return -1;
     }
 
+    // If light, create a pointlight and store the id
+    if (blockType?.lightColor) {
+      const lightId = createPointLight({
+        x: params.localX,
+        y: params.localY,
+        radius: blockType.lightRadius ?? 128,
+        color: blockType.lightColor,
+        intensity: blockType.lightIntensity ?? 1.0,
+        life: 999999,
+        expires: true,
+      });
+
+      if (lightId !== null) {
+        s.lightId[index] = lightId;
+      }
+    }
+
     // World positions will be updated later by transform logic
     s.worldX[index] = params.localX;
     s.worldY[index] = params.localY;
@@ -266,6 +286,11 @@ export class BlockOrchestrator {
    */
   updateWorldPositions(shipId: number, transform: BlockEntityTransform): void {
     const blockIndices = this.shipBlocks.get(shipId);
+
+    if (!this.lightingOrchestrator) {
+      return;
+    }
+
     if (!blockIndices) {
       return; // Ship has no blocks
     }
@@ -296,6 +321,14 @@ export class BlockOrchestrator {
 
       // Combine ship rotation and block’s own rotation
       this.store.rotation[blockIndex] = transform.rotation + localRotation;
+
+      // If light, update its position
+      if (this.store.lightId[blockIndex] !== -1) {
+        this.lightingOrchestrator.updateLight(this.store.lightId[blockIndex], {
+          x: this.store.worldX[blockIndex],
+          y: this.store.worldY[blockIndex],
+        });
+      }
     }
   }
 
@@ -467,6 +500,9 @@ export class BlockOrchestrator {
     }
 
     for (let i = 0; i < count; i++) {
+      if (this.store.lightId[blockIndices[i]] !== -1) {
+        this.lightingOrchestrator?.removeLight(this.store.lightId[blockIndices[i]]);
+      }
       this.store.freeIndex(blockIndices[i]);
     }
 
@@ -594,6 +630,10 @@ export class BlockOrchestrator {
       return;
     }
 
+    if (!this.lightingOrchestrator) {
+      return;
+    }
+
     // Find the block in the array
     let foundIndex = -1;
     for (let i = 0; i < count; i++) {
@@ -605,6 +645,11 @@ export class BlockOrchestrator {
 
     if (foundIndex === -1) {
       return; // Block not found in ship's list
+    }
+
+    // Remove light if exists
+    if (this.store.lightId[blockIndex] !== -1) {
+      this.lightingOrchestrator?.removeLight(this.store.lightId[blockIndex]);
     }
 
     // Swap with last element and decrement count
@@ -657,6 +702,10 @@ export class BlockOrchestrator {
       const idx = indices[i];
       store.ownerFaction[idx] = factionIndex;
     }
+  }
+
+  public setLightingOrchestrator(lightingOrchestrator: LightingOrchestrator): void {
+    this.lightingOrchestrator = lightingOrchestrator;
   }
 
   public setShipColor(shipId: number, r: number, g: number, b: number, a: number = 1): void {
