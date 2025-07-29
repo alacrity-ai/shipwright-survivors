@@ -272,7 +272,7 @@ export class UnifiedSceneRendererGL {
   render(
     dt: number, // Seconds
     camera: Camera,
-    visibleLights: { soa: LightSOA, indices: Uint16Array, count: number },
+    visibleLights: { soa: LightSOA; indices: Uint16Array; count: number },
     sprites: SpriteRenderRequest[],
     particleSOAs: ParticleSOA[],
     lightningSegments: LightningSegment[],
@@ -321,17 +321,19 @@ export class UnifiedSceneRendererGL {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
     this.planetPass.renderAll();
 
-    // === Render spatial bodies
-    this.spatialBodyPass.render(camera);
-
     // === Step 5: Generate light buffer (offscreen) ===
     const lightTexture = this.lightingPass.generateLightBuffer(visibleLights, camera);
 
-    // === Step 6: Render entities ===
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Light was rendering to offscreen FB, so we needed to rebind before going to the next
+    // === Step 6: Render spatial bodies (now light-aware) ===
+    // Must occur *after* light buffer generation so they can sample the light map
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    this.spatialBodyPass.render(camera, lightTexture);
+
+    // === Step 7: Render entities (blocks, also light-aware) ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Rebind because lights rendered to offscreen FB
     this.entityPass.render(lightTexture, camera);
 
-    // === Step 7: Render batched sprites ===
+    // === Step 8: Render batched sprites ===
     for (const group of this.spriteGroups.values()) group.length = 0;
     this.clearedTextures.length = 0;
 
@@ -368,12 +370,12 @@ export class UnifiedSceneRendererGL {
       this.collisionBoxPass.render(camera);
     }
 
-    // === Step 8: Render particles ===
+    // === Step 9: Render particles ===
     for (const particleSOA of particleSOAs) {
       this.particlePass.renderSOA(particleSOA, camera);
     }
 
-    // === Step 9: Apply ripple/distortion FX (sceneTexture → sceneFramebufferFX)
+    // === Step 10: Apply ripple/distortion FX (sceneTexture → sceneFramebufferFX)
     const activeFx = this.specialFxController.getActiveFx();
     if (activeFx.length > 0) {
       this.specialFxPass.run(this.sceneTexture, activeFx, this.sceneFramebufferFX, this.cameraUBO);
@@ -387,23 +389,23 @@ export class UnifiedSceneRendererGL {
       this.sceneFramebufferFX = tmpFbo;
     }
 
-    // === Step 10: Render world-space FX passes (lightning, trails, etc.) ===
+    // === Step 11: Render world-space FX passes (lightning, trails, etc.) ===
     this.lightningPass.render(lightningSegments, camera);
     this.firePass.renderSOA(fireSOA, dt);
 
-    // === Step 11: Render damage text ===
+    // === Step 12: Render damage text ===
     if (this.playerSettings.isDamageTextEnabled()) {
       this.damageTextPass.renderSOA(damageTextSOA);
     }
 
-    // === Step 12: Apply screen-space post-process effects to default framebuffer ===
+    // === Step 13: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const effectChain = Array.from(this.postProcessEffects.entries()).map(
       ([effect, params]) => ({ effect, params })
     );
     this.postProcessPass.run(this.sceneTexture, effectChain);
 
-    // === Step 13: Composite additive lighting effects (e.g. halos) over final image ===
+    // === Step 14: Composite additive lighting effects (e.g. halos) over final image ===
     this.lightingPass.compositeLightingOverTarget(null);
   }
 

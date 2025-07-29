@@ -360,7 +360,7 @@ export class Ship extends CompositeBlockObject {
   }
 
   // Light
-  public registerAuraLight(color: string = '#ffffff', radius: number = 64, intensity: number = 1.25): void {
+  public registerAuraLight(color: string = '#ffffff', radius: number = 128, intensity: number = 2.00): void {
     if (!LightingOrchestrator.hasInstance()) return;
 
     if (this.lightAuraId) return;

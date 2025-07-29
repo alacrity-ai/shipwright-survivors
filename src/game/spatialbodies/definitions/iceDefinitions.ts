@@ -27,7 +27,7 @@ export const iceAsteroid03: SpatialBodyDefinition = {
 export const iceAsteroid01: SpatialBodyDefinition = {
   name: 'ice-01',
   atlasIndex: 0,
-  baseScale: 1110.2,
+  baseScale: 512,
   uMin: 0.796541,
   vMin: 0.001938,
   uMax: 0.998983,
@@ -37,7 +37,7 @@ export const iceAsteroid01: SpatialBodyDefinition = {
 export const iceAsteroid00: SpatialBodyDefinition = {
   name: 'ice-00',
   atlasIndex: 0,
-  baseScale: 1110.2,
+  baseScale: 512,
   uMin: 0.796541,
   vMin: 0.391473,
   uMax: 0.968973,
@@ -47,7 +47,7 @@ export const iceAsteroid00: SpatialBodyDefinition = {
 export const iceAsteroid02: SpatialBodyDefinition = {
   name: 'ice-02',
   atlasIndex: 0,
-  baseScale: 1110.2,
+  baseScale: 512,
   uMin: 0.796541,
   vMin: 0.723837,
   uMax: 0.940488,

@@ -20,6 +20,9 @@ export interface BlockType {
   placementSound?: string;
   metatags?: string[];
   blockDropOverride?: string;
+  lightColor?: string;
+  lightRadius?: number;
+  lightIntensity?: number;
 }
 
 // src/game/blocks/constants/BlockCategories.ts

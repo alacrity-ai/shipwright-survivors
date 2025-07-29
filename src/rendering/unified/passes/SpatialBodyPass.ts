@@ -35,6 +35,8 @@ export class SpatialBodyPass {
   // Shader uniform locations
   private readonly uAtlasLoc: WebGLUniformLocation | null;
   private readonly uAlphaLoc: WebGLUniformLocation | null;
+  private readonly uLightMapLoc: WebGLUniformLocation | null;
+  private readonly uAmbientLightLoc: WebGLUniformLocation | null;
 
   private instanceCount = 0;
   private dataIndex = 0;
@@ -61,9 +63,11 @@ export class SpatialBodyPass {
       });
     }
 
-    // Cache uniforms
+    // Cache uniforms (now includes lighting)
     this.uAtlasLoc = gl.getUniformLocation(this.program, 'uAtlas');
     this.uAlphaLoc = gl.getUniformLocation(this.program, 'uAlpha');
+    this.uLightMapLoc = gl.getUniformLocation(this.program, 'uLightMap');
+    this.uAmbientLightLoc = gl.getUniformLocation(this.program, 'uAmbientLight');
 
     // Bind the shared camera UBO (same as SpritePass / EntityPass)
     const blockIndex = gl.getUniformBlockIndex(this.program, 'CameraMatrices');
@@ -130,7 +134,7 @@ export class SpatialBodyPass {
     this.dataIndex += FLOATS_PER_INSTANCE;
   }
 
-  render(camera: Camera): void {
+  render(camera: Camera, lightTexture: WebGLTexture): void {
     const { gl, grid, store, scratchBuffer, loadedAtlases } = this;
 
     this.atlasGroupCounts.fill(0);
@@ -160,6 +164,17 @@ export class SpatialBodyPass {
     if (this.uAtlasLoc) gl.uniform1i(this.uAtlasLoc, 0);
     if (this.uAlphaLoc) gl.uniform1f(this.uAlphaLoc, DEFAULT_ALPHA);
 
+    // Bind lighting uniforms (light texture and ambient)
+    if (this.uLightMapLoc) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, lightTexture);
+      gl.uniform1i(this.uLightMapLoc, 1);
+    }
+    if (this.uAmbientLightLoc) {
+      // Match EntityPass default for consistency
+      gl.uniform3f(this.uAmbientLightLoc, 0.55, 0.55, 0.55);
+    }
+
     // Draw each atlas group
     for (let atlasIndex = 0; atlasIndex < MAX_ATLASES; atlasIndex++) {
       const count = this.atlasGroupCounts[atlasIndex];
@@ -183,7 +198,6 @@ export class SpatialBodyPass {
       gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.uploadView, 0, this.dataIndex);
 
-      console.log(`Drawing: ${this.instanceCount} instances from atlas ${atlasIndex}, and ${visibleCount} visible bodies with ${count} in this atlas`);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.instanceCount);
     }
 

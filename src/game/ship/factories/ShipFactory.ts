@@ -140,17 +140,17 @@ export class ShipFactory {
     ship.setInitialMass(ship.getTotalMass());
 
     const auraLightColor = isPlayerShip ? '#ADD8E6' : '#ff0000';
+    const auraLightIntensity = isPlayerShip ? 1.8 : 1.4;
+    const auraLightRadius = isPlayerShip ? 96 : 96;
     const auraLightOptions: AuraLightOptions = {
       color: auraLightColor,
-      radius: 96,
-      intensity: 0.8
+      radius: auraLightRadius,
+      intensity: auraLightIntensity,
     };
 
     if (!createInstantly) {
       this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
     }
-
-    // this.shipConstructionAnimator.animateShipConstruction(ship, auraLightOptions);
 
     return { ship, controller, emitter, movement, weapons, utility };
   }

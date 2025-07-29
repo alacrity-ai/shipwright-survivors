@@ -285,7 +285,10 @@ const blockTypes: Record<string, BlockType> = {
     subcategory: 'turret',
     dropRate: 0.2,
     placementSound: 'assets/sounds/sfx/ship/attach_00.wav',
-    metatags: ['turret']
+    metatags: ['turret'],
+    lightColor: '#ffffff',
+    lightRadius: 64,
+    lightIntensity: 2.0,
   },
   turret2: {
     id: 'turret2',

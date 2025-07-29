@@ -30,7 +30,7 @@ export class EntityPass {
   private maxBlocks: number = MAX_BLOCKS_GL;
   private instanceBufferSize: number = INSTANCE_BUFFER_SIZE;
 
-  private ambientLight: [number, number, number] = [3.2, 3.2, 3.2];
+  private ambientLight: [number, number, number] = [2.2, 2.2, 2.2];
 
   // ─── GC-Optimized Reusable Buffers ─────────────────────────────────────
   private readonly instanceData = new Float32Array(INSTANCE_BUFFER_SIZE);

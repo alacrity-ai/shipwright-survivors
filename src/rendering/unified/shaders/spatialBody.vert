@@ -12,7 +12,8 @@ layout(std140) uniform CameraMatrices {
     mat4 uViewMatrix;
 };
 
-out vec2 vUV;
+out vec2 vUV;          // UV into the atlas
+out vec2 vScreenUV;    // Screen-space UV for sampling the light buffer
 
 void main() {
     // Rotate the local quad
@@ -27,7 +28,11 @@ void main() {
     vec2 worldPos = aWorldPos + rotated * aScale;
 
     // Transform world → clip space
-    gl_Position = uProjectionMatrix * uViewMatrix * vec4(worldPos, 0.0, 1.0);
+    vec4 clipPos = uProjectionMatrix * uViewMatrix * vec4(worldPos, 0.0, 1.0);
+    gl_Position = clipPos;
+
+    // Derive screen-space UV (normalized 0–1) for the light map
+    vScreenUV = clipPos.xy / clipPos.w * 0.5 + 0.5;
 
     // Compute UV from atlas rect
     vec2 uvLocal = (aPosition + 1.0) * 0.5;
