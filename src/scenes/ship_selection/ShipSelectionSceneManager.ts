@@ -12,6 +12,9 @@ import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteracti
 import { getUniformScaleFactor, isSteamDeck } from '@/config/view';
 import { loadImage } from '@/shared/imageCache';
 
+import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
+import { getAssetPath } from '@/shared/assetHelpers';
+
 import { GlobalEventBus } from '@/core/EventBus';
 
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
@@ -35,11 +38,6 @@ const BACKGROUND_PATH = 'assets/backgrounds/background_2_00.png';
 
 const crtStyle = DEFAULT_CONFIG.button.style;
 
-const BACKGROUND_TILE_WIDTH = 3076 * getUniformScaleFactor();
-const BACKGROUND_TILE_HEIGHT = 3076 * getUniformScaleFactor();
-const BACKGROUND_SCROLL_SPEED = 60;
-const BACKGROUND_SCROLL_DIRECTION = { x: 1, y: 0 };
-
 type ShipSelectionUIMode = 'ship-selection' | 'artifact-collection';
 
 export class ShipSelectionSceneManager {
@@ -47,6 +45,7 @@ export class ShipSelectionSceneManager {
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private gamepadNavManager: GamepadMenuInteractionManager;
+  private backgroundPass: SceneBackgroundRenderer | null = null;
 
   private uiMode: ShipSelectionUIMode = 'ship-selection';
   private artifactCollectionController: ArtifactCollectionUIController | null = null;
@@ -59,10 +58,6 @@ export class ShipSelectionSceneManager {
   private windowWidth: number;
   private windowHeight: number;
 
-  private backgroundImage: HTMLImageElement | null = null;
-  private backgroundScrollOffsetY: number = 0;
-  private backgroundScrollOffsetX: number = 0;
-
   private buttons: UIButton[];
   private launchButton: UIButton | null = null;
   private closeCollectionButton: UIButton | null = null;
@@ -71,7 +66,6 @@ export class ShipSelectionSceneManager {
 
   private uiCtx: CanvasRenderingContext2D;
   private overlayCtx: CanvasRenderingContext2D;
-  private bgCtx: CanvasRenderingContext2D;
 
   private selectedShipIndex: number = 0;
   private shipSelectionMenu: ShipSelectionMenu;
@@ -90,6 +84,9 @@ export class ShipSelectionSceneManager {
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
     this.mission = mission;
 
+    const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
+    this.backgroundPass = new SceneBackgroundRenderer(gl);
+    
     this.isSteamDeck = isSteamDeck();
 
     const scale = getUniformScaleFactor();
@@ -102,7 +99,6 @@ export class ShipSelectionSceneManager {
 
     this.uiCtx = this.canvasManager.getContext('overlay');
     this.overlayCtx = this.canvasManager.getContext('overlay');
-    this.bgCtx = this.canvasManager.getContext('background');
 
     this.shipSelectionMenu = new ShipSelectionMenu(this.inputManager);
 
@@ -164,7 +160,7 @@ export class ShipSelectionSceneManager {
   async start() {
     initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
-    this.backgroundImage = await loadImage(BACKGROUND_PATH);
+    await this.backgroundPass?.loadImage(getAssetPath(BACKGROUND_PATH));
     const scale = getUniformScaleFactor();
 
     if (this.mission) {
@@ -229,6 +225,7 @@ export class ShipSelectionSceneManager {
     this.gamepadNavManager.clearNavMap();
     destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
     CoachMarkManager.getInstance().clear();
+    this.backgroundPass?.destroy();
 
     GlobalEventBus.off('ui:artifacts:collection-opened', this.handleOpenArtifactsCollection); // Needs to handle the options
     GlobalEventBus.off('ui:artifacts:collection-closed', this.handleCloseArtifactsCollection);
@@ -250,12 +247,6 @@ export class ShipSelectionSceneManager {
     if (this.inputManager.wasKeyJustPressed('KeyM')) {
       PlayerShipCollection.getInstance().masterAllShips();
     }
-
-    // === Background scroll update ===
-    this.backgroundScrollOffsetX += BACKGROUND_SCROLL_DIRECTION.x * BACKGROUND_SCROLL_SPEED * dt;
-    this.backgroundScrollOffsetY += BACKGROUND_SCROLL_DIRECTION.y * BACKGROUND_SCROLL_SPEED * dt;
-    this.backgroundScrollOffsetX %= BACKGROUND_TILE_WIDTH;
-    this.backgroundScrollOffsetY %= BACKGROUND_TILE_HEIGHT;
 
     // === Mouse interaction ===
     const { x, y } = this.inputManager.getMousePosition();
@@ -343,14 +334,7 @@ export class ShipSelectionSceneManager {
 
     const { x, y } = this.inputManager.getMousePosition();
 
-    if (this.backgroundImage) {
-      this.drawScrollingBackgroundImage(
-        this.bgCtx,
-        this.backgroundImage,
-        this.backgroundScrollOffsetX,
-        this.backgroundScrollOffsetY
-      );
-    }
+    this.backgroundPass?.render();
 
     // === Artifact Collection Mode ===
     if (this.uiMode === 'artifact-collection') {
@@ -495,33 +479,6 @@ export class ShipSelectionSceneManager {
             this.gamepadNavManager.setCurrentGridPosition(firstEnabled.gridX, firstEnabled.gridY);
           }
         }
-      }
-    }
-  }
-
-  private drawScrollingBackgroundImage(
-    ctx: CanvasRenderingContext2D,
-    image: HTMLImageElement,
-    offsetX: number,
-    offsetY: number
-  ): void {
-    const { width: canvasWidth, height: canvasHeight } = ctx.canvas;
-
-    const tileWidth = BACKGROUND_TILE_WIDTH;
-    const tileHeight = BACKGROUND_TILE_HEIGHT;
-
-    const repeatX = Math.ceil(canvasWidth / tileWidth) + 1;
-    const repeatY = Math.ceil(canvasHeight / tileHeight) + 1;
-
-    for (let y = 0; y < repeatY; y++) {
-      for (let x = 0; x < repeatX; x++) {
-        ctx.drawImage(
-          image,
-          x * tileWidth - offsetX,
-          y * tileHeight - offsetY,
-          tileWidth,
-          tileHeight
-        );
       }
     }
   }

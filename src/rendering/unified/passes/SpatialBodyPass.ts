@@ -8,11 +8,24 @@ import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/unified/utils
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import type { Camera } from '@/core/Camera';
 
-const FLOATS_PER_INSTANCE = 8; // worldX, worldY, scale, rotation, uMin, vMin, uMax, vMax
-const MAX_BODIES = 1024;
-const MAX_ATLASES = 4;
-const INSTANCE_BUFFER_SIZE = MAX_BODIES * FLOATS_PER_INSTANCE;
-const DEFAULT_ALPHA = 1.0;
+// 8 attributes per spatial body: worldX, worldY, scale, rotation, uMin, vMin, uMax, vMax
+const FLOATS_PER_INSTANCE = 8;   
+
+// Maximum number of spatial bodies supported in a single render batch
+const MAX_BODIES = 1024;         
+
+// Half-size (in world units) of the largest expected spatial body; used to pad culling radius
+const MAX_BODY_EXTENT = 1500;    
+
+// Number of distinct texture atlases supported (for batching draw calls)
+const MAX_ATLASES = 4;           
+
+// Total float capacity for the GPU instance buffer
+const INSTANCE_BUFFER_SIZE = MAX_BODIES * FLOATS_PER_INSTANCE; 
+
+// Default global alpha multiplier for spatial body rendering (fully opaque)
+const DEFAULT_ALPHA = 1.0;       
+
 
 export class SpatialBodyPass {
   private readonly gl: WebGL2RenderingContext;
@@ -143,7 +156,7 @@ export class SpatialBodyPass {
     const bounds = camera.getViewportBounds();
     const centerX = bounds.x + bounds.width * 0.5;
     const centerY = bounds.y + bounds.height * 0.5;
-    const queryRadius = Math.max(bounds.width, bounds.height) * 0.5 * 1.2;
+    const queryRadius = Math.max(bounds.width, bounds.height) * 0.5 * 1.2 + MAX_BODY_EXTENT;
 
     const visibleCount = grid.getBodiesInArea(centerX, centerY, queryRadius, scratchBuffer);
     if (visibleCount === 0) return;

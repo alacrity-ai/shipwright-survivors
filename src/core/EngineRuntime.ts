@@ -549,7 +549,8 @@ export class EngineRuntime {
     this.spatialBodyManager.getSpatialBodyOrchestrator().populateFromConfig(
       this.mission.spatialBodies ?? [],
       this.mission.environmentSettings?.worldWidth ?? 0,
-      this.mission.environmentSettings?.worldHeight ?? 0
+      this.mission.environmentSettings?.worldHeight ?? 0,
+      missionLoader.getPlanetSpawnConfigs()
     );
 
     // AsteroidSpawner

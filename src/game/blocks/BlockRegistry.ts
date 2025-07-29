@@ -350,7 +350,7 @@ const blockTypes: Record<string, BlockType> = {
       } 
     },
     lightColor: '#29fe5e',
-    lightRadius: 64,
+    lightRadius: 48,
     lightIntensity: 1.6,
     category: 'weapon',
     subcategory: 'turret',

@@ -15,7 +15,7 @@ import { drawCRTBox } from '@/ui/primitives/CRTBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { loadImage } from '@/shared/imageCache';
-
+import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
 import { GalaxyMapController } from '@/systems/galaxymap/GalaxyMapController';
 import { missionUnlocked } from '@/systems/galaxymap/helpers/missionUnlocked';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
@@ -34,8 +34,8 @@ export class GalaxyMapSceneManager {
   private inputManager: InputManager;
   private galaxyMapController: GalaxyMapController;
 
-  private backgroundImage: HTMLImageElement | null = null;
-
+  private backgroundPass: SceneBackgroundRenderer | null = null;
+  
   private missionPortraitCache: Map<string, HTMLImageElement> = new Map();
   private currentlyLoadingPortraitId: string | null = null;
 
@@ -59,7 +59,10 @@ export class GalaxyMapSceneManager {
     this.inputManager = inputManager;
     this.galaxyMapController = new GalaxyMapController(canvasManager, inputManager);
     this.gamepadNavManager = new GamepadMenuInteractionManager(inputManager);
-    
+
+    const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
+    this.backgroundPass = new SceneBackgroundRenderer(gl);
+
     // Hacky coordinate swapping for Steamdeck's higher screen
     this.planetCoordsUnscaled = this.getPlanetCoordsUnscaled();
     this.loadoutButtonCoord = isSteamDeck() ? { x: 643, y: 574 }: { x: 643, y: 519 };
@@ -105,7 +108,7 @@ export class GalaxyMapSceneManager {
   }
 
   async start() {
-    this.backgroundImage = await loadImage(BACKGROUND_PATH);
+    await this.backgroundPass?.loadImage(getAssetPath(BACKGROUND_PATH));
     this.galaxyMapController.initialize();
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
@@ -122,6 +125,7 @@ export class GalaxyMapSceneManager {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.gamepadNavManager.clearNavMap();
+    this.backgroundPass?.destroy();
   }
 
   private buildNavMap(): void {
@@ -261,13 +265,10 @@ export class GalaxyMapSceneManager {
   private render = () => {
     this.canvasManager.clearAll();
     const scale = getUniformScaleFactor();
-    const bgCtx = this.canvasManager.getContext('background');
     const uiCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 
-    if (this.backgroundImage) {
-      bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
-    }
+    this.backgroundPass?.render();
 
     this.galaxyMapController.render();
 

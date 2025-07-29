@@ -399,6 +399,27 @@ export class Ship extends CompositeBlockObject {
     return this.lightAuraId;
   }
 
+  // Block Lights
+  public turnOffAllBlockLights(): void {
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      lightingOrchestrator.turnOffLight(store.lightId[idx]!);
+    }
+  }
+
+  public turnOnAllBlockLights(): void {
+    const store = this.blockManager.getBlockStore();
+    const indices = this.getAllBlockIndices();
+    const lightingOrchestrator = LightingOrchestrator.getInstance();
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      lightingOrchestrator.turnOnLight(store.lightId[idx]!);
+    }
+  }
+
   // Rasterization
 
   public markRasterDirty(): void {

@@ -9,6 +9,7 @@ import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
 import { getUniformScaleFactor } from '@/config/view';
+import { getAssetPath } from '@/shared/assetHelpers';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -19,7 +20,6 @@ import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManag
 import { SaveGameManager } from '@/core/save/saveGameManager';
 import { drawCursor, getCrosshairCursorSprite, getHoveredCursorSprite } from '@/rendering/cache/CursorSpriteCache';
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
-import { loadImage } from '@/shared/imageCache';
 
 import { resetPlayerData } from '@/game/player/helpers/playerResetService';
 
@@ -29,7 +29,7 @@ import { NavPoint } from '@/core/input/interfaces/NavMap';
 import { scaleRect } from '@/config/virtualResolution';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 
-const HUB_BACKGROUND_PATH = 'assets/hub/backgrounds/scene_main-room.png';
+import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
 
 const INTERACTION_ZONES_VIRTUAL = {
   terminal: { x: 50, y: 280, width: 300, height: 360 },
@@ -47,13 +47,12 @@ export class HubSceneManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
-  private backgroundImage: HTMLImageElement | null = null;
   private dialogueQueueManager: DialogueQueueManager | null = null;
 
+  private backgroundPass: SceneBackgroundRenderer | null = null;
   private isHoveringInteraction = false;
 
   private gamepadNavManager: GamepadMenuInteractionManager;
-
   private quitButton: UIButton;
 
   constructor(
@@ -64,6 +63,10 @@ export class HubSceneManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+
+    // Use the 'main' GL canvas managed by CanvasManager
+    const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
+    this.backgroundPass = new SceneBackgroundRenderer(gl);
 
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
 
@@ -86,13 +89,10 @@ export class HubSceneManager {
 
   private buildNavMap(): void {
     const navPoints: NavPoint[] = [];
-
     let defaultNavPoint: NavPoint | null = null;
 
     const zones = Object.entries(INTERACTION_ZONES_VIRTUAL);
     for (const [key, rect] of zones) {
-      // if (!flags.has(INTERACTION_FLAGS[key as keyof typeof INTERACTION_FLAGS])) continue;
-
       const scaled = scaleRect(rect);
       const centerX = scaled.x + scaled.width / 2;
       const centerY = scaled.y + scaled.height / 2;
@@ -112,19 +112,15 @@ export class HubSceneManager {
 
       navPoints.push(point);
 
-      // Set default to the galaxy map navpoint if found and enabled, otherwise set to terminal
       if (flags.has(INTERACTION_FLAGS.map) && key === 'map') {
         defaultNavPoint = point;
-      } else {
-        if (flags.has(INTERACTION_FLAGS.terminal) && key === 'terminal') {
-          defaultNavPoint = point;
-        }
+      } else if (flags.has(INTERACTION_FLAGS.terminal) && key === 'terminal') {
+        defaultNavPoint = point;
       }
     }
 
     this.gamepadNavManager.setNavMap(navPoints);
 
-    // Prefer the galaxy map navpoint; fall back to first available
     const target = defaultNavPoint ?? navPoints.find(p => p.isEnabled);
     if (target) {
       this.gamepadNavManager.setCurrentGridPosition(target.gridX, target.gridY);
@@ -132,7 +128,8 @@ export class HubSceneManager {
   }
 
   async start() {
-    this.backgroundImage = await loadImage(HUB_BACKGROUND_PATH);
+    await this.backgroundPass?.loadImage(getAssetPath('assets/hub/backgrounds/scene_main-room.png'));
+
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
@@ -141,7 +138,6 @@ export class HubSceneManager {
 
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
 
-    // Always unlock the first ship if not unlocked
     const playerShipCollection = PlayerShipCollection.getInstance();
     if (!playerShipCollection.isUnlocked('SW-1 Standard Issue')) {
       console.log('[UnlockableShipDefinition] Unlocking starter ship: SW-1 Standard Issue');
@@ -149,22 +145,19 @@ export class HubSceneManager {
       playerShipCollection.unlock('SW-1 Standard Issue');
     }
 
-    // DEBUG: TODO: (Remove this) : Unlock all ships for testing
+    // Debug: Unlock all for testing
     playerShipCollection.unlockAndDiscoverAll();
     playerShipCollection.masterAllShips();
     PlayerMetaCurrencyManager.getInstance().setMetaCurrency(100000);
 
-    // Dialogue Tree
     if (!flags.has('hub.introduction-1.complete')) {
       const script = getDialogueScript('hub-introduction-1', { inputManager: this.inputManager });
-      if (script) {
-        this.dialogueQueueManager.startScript(script);
-      }
-    } else if (flags.has('hub.introduction-1.complete') && flags.has('hub.introduction-2.complete') && !flags.has('hub.introduction-3.complete')) {
+      if (script) this.dialogueQueueManager.startScript(script);
+    } else if (flags.has('hub.introduction-1.complete') &&
+               flags.has('hub.introduction-2.complete') &&
+               !flags.has('hub.introduction-3.complete')) {
       const script = getDialogueScript('hub-introduction-3', { inputManager: this.inputManager });
-      if (script) {
-        this.dialogueQueueManager.startScript(script);
-      }
+      if (script) this.dialogueQueueManager.startScript(script);
     }
 
     this.buildNavMap();
@@ -173,6 +166,7 @@ export class HubSceneManager {
   stop() {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
+    this.backgroundPass?.destroy();
   }
 
   private update = (_dt: number) => {
@@ -230,7 +224,6 @@ export class HubSceneManager {
       if (!this.gamepadNavManager.hasNavMap()) {
         this.buildNavMap();
       }
-
       if (this.inputManager.wasGamepadAliasJustPressed('B')) {
         this.quitButton.onClick?.();
       }
@@ -242,15 +235,13 @@ export class HubSceneManager {
   };
 
   private render = (_dt: number) => {
-    this.canvasManager.clearAll();
+    this.canvasManager.clearAll(); // Even if this is commented out, background is not showing
 
-    const bgCtx = this.canvasManager.getContext('background');
+    // Draw WebGL background instead of the background canvas
+    this.backgroundPass?.render();
+
     const uiCtx = this.canvasManager.getContext('overlay');
     const m = this.inputManager.getMousePosition();
-
-    if (this.backgroundImage) {
-      bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
-    }
 
     if (!this.dialogueQueueManager?.isRunning()) {
       drawButton(uiCtx, this.quitButton, getUniformScaleFactor());
@@ -265,10 +256,9 @@ export class HubSceneManager {
       : getCrosshairCursorSprite();
 
     drawCursor(uiCtx, cursor, m.x, m.y, getUniformScaleFactor());
-    // this.drawInteractionZones(uiCtx);
   };
 
-  /** For debugging */
+  /** Debug overlay for zones */
   private drawInteractionZones(ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 1;

@@ -125,13 +125,12 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] Some lights still occassionally leak
+  - [ ] ExplosiveLance isn't detonating on enemy death before timeout?
 
   - [ ] Destroying a ship with more than 1000 blocks causes a sudden framerate drop.
     - [ ] Not able to reproduce, however, we may want to have blocks get destroyed over a series of frames
-  - [ ] Healing Needs to update Block Damage UV in SOA (See applydamagetoblock for how to)
   - [ ] Remove all usages of getShipBlocksView (GC Heavy)
-
-  - [ ] Remove background canvas (replace all canvas2d backgrounds with webgl2)
 
   - [ ] Await loading of images (artifacts and ships) in tradepost menu so cursor is on top.
 
@@ -153,10 +152,8 @@ TODOS:
   - [ ] Finish All Ship Skill Tree Implementations
 
   - [ ] ALT+ENTER, can I make this work?
-  - [x] Should "town portal" jump be an early unlockable? This would allow for tutorialization/explanation.
-  - [x] Make planet Jump gates require visit to planet to unlock?? Hmm..?
+
     - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?
-  - [ ] Expand map sizes to 64,000+
   - [ ] Since map is much larger, add a total of 4 planets to the first map.
   - [ ] Since map is much larger, we can extend a round to 20:00 minutes???
   - [ ] Likely will need to add minibosses, (can just use existing wave system for this, as it will continue to hound player.. but maybe make it persist respawn contract even as new waves start. Do we have a flag for this? I think we have a tag for this.)

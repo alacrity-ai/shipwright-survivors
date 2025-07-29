@@ -113,12 +113,14 @@ export class ShipConstructionAnimatorService {
     const queueX = new Int16Array(blockCount);
     const queueY = new Int16Array(blockCount);
 
+    // Turn off all block lights to start
+    ship.turnOffAllBlockLights();
+
     for (let i = 0; i < blockCount; i++) {
       const idx = indices[i];
 
       // Hide each block at the start
       store.hidden[idx] = 1;
-
       queueIdx[i] = idx;
       queueX[i] = store.localX[idx];
       queueY[i] = store.localY[idx];
@@ -342,7 +344,7 @@ export class ShipConstructionAnimatorService {
             volumeJitter: 0.1,
             maxSimultaneous: 3,
           });
-
+          // Register aura light
           if (state.auraLightOptions && !state.ship.isDestroyed()) {
             state.ship.registerAuraLight(
               state.auraLightOptions.color,
@@ -350,6 +352,8 @@ export class ShipConstructionAnimatorService {
               state.auraLightOptions.intensity
             );
           }
+
+          state.ship.turnOnAllBlockLights();
         }
       } else if (state.phase === 'shockwave') {
         state.shockwaveTimer -= ms;

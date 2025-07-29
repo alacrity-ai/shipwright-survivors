@@ -107,7 +107,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       worldHeight: 64000,
     },
     music: {
-      file: 'assets/sounds/music/track_02_mission1.mp3',
+      file: 'assets/sounds/music/track_12_mission6.mp3',
     },
     enemyPower: 0.5,
     waveDensity: 0.5,

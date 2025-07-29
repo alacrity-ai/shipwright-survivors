@@ -19,7 +19,9 @@ export function repairAllBlocksWithHealing(
 ): void {
   if (repairAmount <= 0) return;
 
-  const store = BlockManager.getInstance().getBlockStore();
+  const manager = BlockManager.getInstance();
+  const store = manager.getBlockStore();
+  const orchestrator = manager.getBlockOrchestrator();
   const blockIndices = ship.getAllBlockIndices();
 
   for (const idx of blockIndices) {
@@ -31,6 +33,7 @@ export function repairAllBlocksWithHealing(
     if (heal > 0) {
       store.hp[idx] = currentHp + heal;
 
+      orchestrator.updateDamageUV(idx);
       shipBuilderEffects.createRepairEffect({
         x: store.worldX[idx],
         y: store.worldY[idx],
@@ -52,7 +55,9 @@ export function repairRandomBlockWithHealing(
 ): void {
   if (repairAmount <= 0) return;
 
-  const store = BlockManager.getInstance().getBlockStore();
+  const manager = BlockManager.getInstance();
+  const store = manager.getBlockStore();
+  const orchestrator = manager.getBlockOrchestrator();
   const blockIndices = ship.getAllBlockIndices();
 
   // Collect damaged blocks using armor[] directly (no BlockType lookups)
@@ -80,7 +85,7 @@ export function repairRandomBlockWithHealing(
     }
 
     store.hp[blockIdx] = currentHp + heal;
-
+    orchestrator.updateDamageUV(blockIdx);
     shipBuilderEffects.createRepairEffect(
       { x: store.worldX[blockIdx], y: store.worldY[blockIdx] },
       48,

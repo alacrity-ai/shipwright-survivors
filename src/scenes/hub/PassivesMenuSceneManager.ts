@@ -15,7 +15,7 @@ import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManag
 
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { drawCursor, getCrosshairCursorSprite } from '@/rendering/cache/CursorSpriteCache';
-import { loadImage } from '@/shared/imageCache';
+import { getAssetPath } from '@/shared/assetHelpers';
 
 import { CRTMonitor } from '@/ui/primitives/CRTMonitor';
 import { PassivesMenuIntroAnimationController } from '@/scenes/hub/passives_menu/PassivesMenuIntroAnimationController';
@@ -25,19 +25,19 @@ import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { scaleRect } from '@/config/virtualResolution';
 import { getUniformScaleFactor } from '@/config/view';
 
-const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
+import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
 
-// === Virtual Coordinate Helpers ===
+const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_passives-menu.png';
 
 export class PassivesMenuSceneManager {
   private canvasManager: CanvasManager;
   private gameLoop: GameLoop;
   private inputManager: InputManager;
-  private backgroundImage: HTMLImageElement | null = null;
   private dialogueQueueManager: DialogueQueueManager | null = null;
   private buttons: UIButton[];
   private loopSoundStopped = false;
 
+  private backgroundPass: SceneBackgroundRenderer | null = null;
   private crtMonitor: CRTMonitor;
   private introAnimationController: PassivesMenuIntroAnimationController;
 
@@ -51,6 +51,9 @@ export class PassivesMenuSceneManager {
     this.canvasManager = canvasManager;
     this.gameLoop = gameLoop;
     this.inputManager = inputManager;
+
+    const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
+    this.backgroundPass = new SceneBackgroundRenderer(gl);
 
     const crtStyle = DEFAULT_CONFIG.button.style;
 
@@ -104,7 +107,8 @@ export class PassivesMenuSceneManager {
       pan: 0,
     });
 
-    this.backgroundImage = await loadImage(BACKGROUND_PATH);
+    await this.backgroundPass?.loadImage(getAssetPath(BACKGROUND_PATH));
+
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
@@ -121,9 +125,8 @@ export class PassivesMenuSceneManager {
   }
 
   stop() {
-    // set virtual mouse speed default
     this.inputManager.setVirtualMouseSpeedToDefault();
-
+    this.backgroundPass?.destroy();
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
   }
@@ -157,7 +160,6 @@ export class PassivesMenuSceneManager {
       handleButtonInteraction(btn, x, y, clicked, getUniformScaleFactor());
     }
 
-    // If 'B' gamepad alias pressed, activate the button[0] onclick to leave
     if (this.inputManager.wasActionJustPressed('cancel')) {
       this.buttons[0].onClick?.();
     }
@@ -168,14 +170,11 @@ export class PassivesMenuSceneManager {
   private render = () => {
     this.canvasManager.clearAll();
 
-    const bgCtx = this.canvasManager.getContext('background');
+    this.backgroundPass?.render();
+
     const uiCtx = this.canvasManager.getContext('overlay');
     const overlayCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
-
-    if (this.backgroundImage) {
-      bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
-    }
 
     this.crtMonitor.draw(uiCtx);
 

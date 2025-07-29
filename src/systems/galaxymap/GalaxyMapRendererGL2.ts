@@ -166,8 +166,7 @@ export class GalaxyMapRenderer {
     const canvas = gl.canvas as HTMLCanvasElement;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
 
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);

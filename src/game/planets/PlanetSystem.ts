@@ -29,7 +29,7 @@ export class PlanetSystem {
     private readonly unifiedRenderer: UnifiedSceneRendererGL,
     private readonly missionDialogueManager: MissionDialogueManager
   ) {
-    this.ctx = canvasManager.getContext('background');
+    this.ctx = canvasManager.getContext('overlay');
     this.overlayCtx = canvasManager.getContext('overlay');
     this.dialogueCtx = canvasManager.getContext('overlay');
     this.unifiedRenderer = unifiedRenderer;

@@ -5,7 +5,6 @@ import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 import { SiegeBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
-import { SpaceStationBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 import { randomIntFromRange } from '@/shared/mathUtils';
 import { createHourGlassFormation } from '@/systems/ai/formations/prefabs/createHourGlassFormation';
@@ -63,6 +62,43 @@ const GIANT_CRUISER_BEHAVIOR_2: BehaviorProfile = {
     engagementRange: 1900,
     disengageRange: 2500,
     siegeRange: 1900,
+  }
+};
+
+const FINAL_ASSAULT_AFFIXES: ShipAffixes = {
+  thrustPowerMulti: 4.5,
+  turnPowerMulti: 2.5,
+  fireRateMulti: 2.0,
+  projectileSpeedMulti: 2.5,
+  projectileLifetimeMulti: 2.0,
+  blockDurabilityMulti: 1.0,
+  blockDropRateMulti: 0.4,
+};
+
+const FINAL_ASSAULT_BEHAVIOR: BehaviorProfile = {
+  ...SiegeBehaviorProfile,
+  params: {
+    engagementRange: 1500,
+    disengageRange: 2000,
+    siegeRange: 1500,
+  }
+};
+
+const FINAL_ASSAULT_BEHAVIOR_2: BehaviorProfile = {
+  ...SiegeBehaviorProfile,
+  params: {
+    engagementRange: 1800,
+    disengageRange: 2400,
+    siegeRange: 1800,
+  }
+};
+
+const FINAL_ASSAULT_BEHAVIOR_3: BehaviorProfile = {
+  ...SiegeBehaviorProfile,
+  params: {
+    engagementRange: 2100,
+    disengageRange: 2800,
+    siegeRange: 2100,
   }
 };
 
@@ -594,6 +630,37 @@ export const waveDefinitions: WaveDefinition[] = [
     ships: [
       { shipId: 'mission_02/cruiser_huge_00', count: 4, hunter: true, affixes: GIANT_CRUISER_AFFIXES, behaviorProfile: GIANT_CRUISER_BEHAVIOR },
       { shipId: 'mission_02/cruiser_huge_02', count: 4, hunter: true, affixes: GIANT_CRUISER_AFFIXES_2, behaviorProfile: GIANT_CRUISER_BEHAVIOR_2 },
+    ],
+  },
+  {
+    duration: 20,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
+      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR },
+    ],
+  },
+  {
+    duration: 20,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
+      { shipId: 'ship_scrapper_6_2', count: 8, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR },
+      { shipId: 'ship_scrapper_6_2', count: 8, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_2 },
+      { shipId: 'ship_scrapper_6_2', count: 8, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_3 },
+    ],
+  },
+  {
+    duration: 30,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
+      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR },
+      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_2 },
+      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_3 },
     ],
   },
   {

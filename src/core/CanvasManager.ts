@@ -5,13 +5,11 @@ import { getViewportWidth, getViewportHeight } from '@/config/view';
 import { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 
 export type CanvasLayer =
-  | 'background'
   | 'overlay'
   | 'unifiedgl2'
   | 'fade';
 
 const LAYER_IDS: Record<CanvasLayer, string> = {
-  background: 'background-canvas',
   overlay: 'overlay-canvas',
   unifiedgl2: 'unifiedgl2-canvas',
   fade: 'fade-canvas'
@@ -80,10 +78,9 @@ export class CanvasManager {
 
   private getZIndexForLayer(layer: CanvasLayer): number {
     switch (layer) {
-      case 'background': return 1;
-      case 'unifiedgl2': return 2;
-      case 'overlay': return 3;
-      case 'fade': return 4;
+      case 'unifiedgl2': return 1;
+      case 'overlay': return 2;
+      case 'fade': return 3;
     }
   }
 

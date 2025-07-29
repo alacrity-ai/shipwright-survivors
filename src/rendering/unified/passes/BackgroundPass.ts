@@ -44,7 +44,7 @@ export class BackgroundPass {
     this.uAlpha = gl.getUniformLocation(this.program, 'uAlpha')!;
   }
 
-  async loadImage(imageId: string): Promise<void> {
+  async loadImage(imageId: string, fullPath?: string): Promise<void> {
     if (imageId === this.currentImageId) return;
     this.currentImageId = imageId;
 
@@ -53,14 +53,18 @@ export class BackgroundPass {
       this.texture = null;
     }
 
-    if (!imageId) {
+    if (!imageId && !fullPath) {
       // Intentionally cleared
       return;
     }
 
     try {
       const img = new Image();
-      img.src = getAssetPath(`/assets/backgrounds/${imageId}`);
+      if (fullPath) {
+        img.src = fullPath;
+      } else {
+        img.src = getAssetPath(`/assets/backgrounds/${imageId}`);
+      }
       await img.decode();
 
       const canvas = document.createElement('canvas');

@@ -9,14 +9,15 @@ import { sceneManager } from '@/core/SceneManager';
 import { audioManager } from '@/audio/Audio';
 
 import { getUniformScaleFactor } from '@/config/view';
-import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
-import { loadImage } from '@/shared/imageCache';
+import { getAssetPath } from '@/shared/assetHelpers';
 
+import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
 import { getDialogueScript } from '@/systems/dialogue/registry/DialogueScriptRegistry';
 import { DialogueQueueManagerFactory } from '@/systems/dialogue/factories/DialogueQueueManagerFactory';
 import type { DialogueQueueManager } from '@/systems/dialogue/DialogueQueueManager';
 
 import { CursorRenderer } from '@/rendering/CursorRenderer';
+import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
 
 const BACKGROUND_PATH = 'assets/hub/backgrounds/scene_break-room.png';
 
@@ -25,10 +26,11 @@ export class BreakroomSceneManager {
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private cursorRenderer: CursorRenderer;
-  private backgroundImage: HTMLImageElement | null = null;
+
+  private backgroundPass: SceneBackgroundRenderer | null = null;
+  private dialogueQueueManager: DialogueQueueManager | null = null;
 
   private buttons: UIButton[];
-  private dialogueQueueManager: DialogueQueueManager | null = null;
 
   constructor(
     canvasManager: CanvasManager,
@@ -41,8 +43,11 @@ export class BreakroomSceneManager {
 
     this.cursorRenderer = new CursorRenderer(canvasManager, inputManager);
 
-    const crtStyle = DEFAULT_CONFIG.button.style;
+    // Set up the WebGL2 background renderer
+    const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
+    this.backgroundPass = new SceneBackgroundRenderer(gl);
 
+    const crtStyle = DEFAULT_CONFIG.button.style;
     this.buttons = [
       {
         x: 20,
@@ -62,11 +67,11 @@ export class BreakroomSceneManager {
   }
 
   async start() {
-    this.backgroundImage = await loadImage(BACKGROUND_PATH);
+    // Load the static fullscreen background
+    await this.backgroundPass?.loadImage(getAssetPath(BACKGROUND_PATH));
 
-    // === Create and start the dialogue ===
+    // Initialize dialogue
     this.dialogueQueueManager = DialogueQueueManagerFactory.create();
-
     const script = getDialogueScript('test-script', {});
     if (script) {
       this.dialogueQueueManager.startScript(script);
@@ -81,6 +86,7 @@ export class BreakroomSceneManager {
     this.gameLoop.offUpdate(this.update);
     this.gameLoop.offRender(this.render);
     this.cursorRenderer.destroy();
+    this.backgroundPass?.destroy();
   }
 
   private update = () => {
@@ -89,14 +95,12 @@ export class BreakroomSceneManager {
     const { x, y } = this.inputManager.getMousePosition();
     const clicked = this.inputManager.wasMouseClicked();
 
-    // Dialogue Handling
+    // Handle dialogue progression
     if (this.dialogueQueueManager?.isRunning()) {
       this.dialogueQueueManager.update(this.gameLoop.getDeltaTime());
-
       if (clicked) {
         this.dialogueQueueManager.skipOrAdvance();
       }
-
       return;
     }
 
@@ -110,20 +114,20 @@ export class BreakroomSceneManager {
   private render = () => {
     this.canvasManager.clearAll();
 
-    const bgCtx = this.canvasManager.getContext('background');
+    // Draw the static GL background
+    this.backgroundPass?.render();
+
     const uiCtx = this.canvasManager.getContext('overlay');
     const overlayCtx = this.canvasManager.getContext('overlay');
 
-    if (this.backgroundImage) {
-      bgCtx.drawImage(this.backgroundImage, 0, 0, bgCtx.canvas.width, bgCtx.canvas.height);
-    }
-
+    // Draw buttons if no dialogue active
     if (!this.dialogueQueueManager?.isRunning()) {
       for (const btn of this.buttons) {
         drawButton(uiCtx, btn, getUniformScaleFactor());
       }
     }
 
+    // Render dialogue if running
     if (this.dialogueQueueManager) {
       this.dialogueQueueManager.render(overlayCtx);
     }
