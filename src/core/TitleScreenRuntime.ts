@@ -8,6 +8,7 @@ import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalMenuReporter } from './GlobalMenuReporter';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { CollisionBoxManager } from '@/game/entities/collisionbox/CollisionBoxManager';
+import { SpatialBodyManager } from '@/game/spatialbodies/SpatialBodyManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -87,6 +88,7 @@ export class TitleScreenRuntime {
 
   private blockManager: BlockManager;
   private collisionBoxManager: CollisionBoxManager;
+  private spatialBodyManager: SpatialBodyManager;
 
   private inputManager: InputManager;
   private blockDropDecisionMenu: BlockDropDecisionMenu;
@@ -149,6 +151,7 @@ export class TitleScreenRuntime {
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
+    this.spatialBodyManager = SpatialBodyManager.initialize();
 
     // Initialize GL caches
     initializeGLProjectileSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
@@ -512,6 +515,7 @@ export class TitleScreenRuntime {
     DamageTextManager.getInstance().clear();
     this.blockManager.clear();
     this.collisionBoxManager.clear();
+    this.spatialBodyManager.clear();
 
     // Additional cleanup
     this.pickupSystem.destroy();

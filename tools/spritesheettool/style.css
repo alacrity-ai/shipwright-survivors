@@ -1,0 +1,22 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: Arial, sans-serif;
+}
+
+#toolbar {
+    margin: 20px;
+}
+
+#canvas-container {
+    border: 1px solid #ccc;
+    display: inline-block;
+}
+
+canvas {
+    display: block;
+    cursor: crosshair;
+}

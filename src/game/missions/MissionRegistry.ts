@@ -1,12 +1,17 @@
 // src/game/missions/MissionRegistry.ts
 
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
+
+// Enemy Wave imports
 import { waveDefinitions as titleScreenWaves } from '@/game/waves/missions/TitleScreenWaves';
 import { waveDefinitions as waveSet0 } from '@/game/waves/missions/Mission0Waves';
 import { waveDefinitions as waveSet1 } from '@/game/waves/missions/Mission1Waves';
 import { waveDefinitions as waveSet2 } from '@/game/waves/missions/Mission2Waves';
 import { waveDefinitions as waveSet3 } from '@/game/waves/missions/Mission3Waves';
 import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves';
+
+// Spatial Body imports
+import { iceSpatialBodyConfig } from '@/game/spatialbodies/configs/iceConfig';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 
@@ -117,6 +122,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Arsea', x: 10000, y: -20000 },
       { name: 'Deimos', x: -12000, y: -24000 }
     ],
+    spatialBodies: iceSpatialBodyConfig,
   },
   mission_003_00: {
     id: 'mission_003_00',
@@ -152,7 +158,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet3,
     dropMultiplier: 1.5,
     environmentSettings: {
-      backgroundId: 'background_10_00.png',
+      backgroundId: 'background_12_01.png',
       gravity: 0,
       worldWidth: 28000,
       worldHeight: 28000,

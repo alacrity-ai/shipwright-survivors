@@ -8,6 +8,7 @@ import { audioManager } from '@/audio/Audio';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { CollisionBoxManager } from '@/game/entities/collisionbox/CollisionBoxManager';
 import { CollisionBoxSystem } from '@/game/entities/collisionbox/CollisionBoxSystem';
+import { SpatialBodyManager } from '@/game/spatialbodies/SpatialBodyManager';
 import { GameLoop } from './GameLoop';
 import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
@@ -177,6 +178,7 @@ export class EngineRuntime {
   private powerupSelectionMenu: PowerupSelectionMenu;
   private questCompletionController: QuestCompletionController;
   private planetInteractionOptionsMenu: PlanetInteractionOptionsMenu;
+  private spatialBodyManager: SpatialBodyManager;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private tradePostMenu: TradePostMenu;
   private planetQuestsMenu: PlanetQuestsMenu;
@@ -266,6 +268,7 @@ export class EngineRuntime {
     this.blockManager = BlockManager.initialize();
     this.collisionBoxManager = CollisionBoxManager.initialize();
     this.collisionBoxSystem = new CollisionBoxSystem(32);
+    this.spatialBodyManager = SpatialBodyManager.initialize();
 
     PowerupRegistry.initialize();
 
@@ -541,6 +544,13 @@ export class EngineRuntime {
     );
     this.planetSystem.registerPlanetsFromConfigs(missionLoader.getPlanetSpawnConfigs());
     this.jumpCastMenu = new JumpCastMenu(this.inputManager, this.planetSystem!, this.jumpCastTransitionController!);
+
+    // Spawn spatial bodies
+    this.spatialBodyManager.getSpatialBodyOrchestrator().populateFromConfig(
+      this.mission.spatialBodies ?? [],
+      this.mission.environmentSettings?.worldWidth ?? 0,
+      this.mission.environmentSettings?.worldHeight ?? 0
+    );
 
     // AsteroidSpawner
     this.asteroidSpawner = new AsteroidSpawningSystem(this.blockObjectRegistry, this.objectGrid!);
@@ -1166,6 +1176,7 @@ export class EngineRuntime {
     this.aiOrchestrator.clear();
     this.blockManager.clear();
     this.collisionBoxManager.clear();
+    this.spatialBodyManager.clear();
     ShieldEffectsSystem.getInstance().clear();
     PlayerResources.getInstance().postMissionClear();
     PlayerStats.getInstance().destroy();

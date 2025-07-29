@@ -38,12 +38,31 @@ const GIANT_CRUISER_AFFIXES: ShipAffixes = {
   blockDropRateMulti: 0.4,
 };
 
+const GIANT_CRUISER_AFFIXES_2: ShipAffixes = {
+  thrustPowerMulti: 3.0,
+  turnPowerMulti: 0.85,
+  fireRateMulti: 2.0,
+  projectileSpeedMulti: 0.8,
+  projectileLifetimeMulti: 4.0,
+  blockDurabilityMulti: 1.0,
+  blockDropRateMulti: 0.4,
+};
+
 const GIANT_CRUISER_BEHAVIOR: BehaviorProfile = {
   ...SiegeBehaviorProfile,
   params: {
     engagementRange: 2500,
     disengageRange: 3200,
     siegeRange: 2500,
+  }
+};
+
+const GIANT_CRUISER_BEHAVIOR_2: BehaviorProfile = {
+  ...SiegeBehaviorProfile,
+  params: {
+    engagementRange: 1900,
+    disengageRange: 2500,
+    siegeRange: 1900,
   }
 };
 
@@ -561,10 +580,20 @@ export const waveDefinitions: WaveDefinition[] = [
     spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
-      { shipId: 'mission_02/tier2_fighter_00', count: 4, hunter: true, affixes: TIER2_AFFIXES_FIGHTER },
-      { shipId: 'mission_02/tier2_cruiser_01', count: 4, hunter: true, affixes: TIER3_AFFIXES },
+      { shipId: 'mission_02/cruiser_huge_02', count: 2, hunter: true, affixes: GIANT_CRUISER_AFFIXES_2, behaviorProfile: GIANT_CRUISER_BEHAVIOR_2 },
+      { shipId: 'mission_02/cruiser_huge_00', count: 2, hunter: true, affixes: GIANT_CRUISER_AFFIXES, behaviorProfile: GIANT_CRUISER_BEHAVIOR },
       { shipId: 'mission_02/tier3_station_00', count: 6, affixes: TIER2_AFFIXES },
       { shipId: 'mission_02/tier2_sieger_00', count: 6, hunter: true, behaviorProfile: SiegeBehaviorProfile, affixes: SPEED_DEMON_AFFIXES },
+    ],
+  },
+  {
+    duration: 30,
+    sustainMode: true,
+    spawnDistribution: 'aroundPlayer',    
+    mods: [],
+    ships: [
+      { shipId: 'mission_02/cruiser_huge_00', count: 4, hunter: true, affixes: GIANT_CRUISER_AFFIXES, behaviorProfile: GIANT_CRUISER_BEHAVIOR },
+      { shipId: 'mission_02/cruiser_huge_02', count: 4, hunter: true, affixes: GIANT_CRUISER_AFFIXES_2, behaviorProfile: GIANT_CRUISER_BEHAVIOR_2 },
     ],
   },
   {

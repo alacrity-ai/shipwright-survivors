@@ -3,6 +3,7 @@
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { MusicTrack } from '@/audio/AudioManager';
 import type { FlagKey } from '@/game/player/registry/FlagRegistry';
+import type { SpatialBodySpawnConfig } from '@/game/spatialbodies/interfaces/SpatialBodySpawnConfig';
 
 export type PlanetSpawnConfig = {
   name: string;
@@ -23,6 +24,7 @@ export interface MissionDefinition {
     worldHeight?: number;
   };
   planets?: PlanetSpawnConfig[];
+  spatialBodies?: SpatialBodySpawnConfig[];
   bonusObjectives?: string[];
   passiveReward?: number;
   music?: MusicTrack;

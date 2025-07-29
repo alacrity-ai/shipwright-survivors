@@ -380,6 +380,17 @@ export class ProjectileSystem {
           INDEX_TO_PROJECTILE_TYPE[this.soa.typeIndex[i]] as 'turret' | 'projectile'
         );
 
+        // Emit sparks
+        this.particleManager.emitBurst({ x, y }, 6, {
+          colors: ['#ecac2bff', '#fe7200ff', '#aba8a8ff'],
+          randomDirection: true,
+          speedRange: [360, 600],
+          sizeRange: [1.4, 2.4],
+          lifeRange: [0.4, 1.0],
+          fadeOut: true,
+          light: false,
+        });
+
         // Handle projectile lifecycle (penetration/split logic)
         if (this.soa.penetrate[i] !== 1) {
           if (this.soa.split[i] === 1) {

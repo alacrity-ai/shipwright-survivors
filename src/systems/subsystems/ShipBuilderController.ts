@@ -122,6 +122,8 @@ export class ShipBuilderController {
         const placementSound = getBlockType(blockId)?.placementSound ?? 'assets/sounds/sfx/ship/gather_00.wav';
         audioManager.play(placementSound, 'sfx', { maxSimultaneous: 3 });
         missionResultStore.incrementBlockPlacedCount();
+      } else {
+        console.warn('[ShipBuilderController] Block already exists at coord', coord);
       }
     }
   }

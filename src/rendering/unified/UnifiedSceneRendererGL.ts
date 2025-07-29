@@ -17,6 +17,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { BackgroundPass } from '@/rendering/unified/passes/BackgroundPass';
 import { CloudPass } from '@/rendering/unified/passes/CloudPass';
 import { PlanetPass } from '@/rendering/unified/passes/PlanetPass';
+import { SpatialBodyPass } from '@/rendering/unified/passes/SpatialBodyPass';
 import { LightingPass } from '@/rendering/unified/passes/LightingPass';
 import { EntityPass } from '@/rendering/unified/passes/EntityPass';
 import { ParticlePass } from '@/rendering/unified/passes/ParticlePass';
@@ -49,6 +50,7 @@ export class UnifiedSceneRendererGL {
   private readonly cloudPass: CloudPass;
   private readonly cloudPassFront: CloudPass;
   private readonly planetPass: PlanetPass;
+  private readonly spatialBodyPass: SpatialBodyPass;
   private readonly lightingPass: LightingPass;
   private readonly firePass: FirePass;
   private readonly entityPass: EntityPass;
@@ -109,6 +111,7 @@ export class UnifiedSceneRendererGL {
     this.cloudPass = new CloudPass(this.gl);
     this.cloudPassFront = new CloudPass(this.gl);
     this.planetPass = new PlanetPass(this.gl);
+    this.spatialBodyPass = new SpatialBodyPass(this.gl);
     this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
     this.entityPass = new EntityPass(this.gl);
     this.spritePass = new SpritePass(this.gl, this.cameraUBO);
@@ -318,6 +321,9 @@ export class UnifiedSceneRendererGL {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
     this.planetPass.renderAll();
 
+    // === Render spatial bodies
+    this.spatialBodyPass.render(camera);
+
     // === Step 5: Generate light buffer (offscreen) ===
     const lightTexture = this.lightingPass.generateLightBuffer(visibleLights, camera);
 
@@ -357,6 +363,7 @@ export class UnifiedSceneRendererGL {
       this.cloudPassFront.render(this.elapsedSeconds, cameraOffset);
     }
 
+    // Render collision boxes for debugging
     if (this.debugDrawCollisionBoxes) {
       this.collisionBoxPass.render(camera);
     }
@@ -424,6 +431,7 @@ export class UnifiedSceneRendererGL {
     this.spritePass.destroy();
     this.particlePass.destroy();
     this.postProcessPass.destroy();
+    this.planetPass.destroy();
     this.backgroundPostProcessPass.destroy();
     this.specialFxPass.destroy();
     this.specialFxController.destroy();

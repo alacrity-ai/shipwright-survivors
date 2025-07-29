@@ -73,7 +73,7 @@ export class BlockOrchestrator {
   // Initial capacity for ship block arrays
   private static readonly INITIAL_SHIP_CAPACITY = 32;
   // Maximum blocks per ship (should not exceed BlockStore capacity)
-  private static readonly MAX_SHIP_BLOCKS = 1000;
+  private static readonly MAX_SHIP_BLOCKS = 2000;
 
   // Dedicated scratch buffer for AoE grid-distance queries
   private static readonly SCRATCH_BLOCKS_GRID_DISTANCE = new Uint32Array(2048);

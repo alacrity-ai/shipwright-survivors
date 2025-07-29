@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid-Based Sprite Sheet Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen flex flex-col items-center justify-start py-8">
+
+    <div id="toolbar" class="flex flex-wrap gap-4 items-center bg-gray-800 p-4 rounded-lg shadow mb-6">
+        <div class="flex flex-col text-sm">
+            <label for="columnsInput">Columns</label>
+            <input type="number" id="columnsInput" min="1" max="20" value="3" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="rowsInput">Rows</label>
+            <input type="number" id="rowsInput" min="1" max="20" value="2" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="cellWidthInput">Cell Width</label>
+            <input type="number" id="cellWidthInput" min="1" value="64" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="cellHeightInput">Cell Height</label>
+            <input type="number" id="cellHeightInput" min="1" value="96" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="offsetXInput">Offset X</label>
+            <input type="number" id="offsetXInput" min="0" value="0" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="offsetYInput">Offset Y</label>
+            <input type="number" id="offsetYInput" min="0" value="0" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="guideYInput">Guide Y</label>
+            <input type="number" id="guideYInput" min="0" value="0" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="prefixInput">File Prefix</label>
+            <input type="text" id="prefixInput" value="sprite" placeholder="sprite" class="bg-gray-700 text-white rounded px-2 py-1 w-24">
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <label for="imageLoader">Load Image</label>
+            <input type="file" id="imageLoader" accept="image/png" class="bg-gray-700 text-white rounded px-2 py-1 w-48">
+        </div>
+
+        <button id="exportButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition">
+            Export Individual Sprites
+        </button>
+    </div>
+
+    <div id="canvas-container" class="border border-gray-700 rounded overflow-hidden shadow-lg">
+        <canvas id="canvas" class="bg-gray-800"></canvas>
+    </div>
+
+    <script>
+        function getPrefix() {
+            return prefixInput.value || 'sprite';
+        }
+
+        // ----------------------
+        // DOM Elements
+        // ----------------------
+
+        const columnsInput = document.getElementById('columnsInput');
+        const rowsInput = document.getElementById('rowsInput');
+        const cellWidthInput = document.getElementById('cellWidthInput');
+        const cellHeightInput = document.getElementById('cellHeightInput');
+        const offsetXInput = document.getElementById('offsetXInput');
+        const offsetYInput = document.getElementById('offsetYInput');
+        const prefixInput = document.getElementById('prefixInput');
+        const guideYInput = document.getElementById('guideYInput');
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const imageLoader = document.getElementById('imageLoader');
+        const exportButton = document.getElementById('exportButton');
+
+        // ----------------------
+        // Constants
+        // ----------------------
+
+        const MIN_CANVAS_SIZE = 400;   // Minimum canvas width or height
+        const MAX_CANVAS_SIZE = 1000;  // Maximum canvas width or height
+
+        // ----------------------
+        // App State
+        // ----------------------
+
+        const state = {
+            image: null,
+            boxes: [],
+            scale: 1 // image pixels -> canvas pixels
+        };
+
+        // ----------------------
+        // Helpers
+        // ----------------------
+
+        function getColumns() {
+            return parseInt(columnsInput.value, 10) || 1;
+        }
+
+        function getRows() {
+            return parseInt(rowsInput.value, 10) || 1;
+        }
+
+        function getCellWidth() {
+            return parseInt(cellWidthInput.value, 10) || 1;
+        }
+
+        function getCellHeight() {
+            return parseInt(cellHeightInput.value, 10) || 1;
+        }
+
+        function getOffsetX() {
+            return parseInt(offsetXInput.value, 10) || 0;
+        }
+
+        function getOffsetY() {
+            return parseInt(offsetYInput.value, 10) || 0;
+        }
+
+        // ----------------------
+        // Generate grid boxes
+        // ----------------------
+
+        function generateBoxes() {
+            if (!state.image) return;
+
+            const columns = getColumns();
+            const rows = getRows();
+            const cellWidth = getCellWidth();
+            const cellHeight = getCellHeight();
+            const offsetX = getOffsetX();
+            const offsetY = getOffsetY();
+
+            state.boxes = [];
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < columns; col++) {
+                    const x = offsetX + col * cellWidth;
+                    const y = offsetY + row * cellHeight;
+                    state.boxes.push({ x, y });
+                }
+            }
+
+            draw();
+        }
+
+        // ----------------------
+        // Reset boxes on config change
+        // ----------------------
+
+        columnsInput.addEventListener('input', generateBoxes);
+        rowsInput.addEventListener('input', generateBoxes);
+        cellWidthInput.addEventListener('input', generateBoxes);
+        cellHeightInput.addEventListener('input', generateBoxes);
+        offsetXInput.addEventListener('input', generateBoxes);
+        offsetYInput.addEventListener('input', generateBoxes);
+
+        // ----------------------
+        // Image Loading
+        // ----------------------
+
+        imageLoader.addEventListener('change', loadImage);
+
+        function loadImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const img = new Image();
+            img.onload = () => {
+                // Compute scale
+                const ratio = img.width / img.height;
+                let displayWidth = img.width;
+                let displayHeight = img.height;
+
+                if (displayWidth > MAX_CANVAS_SIZE || displayHeight > MAX_CANVAS_SIZE) {
+                    if (ratio > 1) {
+                        displayWidth = MAX_CANVAS_SIZE;
+                        displayHeight = MAX_CANVAS_SIZE / ratio;
+                    } else {
+                        displayHeight = MAX_CANVAS_SIZE;
+                        displayWidth = MAX_CANVAS_SIZE * ratio;
+                    }
+                }
+
+                if (displayWidth < MIN_CANVAS_SIZE || displayHeight < MIN_CANVAS_SIZE) {
+                    if (ratio > 1) {
+                        displayWidth = MIN_CANVAS_SIZE;
+                        displayHeight = MIN_CANVAS_SIZE / ratio;
+                    } else {
+                        displayHeight = MIN_CANVAS_SIZE;
+                        displayWidth = MIN_CANVAS_SIZE * ratio;
+                    }
+                }
+
+                state.scale = displayWidth / img.width;
+                canvas.width = displayWidth;
+                canvas.height = displayHeight;
+                state.image = img;
+                generateBoxes();
+            };
+            img.src = URL.createObjectURL(file);
+        }
+
+        // ----------------------
+        // Drawing
+        // ----------------------
+
+        function draw() {
+            if (!state.image) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(state.image, 0, 0, canvas.width, canvas.height);
+
+            const guideY = parseInt(guideYInput.value, 10) || 0;
+
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1;
+            ctx.font = `${16 * state.scale}px Arial`;
+            ctx.fillStyle = 'red';
+
+            state.boxes.forEach((box, index) => {
+                const sx = box.x * state.scale;
+                const sy = box.y * state.scale;
+                const sw = getCellWidth() * state.scale;
+                const sh = getCellHeight() * state.scale;
+
+                // Draw the box
+                ctx.strokeRect(sx, sy, sw, sh);
+
+                // Draw the label
+                ctx.fillText((index + 1).toString(), sx + 4, sy + 18 * state.scale);
+
+                // Draw guide line
+                const guideYpos = sy + guideY * state.scale;
+
+                ctx.beginPath();
+                ctx.moveTo(sx, guideYpos);
+                ctx.lineTo(sx + sw, guideYpos);
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+        }
+
+        guideYInput.addEventListener('input', () => draw());
+
+        // ----------------------
+        // Export Logic
+        // ----------------------
+
+        exportButton.addEventListener('click', exportIndividualSprites);
+
+        function exportIndividualSprites() {
+            if (!state.image || state.boxes.length === 0) {
+                alert('Please load an image and generate boxes first.');
+                return;
+            }
+
+            const cellWidth = getCellWidth();
+            const cellHeight = getCellHeight();
+            const prefix = getPrefix();
+
+            // Create a temporary canvas for each sprite
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = cellWidth;
+            exportCanvas.height = cellHeight;
+            const exportCtx = exportCanvas.getContext('2d');
+
+            state.boxes.forEach((box, i) => {
+                // Clear the canvas
+                exportCtx.clearRect(0, 0, cellWidth, cellHeight);
+                
+                // Draw the individual sprite
+                exportCtx.drawImage(
+                    state.image,
+                    box.x, box.y, cellWidth, cellHeight,
+                    0, 0, cellWidth, cellHeight
+                );
+
+                // Create download link
+                const link = document.createElement('a');
+                link.download = `${prefix}_${i}.png`;
+                link.href = exportCanvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
