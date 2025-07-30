@@ -65,5 +65,6 @@ export class BossFightManager {
   public destroy(): void {
     this.clear();
     this.collisionEnforcer.destroy(); // Handles its own EventBus unbinding
+    BossFightManager._instance = null;
   }
 }

@@ -21,11 +21,13 @@ export class BossArenaCollisionEnforcer {
   };
 
   public update(dt: number): void {
+    console.log('[BossArenaCollisionEnforcer] Updating...');
     if (!this.isActive) return;
 
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     if (!playerShip) return;
 
+    console.log('[BossArenaCollisionEnforcer] Player ship found.');
     const transform = playerShip.getTransform();
     const pos = transform.position;
     const dx = pos.x - this.center[0];
@@ -34,6 +36,7 @@ export class BossArenaCollisionEnforcer {
     const radiusSq = this.radius * this.radius;
 
     if (distSq > radiusSq) {
+      console.log('[BossArenaCollisionEnforcer] Player ship outside arena.');
       const dist = Math.sqrt(distSq);
       const nx = dx / dist;
       const ny = dy / dist;

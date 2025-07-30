@@ -76,5 +76,6 @@ export class CollisionBoxManager {
     this.orchestrator.clearAll();
     this.grid.clear();
     this.store.clear();
+    CollisionBoxManager._instance = null;
   }
 }

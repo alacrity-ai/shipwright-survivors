@@ -64,5 +64,6 @@ export class BlockManager {
     this.orchestrator.clear();
     this.grid.clear();
     this.store.clear();
+    BlockManager._instance = null;
   }
 }

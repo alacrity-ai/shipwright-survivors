@@ -76,5 +76,6 @@ export class SpatialBodyManager {
     this.orchestrator.clearAll();
     this.grid.clear();
     this.store.clear();
+    SpatialBodyManager._instance = null;
   }
 }
