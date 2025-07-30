@@ -5,7 +5,8 @@ import type { FiringMode } from '@/systems/combat/types/WeaponTypes';
 import type {
   PostEffectName,
   CinematicGradingParams,
-  UnderwaterParams
+  UnderwaterParams,
+  ChromaticAbberationParams
 } from '@/rendering/unified/passes/PostProcessPass';
 import type { SpecialFxInstance } from '@/rendering/unified/interfaces/SpecialFxInstance';
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
@@ -42,7 +43,7 @@ export interface LightningBoltSpawnEvent {
   }>;
 }
 
-type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
+type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
 
 export interface EventTypes {
   // Runtime control
@@ -259,6 +260,8 @@ export interface EventTypes {
   };
 
   // Planet Menus
+  'planets:disable': undefined;
+  'planets:enable': undefined;
   'tradepost:open': { tradePostId: string };
   'jumpcast:menu:open': undefined;
   'jumpcast:initiate-jump': { x: number; y: number };

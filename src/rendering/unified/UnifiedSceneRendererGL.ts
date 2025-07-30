@@ -31,7 +31,8 @@ import {
   PostProcessPass,
   type PostEffectName,
   type CinematicGradingParams,
-  type UnderwaterParams
+  type UnderwaterParams,
+  type ChromaticAbberationParams
 } from '@/rendering/unified/passes/PostProcessPass';
 import { DamageTextPass } from '@/rendering/unified/passes/fx/DamageTextPass';
 import { CollisionBoxPass } from '@/rendering/unified/passes/debug/CollisionBoxPass';
@@ -43,7 +44,7 @@ import type { DamageTextSOA } from '@/systems/damagetext/interfaces/DamageTextSO
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
 
-type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
+type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
 
 export class UnifiedSceneRendererGL {
   private readonly gl: WebGL2RenderingContext;

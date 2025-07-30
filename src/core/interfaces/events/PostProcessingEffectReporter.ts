@@ -4,11 +4,12 @@ import { GlobalEventBus } from '@/core/EventBus';
 import type {
   PostEffectName,
   CinematicGradingParams,
-  UnderwaterParams
+  UnderwaterParams,
+  ChromaticAbberationParams
 } from '@/rendering/unified/passes/PostProcessPass';
 import type { EventTypes } from '@/core/interfaces/EventTypes';
 
-type EffectParams = CinematicGradingParams | UnderwaterParams | undefined;
+type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
 
 function getEventName(base: string, background?: boolean): string {
   return background ? `postprocess:background:${base}` : `postprocess:${base}`;
@@ -58,6 +59,32 @@ export function applyWarmCinematicEffect(background?: boolean): void {
         shadowsLift: 0.01,
         highlightsGain: 0.4,
         cinematicIntensity: 0.002,
+      },
+    },
+  ], background);
+}
+
+export function applyBossCinematicEffect(background?: boolean): void {
+  setPostProcessEffect([
+    { effect: 'chromaticAberration',
+      params: {
+        strength: 0.018,
+        falloff: 1.8,
+      },
+     },
+    {
+      effect: 'cinematicGrading',
+      params: {
+        exposure: 1.2,
+        contrast: 1.0,
+        saturation: 0.8,
+        temperature: 2.85,
+        tint: -0.05,
+        vignetteStrength: 1.45,
+        filmGrainStrength: 0.08,
+        shadowsLift: 0.01,
+        highlightsGain: 0.4,
+        cinematicIntensity: 0.012,
       },
     },
   ], background);

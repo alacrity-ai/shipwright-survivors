@@ -1,6 +1,13 @@
 import { GlobalEventBus } from '@/core/EventBus';
 import { BossArenaPass } from '@/rendering/unified/passes/fx/BossArenaPass';
 
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
+import { audioManager } from '@/audio/Audio';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+
+import { disablePlanets } from '@/core/interfaces/events/PlanetMenusReporter';
+import { applyBossCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
+
 import { CanvasManager } from '@/core/CanvasManager';
 
 export interface BossArenaOptions {
@@ -16,6 +23,8 @@ export interface BossArenaOptions {
   /** Duration (in seconds) for the forming animation to fully complete. */
   formingDuration?: number;
 }
+
+const RENDERING_RADIUS_ADJUSTMENT_MULTIPLIER = 0.545;
 
 /**
  * Controls the boss fight arena: manages state transitions (idle, forming, pulsing),
@@ -47,7 +56,7 @@ export class BossArenaRenderingController {
 
   private handleSpawnArena = (opts: BossArenaOptions): void => {
     this.center = opts.center;
-    this.radius = opts.radius;
+    this.radius = opts.radius * RENDERING_RADIUS_ADJUSTMENT_MULTIPLIER;
     this.state = opts.initialState ?? 0;
     this.formingDuration = opts.formingDuration ?? 3.0;
 
@@ -56,7 +65,6 @@ export class BossArenaRenderingController {
 
     if (this.state === 1) {
       // Kick off the forming sequence immediately
-      console.log('[BossArenaController] Spawning arena in forming state: ', opts);
       this.startForming();
     }
   };
@@ -72,6 +80,17 @@ export class BossArenaRenderingController {
       this.formingElapsed += dt;
       if (this.formingElapsed >= this.formingDuration) {
         this.state = 2; // Transition to pulsing
+
+        // Shake / Sound Effect / Giant Light flash in center
+        shakeCamera(10, 1, 10);
+        audioManager.play('assets/sounds/sfx/explosions/explosion_02.wav', 'sfx');
+        createLightFlash(this.center[0], this.center[1], 2600, 2.0, 0.5, '#ff3211');
+
+        // Change shader for boss mode
+        applyBossCinematicEffect();
+
+        // Disable planets
+        disablePlanets();
       }
     }
   }
@@ -100,6 +119,9 @@ export class BossArenaRenderingController {
   startForming(): void {
     this.state = 1;
     this.formingElapsed = 0;
+
+    // Play sound effect
+    audioManager.play('assets/sounds/sfx/magic/teleport_01.wav', 'sfx');
   }
 
   /** Immediately switches to pulsing state (skipping forming). */

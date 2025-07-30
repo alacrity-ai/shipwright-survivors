@@ -136,6 +136,7 @@ export class JumpCastTransitionController {
             this.animator.animateShipDeconstruction(this.playerShip);
           }
           this.state      = JumpState.Deconstructing;
+          this.playerShip.turnOffAllBlockLights();
           this.stateTimer = 500;
           this.progressPopup.closeMenu();          // close gracefully
         } else if (!this.progressPopup.isOpen()) { // user canceled
@@ -156,7 +157,6 @@ export class JumpCastTransitionController {
             this.teleportShip();
             this.state = JumpState.Transferring;
           }, 500 /* fade duration ms */);
-
           this.state = JumpState.FadeOut;
         }
         break;

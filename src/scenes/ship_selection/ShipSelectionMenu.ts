@@ -188,7 +188,7 @@ export class ShipSelectionMenu {
   async render(uiCtx: CanvasRenderingContext2D, _overlayCtx: CanvasRenderingContext2D): Promise<void> {
     const scale = getUniformScaleFactor();
 
-    drawMinimalistWindow(uiCtx, this.windowX, this.windowY, this.windowWidth, this.windowHeight, { ...this.config.window.options, alpha: 0.5 });
+    // drawMinimalistWindow(uiCtx, this.windowX, this.windowY, this.windowWidth, this.windowHeight, { ...this.config.window.options, alpha: 0.5 });
 
     // === Title ===
     drawLabel(

@@ -14,6 +14,7 @@ import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
 import { GlobalMenuReporter } from './GlobalMenuReporter';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
+import { BossFightManager } from '@/game/boss/BossFightManager';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -191,6 +192,7 @@ export class EngineRuntime {
   private hud: HudOverlay | null = null;
   private miniMap: MiniMap | null = null;
   private screenEdgeIndicatorManager: ScreenEdgeIndicatorManager;
+  private bossFightManager: BossFightManager;
 
   private canvasManager: CanvasManager;
   private camera: Camera | null = null;
@@ -270,6 +272,7 @@ export class EngineRuntime {
     this.collisionBoxManager = CollisionBoxManager.initialize();
     this.collisionBoxSystem = new CollisionBoxSystem(32);
     this.spatialBodyManager = SpatialBodyManager.initialize();
+    this.bossFightManager = BossFightManager.initialize();
 
     PowerupRegistry.initialize();
 
@@ -293,7 +296,6 @@ export class EngineRuntime {
   
     // Lighting System
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
-
     // Particle System
     this.particleManager = new ParticleManager(this.lightingOrchestrator, 'game');
     // Particle System which runs regardless of game pause
@@ -660,6 +662,7 @@ export class EngineRuntime {
       this.planetSystem!,
       this.lightingOrchestrator,
       this.incidentOrchestrator!,
+      this.bossFightManager,
     ];
   }
 
@@ -859,10 +862,10 @@ export class EngineRuntime {
 
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
       spawnBossArena({
-        center: [1000, 1000],
-        radius: 200,
+        center: [0, 0],
+        radius: 2220,
         initialState: 1,
-        formingDuration: 4.0
+        formingDuration: 1.0
       });
     }
 
@@ -1200,6 +1203,7 @@ export class EngineRuntime {
     PlayerQuestManager.getInstance().clearActiveQuests();
     DamageTextManager.getInstance().clear();
     DamageTextAggregator.getInstance().clear();
+    this.bossFightManager.destroy();
 
     // Additional cleanup
     this.pickupSystem.destroy();
@@ -1216,6 +1220,7 @@ export class EngineRuntime {
     this.lightningSystem.destroy();
     this.questCompletionController.destroy();
     this.combatService.destroy();
+    this.planetSystem?.clear();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

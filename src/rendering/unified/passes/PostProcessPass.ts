@@ -41,6 +41,11 @@ export interface UnderwaterParams {
   distortionAmount?: number;  // Default: 0.008
 }
 
+export interface ChromaticAbberationParams {
+  strength?: number; // Default: 0.003
+  falloff?: number;  // Default: 1.8
+}
+
 export class PostProcessPass {
   private readonly gl: WebGL2RenderingContext;
 
@@ -101,7 +106,7 @@ export class PostProcessPass {
    */
   public run(
     inputTexture: WebGLTexture,
-    effectChain: { effect: PostEffectName; params?: CinematicGradingParams | UnderwaterParams }[],
+    effectChain: { effect: PostEffectName; params?: CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams }[],
     outputFramebuffer: WebGLFramebuffer | null = null
   ): void {
     const gl = this.gl;
@@ -131,8 +136,9 @@ export class PostProcessPass {
         gl.uniform1f(gl.getUniformLocation(program, 'uIntensity'), 1.2);
         gl.uniform1f(gl.getUniformLocation(program, 'uBlurSize'), 8.0);
       } else if (effect === 'chromaticAberration') {
-        gl.uniform1f(gl.getUniformLocation(program, 'uStrength'), 0.003);
-        gl.uniform1f(gl.getUniformLocation(program, 'uFalloff'), 1.8);
+        const p = params as ChromaticAbberationParams ?? {};
+        gl.uniform1f(gl.getUniformLocation(program, 'uStrength'), p.strength ?? 0.003);
+        gl.uniform1f(gl.getUniformLocation(program, 'uFalloff'), p.falloff ?? 1.8);
       } else if (effect === 'cinematicGrading') {
         const p = params as CinematicGradingParams ?? {};
         gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.width, this.height);

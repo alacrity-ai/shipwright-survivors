@@ -10,6 +10,8 @@ import type { WaveOrchestrator } from '@/game/waves/orchestrator/WaveOrchestrato
 import type { UnifiedSceneRendererGL } from '@/rendering/unified/UnifiedSceneRendererGL';
 import type { MissionDialogueManager } from '@/systems/dialogue/MissionDialogueManager';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 import { PlanetController } from './PlanetController';
 import { PlanetFactory } from './PlanetFactory';
 import { PlanetRegistry } from './PlanetRegistry';
@@ -19,6 +21,12 @@ export class PlanetSystem {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly overlayCtx: CanvasRenderingContext2D;
   private readonly dialogueCtx: CanvasRenderingContext2D;
+
+  private enabled: boolean = true;
+
+  // === Stable listener references ===
+  private readonly handleDisable = () => { this.enabled = false };
+  private readonly handleEnable = () => { this.enabled = true };
 
   constructor(
     private readonly playerShip: Ship | null,
@@ -32,7 +40,10 @@ export class PlanetSystem {
     this.ctx = canvasManager.getContext('overlay');
     this.overlayCtx = canvasManager.getContext('overlay');
     this.dialogueCtx = canvasManager.getContext('overlay');
-    this.unifiedRenderer = unifiedRenderer;
+
+    // Register stable event listeners
+    GlobalEventBus.on('planets:disable', this.handleDisable);
+    GlobalEventBus.on('planets:enable', this.handleEnable);
   }
 
   registerPlanetsFromConfigs(configs: PlanetSpawnConfig[]): void {
@@ -54,13 +65,8 @@ export class PlanetSystem {
     );
     this.planets.add(controller);
 
-    // Add to unified renderer
     this.unifiedRenderer.addPlanet(
-      {
-        name: def.name,
-        x,
-        y,
-      },
+      { name: def.name, x, y },
       def.scale ?? 1,
       def.imagePath
     );
@@ -81,13 +87,8 @@ export class PlanetSystem {
 
     const def = PlanetRegistry.getPlanetByName(name);
 
-    // Add to unified renderer
     this.unifiedRenderer.addPlanet(
-      {
-        name,
-        x,
-        y,
-      },
+      { name, x, y },
       def.scale ?? 1,
       def.imagePath
     );
@@ -99,18 +100,21 @@ export class PlanetSystem {
 
   clear(): void {
     this.planets.clear();
+
+    // Unregister stable event listeners
+    GlobalEventBus.off('planets:disable', this.handleDisable);
+    GlobalEventBus.off('planets:enable', this.handleEnable);
   }
 
   update(dt: number): void {
+    if (!this.enabled) return;
     for (const planet of this.planets) {
       planet.update(dt);
     }
   }
 
-  // Actual planet rendering now moved to UnifiedSceneRendererGL
-  // This will render only overlay information (e.g. planet name, interaction range indicator)
-  /** Renders to the internally held canvas context on the specified layer */
   render(dt: number): void {
+    if (!this.enabled) return;
     for (const planet of this.planets) {
       planet.render(this.ctx, this.overlayCtx, this.dialogueCtx);
     }

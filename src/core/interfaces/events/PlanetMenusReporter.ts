@@ -3,6 +3,14 @@
 import { GlobalEventBus } from '@/core/EventBus';
 import type { PlanetDefinition } from '@/game/planets/interfaces/PlanetDefinition';
 
+export function disablePlanets(): void {
+  GlobalEventBus.emit('planets:disable', undefined);
+}
+
+export function enablePlanets(): void {
+  GlobalEventBus.emit('planets:enable', undefined);
+}
+
 export function openPlanetInteractionOptions(planetDefinition: PlanetDefinition): void {
   GlobalEventBus.emit('planet:interaction:options:open', { planetDefinition });
 }

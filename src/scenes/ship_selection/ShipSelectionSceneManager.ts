@@ -10,9 +10,9 @@ import { audioManager } from '@/audio/Audio';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 
 import { getUniformScaleFactor, isSteamDeck } from '@/config/view';
-import { loadImage } from '@/shared/imageCache';
 
-import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
+import { GalaxyBackgroundRenderer } from '@/rendering/unified/passes/scene/GalaxyBackgroundRenderer';
+
 import { getAssetPath } from '@/shared/assetHelpers';
 
 import { GlobalEventBus } from '@/core/EventBus';
@@ -45,7 +45,7 @@ export class ShipSelectionSceneManager {
   private gameLoop: GameLoop;
   private inputManager: InputManager;
   private gamepadNavManager: GamepadMenuInteractionManager;
-  private backgroundPass: SceneBackgroundRenderer | null = null;
+  private backgroundPass: GalaxyBackgroundRenderer | null = null;
 
   private uiMode: ShipSelectionUIMode = 'ship-selection';
   private artifactCollectionController: ArtifactCollectionUIController | null = null;
@@ -63,6 +63,8 @@ export class ShipSelectionSceneManager {
   private closeCollectionButton: UIButton | null = null;
 
   private skillTreeNavActive: boolean = false;
+
+  private startTime: number = performance.now();
 
   private uiCtx: CanvasRenderingContext2D;
   private overlayCtx: CanvasRenderingContext2D;
@@ -85,7 +87,7 @@ export class ShipSelectionSceneManager {
     this.mission = mission;
 
     const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
-    this.backgroundPass = new SceneBackgroundRenderer(gl);
+    this.backgroundPass = new GalaxyBackgroundRenderer(gl);
     
     this.isSteamDeck = isSteamDeck();
 
@@ -160,8 +162,9 @@ export class ShipSelectionSceneManager {
   async start() {
     initializeGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
 
-    await this.backgroundPass?.loadImage(getAssetPath(BACKGROUND_PATH));
     const scale = getUniformScaleFactor();
+
+    this.startTime = performance.now();
 
     if (this.mission) {
       this.launchButton = {
@@ -334,7 +337,8 @@ export class ShipSelectionSceneManager {
 
     const { x, y } = this.inputManager.getMousePosition();
 
-    this.backgroundPass?.render();
+    const timeSeconds = (performance.now() - this.startTime) / 1000;
+    this.backgroundPass?.render(timeSeconds);
 
     // === Artifact Collection Mode ===
     if (this.uiMode === 'artifact-collection') {

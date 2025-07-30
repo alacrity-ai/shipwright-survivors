@@ -27,7 +27,7 @@ export class SpatialBodyOrchestrator {
     worldHeight: number,
     planets: PlanetSpawnConfig[] = []
   ): void {
-    const EXCLUSION_PLANET_RADIUS = 2500;  // half-size zone
+    const EXCLUSION_PLANET_RADIUS = 3200;  // half-size zone
     const MIN_BODY_SEPARATION = 500;       // no two bodies closer than this
     const MAX_ATTEMPTS = 20;               // allow more retries due to extra constraint
 

@@ -15,7 +15,9 @@ import { drawCRTBox } from '@/ui/primitives/CRTBox';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { getAssetPath } from '@/shared/assetHelpers';
 import { loadImage } from '@/shared/imageCache';
-import { SceneBackgroundRenderer } from '@/rendering/unified/passes/scene/SceneBackgroundRenderer';
+
+import { GalaxyBackgroundRenderer } from '@/rendering/unified/passes/scene/GalaxyBackgroundRenderer';
+
 import { GalaxyMapController } from '@/systems/galaxymap/GalaxyMapController';
 import { missionUnlocked } from '@/systems/galaxymap/helpers/missionUnlocked';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
@@ -34,7 +36,7 @@ export class GalaxyMapSceneManager {
   private inputManager: InputManager;
   private galaxyMapController: GalaxyMapController;
 
-  private backgroundPass: SceneBackgroundRenderer | null = null;
+  private backgroundPass: GalaxyBackgroundRenderer | null = null;
   
   private missionPortraitCache: Map<string, HTMLImageElement> = new Map();
   private currentlyLoadingPortraitId: string | null = null;
@@ -43,6 +45,8 @@ export class GalaxyMapSceneManager {
   private currentMissionId: string | null = null;
 
   private buttons: UIButton[];
+
+  private startTime: number = performance.now();
 
   private planetCoordsUnscaled: { x: number; y: number; missionId: string }[];
   private loadoutButtonCoord: { x: number; y: number };
@@ -61,7 +65,7 @@ export class GalaxyMapSceneManager {
     this.gamepadNavManager = new GamepadMenuInteractionManager(inputManager);
 
     const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
-    this.backgroundPass = new SceneBackgroundRenderer(gl);
+    this.backgroundPass = new GalaxyBackgroundRenderer(gl);
 
     // Hacky coordinate swapping for Steamdeck's higher screen
     this.planetCoordsUnscaled = this.getPlanetCoordsUnscaled();
@@ -108,13 +112,14 @@ export class GalaxyMapSceneManager {
   }
 
   async start() {
-    await this.backgroundPass?.loadImage(getAssetPath(BACKGROUND_PATH));
     this.galaxyMapController.initialize();
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
     audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
     audioManager.play('assets/sounds/sfx/ui/galaxymap_00.wav', 'sfx', { maxSimultaneous: 1 });
+
+    this.startTime = performance.now();
 
     await this.galaxyMapController.preloadTextures();
     this.buildNavMap(); // initialize nav map
@@ -268,7 +273,8 @@ export class GalaxyMapSceneManager {
     const uiCtx = this.canvasManager.getContext('overlay');
     const { x, y } = this.inputManager.getMousePosition();
 
-    this.backgroundPass?.render();
+    const timeSeconds = (performance.now() - this.startTime) / 1000;
+    this.backgroundPass?.render(timeSeconds);
 
     this.galaxyMapController.render();
 

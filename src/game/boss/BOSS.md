@@ -25,15 +25,9 @@ All boss encounters in _Shipwright Survivors_ occur within a **modular, circular
     
 - Delegates draw calls to `BossArenaPass`.
     
-- Subscribes to `GlobalEventBus` event:
-    
-    makefile
-    
-    CopyEdit
-    
-    `bossArena:spawn`
-    
-    allowing both **visual** and (eventually) **simulation** systems to react to arena declarations.
+- Subscribes to `GlobalEventBus` event:  
+    `bossArena:spawn`  
+    allowing both **visual** and **simulation** systems to react to arena declarations.
     
 - **Responsibilities:**
     
@@ -122,13 +116,73 @@ All boss encounters in _Shipwright Survivors_ occur within a **modular, circular
 
 ---
 
-### **4. Boss Block Grouping (SOA Integration)**
+### **4. BossArenaCollisionEnforcer**
+
+> 📁 `src/game/boss/BossArenaCollisionEnforcer.ts`
+
+- **Simulation system enforcing arena boundary rules** during boss fights.
+    
+- **Responsibilities:**
+    
+    - Subscribes to `bossArena:spawn` and activates positional enforcement.
+        
+    - Monitors player position each frame; if outside arena bounds:
+        
+        - Repositions player just inside the boundary (with 1.85x visual-radius adjustment).
+            
+        - Avoids velocity reset (future damage/knockback optional).
+            
+    - Fully **GC-neutral**: reuses scratch vectors, avoids per-frame allocation.
+        
+- **Lifecycle:**
+    
+    - Created and owned by `BossFightManager`.
+        
+    - `disable()` halts enforcement during transition scenes.
+        
+    - `destroy()` unsubscribes from the event bus.
+        
+
+---
+
+### **5. BossFightManager**
+
+> 📁 `src/game/boss/BossFightManager.ts`
+
+- **Centralized manager** coordinating boss simulation systems.
+    
+- **Responsibilities:**
+    
+    - Owns and updates:
+        
+        - `BossArenaCollisionEnforcer` (boundary enforcement)
+            
+        - `BossAIController` (FSM + combat scripting)
+            
+    - Provides lifecycle API:
+        
+        - `initialize()`, `getInstance()`, `update(dt)`, `clear()`, `destroy()`
+            
+- **Lifecycle:**
+    
+    - Created at mission start (via level orchestration).
+        
+    - Called per simulation tick via `update(dt)`.
+        
+    - On boss death or level transition:
+        
+        - `clear()` disables enforcement and nulls AI.
+            
+        - `destroy()` fully tears down systems and unsubscribes.
+            
+
+---
+
+### **6. Boss Block Grouping (SOA Integration)**
 
 > 📁 `src/boss/utils/blockGroupHelpers.ts`
 
-- All blocks participate in the shared SOA, but bosses add:
-    
-    
+- All blocks participate in the shared SOA, but bosses add:  
     `group: Uint8Array; // e.g., 0 = default, 1 = left flank, 2 = core, etc.`
     
 - Used for:
@@ -142,7 +196,7 @@ All boss encounters in _Shipwright Survivors_ occur within a **modular, circular
 
 ---
 
-### **5. Telegraphing & Visual Cues**
+### **7. Telegraphing & Visual Cues**
 
 - **Driven by FSM + group lighting:**
     
@@ -167,11 +221,11 @@ All boss encounters in _Shipwright Survivors_ occur within a **modular, circular
 
 - Player is **trapped within the arena** — wall contact may:
     
-    - **Nullify velocity** (soft bounce).
+    - **Soft reposition** via `BossArenaCollisionEnforcer`.
         
-    - **Inflict damage/knockback** (optional per boss theme).
+    - **Damage/knockback** (future: per boss archetype).
         
-- Boss is **immobile**; challenge is in pattern reading and maneuvering.
+- Boss is **immobile**; challenge lies in maneuvering and pattern reading.
     
 - Projectiles:
     
@@ -184,13 +238,22 @@ All boss encounters in _Shipwright Survivors_ occur within a **modular, circular
 
 ## **Implementation Summary**
 
-- `UnifiedSceneRendererGL` owns and integrates the **rendering controller** directly.
+- `UnifiedSceneRendererGL` owns and integrates the **rendering controller**.
     
-- FSM and gameplay simulation remain in the boss domain under `src/game/boss/`.
+- `BossFightManager` owns **simulation systems**: AI + collision.
     
-- `bossArena:spawn` serves as a **universal orchestration event**, enabling synchronized arena initialization across visual, physical, and logical systems.
+- `bossArena:spawn` serves as a **universal orchestration event**, enabling synchronized arena initialization across:
+    
+    - **Visual effects** (arena rendering),
+        
+    - **Spatial logic** (collision boundaries),
+        
+    - **Combat AI** (via future boss scripting).
+        
 
-## Directory Overview
+---
+
+## **Directory Overview**
 
 ```
 src/
@@ -207,6 +270,8 @@ src/
 │           └── BossArenaRenderingController.ts ← Manages render state + timing
 ├── game/
 │   └── boss/
+│       ├── BossFightManager.ts              ← Owns simulation subsystems (AI, collision)
+│       ├── BossArenaCollisionEnforcer.ts    ← Arena boundary enforcement (GC-neutral)
 │       ├── ai/
 │       │   └── BossAIController.ts          ← FSM and attack coordination
 │       ├── fsm/                             ← Individual state behaviors
