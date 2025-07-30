@@ -14,6 +14,8 @@ import type { SpriteInstance } from '@/rendering/unified/passes/SpritePass';
 import { createCameraUBO, updateCameraUBO } from '@/rendering/unified/CameraUBO';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
+import { BossArenaRenderingController } from '@/rendering/unified/controllers/BossArenaRenderingController';
+
 import { BackgroundPass } from '@/rendering/unified/passes/BackgroundPass';
 import { CloudPass } from '@/rendering/unified/passes/CloudPass';
 import { PlanetPass } from '@/rendering/unified/passes/PlanetPass';
@@ -69,6 +71,7 @@ export class UnifiedSceneRendererGL {
   // World space fx passes
   private readonly worldFxPasses: { render(): void; destroy(): void }[] = [];
   private readonly lightningPass: LightningPass;
+  private readonly specialFxPass: SpecialFxPass;
 
   private readonly spriteGroups: Map<WebGLTexture, SpriteInstance[]> = new Map();
   private readonly clearedTextures: WebGLTexture[] = [];
@@ -84,8 +87,8 @@ export class UnifiedSceneRendererGL {
   private backgroundFramebuffer: WebGLFramebuffer;
   private backgroundTexture: WebGLTexture;
 
-  private readonly specialFxPass: SpecialFxPass;
   private readonly specialFxController: SpecialFxController = new SpecialFxController();
+  private readonly bossArenaController: BossArenaRenderingController = new BossArenaRenderingController();
 
   private playerSettings: PlayerSettingsManager;
 
@@ -116,31 +119,11 @@ export class UnifiedSceneRendererGL {
     this.entityPass = new EntityPass(this.gl);
     this.spritePass = new SpritePass(this.gl, this.cameraUBO);
     this.specialFxPass = new SpecialFxPass(this.gl, this.cameraUBO);
-    this.particlePass = new ParticlePass(this.gl, this.cameraUBO);
+    this.particlePass = new ParticlePass(this.gl);
     this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
     this.damageTextPass = new DamageTextPass(this.gl, digitAtlas, this.cameraUBO);
     this.collisionBoxPass = new CollisionBoxPass(this.gl);
-
-    // // Configure front cloudpass
-    // this.cloudPass.setParams({
-    //   speed: 0.5,
-    //   density: 1.2,
-    //   quantity: 2.0,
-    //   scale: 1.0,
-    //   alpha: 0.10,
-    //   color: [0.0, 1.0, 0.0],
-    // });
-
-    // // Configure front cloudpass
-    // this.cloudPassFront.setParams({
-    //   speed: 0.5,
-    //   density: 1.2,
-    //   quantity: 2.0,
-    //   scale: 3.0,
-    //   alpha: 0.10,
-    //   color: [0.8, 0.8, 0.8],
-    // });
 
     // World FX
     this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
@@ -360,12 +343,16 @@ export class UnifiedSceneRendererGL {
       }
     }
 
+    // == Step 8.5: Render Boss Arena (Controller owns the BossArenaPass)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    this.bossArenaController.render();
+
     // Render front cloud pass
     if (this.drawFrontClouds) {
       this.cloudPassFront.render(this.elapsedSeconds, cameraOffset);
     }
 
-    // Render collision boxes for debugging
+    // DEBUG: Render collision boxes for debugging
     if (this.debugDrawCollisionBoxes) {
       this.collisionBoxPass.render(camera);
     }
@@ -411,6 +398,7 @@ export class UnifiedSceneRendererGL {
 
   public update(deltaSeconds: number): void {
     this.specialFxController.update(deltaSeconds);
+    this.bossArenaController.update(deltaSeconds);
   }
 
   resize(): void {
@@ -426,6 +414,9 @@ export class UnifiedSceneRendererGL {
     gl.deleteFramebuffer(this.backgroundFramebuffer);
     gl.deleteTexture(this.backgroundTexture);
 
+    this.bossArenaController.destroy();
+    this.specialFxController.destroy();
+
     this.backgroundPass.destroy();
     this.cloudPass.destroy();
     this.lightingPass.destroy();
@@ -436,7 +427,6 @@ export class UnifiedSceneRendererGL {
     this.planetPass.destroy();
     this.backgroundPostProcessPass.destroy();
     this.specialFxPass.destroy();
-    this.specialFxController.destroy();
     this.damageTextPass.destroy();
     this.collisionBoxPass.destroy();
     for (const fx of this.worldFxPasses) fx.destroy();
@@ -561,3 +551,24 @@ export class UnifiedSceneRendererGL {
     return this.backgroundPostProcessPass;
   }
 }
+
+
+    // // Configure front cloudpass
+    // this.cloudPass.setParams({
+    //   speed: 0.5,
+    //   density: 1.2,
+    //   quantity: 2.0,
+    //   scale: 1.0,
+    //   alpha: 0.10,
+    //   color: [0.0, 1.0, 0.0],
+    // });
+
+    // // Configure front cloudpass
+    // this.cloudPassFront.setParams({
+    //   speed: 0.5,
+    //   density: 1.2,
+    //   quantity: 2.0,
+    //   scale: 3.0,
+    //   alpha: 0.10,
+    //   color: [0.8, 0.8, 0.8],
+    // });

@@ -133,6 +133,7 @@ import { flags } from '@/game/player/PlayerFlagManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
 
 // Debug
+import { spawnBossArena } from './interfaces/events/BossReporter';
 import { getBlockType } from '@/game/blocks/BlockRegistry';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
@@ -603,7 +604,7 @@ export class EngineRuntime {
       this.questTrackerMenu,
       this.planetInteractionOptionsMenu,
       this.jumpCastMenu,
-      this.jumpCastTransitionController
+      this.jumpCastTransitionController,
     ];
 
     this.canvasManager.setUnifiedRenderer(this.unifiedSceneRenderer!);
@@ -658,7 +659,7 @@ export class EngineRuntime {
       this.shipConstructionAnimator,
       this.planetSystem!,
       this.lightingOrchestrator,
-      this.incidentOrchestrator!
+      this.incidentOrchestrator!,
     ];
   }
 
@@ -857,7 +858,12 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
-      abilities.unlockAll();
+      spawnBossArena({
+        center: [1000, 1000],
+        radius: 200,
+        initialState: 1,
+        formingDuration: 4.0
+      });
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit3')) {

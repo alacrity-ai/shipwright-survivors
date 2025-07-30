@@ -14,6 +14,7 @@ import type { DestructionCause } from '@/game/ship/CompositeBlockDestructionServ
 import type { PowerUpChoice } from '@/game/player/PlayerExperienceManager';
 import type { PlanetDefinition } from '@/game/planets/interfaces/PlanetDefinition';
 import type { QuestStepId } from '@/game/quests/interfaces/QuestStep';
+import type { BossArenaOptions } from '@/rendering/unified/controllers/BossArenaRenderingController';
 import type { Ship } from '@/game/ship/Ship';
 
 export type CursorChangeType =
@@ -223,6 +224,9 @@ export interface EventTypes {
   // Incident spawning / lifecycle
   'incident:trigger': { script: string; tag: string; options?: Record<string, any> };
   'incident:clear': { tag: string };
+
+  // Boss spawning / lifecycle
+  'bossArena:spawn': BossArenaOptions;
 
   // Pickups
   'pickup:disableDrops': undefined;

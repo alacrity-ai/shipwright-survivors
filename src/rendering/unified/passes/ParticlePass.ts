@@ -22,7 +22,7 @@ export class ParticlePass {
 
   private maxParticles: number = MAX_PARTICLES_GL;
 
-  constructor(gl: WebGL2RenderingContext, cameraUBO: WebGLBuffer) {
+  constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
 
     this.maxParticles = Math.min(MAX_PARTICLES_GL, getSafeUniformCount(gl));
