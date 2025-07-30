@@ -292,7 +292,7 @@ export class UnifiedSceneRendererGL {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const cameraOffset = camera.getOffset();
+    const cameraOffset = camera.getLogicalOffset();
 
     // Draw background image
     this.backgroundPass.render(cameraOffset);

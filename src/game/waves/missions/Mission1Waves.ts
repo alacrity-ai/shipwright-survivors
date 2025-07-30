@@ -658,9 +658,9 @@ export const waveDefinitions: WaveDefinition[] = [
     spawnDistribution: 'aroundPlayer',    
     mods: [],
     ships: [
-      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR },
-      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_2 },
-      { shipId: 'ship_scrapper_6_2', count: 12, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_3 },
+      { shipId: 'ship_scrapper_6_2', count: 10, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR },
+      { shipId: 'ship_scrapper_6_2', count: 10, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_2 },
+      { shipId: 'ship_scrapper_6_2', count: 10, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_3 },
     ],
   },
   {

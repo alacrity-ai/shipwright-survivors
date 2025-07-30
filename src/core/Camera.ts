@@ -36,6 +36,9 @@ export class Camera {
   private targetX = 0;
   private targetY = 0;
 
+  private logicalX = 0; // without shake
+  private logicalY = 0;
+
   private skipSmoothingThisFrame = false;
   private readonly deadZoneRadius = 12;
 
@@ -55,26 +58,26 @@ export class Camera {
   update(dt: number): void {
     this.screenShake.update(dt);
 
-    const dx = this.targetX - this.x;
-    const dy = this.targetY - this.y;
+    // --- Interpolate *logical* camera (no shake) toward target ---
+    const dx = this.targetX - this.logicalX;
+    const dy = this.targetY - this.logicalY;
     const distSq = dx * dx + dy * dy;
 
     if (this.skipSmoothingThisFrame) {
-      this.x = this.targetX;
-      this.y = this.targetY;
+      this.logicalX = this.targetX;
+      this.logicalY = this.targetY;
     } else if (distSq > this.deadZoneRadius * this.deadZoneRadius) {
       const smoothingFactor = 1.05;
       const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-      this.x = lerp(this.x, this.targetX, smoothingFactor);
-      this.y = lerp(this.y, this.targetY, smoothingFactor);
+      this.logicalX = lerp(this.logicalX, this.targetX, smoothingFactor);
+      this.logicalY = lerp(this.logicalY, this.targetY, smoothingFactor);
     }
 
-    // Apply screen shake to camera position and zoom
+    // --- Derive shaken position separately ---
     const shakeOffset = this.screenShake.getOffset();
     const pxToWorld = getUniformScaleFactor() / this.zoom;
-
-    this.x += shakeOffset.x * pxToWorld;
-    this.y += shakeOffset.y * pxToWorld;
+    this.x = this.logicalX + shakeOffset.x * pxToWorld;
+    this.y = this.logicalY + shakeOffset.y * pxToWorld;
 
     // === Zoom interpolation ===
     if (this.zoomAnimationTarget !== null) {
@@ -134,6 +137,11 @@ export class Camera {
 
   getOffset(): { x: number; y: number } {
     return { x: this.x, y: this.y };
+  }
+
+  /** Returns camera offset without shake (for parallax layers like clouds). */
+  getLogicalOffset(): { x: number; y: number } {
+    return { x: this.logicalX, y: this.logicalY };
   }
 
   getPosition(): { x: number; y: number } {
