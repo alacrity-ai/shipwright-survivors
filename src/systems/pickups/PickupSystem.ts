@@ -20,6 +20,8 @@ import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequ
 import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
 import type { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
@@ -140,6 +142,10 @@ export class PickupSystem {
 
   private quantumAttractorRemainingTime = 0;
 
+  private handleClearAll = (): void => {
+    this.clearAllPickups();
+  };
+
   constructor(
     private readonly camera: Camera,
     private readonly sparkManager: ParticleManager,
@@ -151,6 +157,8 @@ export class PickupSystem {
     this.playerResources = PlayerResources.getInstance();
     this.soa = createPickupBuffer(MAX_PICKUPS);
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    GlobalEventBus.on('pickup:clearAll', this.handleClearAll);
   }
 
   setPlayerShip(ship: Ship): void {
@@ -746,6 +754,18 @@ export class PickupSystem {
     if (this.destroyed) return;
     this.destroyed = true;
 
+    this.clearAllPickups();
+
+    // Clear cached textures for blocks
+    this.blockSpriteCache.clear();
+
+    // Clear player ship reference
+    this.playerShip = null;
+
+    GlobalEventBus.off('pickup:clearAll', this.handleClearAll);
+  }
+
+  public clearAllPickups(): void {
     const lighting = LightingOrchestrator.getInstance();
 
     // Remove all lights attached to active pickups
@@ -756,15 +776,7 @@ export class PickupSystem {
         this.soa.lightId[i] = null;
       }
     }
-
-    // Reset SOA state (retain buffers to avoid reallocating)
     this.soa.count = 0;
     this.freeIndices.length = 0;
-
-    // Clear cached textures for blocks
-    this.blockSpriteCache.clear();
-
-    // Clear player ship reference
-    this.playerShip = null;
   }
 }

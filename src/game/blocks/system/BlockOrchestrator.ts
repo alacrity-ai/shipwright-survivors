@@ -517,6 +517,9 @@ export class BlockOrchestrator {
     this.store.clear();
     this.shipBlocks.clear();
     this.shipBlockCounts.clear();
+    if (this.lightingOrchestrator) {
+      this.lightingOrchestrator = null;
+    }
   }
 
   /**

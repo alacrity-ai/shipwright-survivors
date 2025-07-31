@@ -4,8 +4,17 @@ import type { DialogueScript } from '@/systems/dialogue/interfaces/DialogueScrip
 import type { DialogueContext } from '@/systems/dialogue/interfaces/DialogueContext';
 
 import { emitPlayerVictory } from '@/core/interfaces/events/PlayerOutcomeReporter';
+import { spawnBossArena } from '@/core/interfaces/events/BossReporter';
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
+
+import { purgeNonPlayerShips } from '@/systems/culling/purgeNonPlayerShips';
+import { clearAllPickups } from '@/core/interfaces/events/PickupSpawnReporter';
 
 import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
+
+import { BossManager } from '@/game/boss/BossManager';
+import { BossRegistry } from '@/game/boss/registry/BossRegistry';
+import { ArenaManager } from '@/game/arena/ArenaManager';
 
 export function createMissionGenericScript(ctx: DialogueContext): DialogueScript {
   const { inputManager, waveOrchestrator, playerShip } = ctx;
@@ -59,77 +68,55 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveOrchestrator.isBossWaveActive());
+          return awaitCondition(() => waveOrchestrator.areAllWavesCompleted());
         },
       },
-      // Show UI
+      // Call event
       {
-        type: 'showUI',
-      },
-      // Notify user that a powerful hostile has been detected, proceed to center coordinates
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Powerful hostile detected. Proceed to center coordinates.',
-      },
-      // Wait 1000ms
-      {
-        type: 'pause',
-        durationMs: 1000,
-      },
-      // Snarky remark about survival probability being near 0
-      {
-        type: 'line',
-        speakerId: 'carl',
-        text: 'Survival probability: 0.0001%. But hey, you never know.',
+        type: 'command',
+        run: () => {
+          shakeCamera(12, 4, 10);
+          purgeNonPlayerShips();
+          clearAllPickups();
+          const { x, y } = playerShip.getTransform().position;
+          spawnBossArena({
+            center: [x, y],
+            radius: 2220,
+            initialState: 1,
+            formingDuration: 1.0
+          });
+        },
       },
       // Wait 1000ms
       {
         type: 'pause',
         durationMs: 1000,
       },
+      // Spawn Boss
       {
-        type: 'line',
-        speakerId: 'crazy-moe',
-        text: "WELL WHADDYA KNOW! A flyin' lunchbox full'a alloys!",
-      },
-      // Wait 1000ms
-      {
-        type: 'pause',
-        durationMs: 1000,
-      },
-      // Crazy moe says: "I'ma gonna strip you for parts!"
-      {
-        type: 'line',
-        speakerId: 'crazy-moe',
-        text: "Heh—I'ma pop yer cockpit like a soda tab and sniff the coolant fumes!",
-      },
-      // Wait 1000ms
-      {
-        type: 'pause',
-        durationMs: 1000,
-      },
-      // Hide UI
-      {
-        type: 'hideUI',
+        type: 'command',
+        run: () => {
+          // TODO : Ultimately when this is implemented, replace hard coded flamelord with the boss field in the mission definition
+          const bossManager = BossManager.getInstance();
+          const bossOrchestrator = bossManager.getOrchestrator();
+          const bossDefinition = BossRegistry.get('flame_lord');
+
+          const arenaManager = ArenaManager.getInstance();
+          const [x, y] = arenaManager.getArenaCenter();
+          bossOrchestrator.spawnBoss(bossDefinition, { x, y });
+        },
       },
       // Wait until boss is defeated
       {
         type: 'command',
         run: () => {
-          return awaitCondition(() => waveOrchestrator.isActiveWaveCompleted());
+          // TODO: This will be some kind of BossController or BossManager, isBossDefeated call
+          // return awaitCondition(() => waveOrchestrator.isActiveWaveCompleted());
+
+          // For now, await condition that will never resolve for testing, so we never proceed
+          return awaitCondition(() => false);
         },
       },
-      // Show UI
-      {
-        type: 'showUI',
-      },
-      {
-        type: 'line',
-        speakerId: 'crazy-moe',
-        text: "Y'got me! Sweet entropy, I see the light—*AND SHE'S MADE OF REBAR AND RADIATION!*",
-      },
-      // Wait 1000ms
       {
         type: 'pause',
         durationMs: 2000,

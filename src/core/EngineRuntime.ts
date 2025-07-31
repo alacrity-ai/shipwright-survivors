@@ -14,7 +14,9 @@ import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
 import { GlobalMenuReporter } from './GlobalMenuReporter';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
-import { BossFightManager } from '@/game/boss/BossFightManager';
+import { ArenaManager } from '@/game/arena/ArenaManager';
+import { BossManager } from '@/game/boss/BossManager';
+import { ShipFactory } from '@/game/ship/factories/ShipFactory';
 
 import type { IUpdatable, IRenderable } from '@/core/interfaces/types';
 
@@ -144,11 +146,7 @@ import { unlockAllArtifacts } from '@/game/ship/artifacts/helpers/unlockAllArtif
 import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
 import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
-import { openQuestsMenu } from './interfaces/events/QuestReporter';
-import { abilities } from '@/game/player/PlayerAbilityManager';
-import { upgradeAffinityBlocksOnShip } from '@/game/blocks/helpers/upgradeUtils';
 import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
-import { emitDefaultFlames } from './interfaces/events/SpecialFxReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -192,7 +190,8 @@ export class EngineRuntime {
   private hud: HudOverlay | null = null;
   private miniMap: MiniMap | null = null;
   private screenEdgeIndicatorManager: ScreenEdgeIndicatorManager;
-  private bossFightManager: BossFightManager;
+  private arenaManager: ArenaManager;
+  private bossManager: BossManager;
 
   private canvasManager: CanvasManager;
   private camera: Camera | null = null;
@@ -272,7 +271,7 @@ export class EngineRuntime {
     this.collisionBoxManager = CollisionBoxManager.initialize();
     this.collisionBoxSystem = new CollisionBoxSystem(32);
     this.spatialBodyManager = SpatialBodyManager.initialize();
-    this.bossFightManager = BossFightManager.initialize();
+    this.arenaManager = ArenaManager.initialize();
 
     PowerupRegistry.initialize();
 
@@ -421,6 +420,18 @@ export class EngineRuntime {
       this.combatService,
       this.particleManager,
     );
+
+    const shipFactory = new ShipFactory(
+      this.shipRegistry,
+      this.particleManager,
+      this.projectileSystem,
+      this.combatService,
+      this.explosionSystem,
+      this.collisionSystem,
+      this.shipConstructionAnimator,
+      this.aiOrchestrator
+    );
+    this.bossManager = BossManager.initialize(shipFactory);
 
     this.registerLoopHandlers();
   }
@@ -662,7 +673,8 @@ export class EngineRuntime {
       this.planetSystem!,
       this.lightingOrchestrator,
       this.incidentOrchestrator!,
-      this.bossFightManager,
+      this.arenaManager,
+      this.bossManager,
     ];
   }
 
@@ -870,11 +882,11 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit3')) {
-      emitDefaultFlames(0, 0);
+      // Empty
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
-      applyUnderwaterEffect(true);
+      // Empty
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit5')) {
@@ -1203,7 +1215,8 @@ export class EngineRuntime {
     PlayerQuestManager.getInstance().clearActiveQuests();
     DamageTextManager.getInstance().clear();
     DamageTextAggregator.getInstance().clear();
-    this.bossFightManager.destroy();
+    this.arenaManager.destroy();
+    this.bossManager.destroy();
 
     // Additional cleanup
     this.pickupSystem.destroy();

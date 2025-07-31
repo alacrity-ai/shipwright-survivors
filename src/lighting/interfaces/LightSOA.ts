@@ -10,6 +10,7 @@ export interface LightSOA {
   b: Float32Array;
   intensity: Float32Array;
   initialIntensity: Float32Array;
+  initialRadius: Float32Array;
   life: Float32Array;
   initialLife: Float32Array;
   fadeMode: Uint8Array;         // 0 = linear, 1 = delayed
@@ -32,6 +33,7 @@ export function createSOABuffer(max: number): LightSOA {
     b: new Float32Array(max),
     intensity: new Float32Array(max),
     initialIntensity: new Float32Array(max),
+    initialRadius: new Float32Array(max),
     life: new Float32Array(max),
     initialLife: new Float32Array(max),
     fadeMode: new Uint8Array(max),

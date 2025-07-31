@@ -663,39 +663,39 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'ship_scrapper_6_2', count: 10, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_3 },
     ],
   },
-  {
-    spawnDistribution: 'center',
-    duration: Infinity,    
-    mods: [],
-    ships: [
-      {
-        shipId: 'boss_0_00',
-        count: 1,
-        hunter: true,
-        behaviorProfile: {
-          ...SiegeBehaviorProfile,
-          params: {
-            ...SiegeBehaviorProfile.params,
-            engagementRange: 3200,
-            siegeRange: 1600,
-            disengageRange: 2800,
-          },
-        },
-        affixes: {
-          blockDurabilityMulti: 25.0,
-          thrustPowerMulti: 4.0,
-          turnPowerMulti: 0.8,
-          fireRateMulti: 3.0,
-          projectileSpeedMulti: 2.5,
-        },
-      },
-    ],
-    music: {
-      file: 'assets/sounds/music/track_03_boss.mp3',
-    },
-    lightingSettings: {
-      clearColor: [0.25, 0.0, 0.0, 0.0]
-    },
-    isBoss: true,
-  }
+  // {
+  //   spawnDistribution: 'center',
+  //   duration: Infinity,    
+  //   mods: [],
+  //   ships: [
+  //     {
+  //       shipId: 'boss_0_00',
+  //       count: 1,
+  //       hunter: true,
+  //       behaviorProfile: {
+  //         ...SiegeBehaviorProfile,
+  //         params: {
+  //           ...SiegeBehaviorProfile.params,
+  //           engagementRange: 3200,
+  //           siegeRange: 1600,
+  //           disengageRange: 2800,
+  //         },
+  //       },
+  //       affixes: {
+  //         blockDurabilityMulti: 25.0,
+  //         thrustPowerMulti: 4.0,
+  //         turnPowerMulti: 0.8,
+  //         fireRateMulti: 3.0,
+  //         projectileSpeedMulti: 2.5,
+  //       },
+  //     },
+  //   ],
+  //   music: {
+  //     file: 'assets/sounds/music/track_03_boss.mp3',
+  //   },
+  //   lightingSettings: {
+  //     clearColor: [0.25, 0.0, 0.0, 0.0]
+  //   },
+  //   isBoss: true,
+  // }
 ];

@@ -1,8 +1,10 @@
+// src/game/boss/ArenaManager/ArenaCollisionEnforcer.ts
+
 import { GlobalEventBus } from '@/core/EventBus';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import type { BossArenaOptions } from '@/rendering/unified/controllers/BossArenaRenderingController';
 
-export class BossArenaCollisionEnforcer {
+export class ArenaCollisionEnforcer {
   private center: [number, number] = [0, 0];
   private radius: number = 0;
   private isActive: boolean = false;
@@ -21,13 +23,11 @@ export class BossArenaCollisionEnforcer {
   };
 
   public update(dt: number): void {
-    console.log('[BossArenaCollisionEnforcer] Updating...');
     if (!this.isActive) return;
 
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     if (!playerShip) return;
 
-    console.log('[BossArenaCollisionEnforcer] Player ship found.');
     const transform = playerShip.getTransform();
     const pos = transform.position;
     const dx = pos.x - this.center[0];
@@ -36,7 +36,6 @@ export class BossArenaCollisionEnforcer {
     const radiusSq = this.radius * this.radius;
 
     if (distSq > radiusSq) {
-      console.log('[BossArenaCollisionEnforcer] Player ship outside arena.');
       const dist = Math.sqrt(distSq);
       const nx = dx / dist;
       const ny = dy / dist;
@@ -51,6 +50,15 @@ export class BossArenaCollisionEnforcer {
 
       playerShip.setTransform(transform); // No new allocation
     }
+  }
+
+  // API
+  public getArenaCenter(): [number, number] {
+    return this.center;
+  }
+
+  public getArenaRadius(): number {
+    return this.radius;
   }
 
   public disable(): void {

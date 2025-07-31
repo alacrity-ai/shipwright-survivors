@@ -17,7 +17,7 @@ export const MAXIMUM_LIGHTS_PER_TAG = 8;
 export class LightingOrchestrator {
   private readonly soa = createSOABuffer(MAX_LIGHTS);
 
-  private readonly scratchValues: any[] = new Array(15);  // one slot per field
+  private readonly scratchValues: any[] = new Array(16);  // one slot per field
 
   private readonly visibleIndices = new Uint16Array(MAX_LIGHTS);
   private visibleCount = 0;
@@ -103,6 +103,7 @@ export class LightingOrchestrator {
     this.soa.b[index] = b;
     this.soa.intensity[index] = light.intensity;
     this.soa.initialIntensity[index] = light.intensity;
+    this.soa.initialRadius[index] = light.radius;
     this.soa.life[index] = light.life ?? 0;
     this.soa.initialLife[index] = light.maxLife ?? light.life ?? 0;
     this.soa.fadeMode[index] = light.fadeMode === 'delayed' ? 1 : 0;
@@ -187,11 +188,12 @@ export class LightingOrchestrator {
     s[0]  = soa.x[i];              s[1]  = soa.y[i];
     s[2]  = soa.radius[i];         s[3]  = soa.r[i];
     s[4]  = soa.g[i];              s[5]  = soa.b[i];
-    s[6]  = soa.intensity[i];      s[7]  = soa.initialIntensity[i];
-    s[8]  = soa.life[i];           s[9]  = soa.initialLife[i];
-    s[10] = soa.fadeMode[i];       s[11] = soa.animationPhase[i];
-    s[12] = soa.id[i];             s[13] = soa.tag[i];
-    s[14] = soa.colorHex[i];
+    s[6]  = soa.intensity[i];      s[7]  = soa.initialIntensity[i]; 
+    s[8]  = soa.initialRadius[i];
+    s[9]  = soa.life[i];           s[10]  = soa.initialLife[i];
+    s[11] = soa.fadeMode[i];       s[12] = soa.animationPhase[i];
+    s[13] = soa.id[i];             s[14] = soa.tag[i];
+    s[15] = soa.colorHex[i];
 
     // Copy j → i
     soa.x[i]              = soa.x[j];
@@ -202,6 +204,7 @@ export class LightingOrchestrator {
     soa.b[i]              = soa.b[j];
     soa.intensity[i]      = soa.intensity[j];
     soa.initialIntensity[i] = soa.initialIntensity[j];
+    soa.initialRadius[i]  = soa.initialRadius[j];
     soa.life[i]           = soa.life[j];
     soa.initialLife[i]    = soa.initialLife[j];
     soa.fadeMode[i]       = soa.fadeMode[j];
@@ -219,13 +222,14 @@ export class LightingOrchestrator {
     soa.b[j]                = s[5];
     soa.intensity[j]        = s[6];
     soa.initialIntensity[j] = s[7];
-    soa.life[j]             = s[8];
-    soa.initialLife[j]      = s[9];
-    soa.fadeMode[j]         = s[10];
-    soa.animationPhase[j]   = s[11];
-    soa.id[j]               = s[12];
-    soa.tag[j]              = s[13];
-    soa.colorHex[j]         = s[14];
+    soa.initialRadius[j]    = s[8];
+    soa.life[j]             = s[9];
+    soa.initialLife[j]      = s[10];
+    soa.fadeMode[j]         = s[11];
+    soa.animationPhase[j]   = s[12];
+    soa.id[j]               = s[13];
+    soa.tag[j]              = s[14];
+    soa.colorHex[j]         = s[15];
   }
 
   // == Tag management ==
@@ -366,7 +370,7 @@ export class LightingOrchestrator {
   turnOnLight(id: number): void {
     const index = this.idToIndex.get(id);
     if (index == null) return;
-    this.updateLight(id, { intensity: this.soa.initialIntensity[index] });
+    this.updateLight(id, { intensity: this.soa.initialIntensity[index], radius: this.soa.initialRadius[index] });
   }
 
   private recycleLight(index: number): void {
@@ -443,6 +447,7 @@ export class LightingOrchestrator {
     this.soa.b.fill(0);
     this.soa.intensity.fill(0);
     this.soa.initialIntensity.fill(0);
+    this.soa.initialRadius.fill(0);
     this.soa.life.fill(0);
     this.soa.initialLife.fill(0);
     this.soa.fadeMode.fill(0);

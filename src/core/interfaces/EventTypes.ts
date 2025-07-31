@@ -233,6 +233,7 @@ export interface EventTypes {
   'pickup:disableDrops': undefined;
   'pickup:enableDrops': undefined;
   'pickup:collected': { typeId: string; };
+  'pickup:clearAll': undefined;
   'pickup:spawn:block': {
     x: number;
     y: number;
@@ -276,6 +277,7 @@ export interface EventTypes {
     entity: CompositeBlockObject;
     cause: DestructionCause;
   };
+  'entity:destroy-all-enemies': undefined;
 
   // Status Effects
   'status:damageOverTime': {

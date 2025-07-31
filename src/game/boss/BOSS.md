@@ -1,281 +1,278 @@
-# **BOSS.md – Boss Fight Architecture (Shipwright Survivors)**
+# **BOSS.md – Boss Encounter Architecture (Shipwright Survivors)**
 
-## **Overview**
+## 🧭 Overview
 
-All boss encounters in _Shipwright Survivors_ occur within a **modular, circular arena**, centered on a **stationary boss** governed by a **Finite State Machine (FSM)**. This architecture guarantees:
+The Boss subsystem provides a **modular, declarative, and orchestrated framework** for managing boss encounters in *Shipwright Survivors*. Each boss is defined by:
 
-- **Consistent spatial grammar** across all bosses.
+- A **static data declaration** in `BossRegistry`
+- A dynamically instantiated **ship** loaded from JSON assets
+- A **cutscene controller** for pre-fight presentation
+- A combat-specific **finite state machine** (FSM) AI controller
+- A declarative **orchestrator** for sequencing lifecycle phases
+
+This design is centered around two pillars:
+
+- **Composability** – Boss logic is constructed from discrete subsystems with clean interfaces.
+- **Orchestration** – High-level sequencing (spawn, cutscene, AI, death) is driven declaratively.
+
+---
+
+## 🧩 Core Components
+
+### 📌 `BossManager`
+
+> 📁 `src/game/boss/BossManager.ts`
+
+The **mission-scoped singleton** that owns all core boss systems. Created at mission start and destroyed on exit.
+
+#### Responsibilities:
+
+- Instantiates and holds:
+  - `BossFactory`
+  - `BossIntroCutsceneController` (stubbed)
+  - `BossAIController` (stubbed)
+  - `BossOrchestrator` (injects subsystems)
+- Exposes safe public getters
+- Coordinates per-tick `update(dt)` calls if needed
+- Clears or destroys all systems cleanly
+
+```
+const bossManager = BossManager.initialize(shipFactory);
+bossManager.getOrchestrator().runFullEncounter(...);
+```
+
+### 📌 `BossOrchestrator`
+
+> 📁 `src/game/boss/BossOrchestrator.ts`
+
+Declarative coordinator for **boss lifecycle sequencing**. Designed to abstract time-sensitive flow and reduce boilerplate in consumer systems (e.g. mission logic).
+
+#### Example Flow:
+
+```
+await orchestrator.spawnBoss(def, { x, y });
+await orchestrator.runIntroCutscene();
+await orchestrator.activateAI();
+await orchestrator.awaitDeath();
+await orchestrator.runOutroCutscene();
+```
+
+#### Responsibilities:
+
+- Calls into:
     
-- **Predictable encounter zones** (e.g., 120° arc telegraphs).
+    - `BossFactory` to create the boss ship
+        
+    - `BossIntroCutsceneController` to play intro
+        
+    - `BossAIController` to activate FSM
+        
+- Emits or reacts to events (e.g. `boss:defeated`)
     
-- **No pathfinding**, allowing purely rotational, pattern-based bosses.
-    
-- **Strong modularity** between simulation and rendering.
+- Designed to support **replayable**, **scripted**, and **multi-phase** encounters
     
 
 ---
 
-## **Core Components**
+### 📌 `BossFactory`
 
-### **1. BossArenaRenderingController**
+> 📁 `src/game/boss/factories/BossFactory.ts`
 
-> 📁 `src/rendering/unified/controllers/BossArenaRenderingController.ts`
+Encapsulates the logic to **construct a boss ship** via the shared `ShipFactory`.
 
-- **Owns and updates arena rendering state.**
+#### Responsibilities:
+
+- Loads boss ship JSON from `BossDefinition`
     
-- Delegates draw calls to `BossArenaPass`.
+- Calls `ShipFactory.createShip(...)` with appropriate flags
     
-- Subscribes to `GlobalEventBus` event:  
-    `bossArena:spawn`  
-    allowing both **visual** and **simulation** systems to react to arena declarations.
+- Applies initial transform via `setTransform(...)`
     
-- **Responsibilities:**
+- Will eventually attach `BossAIController`
     
-    - Tracks arena `center`, `radius`, and **visual state** (idle, forming, pulsing).
-        
-    - Manages `formProgress` and time-based transitions.
-        
-    - Exposes methods for manual overrides:  
-        `startForming()`, `startPulsing()`, `setArena(...)`
-        
-- **Lifecycle:**
+- Returns `{ ship, aiController }` structure
     
-    - Instantiated and owned by `UnifiedSceneRendererGL`.
-        
-    - `update()` called during each renderer update step.
-        
-    - `render()` called mid-frame (after entities, before particles).
-        
+
+> ⛳ Fully leverages internal construction animations, light setups, movement systems, and collision wiring.
 
 ---
 
-### **2. BossArenaPass**
+### 📌 `BossRegistry`
 
-> 📁 `src/rendering/unified/passes/fx/BossArenaPass.ts`  
-> 📁 `src/rendering/unified/shaders/fx/bossArenaRenderer.vert|frag`
+> 📁 `src/game/boss/registry/BossRegistry.ts`
 
-- **Responsible for GPU rendering of the arena’s circular boundary.**
-    
-- Draws a **single instanced quad** centered at the arena’s world position, scaled by radius.
-    
-- Visual state driven by uniforms:
-    
-    - `uState` – 0 = idle, 1 = forming, 2 = pulsing.
-        
-    - `uFormProgress` – [0.0, 1.0] for animated arc sweep-in.
-        
-    - `uArenaCenter`, `uArenaRadius` – world-space inputs.
-        
-- **Rendering integration:**
-    
-    - Camera matrices via `CameraMatrices` UBO.
-        
-    - Renders to `sceneFramebuffer` like all other world-space passes.
-        
-    - Blended with `SRC_ALPHA, ONE_MINUS_SRC_ALPHA`.
-        
+Declarative repository of all registered bosses.
 
----
+Each boss is defined via a `BossDefinition`:
 
-### **3. BossAIController**
+```
+{
+  id: 'flame_lord',
+  name: 'The Flame Lord',
+  shipJsonPath: 'boss/boss_00.json',
+  initialState: 'Idle'
+}
+```
+
+Provides:
+
+- `get(id: string): BossDefinition`
+    
+- `getAll(): BossDefinition[]`
+    
+
+This enables content authors to introduce new bosses without modifying system code.
+
+### 📌 `BossAIController` (WIP)
 
 > 📁 `src/game/boss/ai/BossAIController.ts`
 
-- **Centralized state machine driver** for boss behavior and attack logic.
+Controls **combat behavior** of the boss via a scripted FSM.
+
+#### Responsibilities:
+
+- Holds reference to the `Ship` instance
     
-- **Responsibilities:**
+- Manages the **current FSM state** (`BossState`)
     
-    - Drives FSM transitions based on timers, health thresholds, or triggers.
-        
-    - Coordinates **multi-layered attacks** (e.g. Minefield + Flame Arc).
-        
-    - Orchestrates **telegraphs**, **damage logic**, and **lighting events**.
-        
-    - Emits internal events for VFX/sound hooks.
-        
-- **States (FSM examples):**
+- Delegates per-frame `update(dt)`
     
-    - `Idle` – Re-orients or delays.
-        
-    - `LeftFlankFlames` / `RightFlankFlames` – 120° cone attacks.
-        
-    - `FrontalFlameBarrage` – Tracking cone.
-        
-    - `MinefieldDeploy` – Circular hazard placement.
-        
-    - `RadialDetonation` – Full-ring telegraphed explosion.
-        
-    - `ComboState` – Composite, layered behaviors.
-        
-- **Escalation Rules:**
+- Transitions between states based on:
     
-    - Reduced idle durations, faster telegraphs, increased combo frequency.
+    - Timers
         
-    - Tightened safe zones and higher flame tracking speeds.
+    - Health thresholds
         
+    - Internal or external triggers
+        
+
+> Uses `IntentSystem` to control ship rotation and optionally movement/attacks.
 
 ---
 
-### **4. BossArenaCollisionEnforcer**
+### 📌 FSM State Scripts
 
-> 📁 `src/game/boss/BossArenaCollisionEnforcer.ts`
+> 📁 `src/game/boss/ai/fsm/`
 
-- **Simulation system enforcing arena boundary rules** during boss fights.
-    
-- **Responsibilities:**
-    
-    - Subscribes to `bossArena:spawn` and activates positional enforcement.
-        
-    - Monitors player position each frame; if outside arena bounds:
-        
-        - Repositions player just inside the boundary (with 1.85x visual-radius adjustment).
-            
-        - Avoids velocity reset (future damage/knockback optional).
-            
-    - Fully **GC-neutral**: reuses scratch vectors, avoids per-frame allocation.
-        
-- **Lifecycle:**
-    
-    - Created and owned by `BossFightManager`.
-        
-    - `disable()` halts enforcement during transition scenes.
-        
-    - `destroy()` unsubscribes from the event bus.
-        
-
----
-
-### **5. BossFightManager**
-
-> 📁 `src/game/boss/BossFightManager.ts`
-
-- **Centralized manager** coordinating boss simulation systems.
-    
-- **Responsibilities:**
-    
-    - Owns and updates:
-        
-        - `BossArenaCollisionEnforcer` (boundary enforcement)
-            
-        - `BossAIController` (FSM + combat scripting)
-            
-    - Provides lifecycle API:
-        
-        - `initialize()`, `getInstance()`, `update(dt)`, `clear()`, `destroy()`
-            
-- **Lifecycle:**
-    
-    - Created at mission start (via level orchestration).
-        
-    - Called per simulation tick via `update(dt)`.
-        
-    - On boss death or level transition:
-        
-        - `clear()` disables enforcement and nulls AI.
-            
-        - `destroy()` fully tears down systems and unsubscribes.
-            
-
----
-
-### **6. Boss Block Grouping (SOA Integration)**
-
-> 📁 `src/boss/utils/blockGroupHelpers.ts`
-
-- All blocks participate in the shared SOA, but bosses add:  
-    `group: Uint8Array; // e.g., 0 = default, 1 = left flank, 2 = core, etc.`
-    
-- Used for:
-    
-    - **Telegraph lighting** per group.
-        
-    - **Selective enabling/disabling** (e.g., arm cannons on phase triggers).
-        
-    - **Efficient targeting** (e.g., group-based AoE effects).
-        
-
----
-
-### **7. Telegraphing & Visual Cues**
-
-- **Driven by FSM + group lighting:**
-    
-    - `BlockLightSystem` pulses specific groupings.
-        
-    - Telegraph color and intensity vary by attack.
-        
-- **Arena-wide effects:**
-    
-    - Forming state uses **arc sweep-ins**, **ring pulses**, and **sparkle trails**.
-        
-    - Pulsing state uses **streaming ring glow**, **sinusoidal intensity**, and **edge sparkles**.
-        
-- **Sound + shader sync** (eventually):
-    
-    - Match lighting pulses with corresponding SFX bursts and shader flashes.
-        
-
----
-
-## **Collision & Gameplay Rules**
-
-- Player is **trapped within the arena** — wall contact may:
-    
-    - **Soft reposition** via `BossArenaCollisionEnforcer`.
-        
-    - **Damage/knockback** (future: per boss archetype).
-        
-- Boss is **immobile**; challenge lies in maneuvering and pattern reading.
-    
-- Projectiles:
-    
-    - May **dissipate**, **reflect**, or **wrap** on arena contact.
-        
-- Mines and hazards are always placed **relative to the arena circumference**, ensuring deterministic layout.
-    
-
----
-
-## **Implementation Summary**
-
-- `UnifiedSceneRendererGL` owns and integrates the **rendering controller**.
-    
-- `BossFightManager` owns **simulation systems**: AI + collision.
-    
-- `bossArena:spawn` serves as a **universal orchestration event**, enabling synchronized arena initialization across:
-    
-    - **Visual effects** (arena rendering),
-        
-    - **Spatial logic** (collision boundaries),
-        
-    - **Combat AI** (via future boss scripting).
-        
-
----
-
-## **Directory Overview**
+Each boss state is defined in its own file, implementing:
 
 ```
-src/
-├── rendering/
-│   └── unified/
-│       ├── passes/
-│       │   └── fx/
-│       │       └── BossArenaPass.ts         ← GPU pass (circle ring rendering)
-│       ├── shaders/
-│       │   └── fx/
-│       │       ├── bossArenaRenderer.vert   ← Arena geometry transform
-│       │       └── bossArenaRenderer.frag   ← Visual effect logic
-│       └── controllers/
-│           └── BossArenaRenderingController.ts ← Manages render state + timing
-├── game/
-│   └── boss/
-│       ├── BossFightManager.ts              ← Owns simulation subsystems (AI, collision)
-│       ├── BossArenaCollisionEnforcer.ts    ← Arena boundary enforcement (GC-neutral)
-│       ├── ai/
-│       │   └── BossAIController.ts          ← FSM and attack coordination
-│       ├── fsm/                             ← Individual state behaviors
-│       └── utils/
-│           └── blockGroupHelpers.ts         ← Light + group utilities
+interface BossState {
+  name: string;
+  enter(controller: BossAIController): void;
+  update(dt: number, controller: BossAIController): void;
+  exit(controller: BossAIController): void;
+}
+```
+
+
+Examples:
+
+- `BossState_Idle.ts` – Passive rotation or wait logic
+    
+- `BossState_FlameSweep.ts` – 120° cone attacks
+    
+- `BossState_Minefield.ts` – AoE hazard deployment
+    
+
+States coordinate lighting, telegraphs, and transition triggers.
+
+---
+
+### 📌 `BossIntroCutsceneController` (WIP)
+
+> 📁 `src/game/boss/cutscenes/BossIntroCutsceneController.ts`
+
+Handles the **presentation layer** for boss entrances.
+
+#### Goals:
+
+- Animate camera focus, arena energy pulsing, ambient shifts
+    
+- Deliver scripted dialogue bursts
+    
+- Signal combat readiness to player
+    
+- End with `await cutsceneController.play()` resolving
+
+
+
+| File                   | Purpose                                     |
+| ---------------------- | ------------------------------------------- |
+| `BossDefinition.ts`    | Declarative registry entry                  |
+| `BossSpawnContext.ts`  | Used by factory for instantiation           |
+| `BossState.ts`         | FSM contract                                |
+| `BossPhaseMetadata.ts` | Reserved for affix modifiers or tuning info |
+
+
+### 🧪 Orchestration Usage (High-Level)
 
 ```
+const manager = BossManager.initialize(shipFactory);
+const orchestrator = manager.getOrchestrator();
+
+const def = BossRegistry.get('flame_lord');
+await orchestrator.spawnBoss(def, { x: 0, y: 0 });
+await orchestrator.runIntroCutscene();
+await orchestrator.activateAI();
+await orchestrator.awaitDeath();
+await orchestrator.runOutroCutscene();
+```
+
+## 🔄 Future Extension Points
+
+- **Affix + Phase Modifiers** (`BossPhaseMetadata.ts`)
+    
+- **Procedural Boss Generator**
+    
+- **Death cutscene controller**
+    
+- **Event hooks for mission scripting** (`boss:spawned`, `boss:defeated`)
+    
+- **Multi-stage AI controllers** (e.g., chained FSMs or substates)
+    
+- **Dynamic arena styling based on boss archetype**
+
+### 🧱 Current File Structure
+
+```
+src/game/boss/
+├── BOSS.md
+├── BossManager.ts
+├── BossOrchestrator.ts
+├── OVERVIEW.md
+├── ai/
+│   ├── BossAIController.ts
+│   └── fsm/
+│       ├── BossState_FlameSweep.ts
+│       ├── BossState_Idle.ts
+│       └── BossState_Minefield.ts
+├── cutscenes/
+│   └── BossIntroCutsceneController.ts
+├── factories/
+│   └── BossFactory.ts
+├── interfaces/
+│   ├── BossDefinition.ts
+│   ├── BossPhaseMetadata.ts
+│   ├── BossSpawnContext.ts
+│   └── BossState.ts
+└── registry/
+    └── BossRegistry.ts
+
+```
+
+
+## ✅ Summary
+
+The Boss subsystem is:
+
+- **Extensible** – Easily define new bosses via data and scripts
+    
+- **Modular** – All responsibilities isolated and testable
+    
+- **Declarative** – Orchestration reads as a cinematic script
+    
+- **Future-proof** – FSM, affixes, and cutscenes can scale with complexity
+    
+
+Use `BossOrchestrator` for high-level control. Use `BossManager` for access to internals. Avoid direct calls to `BossFactory` outside of orchestration paths.
