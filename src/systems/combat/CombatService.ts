@@ -266,11 +266,21 @@ export class CombatService {
       }
     }
 
-    // === HP reduction ===
-    store.hp[blockIndex] -= damage;
-    this.orchestrator.updateDamageUV(blockIndex);
+    // === Actual HP Decrement Occurs here ===
+    if (entity.hasHealth()) {
+      // HP Reduction on ship (Boss ships, special entities)
+      entity.setCurrentHealth(entity.getCurrentHealth() - damage);
+      if (entity.getCurrentHealth() <= 0) {
+        this.destructionService.destroyEntity(entity, cause);
+        return true;
+      }
+    } else {
+      // Block Based Damage Reduction (normal path)
+      store.hp[blockIndex] -= damage;
+      this.orchestrator.updateDamageUV(blockIndex);
+    }
 
-    // === Visual + feedback ===
+    // === Visual + feedback (Applies to both a block hit, or a ship damage hit) ===
     const worldX = entity.getTransform().position.x + coord.x;
     const worldY = entity.getTransform().position.y + coord.y;
 
@@ -329,7 +339,7 @@ export class CombatService {
       }
     }
 
-    // Explosion for the destroyed block
+    // Explosion effect for the destroyed block
     this.explosionSystem.createBlockExplosion(
       entity.id,
       entity.getTransform().position,

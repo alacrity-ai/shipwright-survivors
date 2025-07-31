@@ -27,6 +27,9 @@ export abstract class CompositeBlockObject {
   readonly id: string;
   readonly numericId: number;
 
+  protected currentHealth: number = 0;
+  protected maxHealth: number = 0;
+
   protected blockManager: BlockManager;
   protected blockOrchestrator: BlockOrchestrator;
   protected collisionBoxManager: CollisionBoxManager;
@@ -193,6 +196,34 @@ export abstract class CompositeBlockObject {
       }
     }
     return false;
+  }
+
+  // == Health management (for bosses and other nonblock damage entities)
+  
+  // Returns current health
+  public getCurrentHealth(): number {
+    return this.currentHealth;
+  }
+
+  // Returns max health
+  public getMaxHealth(): number {
+    return this.maxHealth;
+  }
+
+  // Sets health, can be used for taking damage, healing, etc
+  public setCurrentHealth(health: number): void {
+    this.currentHealth = health;
+  }
+
+  // Initializes health on an entity/boss/etc
+  public initializeHealth(maxHealth: number): void {
+    this.maxHealth = maxHealth;
+    this.currentHealth = maxHealth;
+  }
+
+  // Can be used to determine if the entity is using the health system at all
+  public hasHealth(): boolean {
+    return this.maxHealth > 0;
   }
 
   // --- Clipping

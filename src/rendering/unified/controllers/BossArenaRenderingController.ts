@@ -24,7 +24,7 @@ export interface BossArenaOptions {
   formingDuration?: number;
 }
 
-const RENDERING_RADIUS_ADJUSTMENT_MULTIPLIER = 0.545;
+const RENDERING_RADIUS_ADJUSTMENT_MULTIPLIER = 0.645;
 
 /**
  * Controls the boss fight arena: manages state transitions (idle, forming, pulsing),

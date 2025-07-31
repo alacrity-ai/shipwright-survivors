@@ -5,100 +5,118 @@ in vec2 vLocalPos;
 out vec4 fragColor;
 
 uniform float uTime;
-uniform int uState;           // 0 = idle, 1 = forming, 2 = pulsing
-uniform float uFormProgress;  // 0.0 to 1.0, used only for forming state
+uniform int uState;
+uniform float uFormProgress;
 
 uniform float uWallThickness;
 uniform vec3 uBaseColor;
 uniform vec3 uPulseColor;
 uniform vec3 uStreamColor;
 
-// Random & noise helpers
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+const vec3 FIRE_BRIGHT = vec3(1.0, 0.1, 0.05);
+const vec3 FIRE_MID    = vec3(0.9, 0.3, 0.1);
+const vec3 FIRE_DARK   = vec3(0.4, 0.02, 0.0);
+const float INNER_RADIUS = 0.6;
+const float NOISE_FREQUENCY = 0.05;
+
+// --- Hash and Noise ---
+vec3 generateHash(vec3 p) {
+    p = fract(p * vec3(0.1031, 0.11369, 0.13787));
+    p += dot(p, p.yxz + 19.19);
+    return fract(vec3(p.x + p.y, p.x + p.z, p.y + p.z) * p.zyx) * 2.0 - 1.0;
 }
 
-float noise(vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+float simplexNoise(vec3 position) {
+    const float SKEW = 1.0 / 3.0;
+    const float UNSKEW = 1.0 / 6.0;
+
+    vec3 i = floor(position + dot(position, vec3(SKEW)));
+    vec3 x0 = position - i + dot(i, vec3(UNSKEW));
+
+    vec3 g1 = step(x0.yzx, x0.xyz);
+    vec3 l1 = 1.0 - g1;
+    vec3 i1 = min(g1, l1.zxy);
+    vec3 i2 = max(g1, l1.zxy);
+
+    vec3 x1 = x0 - i1 + UNSKEW;
+    vec3 x2 = x0 - i2 + 2.0 * UNSKEW;
+    vec3 x3 = x0 - 1.0 + 3.0 * UNSKEW;
+
+    vec4 t = max(0.6 - vec4(
+        dot(x0,x0),
+        dot(x1,x1),
+        dot(x2,x2),
+        dot(x3,x3)
+    ), 0.0);
+    t *= t * t * t;
+
+    vec4 grad = vec4(
+        dot(generateHash(i + vec3(0,0,0)), x0),
+        dot(generateHash(i + i1), x1),
+        dot(generateHash(i + i2), x2),
+        dot(generateHash(i + vec3(1,1,1)), x3)
+    );
+
+    return dot(t, grad) * 5.1;
 }
 
+// --- Helpers ---
+float linearAttenuation(float intensity, float falloff, float distance) {
+    return intensity / (0.5 + distance * falloff);
+}
+
+float quadraticAttenuation(float intensity, float falloff, float distance) {
+    return intensity / (1.0 + distance * distance * falloff);
+}
+
+vec4 premultiplyAlpha(vec3 color) {
+    float alpha = clamp(max(max(color.r, color.g), color.b), 0.0, 1.0);
+    return alpha > 1e-4 ? vec4(color * alpha, alpha) : vec4(0.0);
+}
+
+// --- Main Logic ---
 void main() {
-    float dist = length(vLocalPos);
+    float radius = length(vLocalPos);
     float angle = atan(vLocalPos.y, vLocalPos.x);
+    vec2 uv = vLocalPos;
 
-    float arenaRadius = 1.0;
-    float wallThickness = uWallThickness;
-    float innerRadius = arenaRadius - wallThickness * 0.5;
-    float outerRadius = arenaRadius + wallThickness * 0.5;
-
-    vec3 color = vec3(0.0);
-    float alpha = 0.0;
-
-    if (uState == 1) {
-        // === Forming ===
-        float formAngle = uFormProgress * 2.0 * 3.14159 - 3.14159;
-        bool shouldBeVisible = angle <= formAngle;
-
-        if (shouldBeVisible && dist >= innerRadius && dist <= outerRadius) {
-            float wallCenter = arenaRadius;
-            float wallDist = abs(dist - wallCenter);
-            float wallFactor = 1.0 - (wallDist / (wallThickness * 0.5));
-            wallFactor = smoothstep(0.0, 1.0, wallFactor);
-
-            float energyNoise = noise(vec2(angle * 8.0, uTime * 3.0)) * 0.3;
-            float energyPulse = sin(uTime * 10.0 + angle * 5.0) * 0.2 + 0.8;
-
-            float trailDist = abs(angle - formAngle);
-            float trailFactor = exp(-trailDist * 15.0);
-
-            color = vec3(
-                0.2 + trailFactor * 0.8,
-                0.8 + energyNoise,
-                1.0
-            );
-            alpha = wallFactor * (energyPulse + trailFactor * 0.5);
-
-            if (trailFactor > 0.1) {
-                float sparkle = noise(vLocalPos * 100.0 + uTime * 5.0);
-                if (sparkle > 0.7) {
-                    color += vec3(1.0, 1.0, 0.5) * (sparkle - 0.7) * 3.0;
-                }
-            }
-        }
-
-    } else if (uState == 2) {
-        // === Pulsing ===
-        if (dist >= innerRadius && dist <= outerRadius) {
-            float wallCenter = arenaRadius;
-            float wallDist = abs(dist - wallCenter);
-            float wallFactor = 1.0 - (wallDist / (wallThickness * 0.5));
-            wallFactor = smoothstep(0.0, 1.0, wallFactor);
-
-            float pulse1 = sin(uTime * 4.0) * 0.5 + 0.5;
-            float pulse2 = sin(uTime * 6.0 + angle * 3.0) * 0.3 + 0.7;
-            float pulse3 = sin(uTime * 8.0 - dist * 20.0) * 0.2 + 0.8;
-
-            float energyNoise1 = noise(vec2(angle * 6.0, uTime * 2.0)) * 0.4;
-            float energyNoise2 = noise(vec2(dist * 30.0, uTime * 3.0 + angle * 4.0)) * 0.3;
-
-            float streamAngle = uTime * 1.5;
-            float streamPattern = sin(angle * 8.0 - streamAngle) * 0.5 + 0.5;
-            streamPattern = pow(streamPattern, 3.0) * 0.4;
-
-            color = mix(uBaseColor, uPulseColor, pulse1);
-            color = mix(color, uStreamColor, streamPattern);
-            color += vec3(energyNoise1, energyNoise2, energyNoise1 + energyNoise2) * 0.5;
-
-            alpha = wallFactor * (pulse2 * pulse3 + streamPattern * 0.5);
-        }
+    // === Only show ring in states 1 (forming) and 2 (pulsing) ===
+    if (uState == 0) {
+        fragColor = vec4(0.0);
+        return;
     }
 
-    fragColor = vec4(color, alpha);
+    // Procedural ring glow
+    float noiseVal = simplexNoise(vec3(uv * NOISE_FREQUENCY, uTime * 0.5)) * 0.5 + 0.5;
+    float ringRadius = mix(mix(INNER_RADIUS, 1.0, 0.4), mix(INNER_RADIUS, 1.0, 0.6), noiseVal);
+
+    float distanceToRing = abs(radius - ringRadius);
+    float ringGlow = linearAttenuation(1.0, 10.0, distanceToRing);
+    ringGlow *= smoothstep(ringRadius * 1.05, ringRadius, radius);
+
+    // Rotating hotspot
+    float rot = -uTime;
+    vec2 hotPos = vec2(cos(rot), sin(rot)) * ringRadius;
+    float hotDist = distance(uv, hotPos);
+    float tightFalloff = exp(-pow(hotDist * 6.0, 2.0)); // steeper Gaussian-like falloff
+    float highlight = tightFalloff * linearAttenuation(1.0, 50.0, distanceToRing);
+
+    // Soft edge and fade blending
+    float outerFade = smoothstep(1.0, mix(INNER_RADIUS, 1.0, noiseVal * 0.5), radius);
+    float innerHole = smoothstep(INNER_RADIUS, mix(INNER_RADIUS, 1.0, 0.90), radius);
+
+    // Coloring
+    float hueShift = cos(angle + uTime * 2.0) * 0.5 + 0.5;
+    vec3 baseColor = mix(FIRE_BRIGHT, FIRE_MID, hueShift);
+    vec3 color = mix(FIRE_DARK, baseColor, ringGlow);
+    color = (color + highlight) * outerFade * innerHole;
+
+    // === Unfurling sweep mask ===
+    if (uState == 1) {
+        float sweep = uFormProgress * 6.2831853 - 3.1415926; // [-π, π]
+        float visibility = smoothstep(0.0, 0.05, sweep - angle);
+        color *= visibility;
+    }
+
+    fragColor = premultiplyAlpha(clamp(color, 0.0, 1.0));
 }

@@ -6,10 +6,12 @@ const BOSSES: Record<string, BossDefinition> = {
   flame_lord: {
     id: 'flame_lord',
     name: 'The Flame Lord',
-    shipJsonPath: 'boss/boss_00.json', // resolves to /assets/ships/boss/boss_00.json
-    initialState: 'Idle',              // placeholder for FSM
+    shipJsonPath: 'boss/boss_00.json',
+    initialState: 'Idle',
+    maxHealth: 50000, // Initial placeholder; subject to balance tuning
   },
 };
+
 
 export class BossRegistry {
   public static get(id: string): BossDefinition {

@@ -1,7 +1,7 @@
+// src/game/blocks/system/helpers/blockAccessors.ts
+
 import { BlockManager } from '@/game/blocks/system/BlockManager';
-
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-
 
 /**
  * Returns block indices on the **left side** (localX < 0) for the given ship.

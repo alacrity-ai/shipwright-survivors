@@ -8,6 +8,11 @@ uniform float uTime;
 uniform int uState;           // 0 = idle, 1 = forming, 2 = pulsing
 uniform float uFormProgress;  // 0.0 to 1.0, used only for forming state
 
+uniform float uWallThickness;
+uniform vec3 uBaseColor;
+uniform vec3 uPulseColor;
+uniform vec3 uStreamColor;
+
 // Random & noise helpers
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
@@ -25,13 +30,11 @@ float noise(vec2 st) {
 }
 
 void main() {
-    // vLocalPos is already normalized (-1..1), so treat arena radius as 1.0 here
     float dist = length(vLocalPos);
     float angle = atan(vLocalPos.y, vLocalPos.x);
 
-    // Wall thickness relative to normalized arena
     float arenaRadius = 1.0;
-    float wallThickness = 0.08; // Slightly thicker relative value for visibility
+    float wallThickness = uWallThickness;
     float innerRadius = arenaRadius - wallThickness * 0.5;
     float outerRadius = arenaRadius + wallThickness * 0.5;
 
@@ -55,11 +58,13 @@ void main() {
             float trailDist = abs(angle - formAngle);
             float trailFactor = exp(-trailDist * 15.0);
 
-            // Cyan-blue energy tone
-            color = vec3(0.2 + trailFactor * 0.8, 0.8 + energyNoise, 1.0);
+            color = vec3(
+                0.2 + trailFactor * 0.8,
+                0.8 + energyNoise,
+                1.0
+            );
             alpha = wallFactor * (energyPulse + trailFactor * 0.5);
 
-            // Sparkles at the leading edge
             if (trailFactor > 0.1) {
                 float sparkle = noise(vLocalPos * 100.0 + uTime * 5.0);
                 if (sparkle > 0.7) {
@@ -67,6 +72,7 @@ void main() {
                 }
             }
         }
+
     } else if (uState == 2) {
         // === Pulsing ===
         if (dist >= innerRadius && dist <= outerRadius) {
@@ -86,20 +92,11 @@ void main() {
             float streamPattern = sin(angle * 8.0 - streamAngle) * 0.5 + 0.5;
             streamPattern = pow(streamPattern, 3.0) * 0.4;
 
-            vec3 baseColor = vec3(0.3, 0.6, 1.0);
-            vec3 pulseColor = vec3(0.8, 0.4, 1.0);
-            vec3 streamColor = vec3(1.0, 0.8, 0.3);
-
-            color = mix(baseColor, pulseColor, pulse1);
-            color = mix(color, streamColor, streamPattern);
+            color = mix(uBaseColor, uPulseColor, pulse1);
+            color = mix(color, uStreamColor, streamPattern);
             color += vec3(energyNoise1, energyNoise2, energyNoise1 + energyNoise2) * 0.5;
 
             alpha = wallFactor * (pulse2 * pulse3 + streamPattern * 0.5);
-
-            float flash = sin(uTime * 12.0 + angle * 7.0);
-            if (flash > 0.9) {
-                color += vec3(1.0) * (flash - 0.9) * 10.0;
-            }
         }
     }
 

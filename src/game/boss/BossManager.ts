@@ -1,34 +1,25 @@
 // src/game/boss/BossManager.ts
 
 import type { ShipFactory } from '@/game/ship/factories/ShipFactory';
+
 import { BossFactory } from '@/game/boss/factories/BossFactory';
 import { BossOrchestrator } from '@/game/boss/BossOrchestrator';
-// import { BossAIController } from '@/game/boss/ai/BossAIController';
-// import { BossIntroCutsceneController } from '@/game/boss/cutscenes/BossIntroCutsceneController';
+import { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
+import { BossIntroCutsceneController } from '@/game/boss/cutscenes/BossIntroCutsceneController';
 
 export class BossManager {
   private static _instance: BossManager | null = null;
 
   private readonly bossFactory: BossFactory;
-  // private aiController: BossAIController;
-  // private cutsceneController: BossIntroCutsceneController;
   private readonly orchestrator: BossOrchestrator;
 
   private constructor(shipFactory: ShipFactory) {
     this.bossFactory = new BossFactory(shipFactory);
 
-    // TODO: Instantiate subsystems once implemented
-    // this.aiController = new BossAIController();
-    // this.cutsceneController = new BossIntroCutsceneController();
-
     // Instantiate orchestrator with injected systems
     this.orchestrator = new BossOrchestrator(
       this.bossFactory,
-      /* this.cutsceneController, */
-      /* this.aiController */
-      // Temporarily pass placeholders or nulls if needed
-      null as any,
-      null as any
+      new BossIntroCutsceneController()
     );
   }
 
@@ -56,25 +47,23 @@ export class BossManager {
     return this.orchestrator;
   }
 
-  // public getAIController(): BossAIController {
-  //   return this.aiController;
-  // }
+  public getAIController(): BaseBossAIController | null {
+    return this.orchestrator.getAIController();
+  }
 
-  // public getCutsceneController(): BossIntroCutsceneController {
-  //   return this.cutsceneController;
-  // }
+  public getCutsceneController(): BossIntroCutsceneController {
+    return this.orchestrator.getCutsceneController();
+  }
 
   /** Per-tick boss update — AI, cutscene, etc. */
   public update(dt: number): void {
-    // this.aiController?.update(dt);
-    // this.cutsceneController?.update(dt);
+    // Orchestrator is responsible for per-frame AI updates and cutscene updates
+    this.orchestrator.update?.(dt);
   }
 
   /** Clears in-battle boss state (e.g., on death) */
   public clear(): void {
-    // this.aiController = null;
-    // this.cutsceneController?.destroy();
-    // this.cutsceneController = null;
+    this.orchestrator.clear();
   }
 
   /** Fully tears down the manager */

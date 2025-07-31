@@ -1,132 +1,82 @@
-🧠 High-Level Architectural Overview
-At the apex of this subsystem lies a BossManager singleton—a centralized orchestrator for all boss-relevant logic during a mission. This includes spawning the boss ship, driving its combat FSM, triggering intro cutscenes, and interfacing with rendering and global systems.
+# BOSS AI FSM:
 
-The architecture is stratified into the following layers:
+🧠 Guiding Principles for Tomorrow
+1. Modularity
+States are discrete and swappable
 
-🔹 1. BossManager
-📁 src/game/boss/BossManager.ts
+FSM transitions remain declarative (controller.transitionTo('FlameSweep'))
 
-Singleton lifecycle, created at mission entry.
+All logic lives within named BossState_*.ts modules
 
-Instantiates and wires:
+2. Controlled Allocation
+States may be allocated once per transition, but not per frame
 
-The boss ship entity
-
-Its AI controller
-
-Its intro cutscene controller
-
-Subscribes to mission-level events (e.g., mission:boss:start)
-
-Lifecycle: initialize(), update(dt), destroy()
-
-🔹 2. BossFactory
-📁 src/game/boss/factories/BossFactory.ts
-
-Loads and instantiates boss ships from JSON using loadShipFromJson(...)
-
-Ensures faction, positioning, collision setup, etc.
-
-Attaches a BossAIController (one-to-one per boss)
-
-Returns the composite entity: { ship, aiController }
-
-🔹 3. BossRegistry
-📁 src/game/boss/registry/BossRegistry.ts
-
-Centralized static registry of boss definitions, each comprising:
-
-id: Unique string key
-
-name: Human-readable name
-
-shipJsonPath: Path under /assets/ships/boss/
-
-initialState: Name of root FSM state (e.g., "Idle")
-
-(Optional for future): Dialogue path, affix modifiers, difficulty tags
-
-This enables declarative mission orchestration:
+Use a scratch context object (e.g., BossAIContext) passed to each update():
 
 ts
 Copy
 Edit
-BossRegistry.get('flame_lord'); // => BossDefinition
-🔹 4. BossIntroCutsceneController
-📁 src/game/boss/cutscenes/BossIntroCutsceneController.ts
+state.update(dt, controller, context);
+This context may cache:
 
-Manages pre-combat boss entrances, including:
+Ship
 
-Screen focus, dialogue bursts
+Health
 
-Dramatic pause / rotation / scaling
+Player position
 
-Shader shifts or music stingers
+Derived targeting data
 
-Triggered by BossManager immediately after boss spawn but before combat activation
+Avoids deep stack lookups across systems
 
-🔹 5. BossAIController
-📁 src/game/boss/ai/BossAIController.ts
+3. GC Neutral Transition Graph
+Pre-instantiate known states for the fight
 
-Governs combat FSM execution for the boss
-
-Injected with:
-
-The boss Ship instance
-
-The initialState string
-
-Evaluates per update(dt)
-
-Leverages the intent system to:
-
-Rotate the ship
-
-Fire weapons (either traditional or via scripted events)
-
-Transitions between FSM states using timers, triggers, or health thresholds
-
-🔹 6. FSM Scripts
-📁 src/game/boss/ai/fsm/
-
-Each file here is a single FSM state for a boss archetype. Implements:
+Use a lightweight registry or prefilled state map:
 
 ts
 Copy
 Edit
-interface BossState {
-  name: string;
-  enter(controller: BossAIController): void;
-  update(dt: number, controller: BossAIController): void;
-  exit(controller: BossAIController): void;
-}
-States will:
+this.states = {
+  Idle: new BossState_Idle(),
+  FlameSweep: new BossState_FlameSweep(),
+  ...
+};
+transitionTo(stateName: string) just swaps pointers
 
-Trigger group-based lighting effects
+4. Declarative Boss Behavior
+You’ll encode the entire fight logic (telegraphs, combos, transitions) inside FSM states
 
-Activate attacks
+Emphasize readability and tuning ergonomics
 
-Set up delayed transitions
+📦 Tomorrow’s Deliverables
+✅ BossAIController with:
 
-Orchestrate "combos" or nested behaviors
+currentState: BossState
 
-🔹 7. Interfaces
-📁 src/game/boss/interfaces/
+transitionTo(stateName: string)
 
-Reusable interfaces for:
+update(dt: number)
 
-BossDefinition (used by registry)
+Scratch context injection
 
-BossSpawnContext
+✅ At least 3 fully implemented states:
 
-BossState
+Idle – Passive
 
-(Optional) BossPhaseMetadata, AffixModifiers
+FlameSweep – Arc attack
 
-📦 Supporting Systems
-loadShipFromJson(...) → core dependency of BossFactory, provides fully hydrated Ship instance.
+MinefieldDeploy – Hazard logic
 
-GlobalEventBus → all orchestration (e.g., arena spawn → boss spawn → cutscene) flows through here.
+✅ Full FSM flow integrated into:
 
-IntentSystem → bridge from AI to ship movement and rotation.
+BossFactory (controller attached)
+
+BossOrchestrator.activateAI()
+
+✅ Fight script wired into Mission 1
+
+✅ Defeat condition observable (e.g., await death hook)
+
+✅ End-to-end boss battle, visually and functionally complete
 

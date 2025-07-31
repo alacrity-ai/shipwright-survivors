@@ -2,18 +2,19 @@
 
 ## 🧭 Overview
 
-The Boss subsystem provides a **modular, declarative, and orchestrated framework** for managing boss encounters in *Shipwright Survivors*. Each boss is defined by:
+The Boss subsystem provides a **modular, declarative, and orchestrated framework** for managing boss encounters in *Shipwright Survivors*. Each boss is composed of:
 
-- A **static data declaration** in `BossRegistry`
-- A dynamically instantiated **ship** loaded from JSON assets
-- A **cutscene controller** for pre-fight presentation
-- A combat-specific **finite state machine** (FSM) AI controller
-- A declarative **orchestrator** for sequencing lifecycle phases
+- A static declaration in `BossRegistry`
+- A dynamically instantiated `Ship` loaded from a JSON blueprint
+- A per-boss **FSM controller**, derived from `BaseBossAIController`
+- A dedicated **cutscene controller** for pre-fight presentation
+- A high-level **orchestrator** that sequences spawn, intro, combat, and outro phases
 
-This design is centered around two pillars:
+This system is designed for:
 
-- **Composability** – Boss logic is constructed from discrete subsystems with clean interfaces.
-- **Orchestration** – High-level sequencing (spawn, cutscene, AI, death) is driven declaratively.
+- **Composability** – Subsystems operate with clear boundaries and no global coupling
+- **Scriptability** – Fight flow is driven by declarative orchestration, not imperative code
+- **Scalability** – New bosses require no architectural rewrites
 
 ---
 
@@ -23,195 +24,44 @@ This design is centered around two pillars:
 
 > 📁 `src/game/boss/BossManager.ts`
 
-The **mission-scoped singleton** that owns all core boss systems. Created at mission start and destroyed on exit.
+The **mission-scoped singleton** owning all boss systems. Constructed at mission start, destroyed on exit.
 
 #### Responsibilities:
 
-- Instantiates and holds:
+- Instantiates and retains:
   - `BossFactory`
-  - `BossIntroCutsceneController` (stubbed)
-  - `BossAIController` (stubbed)
-  - `BossOrchestrator` (injects subsystems)
-- Exposes safe public getters
-- Coordinates per-tick `update(dt)` calls if needed
-- Clears or destroys all systems cleanly
+  - `BossOrchestrator`
+  - `BossIntroCutsceneController`
+- Delegates per-frame updates
+- Clears all subsystems on exit
 
 ```
 const bossManager = BossManager.initialize(shipFactory);
-bossManager.getOrchestrator().runFullEncounter(...);
+await bossManager.getOrchestrator().runFullEncounter(...);
 ```
 
 ### 📌 `BossOrchestrator`
 
 > 📁 `src/game/boss/BossOrchestrator.ts`
 
-Declarative coordinator for **boss lifecycle sequencing**. Designed to abstract time-sensitive flow and reduce boilerplate in consumer systems (e.g. mission logic).
-
-#### Example Flow:
-
-```
-await orchestrator.spawnBoss(def, { x, y });
-await orchestrator.runIntroCutscene();
-await orchestrator.activateAI();
-await orchestrator.awaitDeath();
-await orchestrator.runOutroCutscene();
-```
+Orchestrates **the full lifecycle of a boss encounter**. Encapsulates all sequencing logic.
 
 #### Responsibilities:
 
-- Calls into:
+- Uses `BossFactory` to create ship and AI controller
     
-    - `BossFactory` to create the boss ship
-        
-    - `BossIntroCutsceneController` to play intro
-        
-    - `BossAIController` to activate FSM
-        
-- Emits or reacts to events (e.g. `boss:defeated`)
+- Runs intro cutscenes and ambient transitions
     
-- Designed to support **replayable**, **scripted**, and **multi-phase** encounters
+- Starts FSM AI via `controller.transitionTo(initialState)`
+    
+- Observes boss death or victory state
+    
+- Can trigger scripted events via emitted hooks
     
 
----
-
-### 📌 `BossFactory`
-
-> 📁 `src/game/boss/factories/BossFactory.ts`
-
-Encapsulates the logic to **construct a boss ship** via the shared `ShipFactory`.
-
-#### Responsibilities:
-
-- Loads boss ship JSON from `BossDefinition`
-    
-- Calls `ShipFactory.createShip(...)` with appropriate flags
-    
-- Applies initial transform via `setTransform(...)`
-    
-- Will eventually attach `BossAIController`
-    
-- Returns `{ ship, aiController }` structure
-    
-
-> ⛳ Fully leverages internal construction animations, light setups, movement systems, and collision wiring.
-
----
-
-### 📌 `BossRegistry`
-
-> 📁 `src/game/boss/registry/BossRegistry.ts`
-
-Declarative repository of all registered bosses.
-
-Each boss is defined via a `BossDefinition`:
+#### Sample Usage:
 
 ```
-{
-  id: 'flame_lord',
-  name: 'The Flame Lord',
-  shipJsonPath: 'boss/boss_00.json',
-  initialState: 'Idle'
-}
-```
-
-Provides:
-
-- `get(id: string): BossDefinition`
-    
-- `getAll(): BossDefinition[]`
-    
-
-This enables content authors to introduce new bosses without modifying system code.
-
-### 📌 `BossAIController` (WIP)
-
-> 📁 `src/game/boss/ai/BossAIController.ts`
-
-Controls **combat behavior** of the boss via a scripted FSM.
-
-#### Responsibilities:
-
-- Holds reference to the `Ship` instance
-    
-- Manages the **current FSM state** (`BossState`)
-    
-- Delegates per-frame `update(dt)`
-    
-- Transitions between states based on:
-    
-    - Timers
-        
-    - Health thresholds
-        
-    - Internal or external triggers
-        
-
-> Uses `IntentSystem` to control ship rotation and optionally movement/attacks.
-
----
-
-### 📌 FSM State Scripts
-
-> 📁 `src/game/boss/ai/fsm/`
-
-Each boss state is defined in its own file, implementing:
-
-```
-interface BossState {
-  name: string;
-  enter(controller: BossAIController): void;
-  update(dt: number, controller: BossAIController): void;
-  exit(controller: BossAIController): void;
-}
-```
-
-
-Examples:
-
-- `BossState_Idle.ts` – Passive rotation or wait logic
-    
-- `BossState_FlameSweep.ts` – 120° cone attacks
-    
-- `BossState_Minefield.ts` – AoE hazard deployment
-    
-
-States coordinate lighting, telegraphs, and transition triggers.
-
----
-
-### 📌 `BossIntroCutsceneController` (WIP)
-
-> 📁 `src/game/boss/cutscenes/BossIntroCutsceneController.ts`
-
-Handles the **presentation layer** for boss entrances.
-
-#### Goals:
-
-- Animate camera focus, arena energy pulsing, ambient shifts
-    
-- Deliver scripted dialogue bursts
-    
-- Signal combat readiness to player
-    
-- End with `await cutsceneController.play()` resolving
-
-
-
-| File                   | Purpose                                     |
-| ---------------------- | ------------------------------------------- |
-| `BossDefinition.ts`    | Declarative registry entry                  |
-| `BossSpawnContext.ts`  | Used by factory for instantiation           |
-| `BossState.ts`         | FSM contract                                |
-| `BossPhaseMetadata.ts` | Reserved for affix modifiers or tuning info |
-
-
-### 🧪 Orchestration Usage (High-Level)
-
-```
-const manager = BossManager.initialize(shipFactory);
-const orchestrator = manager.getOrchestrator();
-
-const def = BossRegistry.get('flame_lord');
 await orchestrator.spawnBoss(def, { x: 0, y: 0 });
 await orchestrator.runIntroCutscene();
 await orchestrator.activateAI();
@@ -219,60 +69,154 @@ await orchestrator.awaitDeath();
 await orchestrator.runOutroCutscene();
 ```
 
-## 🔄 Future Extension Points
+### 📌 `BossFactory`
 
-- **Affix + Phase Modifiers** (`BossPhaseMetadata.ts`)
-    
-- **Procedural Boss Generator**
-    
-- **Death cutscene controller**
-    
-- **Event hooks for mission scripting** (`boss:spawned`, `boss:defeated`)
-    
-- **Multi-stage AI controllers** (e.g., chained FSMs or substates)
-    
-- **Dynamic arena styling based on boss archetype**
+> 📁 `src/game/boss/factories/BossFactory.ts`
 
-### 🧱 Current File Structure
+Instantiates a boss `Ship` and wires up its AI controller using a polymorphic dispatch.
+
+#### Responsibilities:
+
+- Loads ship JSON via `ShipFactory`
+    
+- Initializes scalar boss health (`initializeHealth(...)`)
+    
+- Resolves player ship from `ShipRegistry`
+    
+- Instantiates the appropriate `BaseBossAIController` subclass based on `BossDefinition.id`
+
+```
+const { ship, aiController } = await bossFactory.create({
+  definition,
+  position: { x, y },
+});
+```
+
+### 📌 `BossRegistry`
+
+> 📁 `src/game/boss/registry/BossRegistry.ts`
+
+Static registry of all defined bosses, used for orchestration and mission scripting.
+
+#### Boss Definition Example:
+
+```
+{
+  id: 'flame_lord',
+  name: 'The Flame Lord',
+  shipJsonPath: 'boss/boss_00.json',
+  initialState: 'Idle',
+  maxHealth: 5000
+}
+```
+
+### 📌 `BaseBossAIController`
+
+> 📁 `src/game/boss/ai/bosses/BaseBossAIController.ts`
+
+Abstract superclass for all boss FSM controllers.
+
+Each subclass (e.g. `FlameLordController`) defines:
+
+- Its own state map (`Record<string, BossState>`)
+    
+- Its initial state
+    
+- All update/transition behavior is inherited
+    
+
+---
+
+### 📌 `BossAIContext`
+
+> 📁 `src/game/boss/ai/BossAIContext.ts`
+
+Per-frame, reusable scratch object passed to all states:
+
+- Contains `ship`, `player`
+    
+- Precomputes `healthPercent`, `angleToPlayer`, `distanceToPlayer`
+    
+- Avoids per-frame allocation
+    
+
+---
+
+### 📌 FSM States
+
+Each FSM state is:
+
+- Defined in `bosses/<bossId>/fsm/BossState_<Name>.ts`
+    
+- Implements `BossState` interface
+    
+- Responsible for:
+    
+    - Telegraphs
+        
+    - Visuals
+        
+    - Timed transitions
+        
+    - Scripting logic
+        
+
+#### Interface:
+
+```
+interface BossState {
+  name: string;
+  enter(controller: BaseBossAIController): void;
+  update(dt: number, controller: BaseBossAIController, context: BossAIContext): void;
+  exit(controller: BaseBossAIController): void;
+}
+```
+
+### File Structure:
 
 ```
 src/game/boss/
-├── BOSS.md
-├── BossManager.ts
-├── BossOrchestrator.ts
-├── OVERVIEW.md
 ├── ai/
-│   ├── BossAIController.ts
-│   └── fsm/
-│       ├── BossState_FlameSweep.ts
-│       ├── BossState_Idle.ts
-│       └── BossState_Minefield.ts
-├── cutscenes/
-│   └── BossIntroCutsceneController.ts
+│   ├── BossAIContext.ts
+│   ├── bosses/
+│   │   ├── BaseBossAIController.ts
+│   │   └── flamelord/
+│   │       ├── FLAMELORD.md
+│   │       ├── FlameLordController.ts
+│   │       └── fsm/
+│   │           ├── BossState_Idle.ts
+│   │           ├── BossState_LeftFlankFlames.ts
+│   │           ├── ...
 ├── factories/
 │   └── BossFactory.ts
+├── cutscenes/
+│   └── BossIntroCutsceneController.ts
 ├── interfaces/
 │   ├── BossDefinition.ts
-│   ├── BossPhaseMetadata.ts
 │   ├── BossSpawnContext.ts
-│   └── BossState.ts
-└── registry/
-    └── BossRegistry.ts
+│   └── BossPhaseMetadata.ts
+├── registry/
+│   └── BossRegistry.ts
+├── BossManager.ts
+├── BossOrchestrator.ts
+└── BOSS.md
 
 ```
 
-
-## ✅ Summary
+## 🧠 Summary
 
 The Boss subsystem is:
 
-- **Extensible** – Easily define new bosses via data and scripts
+- **Declarative** – Bosses are data-driven, not hardcoded
     
-- **Modular** – All responsibilities isolated and testable
+- **Modular** – Per-boss folders contain all logic and FSM states
     
-- **Declarative** – Orchestration reads as a cinematic script
+- **Orchestrated** – Lifecycle is controlled from a central `BossOrchestrator`
     
-- **Future-proof** – FSM, affixes, and cutscenes can scale with complexity
+- **Scalable** – New bosses add no core complexity
+    
+- **Scriptable** – FSMs enable nuanced, deterministic behaviors
     
 
-Use `BossOrchestrator` for high-level control. Use `BossManager` for access to internals. Avoid direct calls to `BossFactory` outside of orchestration paths.
+Use `BossOrchestrator` to manage the encounter. Use `FlameLordController` (or similar) to define FSM behaviors. Use `BossFactory` to instantiate them cleanly and correctly.
+

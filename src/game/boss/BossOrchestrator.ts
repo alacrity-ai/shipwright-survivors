@@ -4,34 +4,40 @@ import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 import type { BossSpawnContext } from '@/game/boss/interfaces/BossSpawnContext';
 import type { BossFactory } from '@/game/boss/factories/BossFactory';
 import type { BossIntroCutsceneController } from '@/game/boss/cutscenes/BossIntroCutsceneController';
-import type { BossAIController } from '@/game/boss/ai/BossAIController';
+import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { Ship } from '@/game/ship/Ship';
 
 import { applyShipColorPreset, ShipColorPreset } from '../ship/utils/shipColorHelpers';
 
 export class BossOrchestrator {
+  private bossShip: Ship | null = null;
+  private aiController: BaseBossAIController | null = null;
+
   constructor(
     private readonly factory: BossFactory,
-    private readonly cutsceneController: BossIntroCutsceneController,
-    private readonly aiController: BossAIController,
-
-    private bossShip: Ship | null = null
+    private readonly cutsceneController: BossIntroCutsceneController
   ) {}
 
-  // == Public API
+  // == Public API ==
 
   public async spawnBoss(definition: BossDefinition, position: { x: number; y: number }): Promise<void> {
     const context: BossSpawnContext = { definition, position };
-    const { ship } = await this.factory.create(context);
+    const { ship, aiController } = await this.factory.create(context);
 
-    // Let the boss be invulnerable to start, turn off invulnerability after cutscene
+    if (!aiController) {
+      throw new Error(`[BossOrchestrator] Failed to spawn AI controller for boss '${definition.id}'`);
+    }
+
+    // Set pre-fight affixes and appearance
     ship.setAffixes({ invulnerable: true });
-    // Set the boss ship color to red for more boss feel
     applyShipColorPreset(ship, ShipColorPreset.Red);
-    
-    this.bossShip = ship; // Retain reference for AI activation and death awaiting
 
-    // Retain reference, emit event, etc.
+    // Retain references
+    this.bossShip = ship;
+    this.aiController = aiController;
+
+    // Optional: Emit boss spawn event
+    // GlobalEventBus.emit('boss:spawned', { ship, definition });
   }
 
   public async runIntroCutscene(): Promise<void> {
@@ -39,13 +45,49 @@ export class BossOrchestrator {
   }
 
   public async activateAI(): Promise<void> {
-    // Turn off invulnerability here
-    this.bossShip?.setAffixes({ invulnerable: false });
+    if (!this.bossShip || !this.aiController) {
+      throw new Error('[BossOrchestrator] Cannot activate AI — boss not yet spawned');
+    }
 
-    await this.aiController.start();
+    // Remove invulnerability for combat
+    this.bossShip.setAffixes({ invulnerable: false });
+
+    // Start FSM
+    // If you ever expand to async startup (e.g. preload state), await it
+    this.aiController.start?.();
   }
 
   public async awaitDeath(): Promise<void> {
+    // Replace with your observable/awaitable death system
     // await waitUntil(() => !this.bossShip?.isAlive());
+  }
+
+  /** Per-frame update hook for FSM, called externally via BossManager */
+  public update(dt: number): void {
+    this.aiController?.update(dt);
+  }
+
+  // == Pass throughs ==
+
+  public getBossShip(): Ship | null {
+    return this.bossShip;
+  }
+
+  public getAIController(): BaseBossAIController | null {
+    return this.aiController;
+  }
+
+  public getCutsceneController(): BossIntroCutsceneController {
+    return this.cutsceneController;
+  }
+
+  // == Cleanup
+  public clear(): void {
+    this.bossShip = null;
+    this.aiController = null;
+  }
+
+  public destroy(): void {
+    this.clear();
   }
 }

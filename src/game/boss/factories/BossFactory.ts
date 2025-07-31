@@ -3,18 +3,22 @@
 import type { BossSpawnContext } from '../interfaces/BossSpawnContext';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipFactory } from '@/game/ship/factories/ShipFactory';
-import { BossAIController } from '../ai/BossAIController';
+
+import { FlameLordController } from '../ai/bosses/flamelord/FlameLordController';
+import type { BaseBossAIController } from '../ai/bosses/BaseBossAIController';
+import type { BossDefinition } from '../interfaces/BossDefinition';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 /**
  * Produces a fully hydrated boss ship using the shared ShipFactory,
- * and (eventually) wires it to a BossAIController.
+ * and wires it to its respective FSM AI controller.
  */
 export class BossFactory {
   constructor(private readonly shipFactory: ShipFactory) {}
 
   public async create(context: BossSpawnContext): Promise<{
     ship: Ship;
-    aiController: BossAIController | null;
+    aiController: BaseBossAIController | null;
   }> {
     const { definition, position } = context;
 
@@ -22,21 +26,44 @@ export class BossFactory {
       definition.shipJsonPath.replace(/\.json$/, ''), // Strip .json if present
       position.x,
       position.y,
-      false,                    // hunter: off
-      undefined,                // behaviorProfile: none
-      {},                       // affixes: none for now
-      undefined,                // faction: use default (Enemy)
-      false,                    // registerController: legacy AI system — off
-      true,                     // unCullable: ensure boss isn't GC'd
-      false,                    // isPlayerShip: false
-      false,                    // createInstantly: allow ship construction animation
-      false                     // noClip: false (enable collisions)
+      false,       // hunter: off
+      undefined,   // behaviorProfile: none
+      {},          // affixes: none
+      undefined,   // faction: default (Enemy)
+      false,       // registerController: off
+      true,        // unCullable
+      false,       // isPlayerShip: false
+      false        // noClip
     );
 
-    // TODO: Attach BossAIController here
-    // const aiController = new BossAIController(ship, definition.initialState);
-    const aiController = null;
+    ship.initializeHealth(definition.maxHealth);
+
+    const player = ShipRegistry.getInstance().getPlayerShip();
+    if (!player) throw new Error('[BossFactory] Player ship not found in registry');
+
+    const aiController = createAIController(definition, ship, player);
 
     return { ship, aiController };
+  }
+}
+
+/**
+ * Delegates instantiation to the appropriate boss-specific AI controller.
+ */
+function createAIController(
+  def: BossDefinition,
+  boss: Ship,
+  player: Ship
+): BaseBossAIController | null {
+  switch (def.id) {
+    case 'flame_lord':
+      return new FlameLordController(boss, player, def.initialState);
+
+    // case 'other_boss':
+    //   return new OtherBossController(boss, player, def.initialState);
+
+    default:
+      console.warn(`[BossFactory] No AI controller registered for boss: '${def.id}'`);
+      return null;
   }
 }
