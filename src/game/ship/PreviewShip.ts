@@ -62,6 +62,7 @@ export class PreviewShip {
         x: coord.x * BLOCK_SIZE,
         y: coord.y * BLOCK_SIZE,
       },
+      group: 0,
       ownerShipId: 'preview',
       ownerFaction: Faction.Neutral,
       ...(rotation !== undefined ? { rotation } : {}),
