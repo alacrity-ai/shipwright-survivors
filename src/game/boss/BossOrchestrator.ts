@@ -38,6 +38,9 @@ export class BossOrchestrator {
 
     // Optional: Emit boss spawn event
     // GlobalEventBus.emit('boss:spawned', { ship, definition });
+
+    // DEBUG: Activate AI immediately for testing
+    this.activateAI();
   }
 
   public async runIntroCutscene(): Promise<void> {
@@ -53,7 +56,6 @@ export class BossOrchestrator {
     this.bossShip.setAffixes({ invulnerable: false });
 
     // Start FSM
-    // If you ever expand to async startup (e.g. preload state), await it
     this.aiController.start?.();
   }
 

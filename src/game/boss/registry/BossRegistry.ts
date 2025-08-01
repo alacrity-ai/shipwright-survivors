@@ -6,7 +6,7 @@ const BOSSES: Record<string, BossDefinition> = {
   flame_lord: {
     id: 'flame_lord',
     name: 'The Flame Lord',
-    shipJsonPath: 'boss/boss_00.json',
+    shipJsonPath: 'boss/flamelord.json',
     initialState: 'Idle',
     maxHealth: 50000, // Initial placeholder; subject to balance tuning
   },

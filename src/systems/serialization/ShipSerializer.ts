@@ -16,6 +16,7 @@ export interface SerializedShip {
     id: string;
     coord: { x: number; y: number };
     rotation?: number;
+    group?: number;
   }>;
   behavior: {
     type: 'default' | 'spaceStation' | 'rammer' | string;
@@ -31,6 +32,7 @@ export function serializeShip(ship: Ship): SerializedShip {
     id: string;
     coord: { x: number; y: number };
     rotation: number; // Always 0, 90, 180, 270
+    group: number;
   }>(indices.length);
 
   for (let i = 0; i < indices.length; i++) {
@@ -45,7 +47,8 @@ export function serializeShip(ship: Ship): SerializedShip {
     serializedBlocks[i] = {
       id: type?.id ?? 'unknown',
       coord: { x: store.localX[idx], y: store.localY[idx] },
-      rotation: rotationDeg
+      rotation: rotationDeg,
+      group: store.group[idx]
     };
   }
 

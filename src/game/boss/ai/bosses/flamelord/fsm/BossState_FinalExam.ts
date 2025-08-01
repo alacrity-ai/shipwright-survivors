@@ -5,11 +5,13 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
-  getLeftSideShipBlocks,
+  getShipBlocksInGroup,
   getAllShipBlocks,
   boostBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
+
+const LEFT_GROUP_NUMBER = 1;
 
 export class BossState_FinalExam implements BossState {
   public name = 'FinalExam';
@@ -32,7 +34,7 @@ export class BossState_FinalExam implements BossState {
     const hpPct = controller.getContext().healthPercent;
     const id = boss.numericId;
 
-    this.leftBlocks = getLeftSideShipBlocks(id);
+    this.leftBlocks = getShipBlocksInGroup(id, LEFT_GROUP_NUMBER);
     this.allBlocks = getAllShipBlocks(id);
 
     // Escalation tuning

@@ -5,10 +5,12 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
-  getFrontalShipBlocks,
+  getShipBlocksInGroup,
   boostBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
+
+const CENTER_GROUP_NUMBER = 3;
 
 export class BossState_FrontalBarrage implements BossState {
   public name = 'FrontalBarrage';
@@ -43,7 +45,7 @@ export class BossState_FrontalBarrage implements BossState {
     }
 
     const boss = controller.getBoss();
-    this.frontalBlocks = getFrontalShipBlocks(boss.numericId);
+    this.frontalBlocks = getShipBlocksInGroup(boss.numericId, CENTER_GROUP_NUMBER);
 
     boostBlockLights(this.frontalBlocks, 2.0, 2.5);
   }
@@ -60,6 +62,7 @@ export class BossState_FrontalBarrage implements BossState {
 
         // 🔥 Begin flame stream (placeholder)
         // Example: activateFrontalFlamethrowers(ship);
+        // Assuming the boss's facing determines 0 degrees.  These flames would span 300 degrees to 60 degrees. (or 10 o'clock to 2 o'clock)
       } else {
         // During telegraph, boss aligns to player
         transform.rotation = this.rotateToward(transform.rotation, context.angleToPlayer, this.trackingSpeed);

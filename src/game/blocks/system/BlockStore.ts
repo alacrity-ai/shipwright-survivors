@@ -23,6 +23,7 @@ export class BlockStore {
   public readonly localRotation: Float32Array;
   public readonly overlayRotation: Float32Array;
   public readonly hidden: Uint8Array;
+  public readonly group: Uint8Array;
 
   // Combat / State arrays
   public readonly hp: Float32Array;
@@ -112,6 +113,7 @@ export class BlockStore {
     this.localRotation = new Float32Array(capacity);
     this.overlayRotation = new Float32Array(capacity);
     this.hidden = new Uint8Array(capacity);
+    this.group = new Uint8Array(capacity);
 
     this.hp = new Float32Array(capacity);
     this.armor = new Float32Array(capacity).fill(0);
@@ -218,6 +220,7 @@ export class BlockStore {
     this.hp[index] = 0;
     this.destroyed[index] = 0;
     this.indestructible[index] = 0;
+    this.group[index] = 0;
     this.cooldown[index] = 0;
     this.fireDamage[index] = 0;
     this.fireRate[index] = 0;
@@ -280,6 +283,7 @@ export class BlockStore {
     this.localRotation.fill(0);
     this.overlayRotation.fill(0);
     this.hidden.fill(0);
+    this.group.fill(0);
     this.hp.fill(0);
     this.armor.fill(0);
     this.destroyed.fill(0);

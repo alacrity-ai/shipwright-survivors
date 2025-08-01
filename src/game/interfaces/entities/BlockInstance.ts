@@ -17,6 +17,7 @@ export interface BlockInstance {
   ownerShipId: string;   // unique ID of the ship this block belongs to
   ownerShipNumericId: number;   // numeric ID of the ship this block belongs to (for flamethrower)
   ownerFaction: Faction;
+  group: number;             // Group this block will go into on the ship, e.g. you might want to cluster blocks into groups
   indestructible?: boolean; // if true, block cannot be destroyed
   cooldown?: number;     // used for turret/engine action delay
   rotation?: number;     // degrees: 0, 90, 180, 270

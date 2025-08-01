@@ -16,6 +16,23 @@ const LIGHT_COLOR_TIERS = {
 }
 
 const blockTypes: Record<string, BlockType> = {
+  cockpitboss: {
+    id: 'cockpitboss',
+    tier: 0,
+    name: 'Cockpit',
+    armor: 20,
+    cost: 50,
+    mass: 50,
+    behavior: {
+      canFire: false,
+      isCockpit: true,
+    },
+    sprite: 'cockpit0',
+    category: 'system',
+    subcategory: 'system',
+    dropRate: 0,
+    metatags: []    
+  },
   cockpit0: {
     id: 'cockpit0',
     tier: 0,

@@ -5,10 +5,12 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
-  getLeftSideShipBlocks,
+  getShipBlocksInGroup,
   boostBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
+
+const LEFT_GROUP_NUMBER = 1;
 
 export class BossState_LeftFlankFlames implements BossState {
   public name = 'LeftFlankFlames';
@@ -39,9 +41,9 @@ export class BossState_LeftFlankFlames implements BossState {
     }
 
     const boss = controller.getBoss();
-    this.leftBlocks = getLeftSideShipBlocks(boss.numericId);
+    this.leftBlocks = getShipBlocksInGroup(boss.numericId, LEFT_GROUP_NUMBER);
 
-    boostBlockLights(this.leftBlocks, 2.0, 2.5); // Telegraph effect: brighter and larger
+    boostBlockLights(this.leftBlocks, 1.2, 2.5); // Telegraph effect: brighter and larger
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
@@ -52,6 +54,7 @@ export class BossState_LeftFlankFlames implements BossState {
 
       // 🔥 Activate left-side flamethrowers (placeholder logic)
       // Example: activateLeftFlamethrowers(controller.getBoss());
+      // Assuming the boss's facing determines 0 degrees.  These flames would span 180 degrees to 300 degrees. (or 6 o'clock to 10 o'clock)
 
       // Optionally play audio cue here
       // GlobalAudioBus.emit('boss:flame:start', { side: 'left' });

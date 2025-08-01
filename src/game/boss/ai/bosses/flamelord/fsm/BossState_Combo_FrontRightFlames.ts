@@ -5,11 +5,13 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
-  getFrontalShipBlocks,
-  getRightSideShipBlocks,
+  getShipBlocksInGroup,
   boostBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
+
+const RIGHT_GROUP_NUMBER = 2;
+const CENTER_GROUP_NUMBER = 3;
 
 export class BossState_Combo_FrontRightFlames implements BossState {
   public name = 'Combo_FrontRightFlames';
@@ -52,8 +54,8 @@ export class BossState_Combo_FrontRightFlames implements BossState {
     const boss = controller.getBoss();
     const id = boss.numericId;
 
-    this.frontBlocks = getFrontalShipBlocks(id);
-    this.rightBlocks = getRightSideShipBlocks(id);
+    this.frontBlocks = getShipBlocksInGroup(id, CENTER_GROUP_NUMBER);
+    this.rightBlocks = getShipBlocksInGroup(id, RIGHT_GROUP_NUMBER);
 
     // Telegraph frontal arc immediately
     boostBlockLights(this.frontBlocks, 2.0, 2.5);

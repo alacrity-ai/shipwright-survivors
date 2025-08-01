@@ -32,6 +32,7 @@ export interface CreateBlockParams {
   ownerShipId: number;
   ownerFaction: number;
   typeIndex: number;
+  group?: number;
   localX: number;  // ship-relative grid X
   localY: number;  // ship-relative grid Y
   localRotation?: number; // block's local rotation relative to ship
@@ -81,6 +82,10 @@ export class BlockOrchestrator {
   // Dedicated scratch buffer for AoE grid-distance queries
   private static readonly SCRATCH_BLOCKS_GRID_DISTANCE = new Uint32Array(2048);
   private scratchCountBlocksGridDistance = 0;
+
+  // Dedicated scratch buffer and counter for ship block group queries
+  private static SCRATCH_SHIP_GROUP: Uint32Array = new Uint32Array(2048);
+  private scratchCountShipGroup = 0;
 
   constructor(store: BlockStore, grid: BlockSpatialGrid, registry?: BlockRegistry) {
     this.store = store;
@@ -136,6 +141,9 @@ export class BlockOrchestrator {
     s.localRotation[index] = localRot;
     s.rotation[index] = localRot;
     s.overlayRotation[index] = overlayRot;
+
+    // Group
+    s.group[index] = params.group ?? 0;
 
     // HP, armor, atlas
     s.hp[index] = initialHp;
@@ -383,6 +391,33 @@ export class BlockOrchestrator {
   }
 
   /**
+   * Gets the block indices belonging to a ship in a specific group.
+   * @param shipId Ship ID
+   * @param group Group index
+   * @returns Array of block indices
+   */
+  getShipBlocksInGroup(shipId: number, group: number): Uint32Array {
+    const blocks = this.shipBlocks.get(shipId);
+    const count = this.shipBlockCounts.get(shipId) ?? 0;
+    const store = this.store;
+
+    this.scratchCountShipGroup = 0;
+
+    if (!blocks || count === 0) {
+      return BlockOrchestrator.SCRATCH_SHIP_GROUP.subarray(0, 0);
+    }
+
+    for (let i = 0; i < count; i++) {
+      const idx = blocks[i];
+      if (store.group[idx] === group) {
+        BlockOrchestrator.SCRATCH_SHIP_GROUP[this.scratchCountShipGroup++] = idx;
+      }
+    }
+
+    return BlockOrchestrator.SCRATCH_SHIP_GROUP.subarray(0, this.scratchCountShipGroup);
+  }
+
+  /**
    * Gets a read-only view of the block indices for a ship.
    * @param shipId Ship ID
    * @returns Read-only subarray of block indices, or empty array if none
@@ -544,6 +579,7 @@ export class BlockOrchestrator {
         worldX: this.store.worldX[index],
         worldY: this.store.worldY[index]
       },
+      group: this.store.group[index],
       rotation: this.store.rotation[index],
       localRotation: this.store.localRotation[index],
       overlayRotation: this.store.overlayRotation[index],

@@ -33,6 +33,7 @@ export class ShipBuilderController {
   private rotation: number = 0;
   private lastBlockId: string | null = null;
   private hoveredShipCoord: GridCoord | null = null;
+  private currentGroup: number = 0; // Default group
 
   private ship: Ship | null = null;
   private store: BlockStore;
@@ -52,6 +53,16 @@ export class ShipBuilderController {
 
   update(transform: BlockEntityTransform) {
     if (!this.ship) return;
+
+    if (this.inputManager.wasKeyJustPressed('KeyZ')) {
+      this.currentGroup = Math.max(0, this.currentGroup - 1);
+      console.log('[ShipBuilderController] Group:', this.currentGroup);
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyX')) {
+      this.currentGroup = Math.min(255, this.currentGroup + 1); // 8-bit group cap
+      console.log('[ShipBuilderController] Group:', this.currentGroup);
+    }
 
     if (this.inputManager.wasKeyJustPressed('Space')) {
       this.rotation = (this.rotation + 90) % 360;
@@ -113,7 +124,7 @@ export class ShipBuilderController {
     // == Handles placing the block (left click)
     if (this.inputManager.wasMouseClicked()) {
       if (!this.ship.hasBlockAt(coord) && isCoordConnectedToShip(this.ship, coord)) {
-        this.ship.placeBlockById(coord, blockId, this.rotation);
+        this.ship.placeBlockById(coord, blockId, this.rotation, this.currentGroup);
         const placedBlockIdx = this.ship.getBlockIndex(coord);
         if (placedBlockIdx !== undefined) {
           // Repair effect here is a misnomer, it's just a visual effect to show block placement

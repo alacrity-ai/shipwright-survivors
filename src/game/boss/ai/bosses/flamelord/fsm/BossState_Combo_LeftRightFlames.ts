@@ -5,11 +5,13 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
-  getLeftSideShipBlocks,
-  getRightSideShipBlocks,
+  getShipBlocksInGroup,
   boostBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
+
+const LEFT_GROUP_NUMBER = 1;
+const RIGHT_GROUP_NUMBER = 2;
 
 export class BossState_Combo_LeftRightFlames implements BossState {
   public name = 'Combo_LeftRightFlames';
@@ -40,8 +42,8 @@ export class BossState_Combo_LeftRightFlames implements BossState {
     const boss = controller.getBoss();
     const id = boss.numericId;
 
-    this.leftBlocks = getLeftSideShipBlocks(id);
-    this.rightBlocks = getRightSideShipBlocks(id);
+    this.leftBlocks = getShipBlocksInGroup(id, LEFT_GROUP_NUMBER);
+    this.rightBlocks = getShipBlocksInGroup(id, RIGHT_GROUP_NUMBER);
 
     // Telegraph both sides simultaneously
     boostBlockLights(this.leftBlocks, 2.0, 2.5);

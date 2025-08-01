@@ -930,7 +930,7 @@ export class Ship extends CompositeBlockObject {
 
   // === Ship-Specific Block Placement & Removal Overrides ===
 
-  public placeBlockById(coord: GridCoord, blockId: string, rotation: number = 0): boolean {
+  public placeBlockById(coord: GridCoord, blockId: string, rotation: number = 0, group: number = 0): boolean {
     const type = getBlockType(blockId);
     if (!type) throw new Error(`Unknown block type: ${blockId}`);
 
@@ -943,7 +943,7 @@ export class Ship extends CompositeBlockObject {
     const passiveFlatBonus = this.getArmorBonusForBlockType(type);
     const hp = Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus);
 
-    const idx = this.placeBlock(coord, blockId, rotation, hp);
+    const idx = this.placeBlock(coord, blockId, rotation, group, hp);
     return idx !== -1;
   }
 
@@ -955,7 +955,7 @@ export class Ship extends CompositeBlockObject {
    * @param hp Optional precomputed hit points (defaults to base armor)
    * @returns BlockStore index of the placed block, or -1 on failure
    */
-  public placeBlock(coord: GridCoord, typeId: string, rotation: number = 0, hp?: number): number {
+  public placeBlock(coord: GridCoord, typeId: string, rotation: number = 0, group: number = 0, hp?: number): number {
     const type = getBlockType(typeId);
     if (!type) return -1;
 
@@ -972,6 +972,7 @@ export class Ship extends CompositeBlockObject {
         ownerShipId: this.numericId,
         ownerFaction: factionIndex,
         typeIndex,
+        group,
         localX: coord.x,
         localY: coord.y,
         localRotation: rotation,
@@ -1186,8 +1187,8 @@ export class Ship extends CompositeBlockObject {
     this.blockOrchestrator.ensureShipBlocks(this.numericId);
 
     // Populate blocks via orchestrator
-    for (const { coord, id, rotation } of data.blocks) {
-      this.placeBlockById(coord, id, rotation);
+    for (const { coord, id, rotation, group } of data.blocks) {
+      this.placeBlockById(coord, id, rotation, group);
     }
 
     // Rebuild derived systems

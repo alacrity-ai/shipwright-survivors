@@ -90,6 +90,7 @@ export abstract class CompositeBlockObject {
             ownerShipId: this.numericId,
             ownerFaction: FACTION_TO_INDEX[this.faction],
             typeIndex,
+            group: 0,
             localX: coord.x,
             localY: coord.y,
             localRotation: rotation ?? 0,
@@ -141,7 +142,7 @@ export abstract class CompositeBlockObject {
    * @param rotation Optional local rotation (radians)
    * @returns The SOA index of the created block, or -1 if allocation failed
    */
-  public placeBlock(coord: GridCoord, typeId: string, rotation: number = 0): number {
+  public placeBlock(coord: GridCoord, typeId: string, rotation: number = 0, group: number = 0): number {
     const typeIndex = BlockTypeIndex[typeId] ?? 0;
     const factionIndex = FACTION_TO_INDEX[this.faction];
 
@@ -150,6 +151,7 @@ export abstract class CompositeBlockObject {
         ownerShipId: this.numericId,
         ownerFaction: factionIndex,
         typeIndex,
+        group,
         localX: coord.x,
         localY: coord.y,
         localRotation: rotation,

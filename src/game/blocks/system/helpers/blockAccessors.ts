@@ -41,6 +41,18 @@ export function getAllShipBlocks(shipId: number): Uint32Array {
 }
 
 /**
+ * Returns block indices belonging to a specific group on the given ship.
+ *
+ * @param shipId Ship ID
+ * @param group  Group number (0–255)
+ * @returns Uint32Array of block indices in the specified group
+ */
+export function getShipBlocksInGroup(shipId: number, group: number): Uint32Array {
+  const orchestrator = BlockManager.getInstance().getBlockOrchestrator();
+  return orchestrator.getShipBlocksInGroup(shipId, group);
+}
+
+/**
  * Internal utility to filter a ship’s block indices by localX/localY predicates.
  */
 function filterShipBlocks(
