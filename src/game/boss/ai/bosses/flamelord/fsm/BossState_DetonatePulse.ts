@@ -6,7 +6,7 @@ import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
   getAllShipBlocks,
-  boostBlockLights,
+  pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
@@ -36,10 +36,10 @@ export class BossState_DetonatePulse implements BossState {
     const boss = controller.getBoss();
     this.allBlocks = getAllShipBlocks(boss.numericId);
 
-    // Light all blocks up for dramatic full-body pulse
-    boostBlockLights(this.allBlocks, 2.5, 2.5);
+    // Animate full-body pulse glow (intensity-based for critical charge feel)
+    pulseBlockLights(this.allBlocks, 40, 40, 2.0, 'intensity');
 
-    // Optionally emit rising tone / charging cue
+    // Optional: rising tone / charge sfx
     // GlobalAudioBus.emit('boss:detonate:charge');
   }
 
@@ -49,14 +49,13 @@ export class BossState_DetonatePulse implements BossState {
     if (!this.detonated && this.timer >= this.telegraphDuration) {
       this.detonated = true;
 
-      // 💥 TODO: Replace with actual radial AoE effect centered on boss
-      // e.g., triggerRadialExplosion(controller.getBoss(), { lethalRadius: ..., falloff: ... });
+      // 💥 TODO: Radial AoE detonation
+      // triggerRadialExplosion(controller.getBoss(), { lethalRadius: ..., falloff: ... });
 
-      // Optional: freeze frame, emit screen shake, trigger slow motion etc.
+      // Optional: freeze frame, shake, chromatic aberration, etc.
       // GlobalEventBus.emit('camera:freezeFrame', { duration: 0.1 });
     }
 
-    // Hold for a brief moment post-detonation before transitioning
     if (this.detonated && this.timer >= this.telegraphDuration + 0.5) {
       controller.transitionTo('Idle');
     }
@@ -65,7 +64,7 @@ export class BossState_DetonatePulse implements BossState {
   exit(controller: BaseBossAIController): void {
     restoreBlockLights(this.allBlocks);
 
-    // Optionally end audio loop / resume music
+    // Optional: terminate detonation audio loop
     // GlobalAudioBus.emit('boss:detonate:end');
   }
 }

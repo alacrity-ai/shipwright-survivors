@@ -6,7 +6,8 @@ import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
   getShipBlocksInGroup,
-  boostBlockLights,
+  fadeBlockLightsTo,
+  pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
@@ -30,20 +31,27 @@ export class BossState_LeftFlankFlames implements BossState {
 
     // Escalate based on HP
     if (hpPct < 0.25) {
-      this.telegraphDuration = 1.5;
+      this.telegraphDuration = 2.5;
       this.flameDuration = 6.5;
     } else if (hpPct < 0.5) {
-      this.telegraphDuration = 2.0;
+      this.telegraphDuration = 3.5;
       this.flameDuration = 6;
     } else {
-      this.telegraphDuration = 2.5;
+      this.telegraphDuration = 4.5;
       this.flameDuration = 5;
     }
 
     const boss = controller.getBoss();
     this.leftBlocks = getShipBlocksInGroup(boss.numericId, LEFT_GROUP_NUMBER);
 
-    boostBlockLights(this.leftBlocks, 1.2, 2.5); // Telegraph effect: brighter and larger
+    // Animate telegraph: Pulse the lights over telegraph duration
+    pulseBlockLights(
+      this.leftBlocks,
+      32,        // base radius in pixels
+      32,         // ±32 pixel pulse range → 96 to 160 radius
+      1.5,        // frequency in Hz (1.5 cycles per second)
+      'radius'
+    );
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
@@ -51,6 +59,9 @@ export class BossState_LeftFlankFlames implements BossState {
 
     if (this.telegraphing && this.phaseTimer >= this.telegraphDuration) {
       this.telegraphing = false;
+
+      // Stop pulsing the lights
+      restoreBlockLights(this.leftBlocks);
 
       // 🔥 Activate left-side flamethrowers (placeholder logic)
       // Example: activateLeftFlamethrowers(controller.getBoss());
@@ -66,7 +77,7 @@ export class BossState_LeftFlankFlames implements BossState {
   }
 
   exit(controller: BaseBossAIController): void {
-    // Cleanup telegraph lights
+    // Cleanup telegraph lights (guard)
     restoreBlockLights(this.leftBlocks);
 
     // 🔥 Deactivate flamethrowers (placeholder)

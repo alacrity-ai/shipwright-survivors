@@ -125,6 +125,8 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] New placed blocks don't inherit Ship Color override.
+
   - [ ] Some lights still occassionally leak
   - [ ] ExplosiveLance isn't detonating on enemy death before timeout?
 

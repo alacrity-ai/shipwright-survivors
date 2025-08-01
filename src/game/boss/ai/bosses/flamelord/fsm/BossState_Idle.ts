@@ -27,15 +27,62 @@ export class BossState_Idle implements BossState {
     this.timer += dt;
 
     const ship = controller.getBoss();
-    const currentRot = ship.getTransform().rotation;
-    const targetRot = context.angleToPlayer;
-    const easedRot = this.rotateToward(currentRot, targetRot, 0.015); // Rotation easing
-    ship.getTransform().rotation = easedRot;
+    const currentTransform = ship.getTransform();
+    const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, 0.015);
+
+    // Apply rotation via setter
+    ship.setTransform({
+      ...currentTransform,
+      rotation: easedRot
+    });
 
     if (this.timer >= this.duration) {
-      // TODO: Replace with weighted table based on context.healthPercent
-      const next = Math.random() < 0.5 ? 'LeftFlankFlames' : 'MinefieldDeploy';
-      controller.transitionTo(next);
+      const hpPct = context.healthPercent;
+
+      let choices: { state: string; weight: number }[];
+
+      if (hpPct > 0.75) {
+        choices = [
+          { state: 'LeftFlankFlames', weight: 1 },
+          { state: 'RightFlankFlames', weight: 1 },
+          { state: 'FrontalBarrage', weight: 1 },
+          { state: 'MinefieldDeploy', weight: 1 },
+        ];
+      } else if (hpPct > 0.5) {
+        choices = [
+          { state: 'DetontePulse', weight: 1 },
+          { state: 'LeftFlankFlames', weight: 1 },
+          { state: 'RightFlankFlames', weight: 1 },
+          { state: 'FrontalBarrage', weight: 1 },
+          { state: 'MinefieldDeploy', weight: 1 },
+        ];
+      } else if (hpPct > 0.25) {
+        choices = [
+          { state: 'DetonatePulse', weight: 1 },
+          { state: 'FrontalBarrage', weight: 1 },
+          { state: 'MinefieldDeploy', weight: 1 },
+          { state: 'Combo_LeftRightFlames', weight: 1 },
+          { state: 'Combo_FrontRightFlames', weight: 1 },
+        ];
+      } else {
+        choices = [
+          { state: 'Combo_LeftRightFlames', weight: 1 },
+          { state: 'Combo_FrontRightFlames', weight: 1 },
+          { state: 'FinalExam', weight: 1 },
+        ];
+      }
+
+      const totalWeight = choices.reduce((sum, c) => sum + c.weight, 0);
+      const r = Math.random() * totalWeight;
+
+      let acc = 0;
+      for (const c of choices) {
+        acc += c.weight;
+        if (r <= acc) {
+          controller.transitionTo(c.state);
+          break;
+        }
+      }
     }
   }
 

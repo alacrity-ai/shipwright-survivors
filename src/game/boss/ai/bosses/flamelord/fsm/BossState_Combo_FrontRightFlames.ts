@@ -3,10 +3,11 @@
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 import {
-  getShipBlocksInGroup,
-  boostBlockLights,
+  getShipBlocksInGroups,
+  pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
@@ -18,7 +19,7 @@ export class BossState_Combo_FrontRightFlames implements BossState {
 
   private timer = 0;
 
-  private frontTelegraphDuration = 2.0;
+  private frontTelegraphDuration = 3.0;
   private rightStaggerDelay = 0.5;
   private flameDuration = 5.5;
 
@@ -28,6 +29,7 @@ export class BossState_Combo_FrontRightFlames implements BossState {
 
   private frontBlocks!: Uint32Array;
   private rightBlocks!: Uint32Array;
+  private telegraphBlocks!: Uint32Array;
 
   enter(controller: BaseBossAIController): void {
     this.timer = 0;
@@ -54,34 +56,46 @@ export class BossState_Combo_FrontRightFlames implements BossState {
     const boss = controller.getBoss();
     const id = boss.numericId;
 
-    this.frontBlocks = getShipBlocksInGroup(id, CENTER_GROUP_NUMBER);
-    this.rightBlocks = getShipBlocksInGroup(id, RIGHT_GROUP_NUMBER);
+    // Fetch both groups together for efficient access
+    this.telegraphBlocks = getShipBlocksInGroups(id, [CENTER_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
 
-    // Telegraph frontal arc immediately
-    boostBlockLights(this.frontBlocks, 2.0, 2.5);
+    // Partition results without reallocation
+    let frontCount = 0;
+    for (let i = 0; i < this.telegraphBlocks.length; i++) {
+      const blockIndex = this.telegraphBlocks[i];
+      if (BlockManager.getInstance().getBlockStore().group[blockIndex] === CENTER_GROUP_NUMBER) {
+        this.telegraphBlocks[frontCount++] = blockIndex;
+      }
+    }
 
-    // Right flank glow will be triggered during update()
+    this.frontBlocks = this.telegraphBlocks.subarray(0, frontCount);
+    this.rightBlocks = this.telegraphBlocks.subarray(frontCount);
+
+    // Telegraph frontal arc immediately with pulse
+    pulseBlockLights(this.frontBlocks, 32, 32, 1.5, 'radius');
   }
 
   update(dt: number, controller: BaseBossAIController, _context: BossAIContext): void {
     this.timer += dt;
 
-    // Staggered right-side telegraph
     if (!this.rightTelegraphed && this.timer >= this.rightStaggerDelay) {
       this.rightTelegraphed = true;
-      boostBlockLights(this.rightBlocks, 2.0, 2.5);
+      pulseBlockLights(this.rightBlocks, 32, 32, 1.5, 'radius');
     }
 
-    // Activate flames after full telegraph window has elapsed
     if (!this.flamesActive && this.timer >= this.frontTelegraphDuration) {
       this.flamesActive = true;
 
-      // 🔥 Activate both flame arcs (stub)
+      restoreBlockLights(this.frontBlocks);
+      restoreBlockLights(this.rightBlocks);
+
+      // 🔥 Activate flame arcs (stub)
       // activateFrontalFlamethrowers(controller.getBoss());
       // activateRightFlamethrowers(controller.getBoss());
+
+      // GlobalAudioBus.emit('boss:combo:frontRight:start');
     }
 
-    // Exit after full flame duration has passed
     if (this.flamesActive && this.timer >= this.frontTelegraphDuration + this.flameDuration) {
       controller.transitionTo('Idle');
     }

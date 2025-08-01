@@ -1,12 +1,10 @@
-// src/game/boss/ai/bosses/flamelord/fsm/BossState_Combo_LeftRightFlames.ts
-
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
-  getShipBlocksInGroup,
-  boostBlockLights,
+  getShipBlocksInGroups,
+  pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
@@ -17,12 +15,11 @@ export class BossState_Combo_LeftRightFlames implements BossState {
   public name = 'Combo_LeftRightFlames';
 
   private timer = 0;
-  private telegraphDuration = 2.0;
+  private telegraphDuration = 3.0;
   private flameDuration = 5.0;
 
   private telegraphing = true;
-  private leftBlocks!: Uint32Array;
-  private rightBlocks!: Uint32Array;
+  private flankBlocks!: Uint32Array;
 
   enter(controller: BaseBossAIController): void {
     this.timer = 0;
@@ -42,12 +39,11 @@ export class BossState_Combo_LeftRightFlames implements BossState {
     const boss = controller.getBoss();
     const id = boss.numericId;
 
-    this.leftBlocks = getShipBlocksInGroup(id, LEFT_GROUP_NUMBER);
-    this.rightBlocks = getShipBlocksInGroup(id, RIGHT_GROUP_NUMBER);
+    // Fetch both groups in one call
+    this.flankBlocks = getShipBlocksInGroups(id, [LEFT_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
 
-    // Telegraph both sides simultaneously
-    boostBlockLights(this.leftBlocks, 2.0, 2.5);
-    boostBlockLights(this.rightBlocks, 2.0, 2.5);
+    // Telegraph both sides simultaneously with pulsing glow
+    pulseBlockLights(this.flankBlocks, 32, 32, 1.5, 'radius');
 
     // Optional: Combined flame charge sound
     // GlobalAudioBus.emit('boss:combo:leftRight:charge');
@@ -58,6 +54,9 @@ export class BossState_Combo_LeftRightFlames implements BossState {
 
     if (this.telegraphing && this.timer >= this.telegraphDuration) {
       this.telegraphing = false;
+
+      // Stop pulsing the lights
+      restoreBlockLights(this.flankBlocks);
 
       // 🔥 Activate both flank flame attacks (stub)
       // activateLeftFlamethrowers(controller.getBoss());
@@ -73,8 +72,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
   }
 
   exit(controller: BaseBossAIController): void {
-    restoreBlockLights(this.leftBlocks);
-    restoreBlockLights(this.rightBlocks);
+    restoreBlockLights(this.flankBlocks);
 
     // 🔥 Deactivate flank flames (stub)
     // deactivateLeftFlamethrowers(controller.getBoss());

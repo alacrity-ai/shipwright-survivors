@@ -43,7 +43,7 @@ export class BossAIContext {
     const dx = playerPos.x - bossPos.x;
     const dy = playerPos.y - bossPos.y;
 
-    this.angleToPlayer = Math.atan2(dy, dx);
+    this.angleToPlayer = Math.atan2(dy, dx) + Math.PI / 2;
     this.distanceToPlayer = Math.hypot(dx, dy);
   }
 }

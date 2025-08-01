@@ -3,6 +3,8 @@
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
 
+const SCRATCH_LIGHT_IDS = new Uint32Array(512); // Adjustable size cap
+
 /**
  * Returns block indices on the **left side** (localX < 0) for the given ship.
  */
@@ -50,6 +52,18 @@ export function getAllShipBlocks(shipId: number): Uint32Array {
 export function getShipBlocksInGroup(shipId: number, group: number): Uint32Array {
   const orchestrator = BlockManager.getInstance().getBlockOrchestrator();
   return orchestrator.getShipBlocksInGroup(shipId, group);
+}
+
+/**
+ * Returns block indices belonging to any of the specified groups on the given ship.
+ *
+ * @param shipId Ship ID
+ * @param groups List of group numbers (0–255)
+ * @returns Uint32Array of block indices in the specified groups
+ */
+export function getShipBlocksInGroups(shipId: number, groups: readonly number[] | Uint8Array): Uint32Array {
+  const orchestrator = BlockManager.getInstance().getBlockOrchestrator();
+  return orchestrator.getShipBlocksInGroups(shipId, groups);
 }
 
 /**
@@ -126,6 +140,10 @@ export function restoreBlockLights(blocks: Uint32Array): void {
   const store = BlockManager.getInstance().getBlockStore();
   const lo = LightingOrchestrator.getInstance();
 
+  const animator = lo.getAnimator();
+  const lightIds = getLightIdsForBlocks(blocks, SCRATCH_LIGHT_IDS);
+  animator?.stopPulsingLights(getLightIdsForBlocks(blocks, lightIds));
+
   for (let i = 0; i < blocks.length; i++) {
     const blockIndex = blocks[i];
     const lightId = store.lightId[blockIndex];
@@ -133,4 +151,83 @@ export function restoreBlockLights(blocks: Uint32Array): void {
       lo.turnOnLight(lightId);
     }
   }
+}
+
+// Helpers for light manipulation via animation
+
+/**
+ * Resolves light IDs from a given set of block indices.
+ * Skips blocks without lights (lightId === -1).
+ *
+ * @param blocks        - Block indices (assumed valid)
+ * @param lightIdsOut   - Scratch buffer to write into (should be same size or larger)
+ * @returns Subarray of lightIdsOut containing valid light IDs
+ */
+export function getLightIdsForBlocks(
+  blocks: Uint32Array,
+  lightIdsOut: Uint32Array
+): Uint32Array {
+  const store = BlockManager.getInstance().getBlockStore();
+  let count = 0;
+
+  for (let i = 0; i < blocks.length; i++) {
+    const blockIndex = blocks[i];
+    const lightId = store.lightId[blockIndex];
+    if (lightId !== -1) {
+      lightIdsOut[count++] = lightId;
+    }
+  }
+
+  return lightIdsOut.subarray(0, count);
+}
+
+
+/**
+ * Applies a fade animation to the lights associated with the given block indices.
+ *
+ * @param blocks       - Block indices (Uint32Array)
+ * @param from         - Starting value (usually 0 for fade-in, or current for fade-out)
+ * @param to           - Target value to fade to
+ * @param duration     - Duration of fade in seconds
+ * @param field        - 'intensity' or 'radius'
+ */
+export function fadeBlockLightsTo(
+  blocks: Uint32Array,
+  from: number,
+  to: number,
+  duration: number,
+  field: 'intensity' | 'radius'
+): void {
+  const lo = LightingOrchestrator.getInstance();
+  const animator = lo.getAnimator();
+  if (!animator) return;
+
+  const lightIds = getLightIdsForBlocks(blocks, SCRATCH_LIGHT_IDS);
+  animator.fadeLights(lightIds, from, to, duration, field);
+}
+
+
+
+/**
+ * Applies a pulsing animation to the lights associated with the given block indices.
+ *
+ * @param blocks    - Block indices (Uint32Array)
+ * @param base      - Base value of the field (center of sine wave)
+ * @param amplitude - Amplitude of the pulse
+ * @param frequency - Frequency in Hz
+ * @param field     - 'intensity' or 'radius'
+ */
+export function pulseBlockLights(
+  blocks: Uint32Array,
+  base: number,
+  amplitude: number,
+  frequency: number,
+  field: 'intensity' | 'radius'
+): void {
+  const lo = LightingOrchestrator.getInstance();
+  const animator = lo.getAnimator();
+  if (!animator) return;
+
+  const lightIds = getLightIdsForBlocks(blocks, SCRATCH_LIGHT_IDS);
+  animator.pulseLights(lightIds, base, amplitude, frequency, field);
 }

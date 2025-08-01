@@ -1,5 +1,3 @@
-// src/game/boss/ai/bosses/flamelord/fsm/BossState_FinalExam.ts
-
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
@@ -7,7 +5,7 @@ import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 import {
   getShipBlocksInGroup,
   getAllShipBlocks,
-  boostBlockLights,
+  pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
@@ -23,12 +21,10 @@ export class BossState_FinalExam implements BossState {
   private allBlocks!: Uint32Array;
 
   private mineTelegraphDuration = 2.5;
-  private detonated = false;
 
   enter(controller: BaseBossAIController): void {
     this.timer = 0;
     this.step = 0;
-    this.detonated = false;
 
     const boss = controller.getBoss();
     const hpPct = controller.getContext().healthPercent;
@@ -44,8 +40,8 @@ export class BossState_FinalExam implements BossState {
       this.mineTelegraphDuration = 2.5;
     }
 
-    // Step 0: Initiate flames and deploy mines
-    boostBlockLights(this.leftBlocks, 2.0, 2.5);
+    // Step 0: Begin flames and deploy mines
+    pulseBlockLights(this.leftBlocks, 32, 32, 1.5, 'radius');
 
     // 🔥 STUB: Activate left flamethrowers
     // activateLeftFlamethrowers(boss);
@@ -66,10 +62,10 @@ export class BossState_FinalExam implements BossState {
       this.step = 1;
       this.timer = 0;
 
-      // 💣 STUB: Trigger detonation
+      // 💣 STUB: Detonate mines
       // MineSpawner.triggerMineRingDetonation();
 
-      // 🔥 STUB: Deactivate flames
+      // 🔥 STUB: Deactivate left flame arc
       // deactivateLeftFlamethrowers(controller.getBoss());
 
       restoreBlockLights(this.leftBlocks);
@@ -79,10 +75,10 @@ export class BossState_FinalExam implements BossState {
       this.step = 2;
       this.timer = 0;
 
-      // Step 2: Instant detonate pulse
-      boostBlockLights(this.allBlocks, 2.5, 3.0);
+      // Step 2: Telegraph instant detonation pulse
+      pulseBlockLights(this.allBlocks, 40, 40, 2.0, 'intensity');
 
-      // 💥 STUB: Trigger radial AoE (instant lethal)
+      // 💥 STUB: Trigger lethal radial AoE
       // triggerRadialExplosion(controller.getBoss(), { lethal: true });
     }
 
@@ -92,6 +88,7 @@ export class BossState_FinalExam implements BossState {
   }
 
   exit(controller: BaseBossAIController): void {
+    restoreBlockLights(this.leftBlocks);
     restoreBlockLights(this.allBlocks);
   }
 }

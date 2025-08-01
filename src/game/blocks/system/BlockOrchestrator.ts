@@ -418,6 +418,41 @@ export class BlockOrchestrator {
   }
 
   /**
+   * Gets the block indices belonging to a ship across multiple groups.
+   * @param shipId Ship ID
+   * @param groups List of group indices (0–255)
+   * @returns Array of block indices
+   */
+  getShipBlocksInGroups(shipId: number, groups: readonly number[] | Uint8Array): Uint32Array {
+    const blocks = this.shipBlocks.get(shipId);
+    const count = this.shipBlockCounts.get(shipId) ?? 0;
+    const store = this.store;
+
+    this.scratchCountShipGroup = 0;
+
+    if (!blocks || count === 0 || groups.length === 0) {
+      return BlockOrchestrator.SCRATCH_SHIP_GROUP.subarray(0, 0);
+    }
+
+    // Optimization: create a lookup table for fast group inclusion check
+    const groupSet = new Uint8Array(256);
+    for (let i = 0; i < groups.length; i++) {
+      groupSet[groups[i] & 0xff] = 1;
+    }
+
+    for (let i = 0; i < count; i++) {
+      const idx = blocks[i];
+      const group = store.group[idx];
+      if (groupSet[group]) {
+        BlockOrchestrator.SCRATCH_SHIP_GROUP[this.scratchCountShipGroup++] = idx;
+      }
+    }
+
+    return BlockOrchestrator.SCRATCH_SHIP_GROUP.subarray(0, this.scratchCountShipGroup);
+  }
+
+
+  /**
    * Gets a read-only view of the block indices for a ship.
    * @param shipId Ship ID
    * @returns Read-only subarray of block indices, or empty array if none

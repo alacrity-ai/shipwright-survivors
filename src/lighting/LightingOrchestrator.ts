@@ -2,8 +2,10 @@
 
 import type { Camera } from '@/core/Camera';
 import { hexToRgb } from '@/shared/colorUtils';
-import type { PointLightInstance } from './lights/types';
-import { MAX_LIGHTS, createSOABuffer, type LightSOA } from './interfaces/LightSOA';
+import type { PointLightInstance } from '@/lighting/lights/types';
+import { MAX_LIGHTS, createSOABuffer, type LightSOA } from '@/lighting/interfaces/LightSOA';
+
+import { LightAnimatorSystem } from '@/lighting/LightingAnimatorSystem'; // NEW
 
 let nextLightId = 0;
 let _instance: LightingOrchestrator | null = null;
@@ -16,6 +18,7 @@ export const MAXIMUM_LIGHTS_PER_TAG = 8;
  */
 export class LightingOrchestrator {
   private readonly soa = createSOABuffer(MAX_LIGHTS);
+  private animator: LightAnimatorSystem;
 
   private readonly scratchValues: any[] = new Array(16);  // one slot per field
 
@@ -39,6 +42,9 @@ export class LightingOrchestrator {
     }
   
     this.scratchValues.fill(null);  // Keep packed array, avoid deopt
+
+    // Instantiate lighting animator
+    this.animator = new LightAnimatorSystem(this.soa, this.idToIndex);
   }
 
   public static getInstance(): LightingOrchestrator {
@@ -55,6 +61,11 @@ export class LightingOrchestrator {
   /** Exposes the SOA buffer directly for consumption by LightingPass. */
   public getLightSOA(): LightSOA {
     return this.soa;
+  }
+
+  /** Exposes Lighting Animator */
+  public getAnimator(): LightAnimatorSystem | null {
+    return this.animator;
   }
 
   private allocateLightIndex(): number {
@@ -293,6 +304,8 @@ export class LightingOrchestrator {
 
       i++;
     }
+
+    this.animator.update(dt);
   }
 
   public collectVisibleLights(camera: Camera): { soa: LightSOA, indices: Uint16Array, count: number } {
@@ -333,6 +346,10 @@ export class LightingOrchestrator {
 
   getLightCount(): number {
     return this.soa.count;
+  }
+
+  setLightsDirty(): void {
+    this.lightsDirty = true;
   }
 
   updateLight(id: number, updates: Partial<Omit<PointLightInstance, 'id' | 'type'>>): void {
@@ -429,6 +446,8 @@ export class LightingOrchestrator {
     this.tagMap.clear();
 
     this.lightsDirty = true;
+
+    this.animator.clear();
   }
 
   destroy(): void {

@@ -36,6 +36,8 @@ export abstract class BaseBossAIController {
     const next = this.getStateMap()[stateName];
     if (!next) throw new Error(`[BaseBossAIController] Unknown state: '${stateName}'`);
 
+    console.log('[BaseBossAIController] Transitioning to state: ', stateName);
+
     this.currentState.exit(this);
     this.currentState = next;
     this.currentState.enter(this);

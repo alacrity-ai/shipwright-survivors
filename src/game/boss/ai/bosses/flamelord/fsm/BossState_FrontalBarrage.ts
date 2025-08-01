@@ -6,7 +6,7 @@ import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 
 import {
   getShipBlocksInGroup,
-  boostBlockLights,
+  pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
@@ -31,45 +31,57 @@ export class BossState_FrontalBarrage implements BossState {
 
     // Escalation scaling
     if (hpPct < 0.25) {
-      this.telegraphDuration = 1.5;
-      this.flameDuration = 9;
-      this.trackingSpeed = 0.025;
-    } else if (hpPct < 0.5) {
-      this.telegraphDuration = 2.0;
-      this.flameDuration = 8;
-      this.trackingSpeed = 0.015;
-    } else {
       this.telegraphDuration = 2.5;
+      this.flameDuration = 9;
+      this.trackingSpeed = 0.004;
+    } else if (hpPct < 0.5) {
+      this.telegraphDuration = 3.5;
+      this.flameDuration = 8;
+      this.trackingSpeed = 0.003;
+    } else {
+      this.telegraphDuration = 4.5;
       this.flameDuration = 7;
-      this.trackingSpeed = 0.01;
+      this.trackingSpeed = 0.002;
     }
 
     const boss = controller.getBoss();
     this.frontalBlocks = getShipBlocksInGroup(boss.numericId, CENTER_GROUP_NUMBER);
 
-    boostBlockLights(this.frontalBlocks, 2.0, 2.5);
+    // Animate telegraph: Pulse the lights over telegraph duration
+    pulseBlockLights(
+      this.frontalBlocks,
+      32,        // base radius in pixels
+      32,        // ±32 pixel pulse range → 96 to 160 radius
+      1.5,       // frequency in Hz
+      'radius'
+    );
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
     this.phaseTimer += dt;
 
     const ship = controller.getBoss();
-    const transform = ship.getTransform();
+    const currentTransform = ship.getTransform();
 
     if (this.telegraphing) {
       if (this.phaseTimer >= this.telegraphDuration) {
         this.telegraphing = false;
+
+        // Stop pulsing lights
+        restoreBlockLights(this.frontalBlocks);
 
         // 🔥 Begin flame stream (placeholder)
         // Example: activateFrontalFlamethrowers(ship);
         // Assuming the boss's facing determines 0 degrees.  These flames would span 300 degrees to 60 degrees. (or 10 o'clock to 2 o'clock)
       } else {
         // During telegraph, boss aligns to player
-        transform.rotation = this.rotateToward(transform.rotation, context.angleToPlayer, this.trackingSpeed);
+        const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
+        ship.setTransform({ ...currentTransform, rotation: easedRot });
       }
     } else {
       // During flames, boss *continues tracking* player
-      transform.rotation = this.rotateToward(transform.rotation, context.angleToPlayer, this.trackingSpeed);
+      const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
+      ship.setTransform({ ...currentTransform, rotation: easedRot });
 
       if (this.phaseTimer >= this.telegraphDuration + this.flameDuration) {
         controller.transitionTo('Idle');
