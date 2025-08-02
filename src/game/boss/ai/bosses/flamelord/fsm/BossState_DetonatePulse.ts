@@ -3,68 +3,89 @@
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 
 import {
-  getAllShipBlocks,
+  getShipBlocksInGroups,
   pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
+import { RadialExplosionMechanic } from '@/game/boss/ai/mechanics/mechs/RadialExplosionMechanic';
+import { playActivationEffects } from '@/game/boss/ai/bosses/flamelord/fsm/helpers/activationShakeAndSound';
+
+const LEFT_GROUP_NUMBER = 1;
+const RIGHT_GROUP_NUMBER = 2;
+const CENTER_GROUP_NUMBER = 3;
+
 export class BossState_DetonatePulse implements BossState {
   public name = 'DetonatePulse';
 
+  private bossDefinition: BossDefinition | null = null;
+
   private timer = 0;
   private telegraphDuration = 2.5;
+  private explosionDuration = 1.0;
 
-  private allBlocks!: Uint32Array;
+  private telegraphing = true;
   private detonated = false;
+
+  private telegraphBlocks!: Uint32Array;
+  private explosionMechanic: RadialExplosionMechanic | null = null;
 
   enter(controller: BaseBossAIController): void {
     this.timer = 0;
+    this.telegraphing = true;
     this.detonated = false;
+    this.explosionMechanic = null;
 
     const hpPct = controller.getContext().healthPercent;
 
     if (hpPct < 0.25) {
-      this.telegraphDuration = 1.25;
+      this.telegraphDuration = 3.0;
+      this.explosionDuration = 1.3;
     } else if (hpPct < 0.5) {
-      this.telegraphDuration = 1.75;
+      this.telegraphDuration = 3.5;
+      this.explosionDuration = 1.2;
     } else {
-      this.telegraphDuration = 2.5;
+      this.telegraphDuration = 4.0;
+      this.explosionDuration = 1.0;
     }
 
     const boss = controller.getBoss();
-    this.allBlocks = getAllShipBlocks(boss.numericId);
+    const id = boss.numericId;
 
-    // Animate full-body pulse glow (intensity-based for critical charge feel)
-    pulseBlockLights(this.allBlocks, 40, 40, 2.0, 'intensity');
+    this.bossDefinition = controller.getBossDefinition();
+    this.telegraphBlocks = getShipBlocksInGroups(id, [LEFT_GROUP_NUMBER, CENTER_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
 
-    // Optional: rising tone / charge sfx
-    // GlobalAudioBus.emit('boss:detonate:charge');
+    pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
+    playActivationEffects(boss);
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
     this.timer += dt;
 
-    if (!this.detonated && this.timer >= this.telegraphDuration) {
+    if (this.telegraphing && this.timer >= this.telegraphDuration) {
+      this.telegraphing = false;
       this.detonated = true;
+      restoreBlockLights(this.telegraphBlocks);
 
-      // 💥 TODO: Radial AoE detonation
-      // triggerRadialExplosion(controller.getBoss(), { lethalRadius: ..., falloff: ... });
+      const boss = controller.getBoss();
+      this.explosionMechanic = new RadialExplosionMechanic(
+        boss,
+        this.explosionDuration,
+        this.bossDefinition!.damageMultiplier
+      );
 
-      // Optional: freeze frame, shake, chromatic aberration, etc.
-      // GlobalEventBus.emit('camera:freezeFrame', { duration: 0.1 });
+      controller.getMechanics().add(this.explosionMechanic);
     }
 
-    if (this.detonated && this.timer >= this.telegraphDuration + 0.5) {
+    if (this.detonated && this.timer >= this.telegraphDuration + this.explosionDuration) {
       controller.transitionTo('Idle');
     }
   }
 
   exit(controller: BaseBossAIController): void {
-    restoreBlockLights(this.allBlocks);
-
-    // Optional: terminate detonation audio loop
-    // GlobalAudioBus.emit('boss:detonate:end');
+    restoreBlockLights(this.telegraphBlocks);
   }
 }

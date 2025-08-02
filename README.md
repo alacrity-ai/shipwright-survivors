@@ -125,6 +125,7 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] Boss should have maximum damage intake per second, or per 5 seconds, to avoid insta gibbing a boss.
   - [ ] New placed blocks don't inherit Ship Color override.
 
   - [ ] Some lights still occassionally leak

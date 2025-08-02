@@ -5,7 +5,7 @@ import type { ShipAffixes } from '@/game/interfaces/types/ShipAffixes';
 import type { MusicTrack } from '@/audio/AudioManager';
 
 export interface WaveShipEntry {
-  shipId: string;
+  shipId: string; // 'e.g. ship_00, or mission_01/ship_00'
   count: number;
   hunter?: boolean;
   behaviorProfile?: BehaviorProfile;

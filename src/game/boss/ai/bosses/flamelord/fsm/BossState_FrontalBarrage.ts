@@ -5,6 +5,8 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 
+import { playActivationEffects } from '@/game/boss/ai/bosses/flamelord/fsm/helpers/activationShakeAndSound';
+
 import {
   getShipBlocksInGroup,
   pulseBlockLights,
@@ -13,6 +15,7 @@ import {
 
 import { DirectionalFlameThrowerMechanic } from '@/game/boss/ai/mechanics/mechs/DirectionalFlameThrowerMechanic';
 import { rotateArc } from '@/game/boss/ai/mechanics/helpers/rotateArc';
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 const CENTER_GROUP_NUMBER = 3;
 
@@ -63,6 +66,8 @@ export class BossState_FrontalBarrage implements BossState {
       1.5, // Hz
       'radius'
     );
+
+    playActivationEffects(boss);
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {

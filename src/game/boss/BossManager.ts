@@ -14,8 +14,10 @@ export class BossManager {
   private readonly combatService: CombatService;
   private readonly bossFactory: BossFactory;
   private readonly orchestrator: BossOrchestrator;
+  private readonly shipFactory: ShipFactory;
 
   private constructor(shipFactory: ShipFactory, combatService: CombatService) {
+    this.shipFactory = shipFactory;
     this.bossFactory = new BossFactory(shipFactory);
     this.combatService = combatService;
 
@@ -45,6 +47,10 @@ export class BossManager {
 
   public getFactory(): BossFactory {
     return this.bossFactory;
+  }
+
+  public getShipFactory(): ShipFactory {
+    return this.shipFactory;
   }
 
   public getOrchestrator(): BossOrchestrator {

@@ -5,6 +5,8 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 
+import { playActivationEffects } from '@/game/boss/ai/bosses/flamelord/fsm/helpers/activationShakeAndSound';
+
 import {
   getShipBlocksInGroups,
   pulseBlockLights,
@@ -25,25 +27,34 @@ export class BossState_Combo_FrontRightFlames implements BossState {
   private timer = 0;
   private telegraphDuration = 3.0;
   private flameDuration = 5.5;
+  private trackingSpeed = 0.002;
 
   private telegraphing = true;
   private telegraphBlocks!: Uint32Array;
 
+  private frontFlame: DirectionalFlameThrowerMechanic | null = null;
+  private rightFlame: DirectionalFlameThrowerMechanic | null = null;
+
   enter(controller: BaseBossAIController): void {
     this.timer = 0;
     this.telegraphing = true;
+    this.frontFlame = null;
+    this.rightFlame = null;
 
     const hpPct = controller.getContext().healthPercent;
 
     if (hpPct < 0.25) {
       this.telegraphDuration = 2.0;
       this.flameDuration = 6.5;
+      this.trackingSpeed = 0.004;
     } else if (hpPct < 0.5) {
       this.telegraphDuration = 2.5;
       this.flameDuration = 6.0;
+      this.trackingSpeed = 0.003;
     } else {
       this.telegraphDuration = 3.0;
       this.flameDuration = 5.5;
+      this.trackingSpeed = 0.002;
     }
 
     const boss = controller.getBoss();
@@ -53,38 +64,54 @@ export class BossState_Combo_FrontRightFlames implements BossState {
     this.telegraphBlocks = getShipBlocksInGroups(id, [CENTER_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
 
     pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
+    playActivationEffects(boss);
   }
 
-  update(dt: number, controller: BaseBossAIController, _context: BossAIContext): void {
+  update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
     this.timer += dt;
 
-    if (this.telegraphing && this.timer >= this.telegraphDuration) {
-      this.telegraphing = false;
-      restoreBlockLights(this.telegraphBlocks);
+    const boss = controller.getBoss();
+    const currentTransform = boss.getTransform();
+    const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
+    boss.setTransform({ ...currentTransform, rotation: easedRot });
 
-      const boss = controller.getBoss();
-      const rot = boss.getTransform().rotation;
+    if (this.telegraphing) {
+      if (this.timer >= this.telegraphDuration) {
+        this.telegraphing = false;
+        restoreBlockLights(this.telegraphBlocks);
 
-      const [frontStartDeg, frontEndDeg] = rotateArc(300, 60, rot);   // front cone
-      const [rightStartDeg, rightEndDeg] = rotateArc(60, 180, rot);  // right flank
+        const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);  // front cone
+        const [rightStart, rightEnd] = rotateArc(60, 180, easedRot);  // right flank
 
-      controller.getMechanics().add(
-        new DirectionalFlameThrowerMechanic(boss, frontStartDeg, frontEndDeg, this.flameDuration, this.bossDefinition!.damageMultiplier)
-      );
+        this.frontFlame = new DirectionalFlameThrowerMechanic(boss, frontStart, frontEnd, this.flameDuration, this.bossDefinition!.damageMultiplier);
+        this.rightFlame = new DirectionalFlameThrowerMechanic(boss, rightStart, rightEnd, this.flameDuration, this.bossDefinition!.damageMultiplier);
 
-      controller.getMechanics().add(
-        new DirectionalFlameThrowerMechanic(boss, rightStartDeg, rightEndDeg, this.flameDuration, this.bossDefinition!.damageMultiplier)
-      );
+        controller.getMechanics().add(this.frontFlame);
+        controller.getMechanics().add(this.rightFlame);
 
-      // Optional: GlobalAudioBus.emit('boss:combo:frontRight:start');
-    }
+        // Optional: GlobalAudioBus.emit('boss:combo:frontRight:start');
+      }
+    } else {
+      if (this.frontFlame && this.rightFlame) {
+        const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);
+        const [rightStart, rightEnd] = rotateArc(60, 180, easedRot);
 
-    if (!this.telegraphing && this.timer >= this.telegraphDuration + this.flameDuration) {
-      controller.transitionTo('Idle');
+        this.frontFlame.updateArc(frontStart, frontEnd);
+        this.rightFlame.updateArc(rightStart, rightEnd);
+      }
+
+      if (this.timer >= this.telegraphDuration + this.flameDuration) {
+        controller.transitionTo('Idle');
+      }
     }
   }
 
   exit(controller: BaseBossAIController): void {
     restoreBlockLights(this.telegraphBlocks);
+  }
+
+  private rotateToward(current: number, target: number, maxStep: number): number {
+    const delta = ((target - current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    return current + Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
   }
 }

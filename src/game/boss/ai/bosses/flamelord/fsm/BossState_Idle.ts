@@ -35,7 +35,7 @@ const stateSequences: { [key: string]: StateSequence } = {
     index: 0,
   },
   phase4: {
-    states: ['Combo_LeftRightFlames', 'Combo_FrontRightFlames', 'Combo_FrontLeftFlames', 'FinalExam'],
+    states: ['MinefieldDeploy', 'Combo_FrontRightFlames', 'Combo_FrontLeftFlames', 'FinalExam'],
     index: 0,
   },
 };
@@ -44,14 +44,14 @@ export class BossState_Idle implements BossState {
   public name = 'Idle';
 
   private timer = 0;
-  private duration = 5;
+  private duration = 4;
 
   enter(controller: BaseBossAIController): void {
     const hpPct = controller.getContext().healthPercent;
     if (hpPct < 0.25) this.duration = 1;
     else if (hpPct < 0.5) this.duration = 2;
     else if (hpPct < 0.75) this.duration = 3;
-    else this.duration = 5;
+    else this.duration = 4;
 
     this.timer = 0;
 

@@ -218,7 +218,7 @@ export interface EventTypes {
   };
 
   // Wave spawning / Enemy spawning
-  'wave:spawn': { tag: string; wave: WaveDefinition; } // Tag to keep track of wave
+  'wave:spawn': { tag: string; wave: WaveDefinition; auraLightProps?: { color?: string; radius?: number; intensity?: number } }; // Tag to keep track of wave
   'wave:clear': { tag: string; }; // Removed by tag
   'wave:completed': { tag: string; }; // Completed by tag
 

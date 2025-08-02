@@ -5,6 +5,8 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 
+import { playActivationEffects } from '@/game/boss/ai/bosses/flamelord/fsm/helpers/activationShakeAndSound';
+
 import {
   getShipBlocksInGroups,
   pulseBlockLights,
@@ -62,6 +64,7 @@ export class BossState_Combo_FrontLeftFlames implements BossState {
     this.telegraphBlocks = getShipBlocksInGroups(id, [CENTER_GROUP_NUMBER, LEFT_GROUP_NUMBER]);
 
     pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
+    playActivationEffects(boss);
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {

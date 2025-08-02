@@ -1,0 +1,59 @@
+{
+  "transform": {
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "rotation": 0
+  },
+  "blocks": [
+    {
+      "id": "cockpitboss",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "facetplate1",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 180,
+      "group": 0
+    }
+  ],
+  "behavior": {
+    "type": "spaceStation"
+  }
+}

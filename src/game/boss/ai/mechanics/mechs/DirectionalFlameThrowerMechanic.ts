@@ -4,11 +4,13 @@ import type { BaseBossMechanic } from '../BaseBossMechanic';
 import type { Ship } from '@/game/ship/Ship';
 import type { CombatService } from '@/systems/combat/CombatService';
 
+import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
+
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BossManager } from '@/game/boss/BossManager';
 
-const DAMAGE_PER_TICK = 10;
+const DAMAGE_PER_TICK = 5;
 
 export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
   public name = 'DirectionalFlameThrower';
@@ -56,9 +58,14 @@ export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
   }
 
   public start(): void {
-    console.log('[FlameThrower] START');
-    console.log(`→ Arc: ${this.arcStartDeg}° → ${this.arcEndDeg}°`);
-    console.log(`→ Duration: ${this.duration}s`);
+    playSpatialSfx(this.ship, this.playerShip, {
+      file: 'assets/sounds/sfx/explosions/fire_long_00.wav',
+      channel: 'sfx',
+      baseVolume: 0.8,
+      pitchRange: [0.9, 1.4],
+      volumeJitter: 0.2,
+      maxSimultaneous: 5,
+    });
   }
 
   public update(dt: number): void {
@@ -113,32 +120,32 @@ export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
     const playerTransform = playerShip.getTransform();
     const { x: playerX, y: playerY } = playerTransform.position;
 
-const dx = playerX - centerX;
-const dy = playerY - centerY;
-let angleToPlayer = Math.atan2(dy, dx);
-if (angleToPlayer < 0) angleToPlayer += Math.PI * 2;
+    const dx = playerX - centerX;
+    const dy = playerY - centerY;
+    let angleToPlayer = Math.atan2(dy, dx);
+    if (angleToPlayer < 0) angleToPlayer += Math.PI * 2;
 
-// Correct the arc by rotating it clockwise 90° (−π/2)
-let arcStart = (this.arcStartRad - Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
-let arcEnd = (this.arcEndRad - Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+    // Correct the arc by rotating it clockwise 90° (−π/2)
+    let arcStart = (this.arcStartRad - Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+    let arcEnd = (this.arcEndRad - Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
 
-let isPlayerHit = false;
-if (arcStart <= arcEnd) {
-  isPlayerHit = angleToPlayer >= arcStart && angleToPlayer <= arcEnd;
-} else {
-  // Arc wraps around 2π
-  isPlayerHit = angleToPlayer >= arcStart || angleToPlayer <= arcEnd;
-}
-
+    let isPlayerHit = false;
+    if (arcStart <= arcEnd) {
+      isPlayerHit = angleToPlayer >= arcStart && angleToPlayer <= arcEnd;
+    } else {
+      // Arc wraps around 2π
+      isPlayerHit = angleToPlayer >= arcStart || angleToPlayer <= arcEnd;
+    }
 
     if (isPlayerHit) {
       const damage = DAMAGE_PER_TICK * this.damageMultiplier;
-      this.combatService.applyDamageToRandomBlock(
-        playerShip,
+      // Add ignite effect
+      playerShip.addStatusEffect(
+        'ignite',
+        2,
         this.ship,
-        damage,
-        'projectile'
-      );  
+        damage
+      );
     }
   }
 

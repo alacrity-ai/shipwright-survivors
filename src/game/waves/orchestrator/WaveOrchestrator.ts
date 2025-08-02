@@ -188,13 +188,14 @@ export class WaveOrchestrator implements IUpdatable {
 
   // === One-shot Wave Handlers ===
 
-  private handleOneShotSpawn = async ({ tag, wave }: { tag: string; wave: WaveDefinition }): Promise<void> => {
+  private handleOneShotSpawn = async ({ tag, wave, auraLightProps }: { tag: string; wave: WaveDefinition; auraLightProps?: { color?: string; radius?: number; intensity?: number } }): Promise<void> => {
     if (this.singleShotWaves.has(tag)) return;
 
+    const props = auraLightProps ?? { color: '#aa66ff', radius: 400, intensity: 1.6 };
     const ctx = await this.executor.execute(wave, -1, tag, {
-      color: '#aa66ff',
-      radius: 400,
-      intensity: 1.6,
+      color: props.color,
+      radius: props.radius,
+      intensity: props.intensity,
     });
 
     this.singleShotWaves.set(tag, ctx);

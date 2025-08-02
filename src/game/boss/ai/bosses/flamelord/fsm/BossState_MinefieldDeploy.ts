@@ -3,54 +3,52 @@
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
+
+import { playActivationEffects } from '@/game/boss/ai/bosses/flamelord/fsm/helpers/activationShakeAndSound';
+import { MinefieldMechanic } from '@/game/boss/ai/mechanics/mechs/MinefieldMechanic';
 
 export class BossState_MinefieldDeploy implements BossState {
   public name = 'MinefieldDeploy';
 
   private timer = 0;
   private telegraphDuration = 2.5;
-
-  private numMines = 8;
-  private numLargeMines = 0;
+  private mineDuration = 6.0;
+  private bigMineCount = 0;
 
   private detonated = false;
+  private bossDefinition: BossDefinition | null = null;
+  private mineMechanic: MinefieldMechanic | null = null;
 
   enter(controller: BaseBossAIController): void {
     this.timer = 0;
     this.detonated = false;
+    this.mineMechanic = null;
+    this.bossDefinition = controller.getBossDefinition();
 
     const hpPct = controller.getContext().healthPercent;
 
-    // Escalation logic
+    // Escalation logic: longer detonations and more threatening timing under low HP
     if (hpPct < 0.25) {
-      this.numMines = 12;
-      this.numLargeMines = 3;
-      this.telegraphDuration = 2.0;
+      this.telegraphDuration = 0.2;
+      this.mineDuration = 6.0;
+      this.bigMineCount = 3;
     } else if (hpPct < 0.5) {
-      this.numMines = 10;
-      this.numLargeMines = 1;
-      this.telegraphDuration = 2.5;
+      this.telegraphDuration = 0.6;
+      this.mineDuration = 6.0;
+      this.bigMineCount = 2;
+    } else if (hpPct < 0.75) {
+      this.telegraphDuration = 1.0;
+      this.mineDuration = 6.0;
+      this.bigMineCount = 1;
     } else {
-      this.numMines = 8;
-      this.numLargeMines = 0;
-      this.telegraphDuration = 3.0;
+      this.telegraphDuration = 1.2;
+      this.mineDuration = 6.0;
+      this.bigMineCount = 0;
     }
 
     const boss = controller.getBoss();
-    const center = boss.getTransform().position;
-
-    // 🧨 STUB: Spawn mines in a radial ring
-    // Replace this with actual system integration
-    // Example:
-    // MineSpawner.spawnRadialMineRing(center, {
-    //   count: this.numMines,
-    //   largeCount: this.numLargeMines,
-    //   radius: boss.getArenaRadius() - safetyMargin,
-    //   telegraphDuration: this.telegraphDuration,
-    // });
-
-    // Optionally play "mine deploy" audio cue
-    // GlobalAudioBus.emit('boss:mine:deploy');
+    playActivationEffects(boss);
   }
 
   update(dt: number, controller: BaseBossAIController, _context: BossAIContext): void {
@@ -59,20 +57,26 @@ export class BossState_MinefieldDeploy implements BossState {
     if (!this.detonated && this.timer >= this.telegraphDuration) {
       this.detonated = true;
 
-      // 💣 STUB: Detonate all mines
-      // MineSpawner.triggerMineRingDetonation();
+      const boss = controller.getBoss();
+      this.mineMechanic = new MinefieldMechanic(
+        boss,
+        this.mineDuration,
+        this.bossDefinition!.damageMultiplier,
+        this.bigMineCount
+      );
 
-      // Optional: arena shake / audio cue
+      controller.getMechanics().add(this.mineMechanic);
+
+      // Optional: ambient quake or other global cues
       // GlobalEventBus.emit('arena:quake', { magnitude: 0.6 });
     }
 
-    if (this.detonated && this.timer >= this.telegraphDuration + 0.5) {
+    if (this.detonated && this.timer >= this.telegraphDuration + this.mineDuration + 0.5) {
       controller.transitionTo('Idle');
     }
   }
 
-  exit(controller: BaseBossAIController): void {
-    // If needed: cleanup orphaned mines or cancel countdowns
-    // MineSpawner.clearMineRing();
+  exit(_controller: BaseBossAIController): void {
+    // No special cleanup required—mechanic is self-managed
   }
 }
