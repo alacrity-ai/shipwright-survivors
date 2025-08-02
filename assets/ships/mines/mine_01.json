@@ -1,0 +1,95 @@
+{
+  "transform": {
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "rotation": 0
+  },
+  "blocks": [
+    {
+      "id": "cockpitsw1",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin1",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull1",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 180,
+      "group": 0
+    }
+  ],
+  "behavior": {
+    "type": "spaceStation"
+  }
+}
