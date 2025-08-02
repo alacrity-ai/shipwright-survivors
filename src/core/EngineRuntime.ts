@@ -431,7 +431,7 @@ export class EngineRuntime {
       this.shipConstructionAnimator,
       this.aiOrchestrator
     );
-    this.bossManager = BossManager.initialize(shipFactory);
+    this.bossManager = BossManager.initialize(shipFactory, this.combatService);
 
     this.registerLoopHandlers();
   }

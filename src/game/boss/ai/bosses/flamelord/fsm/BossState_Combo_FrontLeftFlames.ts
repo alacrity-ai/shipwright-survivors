@@ -1,0 +1,114 @@
+// src/game/boss/ai/bosses/flamelord/fsm/BossState_Combo_FrontLeftFlames.ts
+
+import type { BossState } from '@/game/boss/ai/interfaces/BossState';
+import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
+import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
+
+import {
+  getShipBlocksInGroups,
+  pulseBlockLights,
+  restoreBlockLights
+} from '@/game/blocks/system/helpers/blockAccessors';
+
+import { DirectionalFlameThrowerMechanic } from '@/game/boss/ai/mechanics/mechs/DirectionalFlameThrowerMechanic';
+import { rotateArc } from '@/game/boss/ai/mechanics/helpers/rotateArc';
+
+const CENTER_GROUP_NUMBER = 3;
+const LEFT_GROUP_NUMBER = 1;
+
+export class BossState_Combo_FrontLeftFlames implements BossState {
+  public name = 'Combo_FrontLeftFlames';
+
+  private bossDefinition: BossDefinition | null = null;
+
+  private timer = 0;
+  private telegraphDuration = 3.0;
+  private flameDuration = 5.5;
+  private trackingSpeed = 0.002;
+
+  private telegraphing = true;
+  private telegraphBlocks!: Uint32Array;
+
+  private frontFlame: DirectionalFlameThrowerMechanic | null = null;
+  private leftFlame: DirectionalFlameThrowerMechanic | null = null;
+
+  enter(controller: BaseBossAIController): void {
+    this.timer = 0;
+    this.telegraphing = true;
+    this.frontFlame = null;
+    this.leftFlame = null;
+
+    const hpPct = controller.getContext().healthPercent;
+
+    if (hpPct < 0.25) {
+      this.telegraphDuration = 2.0;
+      this.flameDuration = 6.5;
+      this.trackingSpeed = 0.004;
+    } else if (hpPct < 0.5) {
+      this.telegraphDuration = 2.5;
+      this.flameDuration = 6.0;
+      this.trackingSpeed = 0.003;
+    } else {
+      this.telegraphDuration = 3.0;
+      this.flameDuration = 5.5;
+      this.trackingSpeed = 0.002;
+    }
+
+    const boss = controller.getBoss();
+    const id = boss.numericId;
+
+    this.bossDefinition = controller.getBossDefinition();
+    this.telegraphBlocks = getShipBlocksInGroups(id, [CENTER_GROUP_NUMBER, LEFT_GROUP_NUMBER]);
+
+    pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
+  }
+
+  update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
+    this.timer += dt;
+
+    const boss = controller.getBoss();
+    const currentTransform = boss.getTransform();
+    const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
+    boss.setTransform({ ...currentTransform, rotation: easedRot });
+
+    if (this.telegraphing) {
+      if (this.timer >= this.telegraphDuration) {
+        this.telegraphing = false;
+        restoreBlockLights(this.telegraphBlocks);
+
+        const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);  // front cone
+        const [leftStart, leftEnd]   = rotateArc(180, 300, easedRot); // left flank
+
+        this.frontFlame = new DirectionalFlameThrowerMechanic(boss, frontStart, frontEnd, this.flameDuration, this.bossDefinition!.damageMultiplier);
+        this.leftFlame  = new DirectionalFlameThrowerMechanic(boss, leftStart, leftEnd, this.flameDuration, this.bossDefinition!.damageMultiplier);
+
+        controller.getMechanics().add(this.frontFlame);
+        controller.getMechanics().add(this.leftFlame);
+
+        // Optional: GlobalAudioBus.emit('boss:combo:frontLeft:start');
+      }
+    } else {
+      if (this.frontFlame && this.leftFlame) {
+        const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);
+        const [leftStart, leftEnd]   = rotateArc(180, 300, easedRot);
+
+        this.frontFlame.updateArc(frontStart, frontEnd);
+        this.leftFlame.updateArc(leftStart, leftEnd);
+      }
+
+      if (this.timer >= this.telegraphDuration + this.flameDuration) {
+        controller.transitionTo('Idle');
+      }
+    }
+  }
+
+  exit(controller: BaseBossAIController): void {
+    restoreBlockLights(this.telegraphBlocks);
+  }
+
+  private rotateToward(current: number, target: number, maxStep: number): number {
+    const delta = ((target - current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    return current + Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
+  }
+}

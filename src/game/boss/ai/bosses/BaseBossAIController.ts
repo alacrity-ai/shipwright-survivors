@@ -1,19 +1,33 @@
 // src/game/boss/ai/bosses/BaseBossAIController.ts
 
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
-import { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import type { CombatService } from '@/systems/combat/CombatService';
 import type { Ship } from '@/game/ship/Ship';
 
+import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
+
+import { BossMechanicManager } from '@/game/boss/ai/mechanics/BossMechanicManager';
+import { BossAIContext } from '@/game/boss/ai/BossAIContext';
+
 export abstract class BaseBossAIController {
-  protected currentState!: BossState; // Initialized but not entered yet
+  protected currentState!: BossState;
   protected readonly context: BossAIContext;
+  protected readonly mechanics: BossMechanicManager;
+  protected readonly combatService: CombatService;
+  protected readonly bossDefinition: BossDefinition;
+  
   private started = false;
 
   constructor(
     protected readonly boss: Ship,
-    protected readonly player: Ship
+    protected readonly player: Ship,
+    combatService: CombatService,
+    bossDefinition: BossDefinition
   ) {
     this.context = new BossAIContext(boss, player);
+    this.mechanics = new BossMechanicManager();
+    this.combatService = combatService;
+    this.bossDefinition = bossDefinition;
   }
 
   /** Explicit lifecycle entry point */
@@ -29,6 +43,7 @@ export abstract class BaseBossAIController {
     if (!this.started) return;
 
     this.context.update(this.boss, this.player);
+    this.mechanics.update(dt);
     this.currentState.update(dt, this, this.context);
   }
 
@@ -53,6 +68,18 @@ export abstract class BaseBossAIController {
 
   public getContext(): BossAIContext {
     return this.context;
+  }
+
+  public getMechanics(): BossMechanicManager {
+    return this.mechanics;
+  }
+
+  public getCombatService(): CombatService {
+    return this.combatService;
+  }
+
+  public getBossDefinition(): BossDefinition {
+    return this.bossDefinition;
   }
 
   protected abstract getStateMap(): Record<string, BossState>;

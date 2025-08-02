@@ -8,7 +8,8 @@ const BOSSES: Record<string, BossDefinition> = {
     name: 'The Flame Lord',
     shipJsonPath: 'boss/flamelord.json',
     initialState: 'Idle',
-    maxHealth: 50000, // Initial placeholder; subject to balance tuning
+    maxHealth: 50000,
+    damageMultiplier: 1.0,
   },
 };
 

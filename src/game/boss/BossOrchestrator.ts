@@ -5,6 +5,7 @@ import type { BossSpawnContext } from '@/game/boss/interfaces/BossSpawnContext';
 import type { BossFactory } from '@/game/boss/factories/BossFactory';
 import type { BossIntroCutsceneController } from '@/game/boss/cutscenes/BossIntroCutsceneController';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
+import type { CombatService } from '@/systems/combat/CombatService';
 import type { Ship } from '@/game/ship/Ship';
 
 import { applyShipColorPreset, ShipColorPreset } from '../ship/utils/shipColorHelpers';
@@ -15,7 +16,8 @@ export class BossOrchestrator {
 
   constructor(
     private readonly factory: BossFactory,
-    private readonly cutsceneController: BossIntroCutsceneController
+    private readonly cutsceneController: BossIntroCutsceneController,
+    private readonly combatService: CombatService
   ) {}
 
   // == Public API ==
@@ -81,6 +83,10 @@ export class BossOrchestrator {
 
   public getCutsceneController(): BossIntroCutsceneController {
     return this.cutsceneController;
+  }
+
+  public getCombatService(): CombatService {
+    return this.combatService;
   }
 
   // == Cleanup

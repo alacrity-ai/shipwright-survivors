@@ -81,7 +81,7 @@ export class CombatService {
     source: CompositeBlockObject,
     damage: number,
     cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' |
-          'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' |
+          'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'flameThrower' |
           'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
   ): void {
     if (entity.isDestroyed()) return;
@@ -105,7 +105,7 @@ export class CombatService {
     coord: GridCoord,             // Local grid coord for world translation (still used for explosions/text)
     damage: number,
     cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' |
-          'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' |
+          'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'flameThrower' |
           'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
     lightFlash: boolean = true,
     baseCriticalChance: number = 0,

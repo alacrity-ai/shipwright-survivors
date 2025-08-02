@@ -3,18 +3,23 @@
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 
 import {
   getShipBlocksInGroup,
-  fadeBlockLightsTo,
   pulseBlockLights,
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
+
+import { DirectionalFlameThrowerMechanic } from '@/game/boss/ai/mechanics/mechs/DirectionalFlameThrowerMechanic';
+import { rotateArc } from '@/game/boss/ai/mechanics/helpers/rotateArc';
 
 const LEFT_GROUP_NUMBER = 1;
 
 export class BossState_LeftFlankFlames implements BossState {
   public name = 'LeftFlankFlames';
+
+  private bossDefinition: BossDefinition | null = null;
 
   private phaseTimer = 0;
   private telegraphDuration = 2.5;
@@ -35,21 +40,21 @@ export class BossState_LeftFlankFlames implements BossState {
       this.flameDuration = 6.5;
     } else if (hpPct < 0.5) {
       this.telegraphDuration = 3.5;
-      this.flameDuration = 6;
+      this.flameDuration = 6.0;
     } else {
       this.telegraphDuration = 4.5;
-      this.flameDuration = 5;
+      this.flameDuration = 5.0;
     }
 
     const boss = controller.getBoss();
+    this.bossDefinition = controller.getBossDefinition();    
     this.leftBlocks = getShipBlocksInGroup(boss.numericId, LEFT_GROUP_NUMBER);
 
-    // Animate telegraph: Pulse the lights over telegraph duration
     pulseBlockLights(
       this.leftBlocks,
-      32,        // base radius in pixels
-      32,         // ±32 pixel pulse range → 96 to 160 radius
-      1.5,        // frequency in Hz (1.5 cycles per second)
+      32,   // base radius in pixels
+      32,   // ±32 pixel pulse → 96–160px
+      1.5,  // frequency in Hz
       'radius'
     );
   }
@@ -60,14 +65,23 @@ export class BossState_LeftFlankFlames implements BossState {
     if (this.telegraphing && this.phaseTimer >= this.telegraphDuration) {
       this.telegraphing = false;
 
-      // Stop pulsing the lights
       restoreBlockLights(this.leftBlocks);
 
-      // 🔥 Activate left-side flamethrowers (placeholder logic)
-      // Example: activateLeftFlamethrowers(controller.getBoss());
-      // Assuming the boss's facing determines 0 degrees.  These flames would span 180 degrees to 300 degrees. (or 6 o'clock to 10 o'clock)
+      const boss = controller.getBoss();
+      const rotation = boss.getTransform().rotation;
 
-      // Optionally play audio cue here
+      const [arcStartDeg, arcEndDeg] = rotateArc(180, 300, rotation);
+
+      controller.getMechanics().add(
+        new DirectionalFlameThrowerMechanic(
+          boss,
+          arcStartDeg,
+          arcEndDeg,
+          this.flameDuration,
+          this.bossDefinition!.damageMultiplier
+        )
+      );
+
       // GlobalAudioBus.emit('boss:flame:start', { side: 'left' });
     }
 
@@ -77,10 +91,7 @@ export class BossState_LeftFlankFlames implements BossState {
   }
 
   exit(controller: BaseBossAIController): void {
-    // Cleanup telegraph lights (guard)
     restoreBlockLights(this.leftBlocks);
-
-    // 🔥 Deactivate flamethrowers (placeholder)
-    // Example: deactivateLeftFlamethrowers(controller.getBoss());
+    // Mechanics auto-cleanup on expiry; no manual teardown required.
   }
 }

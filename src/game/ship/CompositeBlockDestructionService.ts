@@ -24,6 +24,7 @@ export type DestructionCause =
   | 'turret'
   | 'collision'
   | 'bomb'
+  | 'flameThrower'
   | 'laser'
   | 'explosiveLance'
   | 'explosiveLanceAoE'

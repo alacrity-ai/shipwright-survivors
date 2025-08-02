@@ -259,4 +259,8 @@ export class ShipFactory {
   public getOrchestrator(): AIOrchestratorSystem | undefined {
     return this.orchestrator;
   }
+
+  public getCombatService(): CombatService {
+    return this.combatService;
+  }
 }

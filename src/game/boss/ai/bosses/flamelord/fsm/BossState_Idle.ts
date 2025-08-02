@@ -1,8 +1,44 @@
-// src/game/boss/ai/bosses/flamelord/fsm/BossState_Idle.ts
-
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+
+type StateSequence = {
+  states: string[];
+  index: number;
+};
+
+const stateSequences: { [key: string]: StateSequence } = {
+  phase1: {
+    states: ['LeftFlankFlames', 'RightFlankFlames', 'FrontalBarrage', 'MinefieldDeploy'],
+    index: 0,
+  },
+  phase2: {
+    states: [
+      'DetonatePulse',
+      'Combo_LeftRightFlames',
+      'Combo_FrontRightFlames',
+      'Combo_FrontLeftFlames',
+      'FrontalBarrage',
+      'MinefieldDeploy',
+    ],
+    index: 0,
+  },
+  phase3: {
+    states: [
+      'DetonatePulse',
+      'FrontalBarrage',
+      'MinefieldDeploy',
+      'Combo_LeftRightFlames',
+      'Combo_FrontRightFlames',
+      'Combo_FrontLeftFlames',
+    ],
+    index: 0,
+  },
+  phase4: {
+    states: ['Combo_LeftRightFlames', 'Combo_FrontRightFlames', 'Combo_FrontLeftFlames', 'FinalExam'],
+    index: 0,
+  },
+};
 
 export class BossState_Idle implements BossState {
   public name = 'Idle';
@@ -30,59 +66,25 @@ export class BossState_Idle implements BossState {
     const currentTransform = ship.getTransform();
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, 0.015);
 
-    // Apply rotation via setter
     ship.setTransform({
       ...currentTransform,
-      rotation: easedRot
+      rotation: easedRot,
     });
 
     if (this.timer >= this.duration) {
       const hpPct = context.healthPercent;
 
-      let choices: { state: string; weight: number }[];
+      let phaseKey: keyof typeof stateSequences;
+      if (hpPct > 0.75) phaseKey = 'phase1';
+      else if (hpPct > 0.5) phaseKey = 'phase2';
+      else if (hpPct > 0.25) phaseKey = 'phase3';
+      else phaseKey = 'phase4';
 
-      if (hpPct > 0.75) {
-        choices = [
-          { state: 'LeftFlankFlames', weight: 1 },
-          { state: 'RightFlankFlames', weight: 1 },
-          { state: 'FrontalBarrage', weight: 1 },
-          { state: 'MinefieldDeploy', weight: 1 },
-        ];
-      } else if (hpPct > 0.5) {
-        choices = [
-          { state: 'DetontePulse', weight: 1 },
-          { state: 'LeftFlankFlames', weight: 1 },
-          { state: 'RightFlankFlames', weight: 1 },
-          { state: 'FrontalBarrage', weight: 1 },
-          { state: 'MinefieldDeploy', weight: 1 },
-        ];
-      } else if (hpPct > 0.25) {
-        choices = [
-          { state: 'DetonatePulse', weight: 1 },
-          { state: 'FrontalBarrage', weight: 1 },
-          { state: 'MinefieldDeploy', weight: 1 },
-          { state: 'Combo_LeftRightFlames', weight: 1 },
-          { state: 'Combo_FrontRightFlames', weight: 1 },
-        ];
-      } else {
-        choices = [
-          { state: 'Combo_LeftRightFlames', weight: 1 },
-          { state: 'Combo_FrontRightFlames', weight: 1 },
-          { state: 'FinalExam', weight: 1 },
-        ];
-      }
+      const sequence = stateSequences[phaseKey];
+      const nextState = sequence.states[sequence.index];
+      sequence.index = (sequence.index + 1) % sequence.states.length;
 
-      const totalWeight = choices.reduce((sum, c) => sum + c.weight, 0);
-      const r = Math.random() * totalWeight;
-
-      let acc = 0;
-      for (const c of choices) {
-        acc += c.weight;
-        if (r <= acc) {
-          controller.transitionTo(c.state);
-          break;
-        }
-      }
+      controller.transitionTo(nextState);
     }
   }
 

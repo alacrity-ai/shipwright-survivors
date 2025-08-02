@@ -1,6 +1,7 @@
 // src/game/boss/BossManager.ts
 
 import type { ShipFactory } from '@/game/ship/factories/ShipFactory';
+import type { CombatService } from '@/systems/combat/CombatService';
 
 import { BossFactory } from '@/game/boss/factories/BossFactory';
 import { BossOrchestrator } from '@/game/boss/BossOrchestrator';
@@ -10,22 +11,25 @@ import { BossIntroCutsceneController } from '@/game/boss/cutscenes/BossIntroCuts
 export class BossManager {
   private static _instance: BossManager | null = null;
 
+  private readonly combatService: CombatService;
   private readonly bossFactory: BossFactory;
   private readonly orchestrator: BossOrchestrator;
 
-  private constructor(shipFactory: ShipFactory) {
+  private constructor(shipFactory: ShipFactory, combatService: CombatService) {
     this.bossFactory = new BossFactory(shipFactory);
+    this.combatService = combatService;
 
     // Instantiate orchestrator with injected systems
     this.orchestrator = new BossOrchestrator(
       this.bossFactory,
-      new BossIntroCutsceneController()
+      new BossIntroCutsceneController(),
+      this.combatService
     );
   }
 
-  public static initialize(shipFactory: ShipFactory): BossManager {
+  public static initialize(shipFactory: ShipFactory, combatService: CombatService): BossManager {
     if (!this._instance) {
-      this._instance = new BossManager(shipFactory);
+      this._instance = new BossManager(shipFactory, combatService);
     }
     return this._instance;
   }
@@ -53,6 +57,10 @@ export class BossManager {
 
   public getCutsceneController(): BossIntroCutsceneController {
     return this.orchestrator.getCutsceneController();
+  }
+
+  public getCombatService(): CombatService {
+    return this.combatService;
   }
 
   /** Per-tick boss update — AI, cutscene, etc. */

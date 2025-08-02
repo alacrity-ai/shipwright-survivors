@@ -3,6 +3,7 @@
 import type { BossSpawnContext } from '../interfaces/BossSpawnContext';
 import type { Ship } from '@/game/ship/Ship';
 import type { ShipFactory } from '@/game/ship/factories/ShipFactory';
+import type { CombatService } from '@/systems/combat/CombatService';
 
 import { FlameLordController } from '../ai/bosses/flamelord/FlameLordController';
 import type { BaseBossAIController } from '../ai/bosses/BaseBossAIController';
@@ -41,7 +42,8 @@ export class BossFactory {
     const player = ShipRegistry.getInstance().getPlayerShip();
     if (!player) throw new Error('[BossFactory] Player ship not found in registry');
 
-    const aiController = createAIController(definition, ship, player);
+    const combatService = this.shipFactory.getCombatService();
+    const aiController = createAIController(definition, ship, player, combatService, definition);
 
     return { ship, aiController };
   }
@@ -53,11 +55,13 @@ export class BossFactory {
 function createAIController(
   def: BossDefinition,
   boss: Ship,
-  player: Ship
+  player: Ship,
+  combatService: CombatService,
+  bossDefinition: BossDefinition
 ): BaseBossAIController | null {
   switch (def.id) {
     case 'flame_lord':
-      return new FlameLordController(boss, player, def.initialState);
+      return new FlameLordController(boss, player, def.initialState, combatService, bossDefinition);
 
     // case 'other_boss':
     //   return new OtherBossController(boss, player, def.initialState);
