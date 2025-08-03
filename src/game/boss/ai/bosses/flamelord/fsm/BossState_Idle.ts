@@ -1,13 +1,24 @@
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
+import type { PhaseKey } from '@/game/boss/ai/interfaces/PhaseKey';
+
+import { getShipBlocksInGroups } from '@/game/blocks/system/helpers/blockAccessors';
+import { bulkUpgradeBlockIndicesOnShip } from '@/game/blocks/helpers/upgradeUtils';
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
+import { audioManager } from '@/audio/Audio';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
 type StateSequence = {
   states: string[];
   index: number;
 };
 
-const stateSequences: { [key: string]: StateSequence } = {
+const LEFT_GROUP_NUMBER = 1;
+const RIGHT_GROUP_NUMBER = 2;
+const CENTER_GROUP_NUMBER = 3;
+
+const phaseSequences: Record<PhaseKey, StateSequence> = {
   phase1: {
     states: ['LeftFlankFlames', 'RightFlankFlames', 'FrontalBarrage', 'MinefieldDeploy'],
     index: 0,
@@ -47,21 +58,42 @@ export class BossState_Idle implements BossState {
   private duration = 4;
 
   enter(controller: BaseBossAIController): void {
-    const hpPct = controller.getContext().healthPercent;
-    if (hpPct < 0.25) this.duration = 1;
-    else if (hpPct < 0.5) this.duration = 2;
-    else if (hpPct < 0.75) this.duration = 3;
-    else this.duration = 4;
+    const boss = controller.getBoss();
+    const phase = controller.getCurrentPhase();
+
+    // Declarative phase configuration
+    const phaseConfig: Record<string, { duration: number; upgradePhase?: number }> = {
+      phase1: { duration: 4 },
+      phase2: { duration: 3, upgradePhase: 2 },
+      phase3: { duration: 2, upgradePhase: 3 },
+      phase4: { duration: 1, upgradePhase: 4 },
+    };
+
+    const { duration, upgradePhase } = phaseConfig[phase] ?? { duration: 4 };
+    this.duration = duration;
+
+    // Upgrade only on entering a new phase
+    if (upgradePhase !== undefined && boss.getBossPhase() !== upgradePhase) {
+      boss.setBossPhase(upgradePhase);
+      const flameThrowerBlockIndices = getShipBlocksInGroups(
+        boss.numericId,
+        [LEFT_GROUP_NUMBER, RIGHT_GROUP_NUMBER, CENTER_GROUP_NUMBER]
+      );
+      bulkUpgradeBlockIndicesOnShip(boss, flameThrowerBlockIndices, 1);
+      shakeCamera(12, 1, 12, 'boss:upgrade');
+      audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
+      createLightFlash(boss.getTransform().position.x, boss.getTransform().position.y, 2600, 2.0, 0.5, '#ff3211');
+    }
 
     this.timer = 0;
 
-    // TODO: Integrate boss dialogue system
-    // e.g., GlobalEventBus.emit('boss:speak', { line: 'idle_taunt_01' });
+    console.log('[BossState_Idle] Entering idle state, at phase: ', phase);
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
     this.timer += dt;
 
+    // Smooth rotation toward player
     const ship = controller.getBoss();
     const currentTransform = ship.getTransform();
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, 0.015);
@@ -72,15 +104,9 @@ export class BossState_Idle implements BossState {
     });
 
     if (this.timer >= this.duration) {
-      const hpPct = context.healthPercent;
+      const phaseKey = controller.getCurrentPhase();
+      const sequence = phaseSequences[phaseKey];
 
-      let phaseKey: keyof typeof stateSequences;
-      if (hpPct > 0.75) phaseKey = 'phase1';
-      else if (hpPct > 0.5) phaseKey = 'phase2';
-      else if (hpPct > 0.25) phaseKey = 'phase3';
-      else phaseKey = 'phase4';
-
-      const sequence = stateSequences[phaseKey];
       const nextState = sequence.states[sequence.index];
       sequence.index = (sequence.index + 1) % sequence.states.length;
 
@@ -89,7 +115,7 @@ export class BossState_Idle implements BossState {
   }
 
   exit(controller: BaseBossAIController): void {
-    // No cleanup necessary for Idle, but hook retained for symmetry
+    // No-op; retained for lifecycle symmetry
   }
 
   private rotateToward(current: number, target: number, maxStep: number): number {

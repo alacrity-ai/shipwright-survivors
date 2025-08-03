@@ -267,9 +267,10 @@ export class CombatService {
     }
 
     // === Actual HP Decrement Occurs here ===
+    let actualDamage = damage;
     if (entity.hasHealth()) {
       // HP Reduction on ship (Boss ships, special entities)
-      entity.setCurrentHealth(entity.getCurrentHealth() - damage);
+      actualDamage = entity.applyDamageToHealth(damage);
       if (entity.getCurrentHealth() <= 0) {
         this.destructionService.destroyEntity(entity, cause);
         return true;
@@ -310,10 +311,12 @@ export class CombatService {
     }
 
     if (!entity.getIsPlayerShip()) {
-      this.damageTextAggregator.enqueueDamage(
-        worldX, worldY, Math.floor(damage),
-        1, 1, 1, 1.4, isCriticalHit, `damage-${entity.id}`
-      );
+      if (damage > 0) {
+        this.damageTextAggregator.enqueueDamage(
+          worldX, worldY, Math.floor(actualDamage),
+          1, 1, 1, 1.4, isCriticalHit, `damage-${entity.id}`
+        );
+      }
     }
 
     playSpatialSfx(entity, playerShip, {

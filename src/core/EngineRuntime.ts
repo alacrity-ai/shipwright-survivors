@@ -147,6 +147,7 @@ import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
 import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
+import { reportDialogueLine } from './interfaces/events/DialogueReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -840,10 +841,6 @@ export class EngineRuntime {
       TradePostRegistry.clearInstances();
     }
 
-    if (this.inputManager.wasKeyJustPressed('KeyM')) {
-      unlockAllArtifacts();
-    }
-
     if (this.inputManager.wasKeyJustPressed('KeyP')) {
       this.jumpCastTransitionController.initiateJump({ x: 20000, y: 20000 });
     }
@@ -926,7 +923,11 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('KeyN')) {
-      PlayerShipCollection.getInstance().unDiscover('Monarch');
+      reportDialogueLine('crazy-moe', 'Hello World! How are you!?');
+    }
+
+    if (this.inputManager.wasKeyJustPressed('KeyM')) {
+      reportDialogueLine('crazy-moe', 'Goodbye world!');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit0')) {

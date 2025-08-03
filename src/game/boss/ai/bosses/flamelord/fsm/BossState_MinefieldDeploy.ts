@@ -26,30 +26,37 @@ export class BossState_MinefieldDeploy implements BossState {
     this.mineMechanic = null;
     this.bossDefinition = controller.getBossDefinition();
 
-    const hpPct = controller.getContext().healthPercent;
+    const phase = controller.getCurrentPhase();
 
-    // Escalation logic: longer detonations and more threatening timing under low HP
-    if (hpPct < 0.25) {
-      this.telegraphDuration = 0.2;
-      this.mineDuration = 6.0;
-      this.bigMineCount = 3;
-    } else if (hpPct < 0.5) {
-      this.telegraphDuration = 0.6;
-      this.mineDuration = 6.0;
-      this.bigMineCount = 2;
-    } else if (hpPct < 0.75) {
-      this.telegraphDuration = 1.0;
-      this.mineDuration = 6.0;
-      this.bigMineCount = 1;
-    } else {
-      this.telegraphDuration = 1.2;
-      this.mineDuration = 6.0;
-      this.bigMineCount = 0;
+    // Phase-driven tuning: increasingly rapid detonation and more big mines
+    switch (phase) {
+      case 'phase4':
+        this.telegraphDuration = 0.2;
+        this.mineDuration = 6.0;
+        this.bigMineCount = 3;
+        break;
+      case 'phase3':
+        this.telegraphDuration = 0.6;
+        this.mineDuration = 6.0;
+        this.bigMineCount = 2;
+        break;
+      case 'phase2':
+        this.telegraphDuration = 1.0;
+        this.mineDuration = 6.0;
+        this.bigMineCount = 1;
+        break;
+      case 'phase1':
+      default:
+        this.telegraphDuration = 1.2;
+        this.mineDuration = 6.0;
+        this.bigMineCount = 0;
+        break;
     }
 
     const boss = controller.getBoss();
     playActivationEffects(boss);
   }
+
 
   update(dt: number, controller: BaseBossAIController, _context: BossAIContext): void {
     this.timer += dt;
@@ -58,10 +65,11 @@ export class BossState_MinefieldDeploy implements BossState {
       this.detonated = true;
 
       const boss = controller.getBoss();
+      const damage = this.bossDefinition!.damageMultiplier * boss.getBossPhase();
       this.mineMechanic = new MinefieldMechanic(
         boss,
         this.mineDuration,
-        this.bossDefinition!.damageMultiplier,
+        damage,
         this.bigMineCount
       );
 

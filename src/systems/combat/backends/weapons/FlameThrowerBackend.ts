@@ -9,11 +9,12 @@ import type { BlockStore } from '@/game/blocks/system/BlockStore';
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { BlockSubcategoryEnum } from '@/game/interfaces/types/BlockType';
 
+import { emitOrangeFlames, emitGreenFlames, emitBlueFlames, emitPurpleFlames } from '@/core/interfaces/events/SpecialFxReporter';
+
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { Ship } from '@/game/ship/Ship';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 import { Faction } from '@/game/interfaces/types/Faction';
-import { findObjectByBlock, findBlockCoordinatesInObject } from '@/game/entities/utils/universalBlockInterfaceUtils';
 import { FLAME_COLORS, TierToColorIndex } from '@/game/blocks/BlockColorSchemes';
 import { FACTION_TO_INDEX } from '@/game/interfaces/types/Faction';
 
@@ -49,6 +50,18 @@ const DOT_TIER_BONUS = 0.5;
 // Inner flame constants
 const INNER_FLAME_DIRECTIONS = 12;
 const INNER_FLAME_RADIUS = 200;
+
+type FlameEmitterFn = (
+  x: number,
+  y: number,
+  radius?: number,
+  life?: number,
+  light?: boolean,
+  count?: number,
+  vx?: number,
+  vy?: number
+) => void;
+
 
 function createFlameSOABuffer(maxFlames: number): FlameProjectileSOA {
   return {
@@ -91,6 +104,13 @@ export class FlameThrowerBackend implements WeaponBackend {
   private store: BlockStore;
 
   private innerFlameTimeSinceLastShot: number = 0;
+
+  private readonly flameMethodMap: Record<number, FlameEmitterFn> = {
+    1: emitOrangeFlames,
+    2: emitGreenFlames,
+    3: emitBlueFlames,
+    4: emitPurpleFlames,
+  };
 
   constructor(
     private readonly combatService: CombatService,
@@ -156,6 +176,8 @@ export class FlameThrowerBackend implements WeaponBackend {
     // === Light and inner flame handling ===
     let lightBudget = innerFlame ? 8 : LIGHT_BUDGET_PER_FRAME;
     let hasLight = false;
+    
+    const emitMethod = this.flameMethodMap[maxTier] ?? emitOrangeFlames;
 
     if (innerFlame) {
       this.innerFlameTimeSinceLastShot ??= 0;
@@ -192,14 +214,13 @@ export class FlameThrowerBackend implements WeaponBackend {
         const attachLight = lightBudget > 0 && (lightBudget === 8 || Math.random() < LIGHT_CHANCE);
         if (attachLight) lightBudget--;
 
-        emitDefaultFlames(
+        emitMethod(
           spawnX,
           spawnY,
           sampleRadius * (1 + flameThrowerSize),
           sampleLifetime,
           attachLight,
           4,
-          color,
           vx * 1.25,
           vy * 1.25
         );
@@ -279,14 +300,13 @@ export class FlameThrowerBackend implements WeaponBackend {
         }
       }
 
-      emitDefaultFlames(
+      emitMethod(
         spawnX,
         spawnY,
         radius * (1 + flameThrowerSize),
         ttl,
         hasLight,
         4,
-        color,
         vx,
         vy
       );

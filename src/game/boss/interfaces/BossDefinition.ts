@@ -6,6 +6,7 @@ export interface BossDefinition {
   shipJsonPath: string;          // Relative path to /assets/ships/boss/*.json
   initialState: string;          // Name of default FSM state
   maxHealth: number;             // Scalar HP pool for boss entity
+  maxHealthDamageIntakePerSecond: number; // Max damage intake per second
   damageMultiplier: number;      // Multiplier for all block damage
 
   // Future fields:

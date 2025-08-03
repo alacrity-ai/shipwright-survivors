@@ -8,6 +8,7 @@ import type {
   UnderwaterParams,
   ChromaticAbberationParams
 } from '@/rendering/unified/passes/PostProcessPass';
+import type { DialogueEvent } from '@/systems/dialogue/interfaces/DialogueEvent';
 import type { SpecialFxInstance } from '@/rendering/unified/interfaces/SpecialFxInstance';
 import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
@@ -61,6 +62,9 @@ export interface EventTypes {
   // Dialogue events
   'dialogue:pause': undefined;
   'dialogue:resume': undefined;
+  // Async dialogue events
+  'dialogue:event': DialogueEvent;
+  'dialogue:event:clear': undefined;
 
   // Menu events
   'menu:opened': { id: string };

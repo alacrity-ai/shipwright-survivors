@@ -6,11 +6,25 @@ import type { CombatService } from '@/systems/combat/CombatService';
 
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 
-import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
+import { emitOrangeFlames, emitGreenFlames, emitBlueFlames, emitPurpleFlames } from '@/core/interfaces/events/SpecialFxReporter';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BossManager } from '@/game/boss/BossManager';
 
-const DAMAGE_PER_TICK = 5;
+const DAMAGE_PER_TICK = 4;
+
+type FlameEmitterFn = (
+  x: number,
+  y: number,
+  radius?: number,
+  life?: number,
+  light?: boolean,
+  count?: number,
+  vx?: number,
+  vy?: number
+) => void;
+
+type FlameRampIndex = 1 | 2 | 3 | 4;
+
 
 export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
   public name = 'DirectionalFlameThrower';
@@ -38,6 +52,13 @@ export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
   private readonly flameCount = 1;
   private readonly flameColor = '#ff9933';
   private readonly numEmitters = 16;
+
+  private readonly flameMethodMap: Record<FlameRampIndex, FlameEmitterFn> = {
+    1: emitOrangeFlames,
+    2: emitGreenFlames,
+    3: emitBlueFlames,
+    4: emitPurpleFlames,
+  }
 
   constructor(
     private readonly ship: Ship,
@@ -91,6 +112,9 @@ export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
 
     const step = this.numEmitters > 1 ? arcSpan / (this.numEmitters - 1) : 0;
 
+    const phase = this.ship.getBossPhase();
+    const emitMethod = this.flameMethodMap[phase as FlameRampIndex] ?? emitOrangeFlames;
+
     for (let i = 0; i < this.numEmitters; i++) {
       const angleRad = this.arcStartRad + step * i;
       const adjustedRad = angleRad - Math.PI / 2;
@@ -101,17 +125,7 @@ export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
       const vx = Math.cos(adjustedRad) * this.flameSpeed + transform.velocity.x;
       const vy = Math.sin(adjustedRad) * this.flameSpeed + transform.velocity.y;
 
-      emitDefaultFlames(
-        fxX,
-        fxY,
-        this.flameRadius,
-        this.flameLifetime,
-        true, // attach light
-        this.flameCount,
-        this.flameColor,
-        vx,
-        vy
-      );
+      emitMethod(fxX, fxY, this.flameRadius, this.flameLifetime, true, this.flameCount, vx, vy);
     }
 
     // Do damage to playership if they are within the radius

@@ -38,31 +38,38 @@ export class BossState_RightFlankFlames implements BossState {
     this.telegraphing = true;
     this.flameMechanic = null;
 
-    const hpPct = controller.getContext().healthPercent;
+    const phase = controller.getCurrentPhase();
 
-    if (hpPct < 0.25) {
-      this.telegraphDuration = 2.5;
-      this.flameDuration = 6.5;
-      this.trackingSpeed = 0.004;
-    } else if (hpPct < 0.5) {
-      this.telegraphDuration = 3.5;
-      this.flameDuration = 6.0;
-      this.trackingSpeed = 0.003;
-    } else {
-      this.telegraphDuration = 4.5;
-      this.flameDuration = 5.0;
-      this.trackingSpeed = 0.002;
+    // Phase-driven parameterization
+    switch (phase) {
+      case 'phase4':
+        this.telegraphDuration = 2.5;
+        this.flameDuration = 6.5;
+        this.trackingSpeed = 0.004;
+        break;
+      case 'phase3':
+        this.telegraphDuration = 3.5;
+        this.flameDuration = 6.0;
+        this.trackingSpeed = 0.003;
+        break;
+      case 'phase1':
+      case 'phase2':
+      default:
+        this.telegraphDuration = 4.5;
+        this.flameDuration = 5.0;
+        this.trackingSpeed = 0.002;
+        break;
     }
 
     const boss = controller.getBoss();
-    this.bossDefinition = controller.getBossDefinition();    
+    this.bossDefinition = controller.getBossDefinition();
     this.rightBlocks = getShipBlocksInGroup(boss.numericId, RIGHT_GROUP_NUMBER);
 
     pulseBlockLights(
       this.rightBlocks,
-      32,   // base radius
-      32,   // ±pulse range
-      1.5,  // Hz
+      32,    // base radius in pixels
+      32,    // ±32 pixel pulse → 96–160px
+      1.5,   // frequency in Hz
       'radius'
     );
 
@@ -74,6 +81,7 @@ export class BossState_RightFlankFlames implements BossState {
 
     const ship = controller.getBoss();
     const currentTransform = ship.getTransform();
+    const damage = this.bossDefinition!.damageMultiplier * ship.getBossPhase();
 
     // Face player minus 120° → right side faces player
     const desiredAngle = context.angleToPlayer - (2 * Math.PI / 3);
@@ -92,7 +100,7 @@ export class BossState_RightFlankFlames implements BossState {
           arcStartDeg,
           arcEndDeg,
           this.flameDuration,
-          this.bossDefinition!.damageMultiplier
+          damage
         );
 
         controller.getMechanics().add(this.flameMechanic);

@@ -38,6 +38,7 @@ export class BossFactory {
     );
 
     ship.initializeHealth(definition.maxHealth);
+    ship.setMaxHealthDamageIntakePerSecond(definition.maxHealthDamageIntakePerSecond);
 
     const player = ShipRegistry.getInstance().getPlayerShip();
     if (!player) throw new Error('[BossFactory] Player ship not found in registry');

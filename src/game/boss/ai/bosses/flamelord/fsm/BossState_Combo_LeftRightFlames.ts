@@ -39,17 +39,24 @@ export class BossState_Combo_LeftRightFlames implements BossState {
     this.leftMechanic = null;
     this.rightMechanic = null;
 
-    const hpPct = controller.getContext().healthPercent;
+    const phase = controller.getCurrentPhase();
 
-    if (hpPct < 0.25) {
-      this.flameDuration = 6.0;
-      this.trackingSpeed = 0.004;
-    } else if (hpPct < 0.5) {
-      this.flameDuration = 5.5;
-      this.trackingSpeed = 0.003;
-    } else {
-      this.flameDuration = 5.0;
-      this.trackingSpeed = 0.002;
+    // Phase-specific parameter tuning for dual-flank flames
+    switch (phase) {
+      case 'phase4':
+        this.flameDuration = 6.0;
+        this.trackingSpeed = 0.004;
+        break;
+      case 'phase3':
+        this.flameDuration = 5.5;
+        this.trackingSpeed = 0.003;
+        break;
+      case 'phase1':
+      case 'phase2':
+      default:
+        this.flameDuration = 5.0;
+        this.trackingSpeed = 0.002;
+        break;
     }
 
     const boss = controller.getBoss();
@@ -57,6 +64,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
 
     this.bossDefinition = controller.getBossDefinition();
     this.flankBlocks = getShipBlocksInGroups(id, [LEFT_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
+
     pulseBlockLights(this.flankBlocks, 32, 32, 1.5, 'radius');
     playActivationEffects(boss);
   }
@@ -66,6 +74,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
 
     const boss = controller.getBoss();
     const currentTransform = boss.getTransform();
+    const damage = this.bossDefinition!.damageMultiplier * boss.getBossPhase();
 
     // Align left flank toward player → rotate front +120°
     const desiredAngle = context.angleToPlayer + (2 * Math.PI / 3);
@@ -85,7 +94,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
           leftStartDeg,
           leftEndDeg,
           this.flameDuration,
-          this.bossDefinition!.damageMultiplier
+          damage
         );
 
         this.rightMechanic = new DirectionalFlameThrowerMechanic(
@@ -93,7 +102,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
           rightStartDeg,
           rightEndDeg,
           this.flameDuration,
-          this.bossDefinition!.damageMultiplier
+          damage
         );
 
         controller.getMechanics().add(this.leftMechanic);

@@ -39,24 +39,35 @@ export class BossState_DetonatePulse implements BossState {
     this.detonated = false;
     this.explosionMechanic = null;
 
-    const hpPct = controller.getContext().healthPercent;
+    const phase = controller.getCurrentPhase();
 
-    if (hpPct < 0.25) {
-      this.telegraphDuration = 3.0;
-      this.explosionDuration = 1.3;
-    } else if (hpPct < 0.5) {
-      this.telegraphDuration = 3.5;
-      this.explosionDuration = 1.2;
-    } else {
-      this.telegraphDuration = 4.0;
-      this.explosionDuration = 1.0;
+    // Phase-driven tuning for explosion telegraph and duration
+    switch (phase) {
+      case 'phase4':
+        this.telegraphDuration = 3.0;
+        this.explosionDuration = 1.3;
+        break;
+      case 'phase3':
+        this.telegraphDuration = 3.5;
+        this.explosionDuration = 1.2;
+        break;
+      case 'phase1':
+      case 'phase2':
+      default:
+        this.telegraphDuration = 4.0;
+        this.explosionDuration = 1.0;
+        break;
     }
 
     const boss = controller.getBoss();
     const id = boss.numericId;
 
     this.bossDefinition = controller.getBossDefinition();
-    this.telegraphBlocks = getShipBlocksInGroups(id, [LEFT_GROUP_NUMBER, CENTER_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
+    this.telegraphBlocks = getShipBlocksInGroups(id, [
+      LEFT_GROUP_NUMBER,
+      CENTER_GROUP_NUMBER,
+      RIGHT_GROUP_NUMBER,
+    ]);
 
     pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
     playActivationEffects(boss);
@@ -64,6 +75,8 @@ export class BossState_DetonatePulse implements BossState {
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
     this.timer += dt;
+
+    const damage = this.bossDefinition!.damageMultiplier * context.ship.getBossPhase();
 
     if (this.telegraphing && this.timer >= this.telegraphDuration) {
       this.telegraphing = false;
@@ -74,7 +87,7 @@ export class BossState_DetonatePulse implements BossState {
       this.explosionMechanic = new RadialExplosionMechanic(
         boss,
         this.explosionDuration,
-        this.bossDefinition!.damageMultiplier
+        damage
       );
 
       controller.getMechanics().add(this.explosionMechanic);

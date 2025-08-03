@@ -11,7 +11,7 @@ import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BossManager } from '@/game/boss/BossManager';
 
-const EXPLOSION_DAMAGE = 10;
+const EXPLOSION_DAMAGE = 8;
 const EXPLOSION_RADIUS = 1800;
 const EXPLOSION_OFFSET = 128;
 const NUM_DIRECTIONS = 32;

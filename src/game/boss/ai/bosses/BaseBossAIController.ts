@@ -3,8 +3,8 @@
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { Ship } from '@/game/ship/Ship';
-
 import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
+import type { PhaseKey } from '@/game/boss/ai/interfaces/PhaseKey';
 
 import { BossMechanicManager } from '@/game/boss/ai/mechanics/BossMechanicManager';
 import { BossAIContext } from '@/game/boss/ai/BossAIContext';
@@ -15,8 +15,9 @@ export abstract class BaseBossAIController {
   protected readonly mechanics: BossMechanicManager;
   protected readonly combatService: CombatService;
   protected readonly bossDefinition: BossDefinition;
-  
+
   private started = false;
+  private currentPhase: PhaseKey = 'phase1';
 
   constructor(
     protected readonly boss: Ship,
@@ -51,11 +52,37 @@ export abstract class BaseBossAIController {
     const next = this.getStateMap()[stateName];
     if (!next) throw new Error(`[BaseBossAIController] Unknown state: '${stateName}'`);
 
-    console.log('[BaseBossAIController] Transitioning to state: ', stateName);
+    console.log('[BaseBossAIController] Transitioning to state:', stateName);
 
     this.currentState.exit(this);
     this.currentState = next;
     this.currentState.enter(this);
+  }
+
+  /** Returns the active FSM state name (optional convenience) */
+  public getCurrentStateName(): string {
+    return this.currentState?.name ?? '(uninitialized)';
+  }
+
+  /** Returns the boss's current behavioral phase */
+  public getCurrentPhase(): PhaseKey {
+    this.updatePhaseFromHealth(this.context.healthPercent);
+    return this.currentPhase;
+  }
+
+  /**
+   * Determines and sets the current phase based on health percent.
+   */
+  private updatePhaseFromHealth(hpPct: number): void {
+    if (hpPct > 0.75) {
+      this.currentPhase = 'phase1';
+    } else if (hpPct > 0.5) {
+      this.currentPhase = 'phase2';
+    } else if (hpPct > 0.25) {
+      this.currentPhase = 'phase3';
+    } else {
+      this.currentPhase = 'phase4';
+    }
   }
 
   public getBoss(): Ship {
@@ -82,5 +109,6 @@ export abstract class BaseBossAIController {
     return this.bossDefinition;
   }
 
+  /** Subclass must return the map of legal states */
   protected abstract getStateMap(): Record<string, BossState>;
 }

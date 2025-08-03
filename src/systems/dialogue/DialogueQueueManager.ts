@@ -158,9 +158,9 @@ export class DialogueQueueManager {
   }
 
   public update(dt: number): void {
+    this.asyncManager.update(dt);
     if (!this.isActive) return;
 
-    this.asyncManager.update(dt);
     this.orchestrator.update(dt);
 
     if (this.pauseTimerMs !== null) {

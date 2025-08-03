@@ -14,7 +14,7 @@ import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { spawnMineWave, clearMineWave } from '@/game/boss/ai/mechanics/helpers/spawnMineHelper';
 import { audioManager } from '@/audio/Audio';
 
-const MINE_EXPLOSION_DAMAGE = 100;
+const MINE_EXPLOSION_DAMAGE = 50;
 const MINE_EXPLOSION_WORLD_RADIUS = 328;
 const BIG_MINE_EXPLOSION_WORLD_RADIUS = 1200;
 

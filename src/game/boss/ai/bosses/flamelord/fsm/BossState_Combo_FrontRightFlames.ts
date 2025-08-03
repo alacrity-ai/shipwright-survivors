@@ -41,27 +41,37 @@ export class BossState_Combo_FrontRightFlames implements BossState {
     this.frontFlame = null;
     this.rightFlame = null;
 
-    const hpPct = controller.getContext().healthPercent;
+    const phase = controller.getCurrentPhase();
 
-    if (hpPct < 0.25) {
-      this.telegraphDuration = 2.0;
-      this.flameDuration = 6.5;
-      this.trackingSpeed = 0.004;
-    } else if (hpPct < 0.5) {
-      this.telegraphDuration = 2.5;
-      this.flameDuration = 6.0;
-      this.trackingSpeed = 0.003;
-    } else {
-      this.telegraphDuration = 3.0;
-      this.flameDuration = 5.5;
-      this.trackingSpeed = 0.002;
+    // Phase-based parameter escalation
+    switch (phase) {
+      case 'phase4':
+        this.telegraphDuration = 2.0;
+        this.flameDuration = 6.5;
+        this.trackingSpeed = 0.004;
+        break;
+      case 'phase3':
+        this.telegraphDuration = 2.5;
+        this.flameDuration = 6.0;
+        this.trackingSpeed = 0.003;
+        break;
+      case 'phase1':
+      case 'phase2':
+      default:
+        this.telegraphDuration = 3.0;
+        this.flameDuration = 5.5;
+        this.trackingSpeed = 0.002;
+        break;
     }
 
     const boss = controller.getBoss();
     const id = boss.numericId;
 
     this.bossDefinition = controller.getBossDefinition();
-    this.telegraphBlocks = getShipBlocksInGroups(id, [CENTER_GROUP_NUMBER, RIGHT_GROUP_NUMBER]);
+    this.telegraphBlocks = getShipBlocksInGroups(id, [
+      CENTER_GROUP_NUMBER,
+      RIGHT_GROUP_NUMBER,
+    ]);
 
     pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
     playActivationEffects(boss);
@@ -71,6 +81,7 @@ export class BossState_Combo_FrontRightFlames implements BossState {
     this.timer += dt;
 
     const boss = controller.getBoss();
+    const damage = this.bossDefinition!.damageMultiplier * boss.getBossPhase();
     const currentTransform = boss.getTransform();
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
     boss.setTransform({ ...currentTransform, rotation: easedRot });
@@ -83,8 +94,8 @@ export class BossState_Combo_FrontRightFlames implements BossState {
         const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);  // front cone
         const [rightStart, rightEnd] = rotateArc(60, 180, easedRot);  // right flank
 
-        this.frontFlame = new DirectionalFlameThrowerMechanic(boss, frontStart, frontEnd, this.flameDuration, this.bossDefinition!.damageMultiplier);
-        this.rightFlame = new DirectionalFlameThrowerMechanic(boss, rightStart, rightEnd, this.flameDuration, this.bossDefinition!.damageMultiplier);
+        this.frontFlame = new DirectionalFlameThrowerMechanic(boss, frontStart, frontEnd, this.flameDuration, damage);
+        this.rightFlame = new DirectionalFlameThrowerMechanic(boss, rightStart, rightEnd, this.flameDuration, damage);
 
         controller.getMechanics().add(this.frontFlame);
         controller.getMechanics().add(this.rightFlame);

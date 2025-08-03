@@ -4,13 +4,27 @@ import { AsyncDialogueRunner } from './AsyncDialogueRunner';
 import { DialogueOrchestrator } from './DialogueOrchestrator';
 import type { DialogueEvent } from './interfaces/DialogueEvent';
 
+import { GlobalEventBus } from '@/core/EventBus';
+
 export class AsyncDialogueManager {
   private readonly allRunners: Set<AsyncDialogueRunner> = new Set();
   private readonly renderQueue: AsyncDialogueRunner[] = [];
   private currentRenderer: AsyncDialogueRunner | null = null;
   private runnerMap: Map<string, AsyncDialogueRunner> = new Map();
 
-  constructor(private readonly orchestratorFactory: () => DialogueOrchestrator) {}
+  private readonly handleDialogueEvent = (payload: DialogueEvent) => {
+    this.clearAll();
+    this.startAsync([payload]);
+  };
+
+  private readonly handleDialogueEventClear = () => {
+    this.clearAll();
+  };
+
+  constructor(private readonly orchestratorFactory: () => DialogueOrchestrator) {
+    GlobalEventBus.on('dialogue:event', this.handleDialogueEvent);
+    GlobalEventBus.on('dialogue:event:clear', this.handleDialogueEventClear);
+  }
 
   startAsync(dialogue: DialogueEvent[], shouldInterrupt?: () => boolean, id?: string): void {
     if (id && this.runnerMap.has(id)) return;
@@ -27,14 +41,13 @@ export class AsyncDialogueManager {
     for (const runner of this.allRunners) {
       runner.update(dt);
 
-      // Runner enters renderQueue when it wants to be visual
       if (runner.wantsVisualFocus() && !this.renderQueue.includes(runner)) {
         this.renderQueue.push(runner);
       }
 
-      // Cleanup finished runners
       if (runner.isFinished()) {
         this.allRunners.delete(runner);
+
         if (runner === this.currentRenderer) {
           this.currentRenderer = null;
         }
@@ -46,12 +59,10 @@ export class AsyncDialogueManager {
           }
         }
 
-        // Explicit teardown of completed runner
         runner.destroy();
       }
     }
 
-    // Promote next renderer
     if (!this.currentRenderer && this.renderQueue.length > 0) {
       this.currentRenderer = this.renderQueue.shift()!;
       this.currentRenderer.grantVisualFocus();
@@ -80,6 +91,9 @@ export class AsyncDialogueManager {
     this.runnerMap.clear();
     this.renderQueue.length = 0;
     this.currentRenderer = null;
+
+    GlobalEventBus.off('dialogue:event', this.handleDialogueEvent);
+    GlobalEventBus.off('dialogue:event:clear', this.handleDialogueEventClear);
   }
 
   isVisible(): boolean {

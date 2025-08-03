@@ -25,6 +25,7 @@ export function upgradeAffinityBlocksOnShip(
   const upgrades: Array<{
     coord: GridCoord;
     newBlockId: string;
+    newBlockGroup: number;
     rotation: number; // snapped local radians
   }> = [];
 
@@ -41,17 +42,19 @@ export function upgradeAffinityBlocksOnShip(
     if (!upgradedType || upgradedType.tier <= blockType.tier) continue;
 
     const localRot = store.localRotation[idx] ?? 0;
+    const group = store.group[idx] ?? 0;
 
     upgrades.push({
       coord: { x: store.localX[idx], y: store.localY[idx] },
       newBlockId: upgradedType.id,
+      newBlockGroup: group,
       rotation: snapToRightAngleRadians(localRot),
     });
   }
 
-  for (const { coord, newBlockId, rotation } of upgrades) {
+  for (const { coord, newBlockId, newBlockGroup, rotation } of upgrades) {
     ship.removeBlock(coord);
-    ship.placeBlockById(coord, newBlockId, rotation);
+    ship.placeBlockById(coord, newBlockId, rotation, newBlockGroup);
   }
 }
 
@@ -74,12 +77,58 @@ export function upgradeBlockIndexOnShip(
 
   const coord: GridCoord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
   const localRot = store.localRotation[blockIndex] ?? 0;
+  const group = store.group[blockIndex] ?? 0;
 
   ship.removeBlock(coord);
-  ship.placeBlockById(coord, upgradedType.id, snapToRightAngleRadians(localRot));
+  ship.placeBlockById(coord, upgradedType.id, snapToRightAngleRadians(localRot), group);
 
   return true;
 }
+
+/**
+ * Upgrades a specific list of block indices by `tierDelta` tiers.
+ * Only upgrades blocks if their next tier is strictly higher.
+ * Replaces each block in-place using coord and snapped rotation.
+ */
+export function bulkUpgradeBlockIndicesOnShip(
+  ship: Ship,
+  blockIndices: Iterable<number>,
+  tierDelta: number = 1
+): void {
+  const store = BlockManager.getInstance().getBlockStore();
+
+  const upgrades: Array<{
+    coord: GridCoord;
+    newBlockId: string;
+    newBlockGroup: number;
+    rotation: number;
+  }> = [];
+
+  for (const idx of blockIndices) {
+    if (!store.isAllocated(idx)) continue;
+
+    const typeIndex = store.typeIndex[idx];
+    const blockType = getBlockTypeByIndex(typeIndex);
+    if (!blockType) continue;
+
+    const upgradedType = getNextTierBlock(blockType, tierDelta);
+    if (!upgradedType || upgradedType.tier <= blockType.tier) continue;
+
+    upgrades.push({
+      coord: { x: store.localX[idx], y: store.localY[idx] },
+      newBlockId: upgradedType.id,
+      newBlockGroup: store.group[idx],
+      rotation: snapToRightAngleRadians(store.localRotation[idx] ?? 0),
+    });
+  }
+
+  for (let i = 0; i < upgrades.length; i++) {
+    const { coord, newBlockId, newBlockGroup, rotation } = upgrades[i];
+    ship.removeBlock(coord);
+    ship.placeBlockById(coord, newBlockId, rotation, newBlockGroup);
+  }
+}
+
 
 /**
  * Replaces a block (by SOA index) with a new type, preserving coord and rotation.
@@ -94,9 +143,10 @@ export function replaceBlockOnShipByIndex(
 
   const coord: GridCoord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
   const localRot = store.localRotation[blockIndex] ?? 0;
+  const group = store.group[blockIndex] ?? 0;
 
   ship.removeBlock(coord);
-  ship.placeBlockById(coord, newType.id, snapToRightAngleRadians(localRot));
+  ship.placeBlockById(coord, newType.id, snapToRightAngleRadians(localRot), group);
 
   return true;
 }

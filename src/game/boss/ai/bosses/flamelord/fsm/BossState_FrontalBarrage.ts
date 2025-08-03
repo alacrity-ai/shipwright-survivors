@@ -39,20 +39,27 @@ export class BossState_FrontalBarrage implements BossState {
     this.telegraphing = true;
     this.flameMechanic = null;
 
-    const hpPct = controller.getContext().healthPercent;
+    const phase = controller.getCurrentPhase();
 
-    if (hpPct < 0.25) {
-      this.telegraphDuration = 2.5;
-      this.flameDuration = 9;
-      this.trackingSpeed = 0.004;
-    } else if (hpPct < 0.5) {
-      this.telegraphDuration = 3.5;
-      this.flameDuration = 8;
-      this.trackingSpeed = 0.003;
-    } else {
-      this.telegraphDuration = 4.5;
-      this.flameDuration = 7;
-      this.trackingSpeed = 0.002;
+    // Phase-specific parameterization
+    switch (phase) {
+      case 'phase4':
+        this.telegraphDuration = 2.5;
+        this.flameDuration = 9;
+        this.trackingSpeed = 0.004;
+        break;
+      case 'phase3':
+        this.telegraphDuration = 3.5;
+        this.flameDuration = 8;
+        this.trackingSpeed = 0.003;
+        break;
+      case 'phase1':
+      case 'phase2':
+      default:
+        this.telegraphDuration = 4.5;
+        this.flameDuration = 7;
+        this.trackingSpeed = 0.002;
+        break;
     }
 
     const boss = controller.getBoss();
@@ -63,7 +70,7 @@ export class BossState_FrontalBarrage implements BossState {
       this.frontalBlocks,
       32,  // base radius
       32,  // ±pulse range
-      1.5, // Hz
+      1.5, // frequency in Hz
       'radius'
     );
 
@@ -75,6 +82,7 @@ export class BossState_FrontalBarrage implements BossState {
 
     const ship = controller.getBoss();
     const currentTransform = ship.getTransform();
+    const damage = this.bossDefinition!.damageMultiplier * ship.getBossPhase();
 
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
     ship.setTransform({ ...currentTransform, rotation: easedRot });
@@ -90,7 +98,7 @@ export class BossState_FrontalBarrage implements BossState {
           arcStartDeg,
           arcEndDeg,
           this.flameDuration,
-          this.bossDefinition!.damageMultiplier
+          damage
         );
 
         controller.getMechanics().add(this.flameMechanic);

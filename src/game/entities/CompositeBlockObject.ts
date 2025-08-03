@@ -29,6 +29,8 @@ export abstract class CompositeBlockObject {
 
   protected currentHealth: number = 0;
   protected maxHealth: number = 0;
+  protected maxHealthDamageIntakePerSecond: number = 1000; // New
+  protected lastHealthDamageTimestamp: number = 0; // New!
 
   protected blockManager: BlockManager;
   protected blockOrchestrator: BlockOrchestrator;
@@ -50,6 +52,8 @@ export abstract class CompositeBlockObject {
   protected blockColorIntensity: number = 0.5;
 
   protected noClip: boolean = false;
+
+  protected bossPhase: number = 1;
 
   protected anchorPointComponent: AnchorPointComponent | null = null;
 
@@ -217,6 +221,40 @@ export abstract class CompositeBlockObject {
     this.currentHealth = health;
   }
 
+  /**
+   * Applies damage to the object's health pool, respecting the per-second intake cap.
+   * Returns the actual amount of damage applied after throttling.
+   */
+  public applyDamageToHealth(requestedDamage: number): number {
+    if (requestedDamage <= 0 || this.currentHealth <= 0) return 0;
+
+    const now = performance.now();
+    const deltaMs = now - this.lastHealthDamageTimestamp;
+
+    // Convert max DPS into per-millisecond cap
+    const maxDps = this.maxHealthDamageIntakePerSecond;
+    const allowedDamage = (deltaMs / 1000) * maxDps;
+
+    // Determine effective damage to apply, bounded by health and throttle
+    const actualDamage = Math.min(requestedDamage, allowedDamage, this.currentHealth);
+
+    if (actualDamage <= 0) return 0;
+
+    this.currentHealth -= actualDamage;
+    this.lastHealthDamageTimestamp = now;
+
+    return actualDamage;
+  }
+
+  // Sets max health damage intake per second
+  public setMaxHealthDamageIntakePerSecond(damage: number): void {
+    this.maxHealthDamageIntakePerSecond = damage;
+  }
+
+  public getMaxHealthDamageIntakePerSecond(): number {
+    return this.maxHealthDamageIntakePerSecond;
+  }
+
   // Initializes health on an entity/boss/etc
   public initializeHealth(maxHealth: number): void {
     this.maxHealth = maxHealth;
@@ -226,6 +264,16 @@ export abstract class CompositeBlockObject {
   // Can be used to determine if the entity is using the health system at all
   public hasHealth(): boolean {
     return this.maxHealth > 0;
+  }
+
+  // --- Boss Phase (Only applies to bosses or phased enemies)
+  
+  public getBossPhase(): number {
+    return this.bossPhase;
+  }
+
+  public setBossPhase(phase: number): void {
+    this.bossPhase = phase;
   }
 
   // --- Clipping

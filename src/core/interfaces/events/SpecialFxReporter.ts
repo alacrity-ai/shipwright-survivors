@@ -99,22 +99,72 @@ export function emitDefaultFlames(x: number, y: number, radius = 250, life = 1.0
   });
 }
 
-export function emitBlueFlames(x: number, y: number, count = 5): void {
-  emitFire({
-    x,
-    y,
-    radius: 20,
-    life: 1.2,
-    intensity: 0.8,
-    rampIndex: 2, // plasma/blue flame
-    randomizeRadius: true,
-    randomizeLife: true,
-    count,
-    light: true,
-    lightRadiusScalar: 4.5,
-    lightIntensity: 1.0,
-    color: '#33ccff',
-  });
+/**
+ * Emits classic orange flames.
+ * Matches: rampIndex = 0, color = '#ff9933'
+ */
+export function emitOrangeFlames(
+  x: number,
+  y: number,
+  radius = 250,
+  life = 1.0,
+  light = true,
+  count = 5,
+  vx: number = 0,
+  vy: number = 0
+): void {
+  emitDefaultFlames(x, y, radius, life, light, count, '#ff9933', vx, vy);
+}
+
+/**
+ * Emits poison green flames.
+ * Matches: rampIndex = 1, color = '#33ff88'
+ */
+export function emitGreenFlames(
+  x: number,
+  y: number,
+  radius = 250,
+  life = 1.0,
+  light = true,
+  count = 5,
+  vx: number = 0,
+  vy: number = 0
+): void {
+  emitDefaultFlames(x, y, radius, life, light, count, '#33ff88', vx, vy);
+}
+
+/**
+ * Emits plasma blue flames.
+ * Matches: rampIndex = 2, color = '#33ccff'
+ */
+export function emitBlueFlames(
+  x: number,
+  y: number,
+  radius = 250,
+  life = 1.0,
+  light = true,
+  count = 5,
+  vx: number = 0,
+  vy: number = 0
+): void {
+  emitDefaultFlames(x, y, radius, life, light, count, '#33ccff', vx, vy);
+}
+
+/**
+ * Emits magenta/purple flames.
+ * Matches: rampIndex = 3, color = '#cc66ff'
+ */
+export function emitPurpleFlames(
+  x: number,
+  y: number,
+  radius = 250,
+  life = 1.0,
+  light = true,
+  count = 5,
+  vx: number = 0,
+  vy: number = 0
+): void {
+  emitDefaultFlames(x, y, radius, life, light, count, '#cc66ff', vx, vy);
 }
 
 export function emitPoisonFlames(x: number, y: number, count = 4): void {
