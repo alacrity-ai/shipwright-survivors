@@ -125,6 +125,13 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] On boss death;
+    - [ ] Screen flash
+    - [ ] Slow motion
+    - [ ] Post process effect?
+    - [ ] Dramatic sound effect
+
+  - [ ] Boss rings would be more interesting if they spawned one after another (random ring order), and then detonated in FIFO order, so you could move into the explosion.
   - [ ] Fix boss healthbar rendering, remove player UI during boss fight, render boss healthbar on bottom of screen.
   - [ ] New placed blocks don't inherit Ship Color override.
 

@@ -23,17 +23,17 @@ const CENTER_GROUP_NUMBER = 3;
 
 const phaseSequences: Record<PhaseKey, StateSequence> = {
   phase1: {
-    states: ['LeftFlankFlames', 'RightFlankFlames', 'FrontalBarrage', 'MinefieldDeploy'],
+    states: ['LeftFlankFlames', 'MinefieldDeploy','RightFlankFlames', 'FrontalBarrage'],
     index: 0,
   },
   phase2: {
     states: [
       'DetonatePulse',
+      'FrontalBarrage',
+      'MinefieldDeploy',
       'Combo_LeftRightFlames',
       'Combo_FrontRightFlames',
       'Combo_FrontLeftFlames',
-      'FrontalBarrage',
-      'MinefieldDeploy',
     ],
     index: 0,
   },
@@ -49,7 +49,7 @@ const phaseSequences: Record<PhaseKey, StateSequence> = {
     index: 0,
   },
   phase4: {
-    states: ['MinefieldDeploy', 'Combo_FrontRightFlames', 'Combo_FrontLeftFlames', 'FinalExam'],
+    states: ['Combo_FrontRightFlames', 'Combo_FrontLeftFlames', 'MinefieldDeploy', 'DetonatePulse'],
     index: 0,
   },
 };

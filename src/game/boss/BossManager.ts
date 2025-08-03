@@ -69,6 +69,15 @@ export class BossManager {
     return this.combatService;
   }
 
+  public bossDefeated(): boolean {
+    return this.orchestrator.bossDefeated();
+  }
+
+  public fightComplete(): boolean {
+    // TODO : For now just return if the boss is defeated, later we'll have a victory cutscene, e.g. slowmotion plus screen flash etc.
+    return this.bossDefeated()
+  }
+
   /** Per-tick boss update — AI, cutscene, etc. */
   public update(dt: number): void {
     // Orchestrator is responsible for per-frame AI updates and cutscene updates

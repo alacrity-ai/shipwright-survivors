@@ -48,12 +48,12 @@ export class BossState_Combo_FrontRightFlames implements BossState {
       case 'phase4':
         this.telegraphDuration = 3.5;
         this.flameDuration = 6.5;
-        this.trackingSpeed = 0.004;
+        this.trackingSpeed = 0.002;
         break;
       case 'phase3':
         this.telegraphDuration = 3.7;
         this.flameDuration = 6.0;
-        this.trackingSpeed = 0.003;
+        this.trackingSpeed = 0.002;
         break;
       case 'phase1':
       case 'phase2':

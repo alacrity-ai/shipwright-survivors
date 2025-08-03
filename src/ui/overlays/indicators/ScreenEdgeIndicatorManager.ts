@@ -20,6 +20,20 @@ export class ScreenEdgeIndicatorManager {
   private readonly camera = Camera.getInstance();
   private ctx: CanvasRenderingContext2D;
 
+  private indicatorsEnabled = true;
+
+  private handleClearIndicators = () => {
+    this.clearAll();
+  };
+
+  private handleDisableIndicators = () => {
+    this.hideIndicators();
+  };
+
+  private handleEnableIndicators = () => {
+    this.showIndicators();
+  };
+
   private handleCreateIndicator = (
     payload: { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement }
   ) => {
@@ -36,6 +50,9 @@ export class ScreenEdgeIndicatorManager {
   constructor() {
     this.ctx = CanvasManager.getInstance().getContext('overlay');
 
+    GlobalEventBus.on('indicator:enable', this.handleEnableIndicators);
+    GlobalEventBus.on('indicator:disable', this.handleDisableIndicators);
+    GlobalEventBus.on('indicator:clear', this.handleClearIndicators);
     GlobalEventBus.on('indicator:create', this.handleCreateIndicator);
     GlobalEventBus.on('indicator:remove', this.handleRemoveIndicator);
   }
@@ -58,11 +75,21 @@ export class ScreenEdgeIndicatorManager {
     this.indicators.clear();
   }
 
+  hideIndicators(): void {
+    this.indicatorsEnabled = false;
+  }
+
+  showIndicators(): void {
+    this.indicatorsEnabled = true;
+  }
+
   update(_dt: number): void {
     // Placeholder for future animated indicators or tracking dynamic targets
   }
 
   render(): void {
+    if (!this.indicatorsEnabled) return;
+
     const cam = this.camera;
     const viewportWidth = cam.getViewportWidth();
     const viewportHeight = cam.getViewportHeight();
@@ -136,7 +163,10 @@ export class ScreenEdgeIndicatorManager {
   }
 
   destroy(): void {
+    GlobalEventBus.off('indicator:clear', this.handleClearIndicators);
+    GlobalEventBus.off('indicator:enable', this.handleEnableIndicators);
     GlobalEventBus.off('indicator:create', this.handleCreateIndicator);
     GlobalEventBus.off('indicator:remove', this.handleRemoveIndicator);
+    GlobalEventBus.off('indicator:disable', this.handleDisableIndicators);
   }
 }

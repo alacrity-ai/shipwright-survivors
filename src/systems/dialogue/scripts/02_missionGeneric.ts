@@ -15,6 +15,7 @@ import { awaitCondition } from '@/systems/dialogue/utils/awaitCondition';
 import { BossManager } from '@/game/boss/BossManager';
 import { BossRegistry } from '@/game/boss/registry/BossRegistry';
 import { ArenaManager } from '@/game/arena/ArenaManager';
+import { missionResultStore } from '@/game/missions/MissionResultStore';
 
 export function createMissionGenericScript(ctx: DialogueContext): DialogueScript {
   const { inputManager, waveOrchestrator, playerShip } = ctx;
@@ -110,11 +111,17 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       {
         type: 'command',
         run: () => {
-          // TODO: This will be some kind of BossController or BossManager, isBossDefeated call
-          // return awaitCondition(() => waveOrchestrator.isActiveWaveCompleted());
-
-          // For now, await condition that will never resolve for testing, so we never proceed
-          return awaitCondition(() => false);
+          const bossManager = BossManager.getInstance();
+          return awaitCondition(() => bossManager.fightComplete());
+        },
+      },
+      // Run script
+      {
+        type: 'command',
+        run: () => {
+          const bossManager = BossManager.getInstance();
+          bossManager.destroy();
+          missionResultStore.setBossDefeated();
         },
       },
       {

@@ -27,3 +27,13 @@ export function spawnDefaultBossArena(
     formingDuration
   });
 }
+
+
+// Show Boss healthbars
+export function showBossHealthbar(): void {
+  GlobalEventBus.emit('bosshealthbar:show', undefined);
+}
+
+export function hideBossHealthbar(): void {
+  GlobalEventBus.emit('bosshealthbar:hide', undefined);
+}

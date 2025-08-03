@@ -9,6 +9,10 @@ import type { InputManager } from '@/core/InputManager';
 
 import { PlayerExperienceBar } from '@/ui/overlays/components/PlayerExperienceBar';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
+
+import { drawBossHealthbar } from '@/game/boss/helpers/drawHealthbar';
+import { BossManager } from '@/game/boss/BossManager';
+
 // import { drawUIResourceBar } from '@/ui/primitives/UIResourceBar';
 // import { drawUIVerticalResourceBar } from '@/ui/primitives/UIVerticalResourceBar';
 // import { drawFiringModeToggle } from '@/ui/primitives/UIFiringModeToggle'; // Deprecated, no longer in game
@@ -22,6 +26,7 @@ import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDis
 export class HudOverlay {
   private ship: Ship | null = null;
 
+  private readonly ctx: CanvasRenderingContext2D;
   private readonly playerResources: PlayerResources;
   private readonly blockQueueDisplayManager: BlockQueueDisplayManager;
 
@@ -31,6 +36,8 @@ export class HudOverlay {
   private readonly onMetersShow = () => this.showMeters();
   // private readonly onFiringModeHide = () => this.hideFiringMode();
   // private readonly onFiringModeShow = () => this.showFiringMode();
+  private readonly onBossHealthbarShow = () => this.showBossHealthbar();
+  private readonly onBossHealthbarHide = () => this.hideBossHealthbar();
   private readonly onAttachAllButtonShow = () => this.blockQueueDisplayManager.showAttachAllButton();
   private readonly onAttachAllButtonHide = () => this.blockQueueDisplayManager.hideAttachAllButton();
   private readonly onRollButtonShow = () => this.blockQueueDisplayManager.showRollButton();
@@ -50,6 +57,8 @@ export class HudOverlay {
   private entropium: number = 0;
   private previousEntropium: number = 0;
   private experienceBar: PlayerExperienceBar;
+
+  private bossHealthbarVisible: boolean = false;
 
   // === Canvas Caches ===
   // Deprecated Meters
@@ -80,6 +89,8 @@ export class HudOverlay {
     GlobalEventBus.on('hud:show', this.onShow);
     GlobalEventBus.on('meters:hide', this.onMetersHide);
     GlobalEventBus.on('meters:show', this.onMetersShow);
+    GlobalEventBus.on('bosshealthbar:show', this.onBossHealthbarShow);
+    GlobalEventBus.on('bosshealthbar:hide', this.onBossHealthbarHide);
     // GlobalEventBus.on('firingmode:hide', this.onFiringModeHide);
     // GlobalEventBus.on('firingmode:show', this.onFiringModeShow);
     GlobalEventBus.on('attachAllButton:show', this.onAttachAllButtonShow);
@@ -106,6 +117,8 @@ export class HudOverlay {
       this.blockDropDecisionMenu,
       this.inputManager
     );
+
+    this.ctx = this.canvasManager.getContext('overlay');
 
     // const scale = getUniformScaleFactor();
 
@@ -145,14 +158,18 @@ export class HudOverlay {
 
     if (!this.ship) return;
 
-    const scale = getUniformScaleFactor();
-    const ctx = this.canvasManager.getContext('overlay');
-    const canvas = ctx.canvas;
+    // Boss healthbar enabled in BossOrchestrator via event transmission
+    if (this.bossHealthbarVisible) {
+      const bossShip = BossManager.getInstance().getOrchestrator().getBossShip();
+      if (bossShip) {
+        drawBossHealthbar(this.ctx, bossShip);
+      }
+    }
 
-    const barWidth = Math.floor(140 * scale);
-    const barHeight = Math.floor(12 * scale);
-    const y = canvas.height - Math.floor(24 * scale);
-    const toggleX = Math.floor(64 * scale);
+    // const barWidth = Math.floor(140 * scale);
+    // const barHeight = Math.floor(12 * scale);
+    // const y = canvas.height - Math.floor(24 * scale);
+    // const toggleX = Math.floor(64 * scale);
 
     if (!this.metersHidden) {
       // const velocity = this.ship.getTransform().velocity;
@@ -273,6 +290,8 @@ export class HudOverlay {
   destroy(): void {
     GlobalEventBus.off('meters:hide', this.onMetersHide);
     GlobalEventBus.off('meters:show', this.onMetersShow);
+    GlobalEventBus.off('bosshealthbar:show', this.onBossHealthbarShow);
+    GlobalEventBus.off('bosshealthbar:hide', this.onBossHealthbarHide);
     // GlobalEventBus.off('firingmode:hide', this.onFiringModeHide);
     // GlobalEventBus.off('firingmode:show', this.onFiringModeShow);
     GlobalEventBus.off('hud:hide', this.onHide);
@@ -299,6 +318,14 @@ export class HudOverlay {
 
   private showMeters(): void {
     this.metersHidden = false;
+  }
+
+  private showBossHealthbar(): void {
+    this.bossHealthbarVisible = true;
+  }
+
+  private hideBossHealthbar(): void {
+    this.bossHealthbarVisible = false;
   }
 
   // private hideFiringMode(): void {

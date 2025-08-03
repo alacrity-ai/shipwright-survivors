@@ -14,3 +14,15 @@ export function createScreenEdgeIndicator(
 export function removeScreenEdgeIndicator(id: string): void {
   GlobalEventBus.emit('indicator:remove', { id });
 }
+
+export function clearAllScreenEdgeIndicators(): void {
+  GlobalEventBus.emit('indicator:clear', undefined);
+}
+
+export function enableScreenEdgeIndicators(): void {
+  GlobalEventBus.emit('indicator:enable', undefined);
+}
+
+export function disableScreenEdgeIndicators(): void {
+  GlobalEventBus.emit('indicator:disable', undefined);
+}

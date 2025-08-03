@@ -45,7 +45,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
     switch (phase) {
       case 'phase4':
         this.flameDuration = 6.0;
-        this.trackingSpeed = 0.004;
+        this.trackingSpeed = 0.0035;
         break;
       case 'phase3':
         this.flameDuration = 5.5;

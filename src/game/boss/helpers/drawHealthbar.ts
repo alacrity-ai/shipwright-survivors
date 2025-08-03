@@ -3,28 +3,32 @@ import type { Ship } from '@/game/ship/Ship';
 
 import { getUniformScaleFactor } from '@/config/view';
 
-const BAR_WIDTH = 400;
+const BAR_WIDTH = 600;
 const BAR_HEIGHT = 24;
 
 export function drawBossHealthbar(ctx: CanvasRenderingContext2D, bossShip: Ship): void {
   if (!bossShip.hasHealth()) return;
 
-  const x = ctx.canvas.width / 2 - BAR_WIDTH / 2;
-  const y = 36 * getUniformScaleFactor();
+  const scale = getUniformScaleFactor();
+  const scaledBarWidth = BAR_WIDTH * scale;
+  const scaledBarHeight = BAR_HEIGHT * scale;
+
+  const x = ctx.canvas.width / 2 - scaledBarWidth / 2;
+  const y = ctx.canvas.height - 36 * scale;
 
   const current = bossShip.getCurrentHealth();
   const max = bossShip.getMaxHealth();
   const percent = Math.max(0, Math.min(1, current / max));
 
-  console.log('Drawing healthbar:', percent);
+  const fontSize = 14 * scale;
 
   drawUIResourceBar(ctx, {
     x,
     y,
-    width: BAR_WIDTH,
-    height: BAR_HEIGHT,
+    width: scaledBarWidth,
+    height: scaledBarHeight,
     value: percent,
-    label: `${Math.ceil(current)} / ${max}`,
+    label: `${Math.round(percent * 100)}%`,
     style: {
       barColor: '#ff3333',
       backgroundColor: '#220000',
@@ -39,7 +43,7 @@ export function drawBossHealthbar(ctx: CanvasRenderingContext2D, bossShip: Ship)
       scanlineIntensity: 0.3,
       cornerBevel: true,
       criticalAnimation: true,
-      font: '12px "Orbitron", monospace',
+      font: `${fontSize}px "Orbitron", monospace`,
       textColor: '#ffcccc',
     },
   });

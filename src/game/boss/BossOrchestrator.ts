@@ -8,8 +8,9 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { Ship } from '@/game/ship/Ship';
 
-import { CanvasManager } from '@/core/CanvasManager';
-import { drawBossHealthbar } from '@/game/boss/helpers/drawHealthbar';
+import { showBossHealthbar, hideBossHealthbar } from '@/core/interfaces/events/BossReporter';
+import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
+import { clearAllScreenEdgeIndicators, disableScreenEdgeIndicators } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
 
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { audioManager } from '@/audio/Audio';
@@ -18,16 +19,14 @@ import { applyShipColorPreset, ShipColorPreset } from '../ship/utils/shipColorHe
 export class BossOrchestrator {
   private bossShip: Ship | null = null;
   private aiController: BaseBossAIController | null = null;
-  private ctx: CanvasRenderingContext2D;
 
   constructor(
     private readonly factory: BossFactory,
     private readonly cutsceneController: BossIntroCutsceneController,
-    private readonly combatService: CombatService
-  ) {
-    const canvasManager = CanvasManager.getInstance();
-    this.ctx = canvasManager.getContext('overlay');
-  }
+    private readonly combatService: CombatService,
+
+    private shipDestroyed: boolean = false
+  ) {}
 
   // == Public API ==
 
@@ -41,11 +40,17 @@ export class BossOrchestrator {
 
     // Set pre-fight affixes and appearance
     ship.setAffixes({ invulnerable: true });
+    ship.onDestroyedCallback(() => this.onDeathCallback());
     applyShipColorPreset(ship, ShipColorPreset.Red);
 
     // Retain references
     this.bossShip = ship;
     this.aiController = aiController;
+
+    // Clear UI Elements
+    emitHudHideAll();
+    clearAllScreenEdgeIndicators();
+    disableScreenEdgeIndicators();
 
     // DEBUG: Activate AI immediately for testing
     this.activateAI();
@@ -71,6 +76,13 @@ export class BossOrchestrator {
 
     // Start FSM
     this.aiController.start?.();
+
+    // Draw boss healthbar
+    showBossHealthbar();
+  }
+
+  public onDeathCallback(): void {
+    this.shipDestroyed = true;
   }
 
   public async awaitDeath(): Promise<void> {
@@ -81,12 +93,13 @@ export class BossOrchestrator {
   /** Per-frame update hook for FSM, called externally via BossManager */
   public update(dt: number): void {
     this.aiController?.update(dt);
-    if (this.bossShip && !this.bossShip.isDestroyed()) {
-      drawBossHealthbar(this.ctx, this.bossShip);
-    }
   }
 
   // == Pass throughs ==
+
+  public bossDefeated(): boolean {
+    return this.shipDestroyed;
+  }
 
   public getBossShip(): Ship | null {
     return this.bossShip;
@@ -106,6 +119,7 @@ export class BossOrchestrator {
 
   // == Cleanup
   public clear(): void {
+    hideBossHealthbar();
     this.bossShip = null;
     this.aiController = null;
   }

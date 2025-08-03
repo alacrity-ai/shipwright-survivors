@@ -75,6 +75,8 @@ export interface EventTypes {
   'waves:hide': undefined;
   'hud:show': undefined;
   'hud:hide': undefined;
+  'bosshealthbar:show': undefined;
+  'bosshealthbar:hide': undefined;
   'minimap:show': undefined;
   'minimap:hide': undefined;
   'blockqueue:show': undefined;
@@ -117,6 +119,9 @@ export interface EventTypes {
   // Screen edge indicators (NEW!)
   'indicator:create': { id: string; worldX: number; worldY: number; color?: string; icon?: HTMLImageElement | HTMLCanvasElement };
   'indicator:remove': { id: string };
+  'indicator:clear': undefined;
+  'indicator:enable': undefined;
+  'indicator:disable': undefined;
 
   // Camera events
   'camera:shake': { strength: number; duration: number; frequency?: number, tag?: string };
