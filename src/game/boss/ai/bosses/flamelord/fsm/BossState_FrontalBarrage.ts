@@ -15,7 +15,6 @@ import {
 
 import { DirectionalFlameThrowerMechanic } from '@/game/boss/ai/mechanics/mechs/DirectionalFlameThrowerMechanic';
 import { rotateArc } from '@/game/boss/ai/mechanics/helpers/rotateArc';
-import { ShipRegistry } from '@/game/ship/ShipRegistry';
 
 const CENTER_GROUP_NUMBER = 3;
 
@@ -44,7 +43,7 @@ export class BossState_FrontalBarrage implements BossState {
     // Phase-specific parameterization
     switch (phase) {
       case 'phase4':
-        this.telegraphDuration = 2.5;
+        this.telegraphDuration = 3.0;
         this.flameDuration = 9;
         this.trackingSpeed = 0.004;
         break;
@@ -84,6 +83,8 @@ export class BossState_FrontalBarrage implements BossState {
     const currentTransform = ship.getTransform();
     const damage = this.bossDefinition!.damageMultiplier * ship.getBossPhase();
 
+    const arcWideningAmount = ship.getBossPhase() * 15;
+
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
     ship.setTransform({ ...currentTransform, rotation: easedRot });
 
@@ -92,7 +93,7 @@ export class BossState_FrontalBarrage implements BossState {
         this.telegraphing = false;
         restoreBlockLights(this.frontalBlocks);
 
-        const [arcStartDeg, arcEndDeg] = rotateArc(300, 60, easedRot);
+        const [arcStartDeg, arcEndDeg] = rotateArc(300 - arcWideningAmount, 60 + arcWideningAmount, easedRot);
         this.flameMechanic = new DirectionalFlameThrowerMechanic(
           ship,
           arcStartDeg,
@@ -105,7 +106,7 @@ export class BossState_FrontalBarrage implements BossState {
       }
     } else {
       if (this.flameMechanic) {
-        const [arcStartDeg, arcEndDeg] = rotateArc(300, 60, easedRot);
+        const [arcStartDeg, arcEndDeg] = rotateArc(300 - arcWideningAmount, 60 + arcWideningAmount, easedRot);
         this.flameMechanic.updateArc(arcStartDeg, arcEndDeg);
       }
 

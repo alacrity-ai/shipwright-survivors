@@ -147,7 +147,7 @@ import { spawnLaserBeam } from '@/systems/fx/helpers/boltSpawners';
 import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
-import { reportDialogueLine } from './interfaces/events/DialogueReporter';
+import { reportDialogueLine, clearDialogueEvents } from './interfaces/events/DialogueReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;

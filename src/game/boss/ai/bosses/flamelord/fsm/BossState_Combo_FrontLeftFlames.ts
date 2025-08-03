@@ -46,12 +46,12 @@ export class BossState_Combo_FrontLeftFlames implements BossState {
     // Phase-based tuning logic for front + left combo flame attack
     switch (phase) {
       case 'phase4':
-        this.telegraphDuration = 2.0;
+        this.telegraphDuration = 2.5;
         this.flameDuration = 6.5;
         this.trackingSpeed = 0.004;
         break;
       case 'phase3':
-        this.telegraphDuration = 2.5;
+        this.telegraphDuration = 2.7;
         this.flameDuration = 6.0;
         this.trackingSpeed = 0.003;
         break;
@@ -85,14 +85,15 @@ export class BossState_Combo_FrontLeftFlames implements BossState {
     const currentTransform = boss.getTransform();
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
     boss.setTransform({ ...currentTransform, rotation: easedRot });
+    const arcWideningAmount = boss.getBossPhase() * 5;
 
     if (this.telegraphing) {
       if (this.timer >= this.telegraphDuration) {
         this.telegraphing = false;
         restoreBlockLights(this.telegraphBlocks);
 
-        const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);  // front cone
-        const [leftStart, leftEnd]   = rotateArc(180, 300, easedRot); // left flank
+        const [frontStart, frontEnd] = rotateArc(300, 60 + arcWideningAmount, easedRot);  // front cone
+        const [leftStart, leftEnd]   = rotateArc(180 - arcWideningAmount, 300, easedRot); // left flank
 
         this.frontFlame = new DirectionalFlameThrowerMechanic(boss, frontStart, frontEnd, this.flameDuration, damage);
         this.leftFlame  = new DirectionalFlameThrowerMechanic(boss, leftStart, leftEnd, this.flameDuration, damage);
@@ -104,8 +105,8 @@ export class BossState_Combo_FrontLeftFlames implements BossState {
       }
     } else {
       if (this.frontFlame && this.leftFlame) {
-        const [frontStart, frontEnd] = rotateArc(300, 60, easedRot);
-        const [leftStart, leftEnd]   = rotateArc(180, 300, easedRot);
+        const [frontStart, frontEnd] = rotateArc(300, 60 + arcWideningAmount, easedRot);  // front cone
+        const [leftStart, leftEnd]   = rotateArc(180 - arcWideningAmount, 300, easedRot); // left flank
 
         this.frontFlame.updateArc(frontStart, frontEnd);
         this.leftFlame.updateArc(leftStart, leftEnd);

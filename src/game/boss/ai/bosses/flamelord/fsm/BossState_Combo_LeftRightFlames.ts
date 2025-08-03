@@ -80,14 +80,15 @@ export class BossState_Combo_LeftRightFlames implements BossState {
     const desiredAngle = context.angleToPlayer + (2 * Math.PI / 3);
     const easedRot = this.rotateToward(currentTransform.rotation, desiredAngle, this.trackingSpeed);
     boss.setTransform({ ...currentTransform, rotation: easedRot });
-
+    const arcWideningAmount = boss.getBossPhase() * 10;
+    
     if (this.telegraphing) {
       if (this.timer >= this.telegraphDuration) {
         this.telegraphing = false;
         restoreBlockLights(this.flankBlocks);
 
-        const [leftStartDeg, leftEndDeg] = rotateArc(180, 300, easedRot);
-        const [rightStartDeg, rightEndDeg] = rotateArc(60, 180, easedRot);
+        const [leftStartDeg, leftEndDeg] = rotateArc(180, 300 + arcWideningAmount, easedRot);
+        const [rightStartDeg, rightEndDeg] = rotateArc(60 - arcWideningAmount, 180, easedRot);
 
         this.leftMechanic = new DirectionalFlameThrowerMechanic(
           boss,
@@ -110,8 +111,8 @@ export class BossState_Combo_LeftRightFlames implements BossState {
       }
     } else {
       if (this.leftMechanic && this.rightMechanic) {
-        const [leftStartDeg, leftEndDeg] = rotateArc(180, 300, easedRot);
-        const [rightStartDeg, rightEndDeg] = rotateArc(60, 180, easedRot);
+        const [leftStartDeg, leftEndDeg] = rotateArc(180, 300 + arcWideningAmount, easedRot);
+        const [rightStartDeg, rightEndDeg] = rotateArc(60 - arcWideningAmount, 180, easedRot);
 
         this.leftMechanic.updateArc(leftStartDeg, leftEndDeg);
         this.rightMechanic.updateArc(rightStartDeg, rightEndDeg);

@@ -1,3 +1,5 @@
+// src/game/boss/ai/bosses/flamelord/fsm/BossState_Idle.ts
+
 import type { BossState } from '@/game/boss/ai/interfaces/BossState';
 import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIController';
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
@@ -8,6 +10,7 @@ import { bulkUpgradeBlockIndicesOnShip } from '@/game/blocks/helpers/upgradeUtil
 import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { audioManager } from '@/audio/Audio';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
+import { sayContextualDialogue, clearCrazyMoeDialogue } from './helpers/pickDialogue';
 
 type StateSequence = {
   states: string[];
@@ -60,6 +63,11 @@ export class BossState_Idle implements BossState {
   enter(controller: BaseBossAIController): void {
     const boss = controller.getBoss();
     const phase = controller.getCurrentPhase();
+
+    // Determine upcoming state
+    const sequence = phaseSequences[phase];
+    const nextState = sequence.states[sequence.index];
+    sayContextualDialogue(nextState);
 
     // Declarative phase configuration
     const phaseConfig: Record<string, { duration: number; upgradePhase?: number }> = {
@@ -115,7 +123,7 @@ export class BossState_Idle implements BossState {
   }
 
   exit(controller: BaseBossAIController): void {
-    // No-op; retained for lifecycle symmetry
+    clearCrazyMoeDialogue();
   }
 
   private rotateToward(current: number, target: number, maxStep: number): number {
