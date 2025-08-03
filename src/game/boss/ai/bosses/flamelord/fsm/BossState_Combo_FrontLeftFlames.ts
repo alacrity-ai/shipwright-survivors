@@ -46,19 +46,19 @@ export class BossState_Combo_FrontLeftFlames implements BossState {
     // Phase-based tuning logic for front + left combo flame attack
     switch (phase) {
       case 'phase4':
-        this.telegraphDuration = 2.5;
+        this.telegraphDuration = 3.5;
         this.flameDuration = 6.5;
         this.trackingSpeed = 0.004;
         break;
       case 'phase3':
-        this.telegraphDuration = 2.7;
+        this.telegraphDuration = 3.7;
         this.flameDuration = 6.0;
         this.trackingSpeed = 0.003;
         break;
       case 'phase1':
       case 'phase2':
       default:
-        this.telegraphDuration = 3.0;
+        this.telegraphDuration = 4.0;
         this.flameDuration = 5.5;
         this.trackingSpeed = 0.002;
         break;

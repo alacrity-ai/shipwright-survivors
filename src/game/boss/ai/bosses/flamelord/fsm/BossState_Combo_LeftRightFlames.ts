@@ -23,7 +23,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
   private bossDefinition: BossDefinition | null = null;
 
   private timer = 0;
-  private telegraphDuration = 3.0;
+  private telegraphDuration = 3.5;
   private flameDuration = 5.0;
   private trackingSpeed = 0.01;
 

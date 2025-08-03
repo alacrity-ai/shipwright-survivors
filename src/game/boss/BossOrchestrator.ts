@@ -8,17 +8,26 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { Ship } from '@/game/ship/Ship';
 
+import { CanvasManager } from '@/core/CanvasManager';
+import { drawBossHealthbar } from '@/game/boss/helpers/drawHealthbar';
+
+import { missionLoader } from '@/game/missions/MissionLoader';
+import { audioManager } from '@/audio/Audio';
 import { applyShipColorPreset, ShipColorPreset } from '../ship/utils/shipColorHelpers';
 
 export class BossOrchestrator {
   private bossShip: Ship | null = null;
   private aiController: BaseBossAIController | null = null;
+  private ctx: CanvasRenderingContext2D;
 
   constructor(
     private readonly factory: BossFactory,
     private readonly cutsceneController: BossIntroCutsceneController,
     private readonly combatService: CombatService
-  ) {}
+  ) {
+    const canvasManager = CanvasManager.getInstance();
+    this.ctx = canvasManager.getContext('overlay');
+  }
 
   // == Public API ==
 
@@ -38,9 +47,6 @@ export class BossOrchestrator {
     this.bossShip = ship;
     this.aiController = aiController;
 
-    // Optional: Emit boss spawn event
-    // GlobalEventBus.emit('boss:spawned', { ship, definition });
-
     // DEBUG: Activate AI immediately for testing
     this.activateAI();
   }
@@ -52,6 +58,12 @@ export class BossOrchestrator {
   public async activateAI(): Promise<void> {
     if (!this.bossShip || !this.aiController) {
       throw new Error('[BossOrchestrator] Cannot activate AI — boss not yet spawned');
+    }
+
+    // Start Boss Music
+    const missionDef = missionLoader.getMission();
+    if (missionDef.bossMusic) {
+      audioManager.playMusic(missionDef.bossMusic);
     }
 
     // Remove invulnerability for combat
@@ -69,6 +81,9 @@ export class BossOrchestrator {
   /** Per-frame update hook for FSM, called externally via BossManager */
   public update(dt: number): void {
     this.aiController?.update(dt);
+    if (this.bossShip && !this.bossShip.isDestroyed()) {
+      drawBossHealthbar(this.ctx, this.bossShip);
+    }
   }
 
   // == Pass throughs ==

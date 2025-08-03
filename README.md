@@ -125,7 +125,7 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
-  - [ ] Boss should have maximum damage intake per second, or per 5 seconds, to avoid insta gibbing a boss.
+  - [ ] Fix boss healthbar rendering, remove player UI during boss fight, render boss healthbar on bottom of screen.
   - [ ] New placed blocks don't inherit Ship Color override.
 
   - [ ] Some lights still occassionally leak
