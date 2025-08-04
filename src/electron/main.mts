@@ -18,6 +18,7 @@ async function createWindow() {
       contextIsolation: true, // required for ESM preload
       sandbox: false,         // must be off to allow ESM preload
       preload: path.join(app.getAppPath(), 'dist-electron/preload.mjs'),
+      devTools: true, // Turn this off on release
     },
   });
   // win.setMenu(null);  // TODO: Dev: Enable this on release
