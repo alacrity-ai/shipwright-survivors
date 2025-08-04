@@ -18,7 +18,7 @@ import { Ship } from '@/game/ship/Ship';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
 import { getConnectedBlockCoordsFast } from '@/game/ship/utils/shipBlockUtils';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
-import { emitDefaultShockwave } from '@/core/interfaces/events/SpecialFxReporter';
+import { emitDefaultShockwave, emitHugeShockwave } from '@/core/interfaces/events/SpecialFxReporter';
 
 export type DestructionCause =
   | 'projectile' | 'turret' | 'collision' | 'bomb' | 'flameThrower' | 'laser'
@@ -43,6 +43,8 @@ interface CachedDestructionData {
   radius: number;
   scale: number;
 }
+
+const SHOCK_WAVE_COOLDOWN = 4.0;
 
 export class CompositeBlockDestructionService {
   private destructionCallbacks = new Set<(entity: CompositeBlockObject, cause: DestructionCause) => void>();
@@ -69,6 +71,9 @@ export class CompositeBlockDestructionService {
   // Reusable data structures for performance optimization
   private reusableConnectedSet?: Set<number>;
   private reusableWorkQueue?: GridCoord[];
+
+  // Temporary limit to shockwaves until multiple rendering fixed
+  private shockwaveTimer = 0;
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -126,6 +131,8 @@ export class CompositeBlockDestructionService {
         this.activeDestructions.delete(entityId);
       }
     }
+
+    this.shockwaveTimer += dt;
   }
 
   public onEntityDestroyed(callback: (entity: CompositeBlockObject, cause: DestructionCause) => void): void {
@@ -141,6 +148,8 @@ export class CompositeBlockDestructionService {
   };
 
   public destroyEntity(entity: CompositeBlockObject, cause: DestructionCause = 'scripted'): void {
+    if (this.activeDestructions.has(entity.id)) return;
+
     const transform = entity.getTransform();
     const indices = [...entity.getAllBlockIndices()];
     const entityId = entity.id;
@@ -189,8 +198,14 @@ export class CompositeBlockDestructionService {
     );
 
     // If large ship, emit shockwave
-    if (blockIndicesLength > 20) {
-      emitDefaultShockwave(transform.position.x, transform.position.y);
+    if (this.shockwaveTimer > SHOCK_WAVE_COOLDOWN) {
+      if (blockIndicesLength > 40) {
+        emitHugeShockwave(transform.position.x, transform.position.y);
+        this.shockwaveTimer = 0;
+      } else if (blockIndicesLength > 20) {
+        emitDefaultShockwave(transform.position.x, transform.position.y);
+        this.shockwaveTimer = 0;
+      }
     }
 
     const soundIndex = Math.floor(Math.random() * this.explosionSounds.length);

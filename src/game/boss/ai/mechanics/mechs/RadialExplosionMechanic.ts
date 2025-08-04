@@ -4,7 +4,7 @@ import type { BaseBossMechanic } from '../BaseBossMechanic';
 import type { Ship } from '@/game/ship/Ship';
 import type { CombatService } from '@/systems/combat/CombatService';
 
-
+import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
 import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
@@ -24,7 +24,7 @@ export class RadialExplosionMechanic implements BaseBossMechanic {
   private readonly damageMultiplier: number;
 
   private readonly flameSpeed = 1400;
-  private readonly flameRadius = 356;
+  private readonly flameRadius = 400;
   private readonly flameLifetime = 1.5;
   private readonly flameColor = '#ff4444';
   private readonly numEmitters = NUM_DIRECTIONS;
@@ -119,7 +119,8 @@ export class RadialExplosionMechanic implements BaseBossMechanic {
         }
       }
 
-      createLightFlash(centerX, centerY, 2600, 2.0, 0.7, '#ffae00');
+      createLightFlash(centerX, centerY, 3200, 3.0, 0.7, '#ffae00');
+      shakeCamera(12, 1, 12, 'boss:explosion');
     }
 
     if (this.elapsed >= this.duration) {

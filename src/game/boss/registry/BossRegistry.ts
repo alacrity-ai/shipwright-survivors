@@ -9,11 +9,10 @@ const BOSSES: Record<string, BossDefinition> = {
     shipJsonPath: 'boss/flamelord.json',
     initialState: 'Idle',
     maxHealth: 200000,
-    maxHealthDamageIntakePerSecond: 3200,
+    maxHealthDamageIntakePerSecond: 4000,
     damageMultiplier: 1.0,
   },
 };
-
 
 export class BossRegistry {
   public static get(id: string): BossDefinition {

@@ -5,6 +5,8 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { BossAIContext } from '@/game/boss/ai/BossAIContext';
 import type { PhaseKey } from '@/game/boss/ai/interfaces/PhaseKey';
 
+import { emitDefaultShockwave } from '@/core/interfaces/events/SpecialFxReporter';
+
 import { getShipBlocksInGroups } from '@/game/blocks/system/helpers/blockAccessors';
 import { bulkUpgradeBlockIndicesOnShip } from '@/game/blocks/helpers/upgradeUtils';
 import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
@@ -90,7 +92,9 @@ export class BossState_Idle implements BossState {
       bulkUpgradeBlockIndicesOnShip(boss, flameThrowerBlockIndices, 1);
       shakeCamera(12, 1, 12, 'boss:upgrade');
       audioManager.play('assets/sounds/sfx/ship/attach_00.wav', 'sfx');
-      createLightFlash(boss.getTransform().position.x, boss.getTransform().position.y, 2600, 2.0, 0.5, '#ff3211');
+      const pos = boss.getTransform().position;
+      createLightFlash(pos.x, pos.y, 2600, 2.0, 0.5, '#ff3211');
+      emitDefaultShockwave(pos.x, pos.y);
     }
 
     this.timer = 0;

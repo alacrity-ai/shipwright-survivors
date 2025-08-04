@@ -11,6 +11,7 @@ import {
   restoreBlockLights
 } from '@/game/blocks/system/helpers/blockAccessors';
 
+import { emitDefaultShockwave, emitHugeShockwave } from '@/core/interfaces/events/SpecialFxReporter';
 import { RadialExplosionMechanic } from '@/game/boss/ai/mechanics/mechs/RadialExplosionMechanic';
 import { playActivationEffects } from '@/game/boss/ai/bosses/flamelord/fsm/helpers/activationShakeAndSound';
 
@@ -71,6 +72,8 @@ export class BossState_DetonatePulse implements BossState {
 
     pulseBlockLights(this.telegraphBlocks, 32, 32, 1.5, 'radius');
     playActivationEffects(boss);
+    const pos = boss.getTransform().position;
+    emitDefaultShockwave(pos.x, pos.y);
   }
 
   update(dt: number, controller: BaseBossAIController, context: BossAIContext): void {
@@ -89,7 +92,7 @@ export class BossState_DetonatePulse implements BossState {
         this.explosionDuration,
         damage
       );
-
+      const pos = boss.getTransform().position;
       controller.getMechanics().add(this.explosionMechanic);
     }
 

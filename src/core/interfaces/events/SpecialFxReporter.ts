@@ -68,7 +68,11 @@ export function emitShockwave(
 }
 
 export function emitDefaultShockwave(x: number, y: number): void {
-  emitShockwave(x, y, 0.1, 0.04, 1.2, 0.01);
+  emitShockwave(x, y, 0.07, 0.025, 0.8, 0.002);
+}
+
+export function emitHugeShockwave(x: number, y: number): void {
+  emitShockwave(x, y, 0.07, 0.025, 0.8, 0.002);
 }
 
 /** Low-level emitter for fully custom fire payloads. */

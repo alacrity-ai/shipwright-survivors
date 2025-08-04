@@ -15,6 +15,7 @@ export interface ShockwaveSOA {
   startRadius: Float32Array;
   size: Float32Array;
   strength: Float32Array;
+  initialStrength: Float32Array; // Initial strength, for scaling over lifetime
   age: Float32Array;
   life: Float32Array;
 }
@@ -38,6 +39,7 @@ function createShockwaveSOA(max: number): ShockwaveSOA {
     startRadius: new Float32Array(max),
     size: new Float32Array(max),
     strength: new Float32Array(max),
+    initialStrength: new Float32Array(max),
     age: new Float32Array(max),
     life: new Float32Array(max),
   };
@@ -77,6 +79,7 @@ export class ShockwaveManager {
     this.soa.startRadius[idx] = startRadius;
     this.soa.size[idx] = size;
     this.soa.strength[idx] = strength;
+    this.soa.initialStrength[idx] = strength;
     this.soa.age[idx] = 0;
     this.soa.life[idx] = life;
 
@@ -89,8 +92,13 @@ export class ShockwaveManager {
     for (let i = 0; i < this.soa.count;) {
       this.soa.age[i] += dt;
 
+      const t = this.soa.age[i] / this.soa.life[i];
+      const clampedT = Math.min(t, 1.0); // Prevent overshoot
+
+      // Linear fade-out: strength decreases proportionally over time
+      this.soa.strength[i] = this.soa.initialStrength[i] * (1.0 - clampedT);
+
       if (this.soa.age[i] >= this.soa.life[i]) {
-        console.log('[ShockwaveManager] Recycle');
         this.recycleIndex(i);
         continue;
       }
@@ -145,6 +153,7 @@ export class ShockwaveManager {
     swapf(this.soa.startRadius);
     swapf(this.soa.size);
     swapf(this.soa.strength);
+    swapf(this.soa.initialStrength);
     swapf(this.soa.age);
     swapf(this.soa.life);
   }
