@@ -38,6 +38,48 @@ export function getConnectedBlockCoords(ship: Ship, startCoord: GridCoord): Set<
   return visited;
 }
 
+export function getConnectedBlockCoordsFast(
+  ship: Ship,
+  startCoord: GridCoord,
+  outSet: Set<number> = new Set<number>(),
+  workQueue: GridCoord[] = []
+): Set<number> {
+  outSet.clear();
+  workQueue.length = 0;
+
+  const pack = (x: number, y: number) => (x << 16) | (y & 0xffff);
+  const unpackX = (key: number) => key >> 16;
+  const unpackY = (key: number) => key & 0xffff;
+
+  const enqueue = (x: number, y: number) => {
+    const key = pack(x, y);
+    if (!outSet.has(key) && ship.hasBlockAtXY(x, y)) {
+      outSet.add(key);
+      workQueue.push({ x, y });
+    }
+  };
+  ship.hasBlockAt
+  const startKey = pack(startCoord.x, startCoord.y);
+  if (!ship.hasBlockAt(startCoord)) return outSet;
+
+  outSet.add(startKey);
+  workQueue.push(startCoord);
+
+  while (workQueue.length > 0) {
+    const current = workQueue.pop()!;
+    const x = current.x;
+    const y = current.y;
+
+    enqueue(x + 1, y);
+    enqueue(x - 1, y);
+    enqueue(x, y + 1);
+    enqueue(x, y - 1);
+  }
+
+  return outSet;
+}
+
+
 /**
  * Gets the block’s local grid coordinate by SOA index.
  */

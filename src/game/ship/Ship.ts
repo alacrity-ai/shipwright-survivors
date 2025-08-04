@@ -1066,6 +1066,23 @@ export class Ship extends CompositeBlockObject {
     this.markRasterDirty();
   }
 
+  public removeBlockByIndex(idx: number): void {
+    // Remove from subsystem indices
+    this.engineBlocks.delete(idx);
+    this.finBlocks.delete(idx);
+    this.harvesterBlocks.delete(idx);
+    this.shieldBlocks.delete(idx);
+    this.haloBladeBlocks.delete(idx);
+    this.heatSeekerBlocks.delete(idx);
+    this.fuelTankBlocks.delete(idx);
+
+    // Remove from firing plan
+    this.removeWeaponFromPlanIfApplicable(idx);
+
+    // Free from BlockStore + deregister from BlockSpatialGrid
+    this.blockOrchestrator.destroyBlock(idx);
+  }
+
   public removeBlocks(coords: GridCoord[]): void {
     if (coords.length === 0) return;
 

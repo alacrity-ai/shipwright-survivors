@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "gl-matrix": "^3.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "uuidv4": "^6.2.13",

@@ -12,33 +12,21 @@ import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { GlobalEventBus } from '@/core/EventBus';
-import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
+import { audioManager } from '@/audio/Audio';
+
 import { Ship } from '@/game/ship/Ship';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
-import { getConnectedBlockCoords } from '@/game/ship/utils/shipBlockUtils';
+import { getConnectedBlockCoordsFast } from '@/game/ship/utils/shipBlockUtils';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
+import { emitDefaultShockwave } from '@/core/interfaces/events/SpecialFxReporter';
 
 export type DestructionCause =
-  | 'projectile'
-  | 'turret'
-  | 'collision'
-  | 'bomb'
-  | 'flameThrower'
-  | 'laser'
-  | 'explosiveLance'
-  | 'explosiveLanceAoE'
-  | 'heatSeekerDirect'
-  | 'heatSeekerAoE'
-  | 'haloBlade'
-  | 'self'
-  | 'scripted'
-  | 'reflected'
-  | 'replaced'
-  | 'dot';
+  | 'projectile' | 'turret' | 'collision' | 'bomb' | 'flameThrower' | 'laser'
+  | 'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'heatSeekerAoE'
+  | 'haloBlade' | 'self' | 'scripted' | 'reflected' | 'replaced' | 'dot';
 
 interface BlockDestructionStep {
-  delay: number; // in seconds
+  delay: number;
   callback: () => void;
 }
 
@@ -48,10 +36,39 @@ interface DestructionJob {
   elapsed: number;
 }
 
+interface CachedDestructionData {
+  idx: number;
+  coord: GridCoord;
+  delay: number;
+  radius: number;
+  scale: number;
+}
+
 export class CompositeBlockDestructionService {
-  private destructionCallbacks: Set<(entity: CompositeBlockObject, cause: DestructionCause) => void> = new Set();
-  private activeDestructions: Map<string, DestructionJob> = new Map();
+  private destructionCallbacks = new Set<(entity: CompositeBlockObject, cause: DestructionCause) => void>();
+  private activeDestructions = new Map<string, DestructionJob>();
   private store: BlockStore;
+
+  private explosionSounds = [
+    'assets/sounds/sfx/explosions/explosion_00.wav',
+    'assets/sounds/sfx/explosions/explosion_00.wav',
+    'assets/sounds/sfx/explosions/explosion_01.wav',
+  ];
+
+  // Reusable buffers to avoid GC thrashing
+  private cachedDestructionBuffer: CachedDestructionData[] = [];
+  private coordBuffer: GridCoord[] = [];
+
+  // Random ring buffers
+  private readonly RANDOM_BUFFER_SIZE = 64;
+  private readonly radiusRandBuffer: number[] = [];
+  private readonly scaleRandBuffer: number[] = [];
+  private readonly delayRandBuffer: number[] = [];
+  private randPtr = 0;
+
+  // Reusable data structures for performance optimization
+  private reusableConnectedSet?: Set<number>;
+  private reusableWorkQueue?: GridCoord[];
 
   constructor(
     private readonly explosionSystem: ExplosionSystem,
@@ -61,18 +78,42 @@ export class CompositeBlockDestructionService {
   ) {
     this.store = BlockManager.getInstance().getBlockStore();
     GlobalEventBus.on('entity:destroy', this.handleDestroyEntity);
+    this.seedRandomBuffers();
+  }
+
+  private seedRandomBuffers(): void {
+    for (let i = 0; i < this.RANDOM_BUFFER_SIZE; i++) {
+      this.radiusRandBuffer[i] = Math.random(); // 0–1
+      this.scaleRandBuffer[i] = Math.random();
+      this.delayRandBuffer[i] = Math.random();
+
+      this.injectSpikesEveryNth(this.radiusRandBuffer, 20, 4);
+      this.injectSpikesEveryNth(this.scaleRandBuffer, 20, 4);
+      this.injectSpikesEveryNth(this.delayRandBuffer, 20, 4);
+    }
+  }
+
+  private injectSpikesEveryNth(buffer: number[], every: number, magnitude: number, offset = 0): void {
+    for (let i = offset; i < buffer.length; i += every) {
+      buffer[i] = magnitude;
+    }
+  }
+
+  private nextRandom(buffer: number[]): number {
+    const val = buffer[this.randPtr];
+    this.randPtr = (this.randPtr + 1) % this.RANDOM_BUFFER_SIZE;
+    return val;
   }
 
   public destroy(): void {
     GlobalEventBus.off('entity:destroy', this.handleDestroyEntity);
     this.destructionCallbacks.clear();
-    this.activeDestructions.clear(); // prevent bleedover
+    this.activeDestructions.clear();
   }
 
   public update(dt: number): void {
     for (const [entityId, job] of this.activeDestructions) {
       job.elapsed += dt;
-
       while (job.steps.length > 0 && job.steps[0].delay <= job.elapsed) {
         const step = job.steps.shift();
         try {
@@ -81,7 +122,6 @@ export class CompositeBlockDestructionService {
           console.error(`[CompositeBlockDestructionService] Error executing block destruction step:`, err);
         }
       }
-
       if (job.steps.length === 0) {
         this.activeDestructions.delete(entityId);
       }
@@ -102,11 +142,10 @@ export class CompositeBlockDestructionService {
 
   public destroyEntity(entity: CompositeBlockObject, cause: DestructionCause = 'scripted'): void {
     const transform = entity.getTransform();
-    const indices = entity.getAllBlockIndices(); // SOA-based
+    const indices = [...entity.getAllBlockIndices()];
     const entityId = entity.id;
     const store = this.store;
 
-    // Notify observers
     for (const cb of this.destructionCallbacks) {
       try {
         cb(entity, cause);
@@ -115,97 +154,135 @@ export class CompositeBlockDestructionService {
       }
     }
 
-    // Cleanup systems
-    if (entity instanceof Ship) {
-      this.shipRegistry.remove(entity);
+    entity.setDestroying(true);
+
+    const isShip = entity instanceof Ship;
+    const replaced = cause === 'replaced';
+
+    if (isShip) {
+      this.shipRegistry.remove(entity, cause, replaced);
       MovementSystemRegistry.unregister(entity);
       this.aiOrchestrator.removeControllersForShip?.(entityId);
       entity.clearAllStatusEffects();
+    } else {
+      entity.destroy();
+      return;
     }
 
-    entity.destroy();
-
-    if (cause === 'replaced') {
-      if (entity instanceof Ship) {
-        entity.setDestructionCause('replaced');
-      }
+    if (replaced) {
+      entity.setDestructionCause('replaced');
+      entity.destroy();
       return;
     }
 
     const steps: BlockDestructionStep[] = [];
+    const blockIndicesLength = indices.length;
 
-    // Animate primary block explosions using block indices
-    for (let i = 0; i < indices.length; i++) {
+    createLightFlash(
+      transform.position.x,
+      transform.position.y,
+      4 * entity.getTotalMass(),
+      1.25,
+      0.5,
+      '#ffffff',
+      `explosion-${entityId}`
+    );
+
+    // If large ship, emit shockwave
+    if (blockIndicesLength > 20) {
+      emitDefaultShockwave(transform.position.x, transform.position.y);
+    }
+
+    const soundIndex = Math.floor(Math.random() * this.explosionSounds.length);
+    audioManager.play(this.explosionSounds[soundIndex], 'sfx', { maxSimultaneous: 5 });
+
+    const buf = this.cachedDestructionBuffer;
+    const coordBuf = this.coordBuffer;
+    buf.length = 0;
+
+    for (let i = 0; i < blockIndicesLength; i++) {
       const idx = indices[i];
-      const coord: GridCoord = { x: store.localX[idx], y: store.localY[idx] };
 
-      const delay = i * 0.05 * 0.5;
+      let coord = coordBuf[i];
+      if (!coord) {
+        coord = { x: 0, y: 0 };
+        coordBuf[i] = coord;
+      }
+      coord.x = store.localX[idx];
+      coord.y = store.localY[idx];
+
+      buf.push({
+        idx,
+        coord,
+        delay: i * 0.005,
+        radius: 50 + this.nextRandom(this.radiusRandBuffer) * 40,
+        scale: 0.5 + this.nextRandom(this.scaleRandBuffer) * 0.5,
+      });
+    }
+
+    for (const data of buf) {
       steps.push({
-        delay,
+        delay: data.delay,
         callback: () => {
           this.explosionSystem.createBlockExplosion(
             entity.id,
             transform.position,
             transform.rotation,
-            coord,
-            50 + Math.random() * 40,
-            0.5 + Math.random() * 0.5,
+            data.coord,
+            data.radius,
+            data.scale,
             undefined,
-            DEFAULT_EXPLOSION_SPARK_PALETTE,
-            undefined,
+            DEFAULT_EXPLOSION_SPARK_PALETTE
           );
-        },
+          const dropRateMulti = entity.getAffixes?.().blockDropRateMulti ?? 1;
+          this.pickupSpawner.spawnPickupOnBlockDestruction(data.idx, dropRateMulti);
+          entity.removeBlockByIndex(data.idx);
+        }
       });
     }
 
-    // Handle ship-specific secondary explosions for disconnected blocks
-    if (entity instanceof Ship) {
-      // Create Light Flash (identical to pointlight)
-      createLightFlash(
-        transform.position.x,
-        transform.position.y,
-        4 * entity.getTotalMass(),
-        1.25,
-        0.5,
-        '#ffffff',
-        `explosion-${entityId}`
+    entity.setDestructionCause(cause);
+    const cockpitCoord = entity.getCockpitCoord();
+    if (cockpitCoord) {
+      const connected = getConnectedBlockCoordsFast(
+        entity,
+        cockpitCoord,
+        this.reusableConnectedSet ??= new Set<number>(),
+        this.reusableWorkQueue ??= []
       );
 
-      const cockpitCoord = entity.getCockpitCoord?.();
-      if (cockpitCoord) {
-        const connectedSet = getConnectedBlockCoords(entity, cockpitCoord);
-        const serialize = (c: GridCoord) => `${c.x},${c.y}`;
+      for (const data of this.cachedDestructionBuffer) {
+        const key = (data.coord.x << 16) | (data.coord.y & 0xffff);
+        if (connected.has(key)) continue;
 
-        for (let i = 0; i < indices.length; i++) {
-          const idx = indices[i];
-          const coord: GridCoord = { x: store.localX[idx], y: store.localY[idx] };
+        const radius = 60 + this.nextRandom(this.radiusRandBuffer) * 20;
+        const scale = 0.5 + this.nextRandom(this.scaleRandBuffer) * 0.3;
+        const delay = 0.005 + this.nextRandom(this.delayRandBuffer) * 0.5;
 
-          if (connectedSet.has(serialize(coord))) continue;
-
-          const delay = 0.5 + Math.random() * 0.5; // same stagger logic as before
-          steps.push({
-            delay,
-            callback: () => {
-              this.explosionSystem.createBlockExplosion(
-                entity.id,
-                transform.position,
-                transform.rotation,
-                coord,
-                60 + Math.random() * 20,
-                0.5 + Math.random() * 0.3,
-                undefined,
-                DEFAULT_EXPLOSION_SPARK_PALETTE,
-              );
-            },
-          });
-        }
+        steps.push({
+          delay,
+          callback: () => {
+            this.explosionSystem.createBlockExplosion(
+              entity.id,
+              transform.position,
+              transform.rotation,
+              data.coord,
+              radius,
+              scale,
+              undefined,
+              DEFAULT_EXPLOSION_SPARK_PALETTE
+            );
+            const dropRateMulti = entity.getAffixes?.().blockDropRateMulti ?? 1;
+            this.pickupSpawner.spawnPickupOnBlockDestruction(data.idx, dropRateMulti);
+            entity.removeBlockByIndex(data.idx);
+          }
+        });
       }
     }
 
-    // Register the job for incremental destruction animation
     this.activeDestructions.set(entityId, {
       entityId,
-      steps: steps.sort((a, b) => a.delay - b.delay), // keep steps ordered by time
+      steps: steps.sort((a, b) => a.delay - b.delay),
       elapsed: 0,
     });
   }

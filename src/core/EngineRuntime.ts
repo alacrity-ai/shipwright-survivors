@@ -74,6 +74,7 @@ import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { LightningSystem } from '@/systems/fx/LightningSystem';
 import { FireManager } from '@/systems/fx/FireManager';
+import { ShockwaveManager } from '@/systems/fx/ShockwaveManager';
 import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
 import { DamageTextAggregator } from '@/systems/damagetext/DamageTextAggregator';
 
@@ -148,6 +149,7 @@ import { reportQuestCompleted } from './interfaces/events/QuestReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
 import { reportDialogueLine, clearDialogueEvents } from './interfaces/events/DialogueReporter';
+import { emitDefaultShockwave } from './interfaces/events/SpecialFxReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -219,6 +221,7 @@ export class EngineRuntime {
   private persistentParticleManager: ParticleManager;
   private lightningSystem: LightningSystem;
   private fireManager: FireManager;
+  private shockwaveManager: ShockwaveManager;
   private damageTextManager: DamageTextManager;
   private damageTextAggregator: DamageTextAggregator;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
@@ -304,6 +307,8 @@ export class EngineRuntime {
     this.lightningSystem = new LightningSystem(this.lightingOrchestrator);
     // Fire System
     this.fireManager = new FireManager(this.lightingOrchestrator);
+    // Shockwave System
+    this.shockwaveManager = new ShockwaveManager();
     // Damage Text
     this.damageTextManager = DamageTextManager.getInstance();
     this.damageTextAggregator = DamageTextAggregator.getInstance();
@@ -657,6 +662,7 @@ export class EngineRuntime {
       this.particleManager,
       this.lightningSystem,
       this.fireManager,
+      this.shockwaveManager,
       this.damageTextAggregator,
       this.damageTextManager,
       this.aiOrchestrator,
@@ -879,7 +885,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit3')) {
-      // Empty
+      emitDefaultShockwave(this.ship!.getTransform().position.x, this.ship!.getTransform().position.y);
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
@@ -1033,7 +1039,7 @@ export class EngineRuntime {
       const lightningSegments = this.lightningSystem.getSegments();
       const fireSOA = this.fireManager.getFireSOA();
       const damageTextSOA = this.damageTextManager.getSOA();
-
+      const shockwaveSOA = this.shockwaveManager.getSOA();
       const particleSOA1 = this.particleManager.getParticleSOA();
       const particleSOA2 = this.persistentParticleManager.getParticleSOA();
 
@@ -1049,6 +1055,7 @@ export class EngineRuntime {
         [particleSOA1, particleSOA2],
         lightningSegments,
         fireSOA,
+        shockwaveSOA,
         damageTextSOA
       );
     }
@@ -1244,6 +1251,7 @@ export class EngineRuntime {
     this.particleManager.destroy();
     this.persistentParticleManager.destroy();
     this.fireManager.destroy();
+    this.shockwaveManager.destroy();
     this.lightingOrchestrator.destroy();
     this.missionDialogueManager!.destroy();
     this.blockDropDecisionMenu.destroy();

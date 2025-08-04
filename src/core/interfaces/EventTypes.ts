@@ -225,6 +225,14 @@ export interface EventTypes {
     lightIntensity?: number;     // brightness of the light
     color?: string;              // optional light color override (hex)
   };
+  'fx:shockwave:emit': {
+    x: number;
+    y: number;
+    size: number;
+    strength: number;
+    life: number;
+    startRadius: number;
+  };
 
   // Wave spawning / Enemy spawning
   'wave:spawn': { tag: string; wave: WaveDefinition; auraLightProps?: { color?: string; radius?: number; intensity?: number } }; // Tag to keep track of wave

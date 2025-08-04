@@ -40,6 +40,7 @@ import { ProjectileSystem } from '@/systems/physics/ProjectileSystem';
 import { PickupSystem } from '@/systems/pickups/PickupSystem';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { FireManager } from '@/systems/fx/FireManager';
+import { ShockwaveManager } from '@/systems/fx/ShockwaveManager';
 import { DamageTextManager } from '@/systems/damagetext/DamageTextManager';
 
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -116,6 +117,7 @@ export class TitleScreenRuntime {
   private pickupSpawner: PickupSpawner;
   private particleManager: ParticleManager;
   private fireManager: FireManager;
+  private shockwaveManager: ShockwaveManager;
   private damageTextManager: DamageTextManager;
   private persistentParticleManager: ParticleManager;
   private unifiedSceneRenderer: UnifiedSceneRendererGL | null = null;
@@ -174,6 +176,8 @@ export class TitleScreenRuntime {
     this.persistentParticleManager = new ParticleManager(this.lightingOrchestrator, 'persistent');
     // Fire manager
     this.fireManager = new FireManager(this.lightingOrchestrator);
+    // Shockwave manager
+    this.shockwaveManager = new ShockwaveManager();
     // Damage Text
     this.damageTextManager = DamageTextManager.getInstance();
 
@@ -345,6 +349,7 @@ export class TitleScreenRuntime {
       this.projectileSystem,
       this.particleManager,
       this.fireManager,
+      this.shockwaveManager,
       this.damageTextManager,
       this.aiOrchestrator,
       this.blockObjectUpdate!,
@@ -452,6 +457,7 @@ export class TitleScreenRuntime {
       const visibleParticles = [visibleParticles1, visibleParticles2];
       const spriteRequests = GlobalSpriteRequestBus.getAndClear();
       const fireSOA = this.fireManager.getFireSOA();
+      const shockwaveSOA = this.shockwaveManager.getSOA();
       const damageTextSOA = this.damageTextManager.getSOA();
 
       this.unifiedSceneRenderer!.render(
@@ -462,6 +468,7 @@ export class TitleScreenRuntime {
         visibleParticles,
         [],
         fireSOA,
+        shockwaveSOA,
         damageTextSOA
       );
     }
@@ -533,6 +540,7 @@ export class TitleScreenRuntime {
     this.particleManager.destroy();
     this.persistentParticleManager.destroy();
     this.fireManager.destroy();
+    this.shockwaveManager.destroy();
     this.lightingOrchestrator.destroy();
 
     this.unifiedSceneRenderer!.destroy();

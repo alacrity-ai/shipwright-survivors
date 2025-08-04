@@ -21,7 +21,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
 import { Ship } from '@/game/ship/Ship';
 import { missionLoader } from '@/game/missions/MissionLoader';
-import { getConnectedBlockCoords, fromKey } from '@/game/ship/utils/shipBlockUtils';
+import { getConnectedBlockCoordsFast } from '@/game/ship/utils/shipBlockUtils';
 import { CompositeBlockDestructionService } from '@/game/ship/CompositeBlockDestructionService';
 import { DEFAULT_EXPLOSION_SPARK_PALETTE } from '@/game/blocks/BlockColorSchemes';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
@@ -54,6 +54,31 @@ export class CombatService {
   private readonly store: BlockStore
   private readonly orchestrator: BlockOrchestrator;
 
+  private reusableConnectedSet?: Set<number>;
+  private reusableWorkQueue?: GridCoord[];
+  private reusableOrphanIndexBuffer?: number[];
+
+  private readonly RANDOM_BUFFER_SIZE = 32;
+  private radiusRandBuffer: number[] = [];
+  private scaleRandBuffer: number[] = [];
+  private randPtr = 0;
+
+  private seedRandomBuffers(): void {
+    for (let i = 0; i < this.RANDOM_BUFFER_SIZE; i++) {
+      this.radiusRandBuffer[i] = Math.random(); // in [0, 1)
+      this.scaleRandBuffer[i] = Math.random();
+    }
+    // Inject big explosion chances
+    this.injectSpikesEveryNth(this.radiusRandBuffer, 12, 4);
+    this.injectSpikesEveryNth(this.scaleRandBuffer, 12, 4);
+  }
+
+  private injectSpikesEveryNth(buffer: number[], every: number, magnitude: number, offset = 0): void {
+    for (let i = offset; i < buffer.length; i += every) {
+      buffer[i] = magnitude;
+    }
+  }
+
   constructor(
     private readonly explosionSystem: ExplosionSystem,
     private readonly pickupSpawner: PickupSpawner,
@@ -67,6 +92,8 @@ export class CombatService {
     this.store = BlockManager.getInstance().getBlockStore();
     this.orchestrator = BlockManager.getInstance().getBlockOrchestrator();
     this.damageTextAggregator = DamageTextAggregator.getInstance();
+
+    this.seedRandomBuffers();
   }
 
   /**
@@ -74,6 +101,12 @@ export class CombatService {
    */
   public destroy(): void {
     GlobalEventBus.off('status:damageOverTime', this.handleDamageOverTime);
+  }
+
+  private nextRandom(buffer: number[]): number {
+    const val = buffer[this.randPtr];
+    this.randPtr = (this.randPtr + 1) % this.RANDOM_BUFFER_SIZE;
+    return val;
   }
 
   public applyDamageToRandomBlock(
@@ -158,7 +191,7 @@ export class CombatService {
         const lightingEnabled = PlayerSettingsManager.getInstance().isLightingEnabled();
         const lightOptions = lightingEnabled && cause !== 'collision'
           ? {
-              lightRadiusScalar: Math.random() * 5 + 5,
+              lightRadiusScalar: this.nextRandom(this.radiusRandBuffer) * 5 + 5,
               lightIntensity: 1.2,
               lightLifeScalar: 0.5,
               lightColor: '#00ffff',
@@ -373,54 +406,62 @@ export class CombatService {
     }
 
     // === Prune disconnected fragments (SOA-based) ===
-    const connectedSet = getConnectedBlockCoords(entity as Ship, { x: 0, y: 0 });
-    const indices = entity.getAllBlockIndices();
+    this.reusableConnectedSet ??= new Set<number>();
+    this.reusableWorkQueue ??= [];
+    this.reusableOrphanIndexBuffer ??= [];
 
-    const orphanCoords: GridCoord[] = [];
+    const connected = getConnectedBlockCoordsFast(
+      entity as Ship,
+      { x: 0, y: 0 },
+      this.reusableConnectedSet,
+      this.reusableWorkQueue
+    );
+
+    const indices = entity.getAllBlockIndices();
     const transform = entity.getTransform();
+
+    const orphanBuffer = this.reusableOrphanIndexBuffer;
+    orphanBuffer.length = 0;
 
     for (let i = 0; i < indices.length; i++) {
       const idx = indices[i];
-      const coord: GridCoord = {
-        x: this.store.localX[idx],
-        y: this.store.localY[idx],
-      };
+      const x = this.store.localX[idx];
+      const y = this.store.localY[idx];
+      const key = (x << 16) | (y & 0xffff);
 
-      const key = `${coord.x},${coord.y}`;
-      if (connectedSet.has(key)) continue; // still connected
+      if (connected.has(key)) continue;
 
-      // Spawn visual FX
+      // FX and pickup
       this.explosionSystem.createBlockExplosion(
         entity.id,
         transform.position,
         transform.rotation,
-        coord,
-        60 + Math.random() * 20,
-        0.5 + Math.random() * 0.3,
+        { x, y },
+        60 + this.nextRandom(this.radiusRandBuffer) * 20,
+        0.5 + this.nextRandom(this.scaleRandBuffer) * 0.3,
         undefined,
         DEFAULT_EXPLOSION_SPARK_PALETTE,
         undefined,
-        'lightless',
+        'lightless'
       );
 
-      const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-      this.pickupSpawner.spawnPickupOnBlockDestruction(idx, blockDropRateMulti);
+      const dropRateMulti = entity.getAffixes?.().blockDropRateMulti ?? 1;
+      this.pickupSpawner.spawnPickupOnBlockDestruction(idx, dropRateMulti);
 
-      orphanCoords.push(coord);
+      orphanBuffer.push(idx);
     }
 
-    // After orphan pruning:
-    if (orphanCoords.length > 0) {
-      entity.removeBlocks(orphanCoords);
+    // === Apply orphan pruning ===
+    if (orphanBuffer.length > 0) {
+      entity.removeBlocksByIndexFast(orphanBuffer);
       if (entity.getIsPlayerShip?.()) {
-        missionResultStore.incrementBlocksLost(orphanCoords.length);
+        missionResultStore.incrementBlocksLost(orphanBuffer.length);
       }
     }
 
     // === Non-player ship destruction invariants ===
     if (entity instanceof Ship && !entity.getIsPlayerShip()) {
-      const remainingIndices = entity.getAllBlockIndices();
-      const remainingCount = remainingIndices.length;
+      const remainingCount = entity.getAllBlockIndices().length;
 
       // --- Low block count fallback ---
       if (remainingCount <= 5) {
@@ -440,53 +481,12 @@ export class CombatService {
     entity: Ship,
     cause: DestructionCause,
   ): boolean {
-    const store = this.store; // BlockStore reference
-    const transform = entity.getTransform();
-    const indices = entity.getAllBlockIndices();
+    // Mark the ship as destructing to prevent reentrancy or double-handling
+    entity.setDestroying(true);
 
-    const coords: GridCoord[] = [];
-
-    for (const idx of indices) {
-      const coord: GridCoord = {
-        x: store.localX[idx],
-        y: store.localY[idx],
-      };
-
-      this.explosionSystem.createBlockExplosion(
-        entity.id,
-        transform.position,
-        transform.rotation,
-        coord,
-        60 + Math.random() * 30,
-        0.7 + Math.random() * 0.3,
-        undefined,
-        DEFAULT_EXPLOSION_SPARK_PALETTE,
-        undefined,
-        'lightless',
-      );
-
-      const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-      this.pickupSpawner.spawnPickupOnBlockDestruction(idx, blockDropRateMulti);
-      coords.push(coord);
-    }
-
-    // Remove all blocks
-    entity.removeBlocks(coords);
+    // Delegate full destruction to the CompositeBlockDestructionService
     this.destructionService.destroyEntity(entity, cause);
-
-    playSpatialSfx(entity, ShipRegistry.getInstance().getPlayerShip(), {
-      file: 'assets/sounds/sfx/explosions/explosion_01.wav',
-      channel: 'sfx',
-      baseVolume: 0.8,
-      pitchRange: [0.9, 1.4],
-      volumeJitter: 0.2,
-    });
-
-    if (entity.getIsPlayerShip?.()) {
-      missionResultStore.incrementBlocksLost(indices.length);
-    }
 
     return true;
   }
-
 }

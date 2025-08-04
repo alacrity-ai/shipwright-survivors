@@ -1,11 +1,13 @@
 // src/rendering/gl/webgl/matrixUtils.ts
 
+import type { Camera } from '@/core/Camera';
+
+
 export function createModelMatrix(x: number, y: number, width: number, height: number): Float32Array {
   const t = createTranslationMatrix(x, y);
   const s = createScaleMatrix(width / 2, height / 2);
   return multiplyMatrices(t, s);
 }
-
 
 // Helper function for scaling (since you don't have createScaleMatrix)
 export function createScaleMatrix(sx: number, sy: number): Float32Array {
@@ -131,3 +133,56 @@ export function multiplyMatricesInPlace(a: Float32Array, b: Float32Array, out: F
     }
   }
 }
+
+export function createProjectionMatrix4(
+  viewportWidth: number,
+  viewportHeight: number,
+  zoom: number
+): Float32Array {
+  const halfW = viewportWidth / (2 * zoom);
+  const halfH = viewportHeight / (2 * zoom);
+
+  const left = -halfW;
+  const right = halfW;
+  const bottom = -halfH;
+  const top = halfH;
+
+  const out = new Float32Array(16);
+
+  out[0] = 2 / (right - left);
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+
+  out[4] = 0;
+  out[5] = 2 / (top - bottom); // vertical flip if needed here
+  out[6] = 0;
+  out[7] = 0;
+
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = -1;
+  out[11] = 0;
+
+  out[12] = -(right + left) / (right - left);
+  out[13] = -(top + bottom) / (top - bottom);
+  out[14] = 0;
+  out[15] = 1;
+
+  return out;
+}
+
+
+export function createViewProjectionMatrixFromCamera(camera: Camera): Float32Array {
+  const offset = camera.getOffset();
+  const zoom = camera.getZoom();
+  const width = camera.getViewportWidth();
+  const height = camera.getViewportHeight();
+
+  const view = createTranslationMatrix(-offset.x, -offset.y);
+  const proj = createProjectionMatrix4(width, height, zoom);
+
+  const viewProjection = multiplyMatrices(proj, view);
+  return viewProjection;
+}
+

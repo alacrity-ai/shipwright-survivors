@@ -26,6 +26,8 @@ import { ParticlePass } from '@/rendering/unified/passes/ParticlePass';
 import { SpritePass } from '@/rendering/unified/passes/SpritePass';
 import { LightningPass, type LightningSegment } from '@/rendering/unified/passes/fx/LightningPass';
 import { FirePass, type FireSOA } from '@/rendering/unified/passes/fx/FirePass';
+import { ShockwavePass } from '@/rendering/unified/passes/fx/ShockwavePass';
+import type { ShockwaveSOA } from '@/systems/fx/ShockwaveManager';
 import { createFireGradientAtlas } from '@/rendering/unified/utils/createGradientRampAtlas';
 import {
   PostProcessPass,
@@ -44,6 +46,8 @@ import type { DamageTextSOA } from '@/systems/damagetext/interfaces/DamageTextSO
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
 
+import { createViewProjectionMatrixFromCamera } from '../gl/matrixUtils';
+
 type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
 
 export class UnifiedSceneRendererGL {
@@ -56,6 +60,7 @@ export class UnifiedSceneRendererGL {
   private readonly spatialBodyPass: SpatialBodyPass;
   private readonly lightingPass: LightingPass;
   private readonly firePass: FirePass;
+  private readonly shockwavePass: ShockwavePass;
   private readonly entityPass: EntityPass;
   private readonly spritePass: SpritePass;
   private readonly particlePass: ParticlePass;
@@ -129,6 +134,7 @@ export class UnifiedSceneRendererGL {
     // World FX
     this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
     this.firePass = new FirePass(this.gl, this.cameraUBO, fireRampTex, fireRampCount);
+    this.shockwavePass = new ShockwavePass(this.gl, this.cameraUBO);
 
     this.sceneFramebuffer = this.gl.createFramebuffer()!;
     this.sceneTexture = this.gl.createTexture()!;
@@ -261,6 +267,7 @@ export class UnifiedSceneRendererGL {
     particleSOAs: ParticleSOA[],
     lightningSegments: LightningSegment[],
     fireSOA: FireSOA,
+    shockwaveSOA: ShockwaveSOA,
     damageTextSOA: DamageTextSOA
   ): void {
     const gl = this.gl;
@@ -377,6 +384,17 @@ export class UnifiedSceneRendererGL {
       this.sceneFramebufferFX = tmpFbo;
     }
 
+    // === Step 10.5: Render shockwaves ===
+    this.shockwavePass.run(this.sceneTexture, this.sceneFramebufferFX, shockwaveSOA);
+
+    // Swap textures and framebuffers again
+    const tmpTex = this.sceneTexture;
+    const tmpFbo = this.sceneFramebuffer;
+    this.sceneTexture = this.sceneTextureFX;
+    this.sceneFramebuffer = this.sceneFramebufferFX;
+    this.sceneTextureFX = tmpTex;
+    this.sceneFramebufferFX = tmpFbo;
+
     // === Step 11: Render world-space FX passes (lightning, trails, etc.) ===
     this.lightningPass.render(lightningSegments, camera);
     this.firePass.renderSOA(fireSOA, dt);
@@ -430,6 +448,9 @@ export class UnifiedSceneRendererGL {
     this.specialFxPass.destroy();
     this.damageTextPass.destroy();
     this.collisionBoxPass.destroy();
+    this.lightningPass.destroy();
+    this.firePass.destroy();
+    this.shockwavePass.destroy();
     for (const fx of this.worldFxPasses) fx.destroy();
 
     this.spriteGroups.clear();

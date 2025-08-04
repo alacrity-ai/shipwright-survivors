@@ -34,9 +34,9 @@ export class ShipRegistry {
     this.shipNumericIdMap.set(ship.numericId, ship);
   }
 
-  remove(ship: Ship, cause: string = 'combat'): void {
+  remove(ship: Ship, cause: string = 'combat', clearBlocks: boolean = true): void {
     ship.cleanupAuraLight();
-    ship.destroy();
+    ship.destroy(clearBlocks);
 
     this.ships.delete(ship);
     this.shipIdMap.delete(ship.id);

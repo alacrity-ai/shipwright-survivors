@@ -5,6 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ipcMain, dialog } from 'electron';
 
+// // === GPU Stability Flags — Apply ASAP before Electron bootstraps GPU process ===
+// app.commandLine.appendSwitch('--use-gl', 'desktop');
+// app.commandLine.appendSwitch('--disable-gpu-watchdog');
+
+// === App Boot ===
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -12,13 +18,13 @@ async function createWindow() {
   const win = new BrowserWindow({
     width: 1920,
     height: 1080,
-    // autoHideMenuBar: true,   // TODO: Dev: Enable this on release | Hides the menu bar
+    autoHideMenuBar: true,   // TODO: Dev: Enable this on release | Hides the menu bar
     frame: true,
     webPreferences: {
       contextIsolation: true, // required for ESM preload
       sandbox: false,         // must be off to allow ESM preload
+      devTools: true,         // TODO: Turn this off on release
       preload: path.join(app.getAppPath(), 'dist-electron/preload.mjs'),
-      devTools: true, // Turn this off on release
     },
   });
   // win.setMenu(null);  // TODO: Dev: Enable this on release
@@ -33,7 +39,6 @@ async function createWindow() {
 
 app.whenReady().then(createWindow);
 
-
 ipcMain.on('toggle-fullscreen', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win) {
@@ -42,23 +47,23 @@ ipcMain.on('toggle-fullscreen', (event) => {
 });
 
 ipcMain.on('close-game', async (event) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) {
-    const result = await dialog.showMessageBox(win, {
-      type: 'question',
-      buttons: ['Yes', 'Cancel'],
-      defaultId: 0,
-      message: 'Are you sure you want to quit?',
-    });
+  // const win = BrowserWindow.fromWebContents(event.sender);
+  // if (win) {
+  //   const result = await dialog.showMessageBox(win, {
+  //     type: 'question',
+  //     buttons: ['Yes', 'Cancel'],
+  //     defaultId: 0,
+  //     message: 'Are you sure you want to quit?',
+  //   });
 
-    if (result.response === 0) {
-      if (win) {
-        win.close();
-      } else {
+  //   if (result.response === 0) {
+  //     if (win) {
+  //       win.close();
+  //     } else {
         app.quit();
-      }
-    }
-  }
+  //     }
+  //   }
+  // }
 });
 
 ipcMain.on('resize-game-viewport', (event, width: number, height: number) => {

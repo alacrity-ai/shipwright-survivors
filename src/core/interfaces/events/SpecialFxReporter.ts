@@ -56,6 +56,21 @@ export function spawnLightningBolt(
   GlobalEventBus.emit('lightning:bolt:spawn', payload);
 }
 
+export function emitShockwave(
+  x: number,
+  y: number,
+  size: number,
+  strength: number,
+  life: number,
+  startRadius: number
+): void {
+  GlobalEventBus.emit('fx:shockwave:emit', { x, y, size, strength, life, startRadius });
+}
+
+export function emitDefaultShockwave(x: number, y: number): void {
+  emitShockwave(x, y, 0.1, 0.04, 1.2, 0.01);
+}
+
 /** Low-level emitter for fully custom fire payloads. */
 export function emitFire(params: {
   x: number;

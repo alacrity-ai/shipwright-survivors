@@ -38,6 +38,7 @@ export abstract class CompositeBlockObject {
   protected collisionBoxOrchestrator: CollisionBoxOrchestrator;
 
   protected transform: BlockEntityTransform;
+  protected destroying: boolean = false;
   protected destroyed: boolean = false;
   protected deathTimestamp: number | null = null;
 
@@ -137,6 +138,14 @@ export abstract class CompositeBlockObject {
     return false;
   }
 
+  public setDestroying(value: boolean): void {
+    this.destroying = value;
+  }
+
+  public isDestroying(): boolean {
+    return this.destroying;
+  }
+
   // --- Block Access & Placement ---
 
   /**
@@ -198,6 +207,19 @@ export abstract class CompositeBlockObject {
     for (let i = 0; i < indices.length; i++) {
       const idx = indices[i];
       if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public hasBlockAtXY(x: number, y: number): boolean {
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
+
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      if (store.localX[idx] === x && store.localY[idx] === y) {
         return true;
       }
     }
@@ -267,7 +289,7 @@ export abstract class CompositeBlockObject {
   }
 
   // --- Boss Phase (Only applies to bosses or phased enemies)
-  
+
   public getBossPhase(): number {
     return this.bossPhase;
   }
@@ -357,39 +379,50 @@ export abstract class CompositeBlockObject {
     this.invalidateMass();
   }
 
-/**
- * Removes multiple blocks by their local grid coordinates.
- * Operates entirely on SOA indices — no BlockInstance.
- */
-public removeBlocks(coords: GridCoord[]): void {
-  const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-  const store = this.blockManager.getBlockStore();
-  const targetShipId = this.numericId;
+  /**
+   * Removes multiple blocks by their local grid coordinates.
+   * Operates entirely on SOA indices — no BlockInstance.
+   */
+  public removeBlocks(coords: GridCoord[]): void {
+    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const store = this.blockManager.getBlockStore();
+    const targetShipId = this.numericId;
 
-  for (const coord of coords) {
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
+    for (const coord of coords) {
+      for (let i = 0; i < indices.length; i++) {
+        const idx = indices[i];
 
-      // Verify ownership before any action
-      const ownerShipId = store.ownerShipId[idx];
-      if (ownerShipId !== targetShipId) {
-        console.error(
-          `[CompositeBlockObject] ⚠ Attempting to remove block ${idx} at (${coord.x},${coord.y}) ` +
-          `but it belongs to ship ${ownerShipId}, not ${targetShipId}`
-        );
-      }
+        // Verify ownership before any action
+        const ownerShipId = store.ownerShipId[idx];
+        if (ownerShipId !== targetShipId) {
+          console.error(
+            `[CompositeBlockObject] ⚠ Attempting to remove block ${idx} at (${coord.x},${coord.y}) ` +
+            `but it belongs to ship ${ownerShipId}, not ${targetShipId}`
+          );
+        }
 
-      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
-        this.blockOrchestrator.destroyBlock(idx);
-        break; // move to next coordinate
+        if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+          this.blockOrchestrator.destroyBlock(idx);
+          break; // move to next coordinate
+        }
       }
     }
+
+    // Recalculate mass next time it's queried
+    this.invalidateMass();
   }
 
-  // Recalculate mass next time it's queried
-  this.invalidateMass();
-}
-
+  /**
+   * Removes multiple blocks by their SOA indices.
+   * Assumes all indices belong to this entity.
+   * Does not perform coordinate comparison or ownership validation.
+   */
+  public removeBlocksByIndexFast(indices: number[]): void {
+    for (let i = 0; i < indices.length; i++) {
+      this.blockOrchestrator.destroyBlock(indices[i]);
+    }
+    this.invalidateMass();
+  }
 
   // --- Color customization (RGBA)
   public setBlockColor(color: string | null): void {
@@ -609,13 +642,15 @@ public removeBlocks(coords: GridCoord[]): void {
   /**
    * Marks the ship as destroyed, clears all blocks, and triggers destruction hooks.
    */
-  public destroy(): void {
+  public destroy(clearBlocks: boolean = true): void {
     if (this.destroyed) return;
     this.destroyed = true;
     this.deathTimestamp = performance.now();
 
     // Clear all blocks for this ship (handles BlockStore + BlockSpatialGrid teardown)
-    this.blockOrchestrator.clearShip(this.numericId);
+    if (clearBlocks) {
+      this.blockOrchestrator.clearShip(this.numericId);
+    }
 
     // ─── Clear Collision Box ───────────────────────────────────────────────
     const boxIndex = this.collisionBoxOrchestrator.getBoxIndexByShipId(this.numericId);

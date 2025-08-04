@@ -71,6 +71,7 @@ export class AIControllerSystem {
   }
 
   public update(dt: number): void {
+    if (this.ship.isDestroying()) return;
     const transform = this.ship.getTransform();
 
     try {
