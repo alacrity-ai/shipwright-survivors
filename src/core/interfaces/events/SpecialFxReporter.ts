@@ -221,3 +221,20 @@ export function emitBigExplosionFlames(x: number, y: number, count = 12): void {
     color: '#ff6600',
   });
 }
+
+// Clouds
+export function enableClouds(): void {
+  GlobalEventBus.emit('rendering:clouds:enable', undefined);
+}
+
+export function disableClouds(): void {
+  GlobalEventBus.emit('rendering:clouds:disable', undefined);
+}
+
+export function setCloudParamsFront(params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] }): void {
+  GlobalEventBus.emit('rendering:clouds:setParams:front', { params });
+}
+
+export function setCloudParamsBack(params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] }): void {
+  GlobalEventBus.emit('rendering:clouds:setParams:back', { params });
+}

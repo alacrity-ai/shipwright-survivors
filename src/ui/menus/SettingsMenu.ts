@@ -15,7 +15,6 @@ import { DEFAULT_CONFIG } from '@/config/ui';
 import { drawCheckbox, type UICheckbox } from '@/ui/primitives/UICheckBox';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { SaveGameManager } from '@/core/save/saveGameManager';
-import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getDropdownHoverInfo } from '@/ui/menus/helpers/getDropdownHoverInfo';
 
@@ -70,8 +69,10 @@ export class SettingsMenu implements Menu {
 
   private aimModeCheckbox: UICheckbox | null = null;
   private damageTextCheckbox: UICheckbox | null = null;
-  private lightingCheckbox: UICheckbox | null = null;
-  private collisionsCheckbox: UICheckbox | null = null;
+
+  private specialFXCheckbox: UICheckbox | null = null;
+  private environmentDetailsCheckbox: UICheckbox | null = null;
+  private fireEffectsCheckbox: UICheckbox | null = null;
 
   private resolutionDropdown: CRTDropDown | null = null;
 
@@ -209,28 +210,41 @@ export class SettingsMenu implements Menu {
       }
     };
 
-    this.lightingCheckbox = {
+    this.specialFXCheckbox = {
       x: this.baseX,
       y: this.baseY + scaledItemVerticalSpacing * 2,
       size: this.checkboxSize,
-      label: 'Lighting Enabled',
+      label: 'Shader Effects Enabled',
       checked: settings.isLightingEnabled(),
       onToggle: (val) => {
-        this.lightingCheckbox!.checked = val;
-        settings.setLightingEnabled(val);
+        this.specialFXCheckbox!.checked = val;
+        settings.setSpecialFXEnabled(val);
         SaveGameManager.saveSettings();
       }
     };
 
-    this.collisionsCheckbox = {
+    this.environmentDetailsCheckbox = {
       x: this.baseX,
       y: this.baseY + scaledItemVerticalSpacing * 3,
       size: this.checkboxSize,
-      label: 'Collisions Enabled',
+      label: 'Detailed Environment Enabled',
       checked: settings.isCollisionsEnabled(),
       onToggle: (val) => {
-        this.collisionsCheckbox!.checked = val;
-        settings.setCollisionsEnabled(val);
+        this.environmentDetailsCheckbox!.checked = val;
+        settings.setEnvironmentDetailsEnabled(val);
+        SaveGameManager.saveSettings();
+      }
+    };
+
+    this.fireEffectsCheckbox = {
+      x: this.baseX,
+      y: this.baseY + scaledItemVerticalSpacing * 4,
+      size: this.checkboxSize,
+      label: 'Fire Effects Enabled',
+      checked: settings.isFireEffectsEnabled(),
+      onToggle: (val) => {
+        this.fireEffectsCheckbox!.checked = val;
+        settings.setFireEffectsEnabled(val);
         SaveGameManager.saveSettings();
       }
     };
@@ -247,7 +261,7 @@ export class SettingsMenu implements Menu {
 
     this.resolutionDropdown = {
       x: this.baseX,
-      y: this.baseY + scaledItemVerticalSpacing * 4,
+      y: this.baseY + scaledItemVerticalSpacing * 6,
       width: this.dropdownWidth,
       height: this.dropdownHeight,
       items: resolutionItems,
@@ -315,8 +329,9 @@ export class SettingsMenu implements Menu {
       for (const cb of [
         this.aimModeCheckbox, 
         this.damageTextCheckbox, 
-        this.lightingCheckbox, 
-        this.collisionsCheckbox
+        this.specialFXCheckbox, 
+        this.environmentDetailsCheckbox,
+        this.fireEffectsCheckbox,
       ]) {
         if (!cb) continue;
         const rect = { x: cb.x, y: cb.y, width: cb.size, height: cb.size };
@@ -430,13 +445,14 @@ export class SettingsMenu implements Menu {
     if (this.activeTab === 'display') {
       drawCheckbox(ctx, this.aimModeCheckbox!, scale);
       drawCheckbox(ctx, this.damageTextCheckbox!, scale);
-      drawCheckbox(ctx, this.lightingCheckbox!, scale);
-      drawCheckbox(ctx, this.collisionsCheckbox!, scale);
+      drawCheckbox(ctx, this.specialFXCheckbox!, scale);
+      drawCheckbox(ctx, this.environmentDetailsCheckbox!, scale);
+      drawCheckbox(ctx, this.fireEffectsCheckbox!, scale);
       if (this.resolutionLocked) {
         drawLabel(
           ctx,
           this.resolutionDropdown!.x,
-          this.resolutionDropdown!.y + 6 * scale, // slight vertical adjustment for better centering
+          this.resolutionDropdown!.y + 48 * scale, // slight vertical adjustment for better centering
           'Resolution can be changed from the Title Screen',
           {
             font: '14px monospace',

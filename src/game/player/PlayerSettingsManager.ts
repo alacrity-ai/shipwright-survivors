@@ -17,6 +17,10 @@ export class PlayerSettingsManager {
   private lightingEnabled: boolean = true;
   private collisionsEnabled: boolean = true;
 
+  private specialFXEnabled: boolean = true;
+  private environmentDetailsEnabled: boolean = true;
+  private fireEffectsEnabled: boolean = true;
+
   private debugMode: boolean = false; // Set to false TODO: In prod set to false
 
   private viewportWidth: number = 1920;
@@ -71,6 +75,18 @@ export class PlayerSettingsManager {
 
   getAimMode(): 'manual' | 'auto' {
     return this.aimMode;
+  }
+
+  setSpecialFXEnabled(enabled: boolean): void {
+    this.specialFXEnabled = enabled;
+  }
+
+  setEnvironmentDetailsEnabled(enabled: boolean): void {
+    this.environmentDetailsEnabled = enabled;
+  }
+
+  setFireEffectsEnabled(enabled: boolean): void {
+    this.fireEffectsEnabled = enabled;
   }
 
   setDamageTextEnabled(enabled: boolean): void {
@@ -164,6 +180,9 @@ export class PlayerSettingsManager {
   isCollisionsEnabled(): boolean { return this.collisionsEnabled; }
   isParticlesEnabled(): boolean { return this.particlesEnabled; }
   isLightingEnabled(): boolean { return this.lightingEnabled; }
+  isSpecialFXEnabled(): boolean { return this.specialFXEnabled; }
+  isEnvironmentDetailsEnabled(): boolean { return this.environmentDetailsEnabled; }
+  isFireEffectsEnabled(): boolean { return this.fireEffectsEnabled; }
 
   // === Serialization ===
 
@@ -180,6 +199,9 @@ export class PlayerSettingsManager {
       viewportWidth: this.viewportWidth,
       viewportHeight: this.viewportHeight,
       interfaceScale: this.interfaceScale,
+      specialFXEnabled: this.specialFXEnabled,
+      environmentDetailsEnabled: this.environmentDetailsEnabled,
+      fireEffectsEnabled: this.fireEffectsEnabled,
     });
   }
 
@@ -193,10 +215,18 @@ export class PlayerSettingsManager {
         this.setSfxVolume(parsed.sfxVolume ?? this.sfxVolume);
         this.setDialogueVolume(parsed.dialogueVolume ?? this.dialogueVolume);
         this.setDamageTextEnabled(Boolean(parsed.damageTextEnabled ?? this.damageTextEnabled));
+        this.setSpecialFXEnabled(Boolean(parsed.specialFXEnabled ?? this.specialFXEnabled));
+        this.setEnvironmentDetailsEnabled(Boolean(parsed.environmentDetailsEnabled ?? this.environmentDetailsEnabled));
+        this.setFireEffectsEnabled(Boolean(parsed.fireEffectsEnabled ?? this.fireEffectsEnabled));
 
         // TODO maybe set these later?
         this.particlesEnabled = Boolean(parsed.particlesEnabled ?? this.particlesEnabled);
         this.lightingEnabled = Boolean(parsed.lightingEnabled ?? this.lightingEnabled);
+        this.collisionsEnabled = Boolean(parsed.collisionsEnabled ?? this.collisionsEnabled);
+        this.specialFXEnabled = Boolean(parsed.specialFXEnabled ?? this.specialFXEnabled);
+        this.environmentDetailsEnabled = Boolean(parsed.environmentDetailsEnabled ?? this.environmentDetailsEnabled);
+        this.fireEffectsEnabled = Boolean(parsed.fireEffectsEnabled ?? this.fireEffectsEnabled);
+        this.debugMode = Boolean(parsed.debugMode ?? this.debugMode);
         this.viewportWidth = Math.max(640, parsed.viewportWidth ?? this.viewportWidth);
         this.viewportHeight = Math.max(480, parsed.viewportHeight ?? this.viewportHeight);
         this.interfaceScale = Math.max(0.5, Math.min(2.0, parsed.interfaceScale ?? this.interfaceScale));
@@ -216,6 +246,9 @@ export class PlayerSettingsManager {
     this.particlesEnabled = true;
     this.lightingEnabled = true;
     this.interfaceScale = 1.0;
+    this.specialFXEnabled = true;
+    this.environmentDetailsEnabled = true;
+    this.fireEffectsEnabled = true;
   }
 
   private clampVolume(v: number): number {

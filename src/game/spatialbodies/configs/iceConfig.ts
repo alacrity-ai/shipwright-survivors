@@ -12,27 +12,27 @@ import type { SpatialBodySpawnConfig } from '@/game/spatialbodies/interfaces/Spa
 export const iceSpatialBodyConfig: SpatialBodySpawnConfig[] = [
   {
     type: 'ice-04',        // Largest chunk (1024x1024 UV region)
-    count: 12,              // Sparse anchors
+    count: 112,              // Sparse anchors
     scaleVariance: 0.15,   // ±15% size jitter
   },
   {
     type: 'ice-03',        // Large chunk (532x532 UV region)
-    count: 16,              // Fewer large bodies
+    count: 116,              // Fewer large bodies
     scaleVariance: 0.2,    // ±20% jitter
   },
   {
     type: 'ice-00',        // Medium chunk (339x339 UV region)
-    count: 12,             // Moderate presence
+    count: 112,             // Moderate presence
     scaleVariance: 0.25,   // ±25% jitter
   },
   {
     type: 'ice-01',        // Medium/small chunk (398x398 UV region)
-    count: 16,             // More frequent filler
+    count: 116,             // More frequent filler
     scaleVariance: 0.3,    // ±30% jitter
   },
   {
     type: 'ice-02',        // Smallest chunk (283x283 UV region)
-    count: 24,             // Numerous filler pieces
+    count: 124,             // Numerous filler pieces
     scaleVariance: 0.35,   // ±35% jitter
   },
 ];

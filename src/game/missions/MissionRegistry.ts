@@ -101,7 +101,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet1,
     dropMultiplier: 1.0,
     environmentSettings: {
-      backgroundId: 'background_9_00.png',
+      backgroundId: 'background_9_01.png',
       gravity: 0,
       worldWidth: 64000,
       worldHeight: 64000,

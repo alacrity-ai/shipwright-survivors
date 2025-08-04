@@ -99,8 +99,8 @@ export class UnifiedSceneRendererGL {
   private playerSettings: PlayerSettingsManager;
 
   private elapsedSeconds = 0;
-  private drawFrontClouds: boolean = false;
-  private drawBackClouds: boolean = false;
+  private drawFrontClouds: boolean = true;
+  private drawBackClouds: boolean = true;
 
   private debugDrawCollisionBoxes = false; // Debug only
 
@@ -152,11 +152,37 @@ export class UnifiedSceneRendererGL {
     GlobalEventBus.on('postprocess:effect:remove', this.onPostProcessEffectRemove);
     GlobalEventBus.on('postprocess:effect:clear', this.onPostProcessEffectClear);
     
+    // Mist Adjustment
+    GlobalEventBus.on('rendering:clouds:enable', this.onCloudsEnable);
+    GlobalEventBus.on('rendering:clouds:disable', this.onCloudsDisable);
+    GlobalEventBus.on('rendering:clouds:setParams:front', this.onCloudsSetParamsFront);
+    GlobalEventBus.on('rendering:clouds:setParams:back', this.onCloudsSetParamsBack);
+
     // Background post-process events
     GlobalEventBus.on('postprocess:background:effect:set', this.onBackgroundPostProcessEffectsSet);
     GlobalEventBus.on('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
     GlobalEventBus.on('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
     GlobalEventBus.on('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
+
+    // Configure front cloudpass
+    this.cloudPass.setParams({
+      speed: 0.5,
+      density: 1.2,
+      quantity: 2.0,
+      scale: 1.0,
+      alpha: 0.10,
+      color: [0.2, 0.2, 0.8],
+    });
+
+    // Configure front cloudpass
+    this.cloudPassFront.setParams({
+      speed: 0.5,
+      density: 1.2,
+      quantity: 2.0,
+      scale: 3.0,
+      alpha: 0.10,
+      color: [0.8, 0.8, 0.8],
+    });
 
     this.playerSettings = PlayerSettingsManager.getInstance();
   }
@@ -164,6 +190,24 @@ export class UnifiedSceneRendererGL {
   private readonly onResolutionChanged = (): void => {
     this.initializeFramebuffers();
     this.lightingPass.resize();
+  };
+
+  private readonly onCloudsEnable = (): void => {
+    this.drawBackClouds = true;
+    this.drawFrontClouds = true;
+  };
+
+  private readonly onCloudsDisable = (): void => {
+    this.drawBackClouds = false;
+    this.drawFrontClouds = false;
+  };
+
+  private readonly onCloudsSetParamsFront = (payload: { params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
+    this.cloudPassFront.setParams(payload.params);
+  };
+
+  private readonly onCloudsSetParamsBack = (payload: { params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
+    this.cloudPass.setParams(payload.params);
   };
 
   // Main post-process event handlers
@@ -317,8 +361,10 @@ export class UnifiedSceneRendererGL {
 
     // === Step 6: Render spatial bodies (now light-aware) ===
     // Must occur *after* light buffer generation so they can sample the light map
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
-    this.spatialBodyPass.render(camera, lightTexture);
+    if (this.playerSettings.isEnvironmentDetailsEnabled()) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+      this.spatialBodyPass.render(camera, lightTexture);
+    }
 
     // === Step 7: Render entities (blocks, also light-aware) ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Rebind because lights rendered to offscreen FB
@@ -385,19 +431,23 @@ export class UnifiedSceneRendererGL {
     }
 
     // === Step 10.5: Render shockwaves ===
-    this.shockwavePass.run(this.sceneTexture, this.sceneFramebufferFX, shockwaveSOA);
+    if (this.playerSettings.isSpecialFXEnabled()) {
+      this.shockwavePass.run(this.sceneTexture, this.sceneFramebufferFX, shockwaveSOA);
 
-    // Swap textures and framebuffers again
-    const tmpTex = this.sceneTexture;
-    const tmpFbo = this.sceneFramebuffer;
-    this.sceneTexture = this.sceneTextureFX;
-    this.sceneFramebuffer = this.sceneFramebufferFX;
-    this.sceneTextureFX = tmpTex;
-    this.sceneFramebufferFX = tmpFbo;
+      // Swap textures and framebuffers again
+      const tmpTex = this.sceneTexture;
+      const tmpFbo = this.sceneFramebuffer;
+      this.sceneTexture = this.sceneTextureFX;
+      this.sceneFramebuffer = this.sceneFramebufferFX;
+      this.sceneTextureFX = tmpTex;
+      this.sceneFramebufferFX = tmpFbo;
+    }
 
     // === Step 11: Render world-space FX passes (lightning, trails, etc.) ===
     this.lightningPass.render(lightningSegments, camera);
-    this.firePass.renderSOA(fireSOA, dt);
+    if (this.playerSettings.isFireEffectsEnabled()) {
+      this.firePass.renderSOA(fireSOA, dt);
+    }
 
     // === Step 12: Render damage text ===
     if (this.playerSettings.isDamageTextEnabled()) {
@@ -462,6 +512,10 @@ export class UnifiedSceneRendererGL {
     GlobalEventBus.off('postprocess:effect:add', this.onPostProcessEffectAdd);
     GlobalEventBus.off('postprocess:effect:remove', this.onPostProcessEffectRemove);
     GlobalEventBus.off('postprocess:effect:clear', this.onPostProcessEffectClear);
+    GlobalEventBus.off('rendering:clouds:enable', this.onCloudsEnable);
+    GlobalEventBus.off('rendering:clouds:disable', this.onCloudsDisable);
+    GlobalEventBus.off('rendering:clouds:setParams:front', this.onCloudsSetParamsFront);
+    GlobalEventBus.off('rendering:clouds:setParams:back', this.onCloudsSetParamsBack);
     GlobalEventBus.off('postprocess:background:effect:set', this.onBackgroundPostProcessEffectsSet);
     GlobalEventBus.off('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
     GlobalEventBus.off('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
@@ -573,24 +627,3 @@ export class UnifiedSceneRendererGL {
     return this.backgroundPostProcessPass;
   }
 }
-
-
-    // // Configure front cloudpass
-    // this.cloudPass.setParams({
-    //   speed: 0.5,
-    //   density: 1.2,
-    //   quantity: 2.0,
-    //   scale: 1.0,
-    //   alpha: 0.10,
-    //   color: [0.0, 1.0, 0.0],
-    // });
-
-    // // Configure front cloudpass
-    // this.cloudPassFront.setParams({
-    //   speed: 0.5,
-    //   density: 1.2,
-    //   quantity: 2.0,
-    //   scale: 3.0,
-    //   alpha: 0.10,
-    //   color: [0.8, 0.8, 0.8],
-    // });
