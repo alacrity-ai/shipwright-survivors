@@ -1,8 +1,10 @@
+// src/systems/fx/CloudManager.ts
+
 import { setCloudParamsFront, setCloudParamsBack } from '@/core/interfaces/events/SpecialFxReporter';
 
-type Vec2 = { x: number; y: number };
+export type Vec2 = { x: number; y: number };
 
-type CloudParams = {
+export type CloudParams = {
   speed?: number;
   density?: number;
   quantity?: number;
@@ -11,7 +13,7 @@ type CloudParams = {
   color?: [number, number, number];
 };
 
-type CloudRegion = {
+export type CloudRegion = {
   id: string;
   center: Vec2;
   radius: number;
@@ -19,10 +21,10 @@ type CloudRegion = {
   backParams: CloudParams;
 };
 
-function distanceSquared(a: Vec2, b: Vec2): number {
+function distance(a: Vec2, b: Vec2): number {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
-  return dx * dx + dy * dy;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -43,7 +45,8 @@ export class CloudManager {
   private lastEmittedFrontAlpha: number = -1;
   private lastEmittedBackAlpha: number = -1;
 
-  private readonly FADE_SPEED = 2.0; // Units per second
+  private readonly FADE_SPEED = 2.0;
+  private static readonly EPSILON = 0.001;
 
   constructor(ship: { getTransform: () => { position: Vec2 } }, regions: CloudRegion[]) {
     this.ship = ship;
@@ -53,40 +56,53 @@ export class CloudManager {
   update(dt: number): void {
     const position = this.ship.getTransform().position;
 
-    // Find region that contains current position
     let matchingRegion: CloudRegion | null = null;
+    let matchingDistance: number = Infinity;
 
     for (let i = 0; i < this.regions.length; i++) {
       const region = this.regions[i];
-      const distSq = distanceSquared(position, region.center);
-      if (distSq <= region.radius * region.radius) {
+      const d = distance(position, region.center);
+      if (d <= region.radius) {
         matchingRegion = region;
+        matchingDistance = d;
         break;
       }
     }
 
-    if (matchingRegion?.id !== this.currentRegion?.id) {
-      this.currentRegion = matchingRegion;
+    this.currentRegion = matchingRegion;
+
+    let alphaFactor = 0;
+
+    if (this.currentRegion) {
+      const halfRadius = this.currentRegion.radius * 0.5;
+
+      if (matchingDistance <= halfRadius) {
+        alphaFactor = 1.0;
+      } else {
+        const t = 1.0 - (matchingDistance - halfRadius) / halfRadius;
+        alphaFactor = Math.max(0, Math.min(1, t));
+      }
     }
 
-    // Target alpha
-    const targetAlphaFront = this.currentRegion?.frontParams.alpha ?? 0;
-    const targetAlphaBack = this.currentRegion?.backParams.alpha ?? 0;
+    const targetAlphaFront = (this.currentRegion?.frontParams.alpha ?? 0) * alphaFactor;
+    const targetAlphaBack = (this.currentRegion?.backParams.alpha ?? 0) * alphaFactor;
 
-    // Lerp alpha over time
-    this.alphaFront = lerp(this.alphaFront, targetAlphaFront, 1 - Math.exp(-this.FADE_SPEED * dt));
-    this.alphaBack = lerp(this.alphaBack, targetAlphaBack, 1 - Math.exp(-this.FADE_SPEED * dt));
+    const fadeT = 1 - Math.exp(-this.FADE_SPEED * dt);
+    this.alphaFront = lerp(this.alphaFront, targetAlphaFront, fadeT);
+    this.alphaBack = lerp(this.alphaBack, targetAlphaBack, fadeT);
 
-    // Emit only if alpha changed significantly
-    const EPSILON = 0.001;
+    // === Clamp near-zero to 0 ===
+    if (this.alphaFront < CloudManager.EPSILON) this.alphaFront = 0;
+    if (this.alphaBack < CloudManager.EPSILON) this.alphaBack = 0;
 
-    if (Math.abs(this.alphaFront - this.lastEmittedFrontAlpha) > EPSILON) {
+    // === Emit if alpha changed significantly ===
+    if (Math.abs(this.alphaFront - this.lastEmittedFrontAlpha) > CloudManager.EPSILON) {
       const base = this.currentRegion?.frontParams ?? {};
       setCloudParamsFront({ ...base, alpha: this.alphaFront });
       this.lastEmittedFrontAlpha = this.alphaFront;
     }
 
-    if (Math.abs(this.alphaBack - this.lastEmittedBackAlpha) > EPSILON) {
+    if (Math.abs(this.alphaBack - this.lastEmittedBackAlpha) > CloudManager.EPSILON) {
       const base = this.currentRegion?.backParams ?? {};
       setCloudParamsBack({ ...base, alpha: this.alphaBack });
       this.lastEmittedBackAlpha = this.alphaBack;
@@ -94,21 +110,21 @@ export class CloudManager {
   }
 
   // == Public API ==
-  
+
   getRegionCoords(): readonly { x: number; y: number; radius: number }[] {
-    // Reuse preallocated buffer to avoid GC churn
     const buf = this.regionCoordsBuffer;
     buf.length = 0;
 
     for (let i = 0; i < this.regions.length; i++) {
       const r = this.regions[i];
-      buf.push({
-        x: r.center.x,
-        y: r.center.y,
-        radius: r.radius,
-      });
+      buf.push({ x: r.center.x, y: r.center.y, radius: r.radius });
     }
 
     return buf;
+  }
+
+  isShipInCloud(): boolean {
+    // Compare against a perceptual epsilon, not strict > 0
+    return this.alphaFront > CloudManager.EPSILON || this.alphaBack > CloudManager.EPSILON;
   }
 }

@@ -164,26 +164,6 @@ export class UnifiedSceneRendererGL {
     GlobalEventBus.on('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
     GlobalEventBus.on('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
 
-    // Configure front cloudpass
-    this.cloudPass.setParams({
-      speed: 0.5,
-      density: 1.2,
-      quantity: 2.0,
-      scale: 1.0,
-      alpha: 0.10,
-      color: [0.2, 0.2, 0.8],
-    });
-
-    // Configure front cloudpass
-    this.cloudPassFront.setParams({
-      speed: 0.5,
-      density: 1.2,
-      quantity: 2.0,
-      scale: 3.0,
-      alpha: 0.10,
-      color: [0.8, 0.8, 0.8],
-    });
-
     this.playerSettings = PlayerSettingsManager.getInstance();
   }
 

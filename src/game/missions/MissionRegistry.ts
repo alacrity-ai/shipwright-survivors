@@ -2,6 +2,9 @@
 
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 
+// Cloud Registry
+import { CloudRegionRegistry } from '@/systems/fx/CloudRegistry';
+
 // Enemy Wave imports
 import { waveDefinitions as titleScreenWaves } from '@/game/waves/missions/TitleScreenWaves';
 import { waveDefinitions as waveSet0 } from '@/game/waves/missions/Mission0Waves';
@@ -123,6 +126,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Deimos', x: -12000, y: -24000 }
     ],
     spatialBodies: iceSpatialBodyConfig,
+    cloudRegions: CloudRegionRegistry.get('misty-basin'), // mistyBasinCloudRegions,
   },
   mission_003_00: {
     id: 'mission_003_00',

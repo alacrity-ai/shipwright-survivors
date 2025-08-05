@@ -52,7 +52,7 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 import { ScreenEdgeIndicatorManager } from '@/ui/overlays/indicators/ScreenEdgeIndicatorManager';
-
+import { CloudManager } from '@/systems/fx/CloudManager';
 import { 
   addPostProcessEffect, 
   clearPostProcessEffects, 
@@ -221,6 +221,7 @@ export class EngineRuntime {
   private persistentParticleManager: ParticleManager;
   private lightningSystem: LightningSystem;
   private fireManager: FireManager;
+  private cloudManager: CloudManager | null = null;
   private shockwaveManager: ShockwaveManager;
   private damageTextManager: DamageTextManager;
   private damageTextAggregator: DamageTextAggregator;
@@ -462,6 +463,9 @@ export class EngineRuntime {
     this.weaponSystem = weapons; // Weapon system needed for update() loop
     this.utilitySystem = utility; // Utility system needed for update() loop
 
+    // Cloud Manager
+    this.cloudManager = new CloudManager(this.ship!, this.mission.cloudRegions ?? []);
+
     // Enqueue starting blocks from Ship Skill Tree if applicable
     PlayerResources.getInstance().enqueueSkillTreeStartingBlocks(this.ship);
 
@@ -580,7 +584,7 @@ export class EngineRuntime {
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
     this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
     this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!, this.particleManager, this.hud.getQueueDisplayManager());
-    this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, getUniformScaleFactor());
+    this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, this.cloudManager, getUniformScaleFactor());
     
     // Register player ship
     this.miniMap.setPlayerShip(this.ship);
@@ -666,6 +670,7 @@ export class EngineRuntime {
       this.damageTextAggregator,
       this.damageTextManager,
       this.aiOrchestrator,
+      this.cloudManager!,
       this.blockObjectUpdate!,
       this.collisionBoxSystem,
       this.destructionService,

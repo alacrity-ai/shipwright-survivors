@@ -27,12 +27,12 @@ export class CloudPass {
   private readonly uScale: WebGLUniformLocation; // Add this missing uniform
 
   // Runtime parameters (default values can be adjusted)
-  private speed = 1.0;
-  private alpha = 0.18;
-  private density = 1.2;
-  private cloudColor: [number, number, number] = [0.6, 1, 0.6];
-  private quantity = 2.0;
-  private scale = 4.0; // Add scale parameter
+  private speed = 0.0;
+  private alpha = 0.0;
+  private density = 0.0;
+  private cloudColor: [number, number, number] = [0.0, 0, 0.0];
+  private quantity = 0.0;
+  private scale = 0.0; // Add scale parameter
 
   // World offset scaling factor (to avoid massive values in shader)
   private static readonly WORLD_SCALE = 0.0005;

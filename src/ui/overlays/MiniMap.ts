@@ -9,6 +9,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
 import { MiniMapIcons, IconType } from '@/ui/utils/MiniMapIcons';
+import { CloudManager } from '@/systems/fx/CloudManager';
 
 import { getWorldWidth, getWorldHeight } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
@@ -30,6 +31,9 @@ export class MiniMap {
   private animationTime = 0;
   private scanlineOffset = 0;
   private lastFrameTime = 0;
+  
+  private cloudRegionCache = new Map<number, HTMLCanvasElement>();
+  private wasInCloud = false;
 
   private projectionScaleX = 1;
   private projectionScaleY = 1;
@@ -55,6 +59,7 @@ export class MiniMap {
     private readonly canvasManager: CanvasManager,
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly planetSystem: PlanetSystem,
+    private readonly cloudManager: CloudManager,
     private scale: number = 1.0,
   ) {
     GlobalEventBus.on('minimap:hide', this.onHide);
@@ -71,6 +76,8 @@ export class MiniMap {
 
     this.initializeStaticCache();
     this.resize(getUniformScaleFactor());
+
+    this.cloudManager = cloudManager;
 
     this.enemyMarkers = {
       passive: this.createEnemyDot('#3399ff'),
@@ -130,6 +137,70 @@ export class MiniMap {
     };
     this.planetMarker = this.createPlanetDot('#00ffff');
     this.playerMarker = this.createPlayerMarker();
+    this.cloudRegionCache.clear();
+  }
+
+  private drawCloudRegions(
+    ctx: CanvasRenderingContext2D,
+    project: (pos: { x: number; y: number }) => { x: number; y: number }
+  ): void {
+    if (!this.cloudManager) return;
+
+    const regions = this.cloudManager.getRegionCoords();
+    const padding = Math.floor(20 * this.scale);
+
+    for (const { x, y, radius } of regions) {
+      const screen = project({ x, y });
+
+      // Convert world-space radius to minimap pixels
+      const pixelRadius = Math.floor(
+        (radius / getWorldWidth()) * (this.width - padding)
+      );
+
+      const clampedRadius = Math.max(4, pixelRadius);
+
+      const cloudDot = this.getOrCreateCloudRegionDot(clampedRadius);
+      const half = Math.floor(cloudDot.width / 2);
+      ctx.drawImage(cloudDot, screen.x - half, screen.y - half);
+    }
+  }
+
+  private getOrCreateCloudRegionDot(pixelRadius: number): HTMLCanvasElement {
+    if (this.cloudRegionCache.has(pixelRadius)) {
+      return this.cloudRegionCache.get(pixelRadius)!;
+    }
+
+    const diameter = pixelRadius * 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = diameter;
+    canvas.height = diameter;
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.translate(pixelRadius, pixelRadius); // Center origin
+
+    ctx.fillStyle = 'rgba(255, 97, 239, 0.28)';
+    ctx.strokeStyle = 'rgba(129, 0, 105, 0.55)';
+    ctx.lineWidth = Math.max(1, Math.floor(1 * this.scale));
+
+    ctx.beginPath();
+    ctx.arc(0, 0, pixelRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    this.cloudRegionCache.set(pixelRadius, canvas);
+    return canvas;
+  }
+
+  private getFrameColor(): string {
+    return this.cloudManager?.isShipInCloud() ? '#bb88ff' : '#00ff41';
+  }
+
+  private getScanlineColor(): string {
+    return this.cloudManager?.isShipInCloud() ? 'rgba(187,136,255,0.06)' : 'rgba(0,255,65,0.06)';
+  }
+
+  private getGridLineColor(): string {
+    return this.cloudManager?.isShipInCloud() ? '#330055' : '#004120';
   }
 
   private renderStaticElements(): void {
@@ -209,6 +280,14 @@ export class MiniMap {
     ctx.save();
     ctx.globalAlpha = alpha;
 
+    // Cloud check and cache invalidation
+    const inCloud = this.cloudManager?.isShipInCloud() ?? false;
+
+    if (inCloud !== this.wasInCloud) {
+      this.invalidateCache(); // Forces redraw of staticCanvas with new theme
+      this.wasInCloud = inCloud;
+    }
+
     // === Draw cached static elements ===
     this.renderStaticElements();
     if (this.staticCanvas) {
@@ -229,6 +308,9 @@ export class MiniMap {
 
     // === Draw planets
     this.drawPlanets(ctx, project);
+
+    // === Draw cloud regions ===
+    this.drawCloudRegions(ctx, project);
 
     // === Draw ships (simplified) ===
     this.drawPlayerShip(ctx, project);
@@ -267,20 +349,24 @@ export class MiniMap {
   }
 
   private drawDiegeticFrame(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const frameColor = this.getFrameColor();
     const frameThickness = Math.floor(2 * this.scale);
     const cornerSize = Math.floor(8 * this.scale);
-    
+    const bracketOffset = Math.floor(6 * this.scale);
+
     // Main frame
-    ctx.strokeStyle = '#00ff41';
+    ctx.strokeStyle = frameColor;
     ctx.lineWidth = frameThickness;
-    ctx.strokeRect(x - frameThickness, y - frameThickness, 
-                   this.width + frameThickness * 2, this.height + frameThickness * 2);
+    ctx.strokeRect(
+      x - frameThickness,
+      y - frameThickness,
+      this.width + frameThickness * 2,
+      this.height + frameThickness * 2
+    );
 
     // Simplified corner brackets
-    ctx.strokeStyle = '#00ff41';
+    ctx.strokeStyle = frameColor;
     ctx.lineWidth = Math.max(1, Math.floor(1 * this.scale));
-
-    const bracketOffset = Math.floor(6 * this.scale);
 
     // Top-left
     ctx.beginPath();
@@ -320,24 +406,32 @@ export class MiniMap {
   }
 
   private drawCRTBackground(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    // Simple gradient background
+    const inCloud = this.cloudManager?.isShipInCloud() ?? false;
+
+    // Simple vertical gradient background
     const bgGradient = ctx.createLinearGradient(x, y, x, y + this.height);
-    bgGradient.addColorStop(0, '#001a00');
-    bgGradient.addColorStop(1, '#000a00');
+    
+    if (inCloud) {
+      bgGradient.addColorStop(0, '#100024'); // purple-tinted CRT
+      bgGradient.addColorStop(1, '#050013');
+    } else {
+      bgGradient.addColorStop(0, '#001a00'); // standard CRT green
+      bgGradient.addColorStop(1, '#000a00');
+    }
 
     ctx.fillStyle = bgGradient;
     ctx.fillRect(x, y, this.width, this.height);
   }
 
   private drawRadarGrid(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    ctx.strokeStyle = '#004120';
+    ctx.strokeStyle = this.getGridLineColor();
     ctx.lineWidth = Math.max(1, Math.floor(1 * this.scale));
 
     const centerX = x + this.width / 2;
     const centerY = y + this.height / 2;
     const maxRadius = Math.min(this.width, this.height) / 2 - Math.floor(10 * this.scale);
 
-    // Just 2 range rings instead of 4
+    // Draw 2 concentric rings
     for (let i = 1; i <= 2; i++) {
       const radius = (maxRadius * i) / 2;
       ctx.beginPath();
@@ -345,7 +439,7 @@ export class MiniMap {
       ctx.stroke();
     }
 
-    // Simple crosshair
+    // Crosshairs
     ctx.beginPath();
     ctx.moveTo(centerX, y + Math.floor(10 * this.scale));
     ctx.lineTo(centerX, y + this.height - Math.floor(10 * this.scale));
@@ -434,11 +528,10 @@ export class MiniMap {
   }
 
   private drawScanlines(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    // Minimal scanlines - every 4th line only
-    ctx.fillStyle = 'rgba(0, 255, 65, 0.06)';
-    
+    ctx.fillStyle = this.getScanlineColor();
+
     const scanlineSpacing = Math.floor(8 * this.scale);
-    for (let i = -this.scanlineOffset; i < this.height; i += scanlineSpacing) { // Wider spacing
+    for (let i = -this.scanlineOffset; i < this.height; i += scanlineSpacing) {
       if (y + i >= y && y + i < y + this.height) {
         ctx.fillRect(x, y + i, this.width, Math.max(1, Math.floor(1 * this.scale)));
       }
