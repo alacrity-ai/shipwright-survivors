@@ -168,15 +168,11 @@ export class DirectionalFlameThrowerMechanic implements BaseBossMechanic {
     this.arcEndDeg = newEndDeg;
     this.arcStartRad = newStartDeg * Math.PI / 180;
     this.arcEndRad = newEndDeg * Math.PI / 180;
-
-    console.log(`[FlameThrower] Arc updated → ${newStartDeg.toFixed(2)}° → ${newEndDeg.toFixed(2)}°`);
   }
 
   public isFinished(): boolean {
     return this.finished;
   }
 
-  public cleanup(): void {
-    console.log('[FlameThrower] CLEANUP after', this.elapsed.toFixed(2), 'seconds');
-  }
+  public cleanup(): void {}
 }

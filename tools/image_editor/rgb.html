@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG Color Adjuster</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .slider-group label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100px;
+            height: 6px;
+            background: #ddd;
+            outline: none;
+            border-radius: 3px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .value-display {
+            font-size: 12px;
+            color: #666;
+            min-width: 30px;
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .status {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PNG Color Adjuster</h1>
+        
+        <input type="file" id="fileInput" accept=".png,image/png" />
+        
+        <div class="controls">
+            <div class="slider-group">
+                <label for="redSlider">Red</label>
+                <input type="range" id="redSlider" min="-100" max="100" value="0" />
+                <div class="value-display" id="redValue">0</div>
+            </div>
+            
+            <div class="slider-group">
+                <label for="greenSlider">Green</label>
+                <input type="range" id="greenSlider" min="-100" max="100" value="0" />
+                <div class="value-display" id="greenValue">0</div>
+            </div>
+            
+            <div class="slider-group">
+                <label for="blueSlider">Blue</label>
+                <input type="range" id="blueSlider" min="-100" max="100" value="0" />
+                <div class="value-display" id="blueValue">0</div>
+            </div>
+            
+            <button id="resetButton" disabled>Reset</button>
+            <button id="exportButton" disabled>Export PNG</button>
+        </div>
+        
+        <div class="status" id="status">Select a PNG image to get started</div>
+        
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const redSlider = document.getElementById('redSlider');
+        const greenSlider = document.getElementById('greenSlider');
+        const blueSlider = document.getElementById('blueSlider');
+        const redValue = document.getElementById('redValue');
+        const greenValue = document.getElementById('greenValue');
+        const blueValue = document.getElementById('blueValue');
+        const resetButton = document.getElementById('resetButton');
+        const exportButton = document.getElementById('exportButton');
+        const status = document.getElementById('status');
+        
+        let originalImageData = null;
+        let originalImage = null;
+
+        fileInput.addEventListener('change', handleFileSelect);
+        redSlider.addEventListener('input', updateColor);
+        greenSlider.addEventListener('input', updateColor);
+        blueSlider.addEventListener('input', updateColor);
+        resetButton.addEventListener('click', resetSliders);
+        exportButton.addEventListener('click', exportImage);
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.includes('png')) {
+                status.textContent = 'Please select a PNG image';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    canvas.style.display = 'block';
+                    resetButton.disabled = false;
+                    exportButton.disabled = false;
+                    status.textContent = `Image loaded: ${img.width}x${img.height}px`;
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateColor() {
+            if (!originalImageData) return;
+
+            const rAdjust = parseInt(redSlider.value);
+            const gAdjust = parseInt(greenSlider.value);
+            const bAdjust = parseInt(blueSlider.value);
+            
+            redValue.textContent = rAdjust;
+            greenValue.textContent = gAdjust;
+            blueValue.textContent = bAdjust;
+
+            const imageData = ctx.createImageData(originalImageData.width, originalImageData.height);
+            const data = imageData.data;
+            const originalData = originalImageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                // Adjust RGB values while preserving alpha
+                data[i] = Math.max(0, Math.min(255, originalData[i] + rAdjust));     // Red
+                data[i + 1] = Math.max(0, Math.min(255, originalData[i + 1] + gAdjust)); // Green
+                data[i + 2] = Math.max(0, Math.min(255, originalData[i + 2] + bAdjust)); // Blue
+                data[i + 3] = originalData[i + 3]; // Alpha (unchanged)
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function resetSliders() {
+            redSlider.value = 0;
+            greenSlider.value = 0;
+            blueSlider.value = 0;
+            redValue.textContent = '0';
+            greenValue.textContent = '0';
+            blueValue.textContent = '0';
+            
+            if (originalImageData) {
+                ctx.putImageData(originalImageData, 0, 0);
+            }
+        }
+
+        function exportImage() {
+            if (!canvas) return;
+            
+            const link = document.createElement('a');
+            link.download = 'adjusted_image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>

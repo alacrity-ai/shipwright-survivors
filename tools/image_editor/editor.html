@@ -273,6 +273,11 @@
             document.getElementById('tintValue').textContent = document.getElementById('tintSlider').value;
         }
 
+        // Helper function to clamp values
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
         function adjustColors() {
             if (!originalImageData) return;
 
@@ -297,10 +302,10 @@
                 let b = originalData[i + 2];
                 const a = originalData[i + 3];
 
-                // Apply RGB multipliers
-                r = Math.min(255, r * redMult);
-                g = Math.min(255, g * greenMult);
-                b = Math.min(255, b * blueMult);
+                // Apply RGB multipliers with immediate clamping
+                r = clamp(r * redMult, 0, 255);
+                g = clamp(g * greenMult, 0, 255);
+                b = clamp(b * blueMult, 0, 255);
 
                 // Apply hue shift
                 if (hueShift !== 0) {
@@ -314,14 +319,15 @@
 
                 // Apply color tint
                 if (tintIntensity > 0) {
-                    r = r * (1 - tintIntensity) + tintColor.r * tintIntensity;
-                    g = g * (1 - tintIntensity) + tintColor.g * tintIntensity;
-                    b = b * (1 - tintIntensity) + tintColor.b * tintIntensity;
+                    r = clamp(r * (1 - tintIntensity) + tintColor.r * tintIntensity, 0, 255);
+                    g = clamp(g * (1 - tintIntensity) + tintColor.g * tintIntensity, 0, 255);
+                    b = clamp(b * (1 - tintIntensity) + tintColor.b * tintIntensity, 0, 255);
                 }
 
-                data[i] = Math.round(Math.min(255, Math.max(0, r)));
-                data[i + 1] = Math.round(Math.min(255, Math.max(0, g)));
-                data[i + 2] = Math.round(Math.min(255, Math.max(0, b)));
+                // Final assignment with integer conversion
+                data[i] = Math.round(r);
+                data[i + 1] = Math.round(g);
+                data[i + 2] = Math.round(b);
                 data[i + 3] = a;
             }
 
@@ -425,7 +431,7 @@
             return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
         }
         
-        // Existing marquee and crop functions remain the same
+        // Marquee selection functions
         function startMarquee(e) {
             if (!originalImage) return;
             
