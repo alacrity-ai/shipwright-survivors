@@ -4,7 +4,7 @@ import type { WaveDefinition } from '@/game/waves/types/WaveDefinition';
 import type { MusicTrack } from '@/audio/AudioManager';
 import type { FlagKey } from '@/game/player/registry/FlagRegistry';
 import type { SpatialBodySpawnConfig } from '@/game/spatialbodies/interfaces/SpatialBodySpawnConfig';
-import type { CloudRegion } from '@/systems/fx/CloudManager';
+import type { CloudRegion } from '@/game/veil/CloudManager';
 
 export type PlanetSpawnConfig = {
   name: string;

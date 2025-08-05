@@ -9,7 +9,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
 import { MiniMapIcons, IconType } from '@/ui/utils/MiniMapIcons';
-import { CloudManager } from '@/systems/fx/CloudManager';
+import { CloudManager } from '@/game/veil/CloudManager';
 
 import { getWorldWidth, getWorldHeight } from '@/config/world';
 import { SETTINGS } from '@/config/settings';

@@ -3,7 +3,7 @@
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 
 // Cloud Registry
-import { CloudRegionRegistry } from '@/systems/fx/CloudRegistry';
+import { CloudRegionRegistry } from '@/game/veil/CloudRegistry';
 
 // Enemy Wave imports
 import { waveDefinitions as titleScreenWaves } from '@/game/waves/missions/TitleScreenWaves';

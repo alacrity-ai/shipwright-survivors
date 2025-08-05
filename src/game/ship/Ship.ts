@@ -13,7 +13,9 @@ import type { ShipSkillEffectMetadata } from '@/game/ship/skills/interfaces/Ship
 import type { StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects';
 import type { StatusEffect } from '@/game/ship/status/StatusEffect';
 import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/ArtifactEffectMetadata';
+import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
+import { autoPlaceBlock } from '@/systems/autoplacement/autoPlaceUtils';
 import { hashStringToInt32 } from '@/shared/hashUtils';
 import { reportQuestStepUpdated } from '@/core/interfaces/events/QuestReporter';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
@@ -82,6 +84,9 @@ export class Ship extends CompositeBlockObject {
   private statusEffects: Map<StatusEffectType, StatusEffect> = new Map();
 
   private tags: Set<string> = new Set();
+
+  // Veil Mutation
+  private veilMutated: boolean = false;
 
   // Fast Travel
   private homeCoordinates: { x: number; y: number } = { x: 0, y: 0 };
@@ -223,6 +228,27 @@ export class Ship extends CompositeBlockObject {
 
   public setAffixes(affixes: ShipAffixes): void {
     this.affixes = affixes;
+  }
+
+  // === Veil Effects
+
+  public isVeilMutated(): boolean {
+    return this.veilMutated;
+  }
+
+  public setMutated(mutated: boolean): void {
+    this.veilMutated = mutated;
+  }
+
+  public veilMutate(blockTypes: BlockType[], shipBuilderEffects: ShipBuilderEffectsSystem): void {
+    if (this.veilMutated) return;
+
+    // Call autoPlaceBlock for each block in list
+    for (const blockType of blockTypes) {
+      autoPlaceBlock(this, blockType, shipBuilderEffects);
+    }
+
+    this.veilMutated = true;
   }
 
   // === Status Effects

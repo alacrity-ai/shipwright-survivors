@@ -10,6 +10,7 @@ import type { ScriptRunner } from '@/game/waves/scripting/ScriptRunner';
 import type { SpawnCoordinateResolver } from '@/game/waves/executor/SpawnCoordinateResolver';
 import type { WaveModifiersApplier } from '@/game/waves/executor/WaveModifiersApplier';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { WaveExecutionContext as Context } from '@/game/waves/orchestrator/WaveExecutionContext';
 import { audioManager } from '@/audio/Audio';

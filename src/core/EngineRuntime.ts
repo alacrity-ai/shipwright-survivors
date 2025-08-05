@@ -52,7 +52,8 @@ import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
 import { ScreenEdgeIndicatorManager } from '@/ui/overlays/indicators/ScreenEdgeIndicatorManager';
-import { CloudManager } from '@/systems/fx/CloudManager';
+import { CloudManager } from '@/game/veil/CloudManager';
+import { VeilShipMutator } from '@/game/veil/VeilShipMutator';
 import { 
   addPostProcessEffect, 
   clearPostProcessEffects, 
@@ -222,6 +223,7 @@ export class EngineRuntime {
   private lightningSystem: LightningSystem;
   private fireManager: FireManager;
   private cloudManager: CloudManager | null = null;
+  private veilShipMutator: VeilShipMutator | null = null;
   private shockwaveManager: ShockwaveManager;
   private damageTextManager: DamageTextManager;
   private damageTextAggregator: DamageTextAggregator;
@@ -465,6 +467,7 @@ export class EngineRuntime {
 
     // Cloud Manager
     this.cloudManager = new CloudManager(this.ship!, this.mission.cloudRegions ?? []);
+    this.veilShipMutator = new VeilShipMutator(this.cloudManager, this.ship!, this.shipBuilderEffects);
 
     // Enqueue starting blocks from Ship Skill Tree if applicable
     PlayerResources.getInstance().enqueueSkillTreeStartingBlocks(this.ship);
@@ -671,6 +674,7 @@ export class EngineRuntime {
       this.damageTextManager,
       this.aiOrchestrator,
       this.cloudManager!,
+      this.veilShipMutator!,
       this.blockObjectUpdate!,
       this.collisionBoxSystem,
       this.destructionService,
