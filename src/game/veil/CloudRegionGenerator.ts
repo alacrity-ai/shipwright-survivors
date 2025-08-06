@@ -1,17 +1,8 @@
 // src/game/veil/CloudRegionGenerator.ts
 
-import type { Vec2, CloudRegion, CloudParams } from '@/game/veil/CloudManager';
-
-export interface CloudRegionGenerationOptions {
-  worldWidth: number;
-  worldHeight: number;
-  minDistanceFromCenter: number;
-  minRegionSpacing: number;
-  radiusRange: [number, number];
-  regionCountRange: [number, number];
-  frontParams: CloudParams;
-  backParams: CloudParams;
-}
+import type { Vec2 } from '@/game/veil/interfaces/CloudRegion';
+import type { CloudRegion } from '@/game/veil/interfaces/CloudRegion';
+import type { CloudRegionGenerationOptions } from '@/game/veil/interfaces/CloudRegionGenerationOptions';
 
 function distance(a: Vec2, b: Vec2): number {
   const dx = a.x - b.x;
@@ -36,6 +27,8 @@ export function generateCloudRegions(options: CloudRegionGenerationOptions): Clo
     regionCountRange,
     frontParams,
     backParams,
+    mutationOptions,
+    bossOptions,
   } = options;
 
   const [minRadius, maxRadius] = radiusRange;
@@ -82,6 +75,8 @@ export function generateCloudRegions(options: CloudRegionGenerationOptions): Clo
       radius,
       frontParams,
       backParams,
+      mutationOptions,
+      bossOptions,
     };
 
     regions.push(region);

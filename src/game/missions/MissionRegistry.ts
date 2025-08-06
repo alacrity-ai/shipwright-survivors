@@ -119,6 +119,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     music: {
       file: 'assets/sounds/music/track_12_mission6.mp3',
     },
+    bossMusic: {
+      file: 'assets/sounds/music/track_03_boss.mp3',
+    },
     enemyPower: 0.5,
     waveDensity: 0.5,
     bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],

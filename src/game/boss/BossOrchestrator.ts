@@ -8,6 +8,7 @@ import type { BaseBossAIController } from '@/game/boss/ai/bosses/BaseBossAIContr
 import type { CombatService } from '@/systems/combat/CombatService';
 import type { Ship } from '@/game/ship/Ship';
 
+import { disablePickupDrops } from '@/core/interfaces/events/PickupSpawnReporter';
 import { showBossHealthbar, hideBossHealthbar } from '@/core/interfaces/events/BossReporter';
 import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
 import { clearAllScreenEdgeIndicators, disableScreenEdgeIndicators } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
@@ -84,6 +85,9 @@ export class BossOrchestrator {
 
     // Draw boss healthbar
     showBossHealthbar();
+
+    // Disable Pickups
+    disablePickupDrops();
   }
 
   public onDeathCallback(): void {

@@ -4,7 +4,7 @@
 // Supports named groups of circular CloudRegions for each area.
 // ─────────────────────────────────────────────────────────────
 
-import type { CloudRegion, CloudParams, Vec2 } from '@/game/veil/CloudManager';
+import type { CloudRegion } from '@/game/veil/interfaces/CloudRegion';
 
 const registry = new Map<string, CloudRegion[]>();
 

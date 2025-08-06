@@ -1,0 +1,1706 @@
+{
+  "transform": {
+    "position": {
+      "x": -127.3479811539765,
+      "y": -706.841705122943
+    },
+    "rotation": 0
+  },
+  "blocks": [
+    {
+      "id": "cockpit1",
+      "coord": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -1,
+        "y": 0
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 6,
+        "y": 4
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -2,
+        "y": 0
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 2,
+        "y": 0
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "flameThrower0",
+      "coord": {
+        "x": -7,
+        "y": 7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "haloBlade3",
+      "coord": {
+        "x": -3,
+        "y": 0
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": 0
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": 0
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": -1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": 1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": -1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": 1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": 3,
+        "y": 1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "engine4",
+      "coord": {
+        "x": 0,
+        "y": 1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": -3,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": -3,
+        "y": 1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -2,
+        "y": -1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -2,
+        "y": 1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 2,
+        "y": -1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 2,
+        "y": 1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": 0,
+        "y": -3
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "engine4",
+      "coord": {
+        "x": 3,
+        "y": 3
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "engine4",
+      "coord": {
+        "x": -1,
+        "y": 1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 1,
+        "y": -4
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "engine4",
+      "coord": {
+        "x": 1,
+        "y": 1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 0,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "haloBlade3",
+      "coord": {
+        "x": 3,
+        "y": 0
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "flameThrower0",
+      "coord": {
+        "x": 7,
+        "y": 7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "flameThrower0",
+      "coord": {
+        "x": 7,
+        "y": -7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 7,
+        "y": 6
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -6,
+        "y": 7
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 6,
+        "y": 7
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -2,
+        "y": 2
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 2,
+        "y": 2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -5,
+        "y": 1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -5,
+        "y": -1
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -3,
+        "y": -2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "flameThrower0",
+      "coord": {
+        "x": -7,
+        "y": -7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -5,
+        "y": -3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 3,
+        "y": -2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -7,
+        "y": 6
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 5,
+        "y": -3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 3,
+        "y": 2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -3,
+        "y": 2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -6,
+        "y": -7
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -5,
+        "y": 3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 6,
+        "y": -7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 5,
+        "y": 3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 5,
+        "y": 2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "engine4",
+      "coord": {
+        "x": -3,
+        "y": 3
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -3,
+        "y": -3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 3,
+        "y": -3
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": 2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": 3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": 2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": 3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 5,
+        "y": 4
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 5,
+        "y": -4
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -5,
+        "y": -4
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -5,
+        "y": 4
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -4,
+        "y": 4
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 4,
+        "y": 4
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": -2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 4,
+        "y": -3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": -2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -4,
+        "y": -3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -4,
+        "y": -4
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 4,
+        "y": -4
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -5,
+        "y": 5
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 5,
+        "y": 5
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 5,
+        "y": -5
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -5,
+        "y": -5
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -6,
+        "y": -5
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -6,
+        "y": -6
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 6,
+        "y": -5
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 6,
+        "y": -6
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -6,
+        "y": 5
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -6,
+        "y": 6
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 6,
+        "y": 5
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 6,
+        "y": 6
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -6,
+        "y": 4
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -6,
+        "y": -4
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 6,
+        "y": -4
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 1,
+        "y": 0
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -7,
+        "y": -5
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 7,
+        "y": -5
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -7,
+        "y": 5
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 7,
+        "y": 5
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -7,
+        "y": -6
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 7,
+        "y": -6
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -5,
+        "y": 2
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -5,
+        "y": -2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 5,
+        "y": -2
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": 3,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 11,
+        "y": -11
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 8,
+        "y": -12
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -8,
+        "y": -12
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": 6
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": 7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": 7
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": 6
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": 8
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": 9
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": 8
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": 9
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": -6
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": -7
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": -7
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": -6
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": -8
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 8,
+        "y": -9
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": -8
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -8,
+        "y": -9
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 7,
+        "y": 9
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -7,
+        "y": -8
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 7,
+        "y": -8
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -7,
+        "y": -9
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -7,
+        "y": 8
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -9,
+        "y": 8
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -7,
+        "y": 9
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 7,
+        "y": 8
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -9,
+        "y": -8
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 9,
+        "y": -8
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 9,
+        "y": 8
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 7,
+        "y": -9
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -8,
+        "y": -10
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 8,
+        "y": -10
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -8,
+        "y": 10
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 8,
+        "y": 10
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -6,
+        "y": -3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 6,
+        "y": -3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -6,
+        "y": 3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 6,
+        "y": 3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -9,
+        "y": 9
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -9,
+        "y": 10
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 9,
+        "y": 10
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 9,
+        "y": 9
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -9,
+        "y": -10
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -9,
+        "y": -9
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 9,
+        "y": -9
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 9,
+        "y": -10
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": 9,
+        "y": -11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -9,
+        "y": 12
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": -9,
+        "y": 11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 9,
+        "y": 12
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": -9,
+        "y": -11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 9,
+        "y": -12
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 0,
+        "y": -4
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -9,
+        "y": -12
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -10,
+        "y": -12
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -10,
+        "y": -11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 10,
+        "y": -11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 10,
+        "y": -12
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 10,
+        "y": 11
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 10,
+        "y": 12
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -10,
+        "y": 12
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -10,
+        "y": 11
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -10,
+        "y": 10
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 10,
+        "y": 10
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 10,
+        "y": -10
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -10,
+        "y": -10
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -10,
+        "y": -13
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 10,
+        "y": -13
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 10,
+        "y": 13
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -10,
+        "y": 13
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -11,
+        "y": 11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -8,
+        "y": 12
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 8,
+        "y": 12
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 11,
+        "y": 11
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -11,
+        "y": -11
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 2,
+        "y": -2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -2,
+        "y": -2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 0,
+        "y": -2
+      },
+      "rotation": 180,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -1,
+        "y": -2
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": -5,
+        "y": 0
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 5,
+        "y": 0
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 5,
+        "y": -1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "facetplate2",
+      "coord": {
+        "x": 5,
+        "y": 1
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 1,
+        "y": -2
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -2,
+        "y": -3
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": 2,
+        "y": -3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": -1,
+        "y": -3
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "hull2",
+      "coord": {
+        "x": 1,
+        "y": -3
+      },
+      "rotation": 270,
+      "group": 0
+    },
+    {
+      "id": "harvester2",
+      "coord": {
+        "x": 9,
+        "y": 11
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "fin2",
+      "coord": {
+        "x": -1,
+        "y": -4
+      },
+      "rotation": 90,
+      "group": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": -1,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    },
+    {
+      "id": "turret1",
+      "coord": {
+        "x": 1,
+        "y": -1
+      },
+      "rotation": 0,
+      "group": 0
+    }
+  ],
+  "behavior": {
+    "type": "default"
+  }
+}

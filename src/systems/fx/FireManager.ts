@@ -114,7 +114,7 @@ export class FireManager {
       randomizeLife = true,
       light = false,
       lightRadiusScalar = 3.0,
-      lightIntensity = 1.0,
+      lightIntensity = 0.6,
       color,
     } = options;
 

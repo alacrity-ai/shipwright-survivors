@@ -5,21 +5,16 @@ import type { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { AIOrchestratorSystem } from '@/systems/ai/AIOrchestratorSystem';
-import { LightingOrchestrator } from '@/lighting/LightingOrchestrator';
-import { ShipGrid } from '@/game/ship/ShipGrid';
 import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
-import { PlayerResources } from '@/game/player/PlayerResources';
 import { InputManager } from '@/core/InputManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { ParticleManager } from '@/systems/fx/ParticleManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
 import { BlockQueueDisplayManager } from '@/ui/overlays/components/BlockQueueDisplayManager';
+import { VeilManager } from '@/game/veil/VeilManager';
 
-import type { BlockInstance } from '@/game/interfaces/entities/BlockInstance';
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { CompositeBlockObjectGrid } from '@/game/entities/CompositeBlockObjectGrid';
-
-import { Camera } from '@/core/Camera';
 
 export class DebugOverlay {
   private smoothedFps: number = 60;
@@ -31,7 +26,8 @@ export class DebugOverlay {
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly objectGrid: CompositeBlockObjectGrid<CompositeBlockObject>,
     private readonly particleManager: ParticleManager,
-    private readonly blockQueueDisplayManager: BlockQueueDisplayManager
+    private readonly blockQueueDisplayManager: BlockQueueDisplayManager,
+    private readonly veilManager: VeilManager,
   ) {}
 
   render(dt: number): void {
@@ -51,6 +47,16 @@ export class DebugOverlay {
     const smoothingFactor = 0.05;
     this.smoothedFps += (instantaneousFps - this.smoothedFps) * smoothingFactor;
     drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
+
+    // === Region Kill Counts ===
+    const regionKillCounts = this.veilManager.getAllRegionKillCounts();
+    for (const { regionId, kills } of regionKillCounts) {
+      drawLabel(ctx, x, y, `Region ${regionId}: ${kills} kills`); y += lineHeight;
+    }
+
+    // === Current Region ===
+    const currentRegionId = this.veilManager.getRegionPlayerIsIn();
+    drawLabel(ctx, x, y, `Current Region: ${currentRegionId ?? 'None'}`); y += lineHeight;
 
     if (!DEBUG_MODE) return;
 
@@ -117,11 +123,5 @@ export class DebugOverlay {
     for (const [faction, count] of Object.entries(shipsByFaction)) {
       drawLabel(ctx, x, y, `Ships (${faction}): ${count}`); y += lineHeight;
     }
-
-    // // === State Breakdown ===
-    // for (const [state, count] of Object.entries(stateCounts)) {
-    //   drawLabel(ctx, x, y, `${state}: ${count}`);
-    //   y += lineHeight;
-    // }
   }
 }

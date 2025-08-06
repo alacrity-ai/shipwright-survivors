@@ -118,7 +118,7 @@ export function bulkUpgradeBlockIndicesOnShip(
       coord: { x: store.localX[idx], y: store.localY[idx] },
       newBlockId: upgradedType.id,
       newBlockGroup: store.group[idx],
-      rotation: snapToRightAngleRadians(store.localRotation[idx] ?? 0),
+      rotation: (snapToRightAngleRadians(store.localRotation[idx] ?? 0) * 180) / Math.PI,
     });
   }
 

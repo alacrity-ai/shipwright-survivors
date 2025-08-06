@@ -421,6 +421,8 @@ export class UnifiedSceneRendererGL {
       this.sceneFramebuffer = this.sceneFramebufferFX;
       this.sceneTextureFX = tmpTex;
       this.sceneFramebufferFX = tmpFbo;
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
     }
 
     // === Step 11: Render world-space FX passes (lightning, trails, etc.) ===

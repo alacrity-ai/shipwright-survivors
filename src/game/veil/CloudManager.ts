@@ -4,24 +4,8 @@ import { setCloudParamsFront, setCloudParamsBack } from '@/core/interfaces/event
 import { reportDialogueLine, clearDialogueEvents } from '@/core/interfaces/events/DialogueReporter';
 import { flags } from '@/game/player/PlayerFlagManager';
 
-export type Vec2 = { x: number; y: number };
-
-export type CloudParams = {
-  speed?: number;
-  density?: number;
-  quantity?: number;
-  scale?: number;
-  alpha?: number;
-  color?: [number, number, number];
-};
-
-export type CloudRegion = {
-  id: string;
-  center: Vec2;
-  radius: number;
-  frontParams: CloudParams;
-  backParams: CloudParams;
-};
+import type { Vec2 } from '@/game/veil/interfaces/CloudRegion';
+import type { CloudRegion } from '@/game/veil/interfaces/CloudRegion';
 
 function distance(a: Vec2, b: Vec2): number {
   const dx = a.x - b.x;
@@ -129,6 +113,22 @@ export class CloudManager {
     return buf;
   }
 
+  /**
+   * Returns the id of the cloud region the ship is currently in, or null if not in any.
+   * This is O(1) — uses the cached currentRegion updated in `update()`.
+   */
+  getCurrentRegionId(): string | null {
+    return this.currentRegion ? this.currentRegion.id : null;
+  }
+
+  /**
+   * Returns the CloudRegion object the ship is currently in, or null if not in any.
+   * This is O(1) — uses the cached currentRegion updated in `update()`.
+   */
+  public getCurrentRegion(): CloudRegion | null {
+    return this.currentRegion;
+  }
+
   isShipInCloud(): boolean {
     // Compare against a perceptual epsilon, not strict > 0
     const inCloud = this.alphaFront > CloudManager.EPSILON;
@@ -138,6 +138,30 @@ export class CloudManager {
       }
     }
     return inCloud;
+  }
+
+  /**
+   * Permanently removes a cloud region by its ID.
+   * If the removed region is the currentRegion, it is cleared immediately.
+   */
+  public removeRegionById(regionId: string): void {
+    for (let i = 0; i < this.regions.length; i++) {
+      if (this.regions[i].id === regionId) {
+        this.regions.splice(i, 1);
+
+        // Clear currentRegion if it was removed
+        if (this.currentRegion && this.currentRegion.id === regionId) {
+          this.currentRegion = null;
+          this.alphaFront = 0;
+          this.alphaBack = 0;
+          this.lastEmittedFrontAlpha = -1;
+          this.lastEmittedBackAlpha = -1;
+          setCloudParamsFront({ alpha: 0 });
+          setCloudParamsBack({ alpha: 0 });
+        }
+        return;
+      }
+    }
   }
 
   initialDialogue(): void {

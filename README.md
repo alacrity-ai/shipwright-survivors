@@ -125,6 +125,17 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+
+  - [ ] Retry button next to Return To Base on mission debriefing failure
+
+  - [ ] Add active skills to each ship. Each ship gets a unique skill.
+    - SW1: Some kind of stim?
+    - Monarch: 
+    - Godhand: Lightning to every enemy on screen? Maybe jump to every ship on screen hitting them?
+    - Vanguard: 
+    - Salamander: Radial screenwide flame ignite
+
+
   - [ ] On boss death;
     - [ ] Screen flash
     - [ ] Slow motion

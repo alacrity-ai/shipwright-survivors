@@ -9,7 +9,7 @@ import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
 import { MiniMapIcons, IconType } from '@/ui/utils/MiniMapIcons';
-import { CloudManager } from '@/game/veil/CloudManager';
+import { VeilManager } from '@/game/veil/VeilManager';
 
 import { getWorldWidth, getWorldHeight } from '@/config/world';
 import { SETTINGS } from '@/config/settings';
@@ -59,7 +59,7 @@ export class MiniMap {
     private readonly canvasManager: CanvasManager,
     private readonly aiOrchestrator: AIOrchestratorSystem,
     private readonly planetSystem: PlanetSystem,
-    private readonly cloudManager: CloudManager,
+    private readonly cloudManager: VeilManager,
     private scale: number = 1.0,
   ) {
     GlobalEventBus.on('minimap:hide', this.onHide);
@@ -192,15 +192,15 @@ export class MiniMap {
   }
 
   private getFrameColor(): string {
-    return this.cloudManager?.isShipInCloud() ? '#bb88ff' : '#00ff41';
+    return this.cloudManager?.isPlayerInVeil() ? '#bb88ff' : '#00ff41';
   }
 
   private getScanlineColor(): string {
-    return this.cloudManager?.isShipInCloud() ? 'rgba(187,136,255,0.06)' : 'rgba(0,255,65,0.06)';
+    return this.cloudManager?.isPlayerInVeil() ? 'rgba(187,136,255,0.06)' : 'rgba(0,255,65,0.06)';
   }
 
   private getGridLineColor(): string {
-    return this.cloudManager?.isShipInCloud() ? '#330055' : '#004120';
+    return this.cloudManager?.isPlayerInVeil() ? '#330055' : '#004120';
   }
 
   private renderStaticElements(): void {
@@ -281,7 +281,7 @@ export class MiniMap {
     ctx.globalAlpha = alpha;
 
     // Cloud check and cache invalidation
-    const inCloud = this.cloudManager?.isShipInCloud() ?? false;
+    const inCloud = this.cloudManager?.isPlayerInVeil() ?? false;
 
     if (inCloud !== this.wasInCloud) {
       this.invalidateCache(); // Forces redraw of staticCanvas with new theme
@@ -406,7 +406,7 @@ export class MiniMap {
   }
 
   private drawCRTBackground(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    const inCloud = this.cloudManager?.isShipInCloud() ?? false;
+    const inCloud = this.cloudManager?.isPlayerInVeil() ?? false;
 
     // Simple vertical gradient background
     const bgGradient = ctx.createLinearGradient(x, y, x, y + this.height);

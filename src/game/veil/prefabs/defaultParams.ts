@@ -1,7 +1,7 @@
 // src/game/veil/prefabs/defaultParams.ts
 
-import type { CloudParams } from '@/game/veil/CloudManager';
-import type { CloudRegionGenerationOptions } from '@/game/veil/CloudRegionGenerator';
+import type { CloudParams } from '@/game/veil/interfaces/CloudRegion';
+import type { CloudRegionGenerationOptions } from '@/game/veil/interfaces/CloudRegionGenerationOptions';
 
 export const DEFAULT_FRONT_PARAMS: CloudParams = {
   speed: 0.5,
@@ -30,4 +30,15 @@ export const MISSION_02_CLOUDS: CloudRegionGenerationOptions = {
   regionCountRange: [2, 4],
   frontParams: DEFAULT_FRONT_PARAMS,
   backParams: DEFAULT_BACK_PARAMS,
+  mutationOptions: {
+    mutateShips: true,
+    mutationBlockTier: 0,
+    mutationBlockCount: [5, 25],
+    mutationIntervalSeconds: 10,
+    mutatedShipKillLimit: 10,
+  },
+  bossOptions: {
+    bossId: 'veil/veil_boss_03',
+    spawnChance: 1.0,
+  },
 }

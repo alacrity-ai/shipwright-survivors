@@ -57,6 +57,7 @@ import { ScreenEdgeIndicatorManager } from '@/ui/overlays/indicators/ScreenEdgeI
 import { CloudManager } from '@/game/veil/CloudManager';
 import { generateCloudRegions } from '@/game/veil/CloudRegionGenerator';
 import { VeilShipMutator } from '@/game/veil/VeilShipMutator';
+import { VeilManager } from '@/game/veil/VeilManager';
 import { 
   addPostProcessEffect, 
   clearPostProcessEffects, 
@@ -214,6 +215,7 @@ export class EngineRuntime {
 
   private ship: Ship | null = null;
   private shipGrid: ShipGrid | null = null;
+  private shipFactory: ShipFactory | null = null;
   private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
   private spaceStation: SpaceStation | null = null;
 
@@ -226,6 +228,7 @@ export class EngineRuntime {
   private persistentParticleManager: ParticleManager;
   private lightningSystem: LightningSystem;
   private fireManager: FireManager;
+  private veilManager: VeilManager | null = null;
   private cloudManager: CloudManager | null = null;
   private veilShipMutator: VeilShipMutator | null = null;
   private shockwaveManager: ShockwaveManager;
@@ -437,7 +440,7 @@ export class EngineRuntime {
       this.particleManager,
     );
 
-    const shipFactory = new ShipFactory(
+    this.shipFactory = new ShipFactory(
       this.shipRegistry,
       this.particleManager,
       this.projectileSystem,
@@ -447,7 +450,7 @@ export class EngineRuntime {
       this.shipConstructionAnimator,
       this.aiOrchestrator
     );
-    this.bossManager = BossManager.initialize(shipFactory, this.combatService);
+    this.bossManager = BossManager.initialize(this.shipFactory, this.combatService);
 
     this.registerLoopHandlers();
   }
@@ -476,8 +479,7 @@ export class EngineRuntime {
     if (this.mission.autoGenerateCloudParams) {
       this.mission.cloudRegions = generateCloudRegions(this.mission.autoGenerateCloudParams);
     }
-    this.cloudManager = new CloudManager(this.ship!, this.mission.cloudRegions ?? []);
-    this.veilShipMutator = new VeilShipMutator(this.cloudManager, this.ship!, this.shipBuilderEffects);
+    this.veilManager = new VeilManager(this.ship!, this.shipBuilderEffects, this.mission.cloudRegions ?? [], this.shipFactory!);
 
     // Enqueue starting blocks from Ship Skill Tree if applicable
     PlayerResources.getInstance().enqueueSkillTreeStartingBlocks(this.ship);
@@ -596,8 +598,17 @@ export class EngineRuntime {
     // Overlay Displays (UI HUD)
     this.wavesOverlay = new WavesOverlay(this.canvasManager, this.waveOrchestrator);
     this.hud = new HudOverlay(this.canvasManager, this.floatingTextManager, this.blockDropDecisionMenu, this.inputManager);
-    this.debugOverlay = new DebugOverlay(this.inputManager, this.canvasManager, this.shipRegistry, this.aiOrchestrator, this.objectGrid!, this.particleManager, this.hud.getQueueDisplayManager());
-    this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, this.cloudManager, getUniformScaleFactor());
+    this.debugOverlay = new DebugOverlay(
+      this.inputManager, 
+      this.canvasManager, 
+      this.shipRegistry, 
+      this.aiOrchestrator, 
+      this.objectGrid!, 
+      this.particleManager, 
+      this.hud.getQueueDisplayManager(),
+      this.veilManager
+    );
+    this.miniMap = new MiniMap(this.canvasManager, this.aiOrchestrator, this.planetSystem, this.veilManager, getUniformScaleFactor());
     
     // Register player ship
     this.miniMap.setPlayerShip(this.ship);
@@ -684,8 +695,7 @@ export class EngineRuntime {
       this.damageTextAggregator,
       this.damageTextManager,
       this.aiOrchestrator,
-      this.cloudManager!,
-      this.veilShipMutator!,
+      this.veilManager!,
       this.blockObjectUpdate!,
       this.collisionBoxSystem,
       this.destructionService,

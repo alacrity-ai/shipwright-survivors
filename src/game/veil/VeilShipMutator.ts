@@ -8,6 +8,7 @@ import { autoPlaceBlock } from '@/systems/autoplacement/autoPlaceUtils';
 
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import type { BlockType } from '@/game/interfaces/types/BlockType';
+import type { MutationOptions } from '@/game/veil/interfaces/MutationOptions';
 
 const FETCH_RADIUS = 3200;
 const MINIMUM_RANDOM_BLOCKS = 5;
@@ -20,13 +21,17 @@ const SHIP_SIZE_LIMIT = 50;
 
 interface MutationJob {
   ship: Ship;
+  regionId: string;            // Cloud region where this ship was mutated
   remainingBlocks: BlockType[];
-  elapsed: number; // Time accumulator to throttle per-block mutation
+  elapsed: number;             // Time accumulator to throttle per-block mutation
+  mutationComplete: boolean;   // NEW — set true when all blocks placed
 }
 
 export class VeilShipMutator {
   private readonly shipGrid: ShipGrid;
   private readonly mutatingShips: Map<Ship, MutationJob> = new Map();
+  private readonly regionKillTally: Map<string, number> = new Map();
+
   private mutateCooldown: number = MUTATE_INTERVAL_SECONDS;
 
   private readonly scratchCandidates: Ship[] = [];
@@ -35,46 +40,53 @@ export class VeilShipMutator {
   private readonly blockTypeRing: BlockType[] = new Array(BLOCK_TYPE_RING_SIZE);
   private blockTypeCursor: number = 0;
 
+  private mutateShips: boolean = false;
+
   constructor(
     private readonly cloudManager: CloudManager,
     private readonly playerShip: Ship,
-    private readonly shipBuilderEffects: ShipBuilderEffectsSystem
+    private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
+    private readonly mutationOptions: MutationOptions
   ) {
     this.shipGrid = ShipGrid.getInstance();
     this.seedBlockTypeRing();
+    this.mutateShips = this.mutationOptions.mutateShips ?? false;
   }
 
   private seedBlockTypeRing(): void {
+    const tier = this.mutationOptions.mutationBlockTier ?? BLOCK_TIER;
     for (let i = 0; i < BLOCK_TYPE_RING_SIZE; i++) {
-      this.blockTypeRing[i] = getRandomBlockInTier(BLOCK_TIER);
+      this.blockTypeRing[i] = getRandomBlockInTier(tier);
     }
   }
 
   private getNextBlockType(): BlockType {
     const block = this.blockTypeRing[this.blockTypeCursor];
-    this.blockTypeRing[this.blockTypeCursor] = getRandomBlockInTier(BLOCK_TIER); // recycle slot
+    this.blockTypeRing[this.blockTypeCursor] =
+      getRandomBlockInTier(this.mutationOptions.mutationBlockTier ?? BLOCK_TIER);
     this.blockTypeCursor = (this.blockTypeCursor + 1) % BLOCK_TYPE_RING_SIZE;
     return block;
   }
 
   private getRandomBlockCount(): number {
-    return (
-      MINIMUM_RANDOM_BLOCKS +
-      Math.floor(Math.random() * (MAXIMUM_RANDOM_BLOCKS - MINIMUM_RANDOM_BLOCKS + 1))
-    );
+    const [min, max] =
+      this.mutationOptions.mutationBlockCount ?? [MINIMUM_RANDOM_BLOCKS, MAXIMUM_RANDOM_BLOCKS];
+    return min + Math.floor(Math.random() * (max - min + 1));
   }
 
   public update(dt: number): void {
+    if (!this.mutateShips) return;
     this.mutateCooldown -= dt;
 
     if (this.mutateCooldown <= 0 && this.cloudManager.isShipInCloud()) {
       this.tryAddMutationTarget();
-      this.mutateCooldown = MUTATE_INTERVAL_SECONDS;
+      this.mutateCooldown =
+        this.mutationOptions.mutationIntervalSeconds ?? MUTATE_INTERVAL_SECONDS;
     }
 
-    for (const [ship, job] of this.mutatingShips.entries()) {
-      if (ship.isDestroyed?.()) {
-        this.mutatingShips.delete(ship);
+    for (const job of this.mutatingShips.values()) {
+      if (job.mutationComplete) {
+        // No more blocks to place, just wait for destruction
         continue;
       }
 
@@ -84,13 +96,13 @@ export class VeilShipMutator {
       if (blocksToAdd > 0) {
         for (let i = 0; i < blocksToAdd && job.remainingBlocks.length > 0; i++) {
           const blockType = job.remainingBlocks.shift()!;
-          autoPlaceBlock(ship, blockType, this.shipBuilderEffects);
+          autoPlaceBlock(job.ship, blockType, this.shipBuilderEffects);
         }
         job.elapsed -= blocksToAdd / BLOCKS_PER_SECOND;
       }
 
       if (job.remainingBlocks.length === 0) {
-        this.mutatingShips.delete(ship);
+        job.mutationComplete = true; // mark complete, do NOT remove from map
       }
     }
   }
@@ -99,16 +111,21 @@ export class VeilShipMutator {
     const playerTransform = this.playerShip.getTransform?.();
     if (!playerTransform) return;
 
+    const regionId = this.cloudManager.getCurrentRegionId();
+    if (!regionId) return; // Only mutate if actually in a cloud region
+
     const { x, y } = playerTransform.position;
     const { ships, count } = this.shipGrid.getShipsInRadius(
-      x, y, FETCH_RADIUS, this.playerShip.getFaction()
+      x,
+      y,
+      FETCH_RADIUS,
+      this.playerShip.getFaction()
     );
 
     this.scratchCandidates.length = 0;
 
     for (let i = 0; i < count; i++) {
       const ship = ships[i];
-
       if (
         ship &&
         !ship.isDestroyed?.() &&
@@ -122,7 +139,8 @@ export class VeilShipMutator {
 
     if (this.scratchCandidates.length === 0) return;
 
-    const selected = this.scratchCandidates[Math.floor(Math.random() * this.scratchCandidates.length)];
+    const selected =
+      this.scratchCandidates[Math.floor(Math.random() * this.scratchCandidates.length)];
     const blockCount = this.getRandomBlockCount();
 
     this.scratchBlockTypes.length = 0;
@@ -130,15 +148,46 @@ export class VeilShipMutator {
       this.scratchBlockTypes.push(this.getNextBlockType());
     }
 
-    const blockTypesForJob = this.scratchBlockTypes.slice();
-
     selected.setMutated?.(true);
     selected.setBlockColor?.('#ff0000');
 
+    // Bind destruction listener to track kills per region
+    selected.onDestroyedCallback((ship, cause) => {
+      console.log(
+        `[VeilShipMutator] Mutated ship destroyed (region=${regionId}, cause=${cause})`
+      );
+      const job = this.mutatingShips.get(ship);
+      if (!job) {
+        console.warn('[VeilShipMutator] Destroyed ship not found in mutatingShips map');
+        return;
+      }
+      const prev = this.regionKillTally.get(job.regionId) || 0;
+      this.regionKillTally.set(job.regionId, prev + 1);
+      console.log(
+        `[VeilShipMutator] Kill count for region ${job.regionId}: ${prev + 1}`
+      );
+      this.mutatingShips.delete(ship);
+    });
+
     this.mutatingShips.set(selected, {
       ship: selected,
-      remainingBlocks: blockTypesForJob,
+      regionId,
+      remainingBlocks: this.scratchBlockTypes.slice(),
       elapsed: 0,
+      mutationComplete: false
     });
+  }
+
+  // === Public API ===
+
+  /** Get the region ID for a currently mutated ship, or null if not mutated */
+  public getRegionForMutatedShip(ship: Ship): string | null {
+    const job = this.mutatingShips.get(ship);
+    return job ? job.regionId : null;
+  }
+
+  /** Get how many mutated ships have been destroyed in the given region */
+  public getKillsInRegion(regionId: string): number {
+    return this.regionKillTally.get(regionId) || 0;
   }
 }
