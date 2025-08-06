@@ -396,8 +396,8 @@ export class CombatService {
       maxSimultaneous: 3,
     });
 
-    const blockDropRateMulti = entity.getAffixes()?.blockDropRateMulti ?? 1;
-    this.pickupSpawner.spawnPickupOnBlockDestruction(blockIndex, blockDropRateMulti, extraOptions.repairOrbDropRateMulti);
+    const { blockDropRateMulti = 1, entropiumDropRateMulti = 1 } = entity.getAffixes();
+    this.pickupSpawner.spawnPickupOnBlockDestruction(blockIndex, blockDropRateMulti, entropiumDropRateMulti, extraOptions.repairOrbDropRateMulti);
 
     entity.removeBlock(coord);
 

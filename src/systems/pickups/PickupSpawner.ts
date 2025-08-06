@@ -123,6 +123,7 @@ export class PickupSpawner {
   spawnPickupOnBlockDestruction(
     blockIndex: number,
     blockDropRateMulti: number,
+    entropiumDropRateMulti: number = 1.0,
     repairOrbDropRateMulti: number = 0
   ): void {
     if (this.pickupDropsDisabled) return;
@@ -167,7 +168,7 @@ export class PickupSpawner {
       if (Math.random() < repairOrbChance) {
         const repairAmount = this.getRepairAmountForBlock(blockIndex);
         this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
-      } else if (Math.random() < 0.8) {
+      } else if (Math.random() < (0.8 * entropiumDropRateMulti)) {
         let currencyAmount = this.getCurrencyAmountForBlock(blockIndex);
         const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
         currencyAmount = Math.floor(currencyAmount * currencyMultiplier);

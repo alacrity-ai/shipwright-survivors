@@ -18,6 +18,7 @@ import type { PlanetDefinition } from '@/game/planets/interfaces/PlanetDefinitio
 import type { QuestStepId } from '@/game/quests/interfaces/QuestStep';
 import type { BossArenaOptions } from '@/rendering/unified/controllers/BossArenaRenderingController';
 import type { Ship } from '@/game/ship/Ship';
+import type { HorizontalAlignment } from '@/ui/overlays/TransientWordDisplay';
 
 export type CursorChangeType =
   | 'crosshair'
@@ -99,6 +100,9 @@ export interface EventTypes {
   'activeContractsButton:hide': undefined;
   'jumpCastButton:show': undefined;
   'jumpCastButton:hide': undefined;
+
+  // Title display events
+  'title:show': { title: string; subtitle?: string; durationSeconds?: number; scale?: number, alignment?: HorizontalAlignment; color?: string };
 
   // Abilities
   'abilities:update': undefined;

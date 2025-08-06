@@ -16,6 +16,8 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import { audioManager } from '@/audio/Audio';
 import { applyShipColorPreset, ShipColorPreset } from '../ship/utils/shipColorHelpers';
 
+import { reportTitle } from '@/core/interfaces/events/TitleReporter';
+
 export class BossOrchestrator {
   private bossShip: Ship | null = null;
   private aiController: BaseBossAIController | null = null;
@@ -37,6 +39,9 @@ export class BossOrchestrator {
     if (!aiController) {
       throw new Error(`[BossOrchestrator] Failed to spawn AI controller for boss '${definition.id}'`);
     }
+
+    // Show the title/subtitle text
+    reportTitle(definition.name, definition.subtitle, 3.8, 1.0, 'center', '#ff0000');
 
     // Set pre-fight affixes and appearance
     ship.setAffixes({ invulnerable: true });
@@ -82,6 +87,7 @@ export class BossOrchestrator {
   }
 
   public onDeathCallback(): void {
+    reportTitle('THREAT NEUTRALIZED', '', 3.8, 0.75, 'center', '#ffddff');
     this.shipDestroyed = true;
   }
 

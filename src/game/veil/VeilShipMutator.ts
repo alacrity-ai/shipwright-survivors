@@ -66,12 +66,18 @@ export class VeilShipMutator {
 
   public update(dt: number): void {
     this.mutateCooldown -= dt;
+
     if (this.mutateCooldown <= 0 && this.cloudManager.isShipInCloud()) {
       this.tryAddMutationTarget();
       this.mutateCooldown = MUTATE_INTERVAL_SECONDS;
     }
 
     for (const [ship, job] of this.mutatingShips.entries()) {
+      if (ship.isDestroyed?.()) {
+        this.mutatingShips.delete(ship);
+        continue;
+      }
+
       job.elapsed += dt;
       const blocksToAdd = Math.floor(job.elapsed * BLOCKS_PER_SECOND);
 
@@ -90,19 +96,22 @@ export class VeilShipMutator {
   }
 
   private tryAddMutationTarget(): void {
-    const playerPos = this.playerShip.getTransform().position;
+    const playerTransform = this.playerShip.getTransform?.();
+    if (!playerTransform) return;
+
+    const { x, y } = playerTransform.position;
     const { ships, count } = this.shipGrid.getShipsInRadius(
-      playerPos.x,
-      playerPos.y,
-      FETCH_RADIUS,
-      this.playerShip.getFaction()
+      x, y, FETCH_RADIUS, this.playerShip.getFaction()
     );
 
     this.scratchCandidates.length = 0;
+
     for (let i = 0; i < count; i++) {
       const ship = ships[i];
 
       if (
+        ship &&
+        !ship.isDestroyed?.() &&
         !ship.isVeilMutated?.() &&
         !this.mutatingShips.has(ship) &&
         ship.getBlockCount() <= SHIP_SIZE_LIMIT
@@ -113,8 +122,7 @@ export class VeilShipMutator {
 
     if (this.scratchCandidates.length === 0) return;
 
-    const selected =
-      this.scratchCandidates[Math.floor(Math.random() * this.scratchCandidates.length)];
+    const selected = this.scratchCandidates[Math.floor(Math.random() * this.scratchCandidates.length)];
     const blockCount = this.getRandomBlockCount();
 
     this.scratchBlockTypes.length = 0;
@@ -124,9 +132,8 @@ export class VeilShipMutator {
 
     const blockTypesForJob = this.scratchBlockTypes.slice();
 
-    // Only mutate after selected
-    selected.setMutated(true);
-    selected.setBlockColor('#ff0000');
+    selected.setMutated?.(true);
+    selected.setBlockColor?.('#ff0000');
 
     this.mutatingShips.set(selected, {
       ship: selected,
@@ -134,5 +141,4 @@ export class VeilShipMutator {
       elapsed: 0,
     });
   }
-
 }

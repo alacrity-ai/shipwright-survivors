@@ -60,6 +60,7 @@ export class PlayerShipCollection {
 
   setActiveShip(ship: CollectableShipDefinition): void {
     this.activeShip = ship;
+    this.clearCachedModifiers();
   }
 
   getActiveShip(): CollectableShipDefinition | null {
@@ -287,7 +288,7 @@ export class PlayerShipCollection {
     this.clearCachedModifiers();
   }
 
-  destroy(): void {
+  public destroy(): void {
     this.reset();
   }
 

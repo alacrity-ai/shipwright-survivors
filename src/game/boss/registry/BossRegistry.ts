@@ -5,11 +5,12 @@ import type { BossDefinition } from '@/game/boss/interfaces/BossDefinition';
 const BOSSES: Record<string, BossDefinition> = {
   flame_lord: {
     id: 'flame_lord',
-    name: 'The Flame Lord',
+    name: 'Crazy Moe',
+    subtitle: 'The Barbecue Baron',
     shipJsonPath: 'boss/flamelord.json',
     initialState: 'Idle',
     maxHealth: 200000,
-    maxHealthDamageIntakePerSecond: 4000,
+    maxHealthDamageIntakePerSecond: 6000,
     damageMultiplier: 1.0,
   },
 };

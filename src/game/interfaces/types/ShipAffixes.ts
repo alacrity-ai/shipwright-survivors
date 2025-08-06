@@ -19,4 +19,5 @@ export interface ShipAffixes {
   rammingArmorMultiplier?: number;
   invulnerable?: boolean;
   blockDropRateMulti?: number;
+  entropiumDropRateMulti?: number;
 }

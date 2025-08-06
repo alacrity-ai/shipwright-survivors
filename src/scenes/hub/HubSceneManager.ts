@@ -145,10 +145,10 @@ export class HubSceneManager {
       playerShipCollection.unlock('SW-1 Standard Issue');
     }
 
-    // Debug: Unlock all for testing
-    playerShipCollection.unlockAndDiscoverAll();
-    playerShipCollection.masterAllShips();
-    PlayerMetaCurrencyManager.getInstance().setMetaCurrency(100000);
+    // // Debug: Unlock all for testing
+    // playerShipCollection.unlockAndDiscoverAll();
+    // playerShipCollection.masterAllShips();
+    // PlayerMetaCurrencyManager.getInstance().setMetaCurrency(100000);
 
     if (!flags.has('hub.introduction-1.complete')) {
       const script = getDialogueScript('hub-introduction-1', { inputManager: this.inputManager });

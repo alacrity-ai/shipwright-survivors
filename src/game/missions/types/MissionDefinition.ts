@@ -5,6 +5,7 @@ import type { MusicTrack } from '@/audio/AudioManager';
 import type { FlagKey } from '@/game/player/registry/FlagRegistry';
 import type { SpatialBodySpawnConfig } from '@/game/spatialbodies/interfaces/SpatialBodySpawnConfig';
 import type { CloudRegion } from '@/game/veil/CloudManager';
+import type { CloudRegionGenerationOptions } from '@/game/veil/CloudRegionGenerator';
 
 export type PlanetSpawnConfig = {
   name: string;
@@ -15,6 +16,7 @@ export type PlanetSpawnConfig = {
 export interface MissionDefinition {
   id: string;
   name: string;
+  missionTitle: string;
   waves: WaveDefinition[];
   dropMultiplier?: number; // Multiplier for block drop rate
   environmentSettings?: {
@@ -27,6 +29,7 @@ export interface MissionDefinition {
   planets?: PlanetSpawnConfig[];
   spatialBodies?: SpatialBodySpawnConfig[];
   cloudRegions?: CloudRegion[];
+  autoGenerateCloudParams?: CloudRegionGenerationOptions;
   bonusObjectives?: string[];
   passiveReward?: number;
   music?: MusicTrack;

@@ -2,8 +2,12 @@
 
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 
+// Hud 
+import { emitHudHideAll } from '@/core/interfaces/events/HudReporter';
+
 // Cloud Registry
 import { CloudRegionRegistry } from '@/game/veil/CloudRegistry';
+import { MISSION_02_CLOUDS } from '@/game/veil/prefabs/defaultParams';
 
 // Enemy Wave imports
 import { waveDefinitions as titleScreenWaves } from '@/game/waves/missions/TitleScreenWaves';
@@ -17,14 +21,14 @@ import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves
 import { iceSpatialBodyConfig } from '@/game/spatialbodies/configs/iceConfig';
 
 import { flags } from '@/game/player/PlayerFlagManager';
-
-import { emitHudHideAll } from '@/core/interfaces/events/HudReporter';
 import { FlagKey } from '../player/registry/FlagRegistry';
+
 
 export const missionRegistry: Record<string, MissionDefinition> = {
   mission_editor: {
     id: 'mission_editor',
     name: 'Editor',
+    missionTitle: 'Editor',
     waves: [],
     dropMultiplier: 1.5,
     environmentSettings: {
@@ -46,6 +50,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   titlescreen: {
     id: 'titlescreen',
     name: 'Title Screen',
+    missionTitle: 'Title Screen',
     waves: titleScreenWaves,
     dropMultiplier: 2.0,
     environmentSettings: {
@@ -70,7 +75,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   },
   mission_001: {
     id: 'mission_001',
-    name: 'Shipwright Second-Class',
+    name: 'Shipwright Second Class',
+    missionTitle: 'Training Mission',
     dialogue: 'intro-briefing',
     waves: waveSet0,
     dropMultiplier: 2.0,
@@ -100,6 +106,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   mission_002: {
     id: 'mission_002',
     name: 'Starfield Gauntlet',
+    missionTitle: 'Mission 1',
     dialogue: 'mission-generic',
     waves: waveSet1,
     dropMultiplier: 1.0,
@@ -126,11 +133,12 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Deimos', x: -12000, y: -24000 }
     ],
     spatialBodies: iceSpatialBodyConfig,
-    cloudRegions: CloudRegionRegistry.get('misty-basin'), // mistyBasinCloudRegions,
+    autoGenerateCloudParams: MISSION_02_CLOUDS,
   },
   mission_003_00: {
     id: 'mission_003_00',
     name: 'The Scrapyard Revenant',
+    missionTitle: 'Mission 2',
     dialogue: 'mission_003_00',
     waves: waveSet2,
     dropMultiplier: 1.0,
@@ -158,6 +166,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   mission_004_00: {
     id: 'mission_004_00',
     name: 'The Miner\'s Dillemma',
+    missionTitle: 'Mission 3',
     dialogue: 'mission-generic',
     waves: waveSet3,
     dropMultiplier: 1.5,
@@ -184,6 +193,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   mission_005_00: {
     id: 'mission_005_00',
     name: 'WIP',
+    missionTitle: 'Mission 4',
     dialogue: 'mission-generic',
     waves: waveSet4,
     dropMultiplier: 1.5,
@@ -210,6 +220,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
   mission_006_00: {
     id: 'mission_006_00',
     name: 'WIP',
+    missionTitle: 'Mission 5',
     dialogue: 'mission-generic',
     waves: waveSet3,
     dropMultiplier: 1.5,

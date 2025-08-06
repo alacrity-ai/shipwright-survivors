@@ -368,11 +368,6 @@ export class TitleScreenRuntime {
     ];
   }
 
-  // private registerLoopHandlers() {
-  //   this.gameLoop.onUpdate(this.boundUpdate);
-  //   this.gameLoop.onRender(this.boundRender);
-  // }
-
   private pause() {
     this.isPaused = true;
     this.waveOrchestrator!.pause();

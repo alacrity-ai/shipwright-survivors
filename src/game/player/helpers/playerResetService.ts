@@ -27,7 +27,7 @@ export function resetPlayerData(): void {
   PlayerPowerupManager.destroy();
   PlayerQuestManager.getInstance().reset();
   PlayerShipCollection.getInstance().reset();
-  PlayerShipSkillTreeManager.getInstance().resetAll();
+  PlayerShipSkillTreeManager.destroy();
   PlayerTechnologyManager.getInstance().reset();
   PlayerTradePostManager.getInstance().reset();
   PlayerMetaCurrencyManager.getInstance().reset();

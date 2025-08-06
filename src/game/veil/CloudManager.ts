@@ -1,6 +1,8 @@
 // src/systems/fx/CloudManager.ts
 
 import { setCloudParamsFront, setCloudParamsBack } from '@/core/interfaces/events/SpecialFxReporter';
+import { reportDialogueLine, clearDialogueEvents } from '@/core/interfaces/events/DialogueReporter';
+import { flags } from '@/game/player/PlayerFlagManager';
 
 export type Vec2 = { x: number; y: number };
 
@@ -47,10 +49,14 @@ export class CloudManager {
 
   private readonly FADE_SPEED = 2.0;
   private static readonly EPSILON = 0.001;
+  private dialoguePlayed = false;
 
   constructor(ship: { getTransform: () => { position: Vec2 } }, regions: CloudRegion[]) {
     this.ship = ship;
     this.regions = regions;
+    if (flags.has('veil.intro-dialogue.played')) {
+      this.dialoguePlayed = true;
+    }
   }
 
   update(dt: number): void {
@@ -125,6 +131,25 @@ export class CloudManager {
 
   isShipInCloud(): boolean {
     // Compare against a perceptual epsilon, not strict > 0
-    return this.alphaFront > CloudManager.EPSILON || this.alphaBack > CloudManager.EPSILON;
+    const inCloud = this.alphaFront > CloudManager.EPSILON;
+    if (inCloud) {
+      if (!this.dialoguePlayed) {
+        this.initialDialogue();
+      }
+    }
+    return inCloud;
+  }
+
+  initialDialogue(): void {
+    reportDialogueLine(
+      'carl',
+      'Be careful Shipwright.  Strange things happen in the Veil...',
+    );
+    this.dialoguePlayed = true;
+    flags.set('veil.intro-dialogue.played');
+    setTimeout(() => {
+      clearDialogueEvents();
+    }, 5000);
   }
 }
+

@@ -49,10 +49,13 @@ import { PauseMenu } from '@/ui/menus/PauseMenu';
 import { HudOverlay } from '@/ui/overlays/HudOverlay';
 import { WavesOverlay } from '@/ui/overlays/WavesOverlay';
 import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
+import { TransientWordDisplay } from '@/ui/overlays/TransientWordDisplay';
 import { DebugOverlay } from '@/ui/overlays/DebugOverlay';
 import { MiniMap } from '@/ui/overlays/MiniMap';
+import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
 import { ScreenEdgeIndicatorManager } from '@/ui/overlays/indicators/ScreenEdgeIndicatorManager';
 import { CloudManager } from '@/game/veil/CloudManager';
+import { generateCloudRegions } from '@/game/veil/CloudRegionGenerator';
 import { VeilShipMutator } from '@/game/veil/VeilShipMutator';
 import { 
   addPostProcessEffect, 
@@ -193,6 +196,7 @@ export class EngineRuntime {
   private pauseMenu: PauseMenu | null = null;
   private hud: HudOverlay | null = null;
   private miniMap: MiniMap | null = null;
+  private transientWordDisplay: TransientWordDisplay;
   private screenEdgeIndicatorManager: ScreenEdgeIndicatorManager;
   private arenaManager: ArenaManager;
   private bossManager: BossManager;
@@ -338,6 +342,9 @@ export class EngineRuntime {
     // === Screen edge indicator
     this.screenEdgeIndicatorManager = new ScreenEdgeIndicatorManager();
 
+    // === Transient Word Display
+    this.transientWordDisplay = new TransientWordDisplay('Mission 1', this.mission.name, 3.8, 'center');
+
     // === Ship Builder (For Edit  Mode)
     this.shipBuilderMenu = new ShipBuilderMenu(this.inputManager, this.cursorRenderer);
     this.shipBuilderMenu.setSetShipHandlerFromObject((jsonData) => {
@@ -466,6 +473,9 @@ export class EngineRuntime {
     this.utilitySystem = utility; // Utility system needed for update() loop
 
     // Cloud Manager
+    if (this.mission.autoGenerateCloudParams) {
+      this.mission.cloudRegions = generateCloudRegions(this.mission.autoGenerateCloudParams);
+    }
     this.cloudManager = new CloudManager(this.ship!, this.mission.cloudRegions ?? []);
     this.veilShipMutator = new VeilShipMutator(this.cloudManager, this.ship!, this.shipBuilderEffects);
 
@@ -631,6 +641,7 @@ export class EngineRuntime {
       this.planetInteractionOptionsMenu,
       this.jumpCastMenu,
       this.jumpCastTransitionController,
+      this.transientWordDisplay
     ];
 
     this.canvasManager.setUnifiedRenderer(this.unifiedSceneRenderer!);
@@ -681,6 +692,7 @@ export class EngineRuntime {
       this.explosionSystem,
       ShieldEffectsSystem.getInstance(),
       this.screenEffects,
+      this.transientWordDisplay,
       this.pickupSystem,
       this.waveOrchestrator!,
       this.energyRechargeSystem!,
@@ -1121,11 +1133,19 @@ export class EngineRuntime {
     this.gameLoop.start();
     this.asteroidSpawner!.spawnFieldById('asteroid-field-01');
     this.inputManager.disableAllActions();
+    emitHudHideAll();
     applyWarmCinematicEffect();
+
+    setTimeout(() => {
+      this.transientWordDisplay.start();
+    }, 1000);
+
+    // Unlock UI Elements and Input after intro
     setTimeout(() => {
       this.inputManager.enableAllActions();
       this.missionDialogueManager!.initialize();
-    }, 3400);
+      emitHudShowAll();
+    }, 5000);
   }
 
   public handlePlayerLevelUp() {
@@ -1251,6 +1271,7 @@ export class EngineRuntime {
     this.questCompletionController.destroy();
     this.combatService.destroy();
     this.planetSystem?.clear();
+    this.transientWordDisplay.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

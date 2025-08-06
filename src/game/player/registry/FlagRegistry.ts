@@ -89,6 +89,9 @@ export const FlagRegistry = {
   'planet.voidia.visited': {
     description: 'Marks the planet Voidia as visited.',
   },
+  'veil.intro-dialogue.played': {
+    description: 'Marks the veil dialogue as played.',
+  },
 } as const;
 
 export type FlagKey = keyof typeof FlagRegistry;

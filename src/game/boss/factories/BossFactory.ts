@@ -37,6 +37,8 @@ export class BossFactory {
       false        // noClip
     );
 
+    // Set affixes for no block drops or entropium drops
+    ship.setAffixes({ blockDropRateMulti: 0.0, entropiumDropRateMulti: 0.0 });
     ship.initializeHealth(definition.maxHealth);
     ship.setMaxHealthDamageIntakePerSecond(definition.maxHealthDamageIntakePerSecond);
 

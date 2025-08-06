@@ -39,7 +39,12 @@ export class WordRenderer {
     private scale: number = getUniformScaleFactor(),
   ) {}
 
-  public setWord(word: string): void {
+  /**
+   * Sets the word to render, optionally with a stroke color override.
+   * @param word - The string to render.
+   * @param strokeColor - Optional stroke color to use for all letters.
+   */
+  public setWord(word: string, strokeColor?: string): void {
     this.letters.length = 0;
 
     let i = 0;
@@ -48,15 +53,15 @@ export class WordRenderer {
         const emphasizedChar = word[i + 1].toUpperCase();
         this.letters.push({
           char: emphasizedChar,
-          icon: getMinimalistLetterIcon(emphasizedChar),
+          icon: getMinimalistLetterIcon(emphasizedChar, strokeColor),
           emphasize: true
         });
-        i += 3; // Skip past <X>
+        i += 3;
       } else {
         const char = word[i].toUpperCase();
         this.letters.push({
           char,
-          icon: char === ' ' ? null : getMinimalistLetterIcon(char),
+          icon: char === ' ' ? null : getMinimalistLetterIcon(char, strokeColor),
           emphasize: false
         });
         i++;
@@ -141,6 +146,18 @@ export class WordRenderer {
     }
 
     ctx.globalAlpha = originalAlpha;
+  }
+
+  public setX(x: number): void {
+    this.x = x;
+  }
+
+  public setY(y: number): void {
+    this.y = y;
+  }
+
+  public setOpacity(opacity: number): void {
+    this.pulseConfig.baseOpacity = opacity;
   }
 
   // Preset pulse styles
