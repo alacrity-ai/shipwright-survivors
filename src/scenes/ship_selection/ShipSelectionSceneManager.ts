@@ -13,8 +13,6 @@ import { getUniformScaleFactor, isSteamDeck } from '@/config/view';
 
 import { GalaxyBackgroundRenderer } from '@/rendering/unified/passes/scene/GalaxyBackgroundRenderer';
 
-import { getAssetPath } from '@/shared/assetHelpers';
-
 import { GlobalEventBus } from '@/core/EventBus';
 
 import { drawButton, UIButton, handleButtonInteraction } from '@/ui/primitives/UIButton';
@@ -88,7 +86,12 @@ export class ShipSelectionSceneManager {
 
     const gl = this.canvasManager.getWebGL2Context('unifiedgl2');
     this.backgroundPass = new GalaxyBackgroundRenderer(gl);
-    
+    this.backgroundPass.setColors(
+      [0.01, 0.015, 0.04], // uColor1: Near-black navy (structural base)
+      [0.015, 0.05, 0.08], // uColor2: Dim steel-cyan (ghost highlights)
+      [0.02, 0.01, 0.05]   // uColor3: Shadowed violet (subtle sheen)
+    );
+
     this.isSteamDeck = isSteamDeck();
 
     const scale = getUniformScaleFactor();

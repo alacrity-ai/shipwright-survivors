@@ -14,6 +14,14 @@ export class GalaxyBackgroundRenderer {
 
   private readonly uResolution: WebGLUniformLocation;
   private readonly uTime: WebGLUniformLocation;
+  private readonly uColor1: WebGLUniformLocation;
+  private readonly uColor2: WebGLUniformLocation;
+  private readonly uColor3: WebGLUniformLocation;
+
+  // Default color palette
+  private color1: [number, number, number] = [0.15, 0.05, 0.7]; // Deep blue-purple
+  private color2: [number, number, number] = [0.05, 0.5, 0.85]; // Cyan
+  private color3: [number, number, number] = [0.7, 0.2, 0.8];   // Magenta
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
@@ -30,6 +38,22 @@ export class GalaxyBackgroundRenderer {
 
     this.uResolution = gl.getUniformLocation(this.program, 'iResolution')!;
     this.uTime = gl.getUniformLocation(this.program, 'iTime')!;
+    this.uColor1 = gl.getUniformLocation(this.program, 'uColor1')!;
+    this.uColor2 = gl.getUniformLocation(this.program, 'uColor2')!;
+    this.uColor3 = gl.getUniformLocation(this.program, 'uColor3')!;
+  }
+
+  /**
+   * Optionally override the color palette at runtime.
+   */
+  public setColors(
+    color1: [number, number, number],
+    color2: [number, number, number],
+    color3: [number, number, number]
+  ): void {
+    this.color1 = color1;
+    this.color2 = color2;
+    this.color3 = color3;
   }
 
   render(timeSeconds: number): void {
@@ -43,6 +67,9 @@ export class GalaxyBackgroundRenderer {
 
     gl.uniform2f(this.uResolution, canvas.width, canvas.height);
     gl.uniform1f(this.uTime, timeSeconds);
+    gl.uniform3fv(this.uColor1, this.color1);
+    gl.uniform3fv(this.uColor2, this.color2);
+    gl.uniform3fv(this.uColor3, this.color3);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 

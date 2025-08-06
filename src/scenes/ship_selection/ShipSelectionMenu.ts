@@ -3,8 +3,7 @@
 import { DEFAULT_CONFIG as UI_CONFIG, type UIConfig } from '@/config/ui';
 import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
-import { drawWindow } from '@/ui/primitives/WindowBox';
-import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
+
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawMasteryLevel } from '@/ui/primitives/UIMasteryBadge';
 import { handleButtonInteraction, drawButton, type UIButton } from '@/ui/primitives/UIButton';
