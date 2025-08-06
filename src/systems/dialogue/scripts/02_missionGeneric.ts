@@ -44,6 +44,11 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
           waveOrchestrator.start();
         },
       },
+      // Wait 1500ms
+      {
+        type: 'pause',
+        durationMs: 1500
+      },
       // Prompt user to defeat all incoming waves in order to receive permission to return to headquarters
       {
         type: 'line',
