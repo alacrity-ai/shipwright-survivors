@@ -653,7 +653,7 @@ export const waveDefinitions: WaveDefinition[] = [
     ],
   },
   {
-    duration: 30,
+    duration: 40,
     sustainMode: true,
     spawnDistribution: 'aroundPlayer',    
     mods: [],

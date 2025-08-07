@@ -48,19 +48,19 @@ export class BossState_Combo_FrontRightFlames implements BossState {
       case 'phase4':
         this.telegraphDuration = 3.5;
         this.flameDuration = 6.5;
-        this.trackingSpeed = 0.002;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase3':
         this.telegraphDuration = 3.7;
         this.flameDuration = 6.0;
-        this.trackingSpeed = 0.002;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase1':
       case 'phase2':
       default:
         this.telegraphDuration = 4.0;
         this.flameDuration = 5.5;
-        this.trackingSpeed = 0.002;
+        this.trackingSpeed = 0.001;
         break;
     }
 
@@ -81,11 +81,11 @@ export class BossState_Combo_FrontRightFlames implements BossState {
     this.timer += dt;
 
     const boss = controller.getBoss();
-    const damage = this.bossDefinition!.damageMultiplier * boss.getBossPhase();
+    const damage = this.bossDefinition!.damageMultiplier * (boss.getBossPhase() * 1.5);
     const currentTransform = boss.getTransform();
     const easedRot = this.rotateToward(currentTransform.rotation, context.angleToPlayer, this.trackingSpeed);
     boss.setTransform({ ...currentTransform, rotation: easedRot });
-    const arcWideningAmount = boss.getBossPhase() * 5;
+    const arcWideningAmount = boss.getBossPhase() * 2.5;
 
     if (this.telegraphing) {
       if (this.timer >= this.telegraphDuration) {

@@ -83,8 +83,10 @@ export class BossOrchestrator {
     // Start FSM
     this.aiController.start?.();
 
-    // Draw boss healthbar
-    showBossHealthbar();
+    setTimeout(() => {
+      // Draw boss healthbar
+      showBossHealthbar();
+    }, 3000);
 
     // Disable Pickups
     disablePickupDrops();

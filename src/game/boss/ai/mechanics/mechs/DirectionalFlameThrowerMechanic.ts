@@ -10,7 +10,7 @@ import { emitOrangeFlames, emitGreenFlames, emitBlueFlames, emitPurpleFlames } f
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
 import { BossManager } from '@/game/boss/BossManager';
 
-const DAMAGE_PER_TICK = 8;
+const DAMAGE_PER_TICK = 10;
 
 type FlameEmitterFn = (
   x: number,

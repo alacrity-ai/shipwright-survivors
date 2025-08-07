@@ -154,6 +154,7 @@ export class VeilManager {
         shakeCamera(12, 1, 12, 'boss:spawn');
         createLightFlash(playerPos.x, playerPos.y, 2600, 2.0, 0.5, '#ff3211');
         audioManager.play('assets/sounds/sfx/magic/megasub.wav', 'sfx');
+        audioManager.play('assets/sounds/sfx/magic/creature_00.wav', 'sfx');
 
         await this.bossController.spawnBoss(
           currentRegion.bossOptions,

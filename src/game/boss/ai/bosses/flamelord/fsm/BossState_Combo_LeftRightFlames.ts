@@ -74,13 +74,13 @@ export class BossState_Combo_LeftRightFlames implements BossState {
 
     const boss = controller.getBoss();
     const currentTransform = boss.getTransform();
-    const damage = this.bossDefinition!.damageMultiplier * boss.getBossPhase();
+    const damage = this.bossDefinition!.damageMultiplier * (boss.getBossPhase() * 2);
 
     // Align left flank toward player → rotate front +120°
     const desiredAngle = context.angleToPlayer + (2 * Math.PI / 3);
     const easedRot = this.rotateToward(currentTransform.rotation, desiredAngle, this.trackingSpeed);
     boss.setTransform({ ...currentTransform, rotation: easedRot });
-    const arcWideningAmount = boss.getBossPhase() * 10;
+    const arcWideningAmount = boss.getBossPhase() * 5;
     
     if (this.telegraphing) {
       if (this.timer >= this.telegraphDuration) {

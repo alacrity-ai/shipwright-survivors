@@ -81,7 +81,7 @@ export class BossState_FrontalBarrage implements BossState {
 
     const ship = controller.getBoss();
     const currentTransform = ship.getTransform();
-    const damage = this.bossDefinition!.damageMultiplier * ship.getBossPhase();
+    const damage = this.bossDefinition!.damageMultiplier * (ship.getBossPhase() * 2);
 
     const arcWideningAmount = ship.getBossPhase() * 15;
 
