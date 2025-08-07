@@ -227,3 +227,95 @@ export const SYNTH_WAVE_CONFIG: UIConfig = {
     }
   }
 };
+
+export const NEON_CYAN_CONFIG: UIConfig = {
+  general: {
+    font: 'monospace',
+    textColor: '#4efbff',           // vivid aqua for main text
+    infoTextColor: '#a5f6ff',       // softer sky-blue for secondary info
+    blackColor: '#001015',          // deep cyan-black
+    primaryColor: '#003b46',        // dark teal for panels
+    warningColor: '#ff4f5e',        // hot coral for alerts
+    statColor: '#00ffe5',           // hyper-saturated aqua-mint for stat highlights
+    hoverColor: '#6efbff',          // lighter cyan glow on hover
+    accentColor: '#00faff',         // piercing neon cyan accent
+    disabledColor: '#1a3a40',       // muted teal-gray
+    backgroundColor: '#001820',     // dark blue-teal night
+    glowColor: '#00faff',           // neon cyan glow
+  },
+  window: {
+    options: {
+      alpha: 0.94,
+      borderRadius: 12,
+      borderColor: '#00faff',       // neon cyan border
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#003b46' },  // deep teal top
+          { offset: 1, color: '#001820' }   // dark aqua base
+        ]
+      }
+    }
+  },
+  button: {
+    style: {
+      borderRadius: 10,
+      alpha: 0.9,
+      borderColor: '#00faff',       // bright cyan edge
+      textFont: '16px monospace',
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#006d75' },  // rich teal-cyan start
+          { offset: 1, color: '#003b46' }   // deeper aqua end
+        ]
+      }
+    }
+  }
+};
+
+export const SOLAR_FLARE_CONFIG: UIConfig = {
+  general: {
+    font: 'monospace',
+    textColor: '#ffcf73',           // molten gold for main text
+    infoTextColor: '#ffe6b3',       // pale golden cream for secondary info
+    blackColor: '#140900',          // deep volcanic black-brown
+    primaryColor: '#4a2100',        // dark burnt orange for panels
+    warningColor: '#ff7a3c',        // hot orange-red for alerts
+    statColor: '#ffd14f',           // bright goldenrod for stat highlights
+    hoverColor: '#ffb347',          // amber glow on hover
+    accentColor: '#ffa200',         // pure orange-gold accent
+    disabledColor: '#3b2b1a',       // muted brown-orange
+    backgroundColor: '#1a0c00',     // ember-dark background
+    glowColor: '#ffb347',           // warm amber glow
+  },
+  window: {
+    options: {
+      alpha: 0.94,
+      borderRadius: 12,
+      borderColor: '#ffa200',       // golden-orange frame
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#4a2100' },  // dark ember top
+          { offset: 1, color: '#1a0c00' }   // deeper volcanic base
+        ]
+      }
+    }
+  },
+  button: {
+    style: {
+      borderRadius: 10,
+      alpha: 0.88,
+      borderColor: '#ffb347',       // amber edge
+      textFont: '16px monospace',
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#ff7a3c' },  // bright orange flame
+          { offset: 1, color: '#4a2100' }   // ember-dark fade
+        ]
+      }
+    }
+  }
+};

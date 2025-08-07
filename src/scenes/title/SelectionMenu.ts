@@ -1,6 +1,6 @@
 // src/scenes/title/SelectionMenu.ts
 
-import { DEFAULT_CONFIG } from '@/config/ui';
+import { DEFAULT_CONFIG, NEON_CYAN_CONFIG, SOLAR_FLARE_CONFIG, SYNTH_WAVE_CONFIG } from '@/config/ui';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
@@ -57,19 +57,19 @@ export class SelectionMenu {
     this.launchMissionBtn = this.makeButton('Launch Mission', () => {
       audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
       launchGameFromSelectionMenu();
-    });
+    }, NEON_CYAN_CONFIG.button.style);
 
     this.passiveSkillsBtn = this.makeButton('Passive Skills', () => {
       audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
       openPassiveSkillsFromSelectionMenu();
-    });
+    }, SOLAR_FLARE_CONFIG.button.style);
 
     this.unlocksBtn = this.makeButton('Astral Codex', () => {
       audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
       openCollectionFromSelectionMenu();
-    });
+    }, SYNTH_WAVE_CONFIG.button.style);
 
-    this.quitBtn = this.makeButton('Quit', () => {
+    this.quitBtn = this.makeButton('Logout', () => {
       audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
       quitFromSelectionMenu();
     });
@@ -162,7 +162,7 @@ export class SelectionMenu {
 
     drawMinimalistWindow(ctx, this.winX, this.winY, this.winW, this.winH, {
       ...DEFAULT_CONFIG.window.options,
-      alpha: 0.4,
+      alpha: 0.5,
       borderRadiusScale: scale,
     });
 
@@ -172,13 +172,21 @@ export class SelectionMenu {
     drawButton(ctx, this.quitBtn, 1, 18 * scale, scale * 2);
   }
 
-  private makeButton(label: string, onClick: () => void): UIButton {
+  private makeButton(
+    label: string,
+    onClick: () => void,
+    styleOverride?: Partial<UIButton['style']>
+  ): UIButton {
     return {
-      x: 0, y: 0, width: this.buttonW, height: this.buttonH,
+      x: 0, y: 0,
+      width: this.buttonW, height: this.buttonH,
       label, onClick,
       isHovered: false, wasHovered: false,
-      style: { textFont: `${15 * getUniformScaleFactor()}px monospace` },
-      ...DEFAULT_CONFIG.button.style,
+      style: {
+        ...DEFAULT_CONFIG.button.style,
+        ...(styleOverride ?? {}),
+        textFont: `${15 * getUniformScaleFactor()}px monospace`,
+      },
     };
   }
 
