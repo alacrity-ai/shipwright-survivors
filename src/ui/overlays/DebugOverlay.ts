@@ -48,15 +48,15 @@ export class DebugOverlay {
     this.smoothedFps += (instantaneousFps - this.smoothedFps) * smoothingFactor;
     drawLabel(ctx, x, y, `FPS: ${this.smoothedFps.toFixed(1)}`); y += lineHeight;
 
-    // === Region Kill Counts ===
-    const regionKillCounts = this.veilManager.getAllRegionKillCounts();
-    for (const { regionId, kills } of regionKillCounts) {
-      drawLabel(ctx, x, y, `Region ${regionId}: ${kills} kills`); y += lineHeight;
-    }
+    // // === Region Kill Counts ===
+    // const regionKillCounts = this.veilManager.getAllRegionKillCounts();
+    // for (const { regionId, kills } of regionKillCounts) {
+    //   drawLabel(ctx, x, y, `Region ${regionId}: ${kills} kills`); y += lineHeight;
+    // }
 
-    // === Current Region ===
-    const currentRegionId = this.veilManager.getRegionPlayerIsIn();
-    drawLabel(ctx, x, y, `Current Region: ${currentRegionId ?? 'None'}`); y += lineHeight;
+    // // === Current Region ===
+    // const currentRegionId = this.veilManager.getRegionPlayerIsIn();
+    // drawLabel(ctx, x, y, `Current Region: ${currentRegionId ?? 'None'}`); y += lineHeight;
 
     if (!DEBUG_MODE) return;
 

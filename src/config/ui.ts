@@ -90,6 +90,52 @@ export const DEFAULT_CONFIG: UIConfig = {
   }
 };
 
+export const VEIL_CONFIG: UIConfig = {
+  general: {
+    font: 'monospace',
+    textColor: '#ff5555',       // blood red
+    infoTextColor: '#ff8888',   // lighter red for secondary info
+    blackColor: '#000000',      // absolute black
+    primaryColor: '#220000',    // deep maroon for UI blocks
+    warningColor: '#ff2222',    // bright hostile red
+    statColor: '#ff4444',       // aggressive red
+    hoverColor: '#aa0000',      // dark crimson hover
+    accentColor: '#ff6666',     // lighter blood accent
+    disabledColor: '#331111',   // desaturated dark red
+    backgroundColor: '#0a0000', // near-black with red hint
+    glowColor: '#ff2222',       // ominous red glow
+  },
+  window: {
+    options: {
+      alpha: 0.92,
+      borderRadius: 12,
+      borderColor: '#ff4444',   // hostile red border
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#330000' }, // deep blood red
+          { offset: 1, color: '#110000' }  // black-red base
+        ]
+      }
+    }
+  },
+  button: {
+    style: {
+      borderRadius: 10,
+      alpha: 0.85,
+      borderColor: '#ff4444',
+      textFont: '16px monospace',
+      backgroundGradient: {
+        type: 'linear',
+        stops: [
+          { offset: 0, color: '#220000' },
+          { offset: 1, color: '#110000' }
+        ]
+      }
+    }
+  }
+};
+
 export const CRT_GREEN_CONFIG: UIConfig = {
   general: {
     font: 'monospace',

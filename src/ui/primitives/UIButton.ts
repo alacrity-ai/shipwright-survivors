@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from '@/config/ui';
 
 import { audioManager } from '@/audio/Audio';
 import { brightenColor } from '@/shared/colorUtils';
+import { getUniformScaleFactor } from '@/config/view';
 import { GlobalEventBus } from '@/core/EventBus';
 
 export interface UIButton {
@@ -25,6 +26,7 @@ export interface UIButton {
     textColor?: string;
     textFont?: string;
     alpha?: number;
+    backgroundAlpha?: number;
     backgroundGradient?: {
       type: 'linear' | 'radial';
       stops: { offset: number; color: string }[];
@@ -54,7 +56,7 @@ export function drawButton(
     disabledColor,
     infoTextColor,
     backgroundColor: defaultBackgroundColor,
-   } = DEFAULT_CONFIG.general;
+  } = DEFAULT_CONFIG.general;
 
   const {
     borderRadius = 6,
@@ -63,22 +65,20 @@ export function drawButton(
     textColor = defaultTextColor,
     textFont = `${fontSize}px monospace`,
     alpha = 1.0,
-    backgroundGradient
+    backgroundGradient,
+    backgroundAlpha
   } = style;
 
-  const scaledWidth = width * uiScale;
+  const scaledWidth  = width  * uiScale;
   const scaledHeight = height * uiScale;
-  const scaledFont = textFont.replace(
+  const scaledFont   = textFont.replace(
     /(\d+)(px)/,
     (_, size, unit) => `${Math.round(parseInt(size) * uiScale)}${unit}`
   );
 
-  const effectiveAlpha = disabled ? 0.4 : alpha;
-  const effectiveBorderColor = disabled ? disabledColor : borderColor;
-  const effectiveTextColor = disabled ? infoTextColor : textColor;
-
-  ctx.save();
-  ctx.globalAlpha = effectiveAlpha;
+  const effectiveAlpha        = disabled ? 0.4 : alpha;
+  const effectiveBorderColor  = disabled ? disabledColor : borderColor;
+  const effectiveTextColor    = disabled ? infoTextColor : textColor;
 
   // === Fill Style ===
   let fillStyle: string | CanvasGradient;
@@ -98,7 +98,9 @@ export function drawButton(
 
     const effectiveStops = stops.map(stop => ({
       offset: stop.offset,
-      color: disabled ? infoTextColor : (isHovered ? brightenColor(stop.color, 0.3) : stop.color)
+      color: disabled
+        ? infoTextColor
+        : (isHovered ? brightenColor(stop.color, 0.3) : stop.color),
     }));
 
     for (const stop of effectiveStops) {
@@ -112,23 +114,35 @@ export function drawButton(
       : (isHovered ? infoTextColor : backgroundColor ?? disabledColor);
   }
 
-  // === Draw Background ===
+  // === Draw Background with optional backgroundAlpha ===
+  const scaledRadius = borderRadius * uiScale;
+
+  ctx.save();
+  ctx.globalAlpha = backgroundAlpha ?? effectiveAlpha;
   ctx.fillStyle = fillStyle;
+  ctx.beginPath();
+  ctx.roundRect(x, y, scaledWidth, scaledHeight, scaledRadius);
+  ctx.fill();
+  ctx.restore();
+
+  // === Draw Border (always full opacity, uses alpha only if not overridden) ===
+  ctx.save();
+  ctx.globalAlpha = effectiveAlpha;
   ctx.strokeStyle = effectiveBorderColor;
   ctx.lineWidth = 1 * uiScale;
-
   ctx.beginPath();
-  ctx.roundRect(x, y, scaledWidth, scaledHeight, borderRadius);
-  ctx.fill();
+  ctx.roundRect(x, y, scaledWidth, scaledHeight, scaledRadius);
   ctx.stroke();
+  ctx.restore();
 
-  // === Draw Label ===
+  // === Draw Label (full alpha) ===
+  ctx.save();
+  ctx.globalAlpha = 1.0;
   ctx.fillStyle = effectiveTextColor;
   ctx.font = scaledFont;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, x + scaledWidth / 2, y + scaledHeight / 2);
-
   ctx.restore();
 }
 

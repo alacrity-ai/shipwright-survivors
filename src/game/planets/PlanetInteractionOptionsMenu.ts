@@ -62,6 +62,7 @@ export class PlanetInteractionOptionsMenu {
   private readonly contractsBtn : UIButton;
   private readonly jumpBtn      : UIButton;
   private readonly closeBtn     : UIButton;
+  private hoverPulseTimer: number = 0;
 
   // ──────────────────────────────────────────
   // Event binding
@@ -150,28 +151,55 @@ export class PlanetInteractionOptionsMenu {
   update(dt: number): void {
     if (!this.open) return;
 
-    const mouse    = this.input.getMousePosition();
-    const clicked  = this.input.wasMouseClicked();
+    // Accumulate time for hover pulse animation
+    this.hoverPulseTimer += dt;
+
+    const mouse   = this.input.getMousePosition();
+    const clicked = this.input.wasMouseClicked();
     const { x: mx, y: my } = mouse ?? { x: -1, y: -1 };
 
     this.nav.update();
 
+    // Button interaction + hover animation
     [this.tradePostBtn, this.contractsBtn, this.jumpBtn, this.closeBtn].forEach(btn => {
-      if (btn.disabled) return;                               // ← NEW: ignore disabled
+      if (btn.disabled) return;
+
       const r = { x: btn.x, y: btn.y, width: btn.width, height: btn.height };
       btn.isHovered = isMouseOverRect(mx, my, r, 1.0);
+
+      // ────────────────────────────────────────────────
+      // Apply animated hover background alpha
+      if (btn.isHovered) {
+        const pulseAlpha = 0.12 + 0.12 * Math.sin(this.hoverPulseTimer * 6); // ~1Hz pulse
+        styleOf(btn).backgroundAlpha = pulseAlpha;
+      } else {
+        styleOf(btn).backgroundAlpha = undefined; // Revert to default
+      }
+
+      // ────────────────────────────────────────────────
+      // Handle hover transitions and timer reset
       if (btn.isHovered && btn !== this.lastHoveredBtn) {
         audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 4 });
         this.lastHoveredBtn = btn;
+        this.hoverPulseTimer = 0; // 🔁 Reset pulse phase on new hover target
       }
-      if (clicked && btn.isHovered) btn.onClick();
+
+      // ────────────────────────────────────────────────
+      // Handle clicks
+      if (clicked && btn.isHovered) {
+        btn.onClick();
+      }
     });
 
-    if (!this.tradePostBtn.isHovered && !this.contractsBtn.isHovered &&
-        !this.jumpBtn.isHovered      && !this.closeBtn.isHovered) {
+    // Reset lastHoveredBtn if none are hovered
+    if (!this.tradePostBtn.isHovered &&
+        !this.contractsBtn.isHovered &&
+        !this.jumpBtn.isHovered &&
+        !this.closeBtn.isHovered) {
       this.lastHoveredBtn = null;
     }
 
+    // Cancel via input
     if (this.input.wasActionJustPressed('cancel') || this.input.wasKeyJustPressed('Escape')) {
       this.closeMenu();
     }
@@ -301,14 +329,5 @@ export class PlanetInteractionOptionsMenu {
     maybePush(this.closeBtn     , row);
 
     this.nav.setNavMap(nodes);
-  }
-
-  private navNodeAt(btn: UIButton, row: number) {
-    return {
-      gridX: 0, gridY: row,
-      screenX: btn.x + btn.width / 2,
-      screenY: btn.y + btn.height / 2,
-      isEnabled: true,
-    };
   }
 }

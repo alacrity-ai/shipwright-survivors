@@ -1,6 +1,6 @@
 // src/game/powerups/ui/PowerupSelectionMenu.ts
 
-import { DEFAULT_CONFIG } from '@/config/ui';
+import { DEFAULT_CONFIG, VEIL_CONFIG } from '@/config/ui';
 
 import { getUniformScaleFactor } from '@/config/view';
 import { CanvasManager } from '@/core/CanvasManager';
@@ -21,8 +21,10 @@ import { flags } from '@/game/player/PlayerFlagManager';
 import { resolveImmediatePowerups } from '@/game/powerups/utils/resolveImmediatePowerups';
 
 import { GlobalMenuReporter } from '@/core/GlobalMenuReporter';
+import { GlobalEventBus } from '@/core/EventBus';
 import { cancelBlockQueueInteraction } from '@/core/interfaces/events/BlockQueueReporter';
 
+import type { PowerupChannel } from '@/game/powerups/types/PowerupChannel';
 import type { PowerupNodeDefinition } from '@/game/powerups/registry/PowerupNodeDefinition';
 import type { InputManager } from '@/core/InputManager';
 import type { Menu } from '@/ui/interfaces/Menu';
@@ -44,6 +46,9 @@ export class PowerupSelectionMenu implements Menu {
 
   private levelUpsRemaining: number = 0;
 
+  // Acquisition channel
+  private currentChannel: PowerupChannel = 'experience';
+
   // State machine properties
   private state: MenuState = 'slidingIn';
   private transitionTimer: number = 0;
@@ -64,6 +69,13 @@ export class PowerupSelectionMenu implements Menu {
   private CORRECTION_SPEED = 1000;
   private SELECTION_ANIMATION_DURATION = 0.5;
 
+  // Animation timers
+  private labelColors: string[];
+  private labelColorIndex: number = 0;
+  private labelColorTimer: number = 0;
+  private readonly LABEL_COLOR_INTERVAL = 0.1; // seconds per color step
+  private hoverPulseTimer: number = 0;
+
   // Gamepad support
   private navManager: GamepadMenuInteractionManager;
   // private gamepadInputLatched = false; // No longer needed
@@ -75,14 +87,33 @@ export class PowerupSelectionMenu implements Menu {
   ) {
     this.canvasManager = CanvasManager.getInstance();
     this.navManager = new GamepadMenuInteractionManager(inputManager);
+
+    this.labelColors = [
+      '#ff4747ff', // red
+      '#ff7f00', // orange
+      '#ffff00', // yellow
+      '#00ff00', // green
+      '#00aeff', // blue
+      '#af3fffff', // indigo
+    ];
+
+    GlobalEventBus.on('powerup:menu:open', this.handleOpenMenu);
   }
 
-  openMenu(levelUps: number = 1): void {
+  private handleOpenMenu = ({ levelUps, channel }: { levelUps: number; channel: PowerupChannel }) => {
+    this.openMenu(levelUps, channel);
+  };
+
+  openMenu(
+    levelUps: number = 1,
+    channel: PowerupChannel = 'experience' // NEW param
+  ): void {
     flags.set('mission.intro-briefing.powerupMenuOpened');
     GlobalMenuReporter.getInstance().setMenuOpen('powerupSelectionMenu');
     cancelBlockQueueInteraction();
 
     this.levelUpsRemaining = levelUps;
+    this.currentChannel = channel; // NEW assignment
 
     const scale = getUniformScaleFactor();
     const viewportWidth = this.canvasManager.getCanvas('overlay').width;
@@ -93,7 +124,7 @@ export class PowerupSelectionMenu implements Menu {
     this.windowY = BASE_WINDOW_Y * scale;
     this.rowHeight = BASE_ROW_HEIGHT * scale;
 
-    this.generateRandomSelection();
+    this.generateRandomSelection(); // will use currentChannel
     this.hoveredIndex = -1;
     this.selectedIndex = -1;
     this.open = true;
@@ -149,7 +180,17 @@ export class PowerupSelectionMenu implements Menu {
   update(dt: number): void {
     if (!this.open) return;
 
-    const scale = getUniformScaleFactor();
+    // Update label color timer
+    this.labelColorTimer += dt;
+    if (this.labelColorTimer >= this.LABEL_COLOR_INTERVAL) {
+      this.labelColorTimer -= this.LABEL_COLOR_INTERVAL;
+      this.labelColorIndex++;
+      if (this.labelColorIndex >= this.labelColors.length) {
+        this.labelColorIndex = 0;
+      }
+    }
+
+    this.hoverPulseTimer += dt;
 
     switch (this.state) {
       case 'initializing':
@@ -199,6 +240,7 @@ export class PowerupSelectionMenu implements Menu {
           if (isMouseOverRect(x, y, rect, 1.0)) {
             if (previousHovered !== i) {
               audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
+              this.hoverPulseTimer = 0; // Reset pulse phase
             }
 
             this.hoveredIndex = i;
@@ -216,7 +258,6 @@ export class PowerupSelectionMenu implements Menu {
             break;
           }
         }
-
         break;
       }
 
@@ -284,6 +325,8 @@ export class PowerupSelectionMenu implements Menu {
       windowAlpha = 0.9 + selectionGlow * 0.1;
     }
 
+    const config = this.getActiveConfig();
+
     drawWindow({
       ctx,
       x: this.animatedX,
@@ -291,7 +334,7 @@ export class PowerupSelectionMenu implements Menu {
       width: this.windowWidth,
       height: this.windowHeight,
       options: {
-        ...DEFAULT_CONFIG.window.options,
+        ...config.window.options,
         alpha: windowAlpha,
       }
     });
@@ -302,6 +345,7 @@ export class PowerupSelectionMenu implements Menu {
       this.windowY + (12 * scale),
       'Choose Upgrade!',
       {
+        color: this.getCurrentLabelColor(),
         font: `${18 * scale}px monospace`,
         align: 'center',
         glow: true
@@ -347,7 +391,8 @@ export class PowerupSelectionMenu implements Menu {
 
       // Hover background or selection highlight
       if (i === this.hoveredIndex && this.state === 'open') {
-        ctx.fillStyle = DEFAULT_CONFIG.general.backgroundColor;
+        const pulseAlpha = 0.15 + 0.15 * Math.sin(this.hoverPulseTimer * 6); // Pulses ~1Hz
+        ctx.fillStyle = `rgba(255, 255, 255, ${pulseAlpha.toFixed(3)})`;
         ctx.fillRect(rectX + offsetX, rectY + offsetY, scaledWidth, scaledHeight);
       } else if (isSelected) {
         // Selection made glow effect
@@ -403,11 +448,15 @@ export class PowerupSelectionMenu implements Menu {
     const manager = PlayerPowerupManager.getInstance();
     const acquired = manager.getAcquiredSet();
 
-    // Compute all eligible nodes using finalized branching logic
     const playerLevel = PlayerExperienceManager.getInstance().getLevel();
-    const candidates = PowerupRegistry.getEligiblePowerupNodes(acquired, playerLevel);
 
-    // Randomize and choose up to 3
+    // Pass the stored channel through to the registry
+    const candidates = PowerupRegistry.getEligiblePowerupNodes(
+      acquired,
+      playerLevel,
+      this.currentChannel
+    );
+
     const shuffled = [...candidates];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -415,5 +464,17 @@ export class PowerupSelectionMenu implements Menu {
     }
 
     this.selectedNodes = shuffled.slice(0, 3);
+  }
+
+  private getActiveConfig() {
+    return this.currentChannel === 'veil' ? VEIL_CONFIG : DEFAULT_CONFIG;
+  }
+
+  private getCurrentLabelColor(): string {
+    return this.labelColors[this.labelColorIndex];
+  }
+
+  public destroy(): void {
+    GlobalEventBus.off('powerup:menu:open', this.handleOpenMenu);
   }
 }

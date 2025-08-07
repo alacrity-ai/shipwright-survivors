@@ -7,27 +7,21 @@ import { blockAffinityTree } from '@/game/powerups/registry/trees/blockAffinityT
 import { PlayerResources }  from '@/game/player/PlayerResources';
 import { PlayerShipCollection } from '@/game/player/PlayerShipCollection';
 import { ShipRegistry }     from '@/game/ship/ShipRegistry';
-import { getBlockType, getRandomBlockInTier, getNextTierBlock } from '@/game/blocks/BlockRegistry';
+import { getBlockType, getRandomBlockInTier, getEngineBlockInTier, getWeaponBlockInTier } from '@/game/blocks/BlockRegistry';
 import { upgradeAffinityBlocksOnShip } from '@/game/blocks/helpers/upgradeUtils';
 
-import type {
-  GrantRandomBlocksEffect,
-} from '@/game/powerups/types/PowerupMetadataTypes';
 
 export function resolveImmediatePowerups(powerupId: string): void {
   const node = PowerupRegistry.get(powerupId);
   if (!node) return;
 
   /* ──────────────────────────────────────────────────────────── *
-   *  A.  Resupply branch  (instant enqueue of random blocks)     *
+   *   Handle grant-type block reward nodes (resupply, engine-resupply, weapon-resupply, etc.) *
    * ──────────────────────────────────────────────────────────── */
-  if (node.category === 'resupply' && node.metadata?.grantRandomBlocks) {
-    // grantRandomBlocks may be a single bundle or an array thereof.
-    const bundles = Array.isArray(
-      node.metadata.grantRandomBlocks,
-    )
-      ? (node.metadata.grantRandomBlocks as GrantRandomBlocksEffect[])
-      : [node.metadata.grantRandomBlocks as GrantRandomBlocksEffect];
+  if (node.metadata?.grantRandomBlocks) {
+    const bundles = Array.isArray(node.metadata.grantRandomBlocks)
+      ? node.metadata.grantRandomBlocks
+      : [node.metadata.grantRandomBlocks];
 
     bundles.forEach(({ tier, count }) => {
       for (let i = 0; i < count; i++) {
@@ -35,7 +29,38 @@ export function resolveImmediatePowerups(powerupId: string): void {
         PlayerResources.getInstance().enqueueBlock(randomBlock);
       }
     });
-    return; // Done – no fall-through into affinity logic.
+
+    return;
+  }
+
+  if (node.metadata?.grantEngineBlocks) {
+    const bundles = Array.isArray(node.metadata.grantEngineBlocks)
+      ? node.metadata.grantEngineBlocks
+      : [node.metadata.grantEngineBlocks];
+
+    bundles.forEach(({ tier, count }) => {
+      for (let i = 0; i < count; i++) {
+        const randomBlock = getEngineBlockInTier(tier);
+        PlayerResources.getInstance().enqueueBlock(randomBlock);
+      }
+    });
+
+    return;
+  }
+
+  if (node.metadata?.grantWeaponBlocks) {
+    const bundles = Array.isArray(node.metadata.grantWeaponBlocks)
+      ? node.metadata.grantWeaponBlocks
+      : [node.metadata.grantWeaponBlocks];
+
+    bundles.forEach(({ tier, count }) => {
+      for (let i = 0; i < count; i++) {
+        const randomBlock = getWeaponBlockInTier(tier);
+        PlayerResources.getInstance().enqueueBlock(randomBlock);
+      }
+    });
+
+    return;
   }
 
   /* ──────────────────────────────────────────────────────────── *

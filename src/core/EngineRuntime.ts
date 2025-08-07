@@ -155,6 +155,7 @@ import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache';
 import { reportDialogueLine, clearDialogueEvents } from './interfaces/events/DialogueReporter';
 import { emitDefaultShockwave } from './interfaces/events/SpecialFxReporter';
+import { openPowerupMenu } from './interfaces/events/MenuOpenReporter';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -916,11 +917,11 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit3')) {
-      emitDefaultShockwave(this.ship!.getTransform().position.x, this.ship!.getTransform().position.y);
+      openPowerupMenu(1, 'experience');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
-      // Empty
+      openPowerupMenu(1, 'veil');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit5')) {
@@ -1282,6 +1283,7 @@ export class EngineRuntime {
     this.combatService.destroy();
     this.planetSystem?.clear();
     this.transientWordDisplay.destroy();
+    this.powerupSelectionMenu.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

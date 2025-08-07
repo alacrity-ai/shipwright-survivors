@@ -4,9 +4,9 @@ import type { PowerupNodeDefinition } from '../PowerupNodeDefinition';
 
 export const fallbackCoreTree: PowerupNodeDefinition[] = [
   {
-    id: 'core-reward+1',
+    id: 'core-reward+5',
     label: 'Core Reward',
-    description: 'Grants you 1 Core. Can be selected multiple times.',
+    description: 'Grants you 5 Cores. Can be selected multiple times.',
     icon: 'icon-core-reward',
     category: 'core',
     parentId: null,

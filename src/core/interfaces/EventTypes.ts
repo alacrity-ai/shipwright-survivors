@@ -19,6 +19,7 @@ import type { QuestStepId } from '@/game/quests/interfaces/QuestStep';
 import type { BossArenaOptions } from '@/rendering/unified/controllers/BossArenaRenderingController';
 import type { Ship } from '@/game/ship/Ship';
 import type { HorizontalAlignment } from '@/ui/overlays/TransientWordDisplay';
+import type { PowerupChannel } from '@/game/powerups/types/PowerupChannel';
 
 export type CursorChangeType =
   | 'crosshair'
@@ -70,6 +71,9 @@ export interface EventTypes {
   // Menu events
   'menu:opened': { id: string };
   'menu:closed': { id: string };
+
+  // Powerup menu
+  'powerup:menu:open': { levelUps: number; channel: PowerupChannel };
 
   // Hud/Minimap/Waves overlays
   'waves:show': undefined;

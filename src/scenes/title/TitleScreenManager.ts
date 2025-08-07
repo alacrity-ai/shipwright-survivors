@@ -381,7 +381,7 @@ export class TitleScreenManager {
             this.createConfirmationButtons();
           },
           style: DEFAULT_CONFIG.button.style,
-          slotIndex: slot // 👇 Needed so delete button animates with its row
+          slotIndex: slot // Needed so delete button animates with its row
         } as UIButton & { slotIndex: number });
       }
     }

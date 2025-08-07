@@ -30,7 +30,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-1',
     metadata: { grantRandomBlocks: { tier: 2, count: 3 } },
-    minLevelRequirement: 5,
+    minLevelRequirement: 4,
   },
 
   /* ─────────────── Tier 3 ─────────────── */
@@ -42,7 +42,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-2',
     metadata: { grantRandomBlocks: { tier: 3, count: 3 } },
-    minLevelRequirement: 10,
+    minLevelRequirement: 8,
   },
 
   /* ─────────────── Tier 4 ─────────────── */
@@ -54,7 +54,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-3',
     metadata: { grantRandomBlocks: { tier: 4, count: 3 } },
-    minLevelRequirement: 15,
+    minLevelRequirement: 12,
   },
 
   /* ─────────────── Tier 5 sequence ─────────────── */
@@ -66,7 +66,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-4',
     metadata: { grantRandomBlocks: { tier: 5, count: 1 } },
-    minLevelRequirement: 18,
+    minLevelRequirement: 16,
   },
   {
     id: 'resupply-6',
@@ -76,7 +76,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-5',
     metadata: { grantRandomBlocks: { tier: 5, count: 1 } },
-    minLevelRequirement: 20,
+    minLevelRequirement: 17,
   },
   {
     id: 'resupply-7',
@@ -86,7 +86,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-6',
     metadata: { grantRandomBlocks: { tier: 5, count: 1 } },
-    minLevelRequirement: 22,
+    minLevelRequirement: 18,
   },
   {
     id: 'resupply-8',
@@ -96,7 +96,7 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     category: 'resupply',
     parentId: 'resupply-7',
     metadata: { grantRandomBlocks: { tier: 5, count: 1 } },
-    minLevelRequirement: 24,
+    minLevelRequirement: 19,
   },
 
   /* ─────────────── Capstone ─────────────── */
@@ -109,6 +109,6 @@ export const resupplyTree: PowerupNodeDefinition[] = [
     parentId: 'resupply-8',
     capstoneAtLevel: 5,
     metadata: { grantRandomBlocks: { tier: 5, count: 2 } },
-    minLevelRequirement: 26,
+    minLevelRequirement: 20,
   },
 ];

@@ -5,7 +5,9 @@ import type { CloudRegion } from '@/game/veil/interfaces/CloudRegion';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 
 // import { reportTitle } from '@/core/interfaces/events/TitleReporter';
+import { openPowerupMenu } from '@/core/interfaces/events/MenuOpenReporter';
 import { applyWarmCinematicEffect, applyBossCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
+import { emitHugeShockwave } from '@/core/interfaces/events/SpecialFxReporter';
 import { shakeCamera } from '@/core/interfaces/events/CameraReporter';
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { audioManager } from '@/audio/Audio';
@@ -17,6 +19,8 @@ import { ShipFactory } from '@/game/ship/factories/ShipFactory';
 import { VeilBossFactory } from '@/game/veil/factories/VeilBossFactory';
 import { VeilBossController } from '@/game/veil/VeilBossController';
 
+const POWERUP_DELAY_SECONDS = 1.5;
+
 export class VeilManager {
   private readonly cloudManager: CloudManager;
   private readonly shipMutator: VeilShipMutator;
@@ -24,8 +28,13 @@ export class VeilManager {
 
   private bossKillCount: number = 0;
 
+  private delayedPowerupMenuTime: number = 0;
+  private pendingPowerupMenu: boolean = false;
+
   private readonly regions: CloudRegion[];
   private readonly processedRegions = new Set<string>(); // Tracks regions where boss decision is already made
+
+  private bossPostFightHandled: boolean = false;
 
   constructor(
     private readonly playerShip: Ship,
@@ -56,28 +65,63 @@ export class VeilManager {
   public update(dt: number): void {
     this.cloudManager.update(dt);
     this.shipMutator.update(dt);
+    this.bossController.update(dt);
 
     this.checkBossSpawnConditions();
 
-    // If a boss is alive and gets destroyed this frame, clear the region and mark processed
+    // ─── Retreat Handling ────────────────────────────────
     if (
+      this.bossController.isBossAlive() &&
+      !this.cloudManager.isShipInCloud()
+    ) {
+      const regionId = this.bossController.getBossRegionId();
+      if (regionId) {
+        this.bossController.clearBoss();
+        applyWarmCinematicEffect();
+        this.cloudManager.removeRegionById(regionId);
+        this.processedRegions.add(regionId);
+
+        // Block reward logic for this boss instance
+        this.bossPostFightHandled = false;
+        return;
+      }
+    }
+
+    // ─── Powerup Menu Delay ──────────────────────────────
+    if (this.pendingPowerupMenu) {
+      this.delayedPowerupMenuTime -= dt;
+      if (this.delayedPowerupMenuTime <= 0) {
+        this.pendingPowerupMenu = false;
+        openPowerupMenu(1, 'veil');
+      }
+    }
+
+    // ─── Boss Defeat Effects ─────────────────────────────
+    if (
+      !this.bossPostFightHandled &&
+      this.cloudManager.isShipInCloud() &&
       !this.bossController.isBossAlive() &&
       this.bossController.isBossDestroyed()
     ) {
-      // Restore shader
+      this.bossPostFightHandled = true;
+
       applyWarmCinematicEffect();
 
-      // Increment boss kill count
       this.bossKillCount++;
 
-      // // Play Title
+      this.delayedPowerupMenuTime = POWERUP_DELAY_SECONDS;
+      this.pendingPowerupMenu = true;
+
+      const playerPos = this.playerShip.getTransform().position;
+      emitHugeShockwave(playerPos.x, playerPos.y);
+
       // reportTitle('VEIL CLEARED', '', 3.8, 0.55, 'center', '#ff00ffff');
-      
+
       const regionId = this.bossController.getBossRegionId();
       if (regionId) {
         this.cloudManager.removeRegionById(regionId);
         this.bossController.clearBoss();
-        this.processedRegions.add(regionId); // Prevent re-spawn in this region
+        this.processedRegions.add(regionId);
       }
     }
   }
@@ -89,7 +133,7 @@ export class VeilManager {
     if (!currentRegion?.bossOptions) return;
 
     const regionId = currentRegion.id;
-    if (this.processedRegions.has(regionId)) return; // Already processed this region
+    if (this.processedRegions.has(regionId)) return;
 
     const killCount = this.shipMutator.getKillsInRegion(regionId);
     const killThreshold = currentRegion.mutationOptions?.mutatedShipKillLimit ?? 0;
@@ -98,17 +142,15 @@ export class VeilManager {
       const chance = currentRegion.bossOptions.spawnChance ?? 1.0;
       const shouldSpawn = Math.random() <= chance;
 
-      // Mark processed regardless of spawn success
       this.processedRegions.add(regionId);
 
       if (shouldSpawn) {
         const playerPos = this.playerShip.getTransform?.().position;
         if (!playerPos) return;
 
-        // Apply shader effect
-        applyBossCinematicEffect();
+        this.bossPostFightHandled = false; // reset for this boss
 
-        // Screenshake // Light Flash / Sound FX
+        applyBossCinematicEffect();
         shakeCamera(12, 1, 12, 'boss:spawn');
         createLightFlash(playerPos.x, playerPos.y, 2600, 2.0, 0.5, '#ff3211');
         audioManager.play('assets/sounds/sfx/magic/megasub.wav', 'sfx');
@@ -141,23 +183,13 @@ export class VeilManager {
     return this.bossController.getBossShip();
   }
 
-  /**
-   * Returns an array of { regionId, kills } for all current veil regions.
-   * Useful for debugging overlays.
-   */
   public getAllRegionKillCounts(): { regionId: string; kills: number }[] {
-    const result: { regionId: string; kills: number }[] = [];
-    for (let i = 0; i < this.regions.length; i++) {
-      const id = this.regions[i].id;
-      result.push({
-        regionId: id,
-        kills: this.shipMutator.getKillsInRegion(id)
-      });
-    }
-    return result;
+    return this.regions.map(r => ({
+      regionId: r.id,
+      kills: this.shipMutator.getKillsInRegion(r.id)
+    }));
   }
 
-  // Debug: Returns the region the player is currently in, or null if not in any.
   public getRegionPlayerIsIn(): string | null {
     return this.cloudManager.getCurrentRegionId();
   }

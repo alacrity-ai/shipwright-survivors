@@ -30,7 +30,7 @@ export const blockAffinityTree: PowerupNodeDefinition[] = [
     metadata: {
       attachAffinityBlockTier: 2,
     },
-    minLevelRequirement: 5,
+    minLevelRequirement: 4,
   },
 
   /* ─────────────── Tier 3 ─────────────── */
@@ -45,7 +45,7 @@ export const blockAffinityTree: PowerupNodeDefinition[] = [
     metadata: {
       attachAffinityBlockTier: 3,
     },
-    minLevelRequirement: 10,
+    minLevelRequirement: 8,
   },
 
   /* ─────────────── Tier 4 ─────────────── */
@@ -60,7 +60,7 @@ export const blockAffinityTree: PowerupNodeDefinition[] = [
     metadata: {
       attachAffinityBlockTier: 4,
     },
-    minLevelRequirement: 15,
+    minLevelRequirement: 12,
   },
 
   /* ──────────── Capstone ──────────── */
@@ -76,6 +76,6 @@ export const blockAffinityTree: PowerupNodeDefinition[] = [
     metadata: {
       upgradeAffinityBlocksByTier: 1,
     },
-    minLevelRequirement: 20,
+    minLevelRequirement: 16,
   },
 ];

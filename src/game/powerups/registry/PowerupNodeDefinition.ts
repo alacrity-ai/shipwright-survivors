@@ -1,6 +1,7 @@
 // src/game/powerups/registry/PowerupNodeDefinition.ts
 
 import type { PowerupEffectMetadata } from '@/game/powerups/types/PowerupMetadataTypes';
+import type { PowerupChannel } from '@/game/powerups/types/PowerupChannel';
 
 export interface PowerupNodeDefinition {
   /** Unique identifier for the powerup node */
@@ -46,4 +47,9 @@ export interface PowerupNodeDefinition {
    * If set, this node is only available at or beyond the specified level.
    */
   minLevelRequirement?: number; // NEW!
+
+  /**
+   * If set, this node is only available in the specified powerup channel.
+   */
+  channel?: PowerupChannel;
 }

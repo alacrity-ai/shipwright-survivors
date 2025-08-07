@@ -1,13 +1,19 @@
 // src/game/powerups/registry/PowerupRegistry.ts
 
 import type { PowerupNodeDefinition } from './PowerupNodeDefinition';
+import type { PowerupChannel } from '@/game/powerups/types/PowerupChannel';
 
+// Experience Powerups
 import { criticalHitTree } from './trees/criticalHitTree';
 import { fortificationTree } from './trees/fortificationTree';
 import { attackerTree } from './trees/attackerTree';
 import { fallbackCoreTree } from './trees/fallbackCoreTree';
 import { blockAffinityTree } from './trees/blockAffinityTree';
 import { resupplyTree } from './trees/resupplyTree';
+import { weaponResupplyTree } from './trees/veil/weaponResupplyTree';
+
+// Veil Powerups
+import { engineResupplyTree } from './trees/veil/engineResupplyTree';
 
 import { extractProceduralIndex } from '@/game/powerups/utils/PowerupTreeUtils';
 
@@ -18,6 +24,8 @@ const ALL_TREES: PowerupNodeDefinition[][] = [
   fallbackCoreTree,
   blockAffinityTree,
   resupplyTree,
+  engineResupplyTree,
+  weaponResupplyTree,
 ];
 
 const MAX_CHOICES = 3;
@@ -35,6 +43,12 @@ export class PowerupRegistry {
         if (this.nodeMap.has(node.id)) {
           console.warn(`[PowerupRegistry] Duplicate node ID: ${node.id}`);
         }
+
+        // Default channel to 'experience' if undefined
+        if (!node.channel) {
+          node.channel = 'experience';
+        }
+
         this.nodeMap.set(node.id, node);
       }
     }
@@ -187,38 +201,76 @@ export class PowerupRegistry {
    * Compute the pool of nodes that the menu will later shuffle and trim.
    * Non-core nodes are always preferred; core nodes only pad the list
    * when < MAX_CHOICES non-core candidates exist.
+   *
+   * If the result is still empty after filtering, it will always fall back
+   * to the universal coreFallback node to guarantee a non-empty selection.
+   *
+   * @param acquired      The set of powerup IDs the player already owns
+   * @param playerLevel   The player’s current level (for level gating)
+   * @param channel       Optional acquisition source filter ('experience', 'veil', etc.)
    */
   public static getEligiblePowerupNodes(
     acquired: Set<string>,
     playerLevel: number,
+    channel?: PowerupChannel
   ): PowerupNodeDefinition[] {
-    /* ---------- level predicate ---------- */
     const meetsLevel = (n: PowerupNodeDefinition): boolean =>
       (n.minLevelRequirement ?? 0) <= playerLevel;
 
-    /* ---------- gather eligible non-core nodes ---------- */
-    const children   = this.getEligibleChildNodes(acquired).filter(meetsLevel);
+    // Step 1: Get child and fresh root nodes that meet level requirements
+    const children = this.getEligibleChildNodes(acquired).filter(meetsLevel);
     const freshRoots = this.getFreshRootNodes(acquired).filter(meetsLevel);
 
-    let nonCore: PowerupNodeDefinition[] = [
-      ...children,
-      ...freshRoots,
-    ].filter(n => n.category !== 'core');
+    let nonCore: PowerupNodeDefinition[] = [...children, ...freshRoots]
+      .filter(n => n.category !== 'core');
 
+    // Step 2: Fallback to any unacquired roots if no children/fresh roots exist
     if (nonCore.length === 0) {
       nonCore = this.getUnacquiredRootNodes(acquired)
         .filter(meetsLevel)
         .filter(n => n.category !== 'core');
     }
 
-    /* ---------- single-instance core fallback ---------- */
-    const result: PowerupNodeDefinition[] = [...nonCore];
-    const coreFallback = fallbackCoreTree[0];           // immutable singleton
+    // Step 3: Apply channel filtering *after* fallback logic
+    if (channel) {
+      nonCore = nonCore.filter(n => (n.channel ?? 'experience') === channel);
+    }
 
+    const result: PowerupNodeDefinition[] = [...nonCore];
+
+    // Step 4: Define the immutable core fallback node
+    const coreFallback = fallbackCoreTree[0];
+
+    // Step 5: Ensure a non-empty result
     if (result.length < MAX_CHOICES) {
-      // Append the core node exactly once.
-      result.push(coreFallback);
-      // (No further padding, even if the list is now < MAX_CHOICES.)
+      // 5a: If channel is experience (or unset), include core fallback
+      if (!channel || channel === 'experience') {
+        if (!result.includes(coreFallback)) {
+          result.push(coreFallback);
+        }
+      }
+
+      // 5b: If result is still empty, attempt to pad with same-channel unacquired roots
+      if (result.length === 0 && channel) {
+        const fallbackFromSameChannel = this.getUnacquiredRootNodes(acquired)
+          .filter(meetsLevel)
+          .filter(n => (n.channel ?? 'experience') === channel)
+          .filter(n => n.category !== 'core');
+
+        if (fallbackFromSameChannel.length > 0) {
+          result.push(...fallbackFromSameChannel.slice(0, MAX_CHOICES));
+        }
+      }
+
+      // 5c: Final failsafe — absolutely guarantee one node
+      if (result.length === 0) {
+        console.warn(
+          '[PowerupRegistry] No eligible powerups found for channel:',
+          channel,
+          '— falling back to core fallback node.'
+        );
+        result.push(coreFallback);
+      }
     }
 
     return result;

@@ -1929,6 +1929,22 @@ export function getRandomBlockInTier(tier: number): BlockType {
   return randomFromArray(getAllBlocksInTier(tier));
 }
 
+export function getEngineBlockInTier(tier: number): BlockType {
+  return blockTypes[`engine${tier}`];
+}
+
+export function getWeaponBlockInTier(tier: number): BlockType {
+  const weaponBlocks = Object.values(blockTypes).filter(
+    block => getTierFromBlockId(block.id) === tier && block.category === 'weapon'
+  );
+
+  if (weaponBlocks.length === 0) {
+    throw new Error(`No weapon blocks found for tier ${tier}`);
+  }
+
+  return randomFromArray(weaponBlocks);
+}
+
 export function getAllBlocksInTierFromBlockType(blockType: BlockType): BlockType[] {
   const tier = getTierFromBlockId(blockType.id);
   return Object.values(blockTypes).filter(

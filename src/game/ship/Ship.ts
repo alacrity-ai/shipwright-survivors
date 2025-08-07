@@ -230,6 +230,19 @@ export class Ship extends CompositeBlockObject {
     this.affixes = affixes;
   }
 
+  // === Convenience Affix setter
+  public makeInvulnerable(): void {
+    this.affixes.invulnerable = true;
+  }
+
+  public isInvulnerable(): boolean {
+    return this.affixes.invulnerable ?? false;
+  }
+
+  public removeInvulnerability(): void {
+    delete this.affixes.invulnerable;
+  }
+
   // === Veil Effects
 
   public isVeilMutated(): boolean {

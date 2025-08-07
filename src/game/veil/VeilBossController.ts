@@ -4,6 +4,8 @@ import type { Ship } from '@/game/ship/Ship';
 import type { BossOptions } from '@/game/veil/interfaces/BossOptions';
 import type { VeilBossFactory, VeilBossSpawnContext } from '@/game/veil/factories/VeilBossFactory';
 
+import { destroyEntityExternally } from '@/core/interfaces/events/EntityReporter';
+import { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 import { bulkUpgradeBlockIndicesOnShip } from '@/game/blocks/helpers/upgradeUtils';
 
 /**
@@ -40,18 +42,34 @@ export class VeilBossController {
     // Set Auralight to big bigger
     ship.updateAuraLight('#ff0000', 1000, 1.8);
 
+    // Set ship invulnerable
+    ship.makeInvulnerable();
+
+    // Buff block durability based on blockTierUpgrade
+    const durabilityMultiplier = 1 + 0.3 * blockTierUpgrade;
+    const thrustPowerMultiplier = 1 + 0.3 * blockTierUpgrade;
+    ship.setAffixes({ blockDurabilityMulti: durabilityMultiplier, thrustPowerMulti: thrustPowerMultiplier });
+
     // Upgrade ship blocks
     if (blockTierUpgrade > 0) {
       bulkUpgradeBlockIndicesOnShip(ship, ship.getAllBlockIndices(), blockTierUpgrade);
     }
 
     // Listen for destruction
-    ship.onDestroyedCallback(() => {
-      this.bossDestroyed = true;
-      this.bossShip = null;
+    ship.onDestroyedCallback((ship, cause) => {
+      if (cause !== 'replaced') {
+        this.bossDestroyed = true;
+      }
     });
 
     return ship;
+  }
+
+  public update(dt: number): void {
+    // If boss exists and is invulnerable, check if construction is done
+    if (this.bossShip && this.bossShip.isConstructed()) {
+      this.bossShip.removeInvulnerability();
+    }
   }
 
   /**
@@ -87,6 +105,10 @@ export class VeilBossController {
    * Does not force-destroy the ship; intended for cleanup after despawn or death.
    */
   public clearBoss(): void {
+    if (this.bossShip) {
+      destroyEntityExternally(this.bossShip, 'replaced');
+    }
+
     this.bossShip = null;
     this.bossDestroyed = false;
     this.currentRegionId = null;

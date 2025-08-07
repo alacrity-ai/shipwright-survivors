@@ -240,6 +240,47 @@ export function getResupplyCapstoneIconSprite(): HTMLCanvasElement {
   return resupplyCapIcon;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Weapon resupply crates — red hue variants
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Tier 1 – Basic weapon crate
+ * Crimson glow with X-straps
+ */
+const weaponResupplyCrateIcon = createCanvas(24, 24);
+drawCrate(weaponResupplyCrateIcon.getContext('2d')!, '#d83100');
+export function getWeaponResupplyCrateIconSprite(): HTMLCanvasElement {
+  return weaponResupplyCrateIcon;
+}
+
+/**
+ * Tier 5 – Elite weapon cache
+ * Bright orange-red glow, same structure
+ */
+const weaponResupplyEliteIcon = createCanvas(24, 24);
+drawCrate(weaponResupplyEliteIcon.getContext('2d')!, '#ff3f0f');
+export function getWeaponResupplyEliteIconSprite(): HTMLCanvasElement {
+  return weaponResupplyEliteIcon;
+}
+
+/**
+ * Capstone – Weapon apex cache
+ * Pale red glow with extra inner highlight
+ */
+const weaponResupplyCapIcon = createCanvas(24, 24);
+{
+  const ctx = weaponResupplyCapIcon.getContext('2d')!;
+  drawCrate(ctx, '#ff6565'); // Pale red
+  ctx.strokeStyle = '#ffe1e1'; // Soft highlight
+  ctx.lineWidth = 1;
+  ctx.strokeRect(6, 6, 12, 12);
+}
+export function getWeaponResupplyCapstoneIconSprite(): HTMLCanvasElement {
+  return weaponResupplyCapIcon;
+}
+
+
 // === Icon Registry Map ===
 const iconMap: Record<string, () => HTMLCanvasElement> = {
   'icon-attackers-arsenal': getAttackIconSprite,
@@ -262,6 +303,10 @@ const iconMap: Record<string, () => HTMLCanvasElement> = {
   'icon-resupply-crate':    getResupplyCrateIconSprite,
   'icon-resupply-elite':    getResupplyEliteIconSprite,
   'icon-resupply-capstone': getResupplyCapstoneIconSprite,
+
+  'icon-weapon-crate':    getWeaponResupplyCrateIconSprite,
+  'icon-weapon-elite':    getWeaponResupplyEliteIconSprite,
+  'icon-weapon-capstone': getWeaponResupplyCapstoneIconSprite,
 
   'icon-core-reward': getFallbackCoreIconSprite,
 };
