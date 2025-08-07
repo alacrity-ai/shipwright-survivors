@@ -45,6 +45,7 @@ export function drawButton(
   button: UIButton,
   uiScale: number = 1.0,
   fontSize: number = 13,
+  borderRadiusForcedScaling: number = 1,
 ): void {
   const {
     x, y, width, height, label, isHovered, style = {}, disabled = false
@@ -115,7 +116,7 @@ export function drawButton(
   }
 
   // === Draw Background with optional backgroundAlpha ===
-  const scaledRadius = borderRadius * uiScale;
+  const scaledRadius = borderRadius * uiScale * borderRadiusForcedScaling;
 
   ctx.save();
   ctx.globalAlpha = backgroundAlpha ?? effectiveAlpha;

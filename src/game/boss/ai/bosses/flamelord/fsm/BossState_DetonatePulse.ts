@@ -45,17 +45,17 @@ export class BossState_DetonatePulse implements BossState {
     // Phase-driven tuning for explosion telegraph and duration
     switch (phase) {
       case 'phase4':
-        this.telegraphDuration = 3.0;
+        this.telegraphDuration = 4.0;
         this.explosionDuration = 1.3;
         break;
       case 'phase3':
-        this.telegraphDuration = 3.5;
+        this.telegraphDuration = 4.5;
         this.explosionDuration = 1.2;
         break;
       case 'phase1':
       case 'phase2':
       default:
-        this.telegraphDuration = 4.0;
+        this.telegraphDuration = 5.0;
         this.explosionDuration = 1.0;
         break;
     }

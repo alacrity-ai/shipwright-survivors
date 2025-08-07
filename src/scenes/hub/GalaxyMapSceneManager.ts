@@ -82,7 +82,7 @@ export class GalaxyMapSceneManager {
         onClick: () => {
           audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
           this.stop();
-          sceneManager.fadeToScene('hub');
+          sceneManager.fadeToScene('title', { instantlyGoToSelectionMenu: true, postProcessEffect: 'cool' });
         },
         style: crtStyle
       }

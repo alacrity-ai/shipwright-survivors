@@ -46,7 +46,7 @@ export interface LightningBoltSpawnEvent {
   }>;
 }
 
-type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
+export type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
 
 export interface EventTypes {
   // Runtime control
@@ -71,6 +71,12 @@ export interface EventTypes {
   // Menu events
   'menu:opened': { id: string };
   'menu:closed': { id: string };
+
+  // Game Selection Menu
+  'game:selection:menu:launchMission': undefined;
+  'game:selection:menu:collection': undefined;
+  'game:selection:menu:passiveSkills': undefined;
+  'game:selection:menu:quit': undefined;
 
   // Powerup menu
   'powerup:menu:open': { levelUps: number; channel: PowerupChannel };

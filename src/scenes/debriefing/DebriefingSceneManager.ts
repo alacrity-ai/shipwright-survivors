@@ -157,7 +157,7 @@ export class DebriefingSceneManager {
           destroyGL2BlockSpriteCache(this.canvasManager.getWebGL2Context('unifiedgl2'));
           CanvasManager.getInstance().clearWebGL2Layer('unifiedgl2');
           this.stop();
-          sceneManager.fadeToScene('hub');
+          sceneManager.fadeToScene('title', { instantlyGoToSelectionMenu: true, postProcessEffect: 'cool' });
         },
         style: crtStyle
       }

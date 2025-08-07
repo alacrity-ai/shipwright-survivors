@@ -45,19 +45,19 @@ export class BossState_RightFlankFlames implements BossState {
       case 'phase4':
         this.telegraphDuration = 2.5;
         this.flameDuration = 6.5;
-        this.trackingSpeed = 0.004;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase3':
         this.telegraphDuration = 3.5;
         this.flameDuration = 6.0;
-        this.trackingSpeed = 0.003;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase1':
       case 'phase2':
       default:
         this.telegraphDuration = 4.5;
         this.flameDuration = 5.0;
-        this.trackingSpeed = 0.002;
+        this.trackingSpeed = 0.001;
         break;
     }
 

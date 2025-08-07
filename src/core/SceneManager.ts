@@ -38,6 +38,8 @@ type SceneListener = (scene: Scene) => void;
 
 export interface SceneOptions {
   mission?: MissionDefinition;
+  instantlyGoToSelectionMenu?: boolean;
+  postProcessEffect?: 'cool' | 'warm';
 }
 
 /**
@@ -132,7 +134,10 @@ class SceneManager {
           this.gameLoop,
           this.ensureInputManager()
         );
-        mgr.start();
+        mgr.start(options?.postProcessEffect ?? 'warm');
+        if (options?.instantlyGoToSelectionMenu) {
+          mgr.instantlyGoToSelectionMenu();
+        }
         this.activeSceneManager = mgr;
         break;
       }
@@ -215,6 +220,10 @@ class SceneManager {
 
   public getScene(): Scene {
     return this.currentScene ?? 'title';
+  }
+
+  public getSceneInstance(): any | null {
+    return this.activeSceneManager;
   }
 
   public onSceneChange(callback: SceneListener): () => void {

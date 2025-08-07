@@ -46,7 +46,7 @@ import type { DamageTextSOA } from '@/systems/damagetext/interfaces/DamageTextSO
 import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
 import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
 
-import { createViewProjectionMatrixFromCamera } from '../gl/matrixUtils';
+import { PostProcessEffectInterpolator } from '@/rendering/unified/utils/PostProcessEffectInterpolator';
 
 type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
 
@@ -68,6 +68,8 @@ export class UnifiedSceneRendererGL {
   private readonly backgroundPostProcessPass: PostProcessPass;
   private readonly damageTextPass: DamageTextPass;
   private readonly collisionBoxPass: CollisionBoxPass;
+
+  private readonly effectInterpolator = new PostProcessEffectInterpolator();
 
   private sceneFramebufferFX: WebGLFramebuffer;
   private sceneTextureFX: WebGLTexture;
@@ -438,9 +440,13 @@ export class UnifiedSceneRendererGL {
 
     // === Step 13: Apply screen-space post-process effects to default framebuffer ===
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    const effectChain = Array.from(this.postProcessEffects.entries()).map(
-      ([effect, params]) => ({ effect, params })
-    );
+    this.effectInterpolator.update();
+    const source = this.effectInterpolator.isActive() 
+      ? this.effectInterpolator.getLerpedEffects()
+      : this.postProcessEffects;
+
+    const effectChain = Array.from(source.entries()).map(([effect, params]) => ({ effect, params }));
+
     this.postProcessPass.run(this.sceneTexture, effectChain);
 
     // === Step 14: Composite additive lighting effects (e.g. halos) over final image ===
@@ -510,11 +516,18 @@ export class UnifiedSceneRendererGL {
   }
 
   // === Main Postprocessing API ===
-  public setPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[]): void {
-    this.postProcessEffects.clear();
+  public setPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[], duration = 1.5): void {
+    const next = new Map<PostEffectName, EffectParams>();
     for (const { effect, params } of effects) {
-      this.postProcessEffects.set(effect, params);
+      next.set(effect, params);
     }
+
+    this.effectInterpolator.startTransition(this.postProcessEffects, next, duration, () => {
+      this.postProcessEffects.clear();
+      for (const [k, v] of next.entries()) {
+        this.postProcessEffects.set(k, v);
+      }
+    });
   }
 
   public addPostProcessEffect(effect: PostEffectName, params?: EffectParams): void {

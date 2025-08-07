@@ -43,21 +43,21 @@ export class BossState_FrontalBarrage implements BossState {
     // Phase-specific parameterization
     switch (phase) {
       case 'phase4':
-        this.telegraphDuration = 3.0;
+        this.telegraphDuration = 4.0;
         this.flameDuration = 9;
-        this.trackingSpeed = 0.004;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase3':
-        this.telegraphDuration = 3.5;
+        this.telegraphDuration = 4.5;
         this.flameDuration = 8;
-        this.trackingSpeed = 0.003;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase1':
       case 'phase2':
       default:
-        this.telegraphDuration = 4.5;
+        this.telegraphDuration = 5.0;
         this.flameDuration = 7;
-        this.trackingSpeed = 0.002;
+        this.trackingSpeed = 0.001;
         break;
     }
 

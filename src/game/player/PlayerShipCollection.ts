@@ -154,7 +154,7 @@ export class PlayerShipCollection {
   // === Mastery Getters ===
 
   public getShipMasteryLevel(shipName: string): number {
-    return this.shipMasteryMap.get(shipName)?.masteryLevel ?? 1;
+    return this.shipMasteryMap.get(shipName)?.masteryLevel ?? 0;
   }
 
   public getShipExperience(shipName: string): number {
@@ -281,9 +281,13 @@ export class PlayerShipCollection {
     });
   }
 
-  reset(): void {
+  public reset(): void {
+    this.activeShip = null;
     this.discoveredShipNames.clear();
     this.unlockedShipNames.clear();
+
+    this.shipMasteryMap.clear();
+
     this.selectedColor = ShipColorPreset.White;
     this.clearCachedModifiers();
   }

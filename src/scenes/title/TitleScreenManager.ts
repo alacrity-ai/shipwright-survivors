@@ -18,9 +18,13 @@ import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawWindow } from '@/ui/primitives/WindowBox';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
 import { missionLoader } from '@/game/missions/MissionLoader';
+import { ensureInitialUnlocks } from '@/game/player/helpers/ensureInitialUnlocks';
+import { resetPlayerData } from '@/game/player/helpers/playerResetService';
 
 import type { NavPoint } from '@/core/input/interfaces/NavMap';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
+
+import { applyCoolCinematicEffect, applyWarmCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
 import { WordRenderer } from '@/ui/primitives/controllers/WordRenderer';
 import { clearLetterCache } from '@/rendering/cache/Letters';
@@ -28,7 +32,10 @@ import { clearLetterCache } from '@/rendering/cache/Letters';
 import { isElectron } from '@/shared/isElectron';
 import { TitleScreenRuntime } from '@/core/TitleScreenRuntime';
 
+import { SelectionMenu } from '@/scenes/title/SelectionMenu';
 import { SettingsMenu } from '@/ui/menus/SettingsMenu';
+
+import { GlobalEventBus } from '@/core/EventBus';
 
 function hasSaveData(slot: number): boolean {
   return !!localStorage.getItem(`save${slot}`);
@@ -54,6 +61,7 @@ export class TitleScreenManager {
   private gamepadNavManager: GamepadMenuInteractionManager;
 
   private settingsMenu: SettingsMenu | null = null;
+  private selectionMenu: SelectionMenu | null = null;
 
   private scale = getUniformScaleFactor();
 
@@ -67,6 +75,7 @@ export class TitleScreenManager {
   private saveSlotYOffsets: number[] = [0, 0, 0];
   private saveSlotAnimationPhase: 'sliding-up' | 'settling' | 'sliding-down' | null = null;
   private isAnimatingSlots = false;
+  private buttonsHidden = false;
 
   constructor(
     canvasManager: CanvasManager,
@@ -79,17 +88,52 @@ export class TitleScreenManager {
     this.gamepadNavManager = new GamepadMenuInteractionManager(this.inputManager);
 
     this.settingsMenu = new SettingsMenu(this.inputManager, null, CanvasManager.getInstance());
-    // this.settingsMenu.lockResolution();
+    this.selectionMenu = new SelectionMenu(this.inputManager, this.gamepadNavManager);
 
     this.buttons = this.createMainButtons();
 
     this.titleRenderer = new WordRenderer(125 * this.scale, 100 * this.scale);
-    this.titleRenderer.setWord('SHIPWRIGHT');
-    this.titleRenderer.setBreathingPulse();
-
     this.subtitleRenderer = new WordRenderer(495 * this.scale, 200 * this.scale);
-    this.subtitleRenderer.setWord('SURVIVORS');
-    this.subtitleRenderer.setBreathingPulse();
+    this.setTitle();
+
+    GlobalEventBus.on('game:selection:menu:launchMission', this.handleLaunchMission);
+    GlobalEventBus.on('game:selection:menu:collection', this.handleOpenCollection);
+    GlobalEventBus.on('game:selection:menu:passiveSkills', this.handleOpenPassiveSkills);
+    GlobalEventBus.on('game:selection:menu:quit', this.handleQuit);
+  }
+
+  private handleLaunchMission = (): void => {
+    this.stop();
+    sceneManager.fadeToScene('galaxy');
+  }
+
+  private handleOpenCollection = (): void => {
+    // Handle
+  }
+
+  private handleOpenPassiveSkills = (): void => {
+    // Handle
+  }
+
+  private handleQuit = (): void => {
+    this.selectionMenu?.closeMenu();
+    this.titleScreenRuntime?.rehomeCamera();
+    this.showAndEnableButtons();
+    this.setTitle();
+    this.buildNavMap();
+    applyWarmCinematicEffect();
+  }
+
+  private setTitle(): void {
+    this.titleRenderer?.setWord('SHIPWRIGHT');
+    this.titleRenderer?.setBreathingPulse();
+    this.subtitleRenderer?.setWord('SURVIVORS');
+    this.subtitleRenderer?.setBreathingPulse();
+  }
+
+  private clearTitle(): void {
+    this.titleRenderer?.setWord('');
+    this.subtitleRenderer?.setWord('');
   }
 
   private buildNavMap(): void {
@@ -167,11 +211,11 @@ export class TitleScreenManager {
     return !this.isAnimatingSlots && !this.settingsMenu?.isOpen();
   }
 
-  async start() {
+  async start(effect: 'warm' | 'cool' = 'warm') {
     audioManager.playMusic({ file: 'assets/sounds/music/track_00_title.mp3' });
     if (this.titleScreenRuntime) {
       await this.titleScreenRuntime.initialize();
-      this.titleScreenRuntime.start();
+      this.titleScreenRuntime.start(effect);
     }
     this.gameLoop.onUpdate(this.update);
     this.gameLoop.onRender(this.render);
@@ -192,6 +236,11 @@ export class TitleScreenManager {
     this.saveSlotButtons = [];
     this.confirmationButtons = [];
     this.buttons = [];
+
+    GlobalEventBus.off('game:selection:menu:launchMission', this.handleLaunchMission);
+    GlobalEventBus.off('game:selection:menu:collection', this.handleOpenCollection);
+    GlobalEventBus.off('game:selection:menu:passiveSkills', this.handleOpenPassiveSkills);
+    GlobalEventBus.off('game:selection:menu:quit', this.handleQuit);
   }
 
   private createMainButtons(): UIButton[] {
@@ -317,6 +366,15 @@ export class TitleScreenManager {
     return buttons;
   }
 
+  public instantlyGoToSelectionMenu(): void {
+    SaveGameManager.getInstance().saveAll();
+    this.selectionMenu?.openMenu();
+    this.clearTitle();
+    this.hideAndDisableButtons();
+    this.gamepadNavManager.clearNavMap();
+    this.titleScreenRuntime?.moveCameraTo(6000, -1200, 200000);
+  }
+
   private createSaveSlotButtons(): UIButton[] {
     const uiScale = this.scale;
     const baseX = 260;
@@ -344,22 +402,39 @@ export class TitleScreenManager {
         label,
         isHovered: false,
         onClick: () => {
-          SaveGameManager.initialize(slot);
-          const saveManager = SaveGameManager.getInstance();
-
           audioManager.play('assets/sounds/sfx/ui/start_00.wav', 'sfx');
 
+          SaveGameManager.initialize(slot);
+          const saveManager = SaveGameManager.getInstance();
           saveManager.changeSlot(slot);
 
-          if (hasData) {
-            this.stop();
-            saveManager.loadAll();
-            sceneManager.fadeToScene('hub');
-          } else {
-            this.stop();
-            missionLoader.setMission(missionRegistry['mission_001']);
-            sceneManager.fadeToScene('mission');
+          if (!hasData) {
+            ensureInitialUnlocks();
+            saveManager.saveAll();
           }
+          
+          // Clear navmap
+          this.gamepadNavManager.clearNavMap();
+
+          // Clear Title
+          this.clearTitle();
+
+          // Load save data
+          saveManager.loadAll();
+
+          // Pan camera to new location
+          this.titleScreenRuntime?.moveCameraTo(6000, -1200, 8000);
+
+          // Hide and disable all buttons
+          this.hideAndDisableButtons();
+
+          // Set post process effects
+          applyCoolCinematicEffect();
+
+          // Open the selection menu after a second
+          setTimeout(() => {
+            this.selectionMenu?.openMenu();
+          }, 1000);
         },
         style: DEFAULT_CONFIG.button.style,
         // Attach slot index for animation
@@ -416,6 +491,7 @@ export class TitleScreenManager {
           audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 1 });
           if (this.confirmingDeleteSlot !== null) {
             SaveGameManager.eraseSave(this.confirmingDeleteSlot);
+            resetPlayerData();
             this.saveSlotButtons = this.createSaveSlotButtons();
           }
           this.confirmingDeleteSlot = null;
@@ -460,11 +536,28 @@ export class TitleScreenManager {
     }
   }
 
-  private update = (_dt: number) => {
+  private hideAndDisableButtons(): void {
+    this.buttonsHidden = true;
+  }
+
+  private showAndEnableButtons(): void {
+    this.buttonsHidden = false;
+  }
+
+  private update = (dt: number) => {
     if (this.titleScreenRuntime) {
-      this.titleScreenRuntime.update(_dt);
+      this.titleScreenRuntime.update(dt);
     }
     
+    this.inputManager.updateFrame();
+
+    if (this.selectionMenu?.isOpen()) {
+      this.selectionMenu.update(dt);
+      return;
+    }
+
+    if (this.buttonsHidden) return;
+
     // Handle sliding animation
     const uiScale = this.scale;
 
@@ -566,8 +659,6 @@ export class TitleScreenManager {
       }
     }
 
-    this.inputManager.updateFrame();
-
     const { x, y } = this.inputManager.getMousePosition();
     const click = this.inputManager.wasMouseClicked();
 
@@ -601,17 +692,28 @@ export class TitleScreenManager {
   };
 
   private render = (dt: number) => {
-    CanvasManager.getInstance().clearAll();
-
-    const uiScale = this.scale;
-    const uiCtx = CanvasManager.getInstance().getContext('overlay');
-
     // Render the Titlescreen Runtime
     if (this.titleScreenRuntime) {
       this.titleScreenRuntime.render(dt);
     }
 
-    // Always render main buttons (Play/Back and Credits)
+    const canvasManager = CanvasManager.getInstance();
+    const uiScale = this.scale;
+    const uiCtx = canvasManager.getContext('overlay');
+
+    if (this.selectionMenu?.isOpen()) {
+      this.selectionMenu.render();
+      const mouse = this.inputManager.getMousePosition();
+      const cursor = getCrosshairCursorSprite();
+
+      if (!this.inputManager.isUsingGamepad?.() || this.settingsMenu?.isOpen()) {
+        drawCursor(uiCtx, cursor, mouse.x, mouse.y, uiScale);
+      }
+    }
+
+    if (this.buttonsHidden) return;
+
+    canvasManager.clearAll();
 
     // Play/Back button
     drawButton(uiCtx, this.buttons[0], uiScale);

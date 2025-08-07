@@ -23,7 +23,7 @@ export class BossState_Combo_LeftRightFlames implements BossState {
   private bossDefinition: BossDefinition | null = null;
 
   private timer = 0;
-  private telegraphDuration = 3.5;
+  private telegraphDuration = 5.0;
   private flameDuration = 5.0;
   private trackingSpeed = 0.01;
 
@@ -45,17 +45,17 @@ export class BossState_Combo_LeftRightFlames implements BossState {
     switch (phase) {
       case 'phase4':
         this.flameDuration = 6.0;
-        this.trackingSpeed = 0.0035;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase3':
         this.flameDuration = 5.5;
-        this.trackingSpeed = 0.003;
+        this.trackingSpeed = 0.001;
         break;
       case 'phase1':
       case 'phase2':
       default:
         this.flameDuration = 5.0;
-        this.trackingSpeed = 0.002;
+        this.trackingSpeed = 0.001;
         break;
     }
 

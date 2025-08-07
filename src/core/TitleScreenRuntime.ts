@@ -1,6 +1,7 @@
 // src/core/TitleScreenRuntime.ts
 
 import { Camera } from './Camera';
+import { SmoothCameraPanner } from './components/SmoothCameraPanner';
 import { getViewportWidth, getViewportHeight } from '@/config/view';
 import { CanvasManager } from './CanvasManager';
 import { InputManager } from './InputManager';
@@ -26,7 +27,7 @@ import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequ
 import { BlockDropDecisionMenu } from '@/ui/menus/BlockDropDecisionMenu';
 import { PopupMessageSystem } from '@/ui/PopupMessageSystem';
 
-import { applyWarmCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
+import { applyWarmCinematicEffect, applyCoolCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
 import { getUniformScaleFactor } from '@/config/view';
 
@@ -96,6 +97,7 @@ export class TitleScreenRuntime {
 
   private canvasManager: CanvasManager;
   private camera: Camera | null = null;
+  private cameraPanner: SmoothCameraPanner | null = null;
 
   private mission: MissionDefinition
   private shipRegistry = ShipRegistry.getInstance();
@@ -151,6 +153,7 @@ export class TitleScreenRuntime {
     this.collisionBoxManager = CollisionBoxManager.initialize();
 
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
+    this.cameraPanner = new SmoothCameraPanner(this.camera);
     this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
     this.spatialBodyManager = SpatialBodyManager.initialize();
@@ -335,6 +338,7 @@ export class TitleScreenRuntime {
     );
 
     this.ship = ship;
+    this.ship.turnOffAllBlockLights();
     this.ship.setFaction(Faction.Enemy);
     this.pickupSystem.setPlayerShip(this.ship);
     this.blockDropDecisionMenu.setPlayerShip(this.ship);
@@ -364,7 +368,7 @@ export class TitleScreenRuntime {
       this.shipConstructionAnimator,
       this.planetSystem!,
       this.lightingOrchestrator,
-      this.incidentOrchestrator!
+      this.incidentOrchestrator!,
     ];
   }
 
@@ -382,31 +386,6 @@ export class TitleScreenRuntime {
     if (!this.isInitialized) return;
     if (this.isDestroyed) return;
 
-    const cam = Camera.getInstance();
-
-    // === WASD input panning ===
-    const moveSpeed = 20 / cam.getZoom(); // scaled to zoom
-    const { x, y } = cam.getTarget();
-
-    let nextX = x;
-    let nextY = y;
-
-    if (this.inputManager.isKeyPressed('KeyA')) {
-      nextX -= moveSpeed;
-      console.log(cam.getTarget());
-    }
-    if (this.inputManager.isKeyPressed('KeyD')) {
-      nextX += moveSpeed;
-    }
-    if (this.inputManager.isKeyPressed('KeyW')) {
-      nextY -= moveSpeed;
-    }
-    if (this.inputManager.isKeyPressed('KeyS')) {
-      nextY += moveSpeed;
-    }
-
-    cam.setTarget(nextX, nextY);
-
     // Clear input consumed inputs
     this.inputManager.clearConsumedActions();
 
@@ -418,6 +397,7 @@ export class TitleScreenRuntime {
       if (!this.camera) {
         return;
       }
+      this.cameraPanner!.update(dt);
       this.camera.adjustZoom(this.inputManager.consumeZoomDelta());
       this.camera.update(dt);
     } catch (error) {
@@ -476,7 +456,7 @@ export class TitleScreenRuntime {
   /**
    * Starts the title screen loop and initializes the "titlescreen" standin mission.
   **/
-  public start() {
+  public start(effect: 'cool' | 'warm' = 'cool') {
     if (!this.isInitialized) {
       throw new Error('TitleScreenRuntime: Cannot start before initialization');
     }
@@ -493,7 +473,25 @@ export class TitleScreenRuntime {
     const y = -244 * getUniformScaleFactor();
     this.camera!.setTarget(x, y);
     this.camera!.setToMinZoom();
-    applyWarmCinematicEffect();
+    if (effect === 'cool') {
+      applyCoolCinematicEffect();
+    } else if (effect === 'warm') {
+      applyWarmCinematicEffect();
+    } else {
+      throw new Error('Unknown effect: ' + effect);
+    }
+  }
+
+  public moveCameraTo(x: number, y: number, speed: number = 100) {
+    this.cameraPanner!.setSpeed(speed);
+    this.cameraPanner!.panTo(x, y);
+  }
+
+  public rehomeCamera() {
+    const x = -1877 * getUniformScaleFactor();
+    const y = -244 * getUniformScaleFactor();
+    this.camera!.setTarget(x, y);
+    this.camera!.setToMinZoom();
   }
 
   /**

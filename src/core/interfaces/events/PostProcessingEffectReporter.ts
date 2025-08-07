@@ -64,6 +64,32 @@ export function applyWarmCinematicEffect(background?: boolean): void {
   ], background);
 }
 
+export function applyCoolCinematicEffect(background?: boolean): void {
+  setPostProcessEffect([
+    { effect: 'chromaticAberration',
+      params: {
+        strength: 0.018,
+        falloff: 1.8,
+      },
+    },
+    {
+      effect: 'cinematicGrading',
+      params: {
+        exposure: 2.0,
+        contrast: 1.0,
+        saturation: 1.1,
+        temperature: 4.2,
+        tint: 0.1,
+        vignetteStrength: 0.4,
+        filmGrainStrength: 0.42,
+        shadowsLift: -0.05,
+        highlightsGain: 1.1,
+        cinematicIntensity: 1.4,
+      },
+    },
+  ], background);
+}
+
 export function applyBossCinematicEffect(background?: boolean): void {
   setPostProcessEffect([
     { effect: 'chromaticAberration',
@@ -71,7 +97,7 @@ export function applyBossCinematicEffect(background?: boolean): void {
         strength: 0.018,
         falloff: 1.8,
       },
-     },
+    },
     {
       effect: 'cinematicGrading',
       params: {
@@ -85,26 +111,6 @@ export function applyBossCinematicEffect(background?: boolean): void {
         shadowsLift: 0.01,
         highlightsGain: 0.4,
         cinematicIntensity: 0.012,
-      },
-    },
-  ], background);
-}
-
-export function applyCoolCinematicEffect(background?: boolean): void {
-  setPostProcessEffect([
-    {
-      effect: 'cinematicGrading',
-      params: {
-        exposure: 0.95,
-        contrast: 1.0,
-        saturation: 0.9,
-        temperature: -0.2,
-        tint: 0.1,
-        vignetteStrength: 0.4,
-        filmGrainStrength: 0.12,
-        shadowsLift: -0.05,
-        highlightsGain: 1.1,
-        cinematicIntensity: 0.8,
       },
     },
   ], background);
