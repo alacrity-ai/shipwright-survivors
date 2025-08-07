@@ -7,6 +7,7 @@ import { Ship } from '@/game/ship/Ship';
 import { getWorldPositionFromShipCoord } from '@/game/ship/utils/shipBlockUtils';
 import { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
 import { playSpatialSfx } from '@/audio/utils/playSpatialSfx';
+import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 
 type ConstructionPhase = 'building' | 'shockwave';
 type DeconstructionPhase = 'deconstructing' | 'complete';
@@ -76,6 +77,13 @@ export class ShipConstructionAnimatorService {
   private scratchConstructRemovals: ConstructingShipState[] = [];
   private scratchDeconstructRemovals: DeconstructingShipState[] = [];
 
+  // cap for animated constructions
+  private readonly maxAnimatedConstructions = 10;
+  // instant flash parameters
+  private readonly instantFlashRadius = 800; // px world-space
+  private readonly instantFlashColor = '#00ffff';
+  private readonly shipPositionScratch = { x: 0, y: 0 };
+
   // Deconstruction timing (faster than construction)
   private readonly startBlockHideInterval = 150;
   private readonly deconstructionDecrementPerBlock = 3;
@@ -102,7 +110,71 @@ export class ShipConstructionAnimatorService {
     this.playerShip = ship;
   }
 
+  // Count only states actively in the 'building' phase.
+  private getActiveConstructionCount(): number {
+    let n = 0;
+    for (let i = 0; i < this.activeShips.length; i++) {
+      if (this.activeShips[i].phase === 'building') n++;
+    }
+    return n;
+  }
+
+  // Instant construction path: reveal everything, set constructed, FX flash, SFX, aura/light toggles.
+  private instantConstruct(ship: Ship, auraLightOptions?: AuraLightOptions): void {
+    const orchestrator = ship.getBlockOrchestrator();
+    const store = orchestrator.blockStore;
+    const indices = orchestrator.getShipBlocksView(ship.numericId);
+    const blockCount = indices.length;
+
+    // Reveal all blocks immediately
+    for (let i = 0; i < blockCount; i++) {
+      const idx = indices[i];
+      store.hidden[idx] = 0;
+    }
+
+    // Optional aura light (if requested and ship still valid)
+    if (auraLightOptions && !ship.isDestroyed()) {
+      ship.registerAuraLight(
+        auraLightOptions.color,
+        auraLightOptions.radius,
+        auraLightOptions.intensity
+      );
+    }
+
+    // Turn on emissive block lights and finalize construction state
+    ship.turnOnAllBlockLights();
+    ship.setConstructed(true);
+
+    // Position for the flash (ship origin)
+    ship.getPositionFast(this.shipPositionScratch);
+
+    // Big cyan flash to denote instant spawn
+    createLightFlash(
+      this.shipPositionScratch.x,
+      this.shipPositionScratch.y, 
+      this.instantFlashRadius, 
+      1.4, 
+      0.5, 
+      this.instantFlashColor);
+
+    // One concise SFX for feedback (low volume to avoid spam)
+    playSpatialSfx(ship, this.playerShip, {
+      file: 'assets/sounds/sfx/ship/repair_00.wav',
+      channel: 'sfx',
+      baseVolume: 0.6,
+      pitchRange: [0.8, 0.9],
+      volumeJitter: 0.1,
+      maxSimultaneous: 3,
+    });
+  }
+
   public animateShipConstruction(ship: Ship, auraLightOptions?: AuraLightOptions): void {
+    // If we are already animating many ships, take the fast path.
+    if (this.getActiveConstructionCount() >= this.maxAnimatedConstructions) {
+      this.instantConstruct(ship, auraLightOptions);
+      return;
+    }
+
     const orchestrator = ship.getBlockOrchestrator();
     const store = orchestrator.blockStore;
     const indices = orchestrator.getShipBlocksView(ship.numericId);
@@ -128,21 +200,14 @@ export class ShipConstructionAnimatorService {
 
     this.activeShips.push({
       ship,
-
-      // Typed queue
-      queueIdx,
-      queueX,
-      queueY,
+      queueIdx, queueX, queueY,
       queueLength: blockCount,
       queueCursor: 0,
-
       revealedKeys: new Uint32Array(blockCount),
       revealedCount: 0,
-
       timerKeys: new Uint32Array(blockCount),
       timerValues: new Float32Array(blockCount),
       timerCount: 0,
-
       timeSinceLastReveal: 0,
       blockRevealInterval: this.startBlockRevealInterval,
       totalBlockCount: blockCount,

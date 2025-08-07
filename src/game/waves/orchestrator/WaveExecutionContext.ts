@@ -13,9 +13,8 @@ import { GlobalEnemyCullingSystem } from '@/systems/culling/GlobalEnemyCullingSy
 import { shakeOnShipDestruction } from '@/game/waves/orchestrator/helpers/shakeOnShipDestruction';
 import { emitOnSlainQuestSteps } from '@/game/waves/orchestrator/helpers/emitOnSlainQuestSteps';
 
-import { DefaultBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { ShipRegistry } from '@/game/ship/ShipRegistry';
-import { getDistance } from '@/shared/vectorUtils';
+import { missionLoader } from '@/game/missions/MissionLoader';
 
 import { destroyEntityExternally } from '@/core/interfaces/events/EntityReporter';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -188,7 +187,8 @@ export class WaveExecutionContext {
 
     for (const group of this.groupMap.values()) {
       // Replenish quota
-      const desiredCount = group.entry.count ?? 0;
+      const densityMultiplier = missionLoader.getMission().waveDensity ?? 1;
+      const desiredCount = group.entry.count * densityMultiplier;
       const currentCount = group.remaining.size;
       const deficit = desiredCount - currentCount;
 

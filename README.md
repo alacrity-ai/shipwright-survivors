@@ -125,6 +125,8 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] Ship construction animator service: We need to limit for performance reasons, the amount of ships that we actively spawn with animations.  We need a construction fast path, that just instantly spawns a ship if we're already spawning say 10 ships at once. We can just use a createLightFlash with a radius of like 1000 cyan color for this.
+
   - [ ] Little tutorials with screenshots (hints) upon mission load.  Maybe multiple pages.
 
   - [ ] New incident: Time portal. Creates arena, spawns in enemies, pauses the wave spawner, sepia filter

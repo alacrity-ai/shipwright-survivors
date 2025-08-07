@@ -461,6 +461,11 @@ export abstract class CompositeBlockObject {
     }
   }
 
+  public getPositionFast(out: { x: number; y: number }): void {
+    out.x = this.transform.position.x;
+    out.y = this.transform.position.y;
+  }
+
   public getVelocity(): { x: number; y: number } {
     return this.transform.velocity;
   }
