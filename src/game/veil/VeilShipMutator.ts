@@ -190,4 +190,18 @@ export class VeilShipMutator {
   public getKillsInRegion(regionId: string): number {
     return this.regionKillTally.get(regionId) || 0;
   }
+
+  /**
+   * Regenerates the internal ring buffer with new block types of the given tier.
+   * This resets the cursor and optionally updates the mutation options.
+   */
+  public regenerateBlockTypeRing(tier: number): void {
+    for (let i = 0; i < BLOCK_TYPE_RING_SIZE; i++) {
+      this.blockTypeRing[i] = getRandomBlockInTier(tier);
+    }
+    this.blockTypeCursor = 0;
+
+    // Optional: overwrite mutationOptions for consistency with future calls
+    this.mutationOptions.mutationBlockTier = tier;
+  }
 }

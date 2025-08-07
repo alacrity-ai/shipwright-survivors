@@ -15,7 +15,16 @@ function randomInRange(min: number, max: number): number {
 }
 
 /**
- * Generates a valid list of non-overlapping CloudRegion objects.
+ * Generates a valid list of non-overlapping `CloudRegion` objects,
+ * each representing a procedurally placed Veil zone within the world bounds.
+ * 
+ * Ensures:
+ * - Regions are not too close to the world center (to preserve spawn/navigation space)
+ * - Regions are spaced far enough from each other (to avoid visual overlap)
+ * - Each region receives its own deep-cloned `mutationOptions` and `bossOptions` to prevent runtime leakage across missions
+ *
+ * @param options Cloud region generation constraints and prefab parameters
+ * @returns An array of spatially distributed `CloudRegion` definitions
  */
 export function generateCloudRegions(options: CloudRegionGenerationOptions): CloudRegion[] {
   const {
@@ -31,12 +40,15 @@ export function generateCloudRegions(options: CloudRegionGenerationOptions): Clo
     bossOptions,
   } = options;
 
+  // Extract min/max bounds for radius and region count
   const [minRadius, maxRadius] = radiusRange;
   const [minRegions, maxRegions] = regionCountRange;
 
+  // Half extents for clamping spatial distribution within world bounds
   const halfWidth = worldWidth / 2;
   const halfHeight = worldHeight / 2;
 
+  // Determine how many regions to generate (inclusive random integer in range)
   const regionCount = Math.floor(randomInRange(minRegions, maxRegions + 1));
   const regions: CloudRegion[] = [];
 
@@ -46,17 +58,19 @@ export function generateCloudRegions(options: CloudRegionGenerationOptions): Clo
   while (regions.length < regionCount && attempts < MAX_ATTEMPTS) {
     attempts++;
 
+    // Randomize radius per region to introduce variability
     const radius = randomInRange(minRadius, maxRadius);
 
+    // Compute candidate center location, ensuring region fits within world bounds
     const x = randomInRange(-halfWidth + radius, halfWidth - radius);
     const y = randomInRange(-halfHeight + radius, halfHeight - radius);
     const center = { x, y };
 
-    // Reject if too close to world center
+    // Reject region if too close to world origin (typically reserved for player spawn/neutral space)
     const distFromCenter = distance(center, { x: 0, y: 0 });
     if (distFromCenter < minDistanceFromCenter) continue;
 
-    // Reject if too close to other regions
+    // Reject if overlapping any existing region (based on edge-to-edge spacing)
     let tooClose = false;
     for (const region of regions) {
       const edgeToEdgeDistance = distance(center, region.center) - radius - region.radius;
@@ -68,18 +82,18 @@ export function generateCloudRegions(options: CloudRegionGenerationOptions): Clo
 
     if (tooClose) continue;
 
-    // Accept the region
-    const region: CloudRegion = {
+    // === Accept region ===
+    regions.push({
       id: `generated-${regions.length}`,
       center,
       radius,
       frontParams,
       backParams,
-      mutationOptions,
-      bossOptions,
-    };
 
-    regions.push(region);
+      // 💡 Clone mutable objects to avoid runtime state leakage across missions
+      mutationOptions: structuredClone(mutationOptions),
+      bossOptions: structuredClone(bossOptions),
+    });
   }
 
   return regions;

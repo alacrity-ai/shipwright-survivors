@@ -125,16 +125,29 @@ What's needed to get to Demo:
 - [ ] Add 5 more weapons
 
 TODOS:
+  - [ ] Little tutorials with screenshots (hints) upon mission load.  Maybe multiple pages.
+
+  - [ ] New incident: Time portal. Creates arena, spawns in enemies, pauses the wave spawner, sepia filter
+
+  - [ ] Invert menu flow:
+    - Remove the hub entirely
+    - After loading in, go directly to a submenu with the spiral background:
+      - [ ] Launch Mission <-- easy to see
+        - [ ] Sends to ship loadout, and then goes to galaxy map
+      - [ ] Passives
+      - [ ] Unlocks (list all ship unlocks/mission unlocks/artifacts/quests etc)
+      
+
+  - [ ] Powerup Menus of Different channels cancel each other out, e.g. levelup on defeating a veil.
 
   - [ ] Retry button next to Return To Base on mission debriefing failure
 
-  - [ ] Add active skills to each ship. Each ship gets a unique skill.
+  - [ ] Add active skills to each ship. Each ship gets a unique skill.  Then battery blocks or whatever can reduce cooldown on these.
     - SW1: Some kind of stim?
     - Monarch: 
     - Godhand: Lightning to every enemy on screen? Maybe jump to every ship on screen hitting them?
     - Vanguard: 
     - Salamander: Radial screenwide flame ignite
-
 
   - [ ] On boss death;
     - [ ] Screen flash
@@ -142,7 +155,7 @@ TODOS:
     - [ ] Post process effect?
     - [ ] Dramatic sound effect
 
-  - [ ] Boss rings would be more interesting if they spawned one after another (random ring order), and then detonated in FIFO order, so you could move into the explosion.
+  - [ ] Boss mines would be more interesting if they spawned one after another (random mine order), and then detonated in FIFO order, so you could move into the explosion.
   - [ ] Fix boss healthbar rendering, remove player UI during boss fight, render boss healthbar on bottom of screen.
   - [ ] New placed blocks don't inherit Ship Color override.
 

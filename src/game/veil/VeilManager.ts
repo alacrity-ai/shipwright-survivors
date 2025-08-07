@@ -20,6 +20,7 @@ import { VeilBossFactory } from '@/game/veil/factories/VeilBossFactory';
 import { VeilBossController } from '@/game/veil/VeilBossController';
 
 const POWERUP_DELAY_SECONDS = 1.5;
+const MAX_TIER = 5;
 
 export class VeilManager {
   private readonly cloudManager: CloudManager;
@@ -111,6 +112,8 @@ export class VeilManager {
 
       this.delayedPowerupMenuTime = POWERUP_DELAY_SECONDS;
       this.pendingPowerupMenu = true;
+
+      this.shipMutator.regenerateBlockTypeRing(Math.min(this.bossKillCount, MAX_TIER));
 
       const playerPos = this.playerShip.getTransform().position;
       emitHugeShockwave(playerPos.x, playerPos.y);
