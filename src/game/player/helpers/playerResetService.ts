@@ -17,6 +17,7 @@ import { PlayerShipSkillTreeManager } from '@/game/player/PlayerShipSkillTreeMan
 import { PlayerTechnologyManager } from '@/game/player/PlayerTechnologyManager';
 import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
+import { PlayerGlobalPassiveManager } from '@/game/player/PlayerGlobalPassiveManager';
 
 export function resetPlayerData(): void {
   PlayerAbilityManager.getInstance().reset();
@@ -31,4 +32,5 @@ export function resetPlayerData(): void {
   PlayerTechnologyManager.getInstance().reset();
   PlayerTradePostManager.getInstance().reset();
   PlayerMetaCurrencyManager.getInstance().reset();
+  PlayerGlobalPassiveManager.getInstance().clear();
 }

@@ -11,6 +11,7 @@ import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { PlayerAbilityManager } from '@/game/player/PlayerAbilityManager';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
+import { PlayerGlobalPassiveManager } from '@/game/player/PlayerGlobalPassiveManager';
 
 export interface SaveGameData {
   flags: string[];
@@ -24,6 +25,7 @@ export interface SaveGameData {
   tradeposts?: string;
   abilities?: string;
   quests?: string;
+  globalPassives?: string;
 }
 
 const LAST_SAVE_SLOT_KEY = 'lastSaveSlot';
@@ -83,6 +85,7 @@ export class SaveGameManager {
       tradeposts: PlayerTradePostManager.getInstance().toJSON(),
       abilities: PlayerAbilityManager.getInstance().toJSON(),
       quests: PlayerQuestManager.getInstance().toJSON(),
+      globalPassives: PlayerGlobalPassiveManager.getInstance().toJSON(),
       version: 1,
     };
 
@@ -119,6 +122,9 @@ export class SaveGameManager {
     }
     if (data.quests) {
       PlayerQuestManager.getInstance().fromJSON(data.quests);
+    }
+    if (data.globalPassives) {
+      PlayerGlobalPassiveManager.getInstance().fromJSON(data.globalPassives);
     }
   }
 
@@ -159,6 +165,12 @@ export class SaveGameManager {
   }
 
   // === SAVE METHODS ===
+
+  public saveGlobalPassives(): void {
+    const data = this.loadData();
+    data.globalPassives = PlayerGlobalPassiveManager.getInstance().toJSON();
+    this.writeData(data);
+  }
 
   public saveQuests(): void {
     const data = this.loadData();
@@ -226,6 +238,13 @@ export class SaveGameManager {
   }
 
   // === LOAD METHODS ===
+
+  public loadGlobalPassives(): void {
+    const data = this.loadData();
+    if (data.globalPassives) {
+      PlayerGlobalPassiveManager.getInstance().fromJSON(data.globalPassives);
+    }
+  }
 
   public loadQuests(): void {
     const data = this.loadData();
