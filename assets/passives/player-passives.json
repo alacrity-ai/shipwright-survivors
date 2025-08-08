@@ -83,7 +83,20 @@
     },
     {
       "x": 25,
-      "y": 11
+      "y": 11,
+      "metadata": {
+        "id": "damage-hybrid-1",
+        "name": "Combatant",
+        "description": "Increases Damage and Firing Rate of Weapon Blocks.",
+        "icon": "icon-damageHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "damage": 0.05,
+          "fireRate": 0.05
+        }
+      }
     },
     {
       "x": 32,
@@ -103,7 +116,20 @@
     },
     {
       "x": 25,
-      "y": 14
+      "y": 14,
+      "metadata": {
+        "id": "damage-hybrid-0",
+        "name": "Combatant",
+        "description": "Increases Damage and Firing Rate of Weapon Blocks.",
+        "icon": "icon-damageHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "damage": 0.05,
+          "fireRate": 0.05
+        }
+      }
     },
     {
       "x": 40,
@@ -111,15 +137,51 @@
     },
     {
       "x": 22,
-      "y": 17
+      "y": 17,
+      "metadata": {
+        "id": "damage-3",
+        "name": "Enhanced Damage",
+        "description": "Increases damage output from all weapon blocks.",
+        "icon": "icon-damage",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "damage": 0.05
+        }
+      }
     },
     {
       "x": 25,
-      "y": 17
+      "y": 17,
+      "metadata": {
+        "id": "harvest-1",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 28,
-      "y": 17
+      "y": 17,
+      "metadata": {
+        "id": "armor-3",
+        "name": "Reinforced Hull",
+        "description": "Increases health of all ship blocks.",
+        "icon": "icon-armor",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "armor": 10
+        }
+      }
     },
     {
       "x": 8,
@@ -139,31 +201,115 @@
     },
     {
       "x": 19,
-      "y": 19
+      "y": 19,
+      "metadata": {
+        "id": "damage-2",
+        "name": "Enhanced Damage",
+        "description": "Increases damage output from all weapon blocks.",
+        "icon": "icon-damage",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "damage": 0.05
+        }
+      }
     },
     {
       "x": 31,
-      "y": 19
+      "y": 19,
+      "metadata": {
+        "id": "armor-2",
+        "name": "Reinforced Hull",
+        "description": "Increases health of all ship blocks.",
+        "icon": "icon-armor",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "armor": 10
+        }
+      }
     },
     {
       "x": 25,
-      "y": 20
+      "y": 20,
+      "metadata": {
+        "id": "harvest-0",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 17,
-      "y": 21
+      "y": 21,
+      "metadata": {
+        "id": "damage-1",
+        "name": "Enhanced Damage",
+        "description": "Increases damage output from all weapon blocks.",
+        "icon": "icon-damage",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "damage": 0.05
+        }
+      }
     },
     {
       "x": 22,
-      "y": 21
+      "y": 21,
+      "metadata": {
+        "id": "damage-0",
+        "name": "Enhanced Damage",
+        "description": "Increases damage output from all weapon blocks.",
+        "icon": "icon-damage",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "damage": 0.05
+        }
+      }
     },
     {
       "x": 28,
-      "y": 21
+      "y": 21,
+      "metadata": {
+        "id": "armor-0",
+        "name": "Reinforced Hull",
+        "description": "Increases health of all ship blocks.",
+        "icon": "icon-armor",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "armor": 10
+        }
+      }
     },
     {
       "x": 33,
-      "y": 21
+      "y": 21,
+      "metadata": {
+        "id": "armor-1",
+        "name": "Reinforced Hull",
+        "description": "Increases health of all ship blocks.",
+        "icon": "icon-armor",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "armor": 10
+        }
+      }
     },
     {
       "x": 9,
@@ -195,39 +341,148 @@
     },
     {
       "x": 11,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "thrust-hybrid-1",
+        "name": "Daredevil",
+        "description": "Increases Thrust and Turning Power.",
+        "icon": "icon-thrustHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "thrust": 0.05,
+          "turnPower": 0.05
+        }
+      }
     },
     {
       "x": 14,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "thrust-hybrid-0",
+        "name": "Daredevil",
+        "description": "Increases Thrust and Turning Power.",
+        "icon": "icon-thrustHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "thrust": 0.05,
+          "turnPower": 0.05
+        }
+      }
     },
     {
       "x": 17,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "harvest-7",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 21,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "harvest-6",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 25,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "root-node",
+        "name": "Shipwright",
+        "description": "Traverse the Passive Tree to unlock additional power.",
+        "icon": "root-node-icon",
+        "nodeSize": "major",
+        "cost": 0,
+        "masteryRequirement": 0
+      }
     },
     {
       "x": 29,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "harvest-2",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 33,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "harvest-3",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 36,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "armor-hybrid-0",
+        "name": "Phalanx",
+        "description": "Increases Block HP and Mitigation.",
+        "icon": "icon-armorHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "armor": 10,
+          "mitigation": 0.05
+        }
+      }
     },
     {
       "x": 39,
-      "y": 25
+      "y": 25,
+      "metadata": {
+        "id": "armor-hybrid-1",
+        "name": "Phalanx",
+        "description": "Increases Block HP and Mitigation.",
+        "icon": "icon-armorHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "armor": 10,
+          "mitigation": 0.05
+        }
+      }
     },
     {
       "x": 43,
@@ -259,31 +514,115 @@
     },
     {
       "x": 17,
-      "y": 29
+      "y": 29,
+      "metadata": {
+        "id": "thrust-1",
+        "name": "Thrust",
+        "description": "Increased Thrust bonus from all engine blocks.",
+        "icon": "icon-thrust",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "thrust": 0.05
+        }
+      }
     },
     {
       "x": 22,
-      "y": 29
+      "y": 29,
+      "metadata": {
+        "id": "thrust-0",
+        "name": "Thrust",
+        "description": "Increased Thrust bonus from all engine blocks.",
+        "icon": "icon-thrust",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "thrust": 0.05
+        }
+      }
     },
     {
       "x": 28,
-      "y": 29
+      "y": 29,
+      "metadata": {
+        "id": "entropium-0",
+        "name": "Capitalist",
+        "description": "Increases Entropium gained.",
+        "icon": "icon-capitalist",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "entropiumPickupBonus": 0.05
+        }
+      }
     },
     {
       "x": 33,
-      "y": 29
+      "y": 29,
+      "metadata": {
+        "id": "entropium-1",
+        "name": "Capitalist",
+        "description": "Increases Entropium gained.",
+        "icon": "icon-capitalist",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "entropiumPickupBonus": 0.05
+        }
+      }
     },
     {
       "x": 25,
-      "y": 30
+      "y": 30,
+      "metadata": {
+        "id": "harvest-4",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 19,
-      "y": 31
+      "y": 31,
+      "metadata": {
+        "id": "thrust-2",
+        "name": "Thrust",
+        "description": "Increased Thrust bonus from all engine blocks.",
+        "icon": "icon-thrust",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "thrust": 0.05
+        }
+      }
     },
     {
       "x": 31,
-      "y": 31
+      "y": 31,
+      "metadata": {
+        "id": "entropium-2",
+        "name": "Capitalist",
+        "description": "Increases Entropium gained.",
+        "icon": "icon-capitalist",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "entropiumPickupBonus": 0.05
+        }
+      }
     },
     {
       "x": 8,
@@ -303,15 +642,51 @@
     },
     {
       "x": 22,
-      "y": 33
+      "y": 33,
+      "metadata": {
+        "id": "thrust-3",
+        "name": "Thrust",
+        "description": "Increased Thrust bonus from all engine blocks.",
+        "icon": "icon-thrust",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "thrust": 0.05
+        }
+      }
     },
     {
       "x": 25,
-      "y": 33
+      "y": 33,
+      "metadata": {
+        "id": "harvest-5",
+        "name": "Harvester",
+        "description": "Increases pickup gravitational pull range.",
+        "icon": "icon-harvest",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "harvestRange": 150
+        }
+      }
     },
     {
       "x": 28,
-      "y": 33
+      "y": 33,
+      "metadata": {
+        "id": "entropium-3",
+        "name": "Capitalist",
+        "description": "Increases Entropium gained.",
+        "icon": "icon-capitalist",
+        "nodeSize": "minor",
+        "cost": 10,
+        "masteryRequirement": 0,
+        "metadata": {
+          "entropiumPickupBonus": 0.05
+        }
+      }
     },
     {
       "x": 10,
@@ -319,7 +694,20 @@
     },
     {
       "x": 25,
-      "y": 36
+      "y": 36,
+      "metadata": {
+        "id": "capitalist-hybrid-0",
+        "name": "Collector",
+        "description": "Increases Block and Entropium drop rates.",
+        "icon": "icon-capitalistHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "entropiumPickupBonus": 0.05,
+          "blockDropRate": 0.05
+        }
+      }
     },
     {
       "x": 40,
@@ -339,7 +727,20 @@
     },
     {
       "x": 25,
-      "y": 39
+      "y": 39,
+      "metadata": {
+        "id": "capitalist-hybrid-1",
+        "name": "Collector",
+        "description": "Increases Block and Entropium drop rates.",
+        "icon": "icon-capitalistHybrid",
+        "nodeSize": "minor",
+        "cost": 20,
+        "masteryRequirement": 0,
+        "metadata": {
+          "entropiumPickupBonus": 0.05,
+          "blockDropRate": 0.05
+        }
+      }
     },
     {
       "x": 32,
@@ -2825,26 +3226,6 @@
     },
     {
       "from": {
-        "x": 25,
-        "y": 25
-      },
-      "to": {
-        "x": 21,
-        "y": 25
-      }
-    },
-    {
-      "from": {
-        "x": 21,
-        "y": 25
-      },
-      "to": {
-        "x": 25,
-        "y": 25
-      }
-    },
-    {
-      "from": {
         "x": 17,
         "y": 25
       },
@@ -2886,66 +3267,6 @@
     {
       "from": {
         "x": 25,
-        "y": 25
-      },
-      "to": {
-        "x": 29,
-        "y": 25
-      }
-    },
-    {
-      "from": {
-        "x": 29,
-        "y": 25
-      },
-      "to": {
-        "x": 25,
-        "y": 25
-      }
-    },
-    {
-      "from": {
-        "x": 25,
-        "y": 25
-      },
-      "to": {
-        "x": 25,
-        "y": 20
-      }
-    },
-    {
-      "from": {
-        "x": 25,
-        "y": 20
-      },
-      "to": {
-        "x": 25,
-        "y": 25
-      }
-    },
-    {
-      "from": {
-        "x": 25,
-        "y": 25
-      },
-      "to": {
-        "x": 25,
-        "y": 30
-      }
-    },
-    {
-      "from": {
-        "x": 25,
-        "y": 30
-      },
-      "to": {
-        "x": 25,
-        "y": 25
-      }
-    },
-    {
-      "from": {
-        "x": 25,
         "y": 30
       },
       "to": {
@@ -3020,46 +3341,6 @@
       },
       "to": {
         "x": 22,
-        "y": 21
-      }
-    },
-    {
-      "from": {
-        "x": 25,
-        "y": 20
-      },
-      "to": {
-        "x": 28,
-        "y": 21
-      }
-    },
-    {
-      "from": {
-        "x": 28,
-        "y": 21
-      },
-      "to": {
-        "x": 25,
-        "y": 20
-      }
-    },
-    {
-      "from": {
-        "x": 28,
-        "y": 21
-      },
-      "to": {
-        "x": 29,
-        "y": 25
-      }
-    },
-    {
-      "from": {
-        "x": 29,
-        "y": 25
-      },
-      "to": {
-        "x": 28,
         "y": 21
       }
     },
@@ -3141,8 +3422,208 @@
       "to": {
         "x": 25,
         "y": 20
+      }
+    },
+    {
+      "from": {
+        "x": 22,
+        "y": 21
+      },
+      "to": {
+        "x": 25,
+        "y": 25
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 25
+      },
+      "to": {
+        "x": 22,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 17,
+        "y": 21
+      },
+      "to": {
+        "x": 22,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 22,
+        "y": 21
+      },
+      "to": {
+        "x": 17,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 25
+      },
+      "to": {
+        "x": 22,
+        "y": 29
+      }
+    },
+    {
+      "from": {
+        "x": 22,
+        "y": 29
+      },
+      "to": {
+        "x": 25,
+        "y": 25
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 25
+      },
+      "to": {
+        "x": 28,
+        "y": 29
+      }
+    },
+    {
+      "from": {
+        "x": 28,
+        "y": 29
+      },
+      "to": {
+        "x": 25,
+        "y": 25
+      }
+    },
+    {
+      "from": {
+        "x": 22,
+        "y": 29
+      },
+      "to": {
+        "x": 17,
+        "y": 29
+      }
+    },
+    {
+      "from": {
+        "x": 17,
+        "y": 29
+      },
+      "to": {
+        "x": 22,
+        "y": 29
+      }
+    },
+    {
+      "from": {
+        "x": 28,
+        "y": 29
+      },
+      "to": {
+        "x": 33,
+        "y": 29
+      }
+    },
+    {
+      "from": {
+        "x": 33,
+        "y": 29
+      },
+      "to": {
+        "x": 28,
+        "y": 29
+      }
+    },
+    {
+      "from": {
+        "x": 28,
+        "y": 21
+      },
+      "to": {
+        "x": 25,
+        "y": 20
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 20
+      },
+      "to": {
+        "x": 28,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 29,
+        "y": 25
+      },
+      "to": {
+        "x": 28,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 28,
+        "y": 21
+      },
+      "to": {
+        "x": 29,
+        "y": 25
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 25
+      },
+      "to": {
+        "x": 28,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 28,
+        "y": 21
+      },
+      "to": {
+        "x": 25,
+        "y": 25
+      }
+    },
+    {
+      "from": {
+        "x": 28,
+        "y": 21
+      },
+      "to": {
+        "x": 33,
+        "y": 21
+      }
+    },
+    {
+      "from": {
+        "x": 33,
+        "y": 21
+      },
+      "to": {
+        "x": 28,
+        "y": 21
       }
     }
   ],
-  "timestamp": "2025-08-08T01:49:32.132Z"
+  "timestamp": "2025-08-08T06:30:27.193Z"
 }
