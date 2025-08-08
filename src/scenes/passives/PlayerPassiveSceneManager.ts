@@ -94,7 +94,7 @@ export class PlayerPassiveSceneManager {
     this.gameLoop.onRender(this.render);
     this.gameLoop.start();
 
-    audioManager.playMusic({ file: 'assets/sounds/music/track_01_hub.mp3' });
+    audioManager.playMusic({ file: 'assets/sounds/music/track_07_passives.mp3' });
     audioManager.play('assets/sounds/sfx/ui/galaxymap_00.wav', 'sfx', { maxSimultaneous: 1 });
   }
 
