@@ -80,12 +80,6 @@ import { ScreenEffectsSystem } from '@/systems/fx/ScreenEffectsSystem';
 
 
 export class TitleScreenRuntime {
-  // private readonly boundOnEntityDestroyed = (entity: CompositeBlockObject, cause: DestructionCause): void => {
-  //   if (entity instanceof Ship && this.waveOrchestrator) {
-  //     this.waveOrchestrator.notifyShipDestroyed(entity, cause);
-  //   }
-  // };
-
   private isInitialized = false;
 
   private blockManager: BlockManager;
@@ -102,12 +96,9 @@ export class TitleScreenRuntime {
   private mission: MissionDefinition
   private shipRegistry = ShipRegistry.getInstance();
   private blockObjectRegistry = CompositeBlockObjectRegistry.getInstance();
-  private shipCulling: ShipCullingSystem | null = null;
-  private blockObjectCulling: CompositeBlockObjectCullingSystem | null = null;
   private blockObjectUpdate: CompositeBlockObjectUpdateSystem | null = null;
   private aiOrchestrator: AIOrchestratorSystem;
 
-  private shipGrid: ShipGrid | null = null;
   private objectGrid: CompositeBlockObjectGrid<CompositeBlockObject> | null = null;
 
   private ship: Ship | null = null;
@@ -154,7 +145,6 @@ export class TitleScreenRuntime {
 
     this.camera = Camera.getInstance(getViewportWidth(), getViewportHeight());
     this.cameraPanner = new SmoothCameraPanner(this.camera);
-    this.shipGrid = ShipGrid.getInstance();
     this.objectGrid = new CompositeBlockObjectGrid(3000);
     this.spatialBodyManager = SpatialBodyManager.initialize();
 
@@ -245,10 +235,6 @@ export class TitleScreenRuntime {
   }
 
   public async initialize(): Promise<void> {
-    // Register culling systems
-    this.shipCulling = new ShipCullingSystem();
-    this.blockObjectCulling = new CompositeBlockObjectCullingSystem(this.objectGrid!);
-
     // Energy Recharge System: Single instance used by all ships
     this.energyRechargeSystem = new EnergyRechargeSystem(this.shipRegistry);
 
@@ -552,10 +538,7 @@ export class TitleScreenRuntime {
 
     // Null references (defensive)
     this.camera = null;
-    this.shipGrid = null;
     this.objectGrid = null;
-    this.shipCulling = null;
-    this.blockObjectCulling = null;
     this.blockObjectUpdate = null;
     this.waveOrchestrator = null;
     this.incidentOrchestrator = null;

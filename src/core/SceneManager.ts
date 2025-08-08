@@ -10,6 +10,7 @@ import { GalaxyMapSceneManager } from '@/scenes/hub/GalaxyMapSceneManager';
 import { PassivesMenuSceneManager } from '@/scenes/hub/PassivesMenuSceneManager';
 import { BreakroomSceneManager } from '@/scenes/hub/BreakRoomSceneManager';
 import { DebriefingSceneManager } from '@/scenes/debriefing/DebriefingSceneManager';
+import { PlayerPassiveSceneManager } from '@/scenes/passives/PlayerPassiveSceneManager';
 import { ShipSelectionSceneManager } from '@/scenes/ship_selection/ShipSelectionSceneManager';
 
 import { SaveGameManager } from '@/core/save/saveGameManager';
@@ -32,6 +33,7 @@ export type Scene =
   | 'breakroom'
   | 'mission'
   | 'debriefing'
+  | 'player-passives'
   | 'ship-selection';
 
 type SceneListener = (scene: Scene) => void;
@@ -166,6 +168,17 @@ class SceneManager {
 
       case 'passives': {
         const mgr = new PassivesMenuSceneManager(
+          this.ensureCanvasManager(),
+          this.gameLoop,
+          this.ensureInputManager()
+        );
+        mgr.start();
+        this.activeSceneManager = mgr;
+        break;
+      }
+
+      case 'player-passives': {
+        const mgr = new PlayerPassiveSceneManager(
           this.ensureCanvasManager(),
           this.gameLoop,
           this.ensureInputManager()

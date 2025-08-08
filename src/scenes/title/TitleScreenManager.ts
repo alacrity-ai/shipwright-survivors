@@ -112,7 +112,8 @@ export class TitleScreenManager {
   }
 
   private handleOpenPassiveSkills = (): void => {
-    // Handle
+    this.stop();
+    sceneManager.fadeToScene('player-passives');
   }
 
   private handleQuit = (): void => {

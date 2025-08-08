@@ -39,3 +39,30 @@ export interface PassiveNodeMetadata {
   // Extendable for future mechanics
   [key: string]: number | boolean | string | string[] | undefined;
 }
+
+/*
+  iconCache = {
+    // Required initial set
+    'icon-damage': getDamageIconSprite(),
+    'icon-armor': getArmorIconSprite(),
+    'icon-thrust': getThrustIconSprite(),
+    'icon-blockDropRate': getBlockDropRateIconSprite(),
+    'icon-harvest': getHarvestIconSprite(),
+    'icon-ability': getAbilityIconSprite(),
+
+    // Next set
+    'icon-capitalist': getCapitalistIconSprite(),
+    'icon-abilityCooldown': getAbilityCooldownIconSprite(),
+    'icon-fireRate': getFireRateIconSprite(),
+    'icon-armorMitigation': getArmorMitigationIconSprite(),
+
+    // inside initializePassiveIconCache()
+    'icon-damageHybrid': getDamageHybridIconSprite(),
+    'icon-armorHybrid': getArmorHybridIconSprite(),
+    'icon-thrustHybrid': getThrustHybridIconSprite(),
+    'icon-capitalistHybrid': getCapitalistHybridIconSprite(),
+
+    // Explicit fallback registration (optional external usage)
+    'icon-fallback': fallbackSprite,
+  };
+    */
