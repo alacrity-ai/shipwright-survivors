@@ -229,6 +229,10 @@ export class CombatService {
       reflectOnDamagePercent = 0,
     } = isEntityShip ? entity.getPowerupBonus() : {};
 
+    const globalPassiveDamage = source.getDamageMultiplier();
+    console.log('[Raw Damage] : ', damage);
+    console.log('[Global Passive Damage] : ', globalPassiveDamage);
+
     let {
       critChance = 0,
       critMultiplier = 1,
@@ -246,15 +250,28 @@ export class CombatService {
       }
     }
 
+    // Apply Global Crit Passives
+    critChance += source.getCriticalChance();
+    critMultiplier += source.getCriticalMultiplier();
+
     const isReflected = cause === 'reflected';
     const canCrit = !isReflected || reflectCanCrit;
+    if (source.getIsPlayerShip()) {
+      console.log('GOT: Critical Hit Chance: ', critChance);
+    }
     const isCriticalHit = canCrit && Math.random() < critChance;
     if (isCriticalHit) {
       damage *= critMultiplier;
     }
 
-    damage *= (1 - flatDamageReductionPercent);
-    damage /= (affixes?.blockDurabilityMulti ?? 1);
+    damage *= (1 + globalPassiveDamage);             // Global passive damage bonus multiplier
+    console.log('[After Global Passive Damage] : ', damage);
+    damage *= (1 - flatDamageReductionPercent);      // Flat damage reduction
+    console.log('[After Flat Damage Reduction] : ', damage);
+    damage /= (affixes?.blockDurabilityMulti ?? 1);  // Block durability multiplier
+    console.log('[After Block Durability] : ', damage);
+    damage *= (1 - entity.getDamageMitigation());    // Damage mitigation (passives, affixes)
+    console.log('[After Damage Mitigation] : ', damage);
 
     // Cockpit is always at 0,0 local coords
     const isCockpit = store.localX[blockIndex] === 0 && store.localY[blockIndex] === 0;
@@ -299,8 +316,17 @@ export class CombatService {
       }
     }
 
+    // Determine if damage should be ignored entirely
+    const ignoreChance = entity.getIgnoreDamageChance();
+    if (ignoreChance) {
+      if (Math.random() < ignoreChance) {
+        damage = 0;
+      }
+    }
+
     // === Actual HP Decrement Occurs here ===
     let actualDamage = damage;
+
     if (entity.hasHealth()) {
       // HP Reduction on ship (Boss ships, special entities)
       actualDamage = entity.applyDamageToHealth(damage);

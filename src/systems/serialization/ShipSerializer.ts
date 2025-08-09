@@ -7,6 +7,8 @@ import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import { snapToRightAngle } from '@/shared/mathUtils';
 
+import { UnlockedPassiveAggregator } from '@/game/passives/runtime/UnlockedPassiveAggregator';
+
 export interface SerializedShip {
   transform: {
     position: { x: number; y: number };
@@ -104,6 +106,10 @@ export async function loadShipFromJson(
   const ship = new Ship(undefined, undefined, isPlayerShip, undefined, faction);
   ship.loadFromJson(data);
 
+  if (isPlayerShip) {
+    ship.setGlobalPassives(UnlockedPassiveAggregator.getAggregatedPassives());
+  }
+
   if (data.behavior?.type === 'spaceStation') {
     ship.clearCollisionBox();
   }
@@ -121,5 +127,10 @@ export function loadShipFromJsonObject(
 ): { ship: Ship; behaviorType?: string } {
   const ship = new Ship(undefined, undefined, isPlayerShip, undefined, faction);
   ship.loadFromJson(data);
+
+  if (isPlayerShip) {
+    ship.setGlobalPassives(UnlockedPassiveAggregator.getAggregatedPassives());
+  }
+
   return { ship, behaviorType: data.behavior?.type };
 }

@@ -33,7 +33,7 @@ export class PassiveTreeUIController {
 
   private readonly renderer: PassiveTreeUIRenderer;
   private readonly tooltipRenderer = new PassiveTreeTooltipRenderer();
-  private readonly breakdownWindow = new PassiveTreeBreakdownWindow();
+  private readonly breakdownWindow: PassiveTreeBreakdownWindow;
 
   // Camera (world-space top-left + scalar zoom)
   private camX = 0;
@@ -65,6 +65,7 @@ export class PassiveTreeUIController {
     this.cm = canvasManager;
     this.input = inputManager;
     this.renderer = new PassiveTreeUIRenderer();
+    this.breakdownWindow = new PassiveTreeBreakdownWindow(this.input);
   }
 
   public async initialize(): Promise<void> {

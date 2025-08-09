@@ -211,7 +211,7 @@ export class MovementSystem {
     }
 
     // === Apply passive bonuses for turn power ===
-    rawTurnPower *= this.ship.getPassiveBonus('fin-turn-power');
+    rawTurnPower *= this.ship.getPassiveBonus('fin-turn-power') + this.ship.getTurnPowerMultiplier();
 
     // === Compute angular velocity target ===
     const totalTurnPower = Math.min(MAXIMUM_TURN_POWER, Math.pow(rawTurnPower, FIN_DIMINISHING_EXPONENT));
@@ -359,7 +359,7 @@ export class MovementSystem {
     // === Max Speed Computation with Diminishing Returns ===
     const engineCount = thrusters.length + 1;
     const totalEngineThrust = thrusters.reduce((sum, t) => sum + t.power, 0);
-    const totalThrustPower = (totalEngineThrust + fallbackPower) * this.ship.getPassiveBonus('engine-thrust');
+    const totalThrustPower = (totalEngineThrust + fallbackPower) * (this.ship.getPassiveBonus('engine-thrust') + this.ship.getThrustMultiplier());
 
     const baseMaxSpeed = computeBaseMaxSpeed(totalThrustPower, engineCount);
 

@@ -136,8 +136,6 @@ export class FlameThrowerBackend implements WeaponBackend {
 
     if (!innerFlame && !intent.aimAt) return;
 
-    // const blockCount = plan.length; // Not used anymore?
-
     // Compute average tier for DOT scaling using store.tier[]
     let tierSum = 0;
     for (let i = 0; i < plan.length; i++) {
@@ -145,7 +143,7 @@ export class FlameThrowerBackend implements WeaponBackend {
       tierSum += store.tier[idx] ?? 0;
     }
     const avgTier = tierSum / plan.length;
-    const dotMultiplier = DOT_BASE_DAMAGE * plan.length + DOT_TIER_BONUS * avgTier;
+    const dotMultiplier = DOT_BASE_DAMAGE * plan.length + DOT_TIER_BONUS * avgTier + ship.getDamageMultiplier();
 
     // Determine highest-tier turret for stat scaling (fire stats and color index)
     let totalBlockDamage = 0;

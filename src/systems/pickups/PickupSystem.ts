@@ -19,6 +19,7 @@ import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
 import { GlobalSpriteRequestBus } from '@/rendering/unified/bus/SpriteRenderRequestBus';
 import { getGLPickupSprite } from '@/rendering/cache/PickupSpriteCache';
 import { getGL2BlockSprite } from '@/rendering/cache/BlockSpriteCache';
+import { UnlockedPassiveAggregator } from '@/game/passives/runtime/UnlockedPassiveAggregator';
 
 import { GlobalEventBus } from '@/core/EventBus';
 
@@ -142,6 +143,8 @@ export class PickupSystem {
 
   private quantumAttractorRemainingTime = 0;
 
+  private globalPickupRangeIncrease = 0;
+
   private handleClearAll = (): void => {
     this.clearAllPickups();
   };
@@ -157,6 +160,8 @@ export class PickupSystem {
     this.playerResources = PlayerResources.getInstance();
     this.soa = createPickupBuffer(MAX_PICKUPS);
     this.lightingOrchestrator = LightingOrchestrator.getInstance();
+
+    this.globalPickupRangeIncrease = UnlockedPassiveAggregator.getAggregatedPassives().harvestRange ?? 0;
 
     GlobalEventBus.on('pickup:clearAll', this.handleClearAll);
   }
@@ -493,7 +498,7 @@ export class PickupSystem {
     const shipPos = this.playerShip.getTransform().position;
     const baseRange = 700;
     const bonusRange = this.playerShip.getTotalHarvestRate() * PICKUP_RANGE_PER_HARVEST_UNIT;
-    let attractionRange = baseRange + bonusRange;
+    let attractionRange = baseRange + bonusRange + this.globalPickupRangeIncrease;
     let speedBoost = 1.0;
 
     if (this.quantumAttractorRemainingTime > 0) {

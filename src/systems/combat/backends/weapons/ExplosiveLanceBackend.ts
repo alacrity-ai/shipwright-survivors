@@ -110,7 +110,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     let fireRateBonus = ship.getPassiveBonus('explosive-lance-firing-rate');
     const { explosiveLanceFiringRate = 0, explosiveLanceDamage = 0, explosiveLanceRange = 0 } = ship.getSkillEffects();
     const { fireRateMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus += (fireRateMultiplier + explosiveLanceFiringRate);
+    fireRateBonus += (fireRateMultiplier + explosiveLanceFiringRate + ship.getFireRateMultiplier());
 
     const radiusBonus = ship.getPassiveBonus('explosive-lance-radius');
     const { baseDamageMultiplier = 1 } = ship.getPowerupBonus();

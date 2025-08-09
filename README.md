@@ -124,6 +124,31 @@ What's needed to get to Demo:
 - [ ] Engine sound on gamepad use
 - [ ] Add 5 more weapons
 
+Plugin Passives:
+{
+    "damage": 0.49999999999999994, // done
+    "harvestRange": 1200, // done
+    "armor": 100, // done
+    "fireRate": 0.3, // done
+    "mitigation": 0.3, // done
+    "thrust": 0.49999999999999994, // done
+    "entropiumPickupBonus": 0.49999999999999994, // done
+    "turnPower": 0.44999999999999996, // done
+    "abilityPower": 0.6,
+    "criticalChance": 0.35, // done
+    "criticalMultiplier": 0.35, // done
+    "stunChance": 0.05,
+    "explorer": 1,
+    "voidIntensity": 1,
+    "ignoreDamageChance": 0.17, // done
+    "blockDropRate": 0.44999999999999996, // done
+    "attachTierUpChance": 0.25,
+    "rareItemTradepostChance": 0.5,
+    "abilityCooldown": 0.6,
+    "incidentSpawnChance": 0.5,
+    "bossDamage": 0.5
+}
+
 TODOS:
   - [ ] Ship construction animator service: We need to limit for performance reasons, the amount of ships that we actively spawn with animations.  We need a construction fast path, that just instantly spawns a ship if we're already spawning say 10 ships at once. We can just use a createLightFlash with a radius of like 1000 cyan color for this.
 

@@ -978,9 +978,8 @@ export class Ship extends CompositeBlockObject {
       return false;
     }
 
-    const durabilityMultiplier = this.getPassiveBonus('block-durability');
-    const passiveFlatBonus = this.getArmorBonusForBlockType(type);
-    const hp = Math.floor(type.armor * durabilityMultiplier + passiveFlatBonus);
+    const durabilityBonus = this.getGlobalPassives().armor ?? 0;
+    const hp = Math.floor(type.armor + durabilityBonus);
 
     const idx = this.placeBlock(coord, blockId, rotation, group, hp);
     return idx !== -1;

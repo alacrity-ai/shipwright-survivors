@@ -102,7 +102,7 @@ export class LaserBackend implements WeaponBackend {
     let fireRateBonus = 1.0;
     let damageBonus = ship.getPassiveBonus('laser-damage');
     const { fireRateMultiplier = 0, baseDamageMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus += fireRateMultiplier + laserFiringRate;
+    fireRateBonus += fireRateMultiplier + laserFiringRate + ship.getFireRateMultiplier();
     damageBonus += baseDamageMultiplier;
 
     // ─── Iterate over each laser-emitting block (SOA indices) ────────────────────

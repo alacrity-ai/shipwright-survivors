@@ -67,7 +67,7 @@ export class TurretBackend implements WeaponBackend {
     const accuracyBonus = ship.getPassiveBonus('turret-accuracy');
 
     const { fireRateMultiplier = 0, baseDamageMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus += fireRateMultiplier;
+    fireRateBonus += fireRateMultiplier + ship.getFireRateMultiplier();
     damageBonus += baseDamageMultiplier;
 
     const {

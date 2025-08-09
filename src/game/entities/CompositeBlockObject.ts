@@ -22,6 +22,8 @@ import { CollisionBoxOrchestrator } from './collisionbox/CollisionBoxOrchestrato
 import { Faction } from '@/game/interfaces/types/Faction';
 import { AnchorPointComponent } from '@/game/ship/anchors/AnchorPointComponent';
 
+import { UnlockedPassiveAggregator } from '../passives/runtime/UnlockedPassiveAggregator';
+import type { PassiveNodeMetadata } from '@/game/passives/interfaces/PassiveNodeMetadata';
 
 export abstract class CompositeBlockObject {
   readonly id: string;
@@ -57,6 +59,27 @@ export abstract class CompositeBlockObject {
   protected bossPhase: number = 1;
 
   protected anchorPointComponent: AnchorPointComponent | null = null;
+
+  // == Passive bonuses
+  protected unlockedPassives: PassiveNodeMetadata = {};
+  // == Convenience aggregations
+  // Offense
+  protected fireRateMultiplierBonus: number = 0;
+  protected damageMultiplierBonus: number = 0;
+  protected damageMitigationBonus: number = 0;
+  protected criticalChanceBonus: number = 0;
+  protected criticalMultiplierBonus: number = 0;
+  protected stunChanceBonus: number = 0;
+  // Defense
+  protected armorBonus: number = 0;
+  protected mitigationBonus: number = 0;
+  protected ignoreDamageChanceBonus: number = 0;
+  // Movement
+  protected thrustMultiplierBonus: number = 0;
+  protected turnPowerMultiplierBonus: number = 0;
+  // Utility
+  protected blockDropRateMultiplier: number = 0;
+  protected entropiumPickupBonus: number = 0;
 
   private _lastTransformCheckX: number = NaN;
   private _lastTransformCheckY: number = NaN;
@@ -144,6 +167,79 @@ export abstract class CompositeBlockObject {
 
   public isDestroying(): boolean {
     return this.destroying;
+  }
+
+  // --- Passives ---
+
+  public getGlobalPassives(): PassiveNodeMetadata {
+    return this.unlockedPassives;
+  }
+
+  public setGlobalPassives(passives: PassiveNodeMetadata): void {
+    this.unlockedPassives = passives;
+    console.log('Global passives set to: ', passives);
+
+    // Update convenience accessors
+    this.fireRateMultiplierBonus += passives.fireRate ?? 0;
+    this.damageMultiplierBonus += passives.damage ?? 0;
+    this.mitigationBonus += passives.mitigation ?? 0;
+    this.armorBonus += passives.armor ?? 0;
+    this.ignoreDamageChanceBonus += passives.ignoreDamageChance ?? 0;
+    this.criticalChanceBonus += passives.criticalChance ?? 0;
+    this.criticalMultiplierBonus += passives.criticalMultiplier ?? 0;
+    this.stunChanceBonus += passives.stunChance ?? 0;
+    this.thrustMultiplierBonus += passives.thrust ?? 0;
+    this.turnPowerMultiplierBonus += passives.turnPower ?? 0;
+    this.blockDropRateMultiplier += passives.blockDropRate ?? 0;
+    this.entropiumPickupBonus += passives.entropiumPickupBonus ?? 0;
+  }
+
+  public getFireRateMultiplier(): number {
+    return this.fireRateMultiplierBonus;
+  }
+
+  public getDamageMitigation(): number {
+    return this.mitigationBonus;
+  }
+
+  public getArmorBonus(): number {
+    return this.armorBonus;
+  }
+
+  public getDamageMultiplier(): number {
+    return this.damageMultiplierBonus;
+  }
+
+  public getCriticalChance(): number {
+    return this.criticalChanceBonus;
+  }
+
+  public getCriticalMultiplier(): number {
+    return this.criticalMultiplierBonus;
+  }
+
+  public getStunChance(): number {
+    return this.stunChanceBonus;
+  }
+
+  public getThrustMultiplier(): number {
+    return this.thrustMultiplierBonus;
+  }
+
+  public getTurnPowerMultiplier(): number {
+    return this.turnPowerMultiplierBonus;
+  }
+
+  public getBlockDropRateMultiplier(): number {
+    return this.blockDropRateMultiplier;
+  }
+
+  public getEntropiumPickupBonus(): number {
+    return this.entropiumPickupBonus;
+  }
+
+  public getIgnoreDamageChance(): number {
+    return this.ignoreDamageChanceBonus;
   }
 
   // --- Block Access & Placement ---

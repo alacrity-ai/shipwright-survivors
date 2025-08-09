@@ -7,6 +7,8 @@ import { missionLoader } from '@/game/missions/MissionLoader';
 import { PlayerPassiveManager } from '@/game/player/PlayerPassiveManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
 
+import { ShipRegistry } from '@/game/ship/ShipRegistry';
+
 import { BlockManager } from '@/game/blocks/system/BlockManager';
 import { getBlockTypeByIndex } from '@/game/blocks/BlockRegistry';
 import type { BlockStore } from '@/game/blocks/system/BlockStore';
@@ -129,6 +131,8 @@ export class PickupSpawner {
     if (this.pickupDropsDisabled) return;
 
     const store = this.store;
+    const playerShip = ShipRegistry.getInstance().getPlayerShip();
+    if (!playerShip) return;
 
     // Validate the block slot
     if (!store.isAllocated(blockIndex) || store.destroyed[blockIndex]) {
@@ -138,7 +142,7 @@ export class PickupSpawner {
     // === Drop rate calculation using cached SOA field ===
     const baseDropRate = store.dropRate[blockIndex];
     const missionMultiplier = missionLoader.getDropMultiplier();
-    const passiveDropMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('block-drop-rate');
+    const passiveDropMultiplier = 1 + playerShip.getBlockDropRateMultiplier();
     const effectiveDropRate = Math.min(
       baseDropRate * missionMultiplier * passiveDropMultiplier * blockDropRateMulti,
       1.0
@@ -170,13 +174,12 @@ export class PickupSpawner {
         this.pickupSystem.spawnRepairPickup(pickupPosition, repairAmount);
       } else if (Math.random() < (0.8 * entropiumDropRateMulti)) {
         let currencyAmount = this.getCurrencyAmountForBlock(blockIndex);
-        const currencyMultiplier = PlayerPassiveManager.getInstance().getPassiveBonus('entropium-pickup-bonus');
+        const currencyMultiplier = 1 + playerShip.getEntropiumPickupBonus();
         currencyAmount = Math.floor(currencyAmount * currencyMultiplier);
         this.pickupSystem.spawnCurrencyPickup(pickupPosition, currencyAmount);
       }
     }
   }
-
 
   private getCurrencyAmountForBlock(blockIndex: number): number {
     // Directly read tier from SOA (already cached at block creation)

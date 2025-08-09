@@ -79,9 +79,9 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     const fireRequested = intent?.firePrimary ?? false;
 
-    let fireRateBonus = ship.getPassiveBonus('heat-seeker-firing-rate');
-    const { fireRateMultiplier = 0 } = ship.getPowerupBonus();
-    fireRateBonus += fireRateMultiplier;
+    let fireRateBonus = ship.getFireRateMultiplier(); // Global passive multiplier, e.g. 0.2 (20%)
+    const { fireRateMultiplier = 0 } = ship.getPowerupBonus(); // Ship passive multiplier, e.g. (15%)
+    fireRateBonus += fireRateMultiplier
 
     const {
       seekerMissileDamage = 0,
@@ -93,7 +93,7 @@ export class HeatSeekerBackend implements WeaponBackend {
 
     for (const seeker of plan) {
       seeker.timeSinceLastShot += dt;
-      if (!fireRequested || seeker.timeSinceLastShot < seeker.fireCooldown / fireRateBonus) continue;
+      if (!fireRequested || seeker.timeSinceLastShot < seeker.fireCooldown / (1 + fireRateBonus)) continue;
       seeker.timeSinceLastShot = 0;
 
       const idx = seeker.blockIndex;

@@ -1,11 +1,11 @@
-// src/game/passives/ui/PassiveTreeBreakdownWindow.ts
-
 import { DEFAULT_CONFIG } from '@/config/ui';
 import { getUniformScaleFactor } from '@/config/view';
 import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { UnlockedPassiveAggregator } from '@/game/passives/runtime/UnlockedPassiveAggregator';
 import type { PassiveNodeMetadata } from '@/game/passives/interfaces/PassiveNodeMetadata';
+import { InputManager } from '@/core/InputManager';  // Injecting InputManager
+import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 
 /**
  * PassiveTreeBreakdownWindow
@@ -15,9 +15,11 @@ import type { PassiveNodeMetadata } from '@/game/passives/interfaces/PassiveNode
  */
 export class PassiveTreeBreakdownWindow {
   private _visible = true;
+  private collapsed = false;  // Track collapsed state
+  private input: InputManager;  // InputManager injected for mouse handling
 
   // Layout (logical px before uiScale)
-  private readonly MARGIN = 16;
+  private readonly MARGIN = 6;
   private readonly WINDOW_WIDTH = 360;
   private readonly PADDING_X = 16;
   private readonly PADDING_Y = 14;
@@ -145,10 +147,17 @@ export class PassiveTreeBreakdownWindow {
     // Incidents
     'incidentSpawnChance',
   ]);
-  // Flat examples: armor, harvestRange
 
   public setVisible(v: boolean): void { this._visible = v; }
   public isVisible(): boolean { return this._visible; }
+
+  /**
+   * Inject InputManager to handle mouse and input interactions.
+   * @param input InputManager instance
+   */
+  constructor(input: InputManager) {
+    this.input = input;
+  }
 
   /**
    * Render anchored to top-right of the overlay canvas.
@@ -159,11 +168,9 @@ export class PassiveTreeBreakdownWindow {
 
     const P = UnlockedPassiveAggregator.getAggregatedPassives();
 
-    // Fixed rows/sections by design (show everything)
-    const rows = PassiveTreeBreakdownWindow.TOTAL_ROWS;
-    const sections = PassiveTreeBreakdownWindow.TOTAL_SECTIONS;
+    const rows = this.collapsed ? 0 : PassiveTreeBreakdownWindow.TOTAL_ROWS;  // 1 row when collapsed
+    const sections = this.collapsed ? 1 : PassiveTreeBreakdownWindow.TOTAL_SECTIONS;
 
-    // Compute window geometry (logical → scaled).
     const logicalW = this.WINDOW_WIDTH;
     const logicalH =
       this.PADDING_Y * 2 +
@@ -177,14 +184,12 @@ export class PassiveTreeBreakdownWindow {
     const x = Math.round(ctx.canvas.width - w - this.MARGIN * uiScale);
     const y = Math.round(this.MARGIN * uiScale);
 
-    // Draw window chrome using configured options
     drawMinimalistWindow(ctx, x, y, w, h, {
       alpha: 1.0,
       borderRadius: DEFAULT_CONFIG.window.options.borderRadius,
       borderColor: DEFAULT_CONFIG.window.options.borderColor,
     });
 
-    // Content origin
     const contentX = x + Math.round(this.PADDING_X * uiScale);
     let cy = y + Math.round(this.PADDING_Y * uiScale);
 
@@ -203,13 +208,20 @@ export class PassiveTreeBreakdownWindow {
     );
     cy += Math.round((this.TITLE_GAP + this.TITLE_HEIGHT) * uiScale);
 
-    // Sections (always draw all)
-    cy = this.drawSection(ctx, 'Offense',   P, PassiveTreeBreakdownWindow.OFFENSE_KEYS,   contentX, cy, uiScale);
-    cy = this.drawSection(ctx, 'Defense',   P, PassiveTreeBreakdownWindow.DEFENSE_KEYS,   contentX, cy, uiScale);
-    cy = this.drawSection(ctx, 'Movement',  P, PassiveTreeBreakdownWindow.MOVEMENT_KEYS,  contentX, cy, uiScale);
-    cy = this.drawSection(ctx, 'Utility',   P, PassiveTreeBreakdownWindow.UTILITY_KEYS,   contentX, cy, uiScale);
-    cy = this.drawSection(ctx, 'Ability',   P, PassiveTreeBreakdownWindow.ABILITY_KEYS,   contentX, cy, uiScale);
-    cy = this.drawSection(ctx, 'Incidents', P, PassiveTreeBreakdownWindow.INCIDENTS_KEYS, contentX, cy, uiScale);
+    // Collapse button
+    const collapseButton = this.createCollapseButton(x + w - (42 * uiScale), y + (10 * uiScale), uiScale);
+    drawButton(ctx, collapseButton, 1, 15 * uiScale);
+    this.handleButtonInteraction(collapseButton, uiScale);  // Handle button click interaction
+
+    // Draw sections if not collapsed
+    if (!this.collapsed) {
+      cy = this.drawSection(ctx, 'Offense', P, PassiveTreeBreakdownWindow.OFFENSE_KEYS, contentX, cy, uiScale);
+      cy = this.drawSection(ctx, 'Defense', P, PassiveTreeBreakdownWindow.DEFENSE_KEYS, contentX, cy, uiScale);
+      cy = this.drawSection(ctx, 'Movement', P, PassiveTreeBreakdownWindow.MOVEMENT_KEYS, contentX, cy, uiScale);
+      cy = this.drawSection(ctx, 'Utility', P, PassiveTreeBreakdownWindow.UTILITY_KEYS, contentX, cy, uiScale);
+      cy = this.drawSection(ctx, 'Ability', P, PassiveTreeBreakdownWindow.ABILITY_KEYS, contentX, cy, uiScale);
+      cy = this.drawSection(ctx, 'Incidents', P, PassiveTreeBreakdownWindow.INCIDENTS_KEYS, contentX, cy, uiScale);
+    }
   }
 
   // ---------- Rendering helpers ----------
@@ -318,5 +330,36 @@ export class PassiveTreeBreakdownWindow {
     const sign = v > 0 ? '+' : v < 0 ? '' : '';
     const isIntish = Math.abs(v - Math.round(v)) < 1e-3;
     return `${sign}${isIntish ? Math.round(v) : v.toFixed(2)}`;
+  }
+
+  // ---------- Collapse button helpers ----------
+
+  private createCollapseButton(x: number, y: number, uiScale: number): UIButton {
+    return {
+      x, y, width: 32 * uiScale, height: 32 * uiScale,
+      label: this.collapsed ? '↓' : '↑',  // Down arrow when collapsed, Up arrow when expanded
+      onClick: () => this.toggleCollapse(),
+
+    };
+  }
+
+  private toggleCollapse(): void {
+    this.collapsed = !this.collapsed;
+  }
+
+  private handleButtonInteraction(button: UIButton, uiScale: number): void {
+    const mouseX = this.input.getMousePosition()?.x ?? 0;
+    const mouseY = this.input.getMousePosition()?.y ?? 0;
+    const wasClicked = this.input.wasMouseClicked();
+    if (wasClicked && this.isMouseOver(button, mouseX, mouseY, uiScale)) {
+      button.onClick();
+    }
+  }
+
+  private isMouseOver(button: UIButton, mouseX: number, mouseY: number, uiScale: number): boolean {
+    const width = button.width * uiScale;
+    const height = button.height * uiScale;
+    return mouseX >= button.x && mouseX <= button.x + width &&
+           mouseY >= button.y && mouseY <= button.y + height;
   }
 }
