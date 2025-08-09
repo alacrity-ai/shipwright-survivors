@@ -31,8 +31,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "criticalChance": 0.1,
-          "criticalMultiplier": 0.1
+          "criticalChance": 0.1
         }
       }
     },
@@ -48,8 +47,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "criticalChance": 0.1,
-          "criticalMultiplier": 0.1
+          "criticalChance": 0.1
         }
       }
     },
@@ -65,7 +63,7 @@
         "cost": 100,
         "masteryRequirement": 0,
         "metadata": {
-          "bossDamage": 0.2
+          "bossMastery": 0.25
         }
       }
     },
@@ -81,26 +79,13 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "criticalChance": 0.1,
-          "criticalMultiplier": 0.1
+          "criticalChance": 0.1
         }
       }
     },
     {
       "x": 68,
-      "y": 29,
-      "metadata": {
-        "id": "voidWalker-3",
-        "name": "Prime Void Walker",
-        "description": "Supercharged Voids.",
-        "icon": "icon-voidwalker",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "voidIntensity": 0.4
-        }
-      }
+      "y": 29
     },
     {
       "x": 36,
@@ -114,25 +99,13 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "bossDamage": 0.1
+          "bossMastery": 0.1
         }
       }
     },
     {
       "x": 64,
-      "y": 31,
-      "metadata": {
-        "id": "voidWalker-1",
-        "name": "Void Walker",
-        "description": "Increases Void Intensity.",
-        "icon": "icon-voidwalkerMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "voidIntensity": 0.2
-        }
-      }
+      "y": 31
     },
     {
       "x": 45,
@@ -195,25 +168,13 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "bossDamage": 0.1
+          "bossMastery": 0.1
         }
       }
     },
     {
       "x": 68,
-      "y": 33,
-      "metadata": {
-        "id": "voidWalker-2",
-        "name": "Void Walker",
-        "description": "Increases Void Intensity.",
-        "icon": "icon-voidwalkerMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "voidIntensity": 0.2
-        }
-      }
+      "y": 33
     },
     {
       "x": 35,
@@ -227,7 +188,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "bossDamage": 0.1
+          "bossMastery": 0.1
         }
       }
     },
@@ -297,19 +258,7 @@
     },
     {
       "x": 65,
-      "y": 34,
-      "metadata": {
-        "id": "voidWalker-0",
-        "name": "Void Walker",
-        "description": "Increases Void Intensity.",
-        "icon": "icon-voidwalkerMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "voidIntensity": 0.2
-        }
-      }
+      "y": 34
     },
     {
       "x": 43,
@@ -682,67 +631,19 @@
     },
     {
       "x": 27,
-      "y": 48,
-      "metadata": {
-        "id": "explorer-1",
-        "name": "Explorer",
-        "description": "Increases Thrust while Exploring.",
-        "icon": "icon-explorerMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "explorer": 0.2
-        }
-      }
+      "y": 48
     },
     {
       "x": 73,
-      "y": 48,
-      "metadata": {
-        "id": "atronach-1",
-        "name": "Atronach",
-        "description": "Chance to ignore hits.",
-        "icon": "icon-atronachMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreDamageChance": 0.03
-        }
-      }
+      "y": 48
     },
     {
       "x": 24,
-      "y": 50,
-      "metadata": {
-        "id": "explorer-3",
-        "name": "Prime Explorer",
-        "description": "Massive Thrust while Exploring.",
-        "icon": "icon-explorer",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "explorer": 0.4
-        }
-      }
+      "y": 50
     },
     {
       "x": 29,
-      "y": 50,
-      "metadata": {
-        "id": "explorer-0",
-        "name": "Explorer",
-        "description": "Increases Thrust while Exploring.",
-        "icon": "icon-explorerMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "explorer": 0.2
-        }
-      }
+      "y": 50
     },
     {
       "x": 32,
@@ -891,67 +792,19 @@
     },
     {
       "x": 71,
-      "y": 50,
-      "metadata": {
-        "id": "atronach-0",
-        "name": "Atronach",
-        "description": "Chance to ignore hits.",
-        "icon": "icon-atronachMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreDamageChance": 0.03
-        }
-      }
+      "y": 50
     },
     {
       "x": 76,
-      "y": 50,
-      "metadata": {
-        "id": "atronach-3",
-        "name": "Prime Atronach",
-        "description": "High chance to ignore hits.",
-        "icon": "icon-atronachMinor",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreDamageChance": 0.08
-        }
-      }
+      "y": 50
     },
     {
       "x": 27,
-      "y": 52,
-      "metadata": {
-        "id": "explorer-2",
-        "name": "Explorer",
-        "description": "Increases Thrust while Exploring.",
-        "icon": "icon-explorerMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "explorer": 0.2
-        }
-      }
+      "y": 52
     },
     {
       "x": 73,
-      "y": 52,
-      "metadata": {
-        "id": "atronach-2",
-        "name": "Atronach",
-        "description": "Chance to ignore hits.",
-        "icon": "icon-atronachMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreDamageChance": 0.03
-        }
-      }
+      "y": 52
     },
     {
       "x": 34,
@@ -1324,51 +1177,15 @@
     },
     {
       "x": 32,
-      "y": 65,
-      "metadata": {
-        "id": "trademaster-1",
-        "name": "Trademaster",
-        "description": "Higher chance for rare items in Tradeposts.",
-        "icon": "icon-trademasterMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rareItemTradepostChance": 0.1
-        }
-      }
+      "y": 65
     },
     {
       "x": 68,
-      "y": 65,
-      "metadata": {
-        "id": "incidentInvestigator-1",
-        "name": "Incident Investigator",
-        "description": "Higher chance for Incidents to appear.",
-        "icon": "icon-incidentInvestigatorMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "incidentSpawnChance": 0.1
-        }
-      }
+      "y": 65
     },
     {
       "x": 35,
-      "y": 66,
-      "metadata": {
-        "id": "trademaster-0",
-        "name": "Trademaster",
-        "description": "Higher chance for rare items in Tradeposts.",
-        "icon": "icon-trademasterMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rareItemTradepostChance": 0.1
-        }
-      }
+      "y": 66
     },
     {
       "x": 40,
@@ -1436,19 +1253,7 @@
     },
     {
       "x": 65,
-      "y": 66,
-      "metadata": {
-        "id": "incidentInvestigator-0",
-        "name": "Incident Investigator",
-        "description": "Higher chance for Incidents to appear.",
-        "icon": "icon-incidentInvestigatorMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "incidentSpawnChance": 0.1
-        }
-      }
+      "y": 66
     },
     {
       "x": 45,
@@ -1501,131 +1306,35 @@
     },
     {
       "x": 30,
-      "y": 69,
-      "metadata": {
-        "id": "trademaster-3",
-        "name": "Prime Trademaster",
-        "description": "Chance for Unique Items in Tradeposts.",
-        "icon": "icon-trademaster",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rareItemTradepostChance": 0.2
-        }
-      }
+      "y": 69
     },
     {
       "x": 34,
-      "y": 69,
-      "metadata": {
-        "id": "trademaster-2",
-        "name": "Trademaster",
-        "description": "Higher chance for rare items in Tradeposts.",
-        "icon": "icon-trademasterMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rareItemTradepostChance": 0.1
-        }
-      }
+      "y": 69
     },
     {
       "x": 66,
-      "y": 69,
-      "metadata": {
-        "id": "incidentInvestigator-2",
-        "name": "Incident Investigator",
-        "description": "Higher chance for Incidents to appear.",
-        "icon": "icon-incidentInvestigatorMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "incidentSpawnChance": 0.1
-        }
-      }
+      "y": 69
     },
     {
       "x": 70,
-      "y": 69,
-      "metadata": {
-        "id": "incidentInvestigator-3",
-        "name": "Prime Investigator",
-        "description": "High chance for Incidents to appear.",
-        "icon": "icon-incidentInvestigatorMinor",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "incidentSpawnChance": 0.2
-        }
-      }
+      "y": 69
     },
     {
       "x": 50,
-      "y": 71,
-      "metadata": {
-        "id": "builder-0",
-        "name": "Builder",
-        "description": "Chance for Block Attachment to instantly upgrade Tier.",
-        "icon": "icon-builderMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "attachTierUpChance": 0.05
-        }
-      }
+      "y": 71
     },
     {
       "x": 48,
-      "y": 73,
-      "metadata": {
-        "id": "builder-2",
-        "name": "Builder",
-        "description": "Chance for Block Attachment to instantly upgrade Tier.",
-        "icon": "icon-builderMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "attachTierUpChance": 0.05
-        }
-      }
+      "y": 73
     },
     {
       "x": 52,
-      "y": 73,
-      "metadata": {
-        "id": "builder-1",
-        "name": "Builder",
-        "description": "Chance for Block Attachment to instantly upgrade Tier.",
-        "icon": "icon-builderMinor",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "attachTierUpChance": 0.05
-        }
-      }
+      "y": 73
     },
     {
       "x": 50,
-      "y": 76,
-      "metadata": {
-        "id": "builder-3",
-        "name": "Prime Builder",
-        "description": "Chance for Block Attachment to instantly upgrade Tier.",
-        "icon": "icon-builder",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "attachTierUpChance": 0.1
-        }
-      }
+      "y": 76
     }
   ],
   "connections": [
@@ -4430,5 +4139,5 @@
       }
     }
   ],
-  "timestamp": "2025-08-09T02:00:50.581Z"
+  "timestamp": "2025-08-09T00:40:44.259Z"
 }
