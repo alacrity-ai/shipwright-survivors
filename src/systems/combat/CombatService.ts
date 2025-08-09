@@ -164,7 +164,6 @@ export class CombatService {
     const rawDamage = damage;
 
     if (sameFaction) {
-      if (cause === 'laser') console.log('[CombatService] DID NOT APPLY DAMAGE DUE TO SAME FACTION');
       return false;
     }
 
@@ -230,8 +229,6 @@ export class CombatService {
     } = isEntityShip ? entity.getPowerupBonus() : {};
 
     const globalPassiveDamage = source.getDamageMultiplier();
-    console.log('[Raw Damage] : ', damage);
-    console.log('[Global Passive Damage] : ', globalPassiveDamage);
 
     let {
       critChance = 0,
@@ -256,22 +253,15 @@ export class CombatService {
 
     const isReflected = cause === 'reflected';
     const canCrit = !isReflected || reflectCanCrit;
-    if (source.getIsPlayerShip()) {
-      console.log('GOT: Critical Hit Chance: ', critChance);
-    }
     const isCriticalHit = canCrit && Math.random() < critChance;
     if (isCriticalHit) {
       damage *= critMultiplier;
     }
 
     damage *= (1 + globalPassiveDamage);             // Global passive damage bonus multiplier
-    console.log('[After Global Passive Damage] : ', damage);
     damage *= (1 - flatDamageReductionPercent);      // Flat damage reduction
-    console.log('[After Flat Damage Reduction] : ', damage);
     damage /= (affixes?.blockDurabilityMulti ?? 1);  // Block durability multiplier
-    console.log('[After Block Durability] : ', damage);
     damage *= (1 - entity.getDamageMitigation());    // Damage mitigation (passives, affixes)
-    console.log('[After Damage Mitigation] : ', damage);
 
     // Cockpit is always at 0,0 local coords
     const isCockpit = store.localX[blockIndex] === 0 && store.localY[blockIndex] === 0;
