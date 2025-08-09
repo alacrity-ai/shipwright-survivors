@@ -725,13 +725,13 @@ void main() {\r
 precision mediump float;\r
 \r
 // ─── Inputs from Vertex Shader ───────────────────────────────────────────\r
-in vec2 vUV;                // Local quad UV (0–1)\r
-in vec2 vScreenUV;          // For lightmap sampling\r
-in vec2 vBaseUVOffset;      // Top-left corner of base sprite in atlas\r
-in vec2 vOverlayUVOffset;   // Top-left corner of overlay sprite in atlas\r
-in float vUseOverlay;       // 1.0 = overlay, 0.0 = base\r
-in vec3 vColor;             // Optional color tint\r
-in float vUseColor;         // 1.0 if color override enabled\r
+in vec2 vUV;\r
+in vec2 vScreenUV;\r
+in vec2 vBaseUVOffset;\r
+in vec2 vOverlayUVOffset;\r
+in float vUseOverlay;\r
+in vec3 vColor;\r
+in float vUseColor;\r
 \r
 // ─── Outputs ─────────────────────────────────────────────────────────────\r
 out vec4 outColor;\r
@@ -741,42 +741,147 @@ uniform sampler2D uBlockAtlas;\r
 uniform sampler2D uLightMap;\r
 \r
 uniform float uTime;\r
-uniform vec3 uCollisionColor;\r
-uniform bool uUseCollisionColor;\r
-uniform vec3 uAmbientLight;\r
+uniform vec3  uCollisionColor;\r
+uniform bool  uUseCollisionColor;\r
+uniform vec3  uAmbientLight;\r
 \r
-uniform vec2 uTileSize; // Atlas tile size (normalized)\r
+uniform vec2  uTileSize; // normalized per-tile size in atlas\r
 uniform float uBlockColorIntensity;\r
 \r
-void main() {\r
-  // === Determine which tile to sample ===\r
-  vec2 spriteUV = vUV;\r
-  vec2 tileOffset = mix(vBaseUVOffset, vOverlayUVOffset, step(0.5, vUseOverlay));\r
-  vec2 atlasUV = tileOffset + spriteUV * uTileSize;\r
+// ─── Helpers ─────────────────────────────────────────────────────────────\r
+float saturate(float x) { return clamp(x, 0.0, 1.0); }\r
+vec3  saturate(vec3  v) { return clamp(v, 0.0, 1.0); }\r
 \r
-  // === Sample base color from atlas ===\r
+// Cheap luma for height derivation / energy scaling\r
+float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }\r
+\r
+// Smith GGX geometric term (fast approximation)\r
+float smithGGX(float NdotV, float NdotL, float a) {\r
+  float a2 = a * a;\r
+  float gv = NdotV + sqrt(a2 + (1.0 - a2) * NdotV * NdotV);\r
+  float gl = NdotL + sqrt(a2 + (1.0 - a2) * NdotL * NdotL);\r
+  return 1.0 / (gv * gl);\r
+}\r
+\r
+// Schlick Fresnel\r
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {\r
+  float oneMinus = 1.0 - cosTheta;\r
+  float oneMinus5 = oneMinus*oneMinus*oneMinus*oneMinus*oneMinus;\r
+  return F0 + (1.0 - F0) * oneMinus5;\r
+}\r
+\r
+// Derive a pseudo-normal from atlas luminance (height from albedo)\r
+vec3 heightNormal(vec2 uv, vec2 texel) {\r
+  // Small Sobel-ish taps in atlas space\r
+  float hC = luma(texture(uBlockAtlas, uv).rgb);\r
+  float hR = luma(texture(uBlockAtlas, uv + vec2(texel.x, 0.0)).rgb);\r
+  float hL = luma(texture(uBlockAtlas, uv - vec2(texel.x, 0.0)).rgb);\r
+  float hT = luma(texture(uBlockAtlas, uv + vec2(0.0, texel.y)).rgb);\r
+  float hB = luma(texture(uBlockAtlas, uv - vec2(0.0, texel.y)).rgb);\r
+  vec2 g = vec2(hR - hL, hT - hB);\r
+\r
+  // Scale controls apparent “bevel” depth; keep conservative for stability\r
+  const float depth = 1.8;\r
+  vec3 n = normalize(vec3(-g * depth, 1.0));\r
+  return n;\r
+}\r
+\r
+void main() {\r
+  // === Tile selection ===\r
+  vec2 spriteUV  = vUV;\r
+  vec2 tileOffset = mix(vBaseUVOffset, vOverlayUVOffset, step(0.5, vUseOverlay));\r
+  vec2 atlasUV   = tileOffset + spriteUV * uTileSize;\r
+\r
+  // === Base sample ===\r
   vec4 base = texture(uBlockAtlas, atlasUV);\r
   if (base.a < 0.01) discard;\r
 \r
-  // === Sample screen-space lighting ===\r
-  vec3 lightSample = texture(uLightMap, vScreenUV).rgb;\r
+  // === Lighting inputs ===\r
+  vec3 envL = texture(uLightMap, vScreenUV).rgb;  // used for both diffuse & faux reflections\r
 \r
-  // === Lighting composition (ambient + directional blend) ===\r
-  vec3 ambientComponent = base.rgb * uAmbientLight;\r
-  vec3 litComponent = base.rgb * lightSample;\r
-  base.rgb = mix(ambientComponent, litComponent, 0.85);\r
+  // === Derive a stable normal from the atlas itself ===\r
+  // One texel in atlas space for finite differences\r
+  vec2 texel = uTileSize / vec2(textureSize(uBlockAtlas, 0));\r
+  vec3 N = heightNormal(atlasUV, texel);\r
 \r
-  // === Optional block color override (modulates color post-lighting) ===\r
+  // View and light directions (screen-facing V; a plausible sun L)\r
+  const vec3 V = vec3(0.0, 0.0, 1.0);\r
+  const vec3 L = normalize(vec3(0.45, 0.55, 0.70));\r
+  const vec3 H = normalize(L + V);\r
+\r
+  float NdotL = saturate(dot(N, L));\r
+  float NdotV = saturate(dot(N, V));\r
+  float NdotH = saturate(dot(N, H));\r
+  float VdotH = saturate(dot(V, H));\r
+\r
+  // === Metallic shading parameters (no new uniforms) ===\r
+  // Treat everything as metal with albedo-tinted F0; roughness from brightness.\r
+  float brightness = luma(base.rgb);\r
+  float rough = clamp(0.10 + 0.20 * (1.0 - brightness), 0.06, 0.32); // darker → smoother metal\r
+  float a = max(rough*rough, 1e-4);\r
+\r
+  vec3  F0 = mix(vec3(0.04), base.rgb, 0.92);     // “very metallic”\r
+  vec3  F  = fresnelSchlick(NdotV, F0);\r
+\r
+  // GGX distribution (Trowbridge-Reitz)\r
+  float a2 = a * a;\r
+  float denom = max((NdotH*NdotH) * (a2 - 1.0) + 1.0, 1e-4);\r
+  float D = a2 / (3.14159265 * denom * denom);\r
+\r
+  // Geometry term\r
+  float G = smithGGX(NdotV, NdotL, a);\r
+\r
+  // Specular BRDF\r
+  vec3 spec = (D * G) * F * max(NdotL, 0.0);\r
+\r
+  // === Fake screen-space reflection using the light map ===\r
+  // Reflect view around N and parallax-offset inside lightmap for dynamic “chrome”.\r
+  vec3 R = reflect(-V, N);\r
+  // Map [-1,1] → small UV offset; scale with roughness for blurrier reflections on rougher surfaces.\r
+  float reflScale = mix(0.04, 0.012, rough); // smoother → larger sweep\r
+  vec2  rUv = vScreenUV + R.xy * reflScale;\r
+\r
+  // Two-tap blur for stability (cheap)\r
+  vec3 envRef1 = texture(uLightMap, clamp(rUv, 0.0, 1.0)).rgb;\r
+  vec3 envRef2 = texture(uLightMap, clamp(rUv + vec2(0.002, -0.002), 0.0, 1.0)).rgb;\r
+  vec3 envRef  = 0.5 * (envRef1 + envRef2);\r
+\r
+  // Fresnel-drive the reflection weight; keep some baseline metallic reflectance\r
+  float fres = saturate(0.08 + 0.92 * pow(1.0 - NdotV, 5.0));\r
+  vec3  reflection = envRef * (F0 * (0.35 + 0.65 * fres));\r
+\r
+  // === Diffuse (highly suppressed for metals) ===\r
+  // Retain a whisper of diffuse so painted metals still show hue under low light.\r
+  vec3 diffuse = base.rgb\r
+              * mix(uAmbientLight * 1.35, envL, 0.75)\r
+              * (0.12 + 0.32 * (1.0 - rough))\r
+              * NdotL;\r
+\r
+\r
+  // === Clearcoat lobe (tight, colorless highlight) ===\r
+  float coatRough = max(rough * 0.35, 0.02);\r
+  float coatA = coatRough * coatRough;\r
+  float coatDen = max((NdotH*NdotH)*(coatA*coatA - 1.0) + 1.0, 1e-4);\r
+  float coatD = (coatA*coatA) / (3.14159265 * coatDen * coatDen);\r
+  float coatG = smithGGX(NdotV, NdotL, coatA);\r
+  float coat = coatD * coatG * saturate(dot(N, L));\r
+  // Energy-conserving mix so we don’t blow out\r
+  vec3 specular = spec + vec3(0.5) * coat;\r
+\r
+  // === Compose ===\r
+  vec3 lit = diffuse + specular + reflection;\r
+\r
+  // Optional block color tint (post-lighting modulation, as in your original)\r
   if (vUseColor > 0.5) {\r
-    base.rgb = mix(base.rgb, base.rgb * vColor, uBlockColorIntensity);\r
+    lit = mix(lit, lit * vColor, uBlockColorIntensity);\r
   }\r
 \r
-  // === Optional collision color override (debug visual) ===\r
+  // Optional collision override (debug)\r
   if (uUseCollisionColor) {\r
-    base.rgb = uCollisionColor;\r
+    lit = uCollisionColor;\r
   }\r
 \r
-  outColor = base;\r
+  outColor = vec4(saturate(lit), base.a);\r
 }\r
 `,xr=12,Sr=Bm*xr;class C3{constructor(t){this.maxBlocks=Bm,this.instanceBufferSize=Sr,this.ambientLight=[2.2,2.2,2.2],this.instanceData=new Float32Array(Sr),this.instanceCount=0,this.dataIndex=0,this.gl=t,this.program=oe(t,w3,M3),this.instanceData=new Float32Array(Sr),this.uploadView=new Float32Array(this.instanceData.buffer),this.blockManager=yt.getInstance(),this.blockStore=this.blockManager.getBlockStore(),this.maxBlocks=Math.min(Bm,kd(t)),this.instanceBufferSize=this.maxBlocks*xr;const e=lx(t);this.blockAtlasTexture=e.texture,this.tileSize=[e.tileWidth,e.tileHeight];const i=t.getUniformBlockIndex(this.program,"CameraBlock");i!==t.INVALID_INDEX&&t.uniformBlockBinding(this.program,i,0),this.quadBuffer=Ln(t),this.instanceBuffer=t.createBuffer(),this.vao=t.createVertexArray(),t.bindVertexArray(this.vao),t.bindBuffer(t.ARRAY_BUFFER,this.quadBuffer),t.enableVertexAttribArray(0),t.vertexAttribPointer(0,2,t.FLOAT,!1,0,0),t.vertexAttribDivisor(0,0),t.bindBuffer(t.ARRAY_BUFFER,this.instanceBuffer);const s=xr*4;let a=0;t.enableVertexAttribArray(1),t.vertexAttribPointer(1,2,t.FLOAT,!1,s,a),t.vertexAttribDivisor(1,1),a+=8,t.enableVertexAttribArray(2),t.vertexAttribPointer(2,1,t.FLOAT,!1,s,a),t.vertexAttribDivisor(2,1),a+=4,t.enableVertexAttribArray(3),t.vertexAttribPointer(3,2,t.FLOAT,!1,s,a),t.vertexAttribDivisor(3,1),a+=8,t.enableVertexAttribArray(4),t.vertexAttribPointer(4,2,t.FLOAT,!1,s,a),t.vertexAttribDivisor(4,1),a+=8,t.enableVertexAttribArray(5),t.vertexAttribPointer(5,1,t.FLOAT,!1,s,a),t.vertexAttribDivisor(5,1),a+=4,t.enableVertexAttribArray(6),t.vertexAttribPointer(6,3,t.FLOAT,!1,s,a),t.vertexAttribDivisor(6,1),a+=12,t.enableVertexAttribArray(7),t.vertexAttribPointer(7,1,t.FLOAT,!1,s,a),t.vertexAttribDivisor(7,1),t.bindVertexArray(null),t.bindBuffer(t.ARRAY_BUFFER,this.instanceBuffer),t.bufferData(t.ARRAY_BUFFER,Sr*4,t.DYNAMIC_DRAW),t.bindBuffer(t.ARRAY_BUFFER,null),this.uniforms={uBlockScale:t.getUniformLocation(this.program,"uBlockScale"),uLightMap:t.getUniformLocation(this.program,"uLightMap"),uTime:t.getUniformLocation(this.program,"uTime"),uCollisionColor:t.getUniformLocation(this.program,"uCollisionColor"),uUseCollisionColor:t.getUniformLocation(this.program,"uUseCollisionColor"),uAmbientLight:t.getUniformLocation(this.program,"uAmbientLight"),uBlockColorIntensity:t.getUniformLocation(this.program,"uBlockColorIntensity"),uBlockAtlas:t.getUniformLocation(this.program,"uBlockAtlas"),uTileSize:t.getUniformLocation(this.program,"uTileSize")}}addInstanceData(t,e,i,s,a,l,c,h,d,f,g,m){if(this.dataIndex+xr>this.instanceBufferSize){console.warn("EntityPass: Instance buffer overflow, skipping remaining blocks");return}const v=this.instanceData,b=this.dataIndex;v[b]=t,v[b+1]=e,v[b+2]=i,v[b+3]=s,v[b+4]=a,v[b+5]=l,v[b+6]=c,v[b+7]=h,v[b+8]=d,v[b+9]=f,v[b+10]=g,v[b+11]=m,this.dataIndex+=xr}render(t,e){const{gl:i,blockStore:s}=this,a=performance.now()/1e3;this.dataIndex=0,this.instanceCount=0,i.viewport(0,0,i.drawingBufferWidth,i.drawingBufferHeight),i.useProgram(this.program),i.bindVertexArray(this.vao),i.enable(i.BLEND),i.blendFunc(i.SRC_ALPHA,i.ONE_MINUS_SRC_ALPHA),i.uniform2f(this.uniforms.uBlockScale,gt,gt),i.uniform1f(this.uniforms.uTime,a),i.uniform3f(this.uniforms.uAmbientLight,...this.ambientLight),i.uniform1f(this.uniforms.uBlockColorIntensity,1),i.activeTexture(i.TEXTURE1),i.bindTexture(i.TEXTURE_2D,t),i.uniform1i(this.uniforms.uLightMap,1),i.activeTexture(i.TEXTURE0),i.bindTexture(i.TEXTURE_2D,this.blockAtlasTexture),i.uniform1i(this.uniforms.uBlockAtlas,0),i.uniform2f(this.uniforms.uTileSize,this.tileSize[0],this.tileSize[1]);const{activeIndices:l,activeCount:c}=s;for(let h=0;h<c;h++){const d=l[h];if(s.visible[d]===0||s.hidden[d]===1)continue;const f=s.worldX[d],g=s.worldY[d],m=s.rotation[d],v=s.uvBaseX[d],b=s.uvBaseY[d],w=s.uvOverlayX[d],C=s.uvOverlayY[d],M=w>=0?1:0,I=s.colorR[d],A=s.colorG[d],x=s.colorB[d],k=1;this.addInstanceData(f,g,m,v,b,0,0,0,I,A,x,k),M&&this.addInstanceData(f,g,m,0,0,w,C,1,I,A,x,k)}if(this.instanceCount=this.dataIndex/xr,this.instanceCount===0){i.disable(i.BLEND),i.bindVertexArray(null),i.useProgram(null);return}i.bindBuffer(i.ARRAY_BUFFER,this.instanceBuffer),i.bufferSubData(i.ARRAY_BUFFER,0,this.uploadView,0,this.dataIndex),i.drawArraysInstanced(i.TRIANGLE_STRIP,0,4,this.instanceCount),i.disable(i.BLEND),i.bindVertexArray(null),i.useProgram(null)}setAmbientLight(t){this.ambientLight=t}getMemoryStats(){const t=Sr*4/1024;return{bufferSize:Sr,usedInstances:this.instanceCount,utilization:this.instanceCount/this.maxBlocks,estimatedMemoryKB:t}}destroy(){const{gl:t}=this;t.isBuffer(this.instanceBuffer)&&t.deleteBuffer(this.instanceBuffer),t.isProgram(this.program)&&t.deleteProgram(this.program),t.isBuffer(this.quadBuffer)&&t.deleteBuffer(this.quadBuffer),t.isVertexArray(this.vao)&&t.deleteVertexArray(this.vao),t.isTexture(this.blockAtlasTexture)&&t.deleteTexture(this.blockAtlasTexture)}}const I3=`#version 300 es\r
 precision mediump float;\r
