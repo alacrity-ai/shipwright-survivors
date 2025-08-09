@@ -92,7 +92,8 @@ export class SpatialBodyOrchestrator {
           x,
           y,
           scale,
-          rotation
+          rotation,
+          def.effects ?? 0
         );
 
         if (index >= 0) {

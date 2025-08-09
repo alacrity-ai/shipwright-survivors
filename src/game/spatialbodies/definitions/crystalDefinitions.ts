@@ -12,6 +12,7 @@ export const crystalSlice1: SpatialBodyDefinition = {
   vMin: 0.002123,
   uMax: 0.433333,
   vMax: 0.996815,
+  effects: 1, // CRYSTAL effect
 };
 
 export const crystalSlice2: SpatialBodyDefinition = {
@@ -22,6 +23,7 @@ export const crystalSlice2: SpatialBodyDefinition = {
   vMin: 0.002123,
   uMax: 0.666667,
   vMax: 0.686837,
+  effects: 1, // CRYSTAL effect
 };
 
 export const crystalSlice3: SpatialBodyDefinition = {
@@ -32,6 +34,7 @@ export const crystalSlice3: SpatialBodyDefinition = {
   vMin: 0.002123,
   uMax: 0.792000,
   vMax: 0.409766,
+  effects: 1, // CRYSTAL effect
 };
 
 export const crystalSlice4: SpatialBodyDefinition = {
@@ -42,6 +45,7 @@ export const crystalSlice4: SpatialBodyDefinition = {
   vMin: 0.002123,
   uMax: 0.905333,
   vMax: 0.345011,
+  effects: 1, // CRYSTAL effect
 };
 
 export const crystalSlice5: SpatialBodyDefinition = {
@@ -52,4 +56,5 @@ export const crystalSlice5: SpatialBodyDefinition = {
   vMin: 0.002123,
   uMax: 0.998667,
   vMax: 0.211253,
+  effects: 1, // CRYSTAL effect
 };

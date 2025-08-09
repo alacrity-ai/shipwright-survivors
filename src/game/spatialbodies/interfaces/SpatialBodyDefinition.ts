@@ -10,4 +10,6 @@ export interface SpatialBodyDefinition {
   vMin: number;
   uMax: number;
   vMax: number;
+
+  effects?: number;     // Bitmask of effects (CRYSTAL = 1)
 }

@@ -8,24 +8,23 @@ import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/unified/utils
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import type { Camera } from '@/core/Camera';
 
-// 8 attributes per spatial body: worldX, worldY, scale, rotation, uMin, vMin, uMax, vMax
-const FLOATS_PER_INSTANCE = 8;   
+// Per-instance floats: worldX, worldY, scale, rotation, uMin, vMin, uMax, vMax, effects
+const FLOATS_PER_INSTANCE = 9;
 
 // Maximum number of spatial bodies supported in a single render batch
-const MAX_BODIES = 1024;         
+const MAX_BODIES = 1024;
 
 // Half-size (in world units) of the largest expected spatial body; used to pad culling radius
-const MAX_BODY_EXTENT = 1500;    
+const MAX_BODY_EXTENT = 1500;
 
 // Number of distinct texture atlases supported (for batching draw calls)
-const MAX_ATLASES = 4;           
+const MAX_ATLASES = 4;
 
 // Total float capacity for the GPU instance buffer
-const INSTANCE_BUFFER_SIZE = MAX_BODIES * FLOATS_PER_INSTANCE; 
+const INSTANCE_BUFFER_SIZE = MAX_BODIES * FLOATS_PER_INSTANCE;
 
 // Default global alpha multiplier for spatial body rendering (fully opaque)
-const DEFAULT_ALPHA = 1.0;       
-
+const DEFAULT_ALPHA = 1.0;
 
 export class SpatialBodyPass {
   private readonly gl: WebGL2RenderingContext;
@@ -50,6 +49,12 @@ export class SpatialBodyPass {
   private readonly uAlphaLoc: WebGLUniformLocation | null;
   private readonly uLightMapLoc: WebGLUniformLocation | null;
   private readonly uAmbientLightLoc: WebGLUniformLocation | null;
+
+  // Crystal effect uniforms
+  private readonly uTimeLoc: WebGLUniformLocation | null;
+  private readonly uCrystalTintLoc: WebGLUniformLocation | null;
+  private readonly uCrystalStrengthLoc: WebGLUniformLocation | null;
+  private readonly uSparkleDensityLoc: WebGLUniformLocation | null;
 
   private instanceCount = 0;
   private dataIndex = 0;
@@ -76,13 +81,18 @@ export class SpatialBodyPass {
       });
     }
 
-    // Cache uniforms (now includes lighting)
+    // Cache uniforms (includes lighting + crystal)
     this.uAtlasLoc = gl.getUniformLocation(this.program, 'uAtlas');
     this.uAlphaLoc = gl.getUniformLocation(this.program, 'uAlpha');
     this.uLightMapLoc = gl.getUniformLocation(this.program, 'uLightMap');
     this.uAmbientLightLoc = gl.getUniformLocation(this.program, 'uAmbientLight');
 
-    // Bind the shared camera UBO (same as SpritePass / EntityPass)
+    this.uTimeLoc = gl.getUniformLocation(this.program, 'uTime');
+    this.uCrystalTintLoc = gl.getUniformLocation(this.program, 'uCrystalTint');
+    this.uCrystalStrengthLoc = gl.getUniformLocation(this.program, 'uCrystalStrength');
+    this.uSparkleDensityLoc = gl.getUniformLocation(this.program, 'uSparkleDensity');
+
+    // Bind the shared camera UBO (same binding index as other passes)
     const blockIndex = gl.getUniformBlockIndex(this.program, 'CameraMatrices');
     if (blockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(this.program, blockIndex, 0);
@@ -101,29 +111,40 @@ export class SpatialBodyPass {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.vertexAttribDivisor(0, 0);
 
-    // Per-instance attributes (locations 1–4)
+    // Per-instance attributes (locations 1–5)
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
     const stride = FLOATS_PER_INSTANCE * 4;
     let offset = 0;
 
-    gl.enableVertexAttribArray(1); // aWorldPos (vec2)
+    // aWorldPos (vec2) @1
+    gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, offset);
     gl.vertexAttribDivisor(1, 1);
     offset += 8;
 
-    gl.enableVertexAttribArray(2); // aScale (float)
+    // aScale (float) @2
+    gl.enableVertexAttribArray(2);
     gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, offset);
     gl.vertexAttribDivisor(2, 1);
     offset += 4;
 
-    gl.enableVertexAttribArray(3); // aRotation (float)
+    // aRotation (float) @3
+    gl.enableVertexAttribArray(3);
     gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, offset);
     gl.vertexAttribDivisor(3, 1);
     offset += 4;
 
-    gl.enableVertexAttribArray(4); // aUVRect (vec4)
+    // aUVRect (vec4) @4
+    gl.enableVertexAttribArray(4);
     gl.vertexAttribPointer(4, 4, gl.FLOAT, false, stride, offset);
     gl.vertexAttribDivisor(4, 1);
+    offset += 16;
+
+    // aEffects (float-as-uint) @5
+    gl.enableVertexAttribArray(5);
+    gl.vertexAttribPointer(5, 1, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(5, 1);
+    // offset += 4; // not required beyond this point
 
     gl.bindVertexArray(null);
 
@@ -136,7 +157,7 @@ export class SpatialBodyPass {
   private addInstance(idx: number): void {
     const { store } = this;
     const i = this.dataIndex;
-    this.instanceData[i] = store.worldX[idx];
+    this.instanceData[i]     = store.worldX[idx];
     this.instanceData[i + 1] = store.worldY[idx];
     this.instanceData[i + 2] = store.scale[idx];
     this.instanceData[i + 3] = store.rotation[idx];
@@ -144,6 +165,7 @@ export class SpatialBodyPass {
     this.instanceData[i + 5] = store.vMin[idx];
     this.instanceData[i + 6] = store.uMax[idx];
     this.instanceData[i + 7] = store.vMax[idx];
+    this.instanceData[i + 8] = store.effects[idx]; // NEW: effects bitmask
     this.dataIndex += FLOATS_PER_INSTANCE;
   }
 
@@ -177,16 +199,22 @@ export class SpatialBodyPass {
     if (this.uAtlasLoc) gl.uniform1i(this.uAtlasLoc, 0);
     if (this.uAlphaLoc) gl.uniform1f(this.uAlphaLoc, DEFAULT_ALPHA);
 
-    // Bind lighting uniforms (light texture and ambient)
+    // Lighting
     if (this.uLightMapLoc) {
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, lightTexture);
       gl.uniform1i(this.uLightMapLoc, 1);
     }
     if (this.uAmbientLightLoc) {
-      // Match EntityPass default for consistency
       gl.uniform3f(this.uAmbientLightLoc, 0.55, 0.55, 0.55);
     }
+
+    // Crystal uniforms (cheap, frame-constant)
+    const t = performance.now() * 0.001;
+    if (this.uTimeLoc)            gl.uniform1f(this.uTimeLoc, t);
+    if (this.uCrystalTintLoc)     gl.uniform3f(this.uCrystalTintLoc, 0.72, 0.86, 1.0); // icy cyan
+    if (this.uCrystalStrengthLoc) gl.uniform1f(this.uCrystalStrengthLoc, 0.6);         // 0..1
+    if (this.uSparkleDensityLoc)  gl.uniform1f(this.uSparkleDensityLoc, 0.75);         // 0..1
 
     // Draw each atlas group
     for (let atlasIndex = 0; atlasIndex < MAX_ATLASES; atlasIndex++) {
@@ -209,6 +237,7 @@ export class SpatialBodyPass {
       gl.bindTexture(gl.TEXTURE_2D, texture);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+      // Upload only the bytes we filled this frame
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.uploadView, 0, this.dataIndex);
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.instanceCount);

@@ -34,6 +34,9 @@ export class SpatialBodyStore {
   public readonly uMax: Float32Array;
   public readonly vMax: Float32Array;
 
+  // Effects
+  public readonly effects: Uint8Array // bit 0 = CRYSTAL
+
   constructor(capacity: number) {
     if (capacity <= 0 || !Number.isInteger(capacity)) {
       throw new Error('SpatialBodyStore capacity must be a positive integer');
@@ -55,6 +58,8 @@ export class SpatialBodyStore {
     this.uMax = new Float32Array(capacity);
     this.vMax = new Float32Array(capacity);
 
+    this.effects = new Uint8Array(capacity);
+
     this.allocated.fill(0);
   }
 
@@ -72,7 +77,8 @@ export class SpatialBodyStore {
     x: number,
     y: number,
     scale: number,
-    rotation: number
+    rotation: number,
+    effects: number
   ): number {
     let index: number;
     if (this.freeList.length > 0) {
@@ -100,6 +106,8 @@ export class SpatialBodyStore {
     this.vMin[index] = vMin;
     this.uMax[index] = uMax;
     this.vMax[index] = vMax;
+
+    this.effects[index] = effects;
 
     return index;
   }
@@ -135,6 +143,7 @@ export class SpatialBodyStore {
     this.vMin[index] = 0;
     this.uMax[index] = 0;
     this.vMax[index] = 0;
+    this.effects[index] = 0;
 
     this.freeList.push(index);
   }
@@ -162,5 +171,6 @@ export class SpatialBodyStore {
     this.vMin.fill(0);
     this.uMax.fill(0);
     this.vMax.fill(0);
+    this.effects.fill(0);
   }
 }
