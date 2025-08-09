@@ -454,6 +454,15 @@ export class GalaxyMapSceneManager {
   private loadoutButtonCoord: { x: number; y: number };
   private gamepadNavManager: GamepadMenuInteractionManager;
 
+  // Class constants (tunable)
+  private readonly PULSE_PERIOD_S = 1.6;  // seconds per cycle
+  private readonly HUE_DEG        = 190;  // neo-futurist cyan
+  private readonly SAT_PCT        = 100;  // full saturation for neon
+  private readonly L_MIN_PCT      = 52;   // darker trough
+  private readonly L_MAX_PCT      = 74;   // brighter crest
+  private readonly A_MIN          = 0.92; // optional alpha pulse
+  private readonly A_MAX          = 1.00;
+
   constructor(
     canvasManager: CanvasManager,
     gameLoop: GameLoop,
@@ -739,16 +748,45 @@ export class GalaxyMapSceneManager {
     this.missionMutatorMenu.update(dt);
   };
 
+  private getPulseColor(tSeconds: number): string {
+    // k ∈ [0,1] over time
+    const phase = (2 * Math.PI * tSeconds) / this.PULSE_PERIOD_S;
+    const k = 0.5 + 0.5 * Math.sin(phase);
+
+    const l = this.L_MIN_PCT + k * (this.L_MAX_PCT - this.L_MIN_PCT);
+    const a = this.A_MIN      + k * (this.A_MAX      - this.A_MIN);
+
+    // Use HSLA for vivid neon; legacy comma syntax is widely supported
+    return `hsla(${this.HUE_DEG}, ${this.SAT_PCT}%, ${l}%, ${a})`;
+  }
+
   private render = () => {
     this.canvasManager.clearAll();
     const scale = getUniformScaleFactor();
     const uiCtx = this.canvasManager.getContext('overlay');
+
+    const screenWidth = this.canvasManager.getCanvas('overlay').width;
+
     const { x, y } = this.inputManager.getMousePosition();
 
     const timeSeconds = (performance.now() - this.startTime) / 1000;
     this.backgroundPass?.render(timeSeconds);
 
     this.galaxyMapController.render();
+
+    // Select Mission Label
+    drawLabel(
+      uiCtx,
+      screenWidth / 2,
+      32 * scale,
+      'Select Mission!',
+      {
+        color: this.getPulseColor(timeSeconds),
+        font: `${18 * scale}px monospace`,
+        align: 'center',
+        glow: true
+      },
+    );
 
     // === Hovered label rendering ===
     const hovered = this.galaxyMapController.getHoveredLocation();

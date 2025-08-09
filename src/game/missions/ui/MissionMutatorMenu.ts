@@ -255,7 +255,6 @@ export class MissionMutatorMenu {
 
     // ── Left label column (inline with controls)
     const labelX = x;
-    const labelW = Math.round(this.LABEL_W * ui);
     const labelY = y + Math.round((this.ROW_H * ui - 12 * ui) / 2);
 
     drawLabel(ctx, labelX, labelY, label, {
@@ -294,7 +293,7 @@ export class MissionMutatorMenu {
     });
 
     // Centered value (tinted text)
-    drawLabel(ctx, valueX + Math.round(valueW / 2), centerY, value, {
+    drawLabel(ctx, valueX + Math.round(valueW / 2), labelY, value, {
       font: '13px monospace',
       align: 'center',
       color: scheme.text,
@@ -331,13 +330,13 @@ export class MissionMutatorMenu {
 
   private bumpDensity(delta: number): void {
     this.densityIdx = this.modTri(this.densityIdx + delta);
-    audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+    audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 8 });
     missionLoader.setDensity(this.choices[this.densityIdx]);
   }
 
   private bumpIntensity(delta: number): void {
     this.intensityIdx = this.modTri(this.intensityIdx + delta);
-    audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 4 });
+    audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 8 });
     missionLoader.setIntensity(this.choices[this.intensityIdx]);
   }
 
