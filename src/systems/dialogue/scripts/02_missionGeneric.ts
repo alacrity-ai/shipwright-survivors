@@ -131,7 +131,7 @@ export function createMissionGenericScript(ctx: DialogueContext): DialogueScript
       },
       {
         type: 'pause',
-        durationMs: 2000,
+        durationMs: 5000,
       },
       // End the mission
       {

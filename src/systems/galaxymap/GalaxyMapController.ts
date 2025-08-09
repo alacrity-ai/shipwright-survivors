@@ -27,10 +27,10 @@ export class GalaxyMapController {
   private readonly locations: LocationDefinition[] = GalaxyMapRegistry.getInstance().getAllLocations();
   private selectedLocation: LocationDefinition | null = null;
   private hoveredLocation: LocationDefinition | null = null;
-  
+
   // Track hover states for smooth scaling
   private locationHoverStates: Map<string, LocationHoverState> = new Map();
-  
+
   // Hover scaling configuration
   private readonly HOVER_SCALE_MULTIPLIER = 1.2;
   private readonly SCALE_LERP_SPEED = 0.15;
@@ -42,7 +42,7 @@ export class GalaxyMapController {
     this.gl = this.canvasManager.getWebGL2Context('unifiedgl2');
     this.camera = new GalaxyMapCamera();
     this.renderer = new GalaxyMapRenderer(this.gl, this.camera);
-    
+
     // Initialize hover states for all locations
     this.initializeHoverStates();
   }
@@ -86,12 +86,12 @@ export class GalaxyMapController {
 
     let closestForHover: LocationDefinition | null = null;
     let closestHoverDistance = Infinity;
-    
+
     // Check for hover (using current animated scale for intersection)
     for (const location of this.locations) {
       const hoverState = this.locationHoverStates.get(location.id || location.name);
       const currentScale = hoverState?.currentScale || location.scale;
-      
+
       const hit = raySphereIntersect(origin, direction, location.position, currentScale);
       if (hit && missionUnlocked(location.missionId)) {
         const dist = vec3Distance(origin, location.position);
@@ -114,16 +114,14 @@ export class GalaxyMapController {
 
       // Set new hovered location
       this.hoveredLocation = closestForHover;
-      // Play sound effect
+
+      // Play hover SFX only when not already zoomed-in
       if (this.hoveredLocation && !this.selectedLocation) {
         audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 2 });
       }
 
       // Apply hover scale *only if it's not the selected one*
-      if (
-        this.hoveredLocation &&
-        this.hoveredLocation !== this.selectedLocation
-      ) {
+      if (this.hoveredLocation && this.hoveredLocation !== this.selectedLocation) {
         const hoverState = this.locationHoverStates.get(this.hoveredLocation.id || this.hoveredLocation.name);
         if (hoverState) {
           hoverState.targetScale = this.hoveredLocation.scale * this.HOVER_SCALE_MULTIPLIER;
@@ -148,7 +146,7 @@ export class GalaxyMapController {
       for (const location of this.locations) {
         const hoverState = this.locationHoverStates.get(location.id || location.name);
         const currentScale = hoverState?.currentScale || location.scale;
-        
+
         const hit = raySphereIntersect(origin, direction, location.position, currentScale);
         if (hit) {
           const dist = vec3Distance(origin, location.position);
@@ -159,26 +157,18 @@ export class GalaxyMapController {
         }
       }
 
-      if (closestForClick) {
-        if (missionUnlocked(closestForClick.missionId)) {
-          // Select the clicked location
-          if (!this.selectedLocation) {
-            this.selectedLocation = closestForClick;
-            this.camera.focusOnLocation(closestForClick);
-            audioManager.play('assets/sounds/sfx/ui/planetselect_01.wav', 'sfx', { maxSimultaneous: 2 });
-          }
-        }
-      } else {
-        // Location is de-selected
-        if (this.selectedLocation) {
-          audioManager.play('assets/sounds/sfx/ui/planetselect_00.wav', 'sfx', { maxSimultaneous: 2 });
-        }
-        this.selectedLocation = null;
-        this.camera.resetView();
+      // Only select if nothing is currently selected; empty-space click is a NO-OP
+      if (!this.selectedLocation && closestForClick && missionUnlocked(closestForClick.missionId)) {
+        this.selectedLocation = closestForClick;
+        this.camera.focusOnLocation(closestForClick);
+        audioManager.play('assets/sounds/sfx/ui/planetselect_01.wav', 'sfx', { maxSimultaneous: 2 });
       }
+      // else:
+      // - if already selected → do nothing (no retargeting while zoomed in)
+      // - if clicked empty space → do nothing (Back button handles deselect)
     }
 
-    // Update hover animations
+    // Update hover animations + camera
     this.updateHoverStates();
     this.camera.update();
   }
@@ -222,16 +212,26 @@ export class GalaxyMapController {
   }
 
   public setSelectedLocation(loc: LocationDefinition | null): void {
-    if (loc && missionUnlocked(loc.missionId)) {
-      this.selectedLocation = loc;
-      this.camera.focusOnLocation(loc);
-      audioManager.play('assets/sounds/sfx/ui/planetselect_01.wav', 'sfx', { maxSimultaneous: 2 });
-    } else {
+    // Deselect explicitly (used by Back button)
+    if (loc === null) {
       if (this.selectedLocation) {
         audioManager.play('assets/sounds/sfx/ui/planetselect_00.wav', 'sfx', { maxSimultaneous: 2 });
       }
       this.selectedLocation = null;
       this.camera.resetView();
+      return;
+    }
+
+    // Disallow retargeting while already zoomed-in on a *different* location
+    if (this.selectedLocation && this.selectedLocation.id !== loc.id) {
+      return; // NO-OP
+    }
+
+    // Select only if unlocked
+    if (missionUnlocked(loc.missionId)) {
+      this.selectedLocation = loc;
+      this.camera.focusOnLocation(loc);
+      audioManager.play('assets/sounds/sfx/ui/planetselect_01.wav', 'sfx', { maxSimultaneous: 2 });
     }
   }
 

@@ -187,7 +187,7 @@ export class WaveExecutionContext {
 
     for (const group of this.groupMap.values()) {
       // Replenish quota
-      const densityMultiplier = missionLoader.getMission().waveDensity ?? 1;
+      const densityMultiplier = missionLoader.getDensity();
       const desiredCount = group.entry.count * densityMultiplier;
       const currentCount = group.remaining.size;
       const deficit = desiredCount - currentCount;

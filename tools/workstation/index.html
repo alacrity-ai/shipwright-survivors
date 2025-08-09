@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Image Tools Workstation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#151a22; --bd:#222937; --btn:#203050; --btn2:#2a395a; --accent:#4cc9f0; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { height:100%; display:grid; grid-template-rows:auto 1fr auto; }
+  header, footer { padding:12px 18px; border-bottom:1px solid var(--bd); }
+  footer { border-top:1px solid var(--bd); border-bottom:none; color:#b9c4d6; font-size:12px; display:flex; justify-content:space-between; gap:10px; }
+  .title { display:flex; align-items:center; gap:10px; }
+  .logo { width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#26406b,#0f1420); border:1px solid #2a3a5c; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+  .title h1 { margin:0; font-size:15px; letter-spacing:.3px; }
+  .kbd { padding:1px 6px; border-radius:4px; background:#0f1420; border:1px solid #25314a; font:11px ui-monospace, monospace; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a5c; background:#0f1420; font-size:11px; color:#b9c4d6; }
+  main { display:grid; grid-template-columns: 320px 1fr; gap:16px; padding:16px 18px; }
+  .panel { background:var(--ui); border:1px solid var(--bd); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.03); }
+  .panel h2 { margin:0; font-size:14px; }
+  .grid { display:grid; grid-template-columns: 1fr; gap:10px; }
+  .tabs { display:flex; gap:8px; }
+  .tab { padding:6px 10px; border:1px solid var(--bd); background:#0f1420; border-radius:999px; cursor:pointer; font-weight:600; font-size:12px; color:#b9c4d6; }
+  .tab.active { color:var(--fg); border-color:#2a3a5c; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); background:#132035; }
+  .card { border:1px solid var(--bd); border-radius:10px; padding:12px; background:#10151f; display:flex; flex-direction:column; gap:8px; }
+  .card h3 { margin:0; font-size:14px; }
+  .card p { margin:0; color:#c7d2e6; font-size:13px; }
+  .btnrow { display:flex; gap:8px; flex-wrap:wrap; }
+  button, .linkbtn {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--btn2); background:var(--btn); color:var(--fg); text-decoration:none;
+    cursor:pointer; transition:transform .03s ease, background .2s; font-weight:600; font-size:13px;
+  }
+  button:hover, .linkbtn:hover { background:#28406b; }
+  button:active, .linkbtn:active { transform:translateY(1px); }
+  .hint { font-size:12px; color:#aebbd3; }
+
+  /* Right side: iframe workspace */
+  .workspace { position:relative; border:1px solid var(--bd); border-radius:12px; overflow:hidden; background:linear-gradient(90deg,#1b1f28,#141820); }
+  .stage { position:relative; width:100%; height:100%; min-height:420px; }
+  .toolframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:none; background:#141820; }
+  .toolframe.active { display:block; }
+  .placeholder { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#b9c4d6; font-size:13px; }
+  .spinner { width:22px; height:22px; border:3px solid #28406b; border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-right:10px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .breadcrumbs { font-size:12px; color:#aebbd3; }
+  .breadcrumbs b { color:#e9eef7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="title">
+      <div class="logo"></div>
+      <h1>Image Tools Workstation</h1>
+      <span class="pill">Tabs: <span class="kbd">[</span>/<span class="kbd">]</span> • Tools: <span class="kbd">1..9</span> (Shift = new tab)</span>
+    </div>
+    <div class="breadcrumbs">Current: <b id="crumb">Dashboard</b></div>
+  </header>
+
+  <main>
+    <!-- Left: tool launcher -->
+    <section class="panel">
+      <h2>Tools</h2>
+      <div class="tabs" id="tabs"></div>
+      <div class="grid" id="toolsGrid"></div>
+      <div class="hint">Add tools by extending the <span class="kbd">CATALOG</span> object. Click “Open” to load inside the workspace.</div>
+    </section>
+
+    <!-- Right: iframe workspace -->
+    <section class="panel workspace">
+      <div class="stage" id="stage">
+        <div class="placeholder" id="placeholder">
+          <div class="row"><div class="spinner"></div><div>Select a category and tool, or press digits.</div></div>
+        </div>
+        <!-- iframes injected here -->
+      </div>
+      <div class="row" style="justify-content:space-between;">
+        <div class="hint">Press <span class="kbd">Esc</span> to return to the dashboard.</div>
+        <div class="row"><button id="closeBtn" disabled>Close Tool</button></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>Per-tool state persists while loaded (we toggle visibility, not reload).</div>
+    <div>Deep link: <span class="kbd">#cat=images&tool=1</span> or <span class="kbd">#images/1</span></div>
+  </footer>
+</div>
+
+<script>
+  // ----- Catalog with multiple categories -----
+  // Each category: id, name, tools[]
+  // Tool key is a digit USED WITHIN THE CATEGORY (1..9)
+  const CATALOG = [
+    {
+      id: 'images',
+      name: 'Images',
+      tools: [
+        {
+          key: '1',
+          name: 'Transparent Background',
+          path: 'tools/image/transparentbackground.html',
+          blurb: 'Sample background color, feather by ΔE, and export a PNG with transparency.',
+          actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
+        },
+        {
+          key: '2',
+          name: 'Image Splitter',
+          path: 'tools/image/splitter.html',
+          blurb: 'Draw multiple marquees to slice one big image into many exports.',
+          actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
+        },
+        {
+          key: '3',
+          name: 'Image Atlas',
+          path: 'tools/image/atlas.html',
+          blurb: 'Pack images into an atlas, export PNG and UV data.',
+          actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
+        },
+        {
+          key: '4',
+          name: 'Color Lab',
+          path: 'tools/image/colors.html',
+          blurb: 'Adjust RGB/Exposure/Sat/Contrast/Brightness/Gamma of an image.',
+          actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
+        },
+      ],
+    },
+    {
+      id: 'utilities',
+      name: 'Utilities',
+      tools: [
+        // Skill tree editor
+        { key: '1',
+          name: 'Skill Tree Editor',
+          path: 'tools/utilities/skilltree.html',
+          blurb: 'Build and export starter skill trees.',
+          actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
+        },
+      ],
+    },
+  ];
+
+  // ----- DOM -----
+  const tabs = document.getElementById('tabs');
+  const grid = document.getElementById('toolsGrid');
+  const stage = document.getElementById('stage');
+  const placeholder = document.getElementById('placeholder');
+  const crumb = document.getElementById('crumb');
+  const closeBtn = document.getElementById('closeBtn');
+
+  // categoryId -> { key -> iframe }
+  const frames = new Map(); // Map<string, Map<string, HTMLIFrameElement>>
+  let activeCategoryId = null;
+  let activeToolKey = null;
+
+  // ----- Rendering -----
+  function renderTabs() {
+    tabs.innerHTML = '';
+    for (const cat of CATALOG) {
+      const btn = document.createElement('button');
+      btn.className = 'tab' + (cat.id === activeCategoryId ? ' active' : '');
+      btn.textContent = cat.name;
+      btn.addEventListener('click', () => switchCategory(cat.id));
+      tabs.appendChild(btn);
+    }
+  }
+
+  function renderToolCards() {
+    grid.innerHTML = '';
+    const cat = getActiveCategory();
+    if (!cat) return;
+    cat.tools.forEach(tool => grid.appendChild(renderCard(cat.id, tool)));
+  }
+
+  function renderCard(categoryId, tool) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h3 = document.createElement('h3'); h3.textContent = tool.name;
+    const p  = document.createElement('p');  p.textContent  = tool.blurb;
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.innerHTML = `Shortcut: <span class="kbd">${tool.key}</span> (in “${getCategoryById(categoryId).name}”)`;
+
+    const btnrow = document.createElement('div'); btnrow.className = 'btnrow';
+    for (const a of tool.actions) {
+      const el = document.createElement(a.target === 'blank' ? 'a' : 'button');
+      if (a.target === 'blank') {
+        el.className = 'linkbtn';
+        el.href = tool.path; el.target = '_blank';
+      } else {
+        el.addEventListener('click', () => openInIframe(categoryId, tool.key));
+      }
+      el.textContent = a.label;
+      btnrow.appendChild(el);
+    }
+
+    card.append(h3, p, hint, btnrow);
+    return card;
+  }
+
+  // ----- Category / Tool helpers -----
+  function getCategoryById(id) { return CATALOG.find(c => c.id === id) || null; }
+  function getActiveCategory() { return getCategoryById(activeCategoryId); }
+  function getTool(categoryId, key) {
+    const cat = getCategoryById(categoryId);
+    return cat ? cat.tools.find(t => t.key === key) : null;
+  }
+
+  function switchCategory(newId) {
+    if (!getCategoryById(newId)) return;
+    activeCategoryId = newId;
+    activeToolKey = null; // leaving tool selection on category switch is cleaner
+    renderTabs();
+    renderToolCards();
+    closeActive(); // hide any active iframe
+    persistState();
+    reflectHash();
+  }
+
+  // ----- Iframe lifecycle -----
+  function openInIframe(categoryId, toolKey) {
+    const tool = getTool(categoryId, toolKey);
+    if (!tool) return;
+
+    let catFrames = frames.get(categoryId);
+    if (!catFrames) { catFrames = new Map(); frames.set(categoryId, catFrames); }
+
+    let frame = catFrames.get(toolKey);
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'toolframe';
+      frame.dataset.category = categoryId;
+      frame.dataset.key = toolKey;
+      frame.loading = 'eager';
+      frame.addEventListener('load', () => {
+        if (activeCategoryId === categoryId && activeToolKey === toolKey) placeholder.style.display = 'none';
+      });
+      placeholder.style.display = 'flex';
+      frame.src = tool.path;
+      stage.appendChild(frame);
+      catFrames.set(toolKey, frame);
+    }
+
+    // Hide others; show this one
+    for (const [catId, map] of frames.entries()) {
+      for (const [k, fr] of map.entries()) {
+        const active = (catId === categoryId && k === toolKey);
+        fr.classList.toggle('active', active);
+        fr.style.display = active ? 'block' : 'none';
+      }
+    }
+
+    activeCategoryId = categoryId;
+    activeToolKey = toolKey;
+    crumb.textContent = `${getActiveCategory().name} › ${tool.name}`;
+    closeBtn.disabled = false;
+
+    // Ensure tabs & grid reflect where we are (e.g., direct deeplink)
+    renderTabs();
+    renderToolCards();
+
+    persistState();
+    reflectHash();
+
+    // focus into iframe
+    setTimeout(() => {
+      const fr = frames.get(categoryId)?.get(toolKey);
+      if (fr && fr.contentWindow) fr.contentWindow.focus();
+    }, 0);
+  }
+
+  function closeActive() {
+    if (!activeToolKey) {
+      placeholder.style.display = 'flex';
+      crumb.textContent = 'Dashboard';
+      closeBtn.disabled = true;
+      return;
+    }
+    const fr = frames.get(activeCategoryId)?.get(activeToolKey);
+    if (fr) { fr.classList.remove('active'); fr.style.display = 'none'; }
+    activeToolKey = null;
+    crumb.textContent = getActiveCategory() ? `${getActiveCategory().name}` : 'Dashboard';
+    closeBtn.disabled = true;
+    placeholder.style.display = 'flex';
+    persistState();
+    reflectHash();
+  }
+
+  // ----- Keyboard shortcuts -----
+  window.addEventListener('keydown', (e) => {
+    // Esc — back to dashboard (hide active tool)
+    if (e.key === 'Escape') { closeActive(); return; }
+
+    // Category cycling: [ and ]
+    if (e.key === '[' || e.key === ']') {
+      const idx = Math.max(0, CATALOG.findIndex(c => c.id === activeCategoryId));
+      const next = (e.key === ']')
+        ? (idx + 1) % CATALOG.length
+        : (idx - 1 + CATALOG.length) % CATALOG.length;
+      switchCategory(CATALOG[next].id);
+      return;
+    }
+
+    // Digits — open tool in active category
+    if (!/^[0-9]$/.test(e.key)) return;
+    const cat = getActiveCategory();
+    if (!cat) return;
+    const tool = cat.tools.find(t => t.key === e.key);
+    if (!tool) return;
+
+    if (e.shiftKey) {
+      window.open(tool.path, '_blank');
+    } else {
+      openInIframe(cat.id, tool.key);
+    }
+  });
+
+  // ----- Deep-link + session restore -----
+  function parseHash() {
+    // supports #cat=images&tool=1  OR  #images/1
+    const raw = (location.hash || '').slice(1);
+    if (!raw) return {};
+    if (raw.includes('=')) {
+      const params = new URLSearchParams(raw);
+      return { cat: params.get('cat') || undefined, tool: params.get('tool') || undefined };
+    }
+    const [cat, tool] = raw.split('/');
+    return { cat: cat || undefined, tool: tool || undefined };
+  }
+
+  function reflectHash() {
+    if (!activeCategoryId && !activeToolKey) { history.replaceState(null, '', location.pathname); return; }
+    const frag = activeToolKey ? `#${activeCategoryId}/${activeToolKey}` : `#${activeCategoryId}`;
+    if (location.hash !== frag) history.replaceState(null, '', frag);
+  }
+
+  function persistState() {
+    sessionStorage.setItem('ws.activeCategoryId', activeCategoryId || '');
+    sessionStorage.setItem('ws.activeToolKey', activeToolKey || '');
+  }
+
+  (function bootstrap() {
+    // initial category = from hash, then session, else first
+    const fromHash = parseHash();
+    const fromSessionCat = sessionStorage.getItem('ws.activeCategoryId') || '';
+    const initialCat = fromHash.cat || fromSessionCat || (CATALOG[0]?.id);
+    activeCategoryId = getCategoryById(initialCat) ? initialCat : (CATALOG[0]?.id);
+    renderTabs();
+    renderToolCards();
+
+    const fromSessionTool = sessionStorage.getItem('ws.activeToolKey') || '';
+    const initialTool = fromHash.tool || fromSessionTool || '';
+    if (initialTool && getTool(activeCategoryId, initialTool)) {
+      openInIframe(activeCategoryId, initialTool);
+    } else {
+      closeActive();
+      reflectHash();
+    }
+  })();
+
+  // Close button
+  closeBtn.addEventListener('click', closeActive);
+</script>
+</body>
+</html>

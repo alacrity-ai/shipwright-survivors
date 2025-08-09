@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Color Lab — RGB/Exposure/Sat/Contrast/Brightness/Gamma</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#151a22; --bd:#222937; --btn:#203050; --btn2:#2a395a; --accent:#4cc9f0; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { display:grid; grid-template-columns: 360px 1fr; gap:16px; height:100%; padding:14px; box-sizing:border-box; }
+  .panel { background:var(--ui); border:1px solid var(--bd); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px; }
+  .panel h2 { margin:0 0 4px; font-size:14px; letter-spacing:.2px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px 14px; }
+  .slider label { display:flex; justify-content:space-between; font-size:12px; opacity:.9; }
+  .slider input[type="range"] { width:100%; }
+  input[type="file"] { color:var(--fg); }
+  button {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--btn2); background:var(--btn); color:var(--fg);
+    cursor:pointer; transition:transform .03s ease, background .2s; font-weight:600; font-size:13px;
+  }
+  button:hover { background:#28406b; }
+  button:active { transform:translateY(1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a5c; background:#0f1420; font-size:11px; color:#b9c4d6; }
+  .canvas-wrap { position:relative; border:1px solid var(--bd); border-radius:12px; overflow:hidden; background:
+      conic-gradient(#0000 0 25%,#0001 0 50%,#0000 0 75%,#0001 0) 0 0/20px 20px,
+      linear-gradient(90deg,#1b1f28,#141820); min-height:200px;
+  }
+  canvas#view { width:100%; height:100%; display:block; }
+  .hint { position:absolute; bottom:8px; left:10px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,.35); font-size:12px; }
+  .kbd { padding:1px 6px; border-radius:4px; background:#0f1420; border:1px solid #25314a; font:11px ui-monospace, monospace; }
+  .legend { font:12px ui-monospace, monospace; background:#0f1420; border:1px solid #25314a; padding:8px; border-radius:8px; }
+  .small { font-size:12px; opacity:.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Controls -->
+  <section class="panel">
+    <h2>Image & Actions</h2>
+    <div class="row">
+      <input id="file" type="file" accept="image/*" />
+      <button id="exportBtn" disabled>Export PNG</button>
+      <button id="resetBtn" disabled>Reset</button>
+    </div>
+
+    <h2>Adjustments</h2>
+    <div class="grid">
+      <div class="slider">
+        <label>Exposure (EV) <span id="evVal">0.0</span></label>
+        <input id="ev" type="range" min="-3" max="3" step="0.1" value="0" />
+      </div>
+      <div class="slider">
+        <label>Gamma <span id="gammaVal">1.00</span></label>
+        <input id="gamma" type="range" min="0.10" max="3.00" step="0.01" value="1.00" />
+      </div>
+      <div class="slider">
+        <label>Brightness <span id="briVal">0</span></label>
+        <input id="brightness" type="range" min="-100" max="100" step="1" value="0" />
+      </div>
+      <div class="slider">
+        <label>Contrast <span id="conVal">0</span></label>
+        <input id="contrast" type="range" min="-100" max="100" step="1" value="0" />
+      </div>
+      <div class="slider">
+        <label>Saturation <span id="satVal">100%</span></label>
+        <input id="saturation" type="range" min="0" max="250" step="1" value="100" />
+      </div>
+      <div class="slider">
+        <label>Temperature <span id="tempVal">0</span></label>
+        <input id="temperature" type="range" min="-100" max="100" step="1" value="0" />
+      </div>
+      <div class="slider">
+        <label>Tint <span id="tintVal">0</span></label>
+        <input id="tint" type="range" min="-100" max="100" step="1" value="0" />
+      </div>
+      <div class="slider">
+        <label>R Gain <span id="rVal">100%</span></label>
+        <input id="rGain" type="range" min="0" max="200" step="1" value="100" />
+      </div>
+      <div class="slider">
+        <label>G Gain <span id="gVal">100%</span></label>
+        <input id="gGain" type="range" min="0" max="200" step="1" value="100" />
+      </div>
+      <div class="slider">
+        <label>B Gain <span id="bVal">100%</span></label>
+        <input id="bGain" type="range" min="0" max="200" step="1" value="100" />
+      </div>
+    </div>
+
+    <div class="legend">
+      <div>• Hold <span class="kbd">Space</span> to preview original</div>
+      <div>• Press <span class="kbd">R</span> to refit preview</div>
+      <div>• Temperature warms/cools (R/B), Tint adds magenta/green (G)</div>
+    </div>
+
+    <div class="row" style="justify-content:space-between;">
+      <span class="small">Edits are non-destructive until export.</span>
+      <span id="status" class="pill">No image</span>
+    </div>
+  </section>
+
+  <!-- Preview -->
+  <section class="panel" style="display:grid; grid-template-rows: 1fr auto;">
+    <div class="canvas-wrap">
+      <canvas id="view"></canvas>
+      <div class="hint">Load an image to begin</div>
+    </div>
+    <div class="row" style="justify-content:space-between; margin-top:10px;">
+      <span class="small">Checkerboard behind indicates transparency.</span>
+      <span id="dims" class="pill">—</span>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- DOM ----------
+  const file = document.getElementById('file');
+  const exportBtn = document.getElementById('exportBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const dimsEl = document.getElementById('dims');
+
+  // Sliders
+  const ev = document.getElementById('ev'), evVal = document.getElementById('evVal');
+  const gamma = document.getElementById('gamma'), gammaVal = document.getElementById('gammaVal');
+  const brightness = document.getElementById('brightness'), briVal = document.getElementById('briVal');
+  const contrast = document.getElementById('contrast'), conVal = document.getElementById('conVal');
+  const saturation = document.getElementById('saturation'), satVal = document.getElementById('satVal');
+  const temperature = document.getElementById('temperature'), tempVal = document.getElementById('tempVal');
+  const tint = document.getElementById('tint'), tintVal = document.getElementById('tintVal');
+  const rGain = document.getElementById('rGain'), rVal = document.getElementById('rVal');
+  const gGain = document.getElementById('gGain'), gVal = document.getElementById('gVal');
+  const bGain = document.getElementById('bGain'), bVal = document.getElementById('bVal');
+
+  const updateLabels = () => {
+    evVal.textContent = Number(ev.value).toFixed(1);
+    gammaVal.textContent = Number(gamma.value).toFixed(2);
+    briVal.textContent = brightness.value;
+    conVal.textContent = contrast.value;
+    satVal.textContent = saturation.value + '%';
+    tempVal.textContent = temperature.value;
+    tintVal.textContent = tint.value;
+    rVal.textContent = rGain.value + '%';
+    gVal.textContent = gGain.value + '%';
+    bVal.textContent = bGain.value + '%';
+  };
+
+  // ---------- Offscreen working surfaces ----------
+  const work = document.createElement('canvas');           // full-res original (unmodified)
+  const wctx = work.getContext('2d', { willReadFrequently:true });
+  const edited = document.createElement('canvas');         // full-res edited
+  const ectx = edited.getContext('2d');
+
+  // ---------- State ----------
+  let imageLoaded = false;
+  let spaceHeld = false; // hold to preview original
+  let rafScheduled = false;
+
+  // View transform
+  let transform = { scale:1, dx:0, dy:0 };
+  const DPR = () => (window.devicePixelRatio || 1);
+
+  // ---------- Fit & Render ----------
+  function fitToView() {
+    // Size display canvas to container (CSS -> backing store with DPR)
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const cssW = Math.max(200, Math.floor(rect.width));
+    const cssH = Math.max(200, Math.floor(rect.height - 40));
+    const dpr = DPR();
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr, dpr);
+
+    if (!imageLoaded) { ctx.clearRect(0,0,cssW,cssH); return; }
+
+    // contain fit
+    const s = Math.min(cssW / work.width, cssH / work.height);
+    const dw = Math.floor(work.width * s), dh = Math.floor(work.height * s);
+    const dx = Math.floor((cssW - dw)/2), dy = Math.floor((cssH - dh)/2);
+    transform = { scale:s, dx, dy };
+
+    render();
+  }
+
+  function scheduleRender() {
+    if (!imageLoaded) return;
+    if (rafScheduled) return;
+    rafScheduled = true;
+    requestAnimationFrame(() => {
+      rafScheduled = false;
+      applyAdjustments();
+      render();
+    });
+  }
+
+  function render() {
+    const cssW = canvas.width / DPR();
+    const cssH = canvas.height / DPR();
+    ctx.clearRect(0,0,cssW,cssH);
+    ctx.imageSmoothingEnabled = false;
+
+    const { scale, dx, dy } = transform;
+
+    // When space is held, preview original
+    const src = spaceHeld ? work : edited;
+    ctx.drawImage(src, 0,0, src.width,src.height, dx,dy, src.width*scale, src.height*scale);
+  }
+
+  // ---------- Adjustments Pipeline ----------
+  function applyAdjustments() {
+    // Prepare edited canvas
+    edited.width = work.width;
+    edited.height = work.height;
+
+    // If showing original (spaceHeld), still compute edits so releasing space is instant.
+    const img = wctx.getImageData(0,0,work.width,work.height);
+    const data = img.data; // Uint8ClampedArray
+    const N = data.length;
+
+    // Gather parameters
+    const EV = parseFloat(ev.value);           // -3..+3
+    const exposureMul = Math.pow(2, EV);
+
+    const rMul = parseInt(rGain.value,10) / 100;
+    const gMul = parseInt(gGain.value,10) / 100;
+    const bMul = parseInt(bGain.value,10) / 100;
+
+    const temp = parseInt(temperature.value,10) / 100; // -1..1
+    const tintV = parseInt(tint.value,10) / 100;       // -1..1
+    // Temperature: warm cool by scaling R/B; Tint: push G
+    const tempR = 1 + 0.75*temp;
+    const tempB = 1 - 0.75*temp;
+    const tintG = 1 + 0.75*tintV;
+
+    const sat = parseInt(saturation.value,10) / 100; // 0..2.5
+    const bri = parseInt(brightness.value,10);       // -100..100
+    const con = parseInt(contrast.value,10);         // -100..100
+    const gam = parseFloat(gamma.value);             // 0.1..3
+
+    // Precompute brightness/contrast mapping as LUT on 0..255
+    // Contrast mapping using simple linear slope around mid = 128:
+    // out = (in-128)*c + 128 + b, where c in [0..inf), b in [-255..255]
+    const c = 1 + (con / 100); // linear contrast factor
+    const b = Math.round(255 * (bri / 100));
+
+    const bcLUT = new Uint8ClampedArray(256);
+    for (let i=0;i<256;i++) {
+      let v = Math.round((i - 128) * c + 128 + b);
+      if (v < 0) v = 0; else if (v > 255) v = 255;
+      bcLUT[i] = v;
+    }
+
+    // Gamma LUT (apply after BC)
+    const gInv = 1 / Math.max(0.001, gam);
+    const gammaLUT = new Uint8ClampedArray(256);
+    for (let i=0;i<256;i++) {
+      gammaLUT[i] = Math.max(0, Math.min(255, Math.round(255 * Math.pow(i / 255, gInv))));
+    }
+
+    // Exposure + RGB gains + temp/tint multipliers combined
+    const Rmul = exposureMul * rMul * tempR;
+    const Gmul = exposureMul * gMul * tintG;
+    const Bmul = exposureMul * bMul * tempB;
+
+    // Saturation via luma mix (Rec.709)
+    const Lr=0.2126, Lg=0.7152, Lb=0.0722;
+
+    // Process
+    for (let i=0; i<N; i+=4) {
+      // 1) Exposure & RGB multipliers + temp/tint
+      let R = data[i  ] * Rmul;
+      let G = data[i+1] * Gmul;
+      let B = data[i+2] * Bmul;
+
+      // Clamp mid-pipe to avoid overflow before BC/gamma
+      if (R>255) R=255; if (G>255) G=255; if (B>255) B=255;
+      if (R<0) R=0; if (G<0) G=0; if (B<0) B=0;
+
+      // 2) Saturation
+      if (sat !== 1) {
+        const Y = Lr*R + Lg*G + Lb*B;
+        R = Y + sat*(R - Y);
+        G = Y + sat*(G - Y);
+        B = Y + sat*(B - Y);
+        if (R>255) R=255; if (G>255) G=255; if (B>255) B=255;
+        if (R<0) R=0; if (G<0) G=0; if (B<0) B=0;
+      }
+
+      // 3) Brightness/Contrast LUT
+      R = bcLUT[R|0];
+      G = bcLUT[G|0];
+      B = bcLUT[B|0];
+
+      // 4) Gamma LUT
+      data[i  ] = gammaLUT[R];
+      data[i+1] = gammaLUT[G];
+      data[i+2] = gammaLUT[B];
+      // alpha unchanged
+    }
+
+    ectx.putImageData(img, 0, 0);
+  }
+
+  // ---------- IO ----------
+  file.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      work.width = img.naturalWidth;
+      work.height = img.naturalHeight;
+      wctx.clearRect(0,0,work.width,work.height);
+      wctx.drawImage(img, 0, 0);
+      edited.width = work.width;
+      edited.height = work.height;
+      imageLoaded = true;
+      statusEl.textContent = `${work.width}×${work.height}`;
+      dimsEl.textContent = `${work.width}×${work.height}`;
+      exportBtn.disabled = false;
+      resetBtn.disabled = false;
+      URL.revokeObjectURL(url);
+      fitToView();
+      scheduleRender();
+    };
+    img.src = url;
+  });
+
+  exportBtn.addEventListener('click', () => {
+    if (!imageLoaded) return;
+    edited.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'image-edited.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 250);
+    }, 'image/png');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!imageLoaded) return;
+    // Reset sliders
+    ev.value = '0';
+    gamma.value = '1.00';
+    brightness.value = '0';
+    contrast.value = '0';
+    saturation.value = '100';
+    temperature.value = '0';
+    tint.value = '0';
+    rGain.value = '100';
+    gGain.value = '100';
+    bGain.value = '100';
+    updateLabels();
+    scheduleRender();
+  });
+
+  // ---------- Events ----------
+  const sliderInputs = [ev,gamma,brightness,contrast,saturation,temperature,tint,rGain,gGain,bGain];
+  sliderInputs.forEach(s => {
+    s.addEventListener('input', () => { updateLabels(); scheduleRender(); });
+  });
+
+  window.addEventListener('resize', fitToView);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { if (!spaceHeld) { spaceHeld = true; render(); } e.preventDefault(); }
+    if (e.key.toLowerCase() === 'r') fitToView();
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') { spaceHeld = false; render(); }
+  });
+
+  // Init labels & base canvas sizing
+  updateLabels();
+  fitToView();
+})();
+</script>
+</body>
+</html>

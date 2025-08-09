@@ -9,6 +9,9 @@ import { audioManager } from '@/audio/Audio';
 class MissionLoader {
   private currentMission: MissionDefinition | null = null;
 
+  private density: 0.5 | 1.0 | 2.0 = 0.5;
+  private intensity: 0.5 | 1.0 | 2.0 = 0.5;
+
   setMission(mission: MissionDefinition) {
     this.currentMission = mission;
     WorldSettingsManager.setWorldWidth(mission.environmentSettings?.worldWidth ?? 32000);
@@ -39,13 +42,28 @@ class MissionLoader {
   }
 
   getEnemyPower(): number {
-    if (!this.currentMission) throw new Error('No mission loaded');
-    return this.currentMission.enemyPower ?? 1;
+    return this.intensity as number;
   }
 
   getPlanetSpawnConfigs(): PlanetSpawnConfig[] {
     if (!this.currentMission) throw new Error('No mission loaded');
     return this.currentMission.planets ?? [];
+  }
+
+  setDensity(density: 'Normal' | 'High' | 'Catastrophic') {
+    this.density = density === 'Normal' ? 0.5 : density === 'High' ? 1.0 : 2.0;
+  }
+
+  setIntensity(intensity: 'Normal' | 'High' | 'Catastrophic') {
+    this.intensity = intensity === 'Normal' ? 0.5 : intensity === 'High' ? 1.0 : 2.0;
+  }
+
+  getDensity(): number {
+    return this.density;
+  }
+
+  getIntensity(): number {
+    return this.intensity;
   }
 
   clear() {

@@ -26,7 +26,7 @@ export function getSafeUniformCount(gl: WebGL2RenderingContext): number {
 }
 
 // PC with dedicate GPU
-export const MAX_BLOCKS_GL = 8192;
+export const MAX_BLOCKS_GL = 16384;
 export const MAX_LIGHTS_GL = 10000;
 export const MAX_PARTICLES_GL = 30000;
 export const MAX_SPRITES_GL = 10000;

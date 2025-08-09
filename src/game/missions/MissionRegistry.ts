@@ -19,6 +19,8 @@ import { waveDefinitions as waveSet4 } from '@/game/waves/missions/Mission4Waves
 
 // Spatial Body imports
 import { iceSpatialBodyConfig } from '@/game/spatialbodies/configs/iceConfig';
+import { crystalSpatialBodyConfig } from '@/game/spatialbodies/configs/crystalConfig';
+import { alienSpatialBodyConfig } from '@/game/spatialbodies/configs/alienConfig';
 
 import { flags } from '@/game/player/PlayerFlagManager';
 import { FlagKey } from '../player/registry/FlagRegistry';
@@ -135,8 +137,9 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Arsea', x: 10000, y: -20000 },
       { name: 'Deimos', x: -12000, y: -24000 }
     ],
-    spatialBodies: iceSpatialBodyConfig,
+    spatialBodies: crystalSpatialBodyConfig,
     autoGenerateCloudParams: MISSION_02_CLOUDS,
+    bossQuestId: 'boss:defeatCrazyMoe',
   },
   mission_003_00: {
     id: 'mission_003_00',

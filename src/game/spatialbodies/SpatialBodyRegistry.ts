@@ -13,6 +13,23 @@ import {
   iceAsteroid04,
 } from '@/game/spatialbodies/definitions/iceDefinitions';
 
+import {
+  crystalSlice1,
+  crystalSlice2,
+  crystalSlice3,
+  crystalSlice4,
+  crystalSlice5,
+} from '@/game/spatialbodies/definitions/crystalDefinitions';
+
+import {
+  alienSlice1,
+  alienSlice2,
+  alienSlice3,
+  alienSlice4,
+  alienSlice5,
+  alienSlice6,
+} from '@/game/spatialbodies/definitions/alienDefinitions';
+
 // Internal maps
 const bodyMap: Map<string, SpatialBodyDefinition> = new Map();
 
@@ -58,19 +75,16 @@ async function loadAtlasTexture(gl: WebGL2RenderingContext, atlasIndex: number):
 
 /**
  * Registers a spatial body definition with its atlas assignment.
- * If the definition already includes an atlasIndex, ensures it's valid.
+ * Always resolves atlas index from the provided atlasPath to avoid
+ * mismatches with hardcoded indices inside definitions.
  */
 function registerBody(def: SpatialBodyDefinition, atlasPath: string): void {
   if (bodyMap.has(def.name)) {
     throw new Error(`Duplicate spatial body registration: ${def.name}`);
   }
 
-  // If def.atlasIndex is 0 but we need to resolve dynamically:
-  if (def.atlasIndex === undefined || def.atlasIndex < 0) {
-    def.atlasIndex = ensureAtlas(atlasPath);
-  } else {
-    ensureAtlas(atlasPath); // make sure this atlas entry exists
-  }
+  // Always assign atlasIndex from path to guarantee correctness
+  def.atlasIndex = ensureAtlas(atlasPath);
 
   bodyMap.set(def.name, def);
 }
@@ -82,6 +96,23 @@ registerBody(iceAsteroid01, iceAtlasPath);
 registerBody(iceAsteroid02, iceAtlasPath);
 registerBody(iceAsteroid03, iceAtlasPath);
 registerBody(iceAsteroid04, iceAtlasPath);
+
+// === Register all crystal slices (shared atlas) ===
+const crystalAtlasPath = 'assets/spatialbodies/crystal/atlas.png';
+registerBody(crystalSlice1, crystalAtlasPath);
+registerBody(crystalSlice2, crystalAtlasPath);
+registerBody(crystalSlice3, crystalAtlasPath);
+registerBody(crystalSlice4, crystalAtlasPath);
+registerBody(crystalSlice5, crystalAtlasPath);
+
+// === Register all alien slices (shared atlas) ===
+const alienAtlasPath = 'assets/spatialbodies/alien/atlas.png';
+registerBody(alienSlice1, alienAtlasPath);
+registerBody(alienSlice2, alienAtlasPath);
+registerBody(alienSlice3, alienAtlasPath);
+registerBody(alienSlice4, alienAtlasPath);
+registerBody(alienSlice5, alienAtlasPath);
+registerBody(alienSlice6, alienAtlasPath);
 
 // Public API
 export const SpatialBodyRegistry = {

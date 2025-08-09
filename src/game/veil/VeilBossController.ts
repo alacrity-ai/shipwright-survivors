@@ -5,7 +5,6 @@ import type { BossOptions } from '@/game/veil/interfaces/BossOptions';
 import type { VeilBossFactory, VeilBossSpawnContext } from '@/game/veil/factories/VeilBossFactory';
 
 import { destroyEntityExternally } from '@/core/interfaces/events/EntityReporter';
-import { DestructionCause } from '@/game/ship/CompositeBlockDestructionService';
 import { bulkUpgradeBlockIndicesOnShip } from '@/game/blocks/helpers/upgradeUtils';
 
 /**

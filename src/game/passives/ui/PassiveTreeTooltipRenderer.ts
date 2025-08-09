@@ -137,12 +137,47 @@ export class PassiveTreeTooltipRenderer {
   private buildEffectLines(metadata: PassiveNode['metadata'], out: string[]): void {
     // Deterministic ordering (match PASSIVES.md groups)
     const order = [
-      'damage', 'fireRate',
-      'armor', 'mitigation',
-      'thrust', 'turnPower',
-      'entropiumPickupBonus', 'blockDropRate', 'harvestRange',
-      'abilityCooldown', 'abilityPower',
-      'slayer','voidwalker','atronach','incidentInvestigator','builder','trademaster','explorer','bossMastery',
+      // Offense
+      'damage',
+      'fireRate',
+      'criticalChance',
+      'criticalMultiplier',
+      'stunChance',
+      'bossDamage',
+
+      // Defense
+      'armor',
+      'mitigation',
+      'ignoreDamageChance',
+
+      // Movement
+      'thrust',
+      'turnPower',
+      'explorer', // numeric % exploration speed bonus
+
+      // Utility
+      'entropiumPickupBonus',
+      'blockDropRate',
+      'harvestRange',
+      'attachTierUpChance',
+      'rareItemTradepostChance',
+      'voidIntensity',
+
+      // Ability
+      'abilityCooldown',
+      'abilityPower',
+
+      // Incidents
+      'incidentSpawnChance',
+
+      // Capstones (booleans)
+      'slayer',
+      'voidwalker',
+      'atronach',
+      'incidentInvestigator',
+      'builder',
+      'trademaster',
+      'bossMastery',
     ];
 
     for (const key of order) {
@@ -177,19 +212,36 @@ export class PassiveTreeTooltipRenderer {
       // Offense
       damage: 'Damage',
       fireRate: 'Fire Rate',
+      criticalChance: 'Critical Chance',
+      criticalMultiplier: 'Critical Damage Multiplier',
+      stunChance: 'Stun Chance',
+      bossDamage: 'Boss Damage',
+
       // Defense
       armor: 'Armor',
       mitigation: 'Mitigation',
+      ignoreDamageChance: 'Ignore Damage Chance',
+
       // Movement
       thrust: 'Thrust',
       turnPower: 'Turn Power',
+      explorer: 'Exploration Speed',
+
       // Utility
       entropiumPickupBonus: 'Entropium Bonus',
       blockDropRate: 'Block Drop Rate',
       harvestRange: 'Harvest Range',
+      attachTierUpChance: 'Attach Tier-Up Chance',
+      rareItemTradepostChance: 'Rare Tradepost Item Chance',
+      voidIntensity: 'Void Intensity',
+
       // Ability
-      abilityCooldown: 'Ability Cooldown',
+      abilityCooldown: 'Ability Cooldown Reduction',
       abilityPower: 'Ability Power',
+
+      // Incidents
+      incidentSpawnChance: 'Incident Spawn Chance',
+
       // Capstones
       slayer: 'Slayer',
       voidwalker: 'Voidwalker',
@@ -197,10 +249,16 @@ export class PassiveTreeTooltipRenderer {
       incidentInvestigator: 'Incident Investigator',
       builder: 'Builder',
       trademaster: 'Trademaster',
-      explorer: 'Explorer',
       bossMastery: 'Boss Mastery',
     };
-    return map[key] ?? key;
+
+    return map[key] ?? this.humanizeKey(key);
+  }
+
+  private humanizeKey(k: string): string {
+    return k
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/^./, c => c.toUpperCase());
   }
 
   // Simple greedy wrapper using Canvas measureText; keeps your UILabel font semantics.

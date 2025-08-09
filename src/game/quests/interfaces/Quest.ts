@@ -45,4 +45,7 @@ export interface Quest {
    * Optional quest that must be completed before this one becomes active.
    */
   prerequisiteQuestId?: string;
+
+  /** Optional tags for filtering */
+  tags?: string[];
 }

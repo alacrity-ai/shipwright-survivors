@@ -41,6 +41,8 @@ export class VeilBossFactory {
       false       // noClip
     );
 
+    ship.addTag('persistent');
+
     return ship;
   }
 }

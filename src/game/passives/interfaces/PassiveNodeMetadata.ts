@@ -6,63 +6,38 @@
  */
 export interface PassiveNodeMetadata {
   // Offensive
-  damage?: number;            // Percentage (0.05 = +5%)
-  fireRate?: number;          // Percentage
+  damage?: number;                     // Percentage (0.05 = +5%)
+  fireRate?: number;                   // Percentage
+  criticalChance?: number;             // Percentage
+  criticalMultiplier?: number;         // Percentage
+  stunChance?: number;                 // Percentage // chance to stun enemies on hit
+  bossDamage?: number;                 // Percentage // Damage done to bosses
 
   // Defensive
-  armor?: number;             // Flat
-  mitigation?: number;        // Percentage
+  armor?: number;                      // Flat
+  mitigation?: number;                 // Percentage
+  ignoreDamageChance?: number;         // Percentage
 
   // Movement
-  thrust?: number;            // Percentage
-  turnPower?: number;         // Percentage
+  thrust?: number;                     // Percentage
+  turnPower?: number;                  // Percentage 
+  explorer?: number;                   // Percentage // Movement speed when exploring (not attacking or being hit for a certain length of time)
 
   // Utility
-  entropiumPickupBonus?: number; // Percentage
-  blockDropRate?: number;        // Percentage
-  harvestRange?: number;         // Flat
+  entropiumPickupBonus?: number;       // Percentage // Entropium pickup amount per entropium orb
+  blockDropRate?: number;              // Percentage // Chance to drop blocks
+  harvestRange?: number;               // Flat // Radius
+  attachTierUpChance?: number;         // Percentage // Chance to upgrade block to next tier when attaching
+  rareItemTradepostChance?: number;    // Percentage // Higher chance of items at tradeposts
+  voidIntensity?: number;              // Percentage // Intensity of voids (spawn rate of corrupted enemies)
 
   // Ability
-  abilityCooldown?: number;   // Percentage
-  abilityPower?: number;      // Percentage
+  abilityCooldown?: number;            // Percentage // Cooldown reduction of ship abilities
+  abilityPower?: number;               // Percentage // Power of ship abilities
 
-  // Capstone Booleans
-  slayer?: boolean;
-  voidwalker?: boolean;
-  atronach?: boolean;
-  incidentInvestigator?: boolean;
-  builder?: boolean;
-  trademaster?: boolean;
-  explorer?: boolean;
-  bossMastery?: boolean;
+  // Incidents
+  incidentSpawnChance?: number;        // Percentage // Chance for incidents to appear on the map (spawn)
 
   // Extendable for future mechanics
   [key: string]: number | boolean | string | string[] | undefined;
 }
-
-/*
-  iconCache = {
-    // Required initial set
-    'icon-damage': getDamageIconSprite(),
-    'icon-armor': getArmorIconSprite(),
-    'icon-thrust': getThrustIconSprite(),
-    'icon-blockDropRate': getBlockDropRateIconSprite(),
-    'icon-harvest': getHarvestIconSprite(),
-    'icon-ability': getAbilityIconSprite(),
-
-    // Next set
-    'icon-capitalist': getCapitalistIconSprite(),
-    'icon-abilityCooldown': getAbilityCooldownIconSprite(),
-    'icon-fireRate': getFireRateIconSprite(),
-    'icon-armorMitigation': getArmorMitigationIconSprite(),
-
-    // inside initializePassiveIconCache()
-    'icon-damageHybrid': getDamageHybridIconSprite(),
-    'icon-armorHybrid': getArmorHybridIconSprite(),
-    'icon-thrustHybrid': getThrustHybridIconSprite(),
-    'icon-capitalistHybrid': getCapitalistHybridIconSprite(),
-
-    // Explicit fallback registration (optional external usage)
-    'icon-fallback': fallbackSprite,
-  };
-    */

@@ -41,7 +41,7 @@ export class WaveExecutor {
       this.shipFactory,
       this.modApplier
     );
-    const densityMultiplier = missionLoader.getMission().waveDensity ?? 1;
+    const densityMultiplier = missionLoader.getDensity();
 
     // === Formations ===
     for (const formationEntry of wave.formations ?? []) {

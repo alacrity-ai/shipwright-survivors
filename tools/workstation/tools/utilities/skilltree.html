@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Skill Tree Builder — Grid Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#151a22; --bd:#222937; --btn:#203050; --btn2:#2a395a; --accent:#4cc9f0; --muted:#aebbd3; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { height:100%; display:grid; grid-template-rows:auto 1fr auto; }
+  header, footer { padding:12px 18px; border-bottom:1px solid var(--bd); }
+  footer { border-top:1px solid var(--bd); border-bottom:none; color:#b9c4d6; font-size:12px; display:flex; justify-content:space-between; gap:10px; }
+  .title { display:flex; align-items:center; gap:10px; }
+  .logo { width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#26406b,#0f1420); border:1px solid #2a3a5c; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+  .title h1 { margin:0; font-size:15px; letter-spacing:.3px; }
+  .bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a5c; background:#0f1420; font-size:11px; color:#b9c4d6; }
+  .kbd { padding:1px 6px; border-radius:4px; background:#0f1420; border:1px solid #25314a; font:11px ui-monospace, monospace; }
+  main { display:grid; grid-template-columns: 360px 1fr; gap:16px; padding:16px 18px; min-height:0; }
+  .panel { background:var(--ui); border:1px solid var(--bd); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px; min-height:0; box-shadow: inset 0 1px 0 rgba(255,255,255,.03); }
+  .panel h2 { margin:0; font-size:14px; letter-spacing:.2px; }
+  .hint { font-size:12px; color:var(--muted); }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  button {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--btn2); background:var(--btn); color:var(--fg);
+    cursor:pointer; transition:transform .03s ease, background .2s; font-weight:600; font-size:13px;
+  }
+  button:hover { background:#28406b; }
+  button:active { transform:translateY(1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  input[type="file"] { color:var(--fg); }
+
+  /* Workspace */
+  .workspace { position:relative; border:1px solid var(--bd); border-radius:12px; overflow:hidden;
+    background:
+      conic-gradient(#0000 0 25%,#0001 0 50%,#0000 0 75%,#0001 0) 0 0/20px 20px,
+      linear-gradient(90deg,#1b1f28,#141820);
+    display:grid; grid-template-rows: 1fr auto;
+  }
+  .canvas-wrap { position:relative; min-height:300px; }
+  canvas#canvas { width:100%; height:100%; display:block; }
+
+  /* Tooltip */
+  .tooltip {
+    position:fixed; z-index:20; max-width:320px; border:1px solid #2a3a5c; border-radius:10px; background:#0f1420;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); padding:10px 12px; pointer-events:none;
+  }
+  .tt-title { font-weight:700; margin-bottom:6px; }
+  .tt-meta { display:grid; grid-template-columns: auto 1fr; gap:4px 10px; font-size:12px; }
+  .tt-key { color:#9fb3cc; text-align:right; }
+  .tt-val { color:#e9eef7; overflow-wrap:anywhere; }
+
+  /* Modal */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:30; backdrop-filter: blur(2px);
+  }
+  .description-popup {
+    position:fixed; z-index:31; width:min(720px, calc(100vw - 40px));
+    max-height:80vh; overflow:auto; background:#151a22; border:1px solid #222937; border-radius:12px;
+    padding:16px; top:50%; left:50%; transform:translate(-50%,-50%);
+    box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .description-popup h3 { margin:0 0 10px; font-size:16px; }
+  .form-group { display:grid; grid-template-columns: 140px 1fr; gap:10px; align-items:center; margin:8px 0; }
+  .form-group label { color:#c7d2e6; font-size:13px; }
+  .metadata-section { display:flex; flex-direction:column; gap:8px; }
+  .metadata-entry { display:grid; grid-template-columns: 1fr 120px 1fr 32px; gap:8px; align-items:center; }
+  .metadata-entry .remove-metadata { width:32px; height:32px; border-radius:8px; border:1px solid #3a2b2b; background:#311b1b; color:#ff8080; font-weight:700; }
+  .add-metadata-btn { width:max-content; }
+  .buttons { display:flex; justify-content:space-between; gap:8px; margin-top:12px; }
+  .buttons .left { display:flex; gap:8px; }
+  .buttons .right { display:flex; gap:8px; }
+  .statusbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px; border-top:1px solid var(--bd); background:#0f1420; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="title">
+      <div class="logo"></div>
+      <h1>Skill Tree Builder</h1>
+      <span class="pill">Controls: <span class="kbd">Click</span> place/remove • <span class="kbd">Ctrl+Click</span> link • <span class="kbd">Shift+Click</span> edit</span>
+    </div>
+    <div class="pill" id="gridpill">Grid: 101×101</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Actions</h2>
+      <div class="row">
+        <button id="exportBtn">Export JSON</button>
+        <button id="loadBtn">Load JSON</button>
+        <input type="file" id="fileInput" accept=".json" style="display:none;">
+        <button id="refitBtn">Refit View</button>
+        <button id="clearBtn">Clear Grid</button>
+      </div>
+
+      <h2>Instructions</h2>
+      <div class="hint">
+        • Left click toggles a node. <br/>
+        • <b>Ctrl+Click</b> two nodes to connect them (bidirectional). <br/>
+        • <b>Shift+Click</b> a node to edit ID, name, description, cost, mastery, icon, and typed metadata. <br/>
+        • The absolute center square is highlighted in grey for layout anchoring.
+      </div>
+
+      <div class="hint">Tooltips appear when hovering nodes that have metadata. Export includes nodes, connections, and metadata.</div>
+    </section>
+
+    <section class="panel workspace">
+      <div class="canvas-wrap">
+        <canvas id="canvas"></canvas>
+      </div>
+      <div class="statusbar">
+        <div class="row">
+          <span class="pill" id="cellpill">Cell: —</span>
+          <span class="pill" id="nodepill">Node: —</span>
+          <span class="pill" id="linkpill">Link mode: hold <span class="kbd">Ctrl</span></span>
+        </div>
+        <div class="hint" id="countSummary">0 nodes • 0 edges</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>HiDPI-aware canvas, GC-light rendering, responsive fit.</div>
+    <div>Keep JSON in version control for diffs.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ---------- DOM ----------
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', { alpha:true, desynchronized:true });
+  const exportBtn = document.getElementById('exportBtn');
+  const loadBtn = document.getElementById('loadBtn');
+  const fileInput = document.getElementById('fileInput');
+  const refitBtn = document.getElementById('refitBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const cellpill = document.getElementById('cellpill');
+  const nodepill = document.getElementById('nodepill');
+  const countSummary = document.getElementById('countSummary');
+
+  // Tooltip (DOM)
+  const tooltip = document.createElement('div');
+  tooltip.className = 'tooltip';
+  tooltip.style.display = 'none';
+  document.body.appendChild(tooltip);
+
+  // ---------- Constants / State ----------
+  const GRID_SIZE = 101;
+  document.getElementById('gridpill').textContent = `Grid: ${GRID_SIZE}×${GRID_SIZE}`;
+
+  let CELL_SIZE = 16; // computed on fit
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  // camera/zoom (world-space, pre-scale)
+  const MIN_ZOOM = 0.35;
+  const MAX_ZOOM = 4.0;
+  const ZOOM_STEP = 1.10;
+  const cam = { x: 0, y: 0, scale: 1 }; // x,y in world CSS px; scale multiplies CSS→device
+
+  // world state
+  let grid = Array(GRID_SIZE).fill(null).map(()=>Array(GRID_SIZE).fill(false));
+  /** @type {{from:{x:number,y:number}, to:{x:number,y:number}}[]} */
+  let connections = [];
+  /** @type {Record<string, any>} */
+  let nodeDescriptions = {};
+  /** @type {{x:number,y:number}|null} */
+  let selectedSquare = null;
+
+  // selection & drag state
+  const selectedKeys = new Set();           // Set<"c,r">
+  let marquee = { active:false, start:null, end:null }; // {start:{c,r}, end:{c,r}}
+  let dragMove = { active:false, startClient:{x:0,y:0}, deltaC:0, deltaR:0 }; // group move
+  let didDrag = false; // suppress click after drag
+
+  // hover / tooltip state
+  let lastHoverKey = null;
+
+  // Node field clipboard
+  /** @type {null | { id?:string, name?:string, description?:string, icon?:string, nodeSize?:'major'|'minor', cost:number, masteryRequirement:number, metadata?:Record<string,any> }} */
+  let nodeClipboard = null;
+
+  // ---------- Utils ----------
+  const keyOf = (c,r) => `${c},${r}`;
+  const parseKey = k => { const [c,r] = k.split(',').map(Number); return {c,r}; };
+  const inBounds = (c,r) => c>=0 && c<GRID_SIZE && r>=0 && r<GRID_SIZE;
+  const isNode = (c,r) => inBounds(c,r) && grid[r][c];
+  const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+
+  function fitCanvas() {
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    const wrap = canvas.parentElement.getBoundingClientRect();
+    const size = Math.min(wrap.width, wrap.height);
+    const cssW = Math.max(320, Math.floor(size));
+    const cssH = Math.max(320, Math.floor(size));
+
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+
+    CELL_SIZE = Math.floor(Math.min(cssW, cssH) / GRID_SIZE);
+    clampCam();
+    drawGrid();
+  }
+
+  function clampCam() {
+    const viewW = canvas.width / dpr;
+    const viewH = canvas.height / dpr;
+    const worldW = GRID_SIZE * CELL_SIZE;
+    const worldH = GRID_SIZE * CELL_SIZE;
+
+    const maxX = Math.max(0, worldW - (viewW / cam.scale));
+    const maxY = Math.max(0, worldH - (viewH / cam.scale));
+    cam.x = Math.max(0, Math.min(maxX, cam.x));
+    cam.y = Math.max(0, Math.min(maxY, cam.y));
+  }
+
+  // ---------- Drawing ----------
+  function drawGrid() {
+    // reset transform and clear in device pixels
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // apply DPR and camera transform in CSS pixels
+    ctx.scale(dpr, dpr);
+    ctx.scale(cam.scale, cam.scale);
+    ctx.translate(-cam.x, -cam.y);
+
+    // connections
+    ctx.strokeStyle = '#4cc9f0';
+    ctx.lineWidth = 2;
+    for (const c of connections) {
+      const x1 = c.from.x*CELL_SIZE + CELL_SIZE/2;
+      const y1 = c.from.y*CELL_SIZE + CELL_SIZE/2;
+      const x2 = c.to.x*CELL_SIZE + CELL_SIZE/2;
+      const y2 = c.to.y*CELL_SIZE + CELL_SIZE/2;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+
+    // grid lines
+    ctx.strokeStyle = '#222937';
+    ctx.lineWidth = 1;
+    for (let i=0;i<=GRID_SIZE;i++) {
+      const pos = i*CELL_SIZE + 0.5;
+      ctx.beginPath(); ctx.moveTo(pos,0); ctx.lineTo(pos,GRID_SIZE*CELL_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,pos); ctx.lineTo(GRID_SIZE*CELL_SIZE,pos); ctx.stroke();
+    }
+
+    // center cell
+    const centerCol = Math.floor(GRID_SIZE/2), centerRow = Math.floor(GRID_SIZE/2);
+    ctx.fillStyle = '#2a2f3a';
+    ctx.fillRect(centerCol*CELL_SIZE, centerRow*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+    // nodes
+    ctx.fillStyle = '#e9eef7';
+    for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) {
+      if (grid[r][c]) ctx.fillRect(c*CELL_SIZE+2, r*CELL_SIZE+2, CELL_SIZE-4, CELL_SIZE-4);
+    }
+
+    // metadata dots
+    ctx.fillStyle = '#ff6b6b';
+    for (const key in nodeDescriptions) {
+      const [x,y]=key.split(',').map(Number);
+      if (grid[y]?.[x]) {
+        ctx.beginPath(); ctx.arc(x*CELL_SIZE+CELL_SIZE-5, y*CELL_SIZE+5, 3, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    // selection outlines
+    if (selectedKeys.size) {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#8be9fd';
+      for (const key of selectedKeys) {
+        const {c,r} = parseKey(key);
+        if (!isNode(c,r)) continue;
+        ctx.strokeRect(c*CELL_SIZE+1.5, r*CELL_SIZE+1.5, CELL_SIZE-3, CELL_SIZE-3);
+      }
+    }
+
+    // drag ghost (preview target positions)
+    if (dragMove.active && (dragMove.deltaC !== 0 || dragMove.deltaR !== 0)) {
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#a8e1ff';
+      for (const key of selectedKeys) {
+        const {c,r} = parseKey(key);
+        if (!isNode(c,r)) continue;
+        const tc = c + dragMove.deltaC, tr = r + dragMove.deltaR;
+        if (!inBounds(tc,tr)) continue;
+        ctx.fillRect(tc*CELL_SIZE+2, tr*CELL_SIZE+2, CELL_SIZE-4, CELL_SIZE-4);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // marquee rect
+    if (marquee.active && marquee.start && marquee.end) drawMarquee();
+
+    // selection-by-click indicator
+    if (selectedSquare) {
+      ctx.strokeStyle = '#4cc9f0'; ctx.lineWidth = 3;
+      ctx.strokeRect(selectedSquare.x*CELL_SIZE+1, selectedSquare.y*CELL_SIZE+1, CELL_SIZE-2, CELL_SIZE-2);
+    }
+
+    // counts (UI text outside transform)
+    const nodeCount = grid.flat().filter(Boolean).length;
+    countSummary.textContent = `${nodeCount} node${nodeCount===1?'':'s'} • ${connections.length} edge${connections.length===1?'':'s'}`;
+  }
+
+  function drawMarquee() {
+    const {start,end} = marquee;
+    const x1 = Math.min(start.c, end.c) * CELL_SIZE;
+    const y1 = Math.min(start.r, end.r) * CELL_SIZE;
+    const x2 = (Math.max(start.c, end.c)+1) * CELL_SIZE;
+    const y2 = (Math.max(start.r, end.r)+1) * CELL_SIZE;
+    const w = x2 - x1, h = y2 - y1;
+
+    ctx.save();
+    ctx.strokeStyle = '#4cc9f0';
+    ctx.setLineDash([5,4]);
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x1+0.5, y1+0.5, w-1, h-1);
+    ctx.fillStyle = 'rgba(76,201,240,0.12)';
+    ctx.fillRect(x1+1, y1+1, w-2, h-2);
+    ctx.restore();
+  }
+
+  // ---------- Tooltip helpers ----------
+  function stringifyMetaValue(v) {
+    if (Array.isArray(v)) return `[${v.join(', ')}]`;
+    if (v && typeof v === 'object') { try { return JSON.stringify(v); } catch { return '[object]'; } }
+    return String(v);
+  }
+  function positionTooltip(clientX, clientY) {
+    const margin = 12;
+    const rect = tooltip.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let x = clientX + 12, y = clientY + 12;
+    if (x + rect.width + margin > vw) x = clientX - rect.width - 12;
+    if (y + rect.height + margin > vh) y = clientY - rect.height - 12;
+    tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+  }
+  function showNodeTooltip(col, row, clientX, clientY) {
+    const key = `${col},${row}`;
+    const data = nodeDescriptions[key];
+    const idText = data?.id?.trim() || '';
+    const nameText = data?.name?.trim() || '';
+    const costText = (typeof data?.cost === 'number' && !isNaN(data.cost)) ? data.cost : null;
+
+    let html = '';
+    if (idText) html += `<div class="tt-id" style="font-weight:bold; font-size:0.85em; opacity:0.8;">${idText}</div>`;
+    html += `<div class="tt-title">${nameText || idText || '(unnamed node)'}</div>`;
+    if (costText !== null) html += `<div class="tt-cost" style="font-size:0.85em; color:#ccc;">Cost: ${costText}</div>`;
+
+    const meta = data?.metadata && typeof data.metadata === 'object' ? data.metadata : null;
+    if (meta && Object.keys(meta).length) {
+      html += `<div class="tt-meta">`;
+      for (const [k, v] of Object.entries(meta)) html += `<div class="tt-key">${k}</div><div class="tt-val">${stringifyMetaValue(v)}</div>`;
+      html += `</div>`;
+    } else {
+      html += `<div class="tt-val" style="opacity:.75">No metadata</div>`;
+    }
+
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    positionTooltip(clientX, clientY);
+    lastHoverKey = key;
+  }
+  function hideTooltip(){ tooltip.style.display='none'; lastHoverKey=null; }
+
+  // ---------- Metadata editor helpers ----------
+  function parseValue(value, type) {
+    switch (type) {
+      case 'number': { const n = parseFloat(value); return Number.isNaN(n) ? 0 : n; }
+      case 'boolean': return value.toLowerCase() === 'true';
+      case 'array':
+        try { const parsed = JSON.parse(value); if (Array.isArray(parsed)) return parsed.map(String); } catch {}
+        return value.split(',').map(s=>s.trim()).filter(Boolean);
+      default: return String(value ?? '');
+    }
+  }
+  function formatValueForInput(value, type) {
+    if (type === 'array' && Array.isArray(value)) return JSON.stringify(value);
+    return String(value ?? '');
+  }
+  function createMetadataEntry(key='', value='', type='string') {
+    const entry = document.createElement('div');
+    entry.className = 'metadata-entry';
+    const formatted = formatValueForInput(value, type).replaceAll("'", "&apos;");
+    entry.innerHTML = `
+      <input type="text" class="metadata-key" placeholder="Key" value="${key}">
+      <select class="metadata-type">
+        <option value="string" ${type==='string'?'selected':''}>String</option>
+        <option value="number" ${type==='number'?'selected':''}>Number</option>
+        <option value="boolean" ${type==='boolean'?'selected':''}>Boolean</option>
+        <option value="array" ${type==='array'?'selected':''}>Array</option>
+      </select>
+      <input type="text" class="metadata-value value-input" placeholder="Value" value='${formatted}'>
+      <button type="button" class="remove-metadata">×</button>
+    `;
+    entry.querySelector('.remove-metadata').addEventListener('click', ()=> entry.remove());
+    const typeSelect = entry.querySelector('.metadata-type');
+    const valueInput = entry.querySelector('.metadata-value');
+    typeSelect.addEventListener('change', () => {
+      valueInput.placeholder = (typeSelect.value==='number') ? 'e.g., 0.08 or 10'
+        : (typeSelect.value==='boolean') ? 'true or false'
+        : (typeSelect.value==='array') ? '["a","b"] or a, b'
+        : 'Value';
+    });
+    return entry;
+  }
+  function computeNextAvailableId(baseId) {
+    const m = /^(.+?)-(\d+)$/.exec(baseId || '');
+    if (!m) return baseId;
+    const prefix = m[1] + '-';
+    const startN = parseInt(m[2], 10);
+    const used = new Set();
+    for (const v of Object.values(nodeDescriptions)) {
+      const id = v?.id;
+      if (typeof id === 'string' && id.startsWith(prefix)) {
+        const mm = /^\d+$/.exec(id.slice(prefix.length));
+        if (mm) used.add(parseInt(mm[0], 10));
+      }
+    }
+    let n = startN + 1;
+    while (used.has(n)) n++;
+    return prefix + n;
+  }
+  function gatherPopupData(popup) {
+    const meta = {};
+    popup.querySelectorAll('.metadata-entry').forEach(entry => {
+      const k = entry.querySelector('.metadata-key').value.trim();
+      const t = entry.querySelector('.metadata-type').value;
+      const v = entry.querySelector('.metadata-value').value.trim();
+      if (k && v !== '') meta[k] = parseValue(v, t);
+    });
+    const payload = {
+      id: popup.querySelector('#nodeId').value.trim(),
+      name: popup.querySelector('#nodeName').value.trim(),
+      description: popup.querySelector('#nodeDescription').value.trim(),
+      icon: popup.querySelector('#nodeIcon').value.trim(),
+      nodeSize: popup.querySelector('#nodeSize').value,
+      cost: parseInt(popup.querySelector('#nodeCost').value, 10) || 0,
+      masteryRequirement: parseInt(popup.querySelector('#nodeMastery').value, 10) || 0,
+    };
+    if (Object.keys(meta).length) payload.metadata = meta;
+    return payload;
+  }
+  function populatePopupFromData(popup, data) {
+    popup.querySelector('#nodeId').value = data.id || '';
+    popup.querySelector('#nodeName').value = data.name || '';
+    popup.querySelector('#nodeDescription').value = data.description || '';
+    popup.querySelector('#nodeIcon').value = data.icon || '';
+    popup.querySelector('#nodeSize').value = data.nodeSize || 'minor';
+    popup.querySelector('#nodeCost').value = String(data.cost || 0);
+    popup.querySelector('#nodeMastery').value = String(data.masteryRequirement || 0);
+    const container = popup.querySelector('#metadataEntries');
+    container.innerHTML = '';
+    const meta = data.metadata && typeof data.metadata === 'object' ? data.metadata : null;
+    if (meta) {
+      for (const [k, v] of Object.entries(meta)) {
+        const t = Array.isArray(v) ? 'array' : (typeof v === 'number') ? 'number' : (typeof v === 'boolean') ? 'boolean' : 'string';
+        container.appendChild(createMetadataEntry(k, v, t));
+      }
+    }
+  }
+  function showDescriptionPopup(x, y) {
+    const key = `${x},${y}`;
+    const existing = nodeDescriptions[key] || {};
+    const data = (typeof existing === 'string') ? { description: existing } : existing;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+
+    const popup = document.createElement('div');
+    popup.className = 'description-popup';
+    popup.innerHTML = `
+      <h3>Node Properties (${x}, ${y})</h3>
+      <div class="form-group"><label>ID</label><input id="nodeId" type="text" value="${data.id||''}"></div>
+      <div class="form-group"><label>Name</label><input id="nodeName" type="text" value="${data.name||''}"></div>
+      <div class="form-group"><label>Description</label><textarea id="nodeDescription" rows="3" placeholder="Enter description...">${data.description||''}</textarea></div>
+      <div class="form-group"><label>Icon</label><input id="nodeIcon" type="text" value="${data.icon||''}" placeholder="icon.png"></div>
+      <div class="form-group"><label>Node Size</label>
+        <select id="nodeSize">
+          <option value="major" ${data.nodeSize==='major'?'selected':''}>Major</option>
+          <option value="minor" ${data.nodeSize==='minor'?'selected':''}>Minor</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cost</label><input id="nodeCost" type="number" min="0" value="${data.cost||0}"></div>
+      <div class="form-group"><label>Mastery Req.</label><input id="nodeMastery" type="number" min="0" value="${data.masteryRequirement||0}"></div>
+
+      <div class="form-group" style="align-items:start;">
+        <label>Metadata</label>
+        <div class="metadata-section">
+          <div id="metadataEntries"></div>
+          <button type="button" class="add-metadata-btn">+ Add Metadata</button>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <div class="left">
+          <button id="copyFieldsBtn" title="Copy all fields (including metadata)">Copy Fields</button>
+          <button id="pasteFieldsBtn" title="Paste fields from last copy">Paste Fields</button>
+        </div>
+        <div class="right">
+          <button id="cancelDesc">Cancel</button>
+          <button id="saveDesc" style="border-color:#2a3a5c; background:#1a2a46;">Save</button>
+        </div>
+      </div>
+    `;
+    document.body.append(overlay, popup);
+
+    const metadataContainer = popup.querySelector('#metadataEntries');
+    const addMetadataBtn = popup.querySelector('.add-metadata-btn');
+    addMetadataBtn.addEventListener('click', ()=> metadataContainer.appendChild(createMetadataEntry()));
+
+    populatePopupFromData(popup, data);
+
+    const copyBtn = popup.querySelector('#copyFieldsBtn');
+    const pasteBtn = popup.querySelector('#pasteFieldsBtn');
+    pasteBtn.disabled = !nodeClipboard;
+
+    copyBtn.addEventListener('click', () => {
+      const payload = gatherPopupData(popup);
+      nodeClipboard = deepClone(payload);
+      pasteBtn.disabled = false;
+      copyBtn.textContent = 'Copied ✓';
+      setTimeout(()=> copyBtn.textContent = 'Copy Fields', 900);
+    });
+
+    pasteBtn.addEventListener('click', () => {
+      if (!nodeClipboard) return;
+      const payload = deepClone(nodeClipboard);
+      if (payload.id) payload.id = computeNextAvailableId(payload.id);
+      populatePopupFromData(popup, payload);
+      pasteBtn.textContent = 'Pasted ✓';
+      setTimeout(()=> pasteBtn.textContent = 'Paste Fields', 900);
+    });
+
+    function closePopup(){ overlay.remove(); popup.remove(); }
+    popup.querySelector('#cancelDesc').addEventListener('click', closePopup);
+    overlay.addEventListener('click', closePopup);
+
+    popup.querySelector('#saveDesc').addEventListener('click', () => {
+      const newData = gatherPopupData(popup);
+      if (newData.metadata && Object.keys(newData.metadata).length === 0) delete newData.metadata;
+      const isEmpty = !newData.id && !newData.name && !newData.description &&
+                      !newData.icon && (newData.cost|0) === 0 && (newData.masteryRequirement|0) === 0 &&
+                      !newData.metadata;
+      if (!isEmpty) nodeDescriptions[key] = newData; else delete nodeDescriptions[key];
+      closePopup();
+      drawGrid();
+    });
+  }
+
+  // ---------- Interaction & Camera math ----------
+  function clientToCell(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const xCss = evt.clientX - rect.left;   // CSS px
+    const yCss = evt.clientY - rect.top;    // CSS px
+    // CSS → world (pre-scale), then world → cell
+    const worldX = cam.x + (xCss / cam.scale);
+    const worldY = cam.y + (yCss / cam.scale);
+    const col = Math.floor(worldX / CELL_SIZE);
+    const row = Math.floor(worldY / CELL_SIZE);
+    return { col, row, inBounds: col>=0 && col<GRID_SIZE && row>=0 && row<GRID_SIZE, xCss, yCss };
+  }
+
+  function startMarquee(col,row) {
+    marquee.active = true;
+    marquee.start = { c:col, r:row };
+    marquee.end = { c:col, r:row };
+  }
+  function updateMarquee(col,row) {
+    marquee.end = { c:col, r:row };
+    selectedKeys.clear();
+    const c1 = Math.min(marquee.start.c, marquee.end.c);
+    const c2 = Math.max(marquee.start.c, marquee.end.c);
+    const r1 = Math.min(marquee.start.r, marquee.end.r);
+    const r2 = Math.max(marquee.start.r, marquee.end.r);
+    for (let r=r1; r<=r2; r++) for (let c=c1; c<=c2; c++) {
+      if (isNode(c,r)) selectedKeys.add(keyOf(c,r));
+    }
+  }
+  function endMarquee() { marquee.active = false; marquee.start = marquee.end = null; }
+
+  function startGroupDrag(evt, col, row) {
+    dragMove.active = true;
+    dragMove.startClient = { x: evt.clientX, y: evt.clientY };
+    dragMove.deltaC = 0;
+    dragMove.deltaR = 0;
+  }
+  function updateGroupDrag(evt) {
+    const dx = evt.clientX - dragMove.startClient.x;
+    const dy = evt.clientY - dragMove.startClient.y;
+    const dc = Math.round(dx / (CELL_SIZE * cam.scale));
+    const dr = Math.round(dy / (CELL_SIZE * cam.scale));
+    if (dc !== dragMove.deltaC || dr !== dragMove.deltaR) {
+      dragMove.deltaC = dc;
+      dragMove.deltaR = dr;
+      drawGrid();
+    }
+  }
+  function validateMove(dc, dr) {
+    if (dc === 0 && dr === 0) return false;
+    for (const key of selectedKeys) {
+      const {c,r} = parseKey(key);
+      const tc = c + dc, tr = r + dr;
+      if (!inBounds(tc,tr)) return false;
+      const tKey = keyOf(tc,tr);
+      if (!selectedKeys.has(tKey) && isNode(tc,tr)) return false;
+    }
+    return true;
+  }
+  function applyMove(dc, dr) {
+    if (!validateMove(dc, dr)) return false;
+
+    const originals = Array.from(selectedKeys).map(parseKey);
+    for (const {c,r} of originals) grid[r][c] = false;
+    for (const {c,r} of originals) grid[r+dr][c+dc] = true;
+
+    const newNodeDescriptions = {};
+    for (const k in nodeDescriptions) {
+      const {c,r} = parseKey(k);
+      const moved = selectedKeys.has(k);
+      const nk = moved ? keyOf(c+dc, r+dr) : k;
+      newNodeDescriptions[nk] = nodeDescriptions[k];
+    }
+    nodeDescriptions = newNodeDescriptions;
+
+    for (const conn of connections) {
+      const fk = keyOf(conn.from.x, conn.from.y);
+      const tk = keyOf(conn.to.x, conn.to.y);
+      if (selectedKeys.has(fk)) { conn.from.x += dc; conn.from.y += dr; }
+      if (selectedKeys.has(tk)) { conn.to.x += dc; conn.to.y += dr; }
+    }
+
+    const newSel = new Set();
+    for (const {c,r} of originals) newSel.add(keyOf(c+dc, r+dr));
+    selectedKeys.clear();
+    for (const k of newSel) selectedKeys.add(k);
+
+    return true;
+  }
+
+  // Mouse gesture state
+  let mouseDownCell = null;
+
+  canvas.addEventListener('mousedown', (event) => {
+    didDrag = false;
+    const { col, row, inBounds } = clientToCell(event);
+    if (!inBounds) return;
+
+    mouseDownCell = { col, row };
+
+    // Ctrl-click reserved for linking (handled on click)
+    if (event.ctrlKey) return;
+
+    const k = keyOf(col,row);
+    const overNode = isNode(col,row);
+
+    if (overNode && selectedKeys.has(k)) {
+      startGroupDrag(event, col, row);
+      return;
+    }
+
+    startMarquee(col,row);
+    updateMarquee(col,row);
+    drawGrid();
+  });
+
+  canvas.addEventListener('mousemove', (event) => {
+    const { col, row, inBounds } = clientToCell(event);
+    if (!inBounds) { hideTooltip(); cellpill.textContent = 'Cell: —'; return; }
+    cellpill.textContent = `Cell: ${col},${row}`;
+
+    if (marquee.active) {
+      didDrag = true;
+      updateMarquee(col,row);
+      drawGrid();
+      return;
+    }
+
+    if (dragMove.active) {
+      didDrag = true;
+      updateGroupDrag(event);
+      return;
+    }
+
+    if (grid[row][col]) {
+      nodepill.textContent = 'Node: present';
+      const key = `${col},${row}`;
+      if (nodeDescriptions[key]) {
+        if (lastHoverKey !== key || tooltip.style.display === 'none') {
+          showNodeTooltip(col, row, event.clientX, event.clientY);
+        } else {
+          positionTooltip(event.clientX, event.clientY);
+        }
+        return;
+      }
+    } else {
+      nodepill.textContent = 'Node: empty';
+    }
+    hideTooltip();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (marquee.active) {
+      endMarquee();
+      drawGrid();
+    }
+    if (dragMove.active) {
+      const { deltaC:dc, deltaR:dr } = dragMove;
+      dragMove.active = false;
+      dragMove.deltaC = dragMove.deltaR = 0;
+      if (validateMove(dc,dr)) applyMove(dc,dr);
+      drawGrid();
+    }
+  });
+
+  // WASD / Arrow panning
+  window.addEventListener('keydown', (e) => {
+    const target = document.activeElement;
+    if (target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+    )) {
+      return; // Let the keystroke go to the input field
+    }
+
+    let moved = false;
+    const stepCells = 1;
+    const stepWorld = stepCells * CELL_SIZE;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'a': case 'A':
+        cam.x -= stepWorld; moved = true; break;
+      case 'ArrowRight':
+      case 'd': case 'D':
+        cam.x += stepWorld; moved = true; break;
+      case 'ArrowUp':
+      case 'w': case 'W':
+        cam.y -= stepWorld; moved = true; break;
+      case 'ArrowDown':
+      case 's': case 'S':
+        cam.y += stepWorld; moved = true; break;
+      default:
+        break;
+    }
+    if (moved) {
+      clampCam();
+      drawGrid();
+      e.preventDefault();
+    }
+  });
+
+  canvas.addEventListener('mouseleave', hideTooltip);
+  window.addEventListener('scroll', hideTooltip, { passive:true });
+  window.addEventListener('blur', hideTooltip);
+
+  function handleClick(event) {
+    if (didDrag) { didDrag = false; return; }
+
+    const { col, row, inBounds } = clientToCell(event);
+    if (!inBounds) return;
+
+    cellpill.textContent = `Cell: ${col},${row}`;
+
+    if (event.shiftKey) {
+      if (grid[row][col]) showDescriptionPopup(col, row);
+      return;
+    }
+    if (event.ctrlKey) {
+      if (grid[row][col]) {
+        const clicked = { x:col, y:row };
+        if (!selectedSquare) {
+          selectedSquare = clicked;
+        } else {
+          if (selectedSquare.x !== clicked.x || selectedSquare.y !== clicked.y) {
+            const existsForward = connections.some(c => c.from.x===selectedSquare.x && c.from.y===selectedSquare.y && c.to.x===clicked.x && c.to.y===clicked.y);
+            const existsReverse = connections.some(c => c.from.x===clicked.x && c.from.y===clicked.y && c.to.x===selectedSquare.x && c.to.y===selectedSquare.y);
+            if (!existsForward) connections.push({ from:{...selectedSquare}, to:{...clicked} });
+            if (!existsReverse) connections.push({ from:{...clicked}, to:{...selectedSquare} });
+          }
+          selectedSquare = null;
+        }
+      }
+      drawGrid();
+      return;
+    }
+
+    selectedSquare = null;
+    const wasPresent = grid[row][col];
+    grid[row][col] = !wasPresent;
+    nodepill.textContent = `Node: ${grid[row][col] ? 'present' : 'empty'}`;
+
+    const k = keyOf(col,row);
+    if (grid[row][col]) {
+      selectedKeys.clear();
+      selectedKeys.add(k);
+    } else {
+      selectedKeys.delete(k);
+      connections = connections.filter(c =>
+        !(c.from.x===col && c.from.y===row) &&
+        !(c.to.x===col && c.to.y===row)
+      );
+      delete nodeDescriptions[k];
+    }
+    drawGrid();
+  }
+  canvas.addEventListener('click', handleClick);
+
+  // ---------- Mouse Wheel Zoom (cursor-centric) ----------
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+
+    const rect = canvas.getBoundingClientRect();
+    const xCss = e.clientX - rect.left; // CSS px
+    const yCss = e.clientY - rect.top;  // CSS px
+
+    // World point under cursor BEFORE zoom
+    const worldX = cam.x + (xCss / cam.scale);
+    const worldY = cam.y + (yCss / cam.scale);
+
+    const factor = (e.deltaY < 0) ? ZOOM_STEP : (1 / ZOOM_STEP); // up = zoom in
+    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, cam.scale * factor));
+    if (newScale === cam.scale) return;
+
+    // Keep same world point under the cursor
+    cam.x = worldX - (xCss / newScale);
+    cam.y = worldY - (yCss / newScale);
+    cam.scale = newScale;
+
+    clampCam();
+    drawGrid();
+  }, { passive:false });
+
+  // ---------- Export / Import / Clear / Refit ----------
+  function exportToJSON() {
+    const squares = [];
+    for (let row=0; row<GRID_SIZE; row++) for (let col=0; col<GRID_SIZE; col++) {
+      if (grid[row][col]) {
+        const key = `${col},${row}`;
+        const sq = { x:col, y:row };
+        if (nodeDescriptions[key]) sq.metadata = nodeDescriptions[key];
+        squares.push(sq);
+      }
+    }
+    const payload = { gridSize: GRID_SIZE, squares, connections, timestamp: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'skill-tree.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 250);
+  }
+  function loadFromJSON(json) {
+    try {
+      const data = JSON.parse(json);
+      grid = Array(GRID_SIZE).fill(null).map(()=>Array(GRID_SIZE).fill(false));
+      connections = [];
+      nodeDescriptions = {};
+      selectedSquare = null;
+      selectedKeys.clear();
+      marquee.active = false; dragMove.active = false;
+
+      if (Array.isArray(data.squares)) {
+        for (const sq of data.squares) {
+          if (sq && sq.x>=0 && sq.x<GRID_SIZE && sq.y>=0 && sq.y<GRID_SIZE) {
+            grid[sq.y][sq.x] = true;
+            if (sq.metadata) nodeDescriptions[`${sq.x},${sq.y}`] = sq.metadata;
+            else if (sq.description) nodeDescriptions[`${sq.x},${sq.y}`] = { description: sq.description };
+          }
+        }
+      }
+      if (Array.isArray(data.connections)) {
+        connections = data.connections.filter(conn =>
+          conn && conn.from && conn.to &&
+          conn.from.x>=0 && conn.from.x<GRID_SIZE && conn.from.y>=0 && conn.from.y<GRID_SIZE &&
+          conn.to.x>=0 && conn.to.x<GRID_SIZE && conn.to.y>=0 && conn.to.y<GRID_SIZE
+        );
+      }
+      drawGrid();
+      alert('JSON loaded successfully.');
+    } catch (err) {
+      alert('Error loading JSON: ' + (err?.message || String(err)));
+    }
+  }
+  exportBtn.addEventListener('click', exportToJSON);
+  loadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    const f = e.target.files?.[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = evt => loadFromJSON(evt.target.result);
+    rd.readAsText(f);
+    fileInput.value = '';
+  });
+
+  refitBtn.addEventListener('click', () => {
+    // Reset camera to show full grid
+    cam.x = 0; cam.y = 0; cam.scale = 1;
+    fitCanvas();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('Clear all nodes, connections, and metadata?')) return;
+    grid = Array(GRID_SIZE).fill(null).map(()=>Array(GRID_SIZE).fill(false));
+    connections = [];
+    nodeDescriptions = {};
+    selectedSquare = null;
+    selectedKeys.clear();
+    marquee.active = false; dragMove.active = false;
+    drawGrid();
+  });
+
+  window.addEventListener('resize', fitCanvas);
+
+  // ---------- Bootstrap ----------
+  fitCanvas();
+})();
+</script>
+
+
+
+</body>
+</html>

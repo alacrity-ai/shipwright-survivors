@@ -8,7 +8,8 @@ import { getUniformScaleFactor } from '@/config/view';
 import { PassiveTreeUIRenderer } from './PassiveTreeUIRenderer';
 import { PlayerGlobalPassiveManager } from '@/game/player/PlayerGlobalPassiveManager';
 import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
-import { PassiveTreeTooltipRenderer } from './PassiveTreeTooltipRenderer';
+import { PassiveTreeTooltipRenderer } from '@/game/passives/ui/PassiveTreeTooltipRenderer';
+import { PassiveTreeBreakdownWindow } from '@/game/passives/ui/PassiveTreeBreakdownWindow';
 import type { PassiveTree } from '@/game/passives/interfaces/PassiveTree';
 
 import {
@@ -29,8 +30,10 @@ const GRID_SPACING = 64; // keep consistent with renderer
 export class PassiveTreeUIController {
   private readonly cm: CanvasManager;
   private readonly input: InputManager;
+
   private readonly renderer: PassiveTreeUIRenderer;
   private readonly tooltipRenderer = new PassiveTreeTooltipRenderer();
+  private readonly breakdownWindow = new PassiveTreeBreakdownWindow();
 
   // Camera (world-space top-left + scalar zoom)
   private camX = 0;
@@ -223,6 +226,9 @@ export class PassiveTreeUIController {
         return affordable && connectivityOk;
       }
     });
+
+    // Breakdown Window
+    this.breakdownWindow.render(ctx);
 
     if (this.hoveredNodeId) {
       const sq = this.tree!.squares.find(s => s.node.id === this.hoveredNodeId)!;

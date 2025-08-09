@@ -1,7 +1,7 @@
 // src/game/quests/registry/definitions/mission2Quests.ts
 
 // ──────────────────────────────────────────────────────────────
-//  Mission 2 – Alpha-sector boss arc
+//  Mission 2 – Naxos System Quests
 // ──────────────────────────────────────────────────────────────
 
 import type { Quest } from '@/game/quests/interfaces/Quest';

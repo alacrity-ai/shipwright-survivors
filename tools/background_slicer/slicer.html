@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Removal Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .primary-btn {
+            background: #007bff;
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background: #0056b3;
+        }
+        
+        .success-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .success-btn:hover {
+            background: #1e7e34;
+        }
+        
+        .warning-btn {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .warning-btn:hover {
+            background: #e0a800;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .canvas-wrapper {
+            text-align: center;
+        }
+        
+        .canvas-wrapper h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .info {
+            background: #e9f7ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .sample-colors {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .color-sample {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Background Removal Tool</h1>
+        
+        <div class="controls">
+            <button class="primary-btn" onclick="document.getElementById('fileInput').click()">
+                📁 Load Image
+            </button>
+            <button id="removeBtn" class="warning-btn" onclick="removeBackground()" disabled>
+                🗑️ Remove Background
+            </button>
+            <button id="exportBtn" class="success-btn" onclick="exportImage()" disabled>
+                💾 Export Image
+            </button>
+            <button class="primary-btn" onclick="resetImage()">
+                🔄 Reset
+            </button>
+        </div>
+        
+        <input type="file" id="fileInput" accept="image/*" onchange="loadImage(event)">
+        
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <h3>Original Image</h3>
+                <canvas id="originalCanvas"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <h3>Result</h3>
+                <canvas id="resultCanvas"></canvas>
+            </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="info">
+            <h4>How to use:</h4>
+            <p>1. Click "Load Image" to select an image</p>
+            <p>2. Click on background areas you want to remove (64x64 pixel sampling area)</p>
+            <p>3. Click "Remove Background" to process the image</p>
+            <p>4. Click "Export Image" to download the result</p>
+            
+            <div>
+                <strong>Sampled Colors:</strong>
+                <div id="sampleColors" class="sample-colors"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let originalCanvas, resultCanvas;
+        let originalCtx, resultCtx;
+        let originalImageData;
+        let sampledColors = [];
+        let imageLoaded = false;
+
+        window.onload = function() {
+            originalCanvas = document.getElementById('originalCanvas');
+            resultCanvas = document.getElementById('resultCanvas');
+            originalCtx = originalCanvas.getContext('2d');
+            resultCtx = resultCanvas.getContext('2d');
+            
+            originalCanvas.addEventListener('click', sampleColor);
+        };
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Set canvas size
+                    const maxWidth = 500;
+                    const maxHeight = 400;
+                    let { width, height } = img;
+                    
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+                    }
+                    
+                    originalCanvas.width = width;
+                    originalCanvas.height = height;
+                    resultCanvas.width = width;
+                    resultCanvas.height = height;
+                    
+                    // Draw image
+                    originalCtx.drawImage(img, 0, 0, width, height);
+                    resultCtx.drawImage(img, 0, 0, width, height);
+                    
+                    // Store original image data
+                    originalImageData = originalCtx.getImageData(0, 0, width, height);
+                    
+                    imageLoaded = true;
+                    sampledColors = [];
+                    updateSampleColors();
+                    updateButtons();
+                    showStatus('Image loaded successfully! Click on background areas to sample colors.', 'info');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sampleColor(event) {
+            if (!imageLoaded) return;
+
+            const rect = originalCanvas.getBoundingClientRect();
+            const scaleX = originalCanvas.width / rect.width;
+            const scaleY = originalCanvas.height / rect.height;
+            
+            const x = Math.floor((event.clientX - rect.left) * scaleX);
+            const y = Math.floor((event.clientY - rect.top) * scaleY);
+
+            // Sample 64x64 area around click point
+            const radius = 32;
+            const colors = new Set();
+            
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const px = x + dx;
+                    const py = y + dy;
+                    
+                    if (px >= 0 && px < originalCanvas.width && py >= 0 && py < originalCanvas.height) {
+                        const pixelData = originalCtx.getImageData(px, py, 1, 1).data;
+                        const colorKey = `${pixelData[0]},${pixelData[1]},${pixelData[2]}`;
+                        colors.add(colorKey);
+                    }
+                }
+            }
+
+            // Add unique colors to sampled colors
+            colors.forEach(colorKey => {
+                if (!sampledColors.some(color => color.key === colorKey)) {
+                    const [r, g, b] = colorKey.split(',').map(Number);
+                    sampledColors.push({ key: colorKey, r, g, b });
+                }
+            });
+
+            updateSampleColors();
+            updateButtons();
+            showStatus(`Sampled ${colors.size} unique colors from 64x64 area. Total: ${sampledColors.length} colors.`, 'info');
+        }
+
+        function updateSampleColors() {
+            const container = document.getElementById('sampleColors');
+            container.innerHTML = '';
+            
+            sampledColors.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'color-sample';
+                div.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+                div.title = `RGB(${color.r}, ${color.g}, ${color.b})`;
+                container.appendChild(div);
+            });
+        }
+
+        function removeBackground() {
+            if (!imageLoaded || sampledColors.length === 0) return;
+
+            const imageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            const data = imageData.data;
+            
+            const colorTolerance = 30; // Adjust this value to fine-tune color matching
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Check if this pixel matches any sampled color
+                const shouldRemove = sampledColors.some(color => {
+                    const dr = Math.abs(r - color.r);
+                    const dg = Math.abs(g - color.g);
+                    const db = Math.abs(b - color.b);
+                    
+                    return dr <= colorTolerance && dg <= colorTolerance && db <= colorTolerance;
+                });
+                
+                if (shouldRemove) {
+                    data[i + 3] = 0; // Set alpha to 0 (transparent)
+                }
+            }
+            
+            resultCtx.putImageData(imageData, 0, 0);
+            document.getElementById('exportBtn').disabled = false;
+            showStatus('Background removed successfully!', 'success');
+        }
+
+        function exportImage() {
+            const link = document.createElement('a');
+            link.download = 'transparent-image.png';
+            link.href = resultCanvas.toDataURL('image/png');
+            link.click();
+            showStatus('Image exported successfully!', 'success');
+        }
+
+        function resetImage() {
+            if (!imageLoaded) return;
+            
+            resultCtx.putImageData(originalImageData, 0, 0);
+            sampledColors = [];
+            updateSampleColors();
+            updateButtons();
+            showStatus('Image reset to original.', 'info');
+        }
+
+        function updateButtons() {
+            document.getElementById('removeBtn').disabled = !imageLoaded || sampledColors.length === 0;
+            document.getElementById('exportBtn').disabled = true;
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

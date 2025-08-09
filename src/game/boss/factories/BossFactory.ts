@@ -34,7 +34,9 @@ export class BossFactory {
       false,       // registerController: off
       true,        // unCullable
       false,       // isPlayerShip: false
-      false        // noClip
+      false,       // createInstantly
+      false,       // noClip
+      ['alwaysAnimateBuild', 'persistent', 'boss']
     );
 
     // Set affixes for no block drops or entropium drops

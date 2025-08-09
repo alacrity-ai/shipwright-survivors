@@ -469,6 +469,15 @@ export class BlockOrchestrator {
   }
 
   /**
+   * Gets the raw, mutable array of block indices for a ship.
+   * @param shipId Ship ID
+   * @returns 
+   */
+  getShipBlocksRawArray(shipId: number): Uint32Array | undefined {
+    return this.shipBlocks.get(shipId); // return the backing buffer directly
+  }
+
+  /**
    * Ensures a ship has a block array allocated, creating one if needed.
    * @param shipId Ship ID
    * @returns Array of block indices

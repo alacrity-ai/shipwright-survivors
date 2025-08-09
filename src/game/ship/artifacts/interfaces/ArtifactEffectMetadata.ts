@@ -81,5 +81,4 @@ export interface ArtifactEffectMetadata {
   optionalBossSummonChance?: number;
   onBlockDestroyedDamageBuff?: boolean;
   convertDamageToOverTime?: boolean;
-
 }

@@ -69,9 +69,16 @@ export class ShipFactory {
     unCullable: boolean = false,
     isPlayerShip: boolean = false,
     createInstantly: boolean = false,
-    noClip: boolean = false
+    noClip: boolean = false,
+    tags?: string[]
   ): Promise<{ ship: Ship; controller: AIControllerSystem | null, emitter: ThrusterEmitter, movement: MovementSystem, weapons: WeaponSystem, utility: UtilitySystem }> {
     const { ship, behaviorType } = await loadShipFromJson(`${jsonName}.json`, faction, isPlayerShip);
+
+    if (tags) {
+      for (const tag of tags) {
+        ship.addTag(tag);
+      }
+    }
 
     if (behaviorType && !isBehaviorTypeKey(behaviorType)) {
       console.warn(`[AI] Unknown behaviorType "${behaviorType}" — falling back to default.`);

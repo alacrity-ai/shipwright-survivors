@@ -1,11 +1,38 @@
 // src/game/quests/registry/definitions/mission1Quests.ts
 // ──────────────────────────────────────────────────────────────
-//  Mission 1 – Early-game onboarding & salvage loop
+//  Mission 1 – Casina System Quests
 // ──────────────────────────────────────────────────────────────
 
 import type { Quest } from '@/game/quests/interfaces/Quest';
 
 export const mission1Quests: Record<string, Quest> = {
+
+  /*───────────────────────────────────────────────────────────*
+   *  mission boss: Defeat Crazy Moe the Barbecue Baron
+   *───────────────────────────────────────────────────────────*/
+  'boss:defeatCrazyMoe': {
+    id          : 'boss:defeatCrazyMoe',
+    name        : 'Defeat The Barbecue Baron',
+    icon        : 'quest_crazy_moe',
+    description : 'Defeat Crazy Moe the Barbecue Baron.',
+    steps       : [
+      {
+        kind     : 'bossSlain',
+        progress : '',
+        goal     : 'Crazy Moe',
+      },
+    ],
+    rewards     : [
+      {
+        kind  : 'shipUnlock',
+        blurb : 'Unlocks the Salamander',
+        shipId: 'salamander',
+      },
+      { kind: 'core', blurb: '+250 Cores', amount: 250 },
+    ],
+    tags: ['boss'],
+  },
+
   /*───────────────────────────────────────────────────────────*
    *  Tutorial: first launch
    *───────────────────────────────────────────────────────────*/
@@ -14,8 +41,6 @@ export const mission1Quests: Record<string, Quest> = {
     name        : 'Gamble Your Destiny',
     icon        : 'quest_rollblocks',
     description : 'Survive for 8 minutes without dying.',
-    /** TODO: introduce a “timeSurvived” QuestStep variant
-     *        or break this into smaller temporal milestones. */
     steps       : [
       {
         kind     : 'timeSurvived',
@@ -41,7 +66,6 @@ export const mission1Quests: Record<string, Quest> = {
     name        : 'Salvage Expertise',
     icon        : 'quest_combineblocks',
     description : 'Recover and Attach a Tier 5 Block.',
-    /* TODO: introduce a “tier5BlocksAttached” step variant. */
     steps       : [
       {
         kind     : 'tier5BlocksAttached',

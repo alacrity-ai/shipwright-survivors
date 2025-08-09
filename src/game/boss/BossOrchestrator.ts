@@ -11,6 +11,7 @@ import type { Ship } from '@/game/ship/Ship';
 import { disablePickupDrops } from '@/core/interfaces/events/PickupSpawnReporter';
 import { showBossHealthbar, hideBossHealthbar } from '@/core/interfaces/events/BossReporter';
 import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
+import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { clearAllScreenEdgeIndicators, disableScreenEdgeIndicators } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
 
 import { missionLoader } from '@/game/missions/MissionLoader';
@@ -95,6 +96,14 @@ export class BossOrchestrator {
   public onDeathCallback(): void {
     reportTitle('THREAT NEUTRALIZED', '', 3.8, 0.75, 'center', '#ffddff');
     this.shipDestroyed = true;
+
+    // Quest completion
+    const missionDef = missionLoader.getMission();
+    const bossQuestId = missionDef.bossQuestId;
+    const questManager = PlayerQuestManager.getInstance();
+    if (bossQuestId) {
+      questManager.complete(bossQuestId);
+    }
   }
 
   public async awaitDeath(): Promise<void> {

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PNG Atlas Generator — Browser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#151a22; --bd:#222937; --btn:#203050; --btn2:#2a395a; --accent:#4cc9f0; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { height:100%; display:grid; grid-template-rows:auto 1fr auto; }
+  header, footer { padding:12px 18px; border-bottom:1px solid var(--bd); }
+  footer { border-top:1px solid var(--bd); border-bottom:none; color:#b9c4d6; font-size:12px; display:flex; justify-content:space-between; gap:10px; }
+  .title { display:flex; align-items:center; gap:10px; }
+  .logo { width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#26406b,#0f1420); border:1px solid #2a3a5c; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+  .title h1 { margin:0; font-size:15px; letter-spacing:.3px; }
+  main { display:grid; grid-template-columns: 360px 1fr; gap:16px; padding:16px 18px; min-height:0; }
+  .panel { background:var(--ui); border:1px solid var(--bd); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px; min-height:0; }
+  .panel h2 { margin:0; font-size:14px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  button {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--btn2); background:var(--btn); color:var(--fg);
+    cursor:pointer; transition:transform .03s ease, background .2s; font-weight:600; font-size:13px;
+  }
+  button:hover { background:#28406b; }
+  button:active { transform:translateY(1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  input[type="number"], input[type="text"] {
+    background:#0f1420; border:1px solid #25314a; color:var(--fg); border-radius:8px; padding:6px 8px; width:100%;
+  }
+  input[type="file"] { color:var(--fg); }
+  .dropzone {
+    border:1px dashed #2a395a; border-radius:10px; padding:12px; text-align:center; color:#b9c4d6;
+    background:#0f1420; cursor:pointer;
+  }
+  .dropzone.drag { background:#12243d; border-color:#4cc9f0; color:#e9eef7; }
+  .list { overflow:auto; min-height:0; flex:1; border:1px solid #25314a; border-radius:10px; background:#0f1420; padding:8px; }
+  .item { display:flex; justify-content:space-between; gap:8px; font-size:12px; padding:4px 6px; border-bottom:1px solid #1a2232; }
+  .item:last-child{ border-bottom:0; }
+  .hint { font-size:12px; color:#aebbd3; }
+  .kbd { padding:1px 6px; border-radius:4px; background:#0f1420; border:1px solid #25314a; font:11px ui-monospace, monospace; }
+  .workspace { position:relative; border:1px solid var(--bd); border-radius:12px; overflow:hidden; background:
+    conic-gradient(#0000 0 25%,#0001 0 50%,#0000 0 75%,#0001 0) 0 0/20px 20px,
+    linear-gradient(90deg,#1b1f28,#141820);
+    min-height:200px;
+  }
+  canvas { width:100%; height:100%; display:block; }
+  .stats { font:12px ui-monospace, monospace; color:#c7d2e6; background:#0f1420; border:1px solid #25314a; border-radius:8px; padding:8px; }
+  .bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a5c; background:#0f1420; font-size:11px; color:#b9c4d6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="title">
+      <div class="logo"></div>
+      <h1>PNG Atlas Generator</h1>
+      <span class="pill">Drop PNGs or click “Add Images”</span>
+    </div>
+    <div class="pill" id="summary">0 images</div>
+  </header>
+
+  <main>
+    <!-- Controls -->
+    <section class="panel" style="min-height:0;">
+      <h2>Inputs</h2>
+      <div class="row">
+        <input id="file" type="file" accept="image/png" multiple />
+        <div class="dropzone" id="drop">Drop images here</div>
+      </div>
+
+      <div class="grid">
+        <label>Padding (px)
+          <input id="padding" type="number" min="0" max="128" step="1" value="2" />
+        </label>
+        <label>Output name
+          <input id="outname" type="text" value="atlas" />
+        </label>
+      </div>
+
+      <div class="row">
+        <button id="packBtn" disabled>Pack & Preview</button>
+        <button id="exportPngBtn" disabled>Export Atlas PNG</button>
+        <button id="exportTxtBtn" disabled>Export UV .txt</button>
+        <button id="clearBtn" disabled>Clear</button>
+      </div>
+
+      <div class="stats" id="stats">—</div>
+
+      <h2>Loaded Images</h2>
+      <div class="list" id="list"></div>
+      <div class="hint">Packing heuristic: binary space partition (right/down). Initial atlas size = ⌈pow2⌉ of area×1.15 with rectangular bias, retries grow W/H. Trim to used bounds (+2px border, even dims).</div>
+    </section>
+
+    <!-- Preview -->
+    <section class="panel workspace" style="display:grid; grid-template-rows: 1fr auto;">
+      <div style="position:relative; min-height:0;">
+        <canvas id="view"></canvas>
+      </div>
+      <div class="bar">
+        <div class="hint">Preview shows trimmed atlas. Zoom with browser zoom if needed.</div>
+        <div class="pill" id="sizepill">—</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>UV format: <span class="kbd">filename x y w h u_min v_min u_max v_max</span></div>
+    <div><span class="hint">Tip:</span> Pack again after changing padding — no need to reload files.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ---------- DOM ----------
+  const fileEl = document.getElementById('file');
+  const drop = document.getElementById('drop');
+  const paddingEl = document.getElementById('padding');
+  const outnameEl = document.getElementById('outname');
+  const packBtn = document.getElementById('packBtn');
+  const exportPngBtn = document.getElementById('exportPngBtn');
+  const exportTxtBtn = document.getElementById('exportTxtBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const listEl = document.getElementById('list');
+  const statsEl = document.getElementById('stats');
+  const summary = document.getElementById('summary');
+  const sizepill = document.getElementById('sizepill');
+
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+
+  // Offscreen: packed (untrimmed) and trimmed atlas
+  const offscreen = document.createElement('canvas');
+  const octx = offscreen.getContext('2d');
+  let trimmedCanvas = document.createElement('canvas');
+
+  // State
+  /** @type {{name:string, bitmap:ImageBitmap, w:number, h:number}[]} */
+  const images = [];
+  /** placements BEFORE trim: {name, x, y, w, h} */
+  let placements = [];
+  /** placements AFTER trim correction */
+  let finalPlacements = [];
+  let finalW = 0, finalH = 0;
+
+  // ---------- Helpers ----------
+  const DPR = () => (window.devicePixelRatio || 1);
+
+  function setCanvasSizeForPreview(w, h) {
+    const dpr = DPR();
+    const wrap = canvas.parentElement.getBoundingClientRect();
+    // Fit (contain) into preview panel
+    const maxW = Math.max(200, wrap.width);
+    const maxH = Math.max(200, wrap.height);
+    const scale = Math.min(maxW / w, maxH / h);
+    const cssW = Math.max(200, Math.floor(w * scale));
+    const cssH = Math.max(200, Math.floor(h * scale));
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr, dpr);
+    // draw scaled trimmedCanvas
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0,0,cssW,cssH);
+    ctx.drawImage(trimmedCanvas, 0,0, w,h, 0,0, cssW, cssH);
+  }
+
+  function updateList() {
+    listEl.innerHTML = '';
+    images.forEach((img, i) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<span>${i+1}. ${img.name}</span><span>${img.w}×${img.h}</span>`;
+      listEl.appendChild(div);
+    });
+    summary.textContent = `${images.length} image${images.length===1?'':'s'}`;
+    packBtn.disabled = images.length === 0;
+    clearBtn.disabled = images.length === 0;
+  }
+
+  function pow2ceil(x) { return 2 ** Math.ceil(Math.log2(Math.max(1, x))); }
+
+  // ---------- Packing (Python parity) ----------
+  class AtlasNode {
+    constructor(x,y,w,h){ this.x=x; this.y=y; this.w=w; this.h=h; this.used=false; this.right=null; this.down=null; }
+    insert(w,h){
+      if (this.used) {
+        let n = this.right && this.right.insert(w,h); if (n) return n;
+        return this.down && this.down.insert(w,h);
+      }
+      if (w > this.w || h > this.h) return null;
+      if (w === this.w && h === this.h) { this.used = true; return this; }
+      // split: choose direction by leftover delta
+      this.used = true;
+      const dw = this.w - w, dh = this.h - h;
+      if (dw > dh) {
+        // vertical split: right gets remaining width, same height as placed; down gets full width, remaining height
+        this.right = new AtlasNode(this.x + w, this.y, dw, h);
+        this.down  = new AtlasNode(this.x, this.y + h, this.w, this.h - h);
+      } else {
+        // horizontal split: right gets remaining width, full height; down gets remaining height below placed width
+        this.right = new AtlasNode(this.x + w, this.y, this.w - w, this.h);
+        this.down  = new AtlasNode(this.x, this.y + h, w, this.h - h);
+      }
+      return this;
+    }
+  }
+
+  function calcInitialSize(imgs) {
+    const totalArea = Math.ceil(imgs.reduce((a,im)=>a + im.w*im.h, 0) * 1.15); // +15%
+    const maxW = Math.max(...imgs.map(im=>im.w));
+    const maxH = Math.max(...imgs.map(im=>im.h));
+    const aspect = 1.5; // width-biased
+    let h = Math.max(maxH, Math.floor(Math.sqrt(totalArea / aspect)));
+    let w = Math.max(maxW, Math.floor(totalArea / h));
+    w = pow2ceil(w);
+    h = pow2ceil(h);
+    return { w, h };
+  }
+
+  function packImages(padding) {
+    if (!images.length) throw new Error('No images to process.');
+    // Sort by height desc
+    const sorted = [...images].sort((a,b)=> b.h - a.h);
+    let { w:atlasW, h:atlasH } = calcInitialSize(sorted);
+
+    const MAX_ATTEMPTS = 6;
+    let attempt=0, ok=false, tmpPlacements = [];
+
+    while (attempt < MAX_ATTEMPTS) {
+      const root = new AtlasNode(0,0, atlasW, atlasH);
+      tmpPlacements.length = 0;
+      ok = true;
+
+      for (const im of sorted) {
+        const pw = im.w + padding*2;
+        const ph = im.h + padding*2;
+        const node = root.insert(pw, ph);
+        if (!node) { ok = false; break; }
+        tmpPlacements.push({ name: im.name, x: node.x + padding, y: node.y + padding, w: im.w, h: im.h });
+      }
+
+      if (ok) break;
+      // grow W then H alternating
+      if (attempt % 2 === 0) atlasW *= 2; else atlasH *= 2;
+      attempt++;
+    }
+
+    if (!ok) throw new Error('Could not fit all images — try more padding or fewer/larger atlas.');
+
+    // draw untrimmed atlas
+    offscreen.width = atlasW; offscreen.height = atlasH;
+    octx.clearRect(0,0,atlasW,atlasH);
+    const byName = new Map(images.map(im => [im.name, im]));
+    for (const p of tmpPlacements) {
+      const im = byName.get(p.name);
+      octx.drawImage(im.bitmap, p.x, p.y);
+    }
+
+    // Trim to used area + 2px border; even dims
+    const minX = Math.min(...tmpPlacements.map(p=>p.x));
+    const minY = Math.min(...tmpPlacements.map(p=>p.y));
+    const maxX = Math.max(...tmpPlacements.map(p=>p.x + p.w));
+    const maxY = Math.max(...tmpPlacements.map(p=>p.y + p.h));
+    const BORDER = 2;
+
+    let usedW = (maxX - minX) + BORDER*2;
+    let usedH = (maxY - minY) + BORDER*2;
+    if (usedW % 2) usedW += 1;
+    if (usedH % 2) usedH += 1;
+
+    trimmedCanvas = document.createElement('canvas');
+    trimmedCanvas.width = usedW;
+    trimmedCanvas.height = usedH;
+    const tctx = trimmedCanvas.getContext('2d');
+    tctx.clearRect(0,0,usedW,usedH);
+    tctx.drawImage(offscreen, minX - BORDER, minY - BORDER, usedW, usedH, 0,0, usedW, usedH);
+
+    // Update placements relative to trimmed origin
+    const offsetX = minX - BORDER;
+    const offsetY = minY - BORDER;
+    finalPlacements = tmpPlacements.map(p => ({ name:p.name, x:p.x - offsetX, y:p.y - offsetY, w:p.w, h:p.h }));
+    finalW = usedW; finalH = usedH;
+    placements = tmpPlacements;
+
+    // Stats + preview
+    setCanvasSizeForPreview(finalW, finalH);
+    sizepill.textContent = `${finalW}×${finalH}`;
+    const totalArea = images.reduce((a,im)=>a + im.w*im.h, 0);
+    const fill = ((totalArea / (finalW*finalH)) * 100).toFixed(2);
+    statsEl.textContent =
+`Images: ${images.length}
+Initial guess: ${offscreen.width}×${offscreen.height}  •  Final (trimmed): ${finalW}×${finalH}
+Total image area: ${totalArea} px²  •  Fill: ${fill}%`;
+
+    exportPngBtn.disabled = false;
+    exportTxtBtn.disabled = false;
+  }
+
+  function generateUVTxt() {
+    const lines = [];
+    lines.push('# Texture Atlas UV Coordinates');
+    lines.push(`# Atlas Size: ${finalW}x${finalH}`);
+    lines.push('# Format: filename x y width height u_min v_min u_max v_max');
+    lines.push('');
+
+    for (const p of finalPlacements) {
+      const u0 = p.x / finalW;
+      const v0 = p.y / finalH;
+      const u1 = (p.x + p.w) / finalW;
+      const v1 = (p.y + p.h) / finalH;
+      lines.push(`${p.name} ${p.x} ${p.y} ${p.w} ${p.h} ${u0.toFixed(6)} ${v0.toFixed(6)} ${u1.toFixed(6)} ${v1.toFixed(6)}`);
+    }
+    return lines.join('\n');
+  }
+
+  function downloadBlob(data, filename, type) {
+    const blob = new Blob([data], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 250);
+  }
+
+  // ---------- IO ----------
+  async function addFiles(fileList) {
+    const files = Array.from(fileList).filter(f => /\.png$/i.test(f.name));
+    if (!files.length) return;
+
+    // Load as ImageBitmap (faster than Image for many files)
+    for (const f of files) {
+      try {
+        const bmp = await createImageBitmap(f, { premultiplyAlpha: 'premultiply' });
+        images.push({ name: f.name, bitmap: bmp, w: bmp.width, h: bmp.height });
+      } catch (e) {
+        console.warn('Failed to load', f.name, e);
+      }
+    }
+    updateList();
+  }
+
+  function clearAll() {
+    images.length = 0;
+    placements = [];
+    finalPlacements = [];
+    finalW = finalH = 0;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    listEl.innerHTML = '';
+    summary.textContent = '0 images';
+    sizepill.textContent = '—';
+    statsEl.textContent = '—';
+    packBtn.disabled = true;
+    exportPngBtn.disabled = true;
+    exportTxtBtn.disabled = true;
+    clearBtn.disabled = true;
+  }
+
+  // ---------- Events ----------
+  fileEl.addEventListener('change', (e) => addFiles(e.target.files));
+  drop.addEventListener('click', () => fileEl.click());
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); drop.classList.remove('drag');
+    addFiles(e.dataTransfer.files);
+  });
+
+  packBtn.addEventListener('click', () => {
+    const padding = clampInt(parseInt(paddingEl.value,10), 0, 256);
+    paddingEl.value = String(padding);
+    try {
+      packImages(padding);
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
+  exportPngBtn.addEventListener('click', () => {
+    if (!finalW || !finalH) return;
+    trimmedCanvas.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(outnameEl.value||'atlas').trim()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 250);
+    }, 'image/png');
+  });
+
+  exportTxtBtn.addEventListener('click', () => {
+    if (!finalPlacements.length) return;
+    const txt = generateUVTxt();
+    downloadBlob(txt, `${(outnameEl.value||'atlas').trim()}_uv.txt`, 'text/plain;charset=utf-8');
+  });
+
+  clearBtn.addEventListener('click', clearAll);
+  window.addEventListener('resize', () => { if (finalW && finalH) setCanvasSizeForPreview(finalW, finalH); });
+
+  function clampInt(v, lo, hi){ if (Number.isNaN(v)) return lo; return Math.min(hi, Math.max(lo, v)); }
+
+  // Initial preview canvas sizing
+  setCanvasSizeForPreview(512, 512);
+})();
+</script>
+</body>
+</html>

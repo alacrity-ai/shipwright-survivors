@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Image Slicer — Multi-Marquee Exporter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#203050; --ui2:#2a395a; --accent:#4cc9f0; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { display:grid; grid-template-columns: 320px 1fr; gap:16px; height:100%; padding:14px; box-sizing:border-box; }
+  .panel {
+    background:#151a22; border:1px solid #222937; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .panel h2 { margin:0 0 6px; font-size:14px; letter-spacing:.2px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  button {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--ui2); background:var(--ui); color:var(--fg);
+    cursor:pointer; transition:transform .03s ease, background .2s;
+    font-weight:600;
+  }
+  button:hover { background:#28406b; }
+  button:active { transform:translateY(1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  input[type="file"] { color:var(--fg); }
+  .canvas-wrap {
+    position:relative; border:1px solid #222937; border-radius:10px; overflow:hidden; background:
+      conic-gradient(#0000 0 25%,#0001 0 50%,#0000 0 75%,#0001 0) 0 0/20px 20px,
+      linear-gradient(90deg,#1b1f28,#141820);
+  }
+  canvas#view { width:100%; height:100%; display:block; }
+  .hint { position:absolute; bottom:8px; left:10px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,.35); font-size:12px; }
+  .kbd { padding:1px 6px; border-radius:4px; background:#0f1420; border:1px solid #25314a; font:11px ui-monospace, monospace; }
+  .notice { font-size:12px; opacity:.8; }
+  .legend { font:12px ui-monospace, monospace; opacity:.85; background:#0f1420; border:1px solid #25314a; padding:8px; border-radius:8px; }
+  .small { font-size:12px; opacity:.8; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <h2>Image & Actions</h2>
+      <div class="row">
+        <input id="file" type="file" accept="image/*" />
+      </div>
+      <div class="row">
+        <button id="exportBtn" disabled>Export Selections</button>
+        <button id="clearBtn" disabled>Clear Marquees</button>
+      </div>
+      <div class="legend">
+        <div>• <b>Draw</b>: click-drag to create a marquee</div>
+        <div>• <b>Move</b>: drag inside a marquee</div>
+        <div>• <b>Resize</b>: drag near edges/corners</div>
+        <div>• <b>Square</b>: hold <span class="kbd">Shift</span></div>
+        <div>• <b>Refit</b>: press <span class="kbd">R</span></div>
+      </div>
+      <div class="notice">Selections are stored at native image resolution. Export downloads one PNG per marquee.</div>
+    </section>
+
+    <section class="panel" style="display:grid; grid-template-rows: 1fr auto;">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="view"></canvas>
+        <div class="hint">Load an image to begin</div>
+      </div>
+      <div class="row" style="justify-content:space-between; margin-top:10px;">
+        <span class="small">Transparency preview uses a checkerboard.</span>
+        <span class="small" id="status">—</span>
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  // DOM
+  const file = document.getElementById('file');
+  const canvas = document.getElementById('view');
+  const wrap = document.getElementById('canvasWrap');
+  const ctx = canvas.getContext('2d');
+  const exportBtn = document.getElementById('exportBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const statusEl = document.getElementById('status');
+
+  // Offscreen full-res canvas with the source image
+  const work = document.createElement('canvas');
+  const wctx = work.getContext('2d', { willReadFrequently:true });
+
+  // DPI scaling for crisp rendering
+  const DPR = () => (window.devicePixelRatio || 1);
+
+  // View transform (image -> canvas)
+  let transform = { scale:1, dx:0, dy:0 };
+
+  // State
+  let imageLoaded = false;
+  let imgElement = null;
+
+  // Marquee list (image-space coords)
+  // Each: { x, y, w, h, id }
+  const marquees = [];
+  let nextId = 1;
+
+  // Interaction state
+  let dragging = false;
+  let dragMode = 'create'; // 'create' | 'move' | 'resize'
+  let activeId = null;
+  let anchor = { x:0, y:0 }; // image-space start point
+  let dragOffset = { x:0, y:0 }; // for move
+  let resizeHandle = null; // which handle/corner
+  let shiftDown = false;
+
+  // Resize / refit
+  function fitToView() {
+    if (!imageLoaded) {
+      // Just size canvas to container
+      const rect = wrap.getBoundingClientRect();
+      setCanvasSize(rect.width, rect.height);
+      clearCanvas();
+      return;
+    }
+    const rect = wrap.getBoundingClientRect();
+    setCanvasSize(rect.width, rect.height);
+
+    // contain fit
+    const s = Math.min(canvas.width / work.width, canvas.height / work.height);
+    const dw = Math.floor(work.width * s), dh = Math.floor(work.height * s);
+    const dx = Math.floor((canvas.width - dw)/2), dy = Math.floor((canvas.height - dh)/2);
+    transform = { scale:s, dx, dy };
+
+    render();
+  }
+
+  function setCanvasSize(cssW, cssH) {
+    const dpr = DPR();
+    canvas.width = Math.max(200, Math.floor(cssW * dpr));
+    canvas.height = Math.max(200, Math.floor(cssH * dpr));
+    canvas.style.width = Math.max(200, Math.floor(cssW)) + 'px';
+    canvas.style.height = Math.max(200, Math.floor(cssH)) + 'px';
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr, dpr);
+  }
+
+  function clearCanvas() {
+    const cssW = canvas.width / DPR();
+    const cssH = canvas.height / DPR();
+    ctx.clearRect(0,0,cssW,cssH);
+  }
+
+  function render() {
+    if (!imageLoaded) { clearCanvas(); return; }
+    const cssW = canvas.width / DPR();
+    const cssH = canvas.height / DPR();
+    ctx.clearRect(0,0,cssW,cssH);
+    ctx.imageSmoothingEnabled = false;
+
+    // draw image
+    const { scale, dx, dy } = transform;
+    ctx.drawImage(work, 0,0, work.width,work.height, dx,dy, work.width*scale, work.height*scale);
+
+    // draw marquees
+    for (const m of marquees) drawMarquee(m, m.id === activeId);
+    statusEl.textContent = `${marquees.length} selection${marquees.length===1?'':'s'}`;
+  }
+
+  function drawMarquee(m, active=false) {
+    const { scale, dx, dy } = transform;
+    const x = dx + m.x * scale;
+    const y = dy + m.y * scale;
+    const w = m.w * scale;
+    const h = m.h * scale;
+
+    // fill overlay
+    ctx.save();
+    ctx.fillStyle = 'rgba(76,201,240,0.12)';
+    ctx.strokeStyle = active ? '#4cc9f0' : 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = 2;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+
+    // marching ants style dashed border
+    ctx.setLineDash([6,4]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.strokeRect(x, y, w, h);
+
+    // label
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(x, y-18, 28, 18);
+    ctx.fillStyle = '#e9eef7';
+    ctx.font = '12px ui-monospace, monospace';
+    ctx.fillText('#'+m.id, x+4, y-5);
+
+    // handles
+    drawHandles(x,y,w,h);
+    ctx.restore();
+  }
+
+  function drawHandles(x,y,w,h) {
+    const s = 6;
+    const pts = [
+      [x,y], [x+w/2,y], [x+w,y],
+      [x,y+h/2],        [x+w,y+h/2],
+      [x,y+h], [x+w/2,y+h], [x+w,y+h]
+    ];
+    ctx.fillStyle = '#0f1420';
+    ctx.strokeStyle = '#4cc9f0';
+    for (const [hx,hy] of pts) {
+      ctx.beginPath();
+      ctx.rect(hx-s, hy-s, s*2, s*2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  // Hit-testing (view space -> which marquee / handle)
+  function clientToCanvasXY(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (evt.clientX - rect.left);
+    const y = (evt.clientY - rect.top);
+    return { x, y };
+  }
+  function canvasToImageXY(x,y) {
+    const { scale, dx, dy } = transform;
+    return { ix: (x - dx) / scale, iy: (y - dy) / scale };
+  }
+
+  function hitTestMarqueeView(px, py) {
+    // return { id, zone, handle } where zone: 'inside' | 'edge' | 'handle' | null
+    // Prefer handles > edges > inside. Iterate in reverse (topmost last = topmost first)
+    const tol = 6; // px in view space
+    for (let i = marquees.length - 1; i >= 0; i--) {
+      const m = marquees[i];
+      const { scale, dx, dy } = transform;
+      const x = dx + m.x * scale, y = dy + m.y * scale;
+      const w = m.w * scale, h = m.h * scale;
+      // handles
+      const handles = handlePositions(x,y,w,h);
+      for (const hh of handles) {
+        if (Math.abs(px - hh.x) <= 7 && Math.abs(py - hh.y) <= 7) {
+          return { id: m.id, zone:'handle', handle: hh.name };
+        }
+      }
+      // edges
+      const onH = (px >= x && px <= x+w) && (Math.abs(py - y) <= tol || Math.abs(py - (y+h)) <= tol);
+      const onV = (py >= y && py <= y+h) && (Math.abs(px - x) <= tol || Math.abs(px - (x+w)) <= tol);
+      if (onH || onV) return { id:m.id, zone:'edge', handle:null };
+      // inside
+      if (px >= x && px <= x+w && py >= y && py <= y+h) return { id:m.id, zone:'inside', handle:null };
+    }
+    return { id:null, zone:null, handle:null };
+  }
+
+  function handlePositions(x,y,w,h) {
+    return [
+      {name:'nw', x:x, y:y},
+      {name:'n', x:x+w/2, y:y},
+      {name:'ne', x:x+w, y:y},
+      {name:'w', x:x, y:y+h/2},
+      {name:'e', x:x+w, y:y+h/2},
+      {name:'sw', x:x, y:y+h},
+      {name:'s', x:x+w/2, y:y+h},
+      {name:'se', x:x+w, y:y+h},
+    ];
+  }
+
+  function startCreate(ix, iy) {
+    const id = nextId++;
+    const m = { id, x:ix, y:iy, w:0, h:0 };
+    marquees.push(m);
+    activeId = id;
+    dragging = true;
+    dragMode = 'create';
+    anchor = { x:ix, y:iy };
+  }
+
+  function startMove(id, ix, iy) {
+    const m = marquees.find(mm => mm.id === id);
+    if (!m) return;
+    activeId = id;
+    dragging = true;
+    dragMode = 'move';
+    dragOffset = { x: ix - m.x, y: iy - m.y };
+  }
+
+  function startResize(id, handle) {
+    const m = marquees.find(mm => mm.id === id);
+    if (!m) return;
+    activeId = id;
+    dragging = true;
+    dragMode = 'resize';
+    resizeHandle = handle;
+    anchor = { x: m.x, y: m.y, w: m.w, h: m.h }; // keep original
+  }
+
+  function updateCreate(ix, iy) {
+    const m = marquees.find(mm => mm.id === activeId);
+    if (!m) return;
+    let w = ix - anchor.x;
+    let h = iy - anchor.y;
+    if (shiftDown) {
+      const s = Math.max(Math.abs(w), Math.abs(h));
+      w = (w<0?-s:s); h = (h<0?-s:s);
+    }
+    const x = w < 0 ? anchor.x + w : anchor.x;
+    const y = h < 0 ? anchor.y + h : anchor.y;
+    m.x = clamp(x, 0, work.width);
+    m.y = clamp(y, 0, work.height);
+    m.w = clamp(x + Math.abs(w), 0, work.width) - m.x;
+    m.h = clamp(y + Math.abs(h), 0, work.height) - m.y;
+  }
+
+  function updateMove(ix, iy) {
+    const m = marquees.find(mm => mm.id === activeId);
+    if (!m) return;
+    let nx = ix - dragOffset.x;
+    let ny = iy - dragOffset.y;
+    // clamp inside image
+    nx = clamp(nx, 0, work.width - m.w);
+    ny = clamp(ny, 0, work.height - m.h);
+    m.x = nx; m.y = ny;
+  }
+
+  function updateResize(ix, iy) {
+    const m = marquees.find(mm => mm.id === activeId);
+    if (!m) return;
+    // Start from anchor rect
+    let { x, y, w, h } = { x: anchor.x, y: anchor.y, w: anchor.w, h: anchor.h };
+    // Convert to (x1,y1)-(x2,y2)
+    let x1 = x, y1 = y, x2 = x + w, y2 = y + h;
+
+    const applySquare = (side) => {
+      // side ~ which corner is "free"; enforce square by longest delta
+      const ww = Math.abs(x2 - x1), hh = Math.abs(y2 - y1);
+      const s = Math.max(ww, hh);
+      switch (side) {
+        case 'nw': x1 = x2 - s; y1 = y2 - s; break;
+        case 'ne': x2 = x1 + s; y1 = y2 - s; break;
+        case 'sw': x1 = x2 - s; y2 = y1 + s; break;
+        case 'se': x2 = x1 + s; y2 = y1 + s; break;
+        // Edges: make it square expanding along the moved edge
+        case 'n':  y1 = y2 - Math.max(ww, hh); break;
+        case 's':  y2 = y1 + Math.max(ww, hh); break;
+        case 'w':  x1 = x2 - Math.max(ww, hh); break;
+        case 'e':  x2 = x1 + Math.max(ww, hh); break;
+      }
+    };
+
+    // Adjust depending on handle
+    switch (resizeHandle) {
+      case 'nw': x1 = ix; y1 = iy; break;
+      case 'n':  y1 = iy; break;
+      case 'ne': x2 = ix; y1 = iy; break;
+      case 'w':  x1 = ix; break;
+      case 'e':  x2 = ix; break;
+      case 'sw': x1 = ix; y2 = iy; break;
+      case 's':  y2 = iy; break;
+      case 'se': x2 = ix; y2 = iy; break;
+    }
+
+    if (shiftDown) applySquare(resizeHandle);
+
+    // Normalize and clamp
+    x1 = clamp(Math.min(x1,x2), 0, work.width);
+    y1 = clamp(Math.min(y1,y2), 0, work.height);
+    x2 = clamp(Math.max(x1,x2), 0, work.width);
+    y2 = clamp(Math.max(y1,y2), 0, work.height);
+
+    m.x = x1; m.y = y1; m.w = x2 - x1; m.h = y2 - y1;
+  }
+
+  function endDrag() {
+    dragging = false;
+    dragMode = 'create';
+    resizeHandle = null;
+    // Remove zero-area selections
+    for (let i = marquees.length - 1; i >= 0; i--) {
+      const m = marquees[i];
+      if (m.w < 1 || m.h < 1) marquees.splice(i,1);
+    }
+    exportBtn.disabled = marquees.length === 0;
+    clearBtn.disabled = marquees.length === 0;
+    render();
+  }
+
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+  // Events
+  file.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      work.width = img.naturalWidth;
+      work.height = img.naturalHeight;
+      wctx.clearRect(0,0,work.width,work.height);
+      wctx.drawImage(img, 0,0);
+      imgElement = img;
+      imageLoaded = true;
+      marquees.length = 0; nextId = 1; activeId = null;
+      exportBtn.disabled = true;
+      clearBtn.disabled = true;
+      fitToView();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+
+  window.addEventListener('resize', fitToView);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift') shiftDown = true;
+    if (e.key.toLowerCase() === 'r') fitToView();
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') shiftDown = false;
+  });
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (!imageLoaded) return;
+    const { x, y } = clientToCanvasXY(e);
+    const { ix, iy } = canvasToImageXY(x, y);
+    const hit = hitTestMarqueeView(x, y);
+    if (hit.id && hit.zone === 'handle') {
+      startResize(hit.id, hit.handle);
+    } else if (hit.id && (hit.zone === 'inside' || hit.zone === 'edge')) {
+      startMove(hit.id, ix, iy);
+    } else {
+      startCreate(ix, iy);
+    }
+    render();
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!imageLoaded) return;
+    const { x, y } = clientToCanvasXY(e);
+    const { ix, iy } = canvasToImageXY(x, y);
+
+    // Cursor feedback
+    const hit = hitTestMarqueeView(x, y);
+    setCursor(hit);
+
+    if (!dragging) return;
+    if (dragMode === 'create') updateCreate(ix, iy);
+    else if (dragMode === 'move') updateMove(ix, iy);
+    else if (dragMode === 'resize') updateResize(ix, iy);
+    render();
+  });
+
+  canvas.addEventListener('mouseup', endDrag);
+  canvas.addEventListener('mouseleave', () => { if (dragging) endDrag(); });
+
+  function setCursor(hit) {
+    if (!hit || !hit.zone) { canvas.style.cursor = 'crosshair'; return; }
+    if (hit.zone === 'inside' || hit.zone === 'edge') { canvas.style.cursor = 'move'; return; }
+    const map = { nw:'nwse-resize', se:'nwse-resize', ne:'nesw-resize', sw:'nesw-resize',
+                  n:'ns-resize', s:'ns-resize', e:'ew-resize', w:'ew-resize' };
+    canvas.style.cursor = map[hit.handle] || 'crosshair';
+  }
+
+  clearBtn.addEventListener('click', () => {
+    marquees.length = 0;
+    activeId = null;
+    exportBtn.disabled = true;
+    clearBtn.disabled = true;
+    render();
+  });
+
+  exportBtn.addEventListener('click', async () => {
+    if (!imageLoaded || marquees.length === 0) return;
+    // Export each marquee as its own PNG (download N files)
+    for (const m of marquees) {
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(m.w));
+      out.height = Math.max(1, Math.round(m.h));
+      const octx = out.getContext('2d');
+      octx.imageSmoothingEnabled = false;
+      octx.clearRect(0,0,out.width,out.height);
+      octx.drawImage(work, m.x, m.y, m.w, m.h, 0,0, out.width, out.height);
+
+      await new Promise(res => out.toBlob((blob) => {
+        if (blob) {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `slice_${m.id}_${out.width}x${out.height}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(()=>URL.revokeObjectURL(a.href), 250);
+        }
+        res();
+      }, 'image/png'));
+    }
+  });
+
+  // Initial fit
+  fitToView();
+})();
+</script>
+</body>
+</html>

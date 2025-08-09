@@ -41,6 +41,7 @@ export interface MissionDefinition {
   requiredFlag?: FlagKey; // Flag required to enter this mission
   missionPortrait?: string | null;
   onStart?: () => void;
+  bossQuestId?: string; // Quest ID for the boss of this mission
 }
 
 export type SceneLightingRGBA = [number, number, number, number];

@@ -12,7 +12,7 @@ export class BlockManager {
   public readonly grid: BlockSpatialGrid;
   public readonly orchestrator: BlockOrchestrator;
 
-  private static readonly BLOCK_CAPACITY = 100_000; // tune for max block count
+  private static readonly BLOCK_CAPACITY = 200_000; // tune for max block count
 
   private constructor() {
     // 1. Create BlockStore

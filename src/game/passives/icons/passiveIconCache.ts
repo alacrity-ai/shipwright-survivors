@@ -507,6 +507,542 @@ function getCapitalistHybridIconSprite(): HTMLCanvasElement {
 }
 
 
+// 🟠 Turn Power (orange family): dual curvature arrows (quick yaw)
+function getTurnPowerIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const cx = 12, cy = 12;
+
+  drawIconBase(ctx, '#ff9933', () => {}, 'fill', true);
+
+  ctx.strokeStyle = '#7a3c00';
+  ctx.lineWidth = 2;
+
+  // left-turn arc + arrowhead
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6.5, (200 * Math.PI) / 180, (340 * Math.PI) / 180);
+  ctx.stroke();
+  ctx.beginPath(); // arrowhead
+  ctx.moveTo(cx - 7.5, cy + 1.5);
+  ctx.lineTo(cx - 2.5, cy + 3.5);
+  ctx.lineTo(cx - 4.5, cy - 1.0);
+  ctx.closePath();
+  ctx.fillStyle = '#7a3c00';
+  ctx.fill();
+
+  // right-turn arc + arrowhead
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6.5, (20 * Math.PI) / 180, (160 * Math.PI) / 180);
+  ctx.stroke();
+  ctx.beginPath(); // arrowhead
+  ctx.moveTo(cx + 7.5, cy - 1.5);
+  ctx.lineTo(cx + 2.5, cy - 3.5);
+  ctx.lineTo(cx + 4.5, cy + 1.0);
+  ctx.closePath();
+  ctx.fill();
+
+  // central hub dot (steering feel)
+  ctx.fillStyle = '#7a3c00';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  return canvas;
+}
+
+// 🔴 Slayer (bright red): sword over burst
+function getSlayerIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const cx = 12, cy = 12;
+
+  drawIconBase(ctx, '#ff3b3b', () => {}, 'fill', true);
+
+  // radial burst ticks
+  ctx.strokeStyle = '#2b0000';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    const r1 = 7.5, r2 = 9.0;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+    ctx.stroke();
+  }
+
+  // sword silhouette
+  ctx.fillStyle = '#2b0000';
+  // blade
+  ctx.beginPath();
+  ctx.moveTo(cx - 1, cy - 7);
+  ctx.lineTo(cx + 1, cy - 7);
+  ctx.lineTo(cx + 0.8, cy + 4);
+  ctx.lineTo(cx - 0.8, cy + 4);
+  ctx.closePath();
+  ctx.fill();
+  // tip triangle
+  ctx.beginPath();
+  ctx.moveTo(cx - 1.1, cy - 7);
+  ctx.lineTo(cx + 1.1, cy - 7);
+  ctx.lineTo(cx, cy - 9.5);
+  ctx.closePath();
+  ctx.fill();
+  // crossguard
+  ctx.fillRect(cx - 4, cy + 3.5, 8, 1.8);
+  // pommel
+  ctx.beginPath();
+  ctx.arc(cx, cy + 6, 1.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  return canvas;
+}
+
+// 🔵 Atronach (blue/defensive): faceted crystal on shield
+function getAtronachIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const cx = 12, cy = 12;
+
+  drawIconBase(ctx, '#3aa0ff', (ctx) => {
+    // shield base (same family as armor)
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 7);
+    ctx.lineTo(cx + 6, cy - 2);
+    ctx.lineTo(cx + 4.5, cy + 4.8);
+    ctx.lineTo(cx, cy + 8);
+    ctx.lineTo(cx - 4.5, cy + 4.8);
+    ctx.lineTo(cx - 6, cy - 2);
+    ctx.closePath();
+  }, 'fill', true);
+
+  // faceted crystal (hexagon + cross facets)
+  ctx.strokeStyle = '#0b2b66';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const r = 3.8;
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 6;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // facet lines
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+  ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
+  ctx.stroke();
+
+  return canvas;
+}
+
+// 🔴 Voidwalker (red/corrupted mist): wisp curls + void eye
+function getVoidwalkerIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const cx = 12, cy = 12;
+
+  // darker crimson base to differentiate from damage/slayer
+  drawIconBase(ctx, '#c21e3a', () => {}, 'fill', true);
+
+  // misty curls (beziers)
+  ctx.strokeStyle = '#3a0008';
+  ctx.lineWidth = 2;
+  const curl = (ox: number, oy: number, sx: number) => {
+    ctx.beginPath();
+    ctx.moveTo(cx - 6 + ox, cy + oy);
+    ctx.bezierCurveTo(cx - 1 + ox, cy - 4 + oy, cx + 3 + ox, cy + 4 + oy, cx + 6 * sx + ox, cy - 1 + oy);
+    ctx.stroke();
+  };
+  curl(-1, -2, 0.9);
+  curl(0, 2, 0.7);
+  curl(1, 0, 1.0);
+
+  // central "void eye"
+  ctx.fillStyle = '#130003';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 3.4, 2.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffb3c1';
+  ctx.beginPath();
+  ctx.ellipse(cx + 0.6, cy - 0.2, 1.2, 0.9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // stray motes
+  ctx.fillStyle = '#3a0008';
+  for (const [dx, dy] of [[-6, -6], [6, -5], [-5, 6], [5, 5]]) {
+    ctx.beginPath();
+    ctx.arc(cx + dx * 0.6, cy + dy * 0.6, 0.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return canvas;
+}
+
+// 🟣 Incident Investigator (purple): magnifying glass over node lattice
+function getIncidentInvestigatorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const cx = 12, cy = 12;
+
+  drawIconBase(ctx, '#a066ff', () => {}, 'fill', true);
+
+  // tiny node lattice (3 dots + lines)
+  ctx.strokeStyle = '#3b1a75';
+  ctx.fillStyle = '#3b1a75';
+  ctx.lineWidth = 1.5;
+
+  const n1 = { x: cx - 5, y: cy - 2 };
+  const n2 = { x: cx - 1, y: cy - 6 };
+  const n3 = { x: cx + 2, y: cy - 1 };
+  ctx.beginPath();
+  ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y);
+  ctx.lineTo(n3.x, n3.y);
+  ctx.lineTo(n1.x, n1.y);
+  ctx.stroke();
+  for (const n of [n1, n2, n3]) {
+    ctx.beginPath(); ctx.arc(n.x, n.y, 1.4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // magnifying glass (circle + handle), slightly angled
+  ctx.strokeStyle = '#e0d1ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx + 4.5, cy + 2.5, 4.2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.beginPath(); // handle
+  ctx.moveTo(cx + 7.5, cy + 5.5);
+  ctx.lineTo(cx + 10.5, cy + 8.5);
+  ctx.stroke();
+
+  // subtle glass highlight
+  ctx.strokeStyle = '#fff3ff';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cx + 4.5, cy + 2.5, 3.2, -0.9, -0.1);
+  ctx.stroke();
+
+  return canvas;
+}
+
+// 🟣 Builder (purple): stacked blocks + tiny wrench
+function getBuilderIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#a066ff', () => {}, 'fill', true);
+
+  // three blocks (staggered)
+  ctx.fillStyle = '#3b1a75';
+  const b = (x: number, y: number) => { ctx.fillRect(x, y, 6, 6); };
+  b(5, 11); b(9, 7); b(13, 11);
+
+  // block seams (suggest construction)
+  ctx.strokeStyle = '#d9c7ff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(5, 14); ctx.lineTo(11, 14);
+  ctx.moveTo(9, 10); ctx.lineTo(15, 10);
+  ctx.moveTo(13, 14); ctx.lineTo(19, 14);
+  ctx.stroke();
+
+  // tiny wrench overlay (simple jaw + handle)
+  ctx.strokeStyle = '#e7dbff';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(16, 6);
+  ctx.lineTo(12.5, 9.5);
+  ctx.stroke();
+  ctx.beginPath(); // wrench jaw
+  ctx.arc(16, 6, 2.2, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
+
+  return canvas;
+}
+
+// 🟡 Trademaster (gold): balance scales
+function getTrademasterIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const gold = '#f6c945';
+  const dark = '#8a6b00';
+  const hi = '#fff3b0';
+
+  drawIconBase(ctx, gold, () => {}, 'fill', true);
+
+  // pillar
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(12, 6); ctx.lineTo(12, 16);
+  ctx.stroke();
+  ctx.fillStyle = dark;
+  ctx.fillRect(8, 16, 8, 2); // base
+
+  // crossbar
+  ctx.beginPath();
+  ctx.moveTo(7, 8.5); ctx.lineTo(17, 8.5);
+  ctx.stroke();
+
+  // chains + pans
+  const pan = (x: number, y: number, w: number) => {
+    ctx.strokeStyle = dark; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x, 8.5); ctx.lineTo(x - 2, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 8.5); ctx.lineTo(x + 2, y); ctx.stroke();
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 1.5, w / 2, 2, 0, 0, Math.PI);
+    ctx.fill();
+  };
+  pan(8.5, 13, 6.5);
+  pan(15.5, 12, 6.5);
+
+  // highlight glint
+  ctx.strokeStyle = hi; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(12, 6.8, 2.5, -0.8, -0.1); ctx.stroke();
+
+  return canvas;
+}
+
+// 🟠 Explorer (orange): summit flag + dotted trail
+function getExplorerIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const base = '#ff9933';
+  const dark = '#7a3c00';
+
+  drawIconBase(ctx, base, () => {}, 'fill', true);
+
+  // trail (dotted)
+  ctx.fillStyle = dark;
+  const dots: [number, number][] = [[5,16],[7,14],[9,13],[11,12],[13,11]];
+  for (const [x,y] of dots) { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI*2); ctx.fill(); }
+
+  // hill
+  ctx.fillStyle = dark;
+  ctx.beginPath();
+  ctx.moveTo(7, 17);
+  ctx.lineTo(13, 12);
+  ctx.lineTo(19, 17);
+  ctx.closePath();
+  ctx.fill();
+
+  // flagpole
+  ctx.strokeStyle = '#2b1500';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(13, 12);
+  ctx.lineTo(13, 6.5);
+  ctx.stroke();
+
+  // flag (bright)
+  ctx.fillStyle = '#ffd19a';
+  ctx.beginPath();
+  ctx.moveTo(13, 7);
+  ctx.lineTo(18, 8.5);
+  ctx.lineTo(13, 10);
+  ctx.closePath();
+  ctx.fill();
+
+  return canvas;
+}
+
+// 🟤 Boss Mastery (brown): ominous mask with eyes
+function getBossMasteryIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const base = '#8b5e34';
+  const dark = '#3a260f';
+  const glow = '#ffd9b3';
+
+  drawIconBase(ctx, base, () => {}, 'fill', true);
+
+  // mask shape (rounded rectangle)
+  ctx.fillStyle = dark;
+  ctx.beginPath();
+  ctx.moveTo(6, 7);
+  ctx.lineTo(18, 7);
+  ctx.quadraticCurveTo(20, 12, 18, 17);
+  ctx.lineTo(6, 17);
+  ctx.quadraticCurveTo(4, 12, 6, 7);
+  ctx.closePath();
+  ctx.fill();
+
+  // evil eyes
+  ctx.fillStyle = glow;
+  const eye = (cx: number, cy: number, flip = 1) => {
+    ctx.beginPath();
+    ctx.moveTo(cx - 3*flip, cy);
+    ctx.quadraticCurveTo(cx, cy - 2.3, cx + 3*flip, cy);
+    ctx.quadraticCurveTo(cx, cy + 1.8, cx - 3*flip, cy);
+    ctx.closePath();
+    ctx.fill();
+  };
+  eye(9, 12, 1);
+  eye(15, 12, -1);
+
+  // brow ridge
+  ctx.strokeStyle = '#1c1208';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(7.5, 10);
+  ctx.quadraticCurveTo(12, 8.2, 16.5, 10);
+  ctx.stroke();
+
+  // subtle fangs
+  ctx.fillStyle = '#d6b391';
+  ctx.fillRect(10.3, 15.2, 1.2, 1.8);
+  ctx.fillRect(12.5, 15.2, 1.2, 1.8);
+
+  return canvas;
+}
+
+// 🔴 Slayer Minor — just a sword silhouette, lighter red
+function getSlayerMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#ff7070', () => {}, 'fill', true);
+
+  ctx.fillStyle = '#2b0000';
+  ctx.beginPath();
+  ctx.moveTo(12 - 1, 7);
+  ctx.lineTo(12 + 1, 7);
+  ctx.lineTo(12 + 0.8, 15);
+  ctx.lineTo(12 - 0.8, 15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(10, 15, 4, 1.5); // crossguard
+  ctx.beginPath();
+  ctx.arc(12, 17, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  return canvas;
+}
+
+// 🔵 Atronach Minor — simple blue shield only
+function getAtronachMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#66b8ff', (ctx) => {
+    ctx.beginPath();
+    ctx.moveTo(12, 5);
+    ctx.lineTo(17, 10);
+    ctx.lineTo(15, 16);
+    ctx.lineTo(12, 19);
+    ctx.lineTo(9, 16);
+    ctx.lineTo(7, 10);
+    ctx.closePath();
+  }, 'fill', true);
+  return canvas;
+}
+
+// 🔴 Voidwalker Minor — single swirl, no eye
+function getVoidwalkerMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#d34c62', () => {}, 'fill', true);
+
+  ctx.strokeStyle = '#3a0008';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(12, 12, 5.5, 0.3, Math.PI * 1.8);
+  ctx.stroke();
+
+  return canvas;
+}
+
+// 🟣 Incident Investigator Minor — plain magnifier only
+function getIncidentInvestigatorMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#b488ff', () => {}, 'fill', true);
+
+  ctx.strokeStyle = '#e0d1ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(12, 11, 4.0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(14.5, 13.5);
+  ctx.lineTo(17, 16);
+  ctx.stroke();
+
+  return canvas;
+}
+
+// 🟣 Builder Minor — single purple block
+function getBuilderMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#b488ff', () => {}, 'fill', true);
+
+  ctx.fillStyle = '#3b1a75';
+  ctx.fillRect(9, 9, 6, 6);
+
+  return canvas;
+}
+
+// 🟡 Trademaster Minor — single gold coin
+function getTrademasterMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  const gold = '#ffdb6b';
+  drawIconBase(ctx, gold, () => {}, 'fill', true);
+
+  ctx.fillStyle = '#8a6b00';
+  ctx.beginPath();
+  ctx.ellipse(12, 12, 5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  return canvas;
+}
+
+// 🟠 Explorer Minor — small flag only
+function getExplorerMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#ffb266', () => {}, 'fill', true);
+
+  ctx.strokeStyle = '#2b1500';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(11, 15);
+  ctx.lineTo(11, 8);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffd19a';
+  ctx.beginPath();
+  ctx.moveTo(11, 8);
+  ctx.lineTo(15, 9.5);
+  ctx.lineTo(11, 11);
+  ctx.closePath();
+  ctx.fill();
+
+  return canvas;
+}
+
+// 🟤 Boss Mastery Minor — plain mask outline
+function getBossMasteryMinorIconSprite(): HTMLCanvasElement {
+  const canvas = createCanvas(24, 24);
+  const ctx = canvas.getContext('2d')!;
+  drawIconBase(ctx, '#b17c50', () => {}, 'fill', true);
+
+  ctx.strokeStyle = '#3a260f';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(7, 8);
+  ctx.lineTo(17, 8);
+  ctx.quadraticCurveTo(19, 12, 17, 16);
+  ctx.lineTo(7, 16);
+  ctx.quadraticCurveTo(5, 12, 7, 8);
+  ctx.stroke();
+
+  return canvas;
+}
+
 /** Public API */
 
 // Initialize once; idempotent
@@ -521,6 +1057,7 @@ export function initializePassiveIconCache(): void {
     'icon-damage': getDamageIconSprite(),
     'icon-armor': getArmorIconSprite(),
     'icon-thrust': getThrustIconSprite(),
+    'icon-turnPower': getTurnPowerIconSprite(),
     'icon-blockDropRate': getBlockDropRateIconSprite(),
     'icon-harvest': getHarvestIconSprite(),
     'icon-ability': getAbilityIconSprite(),
@@ -534,6 +1071,26 @@ export function initializePassiveIconCache(): void {
     'icon-armorHybrid': getArmorHybridIconSprite(),
     'icon-thrustHybrid': getThrustHybridIconSprite(),
     'icon-capitalistHybrid': getCapitalistHybridIconSprite(),
+
+    // capstone minor icons
+    'icon-slayerMinor': getSlayerMinorIconSprite(),
+    'icon-atronachMinor': getAtronachMinorIconSprite(),
+    'icon-voidwalkerMinor': getVoidwalkerMinorIconSprite(),
+    'icon-incidentInvestigatorMinor': getIncidentInvestigatorMinorIconSprite(),
+    'icon-builderMinor': getBuilderMinorIconSprite(),
+    'icon-trademasterMinor': getTrademasterMinorIconSprite(),
+    'icon-explorerMinor': getExplorerMinorIconSprite(),
+    'icon-bossMasteryMinor': getBossMasteryMinorIconSprite(),
+
+    // capstone icons
+    'icon-slayer': getSlayerIconSprite(),
+    'icon-atronach': getAtronachIconSprite(),
+    'icon-voidwalker': getVoidwalkerIconSprite(),
+    'icon-incidentInvestigator': getIncidentInvestigatorIconSprite(),
+    'icon-builder': getBuilderIconSprite(),
+    'icon-trademaster': getTrademasterIconSprite(),
+    'icon-explorer': getExplorerIconSprite(),
+    'icon-bossMastery': getBossMasteryIconSprite(),
 
     // Explicit fallback registration (optional external usage)
     'icon-fallback': fallbackSprite,
