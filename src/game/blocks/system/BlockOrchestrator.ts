@@ -778,24 +778,29 @@ export class BlockOrchestrator {
    * @param factionIndex Numeric faction index (e.g., from FACTION_TO_INDEX)
    */
   public setShipFaction(shipId: number, factionIndex: number): void {
-    const indices = this.getShipBlocksView(shipId);
-    const store = this.store;
+    const buf   = this.getShipBlocksRawArray(shipId);
+    const count = this.getShipBlockCount(shipId);
+    if (!buf || count === 0) return;
 
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      store.ownerFaction[idx] = factionIndex;
+    const store = this.store;
+    for (let i = 0; i < count; i++) {
+      store.ownerFaction[buf[i]] = factionIndex;
     }
   }
+
 
   public setLightingOrchestrator(lightingOrchestrator: LightingOrchestrator): void {
     this.lightingOrchestrator = lightingOrchestrator;
   }
 
   public setShipColor(shipId: number, r: number, g: number, b: number, a: number = 1): void {
-    const indices = this.getShipBlocksView(shipId);
+    const buf   = this.getShipBlocksRawArray(shipId);
+    const count = this.getShipBlockCount(shipId);
+    if (!buf || count === 0) return;
+
     const store = this.store;
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
       store.colorR[idx] = r;
       store.colorG[idx] = g;
       store.colorB[idx] = b;

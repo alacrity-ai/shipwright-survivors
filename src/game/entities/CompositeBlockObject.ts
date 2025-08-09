@@ -181,12 +181,17 @@ export abstract class CompositeBlockObject {
   }
 
   public getBlockIndex(coord: GridCoord): number | undefined {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    const store = this.blockManager.getBlockStore();
+    const orchestrator = this.blockOrchestrator;
+    const indices = orchestrator.getShipBlocksRawArray(this.numericId);
+    const count   = orchestrator.getShipBlockCount(this.numericId);
+    if (!indices || count === 0) return undefined;
 
-    for (let i = 0; i < indices.length; i++) {
+    const store = this.blockManager.getBlockStore();
+    const cx = coord.x, cy = coord.y; // hoist for tighter loop
+
+    for (let i = 0; i < count; i++) {
       const idx = indices[i];
-      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+      if (store.localX[idx] === cx && store.localY[idx] === cy) {
         return idx;
       }
     }
@@ -194,34 +199,41 @@ export abstract class CompositeBlockObject {
   }
 
   public getRandomBlockIndex(): number | undefined {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    if (indices.length === 0) return undefined;
+    const orchestrator = this.blockOrchestrator;
+    const indices = orchestrator.getShipBlocksRawArray(this.numericId);
+    const count   = orchestrator.getShipBlockCount(this.numericId);
+    if (!indices || count === 0) return undefined;
 
-    return indices[Math.floor(Math.random() * indices.length)];
+    return indices[Math.floor(Math.random() * count)];
   }
 
   public hasBlockAt(coord: GridCoord): boolean {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    const store = this.blockManager.getBlockStore();
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return false;
 
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
-        return true;
-      }
+    const store = this.blockManager.getBlockStore();
+    const x = coord.x, y = coord.y;
+
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
+      if (store.localX[idx] === x && store.localY[idx] === y) return true;
     }
     return false;
   }
 
   public hasBlockAtXY(x: number, y: number): boolean {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return false;
+
     const store = this.blockManager.getBlockStore();
 
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      if (store.localX[idx] === x && store.localY[idx] === y) {
-        return true;
-      }
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
+      if (store.localX[idx] === x && store.localY[idx] === y) return true;
     }
     return false;
   }
@@ -322,8 +334,12 @@ export abstract class CompositeBlockObject {
   }
 
   public getAllBlockIndices(): Uint32Array {
-    // Always use the orchestrator’s existing subarray — no caching/allocation needed.
-    return this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return new Uint32Array(0); // unavoidable alloc if truly empty
+
+    return buf.subarray(0, count); // view only, no copy
   }
 
   public getBlockCount(): number {
@@ -337,18 +353,26 @@ export abstract class CompositeBlockObject {
   }
 
   public hideAllBlocks(): void {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return;
+
     const store = this.blockManager.getBlockStore();
-    for (let i = 0; i < indices.length; i++) {
-      store.hidden[indices[i]] = 1;
+    for (let i = 0; i < count; i++) {
+      store.hidden[buf[i]] = 1;
     }
   }
 
   public showAllBlocks(): void {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return;
+
     const store = this.blockManager.getBlockStore();
-    for (let i = 0; i < indices.length; i++) {
-      store.hidden[indices[i]] = 0;
+    for (let i = 0; i < count; i++) {
+      store.hidden[buf[i]] = 0;
     }
   }
 
@@ -357,23 +381,27 @@ export abstract class CompositeBlockObject {
    * Operates entirely on SOA indices — no BlockInstance.
    */
   public removeBlock(coord: GridCoord): void {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return;
+
     const store = this.blockManager.getBlockStore();
+    const cx = coord.x, cy = coord.y;
 
     // Find the block index matching the coordinate
-    let foundIdx: number | undefined;
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+    let foundIdx = -1;
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
+      if (store.localX[idx] === cx && store.localY[idx] === cy) {
         foundIdx = idx;
         break;
       }
     }
+    if (foundIdx === -1) return;
 
-    if (foundIdx === undefined) return;
-
-    // Destroy the block (handles deregistration from BlockSpatialGrid + frees store slot)
-    this.blockOrchestrator.destroyBlock(foundIdx);
+    // Destroy the block (deregisters from grid + frees store slot + updates ship list)
+    orch.destroyBlock(foundIdx);
 
     // Invalidate cached mass (ship weight) so it recalculates next time
     this.invalidateMass();
@@ -384,25 +412,31 @@ export abstract class CompositeBlockObject {
    * Operates entirely on SOA indices — no BlockInstance.
    */
   public removeBlocks(coords: GridCoord[]): void {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return;
+
     const store = this.blockManager.getBlockStore();
     const targetShipId = this.numericId;
 
     for (const coord of coords) {
-      for (let i = 0; i < indices.length; i++) {
-        const idx = indices[i];
+      const cx = coord.x, cy = coord.y;
+
+      for (let i = 0; i < count; i++) {
+        const idx = buf[i];
 
         // Verify ownership before any action
         const ownerShipId = store.ownerShipId[idx];
         if (ownerShipId !== targetShipId) {
           console.error(
-            `[CompositeBlockObject] ⚠ Attempting to remove block ${idx} at (${coord.x},${coord.y}) ` +
+            `[CompositeBlockObject] ⚠ Attempting to remove block ${idx} at (${cx},${cy}) ` +
             `but it belongs to ship ${ownerShipId}, not ${targetShipId}`
           );
         }
 
-        if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
-          this.blockOrchestrator.destroyBlock(idx);
+        if (store.localX[idx] === cx && store.localY[idx] === cy) {
+          orch.destroyBlock(idx);
           break; // move to next coordinate
         }
       }
@@ -563,10 +597,12 @@ export abstract class CompositeBlockObject {
 
   // Helper for effects on blocks
   public getRandomBlockWorldPosition(): { x: number; y: number } {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    if (indices.length === 0) return { x: 0, y: 0 };
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return { x: 0, y: 0 };
 
-    const randomIdx = indices[Math.floor(Math.random() * indices.length)];
+    const randomIdx = buf[Math.floor(Math.random() * count)];
     const store = this.blockManager.getBlockStore();
 
     return { x: store.worldX[randomIdx], y: store.worldY[randomIdx] };
@@ -577,13 +613,18 @@ export abstract class CompositeBlockObject {
    * Looks up the block via its coordinate and returns its world position from BlockStore.
    */
   protected calculateBlockWorldPosition(coord: GridCoord): { x: number; y: number } {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return { x: 0, y: 0 };
+
     const store = this.blockManager.getBlockStore();
+    const cx = coord.x, cy = coord.y;
 
     // Find the block index with this local coordinate
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      if (store.localX[idx] === coord.x && store.localY[idx] === coord.y) {
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
+      if (store.localX[idx] === cx && store.localY[idx] === cy) {
         return { x: store.worldX[idx], y: store.worldY[idx] };
       }
     }
@@ -624,14 +665,20 @@ export abstract class CompositeBlockObject {
 
     let total = 0;
 
-    // Prefer SOA iteration for performance
-    const shipIndices = this.blockOrchestrator.getShipBlocksView(this.numericId);
+    // Prefer SOA iteration for performance without allocations
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) {
+      this.totalMass = 0;
+      return 0;
+    }
+
     const store = this.blockManager.getBlockStore();
 
-    for (let i = 0; i < shipIndices.length; i++) {
-      const idx = shipIndices[i];
-      const typeIdx = store.typeIndex[idx];
-      total += BlockTypeMass[typeIdx];
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
+      total += BlockTypeMass[store.typeIndex[idx]];
     }
 
     this.totalMass = total;
@@ -683,48 +730,66 @@ export abstract class CompositeBlockObject {
 
   // --- Connectivity Check ---
 
+  /**
+   * Checks connectivity if the block at `removeCoord` were removed.
+   * GC-lean: avoids getShipBlocksView(); uses numeric keys instead of string tuples,
+   * and no per-cell object allocation.
+   */
   public isDeletionSafeSOA(removeCoord: GridCoord): boolean {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    if (indices.length === 0) return true;
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return true;
 
     const store = this.blockOrchestrator.blockStore;
 
-    // Build a map of remaining coords
-    const coords: Array<{ x: number; y: number; index: number }> = [];
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      const x = store.localX[idx];
-      const y = store.localY[idx];
-      if (x === removeCoord.x && y === removeCoord.y) continue;
-      coords.push({ x, y, index: idx });
+    // Pack (x,y) into a signed 32-bit key: hi 16 = x, lo 16 = y (two’s complement)
+    const pack = (x: number, y: number) => ((x & 0xffff) << 16) | (y & 0xffff);
+    const unpackX = (key: number) => (key >> 16) << 16 >> 16;       // sign-extend 16-bit
+    const unpackY = (key: number) => (key & 0xffff) << 16 >> 16;    // sign-extend 16-bit
+
+    // Build set of remaining coords after hypothetical removal
+    const rx = removeCoord.x, ry = removeCoord.y;
+    const coordSet = new Set<number>();
+    let startKey = -1;
+
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
+      const x = store.localX[idx], y = store.localY[idx];
+      if (x === rx && y === ry) continue;
+      const key = pack(x, y);
+      if (startKey === -1) startKey = key;
+      coordSet.add(key);
     }
-    if (coords.length === 0) return true;
 
-    // BFS connectivity traversal
-    const visited = new Set<string>();
-    const toKey = (x: number, y: number) => `${x},${y}`;
-    const start = toKey(coords[0].x, coords[0].y);
-    const queue = [start];
-    const coordSet = new Set(coords.map(c => toKey(c.x, c.y)));
+    // If nothing remains, deletion is vacuously safe
+    if (coordSet.size === 0) return true;
 
-    while (queue.length > 0) {
-      const key = queue.pop()!;
+    // BFS/DFS over the 4-neighborhood using numeric keys
+    const visited = new Set<number>();
+    const stack: number[] = [startKey];
+
+    while (stack.length) {
+      const key = stack.pop()!;
       if (visited.has(key)) continue;
       visited.add(key);
 
-      const [cx, cy] = key.split(',').map(Number);
-      const neighbors = [
-        `${cx + 1},${cy}`,
-        `${cx - 1},${cy}`,
-        `${cx},${cy + 1}`,
-        `${cx},${cy - 1}`,
-      ];
-      for (const n of neighbors) {
-        if (coordSet.has(n) && !visited.has(n)) queue.push(n);
-      }
+      const cx = unpackX(key);
+      const cy = unpackY(key);
+
+      // Neighbor keys (compute inline to avoid small array allocs)
+      const n1 = pack(cx + 1, cy);
+      const n2 = pack(cx - 1, cy);
+      const n3 = pack(cx, cy + 1);
+      const n4 = pack(cx, cy - 1);
+
+      if (coordSet.has(n1) && !visited.has(n1)) stack.push(n1);
+      if (coordSet.has(n2) && !visited.has(n2)) stack.push(n2);
+      if (coordSet.has(n3) && !visited.has(n3)) stack.push(n3);
+      if (coordSet.has(n4) && !visited.has(n4)) stack.push(n4);
     }
 
-    return visited.size === coords.length;
+    return visited.size === coordSet.size;
   }
 
   // --- Misc ---
@@ -774,8 +839,10 @@ export abstract class CompositeBlockObject {
   }
 
   protected registerCollisionBox(): void {
-    const indices = this.blockOrchestrator.getShipBlocksView(this.numericId);
-    if (indices.length === 0) return;
+    const orch  = this.blockOrchestrator;
+    const buf   = orch.getShipBlocksRawArray(this.numericId);
+    const count = orch.getShipBlockCount(this.numericId);
+    if (!buf || count === 0) return;
 
     const store = this.blockManager.getBlockStore();
 
@@ -784,15 +851,17 @@ export abstract class CompositeBlockObject {
     let maxX = -Infinity, maxY = -Infinity;
     const BLOCK_SIZE = 32;
 
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
+    for (let i = 0; i < count; i++) {
+      const idx = buf[i];
       const x = store.localX[idx] * BLOCK_SIZE;
       const y = store.localY[idx] * BLOCK_SIZE;
 
       if (x < minX) minX = x;
       if (y < minY) minY = y;
-      if (x + BLOCK_SIZE > maxX) maxX = x + BLOCK_SIZE;
-      if (y + BLOCK_SIZE > maxY) maxY = y + BLOCK_SIZE;
+      const xr = x + BLOCK_SIZE;
+      const yr = y + BLOCK_SIZE;
+      if (xr > maxX) maxX = xr;
+      if (yr > maxY) maxY = yr;
     }
 
     // Allocate and register the collision box.
@@ -806,7 +875,6 @@ export abstract class CompositeBlockObject {
     });
 
     if (boxIndex !== -1) {
-      // Let the orchestrator compute the true world center (shipPos + rotated pivot)
       this.collisionBoxOrchestrator.updateWorldTransform(
         boxIndex,
         this.transform.position,
