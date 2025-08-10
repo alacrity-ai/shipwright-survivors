@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Block Lab — BlockType Registry Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#151a22; --bd:#222937; --btn:#203050; --btn2:#2a395a; --accent:#4cc9f0; --ok:#39d98a; --warn:#f5c451; --err:#ff6b6b; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { display:grid; grid-template-columns: 360px 420px 1fr; gap:16px; height:100%; padding:14px; box-sizing:border-box; }
+
+  .panel { background:var(--ui); border:1px solid var(--bd); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; gap:12px; }
+  .panel h2 { margin:0 0 4px; font-size:14px; letter-spacing:.2px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .grid { display:grid; gap:10px 14px; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  input[type="file"], input[type="text"], input[type="number"], select, textarea {
+    background:#0f1420; color:var(--fg); border:1px solid #25314a; border-radius:8px; padding:8px 10px; outline:none;
+  }
+  input[type="text"]::placeholder { color:#7f8aa1; }
+  textarea { resize:vertical; min-height:90px; font:12px ui-monospace, monospace; }
+  label { font-size:12px; opacity:.9; display:block; margin-bottom:4px; }
+  .fld { display:flex; flex-direction:column; gap:6px; }
+  .fld.inline { flex-direction:row; align-items:center; }
+  .fld.inline > label { margin:0; min-width:110px; }
+  .code { font:12px ui-monospace, monospace; background:#0f1420; border:1px solid #25314a; padding:8px; border-radius:8px; }
+
+  button {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--btn2); background:var(--btn); color:var(--fg);
+    cursor:pointer; transition:transform .03s ease, background .2s; font-weight:600; font-size:13px;
+  }
+  button:hover { background:#28406b; }
+  button:active { transform:translateY(1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a5c; background:#0f1420; font-size:11px; color:#b9c4d6; }
+  .pill.ok { border-color:#204a35; color:#bff5dc; background:#0c1713; }
+  .pill.warn { border-color:#594a1e; color:#ffe2a5; background:#191307; }
+  .pill.err { border-color:#5a2a2a; color:#ffd1d1; background:#1a0d0d; }
+
+  /* List */
+  .list { overflow:auto; border:1px solid var(--bd); border-radius:12px; }
+  .list table { width:100%; border-collapse:collapse; font-size:13px; }
+  .list th, .list td { padding:8px 10px; border-bottom:1px solid #1c2331; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+  .list th { position:sticky; top:0; background:#111722; z-index:1; font-weight:600; }
+  .list tr { cursor:pointer; }
+  .list tr:hover { background:#141c2a; }
+  .list tr.active { background:#18253a; }
+
+  /* Atlas canvas */
+  .canvas-wrap { position:relative; border:1px solid var(--bd); border-radius:12px; overflow:hidden; background:
+      conic-gradient(#0000 0 25%,#0001 0 50%,#0000 0 75%,#0001 0) 0 0/20px 20px,
+      linear-gradient(90deg,#1b1f28,#141820); min-height:160px;
+  }
+  canvas#atlas { width:100%; height:100%; display:block; }
+  .hint { position:absolute; bottom:8px; left:10px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,.35); font-size:12px; }
+
+  .small { font-size:12px; opacity:.8; }
+  .muted { opacity:.7; }
+  .spacer { flex:1 1 auto; }
+
+  .badge { font:10px ui-monospace, monospace; background:#0f1420; border:1px solid #25314a; padding:2px 6px; border-radius:6px; }
+  .kbd { padding:1px 6px; border-radius:4px; background:#0f1420; border:1px solid #25314a; font:11px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Panel A: IO + Filters -->
+  <section class="panel" style="min-width:320px;">
+    <h2>Registry & Actions</h2>
+    <div class="row">
+      <input id="fileJson" type="file" accept="application/json" />
+      <button id="exportBtn" disabled>Export JSON</button>
+      <button id="newBtn" disabled>New</button>
+      <button id="deleteBtn" disabled>Delete</button>
+      <!-- Add next to Export JSON / New / Delete -->
+      <button id="exportCsvBtn" disabled>Export CSV</button>
+      <button id="importCsvBtn" disabled>Import CSV</button>
+      <input id="importCsvFile" type="file" accept=".csv,text/csv" style="display:none" />
+
+    </div>
+    <div class="grid two">
+      <div class="fld">
+        <label for="atlasUrl">Atlas URL</label>
+        <input id="atlasUrl" type="text" placeholder="./public/atlas.png" value="./public/atlas.png"/>
+      </div>
+      <div class="fld">
+        <label>&nbsp;</label>
+        <button id="loadAtlasBtn">Load Atlas</button>
+      </div>
+      <div class="fld">
+        <label>Tile W</label>
+        <input id="tileW" type="number" value="64" min="1" />
+      </div>
+      <div class="fld">
+        <label>Tile H</label>
+        <input id="tileH" type="number" value="64" min="1" />
+      </div>
+    </div>
+
+    <h2>Filter</h2>
+    <div class="grid two">
+      <div class="fld">
+        <label>Search</label>
+        <input id="search" type="text" placeholder="id, name, metatag…" />
+      </div>
+      <div class="fld">
+        <label>Category</label>
+        <select id="categoryFilter">
+          <option value="">Any</option>
+          <option>system</option><option>hull</option><option>engine</option>
+          <option>weapon</option><option>utility</option><option>environment</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>Tier</label>
+        <input id="tierFilter" type="number" placeholder="Any" />
+      </div>
+      <div class="fld">
+        <label>Subcategory</label>
+        <input id="subcatFilter" type="text" placeholder="e.g. turret" />
+      </div>
+    </div>
+
+    <div class="row" style="justify-content:space-between;">
+      <span id="status" class="pill">No registry loaded</span>
+      <span id="count" class="pill">—</span>
+    </div>
+
+    <div class="code small">
+      <div>• <b>Ctrl/Cmd+S</b> export JSON</div>
+      <div>• <b>Ctrl/Cmd+N</b> new block</div>
+      <div>• <b>Del</b> delete selected</div>
+    </div>
+  </section>
+
+  <!-- Panel B: List -->
+  <section class="panel" style="min-width:360px; display:grid; grid-template-rows:auto auto 1fr;">
+    <h2>Blocks</h2>
+    <div class="row small muted" id="warnings"></div>
+    <div class="list">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px;">Tier</th>
+            <th>Id</th>
+            <th style="width:160px;">Name</th>
+            <th style="width:100px;">Category</th>
+            <th style="width:100px;">Subcat</th>
+            <th style="width:70px;">Drop</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Panel C: Editor + Atlas -->
+  <section class="panel" style="display:grid; grid-template-rows:auto auto 1fr;">
+    <h2>Editor</h2>
+    <div class="grid three">
+      <div class="fld"><label>id</label><input id="fld-id" type="text" /></div>
+      <div class="fld"><label>name</label><input id="fld-name" type="text" /></div>
+      <div class="fld"><label>tier</label><input id="fld-tier" type="number" min="0" /></div>
+
+      <div class="fld"><label>sprite</label><input id="fld-sprite" type="text" placeholder="e.g. turret3" /></div>
+      <div class="fld"><label>armor</label><input id="fld-armor" type="number" min="0" /></div>
+      <div class="fld"><label>mass</label><input id="fld-mass" type="number" min="0" /></div>
+
+      <div class="fld"><label>cost</label><input id="fld-cost" type="number" min="0" /></div>
+      <div class="fld"><label>category</label>
+        <select id="fld-category">
+          <option>system</option><option>hull</option><option>engine</option>
+          <option>weapon</option><option>utility</option><option>environment</option>
+        </select>
+      </div>
+      <div class="fld"><label>subcategory</label><input id="fld-subcategory" type="text" placeholder="turret, facetplate…" /></div>
+
+      <div class="fld"><label>dropRate</label><input id="fld-dropRate" type="number" min="0" step="0.001" /></div>
+      <div class="fld"><label>placementSound</label><input id="fld-placementSound" type="text" /></div>
+      <div class="fld"><label>blockDropOverride</label><input id="fld-blockDropOverride" type="text" /></div>
+      <div class="fld">
+        <label>lightColor</label>
+        <select id="fld-lightColor">
+          <option value="">— none —</option>
+          <option value="#feac29">Tier 0/1 — #feac29</option>
+          <option value="#29fe5e">Tier 2 — #29fe5e</option>
+          <option value="#7eb1ff">Tier 3 — #7eb1ff</option>
+          <option value="#ff2bfb">Tier 4 — #ff2bfb</option>
+          <option value="#fbff00">Tier 5 — #fbff00</option>
+        </select>
+      </div>
+      <div class="fld"><label>lightRadius</label><input id="fld-lightRadius" type="number" min="0" /></div>
+      <div class="fld"><label>lightIntensity</label><input id="fld-lightIntensity" type="number" min="0" step="0.1" /></div>
+    </div>
+
+    <div class="grid two">
+      <div class="fld">
+        <label>metatags (comma-sep)</label>
+        <input id="fld-metatags" type="text" placeholder="turret, cockpit" />
+      </div>
+      <div class="fld">
+        <label>behavior (JSON)</label>
+        <textarea id="fld-behavior" placeholder='{"canFire":true,"fire":{"fireRate":1.0}}'></textarea>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 280px; gap:12px; min-height:0;">
+      <div class="canvas-wrap">
+        <canvas id="atlas"></canvas>
+        <div class="hint">Click a tile to set Base / Overlay. Toggle with the buttons below.</div>
+      </div>
+      <div class="panel" style="gap:10px;">
+        <h2>Atlas Mapping</h2>
+        <div class="row">
+          <button id="pickBaseBtn" class="badge" title="Pick base tile">Base</button>
+          <button id="pickOverlayBtn" class="badge" title="Pick overlay tile">Overlay</button>
+          <span class="spacer"></span>
+          <span id="tileInfo" class="pill">—</span>
+        </div>
+        <div class="grid two">
+          <div class="fld"><label>Base (col,row)</label><input id="baseColRow" type="text" placeholder="e.g. 10,2" /></div>
+          <div class="fld"><label>Overlay (col,row)</label><input id="overColRow" type="text" placeholder="e.g. 11,2" /></div>
+        </div>
+        <div class="small muted">
+          Atlas mapping is an editor annotation only (not part of your runtime <code>BlockType</code>).
+          It is preserved in export under a top-level sidecar <code>__atlasMap</code> keyed by <code>id</code>.
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- State ----------
+  /** @type {Array<Record<string, any>>} */
+  let registry = [];                 // loaded blocks (in source order)
+  /** @type {Map<string, Record<string, any>>} */
+  let byId = new Map();              // id -> block
+  let selectedId = null;             // currently selected block id
+  let dirty = false;
+
+  // Optional editor-only atlas mapping: { [id]: { base:[c,r], overlay:[c,r] } }
+  let atlasMap = {};
+  let picking = 'base';              // 'base' | 'overlay'
+  let atlasImg = new Image();
+  let atlasLoaded = false;
+
+  // Tile grid
+  let tileW = 64, tileH = 64;
+
+  // ---------- DOM ----------
+  const el = (id) => document.getElementById(id);
+
+  const fileJson = el('fileJson');
+  const exportBtn = el('exportBtn');
+  const newBtn = el('newBtn');
+  const deleteBtn = el('deleteBtn');
+
+  const exportCsvBtn = el('exportCsvBtn');
+  const importCsvBtn = el('importCsvBtn');
+  const importCsvFile = el('importCsvFile');
+
+  const search = el('search');
+  const categoryFilter = el('categoryFilter');
+  const tierFilter = el('tierFilter');
+  const subcatFilter = el('subcatFilter');
+  const statusEl = el('status');
+  const countEl = el('count');
+  const warningsEl = el('warnings');
+
+  const tbody = el('tbody');
+
+  // Allowed light colors (exact hex matches)
+  const LIGHT_COLOR_TIERS = {
+    0: '#feac29',
+    1: '#feac29',
+    2: '#29fe5e',
+    3: '#7eb1ff',
+    4: '#ff2bfb',
+    5: '#fbff00',
+  };
+  const ALLOWED_LIGHT_COLORS = new Set(Object.values(LIGHT_COLOR_TIERS));
+
+  // Fields
+  const fld = {
+    id: el('fld-id'), name: el('fld-name'), tier: el('fld-tier'),
+    sprite: el('fld-sprite'), armor: el('fld-armor'), mass: el('fld-mass'),
+    cost: el('fld-cost'), category: el('fld-category'), subcategory: el('fld-subcategory'),
+    dropRate: el('fld-dropRate'), placementSound: el('fld-placementSound'),
+    blockDropOverride: el('fld-blockDropOverride'),
+    lightColor: el('fld-lightColor'), lightRadius: el('fld-lightRadius'),
+    lightIntensity: el('fld-lightIntensity'),
+    metatags: el('fld-metatags'), behavior: el('fld-behavior'),
+  };
+
+  // Atlas / tiles
+  const atlasUrl = el('atlasUrl');
+  const loadAtlasBtn = el('loadAtlasBtn');
+  const atlasCanvas = el('atlas');
+  const atlasCtx = atlasCanvas.getContext('2d');
+  const baseColRow = el('baseColRow');
+  const overColRow = el('overColRow');
+  const tileInfo = el('tileInfo');
+  const pickBaseBtn = el('pickBaseBtn');
+  const pickOverlayBtn = el('pickOverlayBtn');
+  const tileWInp = el('tileW');
+  const tileHInp = el('tileH');
+
+  function setStatus(text, cls='') {
+    statusEl.textContent = text;
+    statusEl.className = 'pill ' + (cls || '');
+  }
+
+  function setDirty(v=true) {
+    dirty = !!v;
+    exportBtn.disabled = !registry.length;
+    newBtn.disabled = !registry.length;
+    exportCsvBtn.disabled = !registry.length;
+    importCsvBtn.disabled = !registry.length;
+    loadAtlasBtn.disabled = !registry.length;
+    deleteBtn.disabled = !(registry.length && selectedId);
+  }
+
+  // ---------- Load / Export ----------
+  fileJson.addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    fetch(url).then(r => r.json()).then(json => {
+      loadRegistry(json);
+      URL.revokeObjectURL(url);
+    }).catch(err => {
+      console.error(err);
+      setStatus('Failed to parse JSON', 'err');
+    });
+  });
+
+  function loadRegistry(json) {
+    if (!Array.isArray(json)) {
+      setStatus('JSON must be an array of BlockType', 'err');
+      return;
+    }
+    registry = json.map(x => ({ ...x })); // shallow clone per entry
+    byId.clear();
+    registry.forEach(b => byId.set(b.id, b));
+    // Try to recover sidecar atlas map if user re-imports an exported file from this editor
+    atlasMap = json.__atlasMap || {};
+    selectedId = registry.length ? registry[0].id : null;
+    renderList();
+    renderEditor(selectedId);
+    setStatus(`Loaded ${registry.length} blocks`, 'ok');
+    setDirty(false);
+  }
+
+  exportBtn.addEventListener('click', () => {
+    if (!registry.length) return;
+    // Validate before export
+    const issues = validateRegistry(registry);
+    showWarnings(issues);
+    // Prepare export: attach sidecar __atlasMap as non-intrusive field on array object
+    // We clone the array to avoid mutating in-memory references.
+    const out = registry.map(b => shallowClean(b));
+    Object.defineProperty(out, '__atlasMap', { value: atlasMap, enumerable: true });
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'BlockRegistry.edited.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 200);
+    setDirty(false);
+    setStatus('Exported JSON', 'ok');
+  });
+
+  // Remove undefined and keep unknown fields
+  function shallowClean(obj) {
+    const o = {};
+    for (const [k,v] of Object.entries(obj)) {
+      if (v === undefined) continue;
+      o[k] = v;
+    }
+    return o;
+  }
+
+  // ---------- List rendering & filters ----------
+  function renderList() {
+    const q = (search.value||'').toLowerCase().trim();
+    const cat = categoryFilter.value;
+    const tierQ = tierFilter.value === '' ? null : Number(tierFilter.value);
+    const sub = (subcatFilter.value||'').toLowerCase().trim();
+
+    const rows = registry.filter(b => {
+      if (cat && b.category !== cat) return false;
+      if (tierQ !== null && Number(b.tier) !== tierQ) return false;
+      if (sub && String(b.subcategory||'').toLowerCase() !== sub) return false;
+      if (!q) return true;
+      const tags = (b.metatags||[]).join(',');
+      return (b.id+b.name+tags).toLowerCase().includes(q);
+    });
+
+    tbody.innerHTML = '';
+    rows.forEach(b => {
+      const tr = document.createElement('tr');
+      if (b.id === selectedId) tr.classList.add('active');
+      tr.innerHTML = `
+        <td><span class="badge">T${b.tier ?? ''}</span></td>
+        <td>${b.id || ''}</td>
+        <td>${b.name || ''}</td>
+        <td>${b.category || ''}</td>
+        <td>${b.subcategory || ''}</td>
+        <td>${b.dropRate ?? ''}</td>`;
+      tr.addEventListener('click', () => {
+        selectedId = b.id;
+        renderList();
+        renderEditor(selectedId);
+      });
+      tbody.appendChild(tr);
+    });
+
+    countEl.textContent = `${rows.length}/${registry.length}`;
+    const issues = validateRegistry(registry);
+    showWarnings(issues);
+    deleteBtn.disabled = !(registry.length && selectedId);
+  }
+
+  [search, categoryFilter, tierFilter, subcatFilter].forEach(i => i.addEventListener('input', renderList));
+
+  // ---------- Validation ----------
+  function validateRegistry(list) {
+    const issues = [];
+    const seen = new Set();
+    for (const b of list) {
+      if (!b.id) issues.push({ level:'err', msg:'Missing id', id:b.id });
+      if (seen.has(b.id)) issues.push({ level:'err', msg:`Duplicate id "${b.id}"`, id:b.id });
+      seen.add(b.id);
+      if (typeof b.tier !== 'number') issues.push({ level:'warn', msg:`Non-numeric tier for "${b.id}"`, id:b.id });
+      // id ↔ tier heuristic: last digit(s) suffix
+      const m = /(\d+)$/.exec(b.id||'');
+      if (m) {
+        const parsedTier = Number(m[1]);
+        if (!Number.isNaN(parsedTier) && typeof b.tier === 'number' && parsedTier !== b.tier) {
+          issues.push({ level:'warn', msg:`Tier (${b.tier}) differs from id suffix (${parsedTier}) for "${b.id}"`, id:b.id });
+        }
+      }
+      if (!b.category) issues.push({ level:'warn', msg:`Missing category for "${b.id}"`, id:b.id });
+    }
+    return issues;
+  }
+
+  // ---------- CSV (RFC-4180) ----------
+
+  // Columns we can round-trip via CSV (BlockType surface + two complex fields serialized)
+  const CSV_COLUMNS = [
+    'id','tier','name','sprite','armor','mass','cost','category','subcategory',
+    'dropRate','placementSound','blockDropOverride',
+    'lightColor','lightRadius','lightIntensity',
+    'metatags','behavior'
+  ];
+
+  // Stringify a single field for CSV (quote + escape)
+  function csvEscape(val) {
+    if (val == null) return '';
+    const s = String(val);
+    // Quote if it contains comma, quote, newline, or leading/trailing space
+    if (/[",\r\n]|^\s|\s$/.test(s)) {
+      return '"' + s.replace(/"/g,'""') + '"';
+    }
+    return s;
+  }
+
+  // Parse a RFC-4180 CSV string into rows (array-of-arrays)
+  function parseCsv(text) {
+    const rows = [];
+    let i = 0, s = text;
+    const N = s.length;
+    let row = [], field = '', inQuotes = false;
+
+    while (i < N) {
+      const ch = s[i];
+
+      if (inQuotes) {
+        if (ch === '"') {
+          // double-quote inside quoted field
+          if (i+1 < N && s[i+1] === '"') { field += '"'; i += 2; continue; }
+          // end quote
+          inQuotes = false; i++; continue;
+        }
+        field += ch; i++; continue;
+      }
+
+      if (ch === '"') { inQuotes = true; i++; continue; }
+      if (ch === ',') { row.push(field); field = ''; i++; continue; }
+      if (ch === '\r') { i++; continue; }        // tolerate CRLF
+      if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+
+      field += ch; i++;
+    }
+
+    // flush last field/row
+    row.push(field);
+    rows.push(row);
+    return rows;
+  }
+
+  // Coerce CSV cell -> JS value per column semantics
+  function coerceCsvValue(col, raw) {
+    const v = raw.trim();
+    if (v === '') return undefined;
+
+    // Numeric fields
+    if (['tier','armor','mass','cost','dropRate','lightRadius','lightIntensity'].includes(col)) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    }
+
+    // behavior, metatags are JSON-capable
+    if (col === 'behavior') {
+      // Prefer JSON object; if not JSON, keep as undefined to avoid corrupting structure
+      try { const o = JSON.parse(v); return (o && typeof o === 'object') ? o : undefined; }
+      catch { return undefined; }
+    }
+    if (col === 'metatags') {
+      // Accept JSON array OR a delimited string; favor JSON
+      if (v.startsWith('[')) {
+        try { const arr = JSON.parse(v); return Array.isArray(arr) ? arr : undefined; }
+        catch { /* fallthrough */ }
+      }
+      // Fallback: split by comma and/or pipe
+      const tags = v.split(/[|,]/).map(s=>s.trim()).filter(Boolean);
+      return tags.length ? tags : undefined;
+    }
+
+    // Default: plain string
+    return v;
+  }
+
+  // Serialize BlockType to a CSV row object with strings
+  function toCsvRow(b) {
+    const obj = {};
+
+    CSV_COLUMNS.forEach(col => {
+      let val = b[col];
+
+      if (col === 'metatags') {
+        val = Array.isArray(b.metatags) ? JSON.stringify(b.metatags) : '';
+      } else if (col === 'behavior') {
+        val = b.behavior ? JSON.stringify(b.behavior) : '';
+      }
+
+      obj[col] = (val == null ? '' : String(val));
+    });
+
+    return obj;
+  }
+
+  // Deserialize CSV into array of partial BlockType objects
+  function fromCsv(text) {
+    const rows = parseCsv(text);
+    if (!rows.length) return [];
+
+    // Header
+    const header = rows[0].map(h => h.trim());
+    // Validate that required columns exist; we allow extra columns and ignore them
+    const missing = ['id'].filter(req => !header.includes(req));
+    if (missing.length) throw new Error('CSV missing required columns: ' + missing.join(', '));
+
+    const objects = [];
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      if (row.length === 1 && row[0].trim() === '') continue; // skip blank lines
+
+      const o = {};
+      for (let c = 0; c < header.length; c++) {
+        const col = header[c];
+        const raw = (row[c] ?? '');
+        if (!CSV_COLUMNS.includes(col)) continue; // ignore unknown columns
+        o[col] = coerceCsvValue(col, raw);
+      }
+      if (!o.id) continue; // require id
+      objects.push(o);
+    }
+    return objects;
+  }
+
+  function showWarnings(issues) {
+    warningsEl.innerHTML = '';
+    if (!issues.length) {
+      warningsEl.textContent = 'No validation issues.';
+      return;
+    }
+    for (const it of issues.slice(0,6)) {
+      const span = document.createElement('span');
+      span.className = 'pill ' + (it.level==='err'?'err':'warn');
+      span.textContent = it.msg;
+      warningsEl.appendChild(span);
+    }
+    if (issues.length > 6) {
+      const more = document.createElement('span');
+      more.className = 'pill';
+      more.textContent = `+${issues.length-6} more`;
+      warningsEl.appendChild(more);
+    }
+  }
+
+  // ---------- Editor binding ----------
+  function renderEditor(id) {
+    const b = byId.get(id);
+    const has = !!b;
+    for (const k in fld) fld[k].value = '';
+    if (!has) {
+      setStatus('Select a block to edit');
+      return;
+    }
+    setStatus(`Editing "${b.id}"`);
+    // Populate
+    fld.id.value = b.id || '';
+    fld.name.value = b.name || '';
+    fld.tier.value = b.tier ?? '';
+    fld.sprite.value = b.sprite || '';
+    fld.armor.value = b.armor ?? '';
+    fld.mass.value = b.mass ?? '';
+    fld.cost.value = b.cost ?? '';
+    fld.category.value = b.category || 'system';
+    fld.subcategory.value = b.subcategory || '';
+    fld.dropRate.value = b.dropRate ?? '';
+    fld.placementSound.value = b.placementSound || '';
+    fld.blockDropOverride.value = b.blockDropOverride || '';
+    fld.lightColor.value = b.lightColor || '';
+    fld.lightRadius.value = b.lightRadius ?? '';
+    fld.lightIntensity.value = b.lightIntensity ?? '';
+    fld.metatags.value = (b.metatags||[]).join(', ');
+    fld.behavior.value = b.behavior ? JSON.stringify(b.behavior, null, 2) : '';
+
+    // Atlas annotations
+    const am = atlasMap[b.id] || {};
+    baseColRow.value = am.base ? am.base.join(',') : '';
+    overColRow.value = am.overlay ? am.overlay.join(',') : '';
+    drawAtlas();
+    setDirty(false);
+  }
+
+  function readEditor() {
+    if (!selectedId) return;
+    const prevId = selectedId;
+    const b = byId.get(prevId);
+    if (!b) return;
+
+    // Update fields (preserving unknown fields)
+    const next = { ...b };
+    next.id = fld.id.value.trim();
+    next.name = fld.name.value.trim();
+    next.tier = numOrNull(fld.tier.value);
+    next.sprite = fld.sprite.value.trim();
+    next.armor = numOrNull(fld.armor.value);
+    next.mass = numOrNull(fld.mass.value);
+    next.cost = numOrNull(fld.cost.value);
+    next.category = fld.category.value;
+    next.subcategory = fld.subcategory.value.trim() || undefined;
+    next.dropRate = numOrNull(fld.dropRate.value);
+    next.placementSound = fld.placementSound.value.trim() || undefined;
+    next.blockDropOverride = fld.blockDropOverride.value.trim() || undefined;
+    {
+      const c = fld.lightColor.value.trim();
+      next.lightColor = (c && ALLOWED_LIGHT_COLORS.has(c)) ? c : undefined;
+    }
+    next.lightRadius = numOrNull(fld.lightRadius.value);
+    next.lightIntensity = numOrNull(fld.lightIntensity.value);
+
+    const tags = fld.metatags.value.split(',').map(s => s.trim()).filter(Boolean);
+    next.metatags = tags.length ? tags : undefined;
+
+    // behavior JSON (tolerant)
+    const txt = fld.behavior.value.trim();
+    if (!txt) { next.behavior = undefined; }
+    else {
+      try { next.behavior = JSON.parse(txt); }
+      catch(e){ /* keep old value on parse error */ }
+    }
+
+    // Commit: handle id change carefully
+    if (next.id !== prevId) {
+      if (byId.has(next.id)) {
+        setStatus(`id "${next.id}" already exists`, 'err');
+        fld.id.value = prevId;
+        return;
+      }
+      // Replace key
+      byId.delete(prevId);
+      byId.set(next.id, next);
+      const idx = registry.findIndex(x => x.id === prevId);
+      if (idx >= 0) registry[idx] = next;
+      // Move atlas mapping
+      if (atlasMap[prevId]) { atlasMap[next.id] = atlasMap[prevId]; delete atlasMap[prevId]; }
+      selectedId = next.id;
+    } else {
+      byId.set(next.id, next);
+      const idx = registry.findIndex(x => x.id === next.id);
+      if (idx >= 0) registry[idx] = next;
+    }
+
+    // Atlas annotations from inputs
+    const bcr = baseColRow.value.trim();
+    const ocr = overColRow.value.trim();
+    if (bcr || ocr) {
+      atlasMap[next.id] = atlasMap[next.id] || {};
+      if (bcr) atlasMap[next.id].base = tupleNum(bcr);
+      if (ocr) atlasMap[next.id].overlay = tupleNum(ocr);
+    }
+
+    setDirty(true);
+    renderList();
+  }
+
+  for (const k in fld) {
+    fld[k].addEventListener('input', () => { readEditor(); });
+  }
+  baseColRow.addEventListener('input', () => { readEditor(); drawAtlas(); });
+  overColRow.addEventListener('input', () => { readEditor(); drawAtlas(); });
+
+  newBtn.addEventListener('click', () => {
+    if (!registry.length) return;
+    const newid = suggestId('newblock0');
+    const b = {
+      id:newid, tier:0, name:'New Block', sprite:'', armor:0, mass:0, cost:0,
+      category:'system', dropRate:0, metatags:[]
+    };
+    registry.unshift(b);
+    byId.set(b.id, b);
+    selectedId = b.id;
+    renderList();
+    renderEditor(selectedId);
+    setDirty(true);
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    if (!selectedId) return;
+    const idx = registry.findIndex(x => x.id === selectedId);
+    if (idx >= 0) registry.splice(idx,1);
+    byId.delete(selectedId);
+    delete atlasMap[selectedId];
+    selectedId = registry.length ? registry[0].id : null;
+    renderList();
+    renderEditor(selectedId);
+    setDirty(true);
+  });
+
+  exportCsvBtn.addEventListener('click', () => {
+    if (!registry.length) return;
+
+    // Header
+    const header = CSV_COLUMNS.join(',');
+    // Rows
+    const lines = [header];
+
+    for (const b of registry) {
+      const row = toCsvRow(b);
+      const line = CSV_COLUMNS.map(col => csvEscape(row[col] ?? '')).join(',');
+      lines.push(line);
+    }
+
+    const blob = new Blob([lines.join('\r\n') + '\r\n'], { type:'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'BlockRegistry.edited.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 200);
+    setStatus('Exported CSV', 'ok');
+  });
+
+  importCsvBtn.addEventListener('click', () => importCsvFile.click());
+
+  importCsvFile.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const text = await f.text();
+    try {
+      const incoming = fromCsv(text); // array of partial BlockType
+      if (!incoming.length) { setStatus('CSV contained no rows', 'warn'); return; }
+
+      // Merge strategy: upsert by id (keep unknown fields for existing entries)
+      let updates = 0, inserts = 0;
+      for (const patch of incoming) {
+        const id = patch.id;
+        const existing = byId.get(id);
+        if (existing) {
+          const next = { ...existing, ...patch };
+          // normalize empty strings to undefined for known optional fields
+          normalizeOptionals(next);
+          byId.set(id, next);
+          const idx = registry.findIndex(x => x.id === id);
+          if (idx >= 0) registry[idx] = next;
+          updates++;
+        } else {
+          const created = { category:'system', dropRate:0, metatags:[], ...patch };
+          normalizeOptionals(created);
+          registry.push(created);
+          byId.set(created.id, created);
+          inserts++;
+        }
+      }
+
+      // Refresh UI
+      renderList();
+      if (selectedId) renderEditor(selectedId);
+      else if (registry.length) { selectedId = registry[0].id; renderEditor(selectedId); }
+
+      setDirty(true);
+      setStatus(`CSV import: ${updates} updated, ${inserts} inserted`, 'ok');
+    } catch (err) {
+      console.error(err);
+      setStatus('Failed to import CSV: ' + (err && err.message || String(err)), 'err');
+    } finally {
+      importCsvFile.value = '';
+    }
+  });
+
+  function normalizeOptionals(b) {
+    // Turn '' into undefined for optional string fields to keep JSON compact on export
+    ['subcategory','placementSound','blockDropOverride','lightColor','sprite','name','category','id'].forEach(k=>{
+      if (b[k] === '') b[k] = undefined;
+    });
+    if (Array.isArray(b.metatags) && b.metatags.length === 0) b.metatags = undefined;
+  }
+
+
+  function suggestId(base) {
+    let i = 0;
+    let id = base;
+    while (byId.has(id)) { i++; id = base.replace(/\d*$/, '') + i; }
+    return id;
+  }
+
+  function numOrNull(v) {
+    if (v === '' || v == null) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  function tupleNum(s) {
+    const parts = s.split(',').map(x => Number(x.trim()));
+    return parts.length===2 && parts.every(Number.isFinite) ? parts : undefined;
+  }
+
+  // ---------- Atlas ----------
+  loadAtlasBtn.addEventListener('click', () => {
+    const url = atlasUrl.value.trim();
+    if (!url) return;
+    atlasImg.onload = () => { atlasLoaded = true; drawAtlas(true); };
+    atlasImg.onerror = () => { atlasLoaded = false; drawAtlas(true); };
+    atlasImg.src = url + (url.includes('?')?'&':'?') + 't=' + Date.now(); // bust cache
+  });
+
+  tileWInp.addEventListener('input', () => { tileW = Math.max(1, Number(tileWInp.value||64)); drawAtlas(true); });
+  tileHInp.addEventListener('input', () => { tileH = Math.max(1, Number(tileHInp.value||64)); drawAtlas(true); });
+
+  pickBaseBtn.addEventListener('click', () => { picking='base'; pickBaseBtn.style.outline='2px solid var(--accent)'; pickOverlayBtn.style.outline='none'; });
+  pickOverlayBtn.addEventListener('click', () => { picking='overlay'; pickOverlayBtn.style.outline='2px solid var(--accent)'; pickBaseBtn.style.outline='none'; });
+
+  atlasCanvas.addEventListener('mousemove', (e) => {
+    if (!atlasLoaded) return;
+    const { col,row } = mouseToCell(e);
+    tileInfo.textContent = `col ${col}, row ${row}`;
+  });
+
+  atlasCanvas.addEventListener('click', (e) => {
+    if (!atlasLoaded || !selectedId) return;
+    const { col,row } = mouseToCell(e);
+    const key = picking==='base' ? 'base' : 'overlay';
+    atlasMap[selectedId] = atlasMap[selectedId] || {};
+    atlasMap[selectedId][key] = [col,row];
+    if (picking==='base') baseColRow.value = `${col},${row}`; else overColRow.value = `${col},${row}`;
+    setDirty(true);
+    drawAtlas();
+  });
+
+  function mouseToCell(e) {
+    const rect = atlasCanvas.getBoundingClientRect();
+    const cssX = e.clientX - rect.left;
+    const cssY = e.clientY - rect.top;
+    const dpr = window.devicePixelRatio || 1;
+    const x = cssX * dpr;
+    const y = cssY * dpr;
+    const col = Math.floor(x / (tileW * dpr));
+    const row = Math.floor(y / (tileH * dpr));
+    return { col, row };
+  }
+
+  function drawAtlas(fit=false) {
+    const dpr = window.devicePixelRatio || 1;
+    const parent = atlasCanvas.parentElement;
+    const cssW = Math.max(200, Math.floor(parent.clientWidth));
+    const cssH = Math.max(160, Math.floor(parent.clientHeight));
+    atlasCanvas.width = Math.floor(cssW * dpr);
+    atlasCanvas.height = Math.floor(cssH * dpr);
+    atlasCanvas.style.width = cssW + 'px';
+    atlasCanvas.style.height = cssH + 'px';
+    atlasCtx.setTransform(1,0,0,1,0,0);
+    atlasCtx.clearRect(0,0,atlasCanvas.width, atlasCanvas.height);
+
+    if (!atlasLoaded) {
+      atlasCtx.fillStyle = '#1b2230';
+      atlasCtx.fillRect(0,0,atlasCanvas.width, atlasCanvas.height);
+      atlasCtx.fillStyle = '#8aa0c7';
+      atlasCtx.font = '14px ui-monospace, monospace';
+      atlasCtx.fillText('Load an atlas to preview', 12, 22);
+      return;
+    }
+
+    // Fit entire atlas
+    const s = Math.min(atlasCanvas.width / atlasImg.naturalWidth, atlasCanvas.height / atlasImg.naturalHeight);
+    const dw = Math.floor(atlasImg.naturalWidth * s);
+    const dh = Math.floor(atlasImg.naturalHeight * s);
+    const dx = Math.floor((atlasCanvas.width - dw)/2);
+    const dy = Math.floor((atlasCanvas.height - dh)/2);
+    atlasCtx.imageSmoothingEnabled = false;
+    atlasCtx.drawImage(atlasImg, 0,0, atlasImg.naturalWidth, atlasImg.naturalHeight, dx,dy, dw,dh);
+
+    // Draw grid
+    atlasCtx.save();
+    atlasCtx.translate(dx,dy);
+    atlasCtx.scale(s, s);
+    atlasCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+    atlasCtx.lineWidth = 1;
+    for (let x=0; x<=atlasImg.naturalWidth; x+=tileW) {
+      atlasCtx.beginPath(); atlasCtx.moveTo(x,0); atlasCtx.lineTo(x,atlasImg.naturalHeight); atlasCtx.stroke();
+    }
+    for (let y=0; y<=atlasImg.naturalHeight; y+=tileH) {
+      atlasCtx.beginPath(); atlasCtx.moveTo(0,y); atlasCtx.lineTo(atlasImg.naturalWidth,y); atlasCtx.stroke();
+    }
+
+    // Highlight selected block's base/overlay
+    if (selectedId && atlasMap[selectedId]) {
+      const sel = atlasMap[selectedId];
+      const drawCell = (cr, color) => {
+        if (!Array.isArray(cr) || cr.length!==2) return;
+        const [c,r] = cr;
+        const x = c * tileW, y = r * tileH;
+        atlasCtx.fillStyle = color;
+        atlasCtx.globalAlpha = 0.25;
+        atlasCtx.fillRect(x,y,tileW,tileH);
+        atlasCtx.globalAlpha = 1;
+        atlasCtx.lineWidth = 2;
+        atlasCtx.strokeStyle = color;
+        atlasCtx.strokeRect(x+1,y+1,tileW-2,tileH-2);
+      };
+      drawCell(sel.base,  '#4cc9f0');   // base cyan
+      drawCell(sel.overlay, '#f0a54c'); // overlay amber
+    }
+
+    atlasCtx.restore();
+  }
+
+  // ---------- Shortcuts ----------
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') { e.preventDefault(); exportBtn.click(); }
+    if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n') { e.preventDefault(); newBtn.click(); }
+    if (e.key === 'Delete') { e.preventDefault(); deleteBtn.click(); }
+  });
+  window.addEventListener('resize', () => drawAtlas(true));
+
+  // ---------- Init ----------
+  setStatus('Load a BlockRegistry JSON to begin');
+  exportBtn.disabled = true; newBtn.disabled = true; deleteBtn.disabled = true;
+  pickBaseBtn.click(); // default picking mode
+})();
+</script>
+</body>
+</html>

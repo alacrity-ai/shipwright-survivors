@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blemish Remover Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for better UX */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        #imageCanvas, #brushCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #brushCanvas {
+            pointer-events: none; /* Allows clicks to pass through to the image canvas */
+        }
+        .placeholder {
+            aspect-ratio: 16 / 9;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 space-y-6">
+        <!-- Header -->
+        <header class="text-center">
+            <h1 class="text-3xl font-bold text-gray-900">Blemish Remover</h1>
+            <p class="text-gray-500 mt-1">Load an image, adjust the brush, and click to retouch.</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <!-- Load Button -->
+            <div class="flex justify-center">
+                <label for="imageLoader" class="cursor-pointer bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors duration-300 shadow-sm">
+                    Load Image
+                </label>
+                <input type="file" id="imageLoader" class="hidden" accept="image/*">
+            </div>
+
+            <!-- Brush Size Slider -->
+            <div class="flex items-center justify-center space-x-3">
+                <label for="brushSize" class="font-medium">Brush Size:</label>
+                <input type="range" id="brushSize" min="2" max="100" value="20" class="w-40 cursor-pointer">
+                <span id="brushSizeValue" class="font-semibold text-blue-600 w-8 text-center">20</span>
+            </div>
+
+            <!-- Export Button -->
+            <div class="flex justify-center">
+                <button id="exportButton" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                    Export Image
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div id="canvas-wrapper" class="canvas-container bg-gray-200">
+            <div id="placeholder" class="placeholder flex items-center justify-center">
+                <p class="text-gray-500">Your image will appear here</p>
+            </div>
+            <canvas id="imageCanvas"></canvas>
+            <canvas id="brushCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // DOM Element References
+        const imageLoader = document.getElementById('imageLoader');
+        const imageCanvas = document.getElementById('imageCanvas');
+        const brushCanvas = document.getElementById('brushCanvas');
+        const brushSizeSlider = document.getElementById('brushSize');
+        const brushSizeValue = document.getElementById('brushSizeValue');
+        const exportButton = document.getElementById('exportButton');
+        const placeholder = document.getElementById('placeholder');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+
+        // Canvas Contexts
+        const imageCtx = imageCanvas.getContext('2d');
+        const brushCtx = brushCanvas.getContext('2d');
+
+        // State variables
+        let isPainting = false;
+        let brushSize = 20;
+        let originalImage = null;
+
+        // --- Event Listeners ---
+
+        // Handle image loading
+        imageLoader.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                originalImage = new Image();
+                originalImage.onload = () => {
+                    // Set canvas dimensions to match the image
+                    const aspectRatio = originalImage.width / originalImage.height;
+                    const containerWidth = canvasWrapper.clientWidth;
+                    
+                    imageCanvas.width = originalImage.width;
+                    imageCanvas.height = originalImage.height;
+                    brushCanvas.width = originalImage.width;
+                    brushCanvas.height = originalImage.height;
+                    
+                    // Adjust wrapper aspect ratio to prevent layout shifts
+                    canvasWrapper.style.aspectRatio = aspectRatio;
+
+                    // Draw the image
+                    imageCtx.drawImage(originalImage, 0, 0);
+                    
+                    // UI updates
+                    placeholder.style.display = 'none';
+                    exportButton.disabled = false;
+                };
+                originalImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Update brush size from slider
+        brushSizeSlider.addEventListener('input', (e) => {
+            brushSize = parseInt(e.target.value, 10);
+            brushSizeValue.textContent = brushSize;
+        });
+
+        // Start painting
+        imageCanvas.addEventListener('mousedown', (e) => {
+            if (!originalImage) return;
+            isPainting = true;
+            paint(e); // Allow for single-click dabs
+        });
+
+        // Stop painting
+        imageCanvas.addEventListener('mouseup', () => {
+            isPainting = false;
+            imageCtx.beginPath(); // Reset the context path
+        });
+        
+        imageCanvas.addEventListener('mouseleave', () => {
+            isPainting = false;
+            brushCtx.clearRect(0, 0, brushCanvas.width, brushCanvas.height); // Clear brush cursor
+        });
+
+        // Paint on drag and move brush cursor
+        imageCanvas.addEventListener('mousemove', (e) => {
+            drawBrushCursor(e);
+            if (isPainting) {
+                paint(e);
+            }
+        });
+
+        // Handle export
+        exportButton.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'retouched-image.png';
+            link.href = imageCanvas.toDataURL('image/png');
+            link.click();
+        });
+        
+        // --- Core Functions ---
+
+        /**
+         * Gets mouse coordinates relative to the canvas.
+         */
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (evt.clientX - rect.left) * scaleX,
+                y: (evt.clientY - rect.top) * scaleY
+            };
+        }
+
+        /**
+         * The main painting function. Averages pixels and applies the color.
+         */
+        function paint(e) {
+            const { x, y } = getMousePos(imageCanvas, e);
+            const radius = brushSize / 2;
+            
+            // Define the square area to sample pixels from
+            const startX = Math.max(0, Math.floor(x - radius));
+            const startY = Math.max(0, Math.floor(y - radius));
+            const endX = Math.min(imageCanvas.width, Math.ceil(x + radius));
+            const endY = Math.min(imageCanvas.height, Math.ceil(y + radius));
+            const width = endX - startX;
+            const height = endY - startY;
+
+            if (width <= 0 || height <= 0) return;
+
+            // Get pixel data from the defined area
+            const imageData = imageCtx.getImageData(startX, startY, width, height);
+            const data = imageData.data;
+            let r = 0, g = 0, b = 0, count = 0;
+
+            // Calculate the average color of the pixels in the area
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+                count++;
+            }
+
+            const avgR = Math.floor(r / count);
+            const avgG = Math.floor(g / count);
+            const avgB = Math.floor(b / count);
+
+            // Apply the averaged color in a circular shape
+            imageCtx.fillStyle = `rgb(${avgR}, ${avgG}, ${avgB})`;
+            imageCtx.beginPath();
+            imageCtx.arc(x, y, radius, 0, Math.PI * 2);
+            imageCtx.fill();
+        }
+
+        /**
+         * Draws a circle on the brush canvas to show the user the brush size and position.
+         */
+        function drawBrushCursor(e) {
+            if (!originalImage) return;
+            const { x, y } = getMousePos(brushCanvas, e);
+            const radius = brushSize / 2;
+
+            brushCtx.clearRect(0, 0, brushCanvas.width, brushCanvas.height);
+            brushCtx.beginPath();
+            brushCtx.arc(x, y, radius, 0, Math.PI * 2);
+            brushCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            brushCtx.lineWidth = 2;
+            brushCtx.stroke();
+            brushCtx.beginPath();
+            brushCtx.arc(x, y, radius, 0, Math.PI * 2);
+            brushCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            brushCtx.lineWidth = 1;
+            brushCtx.setLineDash([4, 4]);
+            brushCtx.stroke();
+            brushCtx.setLineDash([]);
+        }
+
+    </script>
+</body>
+</html>
