@@ -611,11 +611,12 @@
   function renderEditor(id) {
     const b = byId.get(id);
     const has = !!b;
-    for (const k in fld) fld[k].value = '';
     if (!has) {
       setStatus('Select a block to edit');
+      deleteBtn.disabled = true;
       return;
     }
+    for (const k in fld) fld[k].value = '';
     setStatus(`Editing "${b.id}"`);
     // Populate
     fld.id.value = b.id || '';
@@ -683,23 +684,41 @@
     }
 
     // Commit: handle id change carefully
-    if (next.id !== prevId) {
-      if (byId.has(next.id)) {
-        setStatus(`id "${next.id}" already exists`, 'err');
-        fld.id.value = prevId;
+    const wantRename = (next.id ?? '').trim();
+
+    if (next.id !== prevId && wantRename) {
+      // New id requested and non-empty → ensure uniqueness, then rekey
+      if (byId.has(wantRename)) {
+        setStatus(`id "${wantRename}" already exists`, 'err');
+        fld.id.value = prevId; // visually restore
         return;
       }
+
       // Replace key
       byId.delete(prevId);
-      byId.set(next.id, next);
-      const idx = registry.findIndex(x => x.id === prevId);
-      if (idx >= 0) registry[idx] = next;
+      byId.set(wantRename, next);
+
+      // Update registry array entry
+      {
+        const idx = registry.findIndex(x => x.id === prevId);
+        if (idx >= 0) registry[idx] = next;
+      }
+
       // Move atlas mapping
-      if (atlasMap[prevId]) { atlasMap[next.id] = atlasMap[prevId]; delete atlasMap[prevId]; }
-      selectedId = next.id;
+      if (atlasMap[prevId]) {
+        atlasMap[wantRename] = atlasMap[prevId];
+        delete atlasMap[prevId];
+      }
+
+      selectedId = wantRename;
     } else {
-      byId.set(next.id, next);
-      const idx = registry.findIndex(x => x.id === next.id);
+      // Either id unchanged OR user is mid-edit (empty id). Do not rekey.
+      // Normalize the object to keep its id consistent with the current key.
+      next.id = prevId;
+
+      byId.set(prevId, next);
+
+      const idx = registry.findIndex(x => x.id === prevId);
       if (idx >= 0) registry[idx] = next;
     }
 
@@ -726,8 +745,23 @@
     if (!registry.length) return;
     const newid = suggestId('newblock0');
     const b = {
-      id:newid, tier:0, name:'New Block', sprite:'', armor:0, mass:0, cost:0,
-      category:'system', dropRate:0, metatags:[]
+      id: newid,
+      tier: 0,
+      name: 'New Block',
+      sprite: '',
+      armor: 0,
+      mass: 0,
+      cost: 0,
+      category: 'system',
+      subcategory: '',
+      dropRate: 0,
+      placementSound: '',
+      blockDropOverride: '',
+      lightColor: '',
+      lightRadius: 0,
+      lightIntensity: 0,
+      metatags: [],
+      behavior: undefined,
     };
     registry.unshift(b);
     byId.set(b.id, b);

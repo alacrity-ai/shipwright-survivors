@@ -54,7 +54,7 @@
   <header class="bar">
     <div class="title">
       <div class="logo"></div>
-      <h1>Image Tools Workstation</h1>
+      <h1>Shipwright Survivors Devtools</h1>
       <span class="pill">Tabs: <span class="kbd">[</span>/<span class="kbd">]</span> • Tools: <span class="kbd">1..9</span> (Shift = new tab)</span>
     </div>
     <div class="breadcrumbs">Current: <b id="crumb">Dashboard</b></div>
@@ -145,6 +145,13 @@
           name: 'Block Editor',
           path: 'tools/utilities/blockeditor.html',
           blurb: 'Edit BlockRegistry.json, export CSV, import CSV, and export JSON.',
+          actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
+        },
+        // Ship Previewer
+        { key: '3',
+          name: 'Ship Previewer',
+          path: 'tools/utilities/shippreviewer.html',
+          blurb: 'Preview ships from JSON, and export JSON.',
           actions: [{label:'Open', target:'iframe'}, {label:'Open in New Tab', target:'blank'}],
         },
       ],

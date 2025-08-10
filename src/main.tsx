@@ -12,6 +12,7 @@ import { BlockManager } from './game/blocks/system/BlockManager';
 import { PassiveTreeDeserializer } from '@/game/passives/json/PassiveTreeDeserializer';
 import { PlayerGlobalPassiveManager } from '@/game/player/PlayerGlobalPassiveManager';
 import { initializePassiveIconCache } from '@/game/passives/icons/passiveIconCache';
+import { initializeBlockRegistry } from '@/game/blocks/BlockRegistry';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -19,6 +20,9 @@ import App from './App';
 (async () => {
   // === Global guards and initialization
   bootstrapGlobalGuards();
+
+  // 2) Load block registry (no top-level await in module)
+  await initializeBlockRegistry();
 
   // === Initialize Block Manager
   BlockManager.initialize();

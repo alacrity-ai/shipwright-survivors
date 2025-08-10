@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Block Lab — Ship Block Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --bg:#0f1218; --fg:#e9eef7; --ui:#151a22; --bd:#222937; --btn:#203050; --btn2:#2a395a; --accent:#4cc9f0; --ok:#39d98a; --warn:#f5c451; --err:#ff6b6b; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { display:grid; grid-template-columns: 1fr 360px; gap:16px; height:100%; padding:14px; box-sizing:border-box; }
+
+  .panel { background:var(--ui); border:1px solid var(--bd); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; gap:12px; }
+  .panel h2 { margin:0 0 4px; font-size:14px; letter-spacing:.2px; }
+
+  /* Canvas area */
+  .canvas-wrap { position:relative; border:1px solid var(--bd); border-radius:12px; overflow:hidden; background:
+      conic-gradient(#0000 0 25%,#0001 0 50%,#0000 0 75%,#0001 0) 0 0/20px 20px,
+      linear-gradient(90deg,#1b1f28,#141820); flex:1 1 auto; min-height:220px;
+  }
+  canvas#atlas { width:100%; height:100%; display:block; }
+  .hud { position:absolute; bottom:8px; left:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; border:1px solid #2a3a5c; background:#0f1420; font-size:11px; color:#b9c4d6; }
+  .pill.ok { border-color:#204a35; color:#bff5dc; background:#0c1713; }
+  .pill.warn { border-color:#594a1e; color:#ffe2a5; background:#191307; }
+  .pill.err { border-color:#5a2a2a; color:#ffd1d1; background:#1a0d0d; }
+  .hint { position:absolute; top:8px; left:10px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,.35); font-size:12px; }
+
+  /* Controls */
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .spacer { flex:1 1 auto; }
+  label { font-size:12px; opacity:.9; }
+  input[type="file"], input[type="text"], input[type="number"], select {
+    background:#0f1420; color:var(--fg); border:1px solid #25314a; border-radius:8px; padding:8px 10px; outline:none;
+  }
+  .code { font:12px ui-monospace, monospace; background:#0f1420; border:1px solid #25314a; padding:8px; border-radius:8px; }
+
+  button {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--btn2); background:var(--btn); color:var(--fg);
+    cursor:pointer; transition:transform .03s ease, background .2s; font-weight:600; font-size:13px;
+  }
+  button:hover { background:#28406b; }
+  button:active { transform:translateY(1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+
+  /* Legend */
+  .legend { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .legend .badge { display:flex; align-items:center; gap:8px; border:1px solid #25314a; background:#0f1420; padding:6px 8px; border-radius:8px; font-size:12px; }
+  .swatch { width:14px; height:14px; border-radius:4px; border:1px solid #0008; }
+
+  /* Slider */
+  .slider { -webkit-appearance:none; appearance:none; width:180px; height:6px; background:#0f1420; border:1px solid #25314a; border-radius:999px; outline:none; }
+  .slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; border:1px solid #2a3a5c; }
+  .slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; border:1px solid #2a3a5c; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Canvas / Viewport -->
+    <div class="panel">
+      <h2>Ship View</h2>
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="hint">Wheel: zoom · Drag (MMB/Space): pan · Click block: rotate 90° · Shift+Click: −90° · R: rotate ship · Ctrl+S: export</div>
+        <canvas id="atlas"></canvas>
+        <div class="hud" id="hud">
+          <span class="pill" id="filePill">No file</span>
+          <span class="pill ok" id="countPill">0 blocks</span>
+          <span class="pill" id="zoomPill">100%</span>
+          <span class="pill" id="rotPill">Rot 0°</span>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="row">
+        <input type="file" id="fileInput" accept=".json" />
+        <button id="rotateShipBtn" title="Rotate ship 90° (R)">Rotate 90°</button>
+        <button id="resetViewBtn" title="Reset view (0)">Reset View</button>
+        <div class="spacer"></div>
+        <label for="zoomSlider">Zoom</label>
+        <input type="range" id="zoomSlider" class="slider" min="0.5" max="4" step="0.01" value="1" />
+        <button id="downloadBtn" title="Download JSON (Ctrl+S)">Download</button>
+      </div>
+    </div>
+
+    <!-- Inspector / Legend -->
+    <div class="panel">
+      <h2>Legend & Status</h2>
+      <div class="legend">
+        <div class="badge"><span class="swatch" style="background:#1b4dff"></span>cockpit*</div>
+        <div class="badge"><span class="swatch" style="background:#808892"></span>fin*</div>
+        <div class="badge"><span class="swatch" style="background:#ff3b3b"></span>turret*/laser*/explosiveLance*/haloBlade*</div>
+        <div class="badge"><span class="swatch" style="background:#ff9c2a"></span>engine*</div>
+        <div class="badge"><span class="swatch" style="background:#0b0b0b"></span>hull*</div>
+      </div>
+      <div class="code" id="statusLog" style="margin-top:8px; min-height:100px;">
+        Ready.
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ──────────────────────────────────────────────────────────────────────────
+  // Rendering constants & theme
+  // ──────────────────────────────────────────────────────────────────────────
+  const GRID = 20;                          // logical grid size in CSS pixels (pre-DPR, pre-zoom)
+  const GRID_MINOR = '#1a2230';
+  const GRID_MAJOR = '#222c3d';
+  const STROKE = '#66728a';
+  const HOVER = '#4cc9f0';
+  const SELECT = '#39d98a';
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // State
+  // ──────────────────────────────────────────────────────────────────────────
+  const canvas = document.getElementById('atlas');
+  const wrap = document.getElementById('canvasWrap');
+  const ctx = canvas.getContext('2d');
+
+  const fileInput = document.getElementById('fileInput');
+  const rotateShipBtn = document.getElementById('rotateShipBtn');
+  const resetViewBtn = document.getElementById('resetViewBtn');
+  const zoomSlider = document.getElementById('zoomSlider');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  const filePill = document.getElementById('filePill');
+  const countPill = document.getElementById('countPill');
+  const zoomPill = document.getElementById('zoomPill');
+  const rotPill = document.getElementById('rotPill');
+  const logBox = document.getElementById('statusLog');
+
+  const DPR = window.devicePixelRatio || 1;
+
+  let originalBlocks = [];          // loaded blocks (mutated for per-block rotations)
+  let fullJson = null;
+  let inputFileName = '';
+  let rotationSteps = 0;            // 0..3 (90° increments)
+  let blockRects = [];              // screen-space rectangles for hit testing
+  let hoverIndex = -1;
+
+  const viewport = {
+    zoom: 1,
+    panX: 0,    // screen-space pixels
+    panY: 0
+  };
+
+  const dragState = {
+    dragging: false,
+    lastX: 0,
+    lastY: 0,
+    active: false // only when MMB or Space held
+  };
+  let spaceHeld = false;
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Utilities
+  // ──────────────────────────────────────────────────────────────────────────
+  const log = (msg) => { logBox.textContent = String(msg); };
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const degNorm = (d) => ((d % 360) + 360) % 360;
+
+  function setCanvasSizeToWrap() {
+    const { clientWidth: w, clientHeight: h } = wrap;
+    canvas.width = Math.max(1, Math.floor(w * DPR));
+    canvas.height = Math.max(1, Math.floor(h * DPR));
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // draw in CSS pixels
+  }
+
+  function colorForId(id) {
+    if (!id || typeof id !== 'string') return '#0b0b0b';
+    if (id.startsWith('cockpit')) return '#1b4dff';
+    if (id.startsWith('fin')) return '#808892';
+    if (id.startsWith('turret')) return '#ff3b3b';
+    if (id.startsWith('laser')) return '#ff3b3b';
+    if (id.startsWith('explosiveLance')) return '#ff3b3b';
+    if (id.startsWith('haloBlade')) return '#ff3b3b';
+    if (id.startsWith('engine')) return '#ff9c2a';
+    if (id.startsWith('hull')) return '#0b0b0b';
+    return '#0b0b0b';
+  }
+
+  function rotateCoord(x, y, steps) {
+    steps = ((steps % 4) + 4) % 4;
+    for (let i = 0; i < steps; i++) [x, y] = [-y, x];
+    return { x, y };
+  }
+
+  function rotateBlockRotation(rotation, steps) {
+    return degNorm((rotation || 0) + steps * 90);
+  }
+
+  function getRotatedBlocks() {
+    return originalBlocks.map((b) => {
+      const rc = rotateCoord(b.coord.x, b.coord.y, rotationSteps);
+      return {
+        ...b,
+        coord: rc,
+        rotation: rotateBlockRotation(b.rotation || 0, rotationSteps)
+      };
+    });
+  }
+
+  // Compute centered world offset (pre-zoom), based on bounds
+  function computeCenterOffset(rotatedBlocks) {
+    let minX = 0, maxX = 0, minY = 0, maxY = 0;
+    for (const b of rotatedBlocks) {
+      const { x, y } = b.coord;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const contentW = (maxX - minX + 1) * GRID;
+    const contentH = (maxY - minY + 1) * GRID;
+    const centerX = w / 2;
+    const centerY = h / 2;
+    const offsetX = centerX - (contentW / 2) - (minX * GRID);
+    const offsetY = centerY - (contentH / 2) - (minY * GRID);
+    return { offsetX, offsetY };
+  }
+
+  // Zoom helper that keeps the zoom focus under the cursor
+  function zoomAt(factor, cx, cy) {
+    const prev = viewport.zoom;
+    const next = clamp(prev * factor, 0.5, 4.0);
+    if (next === prev) return;
+    // Adjust pan so the point under cursor stays stable
+    const k = next / prev;
+    viewport.panX = cx - (cx - viewport.panX) * k;
+    viewport.panY = cy - (cy - viewport.panY) * k;
+    viewport.zoom = next;
+    syncPills();
+    draw();
+    zoomSlider.value = String(viewport.zoom);
+  }
+
+  function syncPills() {
+    countPill.textContent = `${originalBlocks.length} blocks`;
+    zoomPill.textContent = `${Math.round(viewport.zoom * 100)}%`;
+    rotPill.textContent = `Rot ${rotationSteps * 90}°`;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Drawing
+  // ──────────────────────────────────────────────────────────────────────────
+  function clear() {
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  }
+
+  function drawGridLines({ offsetX, offsetY }) {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const z = viewport.zoom;
+
+    ctx.save();
+    ctx.translate(viewport.panX, viewport.panY);
+    ctx.scale(z, z);
+
+    // Minor grid (every 1 cell)
+    ctx.strokeStyle = GRID_MINOR;
+    ctx.lineWidth = 1 / z;
+    ctx.beginPath();
+    const step = GRID;
+    const startX = -offsetX;
+    const startY = -offsetY;
+
+    // Draw enough lines to cover the viewport; we’ll do a bounded region around the ship
+    const cols = Math.ceil(w / (step)) + 20;
+    const rows = Math.ceil(h / (step)) + 20;
+    const baseX = Math.floor((startX - 10 * step) / step) * step;
+    const baseY = Math.floor((startY - 10 * step) / step) * step;
+
+    for (let i = 0; i <= cols; i++) {
+      const x = baseX + i * step;
+      ctx.moveTo(offsetX + x, -1e3);
+      ctx.lineTo(offsetX + x, 1e3 + h);
+    }
+    for (let j = 0; j <= rows; j++) {
+      const y = baseY + j * step;
+      ctx.moveTo(-1e3, offsetY + y);
+      ctx.lineTo(1e3 + w, offsetY + y);
+    }
+    ctx.stroke();
+
+    // Major grid (every 5 cells)
+    ctx.strokeStyle = GRID_MAJOR;
+    ctx.beginPath();
+    for (let i = 0; i <= cols; i++) {
+      const x = baseX + i * step;
+      if (((x / step) | 0) % 5 === 0) {
+        ctx.moveTo(offsetX + x, -1e3);
+        ctx.lineTo(offsetX + x, 1e3 + h);
+      }
+    }
+    for (let j = 0; j <= rows; j++) {
+      const y = baseY + j * step;
+      if (((y / step) | 0) % 5 === 0) {
+        ctx.moveTo(-1e3, offsetY + y);
+        ctx.lineTo(1e3 + w, offsetY + y);
+      }
+    }
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawArrow(px, py, rotationDeg, size) {
+    const centerX = px + GRID / 2;
+    const centerY = py + GRID / 2;
+    const arrow = (size || GRID * 0.35);
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate((rotationDeg * Math.PI) / 180);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -arrow);
+    ctx.lineTo(-arrow/2, 0);
+    ctx.moveTo(0, -arrow);
+    ctx.lineTo(arrow/2, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    clear();
+    blockRects = [];
+    if (!originalBlocks.length) return;
+
+    const rotated = getRotatedBlocks();
+    const { offsetX, offsetY } = computeCenterOffset(rotated);
+
+    drawGridLines({ offsetX, offsetY });
+
+    const z = viewport.zoom;
+
+    // Draw blocks
+    ctx.save();
+    ctx.translate(viewport.panX, viewport.panY);
+    ctx.scale(z, z);
+
+    rotated.forEach((block, i) => {
+      const px = offsetX + block.coord.x * GRID;
+      const py = offsetY + block.coord.y * GRID;
+
+      // Store screen-space rect for hit testing (in CSS pixels)
+      const sx = (px * z) + viewport.panX;
+      const sy = (py * z) + viewport.panY;
+      blockRects.push({ x: sx, y: sy, w: GRID * z, h: GRID * z, index: i });
+
+      // Fill
+      ctx.fillStyle = colorForId(block.id || '');
+      ctx.fillRect(px, py, GRID, GRID);
+
+      // Stroke
+      ctx.strokeStyle = STROKE;
+      ctx.lineWidth = 1 / z;
+      ctx.strokeRect(px + 0.5 / z, py + 0.5 / z, GRID - 1 / z, GRID - 1 / z);
+
+      // Rotation arrow
+      drawArrow(px, py, block.rotation || 0);
+
+      // Hover/selection accents
+      if (i === hoverIndex) {
+        ctx.strokeStyle = HOVER;
+        ctx.lineWidth = 2 / z;
+        ctx.strokeRect(px + 1 / z, py + 1 / z, GRID - 2 / z, GRID - 2 / z);
+      }
+    });
+
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Hit testing
+  // ──────────────────────────────────────────────────────────────────────────
+  function blockIndexAt(mouseX, mouseY) {
+    for (let i = blockRects.length - 1; i >= 0; i--) {
+      const r = blockRects[i];
+      if (mouseX >= r.x && mouseX < r.x + r.w && mouseY >= r.y && mouseY < r.y + r.h) {
+        return r.index;
+      }
+    }
+    return -1;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // I/O
+  // ──────────────────────────────────────────────────────────────────────────
+  function loadFromFile(file) {
+    if (!file) return;
+    inputFileName = file.name.replace(/\.[^/.]+$/, '');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.blocks || !Array.isArray(data.blocks)) {
+          log('Invalid JSON: expected a top-level "blocks" array.');
+          filePill.className = 'pill err';
+          filePill.textContent = 'Invalid file';
+          return;
+        }
+        originalBlocks = data.blocks.map(b => ({
+          ...b,
+          rotation: (b.rotation ?? 0) | 0
+        }));
+        fullJson = data;
+        rotationSteps = 0;
+        // Reset viewport
+        viewport.zoom = 1; viewport.panX = 0; viewport.panY = 0;
+        zoomSlider.value = '1';
+
+        filePill.className = 'pill';
+        filePill.textContent = inputFileName || 'Loaded';
+        syncPills();
+        log(`Loaded "${inputFileName}" with ${originalBlocks.length} blocks.`);
+        draw();
+      } catch (err) {
+        log('Error parsing JSON: ' + err.message);
+        filePill.className = 'pill err';
+        filePill.textContent = 'Parse error';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function exportJson() {
+    if (!fullJson) return;
+    const rotatedBlocks = getRotatedBlocks();
+    const exportJson = { ...fullJson, blocks: rotatedBlocks };
+    const blob = new Blob([JSON.stringify(exportJson, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = inputFileName ? `${inputFileName}.json` : 'rotated_ship.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`Exported ${a.download} (${rotatedBlocks.length} blocks).`);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Events
+  // ──────────────────────────────────────────────────────────────────────────
+  window.addEventListener('resize', () => { setCanvasSizeToWrap(); draw(); });
+  setCanvasSizeToWrap();
+
+  fileInput.addEventListener('change', (e) => loadFromFile(e.target.files[0]));
+
+  rotateShipBtn.addEventListener('click', () => {
+    if (!originalBlocks.length) return;
+    rotationSteps = (rotationSteps + 1) % 4;
+    syncPills();
+    draw();
+  });
+
+  resetViewBtn.addEventListener('click', () => {
+    viewport.zoom = 1; viewport.panX = 0; viewport.panY = 0;
+    zoomSlider.value = '1';
+    syncPills();
+    draw();
+  });
+
+  zoomSlider.addEventListener('input', (e) => {
+    const target = parseFloat(e.target.value);
+    const factor = target / viewport.zoom;
+    // zoom around center of canvas
+    zoomAt(factor, canvas.clientWidth / 2, canvas.clientHeight / 2);
+  });
+
+  downloadBtn.addEventListener('click', exportJson);
+
+  // Mouse move: hover + drag pan
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    if (dragState.dragging && dragState.active) {
+      const dx = mx - dragState.lastX;
+      const dy = my - dragState.lastY;
+      dragState.lastX = mx; dragState.lastY = my;
+      viewport.panX += dx;
+      viewport.panY += dy;
+      draw();
+      return;
+    }
+
+    const idx = blockIndexAt(mx, my);
+    if (idx !== hoverIndex) {
+      hoverIndex = idx;
+      draw();
+    }
+  });
+
+  // Mouse down: begin potential pan
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    dragState.lastX = e.clientX - rect.left;
+    dragState.lastY = e.clientY - rect.top;
+    dragState.dragging = true;
+    dragState.active = (e.button === 1) || spaceHeld; // MMB or Space
+    if (dragState.active) {
+      e.preventDefault();
+    }
+  });
+
+  // Mouse up: click to rotate if not panning
+  canvas.addEventListener('mouseup', (e) => {
+    const wasPanning = dragState.dragging && dragState.active;
+    dragState.dragging = false;
+    dragState.active = false;
+
+    if (!originalBlocks.length) return;
+    if (wasPanning) return; // don’t treat as click
+
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const idx = blockIndexAt(mx, my);
+    if (idx !== -1) {
+      // Map back to original block index (rotated list preserves order)
+      const rotated = getRotatedBlocks();
+      // idx corresponds to rotated[idx] which maps 1:1 to originalBlocks[idx]
+      // because we never reorder, only transform.
+      const originalIdx = idx;
+
+      const delta = e.shiftKey ? -90 : 90;
+      const b = originalBlocks[originalIdx];
+      b.rotation = degNorm((b.rotation || 0) + delta);
+      log(`Rotated block #${originalIdx} (${b.id || 'unknown'}) to ${b.rotation}°`);
+      draw();
+    }
+  });
+
+  // Prevent context menu on canvas (MMB panning UX)
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Wheel zoom (CTRL+wheel uses browser zoom; plain wheel for our canvas)
+  canvas.addEventListener('wheel', (e) => {
+    if (!originalBlocks.length) return;
+    // Zoom around cursor
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.08 : 1/1.08;
+    zoomAt(factor, mx, my);
+    e.preventDefault();
+  }, { passive:false });
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { spaceHeld = true; }
+    if (e.code === 'KeyR') {
+      if (!originalBlocks.length) return;
+      rotationSteps = (rotationSteps + 1) % 4;
+      syncPills(); draw();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
+      e.preventDefault(); exportJson();
+    }
+    if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+      zoomAt(1.12, canvas.clientWidth/2, canvas.clientHeight/2);
+    }
+    if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+      zoomAt(1/1.12, canvas.clientWidth/2, canvas.clientHeight/2);
+    }
+    if (e.code === 'Digit0' || e.code === 'Numpad0') {
+      viewport.zoom = 1; viewport.panX = 0; viewport.panY = 0;
+      zoomSlider.value = '1'; syncPills(); draw();
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') { spaceHeld = false; }
+  });
+
+  // Initial draw (empty)
+  draw();
+})();
+</script>
+</body>
+</html>
