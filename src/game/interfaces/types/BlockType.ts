@@ -23,6 +23,7 @@ export interface BlockType {
   lightColor?: string;
   lightRadius?: number;
   lightIntensity?: number;
+  atlasKey?: number; // ADDED
 }
 
 // src/game/blocks/constants/BlockCategories.ts

@@ -1,0 +1,2122 @@
+[
+  {
+    "id": "cockpitboss",
+    "tier": 0,
+    "name": "Cockpit",
+    "armor": 20,
+    "cost": 50,
+    "mass": 50,
+    "behavior": {
+      "canFire": false,
+      "isCockpit": true
+    },
+    "sprite": "cockpit0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0,
+    "metatags": []
+  },
+  {
+    "id": "cockpit0",
+    "tier": 0,
+    "name": "Cockpit",
+    "armor": 20,
+    "cost": 50,
+    "mass": 50,
+    "behavior": {
+      "canFire": true,
+      "isCockpit": true,
+      "fire": {
+        "fireRate": 0.6,
+        "fireType": "bullet",
+        "fireDamage": 4,
+        "projectileSpeed": 600,
+        "lifetime": 1.8,
+        "accuracy": 0.3
+      }
+    },
+    "sprite": "cockpit0",
+    "category": "system",
+    "subcategory": "turret",
+    "dropRate": 0,
+    "metatags": [
+      "cockpit"
+    ]
+  },
+  {
+    "id": "cockpit1",
+    "tier": 1,
+    "name": "Cockpit",
+    "armor": 150,
+    "cost": 50,
+    "mass": 50,
+    "behavior": {
+      "canFire": true,
+      "isCockpit": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "bullet",
+        "fireDamage": 14,
+        "projectileSpeed": 2000,
+        "lifetime": 0.8,
+        "accuracy": 0.75
+      }
+    },
+    "sprite": "cockpit1",
+    "category": "system",
+    "subcategory": "turret",
+    "dropRate": 0,
+    "metatags": [
+      "cockpit"
+    ]
+  },
+  {
+    "id": "cockpitsw1",
+    "tier": 1,
+    "name": "Cockpit SW-1",
+    "armor": 150,
+    "cost": 50,
+    "mass": 50,
+    "behavior": {
+      "canFire": true,
+      "isCockpit": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "bullet",
+        "fireDamage": 14,
+        "projectileSpeed": 2000,
+        "lifetime": 0.8,
+        "accuracy": 0.75
+      }
+    },
+    "lightColor": "#00ffff",
+    "lightRadius": 82,
+    "lightIntensity": 2,
+    "sprite": "cockpit1",
+    "category": "system",
+    "subcategory": "turret",
+    "dropRate": 0,
+    "metatags": [
+      "cockpit"
+    ]
+  },
+  {
+    "id": "hull0",
+    "tier": 0,
+    "name": "Hull Mk 0",
+    "armor": 15,
+    "mass": 50,
+    "cost": 20,
+    "sprite": "hull0",
+    "category": "system",
+    "subcategory": "hull",
+    "dropRate": 0.07,
+    "metatags": [
+      "hull"
+    ]
+  },
+  {
+    "id": "hull1",
+    "tier": 1,
+    "name": "Hull Mk I",
+    "armor": 50,
+    "mass": 50,
+    "cost": 20,
+    "sprite": "hull1",
+    "category": "hull",
+    "subcategory": "hull",
+    "dropRate": 0.05,
+    "metatags": [
+      "hull"
+    ]
+  },
+  {
+    "id": "hull2",
+    "tier": 2,
+    "name": "Hull Mk II",
+    "armor": 75,
+    "mass": 60,
+    "cost": 40,
+    "sprite": "hull2",
+    "category": "hull",
+    "subcategory": "hull",
+    "dropRate": 0.05,
+    "metatags": [
+      "hull"
+    ]
+  },
+  {
+    "id": "hull3",
+    "tier": 3,
+    "name": "Hull Mk III",
+    "armor": 100,
+    "mass": 75,
+    "cost": 80,
+    "sprite": "hull3",
+    "category": "hull",
+    "subcategory": "hull",
+    "dropRate": 0.04,
+    "metatags": [
+      "hull"
+    ]
+  },
+  {
+    "id": "hull4",
+    "tier": 4,
+    "name": "Hull Mk IV",
+    "armor": 150,
+    "mass": 90,
+    "cost": 140,
+    "sprite": "hull4",
+    "category": "hull",
+    "subcategory": "hull",
+    "dropRate": 0.03,
+    "metatags": [
+      "hull"
+    ]
+  },
+  {
+    "id": "hull5",
+    "tier": 5,
+    "name": "Hull Mk V",
+    "armor": 225,
+    "mass": 100,
+    "cost": 180,
+    "sprite": "hull5",
+    "category": "hull",
+    "subcategory": "hull",
+    "dropRate": 0.02,
+    "metatags": [
+      "hull"
+    ]
+  },
+  {
+    "id": "facetplate0",
+    "tier": 0,
+    "name": "Facetplate Mk 0",
+    "armor": 20,
+    "mass": 30,
+    "cost": 30,
+    "sprite": "facetplate0",
+    "category": "system",
+    "subcategory": "system",
+    "behavior": {
+      "rammingDamageMultiplier": 1.1,
+      "rammingArmor": 7
+    },
+    "dropRate": 0.05,
+    "metatags": [
+      "facetplate"
+    ]
+  },
+  {
+    "id": "facetplate1",
+    "tier": 1,
+    "name": "Facetplate Mk I",
+    "armor": 75,
+    "mass": 30,
+    "cost": 30,
+    "sprite": "facetplate1",
+    "category": "hull",
+    "subcategory": "facetplate",
+    "dropRate": 0.05,
+    "behavior": {
+      "rammingDamageMultiplier": 1.3,
+      "rammingArmor": 7
+    },
+    "metatags": [
+      "facetplate"
+    ]
+  },
+  {
+    "id": "facetplate2",
+    "tier": 2,
+    "name": "Facetplate Mk II",
+    "armor": 100,
+    "mass": 40,
+    "cost": 60,
+    "sprite": "facetplate2",
+    "category": "hull",
+    "subcategory": "facetplate",
+    "behavior": {
+      "rammingDamageMultiplier": 1.5,
+      "rammingArmor": 12
+    },
+    "dropRate": 0.04,
+    "metatags": [
+      "facetplate"
+    ]
+  },
+  {
+    "id": "facetplate3",
+    "tier": 3,
+    "name": "Facetplate Mk III",
+    "armor": 125,
+    "mass": 50,
+    "cost": 100,
+    "sprite": "facetplate3",
+    "category": "hull",
+    "subcategory": "facetplate",
+    "behavior": {
+      "rammingDamageMultiplier": 1.7,
+      "rammingArmor": 17
+    },
+    "dropRate": 0.03,
+    "metatags": [
+      "facetplate"
+    ]
+  },
+  {
+    "id": "facetplate4",
+    "tier": 4,
+    "name": "Facetplate Mk IV",
+    "armor": 175,
+    "mass": 60,
+    "cost": 120,
+    "sprite": "facetplate4",
+    "category": "hull",
+    "subcategory": "facetplate",
+    "behavior": {
+      "rammingDamageMultiplier": 2,
+      "rammingArmor": 22
+    },
+    "dropRate": 0.02,
+    "metatags": [
+      "facetplate"
+    ]
+  },
+  {
+    "id": "facetplate5",
+    "tier": 5,
+    "name": "Facetplate Mk V",
+    "armor": 250,
+    "mass": 70,
+    "cost": 150,
+    "sprite": "facetplate5",
+    "category": "hull",
+    "subcategory": "facetplate",
+    "behavior": {
+      "rammingDamageMultiplier": 2.2,
+      "rammingArmor": 27
+    },
+    "dropRate": 0.02,
+    "metatags": [
+      "facetplate"
+    ]
+  },
+  {
+    "id": "turret0",
+    "tier": 0,
+    "name": "Turret Mk 0",
+    "armor": 20,
+    "cost": 40,
+    "mass": 40,
+    "sprite": "turret0",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.6,
+        "fireType": "bullet",
+        "fireDamage": 2,
+        "projectileSpeed": 400,
+        "lifetime": 2.2,
+        "accuracy": 0.5
+      }
+    },
+    "lightColor": "#feac29",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "category": "system",
+    "subcategory": "turret",
+    "dropRate": 0.2,
+    "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
+    "metatags": [
+      "turret"
+    ]
+  },
+  {
+    "id": "turret1",
+    "tier": 1,
+    "name": "Turret Mk I",
+    "armor": 40,
+    "cost": 40,
+    "mass": 40,
+    "sprite": "turret1",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.6,
+        "fireType": "bullet",
+        "fireDamage": 10,
+        "projectileSpeed": 2000,
+        "lifetime": 0.6,
+        "accuracy": 0.65
+      }
+    },
+    "category": "weapon",
+    "subcategory": "turret",
+    "dropRate": 0.2,
+    "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
+    "metatags": [
+      "turret"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 48,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "turret2",
+    "tier": 2,
+    "name": "Turret Mk II",
+    "armor": 50,
+    "cost": 100,
+    "mass": 50,
+    "sprite": "turret2",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "bullet",
+        "fireDamage": 16,
+        "projectileSpeed": 2000,
+        "lifetime": 0.8,
+        "accuracy": 0.75
+      }
+    },
+    "lightColor": "#29fe5e",
+    "lightRadius": 48,
+    "lightIntensity": 1.6,
+    "category": "weapon",
+    "subcategory": "turret",
+    "dropRate": 0.2,
+    "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
+    "metatags": [
+      "turret"
+    ]
+  },
+  {
+    "id": "turret3",
+    "tier": 3,
+    "name": "Turret Mk III",
+    "armor": 75,
+    "cost": 200,
+    "mass": 60,
+    "sprite": "turret3",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 1.2,
+        "fireType": "bullet",
+        "fireDamage": 20,
+        "projectileSpeed": 2000,
+        "lifetime": 0.9,
+        "accuracy": 0.9
+      }
+    },
+    "lightColor": "#438eff",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "category": "weapon",
+    "subcategory": "turret",
+    "dropRate": 0.18,
+    "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
+    "metatags": [
+      "turret"
+    ]
+  },
+  {
+    "id": "turret4",
+    "tier": 4,
+    "name": "Turret Mk IV",
+    "armor": 100,
+    "cost": 400,
+    "mass": 100,
+    "sprite": "turret4",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 1.4,
+        "fireType": "bullet",
+        "fireDamage": 28,
+        "projectileSpeed": 2000,
+        "lifetime": 1,
+        "accuracy": 0.95
+      }
+    },
+    "lightColor": "#ff2bfb",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "category": "weapon",
+    "subcategory": "turret",
+    "dropRate": 0.16,
+    "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
+    "metatags": [
+      "turret"
+    ]
+  },
+  {
+    "id": "turret5",
+    "tier": 5,
+    "name": "Turret Mk V",
+    "armor": 120,
+    "cost": 600,
+    "mass": 120,
+    "sprite": "turret5",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 1.6,
+        "fireType": "bullet",
+        "fireDamage": 42,
+        "projectileSpeed": 2000,
+        "lifetime": 1,
+        "accuracy": 0.98
+      }
+    },
+    "lightColor": "#fbff00",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "category": "weapon",
+    "subcategory": "turret",
+    "dropRate": 0.14,
+    "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
+    "metatags": [
+      "turret"
+    ]
+  },
+  {
+    "id": "explosiveLance0",
+    "tier": 0,
+    "name": "Explosive Lance Mk 0",
+    "armor": 60,
+    "cost": 120,
+    "mass": 80,
+    "sprite": "explosiveLance0",
+    "category": "system",
+    "subcategory": "system",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.5,
+        "fireType": "explosiveLance",
+        "fireDamage": 1,
+        "explosionDamage": 2,
+        "explosionRadiusBlocks": 3,
+        "detonationDelayMs": 1500,
+        "projectileSpeed": 1000,
+        "lifetime": 0.8,
+        "accuracy": 0.95
+      }
+    },
+    "lightColor": "#feac29",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.2,
+    "metatags": [
+      "explosiveLance"
+    ]
+  },
+  {
+    "id": "explosiveLance1",
+    "tier": 1,
+    "name": "Explosive Lance Mk I",
+    "armor": 60,
+    "cost": 140,
+    "mass": 80,
+    "sprite": "explosiveLance1",
+    "category": "weapon",
+    "subcategory": "explosiveLance",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.5,
+        "fireType": "explosiveLance",
+        "fireDamage": 1,
+        "explosionDamage": 25,
+        "explosionRadiusBlocks": 3,
+        "detonationDelayMs": 1500,
+        "projectileSpeed": 1600,
+        "lifetime": 1,
+        "accuracy": 0.95
+      }
+    },
+    "lightColor": "#feac29",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.15,
+    "metatags": [
+      "explosiveLance"
+    ]
+  },
+  {
+    "id": "explosiveLance2",
+    "tier": 2,
+    "name": "Explosive Lance Mk II",
+    "armor": 80,
+    "cost": 220,
+    "mass": 90,
+    "sprite": "explosiveLance2",
+    "category": "weapon",
+    "subcategory": "explosiveLance",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.6,
+        "fireType": "explosiveLance",
+        "fireDamage": 1,
+        "explosionDamage": 40,
+        "explosionRadiusBlocks": 4,
+        "detonationDelayMs": 1500,
+        "projectileSpeed": 1600,
+        "lifetime": 1.2,
+        "accuracy": 0.97
+      }
+    },
+    "lightColor": "#29fe5e",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.14,
+    "metatags": [
+      "explosiveLance"
+    ]
+  },
+  {
+    "id": "explosiveLance3",
+    "tier": 3,
+    "name": "Explosive Lance Mk III",
+    "armor": 90,
+    "cost": 360,
+    "mass": 110,
+    "sprite": "explosiveLance3",
+    "category": "weapon",
+    "subcategory": "explosiveLance",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.7,
+        "fireType": "explosiveLance",
+        "fireDamage": 1,
+        "explosionDamage": 60,
+        "explosionRadiusBlocks": 5,
+        "detonationDelayMs": 1500,
+        "projectileSpeed": 1600,
+        "lifetime": 1.4,
+        "accuracy": 0.98
+      }
+    },
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.13,
+    "metatags": [
+      "explosiveLance"
+    ]
+  },
+  {
+    "id": "explosiveLance4",
+    "tier": 4,
+    "name": "Explosive Lance Mk IV",
+    "armor": 100,
+    "cost": 600,
+    "mass": 120,
+    "sprite": "explosiveLance4",
+    "category": "weapon",
+    "subcategory": "explosiveLance",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "explosiveLance",
+        "fireDamage": 1,
+        "explosionDamage": 80,
+        "explosionRadiusBlocks": 6,
+        "detonationDelayMs": 1500,
+        "projectileSpeed": 1800,
+        "lifetime": 1.6,
+        "accuracy": 0.99
+      }
+    },
+    "lightColor": "#ff2bfb",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.1,
+    "metatags": [
+      "explosiveLance"
+    ]
+  },
+  {
+    "id": "explosiveLance5",
+    "tier": 5,
+    "name": "Explosive Lance Mk V",
+    "armor": 120,
+    "cost": 1000,
+    "mass": 140,
+    "sprite": "explosiveLance5",
+    "category": "weapon",
+    "subcategory": "explosiveLance",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.9,
+        "fireType": "explosiveLance",
+        "fireDamage": 1,
+        "explosionDamage": 120,
+        "explosionRadiusBlocks": 6,
+        "detonationDelayMs": 1500,
+        "projectileSpeed": 2000,
+        "lifetime": 1.6,
+        "accuracy": 0.99
+      }
+    },
+    "lightColor": "#fbff00",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.08,
+    "metatags": [
+      "explosiveLance"
+    ]
+  },
+  {
+    "id": "laser0",
+    "tier": 0,
+    "name": "Laser Emitter Mk 0",
+    "armor": 40,
+    "cost": 500,
+    "mass": 80,
+    "sprite": "laser0",
+    "category": "system",
+    "subcategory": "system",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireType": "laser",
+        "fireRate": 1,
+        "energyCost": 0,
+        "fireDamage": 10,
+        "projectileSpeed": 0,
+        "lifetime": 0.5,
+        "accuracy": 1
+      }
+    },
+    "lightColor": "#feac29",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.16,
+    "metatags": [
+      "laser"
+    ]
+  },
+  {
+    "id": "laser1",
+    "tier": 1,
+    "name": "Laser Emitter Mk I",
+    "armor": 80,
+    "cost": 100,
+    "mass": 100,
+    "sprite": "laser1",
+    "category": "weapon",
+    "subcategory": "laser",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireType": "laser",
+        "fireRate": 1.4,
+        "energyCost": 0,
+        "fireDamage": 20,
+        "projectileSpeed": 0,
+        "targetingRange": 1800,
+        "lifetime": 0.5,
+        "accuracy": 1
+      }
+    },
+    "lightColor": "#feac29",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.16,
+    "metatags": [
+      "laser"
+    ]
+  },
+  {
+    "id": "laser2",
+    "tier": 2,
+    "name": "Laser Emitter Mk II",
+    "armor": 100,
+    "cost": 300,
+    "mass": 160,
+    "sprite": "laser2",
+    "category": "weapon",
+    "subcategory": "laser",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireType": "laser",
+        "fireRate": 1.6,
+        "energyCost": 0,
+        "fireDamage": 30,
+        "projectileSpeed": 0,
+        "targetingRange": 1800,
+        "lifetime": 0.5,
+        "accuracy": 1
+      }
+    },
+    "lightColor": "#29fe5e",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.14,
+    "metatags": [
+      "laser"
+    ]
+  },
+  {
+    "id": "laser3",
+    "tier": 3,
+    "name": "Laser Emitter Mk III",
+    "armor": 100,
+    "cost": 500,
+    "mass": 160,
+    "sprite": "laser3",
+    "category": "weapon",
+    "subcategory": "laser",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireType": "laser",
+        "fireRate": 1.8,
+        "energyCost": 0,
+        "fireDamage": 50,
+        "projectileSpeed": 0,
+        "targetingRange": 1800,
+        "lifetime": 0.5,
+        "accuracy": 1
+      }
+    },
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.12,
+    "metatags": [
+      "laser"
+    ]
+  },
+  {
+    "id": "laser4",
+    "tier": 4,
+    "name": "Laser Emitter Mk IV",
+    "armor": 100,
+    "cost": 800,
+    "mass": 160,
+    "sprite": "laser4",
+    "category": "weapon",
+    "subcategory": "laser",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireType": "laser",
+        "fireRate": 2,
+        "energyCost": 0,
+        "fireDamage": 80,
+        "projectileSpeed": 0,
+        "targetingRange": 1800,
+        "lifetime": 0.5,
+        "accuracy": 1
+      }
+    },
+    "lightColor": "#ff2bfb",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.1,
+    "metatags": [
+      "laser"
+    ]
+  },
+  {
+    "id": "laser5",
+    "tier": 5,
+    "name": "Laser Emitter Mk V",
+    "armor": 100,
+    "cost": 1000,
+    "mass": 160,
+    "sprite": "laser5",
+    "category": "weapon",
+    "subcategory": "laser",
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireType": "laser",
+        "fireRate": 2.2,
+        "energyCost": 0,
+        "fireDamage": 120,
+        "projectileSpeed": 0,
+        "targetingRange": 1800,
+        "lifetime": 0.5,
+        "accuracy": 1
+      }
+    },
+    "lightColor": "#fbff00",
+    "lightRadius": 64,
+    "lightIntensity": 1.4,
+    "dropRate": 0.08,
+    "metatags": [
+      "laser"
+    ]
+  },
+  {
+    "id": "reactor0",
+    "tier": 0,
+    "name": "Reactor Mk 0",
+    "armor": 25,
+    "cost": 400,
+    "mass": 60,
+    "behavior": {
+      "energyChargeRate": 10
+    },
+    "sprite": "reactor0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.08,
+    "metatags": [
+      "reactor"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "reactor1",
+    "tier": 3,
+    "name": "Reactor Mk I",
+    "armor": 50,
+    "cost": 400,
+    "mass": 60,
+    "behavior": {
+      "energyChargeRate": 10
+    },
+    "sprite": "reactor1",
+    "category": "utility",
+    "subcategory": "energy",
+    "dropRate": 0.06,
+    "metatags": [
+      "reactor"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 128,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "reactor2",
+    "tier": 4,
+    "name": "Reactor Mk II",
+    "armor": 75,
+    "cost": 800,
+    "mass": 80,
+    "behavior": {
+      "energyChargeRate": 20
+    },
+    "sprite": "reactor2",
+    "category": "utility",
+    "subcategory": "energy",
+    "dropRate": 0.03,
+    "metatags": [
+      "reactor"
+    ],
+    "lightColor": "#ff2bfb",
+    "lightRadius": 128,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "battery0",
+    "tier": 0,
+    "name": "Battery Mk 0",
+    "armor": 20,
+    "cost": 200,
+    "mass": 40,
+    "behavior": {
+      "energyMaxIncrease": 100
+    },
+    "sprite": "battery0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.08,
+    "metatags": [
+      "battery"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "battery1",
+    "tier": 3,
+    "name": "Battery Mk I",
+    "armor": 30,
+    "cost": 200,
+    "mass": 50,
+    "behavior": {
+      "energyMaxIncrease": 50
+    },
+    "sprite": "battery1",
+    "category": "utility",
+    "subcategory": "energy",
+    "dropRate": 0.06,
+    "metatags": [
+      "battery"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "battery2",
+    "tier": 4,
+    "name": "Battery Mk II",
+    "armor": 40,
+    "cost": 400,
+    "mass": 60,
+    "behavior": {
+      "energyMaxIncrease": 100
+    },
+    "sprite": "battery2",
+    "category": "utility",
+    "subcategory": "energy",
+    "dropRate": 0.03,
+    "metatags": [
+      "battery"
+    ],
+    "lightColor": "#ff2bfb",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "shield0",
+    "tier": 0,
+    "name": "Shield Mk 0",
+    "armor": 20,
+    "cost": 200,
+    "mass": 40,
+    "behavior": {
+      "shieldEfficiency": 0.5,
+      "shieldRadius": 3,
+      "energyMaxIncrease": 30,
+      "shieldEnergyDrain": 1
+    },
+    "sprite": "shield0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.08,
+    "metatags": [
+      "shield"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "shield1",
+    "tier": 3,
+    "name": "Shield Mk I",
+    "armor": 60,
+    "cost": 160,
+    "mass": 50,
+    "behavior": {
+      "shieldEfficiency": 0.65,
+      "shieldRadius": 2,
+      "energyMaxIncrease": 30,
+      "shieldEnergyDrain": 3
+    },
+    "sprite": "shield1",
+    "category": "utility",
+    "subcategory": "shield",
+    "dropRate": 0.08,
+    "metatags": [
+      "shield"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "shield2",
+    "tier": 4,
+    "name": "Shield Mk II",
+    "armor": 80,
+    "cost": 300,
+    "mass": 60,
+    "behavior": {
+      "shieldEfficiency": 0.8,
+      "shieldRadius": 3,
+      "energyMaxIncrease": 40,
+      "shieldEnergyDrain": 5
+    },
+    "sprite": "shield2",
+    "category": "utility",
+    "subcategory": "shield",
+    "dropRate": 0.03,
+    "metatags": [
+      "shield"
+    ],
+    "lightColor": "#ff2bfb",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "shield3",
+    "tier": 5,
+    "name": "Shield Mk III",
+    "armor": 100,
+    "cost": 600,
+    "mass": 70,
+    "behavior": {
+      "shieldEfficiency": 1,
+      "shieldRadius": 4,
+      "energyMaxIncrease": 50,
+      "shieldEnergyDrain": 7
+    },
+    "sprite": "shield3",
+    "category": "utility",
+    "subcategory": "shield",
+    "dropRate": 0.02,
+    "metatags": [
+      "shield"
+    ],
+    "lightColor": "#fbff00",
+    "lightRadius": 64,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "engine0",
+    "tier": 0,
+    "name": "Engine Mk 0",
+    "armor": 15,
+    "cost": 35,
+    "mass": 30,
+    "behavior": {
+      "canThrust": true,
+      "thrustPower": 50
+    },
+    "sprite": "engine0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.08,
+    "metatags": [
+      "engine"
+    ]
+  },
+  {
+    "id": "engine1",
+    "tier": 1,
+    "name": "Engine Mk I",
+    "armor": 40,
+    "cost": 35,
+    "mass": 30,
+    "behavior": {
+      "canThrust": true,
+      "thrustPower": 50
+    },
+    "sprite": "engine1",
+    "category": "engine",
+    "subcategory": "engine",
+    "dropRate": 0.05,
+    "metatags": [
+      "engine"
+    ]
+  },
+  {
+    "id": "engine2",
+    "tier": 2,
+    "name": "Engine Mk II",
+    "armor": 45,
+    "cost": 60,
+    "mass": 30,
+    "behavior": {
+      "canThrust": true,
+      "thrustPower": 75
+    },
+    "sprite": "engine2",
+    "category": "engine",
+    "subcategory": "engine",
+    "dropRate": 0.08,
+    "metatags": [
+      "engine"
+    ]
+  },
+  {
+    "id": "engine3",
+    "tier": 3,
+    "name": "Engine Mk III",
+    "armor": 50,
+    "cost": 80,
+    "mass": 30,
+    "behavior": {
+      "canThrust": true,
+      "thrustPower": 90
+    },
+    "sprite": "engine3",
+    "category": "engine",
+    "subcategory": "engine",
+    "dropRate": 0.05,
+    "metatags": [
+      "engine"
+    ]
+  },
+  {
+    "id": "engine4",
+    "tier": 4,
+    "name": "Engine Mk IV",
+    "armor": 55,
+    "mass": 30,
+    "cost": 160,
+    "behavior": {
+      "canThrust": true,
+      "thrustPower": 115
+    },
+    "sprite": "engine4",
+    "category": "engine",
+    "subcategory": "engine",
+    "dropRate": 0.04,
+    "metatags": [
+      "engine"
+    ]
+  },
+  {
+    "id": "engine5",
+    "tier": 5,
+    "name": "Engine Mk V",
+    "armor": 80,
+    "mass": 30,
+    "cost": 200,
+    "behavior": {
+      "canThrust": true,
+      "thrustPower": 130
+    },
+    "sprite": "engine5",
+    "category": "engine",
+    "subcategory": "engine",
+    "dropRate": 0.03,
+    "metatags": [
+      "engine"
+    ]
+  },
+  {
+    "id": "fin0",
+    "tier": 0,
+    "name": "Fin Mk 0",
+    "armor": 10,
+    "mass": 20,
+    "cost": 30,
+    "behavior": {
+      "turnPower": 0.1
+    },
+    "sprite": "fin0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.06,
+    "metatags": [
+      "fin"
+    ]
+  },
+  {
+    "id": "fin1",
+    "tier": 1,
+    "name": "Fin Mk I",
+    "armor": 50,
+    "mass": 10,
+    "cost": 40,
+    "behavior": {
+      "turnPower": 0.5
+    },
+    "sprite": "fin1",
+    "category": "hull",
+    "subcategory": "fin",
+    "dropRate": 0.06,
+    "metatags": [
+      "fin"
+    ]
+  },
+  {
+    "id": "fin2",
+    "tier": 2,
+    "name": "Fin Mk II",
+    "armor": 75,
+    "mass": 10,
+    "cost": 80,
+    "behavior": {
+      "turnPower": 1
+    },
+    "sprite": "fin2",
+    "category": "hull",
+    "subcategory": "fin",
+    "dropRate": 0.06,
+    "metatags": [
+      "fin"
+    ]
+  },
+  {
+    "id": "fin3",
+    "tier": 3,
+    "name": "Fin Mk III",
+    "armor": 90,
+    "mass": 10,
+    "cost": 120,
+    "behavior": {
+      "turnPower": 1.5
+    },
+    "sprite": "fin3",
+    "category": "hull",
+    "subcategory": "fin",
+    "dropRate": 0.05,
+    "metatags": [
+      "fin"
+    ]
+  },
+  {
+    "id": "fin4",
+    "tier": 4,
+    "name": "Fin Mk IV",
+    "armor": 120,
+    "mass": 10,
+    "cost": 200,
+    "behavior": {
+      "turnPower": 2
+    },
+    "sprite": "fin4",
+    "category": "hull",
+    "subcategory": "fin",
+    "dropRate": 0.05,
+    "metatags": [
+      "fin"
+    ]
+  },
+  {
+    "id": "fin5",
+    "tier": 5,
+    "name": "Fin Mk V",
+    "armor": 150,
+    "mass": 10,
+    "cost": 300,
+    "behavior": {
+      "turnPower": 2.2
+    },
+    "sprite": "fin5",
+    "category": "hull",
+    "subcategory": "fin",
+    "dropRate": 0.05,
+    "metatags": [
+      "fin"
+    ]
+  },
+  {
+    "id": "harvester0",
+    "tier": 0,
+    "name": "Resource Harvester Mk 0",
+    "armor": 50,
+    "mass": 30,
+    "cost": 120,
+    "behavior": {
+      "harvestRate": 5
+    },
+    "sprite": "harvester0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.1,
+    "metatags": [
+      "harvester"
+    ],
+    "lightColor": "#29fe5e",
+    "lightRadius": 84,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "harvester1",
+    "tier": 1,
+    "name": "Resource Harvester Mk I",
+    "armor": 50,
+    "mass": 30,
+    "cost": 120,
+    "behavior": {
+      "harvestRate": 3
+    },
+    "sprite": "harvester1",
+    "category": "utility",
+    "subcategory": "exploration",
+    "dropRate": 0.1,
+    "metatags": [
+      "harvester"
+    ],
+    "lightColor": "#29fe5e",
+    "lightRadius": 84,
+    "lightIntensity": 1.6
+  },
+  {
+    "id": "harvester2",
+    "tier": 2,
+    "name": "Resource Harvester Mk II",
+    "armor": 80,
+    "mass": 40,
+    "cost": 200,
+    "behavior": {
+      "harvestRate": 5
+    },
+    "sprite": "harvester2",
+    "category": "utility",
+    "subcategory": "exploration",
+    "dropRate": 0.1,
+    "metatags": [
+      "harvester"
+    ],
+    "lightColor": "#29fe5e",
+    "lightRadius": 128,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "haloBlade0",
+    "tier": 0,
+    "name": "Halo Blade Mk 0",
+    "armor": 100,
+    "mass": 80,
+    "cost": 400,
+    "behavior": {
+      "haloBladeProperties": {
+        "orbitingRadius": 500,
+        "orbitingSpeed": 1.2,
+        "size": 64,
+        "damage": 5,
+        "color": "#FFBF00",
+        "sprite": "energyRing0"
+      }
+    },
+    "sprite": "haloBlade0",
+    "category": "system",
+    "subcategory": "haloBlade",
+    "dropRate": 0.1,
+    "metatags": [
+      "haloBlade"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "haloBlade1",
+    "tier": 1,
+    "name": "Halo Blade Mk I",
+    "armor": 120,
+    "mass": 80,
+    "cost": 400,
+    "behavior": {
+      "haloBladeProperties": {
+        "orbitingRadius": 500,
+        "orbitingSpeed": 2,
+        "size": 64,
+        "damage": 5,
+        "color": "#FFBF00",
+        "sprite": "energyRing1"
+      }
+    },
+    "sprite": "haloBlade1",
+    "category": "weapon",
+    "subcategory": "haloBlade",
+    "dropRate": 0.18,
+    "metatags": [
+      "haloBlade"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "haloBlade2",
+    "tier": 2,
+    "name": "Halo Blade Mk II",
+    "armor": 140,
+    "mass": 80,
+    "cost": 600,
+    "behavior": {
+      "haloBladeProperties": {
+        "orbitingRadius": 700,
+        "orbitingSpeed": 2.4,
+        "size": 64,
+        "damage": 8,
+        "color": "#2CFF05",
+        "sprite": "energyRing2"
+      }
+    },
+    "sprite": "haloBlade2",
+    "category": "weapon",
+    "subcategory": "haloBlade",
+    "dropRate": 0.14,
+    "metatags": [
+      "haloBlade"
+    ],
+    "lightColor": "#29fe5e",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "haloBlade3",
+    "tier": 3,
+    "name": "Halo Blade Mk III",
+    "armor": 160,
+    "mass": 80,
+    "cost": 900,
+    "behavior": {
+      "haloBladeProperties": {
+        "orbitingRadius": 900,
+        "orbitingSpeed": 2.8,
+        "size": 64,
+        "damage": 14,
+        "color": "#00FFFF",
+        "sprite": "energyRing3"
+      }
+    },
+    "sprite": "haloBlade3",
+    "category": "weapon",
+    "subcategory": "haloBlade",
+    "dropRate": 0.12,
+    "metatags": [
+      "haloBlade"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "haloBlade4",
+    "tier": 4,
+    "name": "Halo Blade Mk IV",
+    "armor": 180,
+    "mass": 80,
+    "cost": 1200,
+    "behavior": {
+      "haloBladeProperties": {
+        "orbitingRadius": 1100,
+        "orbitingSpeed": 3.2,
+        "size": 64,
+        "damage": 20,
+        "color": "#7F00FF",
+        "sprite": "energyRing4"
+      }
+    },
+    "sprite": "haloBlade4",
+    "category": "weapon",
+    "subcategory": "haloBlade",
+    "dropRate": 0.1,
+    "metatags": [
+      "haloBlade"
+    ],
+    "lightColor": "#ff2bfb",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "haloBlade5",
+    "tier": 5,
+    "name": "Halo Blade Mk V",
+    "armor": 200,
+    "mass": 80,
+    "cost": 1500,
+    "behavior": {
+      "haloBladeProperties": {
+        "orbitingRadius": 1300,
+        "orbitingSpeed": 3.5,
+        "size": 64,
+        "damage": 30,
+        "color": "#ff7a14",
+        "sprite": "energyRing5"
+      }
+    },
+    "sprite": "haloBlade5",
+    "category": "weapon",
+    "subcategory": "haloBlade",
+    "dropRate": 0.1,
+    "metatags": [
+      "haloBlade"
+    ],
+    "lightColor": "#fbff00",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "npcseeker0",
+    "tier": 0,
+    "name": "NPC Seeker Mk 0",
+    "armor": 70,
+    "mass": 80,
+    "cost": 400,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.2,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 2,
+        "explosionRadiusBlocks": 2,
+        "projectileSpeed": 400,
+        "turningPower": 0.08,
+        "targetingRange": 4000,
+        "lifetime": 6,
+        "seekerForwardFire": true
+      }
+    },
+    "sprite": "heatSeeker0",
+    "category": "system",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.42,
+    "blockDropOverride": "heatSeeker1",
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "heatSeeker0",
+    "tier": 0,
+    "name": "Heat Seeker Mk 0",
+    "armor": 70,
+    "mass": 80,
+    "cost": 400,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 2,
+        "explosionRadiusBlocks": 2,
+        "projectileSpeed": 800,
+        "turningPower": 2,
+        "targetingRange": 3000,
+        "lifetime": 3
+      }
+    },
+    "sprite": "heatSeeker0",
+    "category": "weapon",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.28,
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "heatSeeker1",
+    "tier": 1,
+    "name": "Heat Seeker Mk I",
+    "armor": 80,
+    "mass": 80,
+    "cost": 400,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 2,
+        "explosionRadiusBlocks": 3,
+        "turningPower": 2,
+        "targetingRange": 2000,
+        "projectileSpeed": 600,
+        "lifetime": 5
+      }
+    },
+    "sprite": "heatSeeker1",
+    "category": "weapon",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.28,
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "heatSeeker2",
+    "tier": 2,
+    "name": "Heat Seeker Mk II",
+    "armor": 90,
+    "mass": 80,
+    "cost": 800,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 4,
+        "explosionRadiusBlocks": 4,
+        "turningPower": 2.2,
+        "targetingRange": 2200,
+        "projectileSpeed": 700,
+        "lifetime": 5
+      }
+    },
+    "sprite": "heatSeeker2",
+    "category": "weapon",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.28,
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#29fe5e",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "heatSeeker3",
+    "tier": 3,
+    "name": "Heat Seeker Mk III",
+    "armor": 100,
+    "mass": 80,
+    "cost": 1200,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 6,
+        "explosionRadiusBlocks": 5,
+        "turningPower": 2.4,
+        "targetingRange": 2400,
+        "projectileSpeed": 800,
+        "lifetime": 5
+      }
+    },
+    "sprite": "heatSeeker3",
+    "category": "weapon",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.28,
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "heatSeeker4",
+    "tier": 4,
+    "name": "Heat Seeker Mk IV",
+    "armor": 120,
+    "mass": 80,
+    "cost": 1600,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.8,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 9,
+        "explosionRadiusBlocks": 6,
+        "turningPower": 2.8,
+        "targetingRange": 2600,
+        "projectileSpeed": 900,
+        "lifetime": 5
+      }
+    },
+    "sprite": "heatSeeker4",
+    "category": "weapon",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.28,
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#ff2bfb",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "heatSeeker5",
+    "tier": 5,
+    "name": "Heat Seeker Mk V",
+    "armor": 150,
+    "mass": 100,
+    "cost": 2000,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 0.7,
+        "fireType": "heatSeeker",
+        "fireDamage": 1,
+        "explosionDamage": 12,
+        "explosionRadiusBlocks": 6,
+        "turningPower": 2.8,
+        "targetingRange": 2800,
+        "projectileSpeed": 1000,
+        "lifetime": 5
+      }
+    },
+    "sprite": "heatSeeker5",
+    "category": "weapon",
+    "subcategory": "heatSeeker",
+    "dropRate": 0.28,
+    "metatags": [
+      "heatSeeker"
+    ],
+    "lightColor": "#fbff00",
+    "lightRadius": 48,
+    "lightIntensity": 1.8
+  },
+  {
+    "id": "flameThrower0",
+    "tier": 0,
+    "name": "Flamethrower Mk 0",
+    "armor": 60,
+    "mass": 70,
+    "cost": 300,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 10,
+        "fireType": "flameThrower",
+        "fireDamage": 1,
+        "radius": 40,
+        "projectileSpeed": 600,
+        "lifetime": 2.5
+      }
+    },
+    "sprite": "flameThrower0",
+    "category": "weapon",
+    "subcategory": "flameThrower",
+    "dropRate": 0.3,
+    "metatags": [
+      "flameThrower"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 84,
+    "lightIntensity": 1.4
+  },
+  {
+    "id": "flameThrower1",
+    "tier": 1,
+    "name": "Flamethrower Mk I",
+    "armor": 70,
+    "mass": 70,
+    "cost": 400,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 10,
+        "fireType": "flameThrower",
+        "fireDamage": 2,
+        "radius": 45,
+        "projectileSpeed": 650,
+        "lifetime": 2.5
+      }
+    },
+    "sprite": "flameThrower1",
+    "category": "weapon",
+    "subcategory": "flameThrower",
+    "dropRate": 0.3,
+    "metatags": [
+      "flameThrower"
+    ],
+    "lightColor": "#feac29",
+    "lightRadius": 84,
+    "lightIntensity": 1.4
+  },
+  {
+    "id": "flameThrower2",
+    "tier": 2,
+    "name": "Flamethrower Mk II",
+    "armor": 80,
+    "mass": 70,
+    "cost": 600,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 10,
+        "fireType": "flameThrower",
+        "fireDamage": 4,
+        "radius": 50,
+        "projectileSpeed": 700,
+        "lifetime": 2.6
+      }
+    },
+    "sprite": "flameThrower2",
+    "category": "weapon",
+    "subcategory": "flameThrower",
+    "dropRate": 0.28,
+    "metatags": [
+      "flameThrower"
+    ],
+    "lightColor": "#29fe5e",
+    "lightRadius": 84,
+    "lightIntensity": 1.4
+  },
+  {
+    "id": "flameThrower3",
+    "tier": 3,
+    "name": "Flamethrower Mk III",
+    "armor": 90,
+    "mass": 70,
+    "cost": 900,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 10,
+        "fireType": "flameThrower",
+        "fireDamage": 6,
+        "radius": 55,
+        "projectileSpeed": 750,
+        "lifetime": 2.7
+      }
+    },
+    "sprite": "flameThrower3",
+    "category": "weapon",
+    "subcategory": "flameThrower",
+    "dropRate": 0.28,
+    "metatags": [
+      "flameThrower"
+    ],
+    "lightColor": "#7eb1ff",
+    "lightRadius": 84,
+    "lightIntensity": 1.4
+  },
+  {
+    "id": "flameThrower4",
+    "tier": 4,
+    "name": "Flamethrower Mk IV",
+    "armor": 110,
+    "mass": 80,
+    "cost": 1400,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 10,
+        "fireType": "flameThrower",
+        "fireDamage": 8,
+        "radius": 60,
+        "projectileSpeed": 800,
+        "lifetime": 2.8
+      }
+    },
+    "sprite": "flameThrower4",
+    "category": "weapon",
+    "subcategory": "flameThrower",
+    "dropRate": 0.25,
+    "metatags": [
+      "flameThrower"
+    ],
+    "lightColor": "#ff2bfb",
+    "lightRadius": 84,
+    "lightIntensity": 1.4
+  },
+  {
+    "id": "flameThrower5",
+    "tier": 5,
+    "name": "Flamethrower Mk V",
+    "armor": 130,
+    "mass": 90,
+    "cost": 2000,
+    "behavior": {
+      "canFire": true,
+      "fire": {
+        "fireRate": 10,
+        "fireType": "flameThrower",
+        "fireDamage": 12,
+        "radius": 70,
+        "projectileSpeed": 850,
+        "lifetime": 2.9
+      }
+    },
+    "sprite": "flameThrower5",
+    "category": "weapon",
+    "subcategory": "flameThrower",
+    "dropRate": 0.25,
+    "metatags": [
+      "flameThrower"
+    ],
+    "lightColor": "#fbff00",
+    "lightRadius": 84,
+    "lightIntensity": 1.4
+  },
+  {
+    "id": "fuelTank0",
+    "tier": 0,
+    "name": "Fuel Tank Mk 0",
+    "armor": 50,
+    "cost": 50,
+    "mass": 25,
+    "behavior": {
+      "fuelCapacityIncrease": 20
+    },
+    "sprite": "fuelTank0",
+    "category": "system",
+    "subcategory": "system",
+    "dropRate": 0.08,
+    "metatags": [
+      "fuelTank"
+    ]
+  },
+  {
+    "id": "fuelTank1",
+    "tier": 1,
+    "name": "Fuel Tank Mk I",
+    "armor": 60,
+    "cost": 50,
+    "mass": 25,
+    "behavior": {
+      "fuelCapacityIncrease": 25
+    },
+    "sprite": "fuelTank1",
+    "category": "utility",
+    "subcategory": "fuel",
+    "dropRate": 0.08,
+    "metatags": [
+      "fuelTank"
+    ]
+  },
+  {
+    "id": "fuelTank2",
+    "tier": 2,
+    "name": "Fuel Tank Mk II",
+    "armor": 70,
+    "cost": 50,
+    "mass": 30,
+    "behavior": {
+      "fuelCapacityIncrease": 35
+    },
+    "sprite": "fuelTank2",
+    "category": "utility",
+    "subcategory": "fuel",
+    "dropRate": 0.08,
+    "metatags": [
+      "fuelTank"
+    ]
+  },
+  {
+    "id": "fuelTank3",
+    "tier": 3,
+    "name": "Fuel Tank Mk III",
+    "armor": 80,
+    "cost": 50,
+    "mass": 35,
+    "behavior": {
+      "fuelCapacityIncrease": 50
+    },
+    "sprite": "fuelTank3",
+    "category": "utility",
+    "subcategory": "fuel",
+    "dropRate": 0.08,
+    "metatags": [
+      "fuelTank"
+    ]
+  },
+  {
+    "id": "fuelTank4",
+    "tier": 4,
+    "name": "Fuel Tank Mk IV",
+    "armor": 90,
+    "cost": 50,
+    "mass": 40,
+    "behavior": {
+      "fuelCapacityIncrease": 75
+    },
+    "sprite": "fuelTank4",
+    "category": "utility",
+    "subcategory": "fuel",
+    "dropRate": 0.07,
+    "metatags": [
+      "fuelTank"
+    ]
+  },
+  {
+    "id": "fuelTank5",
+    "tier": 4,
+    "name": "Fuel Tank Mk V",
+    "armor": 90,
+    "cost": 50,
+    "mass": 40,
+    "behavior": {
+      "fuelCapacityIncrease": 100
+    },
+    "sprite": "fuelTank5",
+    "category": "utility",
+    "subcategory": "fuel",
+    "dropRate": 0.07,
+    "metatags": [
+      "fuelTank"
+    ]
+  },
+  {
+    "id": "circleRock0",
+    "name": "Basalt Chunk",
+    "armor": 5,
+    "cost": 0,
+    "mass": 120,
+    "sprite": "circleRock0",
+    "category": "environment",
+    "subcategory": "asteroid",
+    "dropRate": 0,
+    "tier": 0,
+    "metatags": [
+      "asteroid"
+    ]
+  },
+  {
+    "id": "rock0",
+    "name": "Basalt Chunk",
+    "armor": 5,
+    "cost": 0,
+    "mass": 120,
+    "sprite": "rock0",
+    "category": "environment",
+    "subcategory": "asteroid",
+    "dropRate": 0,
+    "tier": 0,
+    "metatags": [
+      "asteroid"
+    ]
+  },
+  {
+    "id": "facetRock0",
+    "name": "Basalt Chunk",
+    "armor": 5,
+    "cost": 0,
+    "mass": 120,
+    "sprite": "facetRock0",
+    "category": "environment",
+    "subcategory": "asteroid",
+    "dropRate": 0,
+    "tier": 0,
+    "metatags": [
+      "asteroid"
+    ]
+  },
+  {
+    "id": "facetRock1",
+    "name": "Basalt Chunk",
+    "armor": 5,
+    "cost": 0,
+    "mass": 120,
+    "sprite": "facetRock1",
+    "category": "environment",
+    "subcategory": "asteroid",
+    "dropRate": 0,
+    "tier": 0,
+    "metatags": [
+      "asteroid"
+    ]
+  },
+  {
+    "id": "facetRockSlim0",
+    "name": "Basalt Chunk",
+    "armor": 5,
+    "cost": 0,
+    "mass": 120,
+    "sprite": "facetRockSlim0",
+    "category": "environment",
+    "subcategory": "asteroid",
+    "dropRate": 0,
+    "tier": 0,
+    "metatags": [
+      "asteroid"
+    ]
+  }
+]

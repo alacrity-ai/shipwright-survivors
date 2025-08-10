@@ -106,21 +106,12 @@
   // ──────────────────────────────────────────────────────────────────────────
   // Rendering constants & theme
   // ──────────────────────────────────────────────────────────────────────────
-  const GRID = 20;                          // logical cell size in CSS px (pre-DPR, pre-zoom)
-  const TILE = 32;                          // atlas tile size in source pixels
+  const GRID = 20;                          // logical grid size in CSS pixels (pre-DPR, pre-zoom)
   const GRID_MINOR = '#1a2230';
   const GRID_MAJOR = '#222c3d';
   const STROKE = '#66728a';
   const HOVER = '#4cc9f0';
   const SELECT = '#39d98a';
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Auto-load configuration (served by your dev server)
-  // ──────────────────────────────────────────────────────────────────────────
-  const AUTO_ASSETS = {
-    registryUrl: './public/BlockRegistry.json',
-    atlasUrl:    './public/atlas.png',
-  };
 
   // ──────────────────────────────────────────────────────────────────────────
   // State
@@ -129,46 +120,40 @@
   const wrap = document.getElementById('canvasWrap');
   const ctx = canvas.getContext('2d');
 
-  const fileInput     = document.getElementById('fileInput');      // ship JSON
-  const atlasInput    = document.getElementById('atlasInput');     // spritesheet image
-  const registryInput = document.getElementById('registryInput');  // BlockType registry JSON
-
+  const fileInput = document.getElementById('fileInput');
   const rotateShipBtn = document.getElementById('rotateShipBtn');
-  const resetViewBtn  = document.getElementById('resetViewBtn');
-  const zoomSlider    = document.getElementById('zoomSlider');
-  const downloadBtn   = document.getElementById('downloadBtn');
+  const resetViewBtn = document.getElementById('resetViewBtn');
+  const zoomSlider = document.getElementById('zoomSlider');
+  const downloadBtn = document.getElementById('downloadBtn');
 
-  const filePill     = document.getElementById('filePill');
-  const atlasPill    = document.getElementById('atlasPill');
-  const registryPill = document.getElementById('registryPill');
-  const countPill    = document.getElementById('countPill');
-  const zoomPill     = document.getElementById('zoomPill');
-  const rotPill      = document.getElementById('rotPill');
-  const logBox       = document.getElementById('statusLog');
+  const filePill = document.getElementById('filePill');
+  const countPill = document.getElementById('countPill');
+  const zoomPill = document.getElementById('zoomPill');
+  const rotPill = document.getElementById('rotPill');
+  const logBox = document.getElementById('statusLog');
 
   const DPR = window.devicePixelRatio || 1;
 
-  let originalBlocks = [];          // loaded ship blocks (mutated for per-block rotations)
+  let originalBlocks = [];          // loaded blocks (mutated for per-block rotations)
   let fullJson = null;
   let inputFileName = '';
   let rotationSteps = 0;            // 0..3 (90° increments)
   let blockRects = [];              // screen-space rectangles for hit testing
   let hoverIndex = -1;
 
-  const viewport = { zoom: 1, panX: 0, panY: 0 };
+  const viewport = {
+    zoom: 1,
+    panX: 0,    // screen-space pixels
+    panY: 0
+  };
 
-  const dragState = { dragging: false, lastX: 0, lastY: 0, active: false }; // MMB/Space pan
+  const dragState = {
+    dragging: false,
+    lastX: 0,
+    lastY: 0,
+    active: false // only when MMB or Space held
+  };
   let spaceHeld = false;
-
-  // Atlas / Registry
-  const atlasImg = new Image();
-  let atlasReady = false;
-
-  let registryById = Object.create(null); // id -> BlockType (expects atlasKey)
-  let registryReady = false;
-
-  // For crisp pixel art sampling
-  ctx.imageSmoothingEnabled = false;
 
   // ──────────────────────────────────────────────────────────────────────────
   // Utilities
@@ -176,12 +161,6 @@
   const log = (msg) => { logBox.textContent = String(msg); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const degNorm = (d) => ((d % 360) + 360) % 360;
-
-  function setPill(el, text, cls = 'pill') {
-    if (!el) return;
-    el.className = cls;
-    el.textContent = text;
-  }
 
   function setCanvasSizeToWrap() {
     const { clientWidth: w, clientHeight: h } = wrap;
@@ -226,20 +205,6 @@
     });
   }
 
-  // Compute 0-based tile UV from 1-based atlasKey
-  function tileXYFromAtlasKey(atlasKey, img) {
-    if (!atlasKey || !Number.isFinite(atlasKey)) return null;
-    const k0 = (atlasKey | 0) - 2;
-    if (k0 < 0) return null;
-    const cols = Math.max(1, Math.floor(img.width / TILE));
-    const x = k0 % cols;
-    const y = Math.floor(k0 / cols);
-    const sx = x * TILE;
-    const sy = y * TILE;
-    if (sx + TILE > img.width || sy + TILE > img.height) return null;
-    return { sx, sy };
-  }
-
   // Compute centered world offset (pre-zoom), based on bounds
   function computeCenterOffset(rotatedBlocks) {
     let minX = 0, maxX = 0, minY = 0, maxY = 0;
@@ -266,6 +231,7 @@
     const prev = viewport.zoom;
     const next = clamp(prev * factor, 0.5, 4.0);
     if (next === prev) return;
+    // Adjust pan so the point under cursor stays stable
     const k = next / prev;
     viewport.panX = cx - (cx - viewport.panX) * k;
     viewport.panY = cy - (cy - viewport.panY) * k;
@@ -305,9 +271,9 @@
     const startX = -offsetX;
     const startY = -offsetY;
 
-    // Draw enough lines to cover the viewport
-    const cols = Math.ceil(w / step) + 20;
-    const rows = Math.ceil(h / step) + 20;
+    // Draw enough lines to cover the viewport; we’ll do a bounded region around the ship
+    const cols = Math.ceil(w / (step)) + 20;
+    const rows = Math.ceil(h / (step)) + 20;
     const baseX = Math.floor((startX - 10 * step) / step) * step;
     const baseY = Math.floor((startY - 10 * step) / step) * step;
 
@@ -349,6 +315,7 @@
     const centerX = px + GRID / 2;
     const centerY = py + GRID / 2;
     const arrow = (size || GRID * 0.35);
+
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate((rotationDeg * Math.PI) / 180);
@@ -363,67 +330,6 @@
     ctx.restore();
   }
 
-  function drawBlockTile(px, py, rotationDeg, blockId, z) {
-    // Fallback: color blocks when atlas/registry not ready
-    if (!atlasReady || !registryReady) {
-      ctx.fillStyle = colorForId(blockId || '');
-      ctx.fillRect(px, py, GRID, GRID);
-      return;
-    }
-
-    const meta = registryById[blockId];
-    const atlasKey = meta?.atlasKey;
-    const uv = tileXYFromAtlasKey(atlasKey, atlasImg);
-
-    // Fallback when atlasKey invalid/out-of-bounds
-    if (!uv) {
-      ctx.fillStyle = colorForId(blockId || '');
-      ctx.fillRect(px, py, GRID, GRID);
-      return;
-    }
-
-    ctx.save();
-    ctx.translate(px + GRID / 2, py + GRID / 2);
-    ctx.rotate((rotationDeg * Math.PI) / 180);
-
-    // Scale 32px (TILE) → GRID
-    const scale = GRID / TILE;
-    ctx.imageSmoothingEnabled = false;
-    ctx.scale(scale, scale);
-
-    // 1) Base tile
-    ctx.drawImage(
-      atlasImg,
-      uv.sx, uv.sy, TILE, TILE,       // src rect
-      -TILE / 2, -TILE / 2, TILE, TILE // dst rect (centered)
-    );
-
-    // 2) Overlay tile (same column, next row)
-    const overlaySy = uv.sy + TILE;
-    if (overlaySy + TILE <= atlasImg.height) {
-      ctx.drawImage(
-        atlasImg,
-        uv.sx, overlaySy, TILE, TILE,    // src rect: next row
-        -TILE / 2, -TILE / 2, TILE, TILE // dst rect (centered, same transform)
-      );
-    }
-    // If the overlay would exceed the atlas height, it is silently skipped.
-
-    ctx.restore();
-  }
-
-  let lastUnknownSignature = ''; // avoid repeating the same unknown-ID log
-  function validateBlocksAgainstRegistry(rotated) {
-    if (!registryReady) return;
-    const unknown = new Set();
-    for (const b of rotated) if (!registryById[b.id]) unknown.add(b.id);
-    const sig = [...unknown].sort().join(',');
-    if (sig && sig !== lastUnknownSignature) {
-      lastUnknownSignature = sig;
-      log(`Unknown IDs in registry: ${sig}`);
-    }
-  }
-
   function draw() {
     clear();
     blockRects = [];
@@ -433,7 +339,6 @@
     const { offsetX, offsetY } = computeCenterOffset(rotated);
 
     drawGridLines({ offsetX, offsetY });
-    validateBlocksAgainstRegistry(rotated);
 
     const z = viewport.zoom;
 
@@ -451,15 +356,16 @@
       const sy = (py * z) + viewport.panY;
       blockRects.push({ x: sx, y: sy, w: GRID * z, h: GRID * z, index: i });
 
-      // Sprite fill from atlas (or fallback color)
-      drawBlockTile(px, py, block.rotation || 0, block.id, z);
+      // Fill
+      ctx.fillStyle = colorForId(block.id || '');
+      ctx.fillRect(px, py, GRID, GRID);
 
       // Stroke
       ctx.strokeStyle = STROKE;
       ctx.lineWidth = 1 / z;
       ctx.strokeRect(px + 0.5 / z, py + 0.5 / z, GRID - 1 / z, GRID - 1 / z);
 
-      // Rotation arrow (optional visual cue)
+      // Rotation arrow
       drawArrow(px, py, block.rotation || 0);
 
       // Hover/selection accents
@@ -498,7 +404,8 @@
         const data = JSON.parse(e.target.result);
         if (!data.blocks || !Array.isArray(data.blocks)) {
           log('Invalid JSON: expected a top-level "blocks" array.');
-          setPill(filePill, 'Invalid file', 'pill err');
+          filePill.className = 'pill err';
+          filePill.textContent = 'Invalid file';
           return;
         }
         originalBlocks = data.blocks.map(b => ({
@@ -511,127 +418,18 @@
         viewport.zoom = 1; viewport.panX = 0; viewport.panY = 0;
         zoomSlider.value = '1';
 
-        setPill(filePill, inputFileName || 'Loaded', 'pill');
+        filePill.className = 'pill';
+        filePill.textContent = inputFileName || 'Loaded';
         syncPills();
         log(`Loaded "${inputFileName}" with ${originalBlocks.length} blocks.`);
         draw();
       } catch (err) {
         log('Error parsing JSON: ' + err.message);
-        setPill(filePill, 'Parse error', 'pill err');
+        filePill.className = 'pill err';
+        filePill.textContent = 'Parse error';
       }
     };
     reader.readAsText(file);
-  }
-
-  function loadAtlasFromFile(file) {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    atlasImg.onload = () => {
-      atlasReady = true;
-      setPill(atlasPill, `${file.name} (${atlasImg.width}×${atlasImg.height})`, 'pill ok');
-      URL.revokeObjectURL(url);
-      draw();
-    };
-    atlasImg.onerror = () => {
-      atlasReady = false;
-      setPill(atlasPill, 'Atlas load error', 'pill err');
-      URL.revokeObjectURL(url);
-    };
-    atlasImg.src = url;
-  }
-
-  function loadRegistryFromFile(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-
-        // Accept either array of BlockType or map or { blocks: [] }
-        const arr = Array.isArray(data) ? data
-                  : Array.isArray(data.blocks) ? data.blocks
-                  : Object.values(data);
-
-        const map = Object.create(null);
-        for (const b of arr) {
-          if (!b || !b.id) continue;
-          map[b.id] = b; // expects b.atlasKey
-        }
-        registryById = map;
-        registryReady = true;
-        setPill(registryPill, `${Object.keys(map).length} types`, 'pill ok');
-        lastUnknownSignature = ''; // reset unknown cache
-        draw();
-      } catch (err) {
-        registryReady = false;
-        setPill(registryPill, 'Registry parse error', 'pill err');
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  async function loadRegistryFromUrl(url) {
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      const arr = Array.isArray(data) ? data
-                : Array.isArray(data.blocks) ? data.blocks
-                : Object.values(data);
-
-      const map = Object.create(null);
-      for (const b of arr) {
-        if (!b || !b.id) continue;
-        map[b.id] = b; // expects b.atlasKey
-      }
-      registryById = map;
-      registryReady = true;
-      lastUnknownSignature = '';
-      setPill(registryPill, `${Object.keys(map).length} types`, 'pill ok');
-      log(`Auto-loaded registry from ${url}`);
-      draw();
-    } catch (err) {
-      // Non-fatal; user can still load manually.
-      setPill(registryPill, 'Registry not found', 'pill');
-      // Optional: log detail for devs
-      console.debug('[auto-registry]', err);
-    }
-  }
-
-  function loadAtlasFromUrl(url) {
-    return new Promise((resolve, reject) => {
-      const onload = () => {
-        atlasReady = true;
-        setPill(atlasPill, `${url.split('/').pop()} (${atlasImg.width}×${atlasImg.height})`, 'pill ok');
-        log(`Auto-loaded atlas from ${url}`);
-        draw();
-        resolve();
-      };
-      const onerror = (e) => {
-        atlasReady = false;
-        setPill(atlasPill, 'Atlas not found', 'pill');
-        console.debug('[auto-atlas]', e);
-        reject(new Error('Atlas load failed'));
-      };
-
-      atlasImg.onload = onload;
-      atlasImg.onerror = onerror;
-
-      // If you get stubborn browser caches during dev, append a cache-buster here.
-      // const bust = (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
-      // atlasImg.src = url + bust;
-
-      atlasImg.src = url;
-    });
-  }
-
-  async function tryAutoLoadAssets() {
-    // Fire both; don’t block either on the other. Manual loads remain available.
-    await Promise.allSettled([
-      loadRegistryFromUrl(AUTO_ASSETS.registryUrl),
-      loadAtlasFromUrl(AUTO_ASSETS.atlasUrl),
-    ]);
   }
 
   function exportJson() {
@@ -654,8 +452,6 @@
   setCanvasSizeToWrap();
 
   fileInput.addEventListener('change', (e) => loadFromFile(e.target.files[0]));
-  atlasInput.addEventListener('change', (e) => loadAtlasFromFile(e.target.files[0]));
-  registryInput.addEventListener('change', (e) => loadRegistryFromFile(e.target.files[0]));
 
   rotateShipBtn.addEventListener('click', () => {
     if (!originalBlocks.length) return;
@@ -674,6 +470,7 @@
   zoomSlider.addEventListener('input', (e) => {
     const target = parseFloat(e.target.value);
     const factor = target / viewport.zoom;
+    // zoom around center of canvas
     zoomAt(factor, canvas.clientWidth / 2, canvas.clientHeight / 2);
   });
 
@@ -709,7 +506,9 @@
     dragState.lastY = e.clientY - rect.top;
     dragState.dragging = true;
     dragState.active = (e.button === 1) || spaceHeld; // MMB or Space
-    if (dragState.active) e.preventDefault();
+    if (dragState.active) {
+      e.preventDefault();
+    }
   });
 
   // Mouse up: click to rotate if not panning
@@ -726,7 +525,12 @@
     const my = e.clientY - rect.top;
     const idx = blockIndexAt(mx, my);
     if (idx !== -1) {
-      const originalIdx = idx; // rotated preserves order
+      // Map back to original block index (rotated list preserves order)
+      const rotated = getRotatedBlocks();
+      // idx corresponds to rotated[idx] which maps 1:1 to originalBlocks[idx]
+      // because we never reorder, only transform.
+      const originalIdx = idx;
+
       const delta = e.shiftKey ? -90 : 90;
       const b = originalBlocks[originalIdx];
       b.rotation = degNorm((b.rotation || 0) + delta);
@@ -741,6 +545,7 @@
   // Wheel zoom (CTRL+wheel uses browser zoom; plain wheel for our canvas)
   canvas.addEventListener('wheel', (e) => {
     if (!originalBlocks.length) return;
+    // Zoom around cursor
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -776,13 +581,8 @@
   });
 
   // Initial draw (empty)
-  setCanvasSizeToWrap();
   draw();
-
-  // Attempt auto-load
-  tryAutoLoadAssets();
 })();
 </script>
-
 </body>
 </html>

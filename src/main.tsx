@@ -13,6 +13,7 @@ import { PassiveTreeDeserializer } from '@/game/passives/json/PassiveTreeDeseria
 import { PlayerGlobalPassiveManager } from '@/game/player/PlayerGlobalPassiveManager';
 import { initializePassiveIconCache } from '@/game/passives/icons/passiveIconCache';
 import { initializeBlockRegistry } from '@/game/blocks/BlockRegistry';
+import { getAssetPath } from '@/shared/assetHelpers';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -50,7 +51,7 @@ import App from './App';
 
 async function initGlobalPassives() {
   initializePassiveIconCache();
-  const json = await (await fetch('/assets/passives/player-passives.json')).text();
+  const json = await (await fetch(getAssetPath('/assets/passives/player-passives.json'))).text();
   const tree = PassiveTreeDeserializer.fromJSON(json);
   PlayerGlobalPassiveManager.getInstance().setPassiveTree(tree);
 }

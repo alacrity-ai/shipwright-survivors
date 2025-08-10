@@ -171,7 +171,10 @@ export function rebuildDerivedTables(): void {
     BlockTypeIndex[t.id] = i;
     BlockTypesByIndex[i] = t;
     mass[i] = t.mass ?? 0;
-    atlasKeys[i] = i; // identity; can be remapped later
+
+    // Use author-provided atlasKey if present; else default to identity.
+    const k = Number.isInteger(t.atlasKey) ? (t.atlasKey as number) : i;
+    atlasKeys[i] = k;
   });
 
   BlockTypeMass = mass;
@@ -179,22 +182,41 @@ export function rebuildDerivedTables(): void {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Serialization utilities (unchanged)
+// Serialization utilities
 // ──────────────────────────────────────────────────────────────────────────────
 export function blockRegistryToJson(pretty = true): string {
   const allBlocks = getAllBlockTypes();
+
   const serializableBlocks = allBlocks.map((block) => {
+    // Derive atlasKey if not explicitly set on the block
+    let derivedAtlasKey: number | undefined = undefined;
+    const idx = BlockTypeIndex[block.id];
+    if (idx !== undefined) {
+      const k = BlockAtlasKeyByIndex[idx];
+      if (Number.isInteger(k)) derivedAtlasKey = k;
+    }
+
     const clean: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(block)) {
       if (typeof value === 'function' || value === undefined) continue;
       clean[key] = value;
     }
+
+    // Ensure atlasKey is present in the payload (stored > derived)
+    if (!Number.isInteger(clean.atlasKey as number) && derivedAtlasKey !== undefined) {
+      clean.atlasKey = derivedAtlasKey;
+    }
+
     return clean;
   });
+
   return JSON.stringify(serializableBlocks, null, pretty ? 2 : 0);
 }
 
-export function downloadBlockRegistryAsJson(filename = 'BlockRegistry.json', pretty = true): void {
+export function downloadBlockRegistryAsJson(
+  filename = 'BlockRegistry.json',
+  pretty = true
+): void {
   const json = blockRegistryToJson(pretty);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
