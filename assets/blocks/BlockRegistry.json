@@ -14,7 +14,8 @@
     "category": "system",
     "subcategory": "system",
     "dropRate": 0,
-    "metatags": []
+    "metatags": [],
+    "atlasKey": 0
   },
   {
     "id": "cockpit0",
@@ -41,7 +42,8 @@
     "dropRate": 0,
     "metatags": [
       "cockpit"
-    ]
+    ],
+    "atlasKey": 1
   },
   {
     "id": "cockpit1",
@@ -68,7 +70,8 @@
     "dropRate": 0,
     "metatags": [
       "cockpit"
-    ]
+    ],
+    "atlasKey": 2
   },
   {
     "id": "cockpitsw1",
@@ -98,7 +101,8 @@
     "dropRate": 0,
     "metatags": [
       "cockpit"
-    ]
+    ],
+    "atlasKey": 3
   },
   {
     "id": "hull0",
@@ -113,7 +117,8 @@
     "dropRate": 0.07,
     "metatags": [
       "hull"
-    ]
+    ],
+    "atlasKey": 4
   },
   {
     "id": "hull1",
@@ -128,7 +133,8 @@
     "dropRate": 0.05,
     "metatags": [
       "hull"
-    ]
+    ],
+    "atlasKey": 5
   },
   {
     "id": "hull2",
@@ -143,7 +149,8 @@
     "dropRate": 0.05,
     "metatags": [
       "hull"
-    ]
+    ],
+    "atlasKey": 6
   },
   {
     "id": "hull3",
@@ -158,7 +165,8 @@
     "dropRate": 0.04,
     "metatags": [
       "hull"
-    ]
+    ],
+    "atlasKey": 7
   },
   {
     "id": "hull4",
@@ -173,7 +181,8 @@
     "dropRate": 0.03,
     "metatags": [
       "hull"
-    ]
+    ],
+    "atlasKey": 8
   },
   {
     "id": "hull5",
@@ -188,7 +197,8 @@
     "dropRate": 0.02,
     "metatags": [
       "hull"
-    ]
+    ],
+    "atlasKey": 9
   },
   {
     "id": "facetplate0",
@@ -207,7 +217,8 @@
     "dropRate": 0.05,
     "metatags": [
       "facetplate"
-    ]
+    ],
+    "atlasKey": 10
   },
   {
     "id": "facetplate1",
@@ -226,7 +237,8 @@
     },
     "metatags": [
       "facetplate"
-    ]
+    ],
+    "atlasKey": 11
   },
   {
     "id": "facetplate2",
@@ -245,7 +257,8 @@
     "dropRate": 0.04,
     "metatags": [
       "facetplate"
-    ]
+    ],
+    "atlasKey": 12
   },
   {
     "id": "facetplate3",
@@ -264,7 +277,8 @@
     "dropRate": 0.03,
     "metatags": [
       "facetplate"
-    ]
+    ],
+    "atlasKey": 13
   },
   {
     "id": "facetplate4",
@@ -283,7 +297,8 @@
     "dropRate": 0.02,
     "metatags": [
       "facetplate"
-    ]
+    ],
+    "atlasKey": 14
   },
   {
     "id": "facetplate5",
@@ -302,7 +317,8 @@
     "dropRate": 0.02,
     "metatags": [
       "facetplate"
-    ]
+    ],
+    "atlasKey": 15
   },
   {
     "id": "turret0",
@@ -332,7 +348,8 @@
     "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
     "metatags": [
       "turret"
-    ]
+    ],
+    "atlasKey": 16
   },
   {
     "id": "turret1",
@@ -362,7 +379,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 48,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 17
   },
   {
     "id": "turret2",
@@ -392,7 +410,8 @@
     "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
     "metatags": [
       "turret"
-    ]
+    ],
+    "atlasKey": 18
   },
   {
     "id": "turret3",
@@ -422,7 +441,8 @@
     "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
     "metatags": [
       "turret"
-    ]
+    ],
+    "atlasKey": 19
   },
   {
     "id": "turret4",
@@ -452,7 +472,8 @@
     "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
     "metatags": [
       "turret"
-    ]
+    ],
+    "atlasKey": 20
   },
   {
     "id": "turret5",
@@ -482,7 +503,8 @@
     "placementSound": "assets/sounds/sfx/ship/attach_00.wav",
     "metatags": [
       "turret"
-    ]
+    ],
+    "atlasKey": 21
   },
   {
     "id": "explosiveLance0",
@@ -514,7 +536,8 @@
     "dropRate": 0.2,
     "metatags": [
       "explosiveLance"
-    ]
+    ],
+    "atlasKey": 22
   },
   {
     "id": "explosiveLance1",
@@ -546,7 +569,8 @@
     "dropRate": 0.15,
     "metatags": [
       "explosiveLance"
-    ]
+    ],
+    "atlasKey": 23
   },
   {
     "id": "explosiveLance2",
@@ -578,7 +602,8 @@
     "dropRate": 0.14,
     "metatags": [
       "explosiveLance"
-    ]
+    ],
+    "atlasKey": 24
   },
   {
     "id": "explosiveLance3",
@@ -610,7 +635,8 @@
     "dropRate": 0.13,
     "metatags": [
       "explosiveLance"
-    ]
+    ],
+    "atlasKey": 25
   },
   {
     "id": "explosiveLance4",
@@ -642,7 +668,8 @@
     "dropRate": 0.1,
     "metatags": [
       "explosiveLance"
-    ]
+    ],
+    "atlasKey": 26
   },
   {
     "id": "explosiveLance5",
@@ -674,7 +701,8 @@
     "dropRate": 0.08,
     "metatags": [
       "explosiveLance"
-    ]
+    ],
+    "atlasKey": 27
   },
   {
     "id": "laser0",
@@ -704,7 +732,8 @@
     "dropRate": 0.16,
     "metatags": [
       "laser"
-    ]
+    ],
+    "atlasKey": 28
   },
   {
     "id": "laser1",
@@ -735,7 +764,8 @@
     "dropRate": 0.16,
     "metatags": [
       "laser"
-    ]
+    ],
+    "atlasKey": 29
   },
   {
     "id": "laser2",
@@ -766,7 +796,8 @@
     "dropRate": 0.14,
     "metatags": [
       "laser"
-    ]
+    ],
+    "atlasKey": 30
   },
   {
     "id": "laser3",
@@ -797,7 +828,8 @@
     "dropRate": 0.12,
     "metatags": [
       "laser"
-    ]
+    ],
+    "atlasKey": 31
   },
   {
     "id": "laser4",
@@ -828,7 +860,8 @@
     "dropRate": 0.1,
     "metatags": [
       "laser"
-    ]
+    ],
+    "atlasKey": 32
   },
   {
     "id": "laser5",
@@ -859,7 +892,8 @@
     "dropRate": 0.08,
     "metatags": [
       "laser"
-    ]
+    ],
+    "atlasKey": 33
   },
   {
     "id": "reactor0",
@@ -880,7 +914,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 34
   },
   {
     "id": "reactor1",
@@ -901,7 +936,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 128,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 35
   },
   {
     "id": "reactor2",
@@ -922,7 +958,8 @@
     ],
     "lightColor": "#ff2bfb",
     "lightRadius": 128,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 36
   },
   {
     "id": "battery0",
@@ -943,7 +980,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 37
   },
   {
     "id": "battery1",
@@ -964,7 +1002,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 38
   },
   {
     "id": "battery2",
@@ -985,7 +1024,8 @@
     ],
     "lightColor": "#ff2bfb",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 39
   },
   {
     "id": "shield0",
@@ -1009,7 +1049,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 40
   },
   {
     "id": "shield1",
@@ -1033,7 +1074,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 41
   },
   {
     "id": "shield2",
@@ -1057,7 +1099,8 @@
     ],
     "lightColor": "#ff2bfb",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 42
   },
   {
     "id": "shield3",
@@ -1081,7 +1124,8 @@
     ],
     "lightColor": "#fbff00",
     "lightRadius": 64,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 43
   },
   {
     "id": "engine0",
@@ -1100,7 +1144,8 @@
     "dropRate": 0.08,
     "metatags": [
       "engine"
-    ]
+    ],
+    "atlasKey": 44
   },
   {
     "id": "engine1",
@@ -1119,7 +1164,8 @@
     "dropRate": 0.05,
     "metatags": [
       "engine"
-    ]
+    ],
+    "atlasKey": 45
   },
   {
     "id": "engine2",
@@ -1138,7 +1184,8 @@
     "dropRate": 0.08,
     "metatags": [
       "engine"
-    ]
+    ],
+    "atlasKey": 46
   },
   {
     "id": "engine3",
@@ -1157,7 +1204,8 @@
     "dropRate": 0.05,
     "metatags": [
       "engine"
-    ]
+    ],
+    "atlasKey": 47
   },
   {
     "id": "engine4",
@@ -1176,7 +1224,8 @@
     "dropRate": 0.04,
     "metatags": [
       "engine"
-    ]
+    ],
+    "atlasKey": 48
   },
   {
     "id": "engine5",
@@ -1195,7 +1244,8 @@
     "dropRate": 0.03,
     "metatags": [
       "engine"
-    ]
+    ],
+    "atlasKey": 49
   },
   {
     "id": "fin0",
@@ -1213,7 +1263,8 @@
     "dropRate": 0.06,
     "metatags": [
       "fin"
-    ]
+    ],
+    "atlasKey": 50
   },
   {
     "id": "fin1",
@@ -1231,7 +1282,8 @@
     "dropRate": 0.06,
     "metatags": [
       "fin"
-    ]
+    ],
+    "atlasKey": 51
   },
   {
     "id": "fin2",
@@ -1249,7 +1301,8 @@
     "dropRate": 0.06,
     "metatags": [
       "fin"
-    ]
+    ],
+    "atlasKey": 52
   },
   {
     "id": "fin3",
@@ -1267,7 +1320,8 @@
     "dropRate": 0.05,
     "metatags": [
       "fin"
-    ]
+    ],
+    "atlasKey": 53
   },
   {
     "id": "fin4",
@@ -1285,7 +1339,8 @@
     "dropRate": 0.05,
     "metatags": [
       "fin"
-    ]
+    ],
+    "atlasKey": 54
   },
   {
     "id": "fin5",
@@ -1303,7 +1358,8 @@
     "dropRate": 0.05,
     "metatags": [
       "fin"
-    ]
+    ],
+    "atlasKey": 55
   },
   {
     "id": "harvester0",
@@ -1324,7 +1380,8 @@
     ],
     "lightColor": "#29fe5e",
     "lightRadius": 84,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 56
   },
   {
     "id": "harvester1",
@@ -1345,7 +1402,8 @@
     ],
     "lightColor": "#29fe5e",
     "lightRadius": 84,
-    "lightIntensity": 1.6
+    "lightIntensity": 1.6,
+    "atlasKey": 57
   },
   {
     "id": "harvester2",
@@ -1366,7 +1424,8 @@
     ],
     "lightColor": "#29fe5e",
     "lightRadius": 128,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 58
   },
   {
     "id": "haloBlade0",
@@ -1394,7 +1453,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 59
   },
   {
     "id": "haloBlade1",
@@ -1422,7 +1482,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 60
   },
   {
     "id": "haloBlade2",
@@ -1450,7 +1511,8 @@
     ],
     "lightColor": "#29fe5e",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 61
   },
   {
     "id": "haloBlade3",
@@ -1478,7 +1540,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 62
   },
   {
     "id": "haloBlade4",
@@ -1506,7 +1569,8 @@
     ],
     "lightColor": "#ff2bfb",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 63
   },
   {
     "id": "haloBlade5",
@@ -1534,7 +1598,8 @@
     ],
     "lightColor": "#fbff00",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 64
   },
   {
     "id": "npcseeker0",
@@ -1568,7 +1633,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 65
   },
   {
     "id": "heatSeeker0",
@@ -1600,7 +1666,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 66
   },
   {
     "id": "heatSeeker1",
@@ -1632,7 +1699,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 67
   },
   {
     "id": "heatSeeker2",
@@ -1664,7 +1732,8 @@
     ],
     "lightColor": "#29fe5e",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 68
   },
   {
     "id": "heatSeeker3",
@@ -1696,7 +1765,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 69
   },
   {
     "id": "heatSeeker4",
@@ -1728,7 +1798,8 @@
     ],
     "lightColor": "#ff2bfb",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 70
   },
   {
     "id": "heatSeeker5",
@@ -1760,7 +1831,8 @@
     ],
     "lightColor": "#fbff00",
     "lightRadius": 48,
-    "lightIntensity": 1.8
+    "lightIntensity": 1.8,
+    "atlasKey": 71
   },
   {
     "id": "flameThrower0",
@@ -1789,7 +1861,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 84,
-    "lightIntensity": 1.4
+    "lightIntensity": 1.4,
+    "atlasKey": 72
   },
   {
     "id": "flameThrower1",
@@ -1818,7 +1891,8 @@
     ],
     "lightColor": "#feac29",
     "lightRadius": 84,
-    "lightIntensity": 1.4
+    "lightIntensity": 1.4,
+    "atlasKey": 73
   },
   {
     "id": "flameThrower2",
@@ -1847,7 +1921,8 @@
     ],
     "lightColor": "#29fe5e",
     "lightRadius": 84,
-    "lightIntensity": 1.4
+    "lightIntensity": 1.4,
+    "atlasKey": 74
   },
   {
     "id": "flameThrower3",
@@ -1876,7 +1951,8 @@
     ],
     "lightColor": "#7eb1ff",
     "lightRadius": 84,
-    "lightIntensity": 1.4
+    "lightIntensity": 1.4,
+    "atlasKey": 75
   },
   {
     "id": "flameThrower4",
@@ -1905,7 +1981,8 @@
     ],
     "lightColor": "#ff2bfb",
     "lightRadius": 84,
-    "lightIntensity": 1.4
+    "lightIntensity": 1.4,
+    "atlasKey": 76
   },
   {
     "id": "flameThrower5",
@@ -1934,7 +2011,8 @@
     ],
     "lightColor": "#fbff00",
     "lightRadius": 84,
-    "lightIntensity": 1.4
+    "lightIntensity": 1.4,
+    "atlasKey": 77
   },
   {
     "id": "fuelTank0",
@@ -1952,7 +2030,8 @@
     "dropRate": 0.08,
     "metatags": [
       "fuelTank"
-    ]
+    ],
+    "atlasKey": 78
   },
   {
     "id": "fuelTank1",
@@ -1970,7 +2049,8 @@
     "dropRate": 0.08,
     "metatags": [
       "fuelTank"
-    ]
+    ],
+    "atlasKey": 79
   },
   {
     "id": "fuelTank2",
@@ -1988,7 +2068,8 @@
     "dropRate": 0.08,
     "metatags": [
       "fuelTank"
-    ]
+    ],
+    "atlasKey": 80
   },
   {
     "id": "fuelTank3",
@@ -2006,7 +2087,8 @@
     "dropRate": 0.08,
     "metatags": [
       "fuelTank"
-    ]
+    ],
+    "atlasKey": 81
   },
   {
     "id": "fuelTank4",
@@ -2024,7 +2106,8 @@
     "dropRate": 0.07,
     "metatags": [
       "fuelTank"
-    ]
+    ],
+    "atlasKey": 82
   },
   {
     "id": "fuelTank5",
@@ -2042,7 +2125,8 @@
     "dropRate": 0.07,
     "metatags": [
       "fuelTank"
-    ]
+    ],
+    "atlasKey": 83
   },
   {
     "id": "circleRock0",
@@ -2057,7 +2141,8 @@
     "tier": 0,
     "metatags": [
       "asteroid"
-    ]
+    ],
+    "atlasKey": 84
   },
   {
     "id": "rock0",
@@ -2072,7 +2157,8 @@
     "tier": 0,
     "metatags": [
       "asteroid"
-    ]
+    ],
+    "atlasKey": 85
   },
   {
     "id": "facetRock0",
@@ -2087,7 +2173,8 @@
     "tier": 0,
     "metatags": [
       "asteroid"
-    ]
+    ],
+    "atlasKey": 86
   },
   {
     "id": "facetRock1",
@@ -2102,7 +2189,8 @@
     "tier": 0,
     "metatags": [
       "asteroid"
-    ]
+    ],
+    "atlasKey": 87
   },
   {
     "id": "facetRockSlim0",
@@ -2117,6 +2205,7 @@
     "tier": 0,
     "metatags": [
       "asteroid"
-    ]
+    ],
+    "atlasKey": 88
   }
 ]
