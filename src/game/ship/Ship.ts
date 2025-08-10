@@ -1310,39 +1310,6 @@ export class Ship extends CompositeBlockObject {
     return visited.size === coordSet.size;
   }
 
-  // public loadFromJson(data: SerializedShip): void {
-  //   const transform = this.getTransform();
-  //   transform.position = data.transform.position;
-  //   transform.rotation = data.transform.rotation;
-
-  //   // Ensure a ship block list exists in orchestrator
-  //   this.blockOrchestrator.ensureShipBlocks(this.numericId);
-
-  //   // Populate blocks via orchestrator
-  //   for (const { coord, id, rotation, group } of data.blocks) {
-  //     this.placeBlockById(coord, id, rotation, group);
-  //   }
-
-  //   // Rebuild derived systems
-  //   this.updateFuelCapacity();
-  //   this.validateFiringPlan();
-  //   this.rebuildHaloBladeIndex();
-  //   this.rebuildEngineBlockIndex();
-  //   this.rebuildFinBlockIndex();
-  //   this.rebuildHeatSeekerIndex();
-
-  //   // Update positions and grid immediately
-  //   this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
-
-  //   // Only register collision box for non-player ships
-  //   if (!this.isPlayerShip) {
-  //     this.registerCollisionBox();
-  //   }
-
-  //   this.markRasterDirty();
-  // }
-
-
   public loadFromJson(data: SerializedShip): void {
     const transform = this.getTransform();
     transform.position = data.transform.position;

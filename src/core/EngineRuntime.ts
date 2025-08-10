@@ -156,6 +156,7 @@ import { exportUnifiedBlockAtlasAsPNG } from '@/rendering/cache/BlockSpriteCache
 import { reportDialogueLine, clearDialogueEvents } from './interfaces/events/DialogueReporter';
 import { emitDefaultShockwave } from './interfaces/events/SpecialFxReporter';
 import { openPowerupMenu } from './interfaces/events/MenuOpenReporter';
+import { downloadBlockRegistryAsJson } from '@/game/blocks/BlockRegistry';
 
 export class EngineRuntime {
   private gameLoop: GameLoop;
@@ -908,12 +909,7 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit2')) {
-      spawnBossArena({
-        center: [0, 0],
-        radius: 2220,
-        initialState: 1,
-        formingDuration: 1.0
-      });
+      downloadBlockRegistryAsJson();
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit3')) {
