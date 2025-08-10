@@ -14,12 +14,17 @@ export class ArenaCollisionEnforcer {
 
   constructor() {
     GlobalEventBus.on('bossArena:spawn', this.handleArenaSpawn);
+    GlobalEventBus.on('bossArena:clear', this.handleArenaClear);
   }
 
   private handleArenaSpawn = (opts: BossArenaOptions): void => {
     this.center = opts.center;
     this.radius = opts.radius;
     this.isActive = true;
+  };
+
+  private handleArenaClear = (): void => {
+    this.disable();
   };
 
   public update(dt: number): void {
@@ -67,5 +72,6 @@ export class ArenaCollisionEnforcer {
 
   public destroy(): void {
     GlobalEventBus.off('bossArena:spawn', this.handleArenaSpawn);
+    GlobalEventBus.off('bossArena:clear', this.handleArenaClear);
   }
 }

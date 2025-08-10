@@ -151,7 +151,6 @@ export class PlanetController {
     overlayCtx: CanvasRenderingContext2D, 
     dialogueCtx: CanvasRenderingContext2D): void {
     
-    if (!flags.has('mission.intro-briefing.complete')) return;
     if (this.missionDialogueManager.isDialogueVisible()) return;
 
     const {

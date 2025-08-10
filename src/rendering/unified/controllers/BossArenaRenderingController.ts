@@ -50,6 +50,7 @@ export class BossArenaRenderingController {
 
     // Subscribe to event bus for dynamic spawning/resetting
     GlobalEventBus.on('bossArena:spawn', this.handleSpawnArena);
+    GlobalEventBus.on('bossArena:clear', this.handleClearArena);
   }
 
   // === Event Handler ===
@@ -67,6 +68,14 @@ export class BossArenaRenderingController {
       // Kick off the forming sequence immediately
       this.startForming();
     }
+  };
+
+  private handleClearArena = (): void => {
+    this.center = [0, 0];
+    this.radius = 0;
+    this.state = 0;
+    this.time = 0;
+    this.formingElapsed = 0;
   };
 
   /**

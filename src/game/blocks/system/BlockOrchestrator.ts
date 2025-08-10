@@ -92,6 +92,9 @@ export class BlockOrchestrator {
   private scratchAffectedCells: Uint32Array = new Uint32Array(128);   // unique cell keys touched by this ship
   private scratchAffectedCellsCount = 0;
 
+  // ── Pooled scratch for bulk create ─────────────────────────────
+  private scratchCreateBulk: Uint32Array = new Uint32Array(128);
+
   private ensureU32Capacity(buf: Uint32Array, needed: number, minStart = 128): Uint32Array {
     if (buf.length >= needed) return buf;
     // Geometric growth; avoid tiny sizes
@@ -276,6 +279,77 @@ export class BlockOrchestrator {
     this.registerBlockWithGrid(index);
 
     return index;
+  }
+  
+  /**
+   * Bulk-create blocks, compute initial world transforms once, and register them with the spatial grid.
+   * - Precomputes ship trig and reuses pooled buffers for GC neutrality.
+   * - Returns a read-only view (subarray) of indices actually created.
+   *
+   * @param items Array of block creation params (mixed groups/types allowed)
+   * @param shipTransform Current ship transform to materialize initial worldX/worldY/rotation
+   * @returns Uint32Array view of created indices (length == createdCount)
+   */
+  createAndRegisterBlockBulk(
+    items: readonly CreateBlockParams[],
+    shipTransform: BlockEntityTransform
+  ): Uint32Array {
+    const n = items.length | 0;
+    if (n === 0) return new Uint32Array(0);
+
+    // Hot references
+    const s = this.store;
+    const grid = this.grid;
+    const lightOrch = this.lightingOrchestrator;
+
+    // Ensure output scratch can hold worst-case successes
+    this.scratchCreateBulk = this.ensureU32Capacity(this.scratchCreateBulk, n);
+    let outCount = 0;
+
+    // Precompute ship transform once
+    const shipRot = shipTransform.rotation;
+    const cos = Math.cos(shipRot);
+    const sin = Math.sin(shipRot);
+    const shipX = shipTransform.position.x;
+    const shipY = shipTransform.position.y;
+
+    // Main loop
+    for (let i = 0; i < n; i++) {
+      const params = items[i];
+
+      // Allocate and initialize SOA record; this also appends to the ship’s index buffer
+      const idx = this.createBlock(params);
+      if (idx === -1) {
+        // Capacity or allocation failure; skip this entry
+        continue;
+      }
+
+      // Materialize world transform (fast path inline to avoid per-call overhead)
+      // Scale grid coords to pixels
+      const lx = s.localX[idx] * BLOCK_SIZE;
+      const ly = s.localY[idx] * BLOCK_SIZE;
+      const lrot = s.localRotation[idx];
+
+      // Rotate around ship origin and translate
+      s.worldX[idx] = shipX + lx * cos - ly * sin;
+      s.worldY[idx] = shipY + lx * sin + ly * cos;
+      s.rotation[idx] = shipRot + lrot;
+
+      // If this block owns a light, initialize its world position immediately
+      const lightId = s.lightId[idx];
+      if (lightId !== -1 && lightOrch) {
+        lightOrch.updateLight(lightId, { x: s.worldX[idx], y: s.worldY[idx] });
+      }
+
+      // Register with spatial grid at the computed world location
+      grid.registerBlock(idx, s.worldX[idx], s.worldY[idx]);
+
+      // Record success
+      this.scratchCreateBulk[outCount++] = idx;
+    }
+
+    // Hand back a view sized to the number of successful creations
+    return this.scratchCreateBulk.subarray(0, outCount);
   }
 
   /**

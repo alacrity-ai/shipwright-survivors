@@ -263,6 +263,7 @@ export interface EventTypes {
 
   // Boss spawning / lifecycle
   'bossArena:spawn': BossArenaOptions;
+  'bossArena:clear': undefined;
 
   // Pickups
   'pickup:disableDrops': undefined;

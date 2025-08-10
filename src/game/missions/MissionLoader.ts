@@ -1,6 +1,7 @@
 // src/game/mission/MissionLoader.ts
 import type { MissionDefinition } from '@/game/missions/types/MissionDefinition';
 import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
+import type { MutatorTier } from './ui/MissionMutatorMenu';
 
 import { WorldSettingsManager } from '@/config/world';
 import { missionRegistry } from '@/game/missions/MissionRegistry';
@@ -9,8 +10,8 @@ import { audioManager } from '@/audio/Audio';
 class MissionLoader {
   private currentMission: MissionDefinition | null = null;
 
-  private density: 0.5 | 1.0 | 1.5 = 0.5;
-  private intensity: 0.5 | 1.0 | 1.5 = 0.5;
+  private density: 0.5 | 1.0 | 1.5 | 2.0 = 0.5;
+  private intensity: 0.5 | 1.0 | 1.5 | 2.0 = 0.5;
 
   setMission(mission: MissionDefinition) {
     this.currentMission = mission;
@@ -50,12 +51,12 @@ class MissionLoader {
     return this.currentMission.planets ?? [];
   }
 
-  setDensity(density: 'Normal' | 'High' | 'Catastrophic') {
-    this.density = density === 'Normal' ? 0.5 : density === 'High' ? 1.0 : 1.5;
+  setDensity(density: MutatorTier) {
+    this.density = density === 'Calm' ? 0.5 : density === 'Normal' ? 1.0 : density === 'High' ? 1.5 : 2.0;
   }
 
-  setIntensity(intensity: 'Normal' | 'High' | 'Catastrophic') {
-    this.intensity = intensity === 'Normal' ? 0.5 : intensity === 'High' ? 1.0 : 1.5;
+  setIntensity(intensity: MutatorTier) {
+    this.intensity = intensity === 'Calm' ? 0.5 : intensity === 'Normal' ? 1.0 : intensity === 'High' ? 1.5 : 2.0;
   }
 
   getDensity(): number {

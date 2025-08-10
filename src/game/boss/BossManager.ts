@@ -74,7 +74,6 @@ export class BossManager {
   }
 
   public fightComplete(): boolean {
-    // TODO : For now just return if the boss is defeated, later we'll have a victory cutscene, e.g. slowmotion plus screen flash etc.
     return this.bossDefeated()
   }
 

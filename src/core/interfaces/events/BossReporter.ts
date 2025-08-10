@@ -11,6 +11,10 @@ export function spawnBossArena(opts: BossArenaOptions): void {
   GlobalEventBus.emit('bossArena:spawn', opts);
 }
 
+export function clearBossArena(): void {
+  GlobalEventBus.emit('bossArena:clear', undefined);
+}
+
 /**
  * Spawns a default boss arena at the given center with a specified radius.
  * Defaults to forming state (state 1) with a standard forming duration.

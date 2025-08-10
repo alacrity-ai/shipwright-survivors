@@ -14,6 +14,7 @@ import type { StatusEffectType } from '@/game/ship/interfaces/ShipStatusEffects'
 import type { StatusEffect } from '@/game/ship/status/StatusEffect';
 import type { ArtifactEffectMetadata } from '@/game/ship/artifacts/interfaces/ArtifactEffectMetadata';
 import type { ShipBuilderEffectsSystem } from '@/systems/fx/ShipBuilderEffectsSystem';
+import type { CreateBlockParams } from '@/game/blocks/system/BlockOrchestrator';
 
 import { autoPlaceBlock } from '@/systems/autoplacement/autoPlaceUtils';
 import { hashStringToInt32 } from '@/shared/hashUtils';
@@ -105,6 +106,83 @@ export class Ship extends CompositeBlockObject {
   private rasterizedTextureSize: { width: number; height: number } = { width: 0, height: 0 };
   private rasterDirty: boolean = true; // true means "must rerasterize"
 
+  // ── Bulk placement scratch (GC-neutral, grown geometrically) ─────────────
+  private scratchCreateParams: CreateBlockParams[] = new Array(128);  // reused objects
+  private scratchCreateCount = 0;
+
+  private scratchHP: Int32Array         = new Int32Array(128);
+  private scratchFlags: Uint8Array      = new Uint8Array(128);   // bitmask: 1=engine, 2=fin, 4=fuelTank, 8=hasShield
+  private scratchHarvest: Float32Array  = new Float32Array(128); // 0 if none
+  private scratchHalo: (any | null)[]   = new Array(128);        // references reused in place
+  private scratchSeekerTier: Uint8Array = new Uint8Array(128);   // preseed for heat seekers
+
+  // ────────────────────────────────────────────────────────────────────────
+
+  private static makeCreateParams(): CreateBlockParams {
+    return {
+      ownerShipId: 0,
+      ownerFaction: 0,
+      typeIndex: 0,
+      group: 0,
+      localX: 0,
+      localY: 0,
+      localRotation: 0,
+      overlayRotation: 0,
+      blockTypeId: '',
+    };
+  }
+
+  private ensureBulkCapacity(cap: number): void {
+    // 1) Grow array if needed
+    if (this.scratchCreateParams.length < cap) {
+      let newCap = this.scratchCreateParams.length || 128;
+      while (newCap < cap) newCap <<= 1;
+
+      const old = this.scratchCreateParams;
+      const next: CreateBlockParams[] = new Array(newCap);
+      // copy old
+      for (let i = 0; i < old.length; i++) next[i] = old[i];
+      // init new
+      for (let i = old.length; i < newCap; i++) next[i] = Ship.makeCreateParams();
+      this.scratchCreateParams = next;
+
+      // grow halo side-array to same length
+      const haloNext: (any | null)[] = new Array(newCap);
+      for (let i = 0; i < this.scratchHalo.length; i++) haloNext[i] = this.scratchHalo[i] ?? null;
+      for (let i = this.scratchHalo.length; i < newCap; i++) haloNext[i] = null;
+      this.scratchHalo = haloNext;
+    }
+
+    // 2) Grow typed buffers geometrically
+    const grow = <T extends Int32Array | Uint8Array | Float32Array>(buf: T, Ctor: any): T => {
+      if (buf.length >= cap) return buf;
+      let newCap = buf.length || 128;
+      while (newCap < cap) newCap <<= 1;
+      const next = new Ctor(newCap);
+      next.set(buf);
+      return next as T;
+    };
+    this.scratchHP         = grow(this.scratchHP, Int32Array);
+    this.scratchFlags      = grow(this.scratchFlags, Uint8Array);
+    this.scratchHarvest    = grow(this.scratchHarvest, Float32Array);
+    this.scratchSeekerTier = grow(this.scratchSeekerTier, Uint8Array);
+    if (this.scratchHalo.length < cap) {
+      let newCap = this.scratchHalo.length || 128;
+      while (newCap < cap) newCap <<= 1;
+      const haloNext: (any | null)[] = new Array(newCap);
+      for (let i = 0; i < this.scratchHalo.length; i++) haloNext[i] = this.scratchHalo[i] ?? null;
+      for (let i = this.scratchHalo.length; i < newCap; i++) haloNext[i] = null;
+      this.scratchHalo = haloNext;
+    }
+
+    // 3) **Backfill holes up to `cap` even if we didn't grow.**
+    //    This covers the case where the pool was created via `new Array(128)` (holes).
+    const arr = this.scratchCreateParams;
+    for (let i = 0; i < cap; i++) {
+      if (arr[i] === undefined) arr[i] = Ship.makeCreateParams();
+    }
+  }
+
   protected override generateId(): { stringId: string; numericId: number } {
     const stringId = 'ship-' + Math.random().toString(36).slice(2, 9);
     const numericId = hashStringToInt32(stringId); // same hash as CompositeBlockObject
@@ -120,6 +198,10 @@ export class Ship extends CompositeBlockObject {
   ) {
     // CompositeBlockObject now handles BlockManager & BlockOrchestrator internally
     super(initialBlocks, initialTransform, faction);
+
+    for (let i = 0; i < this.scratchCreateParams.length; i++) {
+      this.scratchCreateParams[i] = Ship.makeCreateParams();
+    }
 
     this.shieldComponent = new ShieldComponent(this);
     this.afterburnerComponent = new AfterburnerComponent(100, 5);
@@ -970,18 +1052,12 @@ export class Ship extends CompositeBlockObject {
   // === Ship-Specific Block Placement & Removal Overrides ===
 
   public placeBlockById(coord: GridCoord, blockId: string, rotation: number = 0, group: number = 0): boolean {
-    const type = getBlockType(blockId);
-    if (!type) throw new Error(`Unknown block type: ${blockId}`);
-
     // Avoid placing if a block already exists at this grid coordinate
     if (this.hasBlockAt(coord)) {
       return false;
     }
 
-    const durabilityBonus = this.getGlobalPassives().armor ?? 0;
-    const hp = Math.floor(type.armor + durabilityBonus);
-
-    const idx = this.placeBlock(coord, blockId, rotation, group, hp);
+    const idx = this.placeBlock(coord, blockId, rotation, group);
     return idx !== -1;
   }
 
@@ -1002,7 +1078,8 @@ export class Ship extends CompositeBlockObject {
     const store = this.blockManager.getBlockStore();
 
     // Compute HP if not provided
-    const computedHp = hp ?? type.armor;
+    const durabilityBonus = this.getGlobalPassives().armor ?? 0;
+    const computedHp = Math.floor(type.armor + durabilityBonus);
 
     // Allocate block in BlockStore + grid via Orchestrator
     const idx = this.blockOrchestrator.createAndRegisterBlock(
@@ -1233,36 +1310,245 @@ export class Ship extends CompositeBlockObject {
     return visited.size === coordSet.size;
   }
 
+  // public loadFromJson(data: SerializedShip): void {
+  //   const transform = this.getTransform();
+  //   transform.position = data.transform.position;
+  //   transform.rotation = data.transform.rotation;
+
+  //   // Ensure a ship block list exists in orchestrator
+  //   this.blockOrchestrator.ensureShipBlocks(this.numericId);
+
+  //   // Populate blocks via orchestrator
+  //   for (const { coord, id, rotation, group } of data.blocks) {
+  //     this.placeBlockById(coord, id, rotation, group);
+  //   }
+
+  //   // Rebuild derived systems
+  //   this.updateFuelCapacity();
+  //   this.validateFiringPlan();
+  //   this.rebuildHaloBladeIndex();
+  //   this.rebuildEngineBlockIndex();
+  //   this.rebuildFinBlockIndex();
+  //   this.rebuildHeatSeekerIndex();
+
+  //   // Update positions and grid immediately
+  //   this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
+
+  //   // Only register collision box for non-player ships
+  //   if (!this.isPlayerShip) {
+  //     this.registerCollisionBox();
+  //   }
+
+  //   this.markRasterDirty();
+  // }
+
+
   public loadFromJson(data: SerializedShip): void {
     const transform = this.getTransform();
     transform.position = data.transform.position;
     transform.rotation = data.transform.rotation;
 
-    // Ensure a ship block list exists in orchestrator
+    // Ensure ship buffer exists up front
     this.blockOrchestrator.ensureShipBlocks(this.numericId);
 
-    // Populate blocks via orchestrator
-    for (const { coord, id, rotation, group } of data.blocks) {
-      this.placeBlockById(coord, id, rotation, group);
+    // Stage input (convert rotation to radians here if your JSON uses degrees)
+    const staged = data.blocks.map(b => ({
+      coord: b.coord as GridCoord,
+      id: b.id,
+      rotation: b.rotation ?? 0, // ensure radians if needed
+      group: b.group ?? 0,
+      // hp: b.hp, // optional pass-through
+    }));
+
+    // Bulk place — defer recomputes so we do them exactly once below
+    const created = this.placeBlocksBulk(staged, { deferRebuilds: true }); // Uint32Array
+
+    // Seed firing plan for newly-created blocks (no extra allocations)
+    for (let i = 0; i < created.length; i++) {
+      const idx = created[i];
+      this.addWeaponToPlanIfApplicable(idx);
     }
 
-    // Rebuild derived systems
+    // Single finalization pass (order mirrors legacy post-place effects)
     this.updateFuelCapacity();
+    this.invalidateMass();
+    this.recomputeEnergyStats();
+
+    // Now that plan has been seeded, prune and rebuild the index map once
     this.validateFiringPlan();
+
+    // Refresh derived indices that depend on store flags/sets populated in bulk path
     this.rebuildHaloBladeIndex();
     this.rebuildEngineBlockIndex();
     this.rebuildFinBlockIndex();
     this.rebuildHeatSeekerIndex();
 
-    // Update positions and grid immediately
+    // Transform may have changed; push positions + spatial grid update
     this.blockOrchestrator.updateShipBlocks(this.numericId, this.transform);
 
-    // Only register collision box for non-player ships
+    // Register collision only for NPCs
     if (!this.isPlayerShip) {
       this.registerCollisionBox();
     }
 
+    // Effects/secondary caches
+    this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
+    this.shieldComponent.recalculateCoverage();
     this.markRasterDirty();
+  }
+
+  /**
+   * Bulk place blocks from (coord,id,rotation,group[,hp]) records.
+   * Reuses pooled scratch to avoid per-call allocations.
+   * Returns a read-only view of created indices (order preserves staged order).
+   */
+  public placeBlocksBulk(
+    items: ReadonlyArray<{ coord: GridCoord; id: string; rotation?: number; group?: number; hp?: number }>,
+    opts: { deferRebuilds?: boolean } = { deferRebuilds: true }
+  ): Uint32Array {
+    const { deferRebuilds = true } = opts;
+    const total = items.length | 0;
+    if (total === 0) return new Uint32Array(0);
+
+    const orchestrator = this.blockOrchestrator;
+    const store        = this.blockManager.getBlockStore();
+    const factionIndex = FACTION_TO_INDEX[this.faction] | 0;
+    const durabilityBonus = (this.getGlobalPassives().armor ?? 0) | 0;
+
+    // Stage into pools, skipping occupied or unknown types
+    let staged = 0;
+    for (let i = 0; i < total; i++) {
+      const it = items[i];
+      const { coord, id, rotation = 0, group = 0 } = it;
+
+      if (this.hasBlockAt(coord)) continue;  // skip occupied
+
+      const type = getBlockType(id);
+      if (!type) continue;
+
+      const typeIndex = (getBlockIndexByType(id) ?? 0) | 0;
+      const computedHp = (it.hp ?? Math.floor((type.armor ?? 100) + durabilityBonus)) | 0;
+
+      // Ensure capacity before writing
+      this.ensureBulkCapacity(staged + 1);
+
+      // Mutate precreated CreateBlockParams object in-place (no new allocation)
+      const p = this.scratchCreateParams[staged];
+      p.ownerShipId   = this.numericId;
+      p.ownerFaction  = factionIndex;
+      p.typeIndex     = typeIndex;
+      p.group         = group | 0;
+      p.localX        = coord.x | 0;
+      p.localY        = coord.y | 0;
+      p.localRotation = rotation;
+      p.overlayRotation = 0;
+      p.blockTypeId   = id;
+
+      // Scalar side-data for post-create indexing
+      this.scratchHP[staged]      = computedHp;
+      this.scratchHarvest[staged] = (type.behavior?.harvestRate ?? 0);
+
+      let flags = 0;
+      const tags = type.metatags;
+      if (tags && tags.length) {
+        // bitmask: 1=engine, 2=fin, 4=fuelTank
+        if (tags.includes('engine'))   flags |= 1;
+        if (tags.includes('fin'))      flags |= 2;
+        if (tags.includes('fuelTank')) flags |= 4;
+      }
+      if (type.behavior?.shieldRadius) flags |= 8;
+      this.scratchFlags[staged] = flags;
+
+      // Halo (store reference; array is reused)
+      this.scratchHalo[staged] = type.behavior?.haloBladeProperties ?? null;
+
+      // Seeker tier preseed
+      this.scratchSeekerTier[staged] = (type.behavior?.fire?.fireType === 'heatSeeker')
+        ? ((type.tier ?? 0) & 0xff)
+        : 0;
+        
+      staged++;
+    }
+
+    if (staged === 0) return new Uint32Array(0);
+
+    // Bulk create using only the first 'staged' entries from the pool
+    // Slice-free: pass the array and rely on the orchestrator to ignore tail?
+    // Our orchestrator expects an array of length == staged, so clone view logically:
+    // We avoid allocate by temporarily setting length and then restoring.
+    const prevLen = this.scratchCreateParams.length;
+    (this.scratchCreateParams as any).length = staged;
+    const createdIdxView = orchestrator.createAndRegisterBlockBulk(this.scratchCreateParams, this.transform);
+    (this.scratchCreateParams as any).length = prevLen;
+
+    const createdCount = createdIdxView.length | 0;
+    if (createdCount === 0) return createdIdxView;
+
+    // Post-create: single sweep to write HP and wire indices/sets
+    for (let k = 0; k < createdCount; k++) {
+      const idx = createdIdxView[k];
+
+      // HP
+      store.hp[idx] = this.scratchHP[k];
+
+      // Shields
+      if ((this.scratchFlags[k] & 8) !== 0) {
+        this.shieldBlocks.add(idx);
+      }
+
+      // Engines
+      if ((this.scratchFlags[k] & 1) !== 0) {
+        this.engineBlocks.add(idx);
+        this.hadEngines = true;
+      }
+
+      // Fins
+      if ((this.scratchFlags[k] & 2) !== 0) {
+        this.finBlocks.add(idx);
+      }
+
+      // Fuel tanks
+      if ((this.scratchFlags[k] & 4) !== 0) {
+        this.fuelTankBlocks.add(idx);
+      }
+
+      // Harvester
+      const harvest = this.scratchHarvest[k];
+      if (harvest > 0) {
+        this.harvesterBlocks.set(idx, harvest);
+      }
+
+      // Halo
+      const halo = this.scratchHalo[k];
+      if (halo) {
+        this.haloBladeBlocks.set(idx, halo);
+      }
+
+      // Heat seekers
+      const tier = this.scratchSeekerTier[k];
+      if (tier) {
+        this.heatSeekerBlocks.set(idx, tier);
+      }
+
+      // Quest ping for tier 5: avoid re-looking up type; we only have tier for seekers.
+      // If you want general tier-5 ping, add a scratchTier[k] side-channel above and check here.
+    }
+
+    if (!deferRebuilds) {
+      this.updateFuelCapacity();
+      this.invalidateMass();
+      this.recomputeEnergyStats();
+      this.calculateHeatSeekerSmokeEmissionProbability(this.heatSeekerBlocks.size);
+      this.shieldComponent.recalculateCoverage();
+      this.validateFiringPlan();
+      this.rebuildHaloBladeIndex();
+      this.rebuildEngineBlockIndex();
+      this.rebuildFinBlockIndex();
+      this.rebuildHeatSeekerIndex();
+      this.markRasterDirty();
+    }
+
+    return createdIdxView;
   }
 
   public setDestructionCause(cause: string): void {

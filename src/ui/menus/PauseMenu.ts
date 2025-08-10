@@ -109,8 +109,8 @@ export class PauseMenu implements Menu {
       width: this.buttonWidth,
       height: this.buttonHeight,
       label: 'Abandon Mission',
-      onClick: flags.has('mission.intro-briefing.complete') ? this.onAbandon : () => {},
-      style: flags.has('mission.intro-briefing.complete') ? this.sharedStyle : this.disabledStyle
+      onClick: this.onAbandon,
+      style: this.sharedStyle
     };
 
     this.resumeButton = {

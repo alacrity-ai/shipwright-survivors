@@ -13,7 +13,9 @@ import { showBossHealthbar, hideBossHealthbar } from '@/core/interfaces/events/B
 import { emitHudHideAll, emitHudShowAll } from '@/core/interfaces/events/HudReporter';
 import { PlayerQuestManager } from '@/game/player/PlayerQuestManager';
 import { clearAllScreenEdgeIndicators, disableScreenEdgeIndicators } from '@/core/interfaces/events/ScreenEdgeIndicatorReporter';
+import { applyWarmCinematicEffect } from '@/core/interfaces/events/PostProcessingEffectReporter';
 
+import { clearBossArena } from '@/core/interfaces/events/BossReporter';
 import { missionLoader } from '@/game/missions/MissionLoader';
 import { audioManager } from '@/audio/Audio';
 import { applyShipColorPreset, ShipColorPreset } from '../ship/utils/shipColorHelpers';
@@ -96,6 +98,12 @@ export class BossOrchestrator {
   public onDeathCallback(): void {
     reportTitle('THREAT NEUTRALIZED', '', 3.8, 0.75, 'center', '#ffddff');
     this.shipDestroyed = true;
+    
+    // Set shader back to default
+    applyWarmCinematicEffect();
+
+    // Destroy arena
+    clearBossArena();
 
     // Quest completion
     const missionDef = missionLoader.getMission();

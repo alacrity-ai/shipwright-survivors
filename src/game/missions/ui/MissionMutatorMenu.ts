@@ -5,7 +5,6 @@
 // • Single-pass scaling (logical units × uiScale at render/layout only)
 // • Right-anchored, vertically centered
 // • Inline row labels with wider window
-// • No gamepad/navmap; Escape closes
 
 import { CanvasManager } from '@/core/CanvasManager';
 import type { InputManager } from '@/core/InputManager';
@@ -20,14 +19,23 @@ import { audioManager } from '@/audio/Audio';
 
 import { missionLoader } from '../MissionLoader';
 
-type Trio = 'Normal' | 'High' | 'Catastrophic';
+// ──────────────────────────────────────────
+// Tiers (now 4): Calm, Normal, High, Catastrophic
+// ──────────────────────────────────────────
+export type MutatorTier = 'Calm' | 'Normal' | 'High' | 'Catastrophic';
 const styleOf = (btn: UIButton) => (btn.style ??= {});
 
 // ──────────────────────────────────────────
 // Progressive chroma for difficulty readouts
-// (cool/teal → amber → magenta/red)
+// (cool/teal → neutral → amber → magenta/red)
 // ──────────────────────────────────────────
-const SCHEMES: Record<Trio, { fill: string; border: string; text: string; alpha: number }> = {
+const SCHEMES: Record<MutatorTier, { fill: string; border: string; text: string; alpha: number }> = {
+  Calm: {
+    fill  : '#071A11',   // deep green/teal base
+    border: '#41E6A3',   // mint/teal
+    text  : '#C9FFE6',   // pale mint
+    alpha : 0.52,
+  },
   Normal: {
     fill  : '#08222A',   // deep teal
     border: '#23D9E2',   // cyan-teal
@@ -63,20 +71,20 @@ export class MissionMutatorMenu {
   private hoverPulseT = 0;
   private lastHovered: UIButton | null = null;
 
-  private readonly choices: Trio[] = ['Normal', 'High', 'Catastrophic'];
+  private readonly choices: MutatorTier[] = ['Calm', 'Normal', 'High', 'Catastrophic'];
   private densityIdx = 0;
   private intensityIdx = 0;
 
   // ──────────────────────────────────────────
   // Layout (logical units; scale applied at render/layout only)
   // ──────────────────────────────────────────
-  private readonly MARGIN_R = 16;   // right margin (to canvas edge)
+  private readonly MARGIN_R = 16;
   private readonly PAD_X = 16;
   private readonly PAD_Y = 16;
 
-  // ⬇Wider window + label column so long labels don't crowd controls
-  private readonly WINDOW_W = 420;  // was 360
-  private readonly LABEL_W  = 220;  // reserved label column on the left
+  // Wider window + label column so long labels don't crowd controls
+  private readonly WINDOW_W = 420;
+  private readonly LABEL_W  = 220;
 
   private readonly TITLE_H = 24;
   private readonly ROW_H   = 48;
@@ -84,7 +92,7 @@ export class MissionMutatorMenu {
 
   private readonly ARROW_W = 44;
   private readonly ARROW_H = 36;
-  private readonly VALUE_W = 170;   // slightly wider center well
+  private readonly VALUE_W = 170;
 
   // Computed (screen px after scaling)
   private winX = 0; private winY = 0;
@@ -106,10 +114,14 @@ export class MissionMutatorMenu {
     this.intensityLeft = this.makeArrowBtn('◀', () => this.bumpIntensity(-1));
     this.intensityRight= this.makeArrowBtn('▶', () => this.bumpIntensity(+1));
 
-    // Set density and intensity to defaults when instantiated
-    const store = missionLoader;
-    store.setDensity('Normal');
-    store.setIntensity('Normal');
+    // Establish defaults in the backing store (kept as "Normal").
+    missionLoader.setDensity('Normal' as MutatorTier);
+    missionLoader.setIntensity('Normal' as MutatorTier);
+
+    // Ensure the cyclers visually reflect the default.
+    const normalIdx = this.choices.indexOf('Normal');
+    this.densityIdx = normalIdx >= 0 ? normalIdx : 1;
+    this.intensityIdx = normalIdx >= 0 ? normalIdx : 1;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -131,7 +143,7 @@ export class MissionMutatorMenu {
 
   isOpen(): boolean { return this.open; }
 
-  getCurrentSettings(): { swarmDensity: Trio; swarmIntensity: Trio } {
+  getCurrentSettings(): { swarmDensity: MutatorTier; swarmIntensity: MutatorTier } {
     return {
       swarmDensity : this.choices[this.densityIdx],
       swarmIntensity: this.choices[this.intensityIdx],
@@ -246,7 +258,7 @@ export class MissionMutatorMenu {
     x: number,
     y: number,
     label: string,
-    value: Trio,
+    value: MutatorTier,
     leftBtn: UIButton,
     rightBtn: UIButton,
   ): void {
@@ -309,7 +321,7 @@ export class MissionMutatorMenu {
   // ═══════════════════════════════════════════════════════════════════════════
 
   private makeArrowBtn(label: string, onClick: () => void): UIButton {
-    // Store LOGICAL geometry; render() will assign scaled rects each frame.
+    // Store LOGICAL geometry; render() assigns scaled rects each frame.
     const scale = getUniformScaleFactor();
     return {
       x: 0, y: 0,
@@ -322,26 +334,28 @@ export class MissionMutatorMenu {
       disabled: false,
       style: {
         ...DEFAULT_CONFIG.button.style,
-        textFont: `${14 * scale}px monospace`, // logical → scaled at creation for your UIButton impl
+        textFont: `${14 * scale}px monospace`,
         borderRadius: 4 * scale,
       },
     };
   }
 
   private bumpDensity(delta: number): void {
-    this.densityIdx = this.modTri(this.densityIdx + delta);
+    this.densityIdx = this.mod(this.densityIdx + delta, this.choices.length);
     audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 8 });
     missionLoader.setDensity(this.choices[this.densityIdx]);
   }
 
   private bumpIntensity(delta: number): void {
-    this.intensityIdx = this.modTri(this.intensityIdx + delta);
+    this.intensityIdx = this.mod(this.intensityIdx + delta, this.choices.length);
     audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 8 });
     missionLoader.setIntensity(this.choices[this.intensityIdx]);
   }
 
-  private modTri(v: number): number {
-    return (v % 3 + 3) % 3;
+  private mod(v: number, n: number): number {
+    // Safe modulo for positive wrap on arbitrary tier count
+    const m = v % n;
+    return m < 0 ? m + n : m;
   }
 
   private resize(): void {
