@@ -113,7 +113,7 @@ export class PassiveTreeUIController {
   }
 
   public isHoveringInteractive(): boolean {
-    return !!this.hoveredNodeId;
+    return !!this.hoveredNodeId || this.breakdownWindow.isCollapseButtonHovered;
   }
 
   public update(dtSeconds: number): void {

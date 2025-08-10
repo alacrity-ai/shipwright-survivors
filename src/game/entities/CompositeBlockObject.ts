@@ -503,6 +503,11 @@ export abstract class CompositeBlockObject {
     this.invalidateMass();
   }
 
+  public removeBlockByIndex(idx: number): void {
+    // Free from BlockStore + deregister from BlockSpatialGrid
+    this.blockOrchestrator.destroyBlock(idx);
+  }
+
   /**
    * Removes multiple blocks by their local grid coordinates.
    * Operates entirely on SOA indices — no BlockInstance.

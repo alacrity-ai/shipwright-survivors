@@ -87,6 +87,19 @@ export class BlockOrchestrator {
   private static SCRATCH_SHIP_GROUP: Uint32Array = new Uint32Array(2048);
   private scratchCountShipGroup = 0;
 
+  // ── Pooled scratch for clearShip ─────────────────────────────
+  private scratchClearShip: Uint32Array = new Uint32Array(1024);      // indices to remove (per-cell)
+  private scratchAffectedCells: Uint32Array = new Uint32Array(128);   // unique cell keys touched by this ship
+  private scratchAffectedCellsCount = 0;
+
+  private ensureU32Capacity(buf: Uint32Array, needed: number, minStart = 128): Uint32Array {
+    if (buf.length >= needed) return buf;
+    // Geometric growth; avoid tiny sizes
+    let cap = Math.max(buf.length || minStart, minStart);
+    while (cap < needed) cap <<= 1;
+    return new Uint32Array(cap);
+  }
+
   constructor(store: BlockStore, grid: BlockSpatialGrid, registry?: BlockRegistry) {
     this.store = store;
     this.grid = grid;
@@ -295,10 +308,6 @@ export class BlockOrchestrator {
   updateWorldPositions(shipId: number, transform: BlockEntityTransform): void {
     const blockIndices = this.shipBlocks.get(shipId);
 
-    if (!this.lightingOrchestrator) {
-      return;
-    }
-
     if (!blockIndices) {
       return; // Ship has no blocks
     }
@@ -332,7 +341,7 @@ export class BlockOrchestrator {
 
       // If light, update its position
       if (this.store.lightId[blockIndex] !== -1) {
-        this.lightingOrchestrator.updateLight(this.store.lightId[blockIndex], {
+        this.lightingOrchestrator!.updateLight(this.store.lightId[blockIndex], {
           x: this.store.worldX[blockIndex],
           y: this.store.worldY[blockIndex],
         });
@@ -537,10 +546,10 @@ export class BlockOrchestrator {
     );
   }
 
-  /**
+/**
    * Removes all blocks for a specific ship.
    * Uses BlockSpatialGrid.bulkRemoveBlocks to avoid swap-with-last corruption.
-   * GC-neutral and allocation-free.
+   * GC-neutral via pooled scratch buffers.
    * @param shipId Ship ID to clear
    */
   clearShip(shipId: number): void {
@@ -548,46 +557,73 @@ export class BlockOrchestrator {
     const count = this.shipBlockCounts.get(shipId) ?? 0;
     if (!blockIndices || count === 0) return;
 
-    const grid = this.grid as any;
+    const grid  = this.grid as any;
     const store = this.store;
 
-    const affectedCells = new Set<number>();
+    // Hot references (no GC impact, just fewer property walks)
+    const blockToCellKey: Uint32Array | Int32Array = grid.blockToCellKey;
+    const cells = grid.cells;
+    const cellCounts = grid.cellCounts;
+
+    // Ensure pooled buffers are large enough for worst-case usage in this call
+    this.scratchClearShip     = this.ensureU32Capacity(this.scratchClearShip, count);
+    this.scratchAffectedCells = this.ensureU32Capacity(this.scratchAffectedCells, count);
+    this.scratchAffectedCellsCount = 0;
+
+    // 1) Collect unique affected cell keys (pooled linear de-dupe)
+    //    In practice, #unique cells per ship is far smaller than block count.
     for (let i = 0; i < count; i++) {
-      const idx = blockIndices[i];
-      const cellKey = grid.blockToCellKey[idx];
-      if (cellKey !== -1) affectedCells.add(cellKey);
+      const idx     = blockIndices[i];
+      const cellKey = blockToCellKey[idx];
+      if (cellKey === -1) continue;
+
+      // Linear de-dupe into scratchAffectedCells[0..scratchAffectedCellsCount)
+      let found = false;
+      for (let k = 0; k < this.scratchAffectedCellsCount; k++) {
+        if (this.scratchAffectedCells[k] === cellKey) { found = true; break; }
+      }
+      if (!found) {
+        if (this.scratchAffectedCellsCount >= this.scratchAffectedCells.length) {
+          this.scratchAffectedCells = this.ensureU32Capacity(this.scratchAffectedCells, this.scratchAffectedCellsCount + 1);
+        }
+        this.scratchAffectedCells[this.scratchAffectedCellsCount++] = cellKey;
+      }
     }
 
-    const scratch = new Uint32Array(count);
-
-    for (const cellKey of affectedCells) {
-      const cellBlocks = grid.cells.get(cellKey);
-      const cellCount = grid.cellCounts.get(cellKey) ?? 0;
+    // 2) For each affected cell, compact a removal list into the pooled buffer and bulk-remove
+    for (let c = 0; c < this.scratchAffectedCellsCount; c++) {
+      const cellKey    = this.scratchAffectedCells[c];
+      const cellBlocks = cells.get(cellKey);
+      const cellCount  = cellCounts.get(cellKey) ?? 0;
       if (!cellBlocks || cellCount === 0) continue;
 
       let removeCount = 0;
+      // Collect this ship's indices that currently live in this cell
       for (let i = 0; i < count; i++) {
         const idx = blockIndices[i];
-        if (grid.blockToCellKey[idx] === cellKey) {
-          scratch[removeCount++] = idx;
+        if (blockToCellKey[idx] === cellKey) {
+          this.scratchClearShip[removeCount++] = idx;
         }
       }
 
       if (removeCount > 0) {
-        this.grid.bulkRemoveBlocks(cellKey, scratch, removeCount);
+        this.grid.bulkRemoveBlocks(cellKey, this.scratchClearShip, removeCount);
       }
     }
 
+    // 3) Remove lights and free indices in the store
     for (let i = 0; i < count; i++) {
-      if (this.store.lightId[blockIndices[i]] !== -1) {
-        this.lightingOrchestrator?.removeLight(this.store.lightId[blockIndices[i]]);
+      const idx = blockIndices[i];
+      const lightId = store.lightId[idx];
+      if (lightId !== -1) {
+        this.lightingOrchestrator?.removeLight(lightId);
       }
-      this.store.freeIndex(blockIndices[i]);
+      store.freeIndex(idx);
     }
 
+    // 4) Reset ship block count (buffer is retained for reuse)
     this.shipBlockCounts.set(shipId, 0);
   }
-
 
   /**
    * Clears all blocks and resets all ship lists.
@@ -710,10 +746,6 @@ export class BlockOrchestrator {
     const count = this.shipBlockCounts.get(shipId) ?? 0;
 
     if (!blocks || count === 0) {
-      return;
-    }
-
-    if (!this.lightingOrchestrator) {
       return;
     }
 

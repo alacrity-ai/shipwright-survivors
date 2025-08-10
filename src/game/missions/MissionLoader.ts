@@ -9,8 +9,8 @@ import { audioManager } from '@/audio/Audio';
 class MissionLoader {
   private currentMission: MissionDefinition | null = null;
 
-  private density: 0.5 | 1.0 | 2.0 = 0.5;
-  private intensity: 0.5 | 1.0 | 2.0 = 0.5;
+  private density: 0.5 | 1.0 | 1.5 = 0.5;
+  private intensity: 0.5 | 1.0 | 1.5 = 0.5;
 
   setMission(mission: MissionDefinition) {
     this.currentMission = mission;
@@ -51,11 +51,11 @@ class MissionLoader {
   }
 
   setDensity(density: 'Normal' | 'High' | 'Catastrophic') {
-    this.density = density === 'Normal' ? 0.5 : density === 'High' ? 1.0 : 2.0;
+    this.density = density === 'Normal' ? 0.5 : density === 'High' ? 1.0 : 1.5;
   }
 
   setIntensity(intensity: 'Normal' | 'High' | 'Catastrophic') {
-    this.intensity = intensity === 'Normal' ? 0.5 : intensity === 'High' ? 1.0 : 2.0;
+    this.intensity = intensity === 'Normal' ? 0.5 : intensity === 'High' ? 1.0 : 1.5;
   }
 
   getDensity(): number {
