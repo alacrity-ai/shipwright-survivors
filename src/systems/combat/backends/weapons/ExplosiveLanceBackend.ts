@@ -32,49 +32,27 @@ import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 const DETONATION_DELAY = 1.5;
 
 export interface ActiveExplosiveLance {
-  /** Current world-space position of the lance projectile */
   position: { x: number; y: number };
-  /** Current world-space velocity */
   velocity: { x: number; y: number };
-  /** Direct impact damage dealt on hit */
   fireDamage: number;
-  /** Explosion AoE damage */
   explosionDamage: number;
-  /** Explosion AoE radius in grid cells (not pixels) */
-  explosionRadius: number;
-  /** Delay before detonation once stuck (seconds) */
+  explosionRadius: number; // in grid cells
   detonationDelay: number;
-  /** Time elapsed since sticking to target */
   elapsed: number;
-  /** Whether the lance has embedded into a target */
   stuck: boolean;
-  /** Index into BlockStore for the block it’s stuck to. */
   targetBlockIndex: number | null;
-  /** Composite object (Ship, Station, etc.) owning the target block */
   targetShip: CompositeBlockObject | null;
-  /** Local grid coordinate of the target block (on targetShip) */
   coord: GridCoord | null;
-  /** Numeric ID of the ship that fired this lance */
   ownerShipId: number;
-  /** Particle handle used for rendering trail/stuck visuals */
   particleHandle: number;
-  /** Original particle size (used when scaling while stuck) */
   particleOriginalSize: number;
-  /** Anchor offset relative to targetShip origin (for stuck positioning) */
   anchorOffset?: { x: number; y: number };
-  /** Time-to-live (seconds) before despawning naturally */
   ttl: number;
-  /** Accumulated lifetime so far (seconds) */
   age: number;
-  /** Particle emission accumulator for moving trail */
   emissionAccumulatorTrail: number;
-  /** Particle emission accumulator for when stuck */
   emissionAccumulatorStuck: number;
-  /** Block's tier (for color palette lookups) */
   firingBlockTier: number;
-  /** Associated light ID (if any) for point light visuals */
   lightId: number | null;
-  /** Internal timer for radiate effects (if applicable) */
   radiateTimer?: number;
 }
 
@@ -102,8 +80,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       store.subcategoryCode[entry.blockIndex] === BlockSubcategoryEnum.ExplosiveLance
     );
 
-    if (plan.length === 0) return;
-
+    // Read intent / bonuses up-front
     const target = intent?.aimAt;
     const fireRequested = intent?.firePrimary ?? false;
 
@@ -116,122 +93,151 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const { baseDamageMultiplier = 1 } = ship.getPowerupBonus();
     const totalDamageBonus = baseDamageMultiplier;
 
-    for (let i = plan.length - 1; i >= 0; i--) {
-      const lance = plan[i];
-      lance.timeSinceLastShot += dt;
+    // ── Fire new lances (only if we have weapons). Crucially: do NOT early-return here.
+    if (plan.length > 0 && fireRequested && target) {
+      for (let i = plan.length - 1; i >= 0; i--) {
+        const lance = plan[i];
+        lance.timeSinceLastShot += dt;
 
-      // Check cooldown relative to bonuses
-      if (!fireRequested || lance.timeSinceLastShot < lance.fireCooldown / fireRateBonus) continue;
-      lance.timeSinceLastShot = 0;
+        // Check cooldown relative to bonuses
+        if (lance.timeSinceLastShot < lance.fireCooldown / fireRateBonus) continue;
+        lance.timeSinceLastShot = 0;
 
-      const idx = lance.blockIndex;
+        const idx = lance.blockIndex;
 
-      // Pull pre-flattened fire attributes from SOA (no registry lookup)
-      const lifetime = store.projectileLifetime[idx] + (explosiveLanceRange * 0.001);
-      const fireDamage = store.fireDamage[idx];
-      const explosionDamage = (store.explosionDamage[idx] * totalDamageBonus) + explosiveLanceDamage;
-      const explosionRadius = (store.explosionRadiusBlocks[idx] || 2) * radiusBonus;
-      const projectileSpeed = store.projectileSpeed[idx] || 300;
-      const detonationDelay = DETONATION_DELAY;
+        // Pre-flattened attributes from SOA
+        const lifetime = store.projectileLifetime[idx] + (explosiveLanceRange * 0.001);
+        const fireDamage = store.fireDamage[idx];
+        const explosionDamage = (store.explosionDamage[idx] * totalDamageBonus) + explosiveLanceDamage;
+        const explosionRadius = (store.explosionRadiusBlocks[idx] || 2) * radiusBonus;
+        const projectileSpeed = store.projectileSpeed[idx] || 300;
+        const detonationDelay = DETONATION_DELAY;
 
-      const { x: cx, y: cy } = lance.coord;
+        const { x: cx, y: cy } = lance.coord;
 
-      const cos = Math.cos(transform.rotation);
-      const sin = Math.sin(transform.rotation);
-      const localX = cx * 32;
-      const localY = cy * 32;
-      const worldX = transform.position.x + localX * cos - localY * sin;
-      const worldY = transform.position.y + localX * sin + localY * cos;
+        const cos = Math.cos(transform.rotation);
+        const sin = Math.sin(transform.rotation);
+        const localX = cx * 32;
+        const localY = cy * 32;
+        const worldX = transform.position.x + localX * cos - localY * sin;
+        const worldY = transform.position.y + localX * sin + localY * cos;
 
-      const dx = target!.x - worldX;
-      const dy = target!.y - worldY;
-      const mag = Math.sqrt(dx * dx + dy * dy);
-      if (mag === 0) continue;
+        const dx = target.x - worldX;
+        const dy = target.y - worldY;
+        const mag = Math.sqrt(dx * dx + dy * dy);
+        if (mag === 0) continue;
 
-      let angle = Math.atan2(dy, dx);
-      const accuracy = 1; // store doesn’t currently flatten accuracy; default to 1 (perfect) unless you add it
-      const spread = (1 - accuracy) * Math.PI / 8;
-      angle += (Math.random() * 2 - 1) * spread;
+        let angle = Math.atan2(dy, dx);
+        const accuracy = 1; // default to perfect (flatten if you add it)
+        const spread = (1 - accuracy) * Math.PI / 8;
+        angle += (Math.random() * 2 - 1) * spread;
 
-      const vx = Math.cos(angle) * projectileSpeed;
-      const vy = Math.sin(angle) * projectileSpeed;
+        const vx = Math.cos(angle) * projectileSpeed;
+        const vy = Math.sin(angle) * projectileSpeed;
 
-      // Color palette keyed by typeIndex (atlas key) rather than BlockType
-      const colors = EXPLOSIVE_LANCE_COLOR_PALETTES[store.atlasKey[idx]] ?? ['#ccc', '#aaa', '#888'];
+        // Palette by typeIndex (atlas key)
+        const colors = EXPLOSIVE_LANCE_COLOR_PALETTES[store.atlasKey[idx]] ?? ['#ccc', '#aaa', '#888'];
 
-      const particleHandle = this.particleManager.emitParticleWithHandle({ x: worldX, y: worldY }, {
-        colors,
-        baseSpeed: 0,
-        sizeRange: [4, 4],
-        lifeRange: [store.projectileLifetime[idx], store.projectileLifetime[idx] + 0.1],
-        velocity: { x: vx, y: vy },
-      });
+        const particleHandle = this.particleManager.emitParticleWithHandle({ x: worldX, y: worldY }, {
+          colors,
+          baseSpeed: 0,
+          sizeRange: [4, 4],
+          lifeRange: [store.projectileLifetime[idx], store.projectileLifetime[idx] + 0.1],
+          velocity: { x: vx, y: vy },
+        });
 
-      const lightId = createPointLight({
-        x: worldX,
-        y: worldY,
-        radius: 600,
-        color: colors[0],
-        intensity: 0.9,
-        life: lifetime + 0.4,
-        expires: true,
-      }, `explosive-lance-${ship.id}`);
+        const lightId = createPointLight({
+          x: worldX,
+          y: worldY,
+          radius: 600,
+          color: colors[0],
+          intensity: 0.9,
+          life: lifetime + 0.4,
+          expires: true,
+        }, `explosive-lance-${ship.id}`);
 
-      const playerShip = ShipRegistry.getInstance().getPlayerShip();
-      playSpatialSfx(ship, playerShip, {
-        file: 'assets/sounds/sfx/weapons/lance_00.wav',
-        channel: 'sfx',
-        baseVolume: 0.7,
-        pitchRange: [1.0, 1.3],
-        volumeJitter: 0.1,
-        maxSimultaneous: 3,
-      });
+        const playerShip = ShipRegistry.getInstance().getPlayerShip();
+        playSpatialSfx(ship, playerShip, {
+          file: 'assets/sounds/sfx/weapons/lance_00.wav',
+          channel: 'sfx',
+          baseVolume: 0.7,
+          pitchRange: [1.0, 1.3],
+          volumeJitter: 0.1,
+          maxSimultaneous: 3,
+        });
 
-      this.activeLances.push({
-        position: { x: worldX, y: worldY },
-        velocity: { x: vx, y: vy },
-        fireDamage,
-        explosionDamage,
-        explosionRadius,
-        detonationDelay,
-        elapsed: 0,
-        stuck: false,
-        targetBlockIndex: null,
-        targetShip: null,
-        coord: null,
-        ownerShipId: ship.numericId,
-        particleHandle,
-        particleOriginalSize: 4,
-        ttl: lifetime,
-        age: 0,
-        emissionAccumulatorTrail: 0,
-        emissionAccumulatorStuck: 0,
-        firingBlockTier: store.tier[idx], // Use tier for color lookups
-        lightId,
-      });
+        this.activeLances.push({
+          position: { x: worldX, y: worldY },
+          velocity: { x: vx, y: vy },
+          fireDamage,
+          explosionDamage,
+          explosionRadius,
+          detonationDelay,
+          elapsed: 0,
+          stuck: false,
+          targetBlockIndex: null,
+          targetShip: null,
+          coord: null,
+          ownerShipId: ship.numericId,
+          particleHandle,
+          particleOriginalSize: 4,
+          ttl: lifetime,
+          age: 0,
+          emissionAccumulatorTrail: 0,
+          emissionAccumulatorStuck: 0,
+          firingBlockTier: store.tier[idx],
+          lightId,
+        });
+      }
     }
 
+    // Always advance existing lances, regardless of weapon/ship state.
     this.updateLances(dt, ship);
+  }
+
+  // GC-neutral validation for whether the stuck block no longer exists / is invalid
+  private isTargetBlockGone(lance: ActiveExplosiveLance): boolean {
+    const idx = lance.targetBlockIndex;
+    if (idx == null) return true;
+
+    // Typed as any to avoid depending on optional fields at compile-time
+    const s: any = this.store;
+
+    // 1) Explicit existence bit (if present)
+    if (s.exists && s.exists[idx] === 0) return true;
+
+    // 2) HP array (if present)
+    if (s.hp && s.hp[idx] <= 0) return true;
+
+    // 3) Owner mismatch implies index was recycled or block migrated
+    if (lance.targetShip && this.store.ownerShipId[idx] !== (lance.targetShip as any).numericId) return true;
+
+    // 4) Coord mismatch (block at index no longer at the recorded local cell)
+    if (lance.coord) {
+      if (this.store.localX[idx] !== lance.coord.x || this.store.localY[idx] !== lance.coord.y) return true;
+    }
+
+    return false;
   }
 
   private updateLances(dt: number, ship: Ship): void {
     const exploded = new Set<ActiveExplosiveLance>();
-    const { 
-      explosiveLanceRadiate = false, 
+    const {
+      explosiveLanceRadiate = false,
       explosiveLanceElectrocution = false,
       explosiveLanceLifesteal = false,
     } = ship.getSkillEffects();
 
     const grid = BlockManager.getInstance().getBlockSpatialGrid();
-    const store = this.store; // cached in constructor
+    const store = this.store;
 
     for (const lance of this.activeLances) {
       lance.age += dt;
 
-      // Use tier-based palette for trails
+      // Trail emission (tier-based palette)
       const trailColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ?? ['#ccc', '#aaa', '#888'];
       lance.emissionAccumulatorTrail += dt * 20;
-      const trailCount = Math.floor(lance.emissionAccumulatorTrail);
+      const trailCount = (lance.emissionAccumulatorTrail | 0);
       lance.emissionAccumulatorTrail -= trailCount;
       for (let i = 0; i < trailCount; i++) {
         this.particleManager.emitParticle(lance.position, {
@@ -243,183 +249,196 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         });
       }
 
-      // Expire free-flying lances
-      if (lance.age > lance.ttl && !lance.stuck) {
-        this.particleManager.killParticle(lance.particleHandle);
+      // Free-flight expiry (non-stuck lances may simply dissipate)
+      if (!lance.stuck) {
+        if (lance.age > lance.ttl) {
+          this.particleManager.killParticle(lance.particleHandle);
+          exploded.add(lance);
+          continue;
+        }
+
+        // Integrate motion
+        lance.position.x += lance.velocity.x * dt;
+        lance.position.y += lance.velocity.y * dt;
+
+        if (lance.lightId) {
+          this.lightingOrchestrator.updateLight(lance.lightId, {
+            x: lance.position.x,
+            y: lance.position.y,
+          });
+        }
+
+        // Broad-phase collision
+        const queryRadius = 32;
+        const hits = grid.getBlocksInArea(
+          lance.position.x - queryRadius,
+          lance.position.y - queryRadius,
+          lance.position.x + queryRadius,
+          lance.position.y + queryRadius
+        );
+
+        for (let i = 0; i < hits.length; i++) {
+          const idx = hits[i];
+          if (store.ownerShipId[idx] === lance.ownerShipId) continue;
+
+          const bx = store.worldX[idx];
+          const by = store.worldY[idx];
+          const dx = lance.position.x - bx;
+          const dy = lance.position.y - by;
+          if (dx * dx + dy * dy >= queryRadius * queryRadius) continue;
+
+          // Resolve owning object and block coordinates
+          const compositeBlockObject = findObjectByBlock(idx);
+          const coord = compositeBlockObject
+            ? findBlockCoordinatesInObject(idx, compositeBlockObject)
+            : null;
+
+          if (!compositeBlockObject || !coord || compositeBlockObject.isNoClip()) {
+            continue;
+          }
+
+          // Stick
+          lance.stuck = true;
+          lance.radiateTimer = 0;
+          lance.targetBlockIndex = idx;
+          lance.targetShip = compositeBlockObject;
+          lance.coord = coord;
+
+          if (explosiveLanceElectrocution && compositeBlockObject instanceof Ship) {
+            compositeBlockObject.addStatusEffect('electrocuted', 8, ship, 1);
+          }
+
+          const shipPos = compositeBlockObject.getTransform().position;
+          lance.anchorOffset = {
+            x: lance.position.x - shipPos.x,
+            y: lance.position.y - shipPos.y,
+          };
+
+          lance.velocity.x = 0; lance.velocity.y = 0;
+          this.particleManager.setParticleVelocity(lance.particleHandle, 0, 0);
+          this.particleManager.extendParticleLife(lance.particleHandle, lance.detonationDelay + 0.2);
+          this.particleManager.setParticleSize(lance.particleHandle, lance.particleOriginalSize * 1.25);
+
+          const playerShip = ShipRegistry.getInstance().getPlayerShip();
+          if (playerShip) {
+            playSpatialSfx(playerShip, ship, {
+              file: 'assets/sounds/sfx/weapons/lance_01.wav',
+              channel: 'sfx',
+              baseVolume: 0.85,
+              pitchRange: [1.0, 1.3],
+              volumeJitter: 0.1,
+              maxSimultaneous: 5,
+            });
+          }
+          shakeCamera(6, 0.16, 10, 'explosiveLance');
+
+          // Immediate impact damage
+          const destroyed = this.combatService.applyDamageToBlock(
+            compositeBlockObject,
+            ship,
+            idx,
+            coord,
+            lance.fireDamage,
+            'explosiveLance'
+          );
+
+          if (destroyed) {
+            this.explodeLance(lance, ship);
+            exploded.add(lance);
+            break;
+          }
+        }
+
+        // Done with free-flight loop for this lance
+        continue;
+      }
+
+      // ── Stuck behavior ───────────────────────────────────────────────────
+
+      // Keep the particle anchored to ship origin (no allocs)
+      if (lance.targetShip && lance.anchorOffset) {
+        const shipPos = lance.targetShip.getTransform().position;
+        lance.position.x = shipPos.x + lance.anchorOffset.x;
+        lance.position.y = shipPos.y + lance.anchorOffset.y;
+        this.particleManager.setParticlePosition(
+          lance.particleHandle,
+          lance.position.x,
+          lance.position.y
+        );
+      }
+
+      // Optional radiate bursts
+      if (explosiveLanceRadiate && lance.radiateTimer != null) {
+        lance.radiateTimer += dt;
+        if (lance.radiateTimer >= 0.5) {
+          this.emitProjectileBurst(ship, lance, 8, 1000);
+          lance.radiateTimer = 0;
+        }
+      }
+
+      // Stuck particle emission
+      lance.emissionAccumulatorStuck += dt * 20;
+      const stuckCount = (lance.emissionAccumulatorStuck | 0);
+      lance.emissionAccumulatorStuck -= stuckCount;
+      const stuckColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ?? ['#ccc', '#aaa', '#888'];
+      for (let i = 0; i < stuckCount; i++) {
+        this.particleManager.emitParticle(lance.position, {
+          colors: stuckColors,
+          baseSpeed: 300,
+          sizeRange: [1, 3],
+          lifeRange: [0.4, 0.9],
+          fadeOut: true,
+        });
+      }
+
+      // ── NEW: detonate instantly if the stuck block is gone (or ship destroyed)
+      if (this.isTargetBlockGone(lance) || (lance.targetShip?.isDestroyed() === true)) {
+        this.explodeLance(lance, ship, explosiveLanceLifesteal);
         exploded.add(lance);
         continue;
       }
 
-      // Handle stuck lances
-      if (lance.stuck) {
-        if (lance.targetShip && lance.anchorOffset) {
-          const shipPos = lance.targetShip.getTransform().position;
-          lance.position.x = shipPos.x + lance.anchorOffset.x;
-          lance.position.y = shipPos.y + lance.anchorOffset.y;
-          this.particleManager.setParticlePosition(
-            lance.particleHandle,
-            lance.position.x,
-            lance.position.y
-          );
-        }
-
-        if (explosiveLanceRadiate && lance.radiateTimer != null) {
-          lance.radiateTimer += dt;
-          if (lance.radiateTimer >= 0.5) {
-            this.emitProjectileBurst(ship, lance, 8, 1000);
-            lance.radiateTimer = 0;
-          }
-        }
-
-        lance.emissionAccumulatorStuck += dt * 20;
-        const stuckCount = Math.floor(lance.emissionAccumulatorStuck);
-        lance.emissionAccumulatorStuck -= stuckCount;
-        const stuckColors = EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ?? ['#ccc', '#aaa', '#888'];
-        for (let i = 0; i < stuckCount; i++) {
-          this.particleManager.emitParticle(lance.position, {
-            colors: stuckColors,
-            baseSpeed: 300,
-            sizeRange: [1, 3],
-            lifeRange: [0.4, 0.9],
-            fadeOut: true,
-          });
-        }
-
-        lance.elapsed += dt;
-        if (lance.elapsed >= lance.detonationDelay || lance.targetShip?.isDestroyed()) {
-          this.explodeLance(lance, ship, explosiveLanceLifesteal);
-          exploded.add(lance);
-        }
+      // Timer-based detonation
+      lance.elapsed += dt;
+      if (lance.elapsed >= lance.detonationDelay) {
+        this.explodeLance(lance, ship, explosiveLanceLifesteal);
+        exploded.add(lance);
         continue;
-      }
-
-      // Update free-flight motion
-      lance.position.x += lance.velocity.x * dt;
-      lance.position.y += lance.velocity.y * dt;
-
-      if (lance.lightId) {
-        this.lightingOrchestrator.updateLight(lance.lightId, {
-          x: lance.position.x,
-          y: lance.position.y,
-        });
-      }
-
-      // Broad-phase collision query
-      const queryRadius = 32;
-      const hits = grid.getBlocksInArea(
-        lance.position.x - queryRadius,
-        lance.position.y - queryRadius,
-        lance.position.x + queryRadius,
-        lance.position.y + queryRadius
-      );
-
-      for (let i = 0; i < hits.length; i++) {
-        const idx = hits[i];
-        if (store.ownerShipId[idx] === lance.ownerShipId) continue;
-
-        const bx = store.worldX[idx];
-        const by = store.worldY[idx];
-        const dx = lance.position.x - bx;
-        const dy = lance.position.y - by;
-        if (dx * dx + dy * dy >= queryRadius * queryRadius) continue;
-
-        // Resolve owning object and block coordinates
-        const compositeBlockObject = findObjectByBlock(idx);
-        const coord = compositeBlockObject
-          ? findBlockCoordinatesInObject(idx, compositeBlockObject)
-          : null;
-
-        if (!compositeBlockObject || !coord || compositeBlockObject.isNoClip()) {
-          continue;
-        }
-
-        // Attach lance to target ship/block
-        lance.stuck = true;
-        lance.radiateTimer = 0;
-        lance.targetBlockIndex = idx;
-        lance.targetShip = compositeBlockObject;
-        lance.coord = coord;
-
-        if (explosiveLanceElectrocution && compositeBlockObject instanceof Ship) {
-          compositeBlockObject.addStatusEffect('electrocuted', 8, ship, 1);
-        }
-
-        const shipPos = compositeBlockObject.getTransform().position;
-        lance.anchorOffset = {
-          x: lance.position.x - shipPos.x,
-          y: lance.position.y - shipPos.y,
-        };
-
-        lance.velocity = { x: 0, y: 0 };
-        this.particleManager.setParticleVelocity(lance.particleHandle, 0, 0);
-        this.particleManager.extendParticleLife(lance.particleHandle, lance.detonationDelay + 0.2);
-        this.particleManager.setParticleSize(lance.particleHandle, lance.particleOriginalSize * 1.25);
-
-        const playerShip = ShipRegistry.getInstance().getPlayerShip();
-        if (playerShip) {
-          playSpatialSfx(playerShip, ship, {
-            file: 'assets/sounds/sfx/weapons/lance_01.wav',
-            channel: 'sfx',
-            baseVolume: 0.85,
-            pitchRange: [1.0, 1.3],
-            volumeJitter: 0.1,
-            maxSimultaneous: 5,
-          });
-        }
-        shakeCamera(6, 0.16, 10, 'explosiveLance');
-
-        // Deal impact damage
-        const destroyed = this.combatService.applyDamageToBlock(
-          compositeBlockObject,
-          ship,
-          idx,
-          coord,
-          lance.fireDamage,
-          'explosiveLance'
-        );
-
-        if (destroyed) {
-          this.explodeLance(lance, ship);
-          exploded.add(lance);
-          break;
-        }
       }
     }
 
-    // Remove detonated or expired lances
+    // Remove detonated / expired
     this.activeLances = this.activeLances.filter(l => !exploded.has(l));
   }
 
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship, lifeSteal?: boolean): void {
-    // Remove visual effects
+    // Remove visuals
     if (lance.lightId) {
       this.lightingOrchestrator.removeLight(lance.lightId);
     }
     this.particleManager.killParticle(lance.particleHandle);
 
-    // Use tier-based palette (flattened at creation time)
+    // Tier-based palette
     const colorPalette =
       EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ??
       ['#cccccc', '#aaaaaa', '#888888'];
 
-    // Emit secondary projectile burst (16-way radial by default)
+    // Secondary projectile burst
     this.emitProjectileBurst(ship, lance, 16);
 
-    // Flash at impact point (fallback to projectile pos if target ship is gone)
+    // Flash at impact or current position
     const flashX = lance.targetShip?.getTransform().position.x ?? lance.position.x;
     const flashY = lance.targetShip?.getTransform().position.y ?? lance.position.y;
     emitDefaultFlames(flashX, flashY, lance.explosionRadius * 24, 0.8, true, 1, colorPalette[0]);
 
-    // Apply AoE damage if the target ship is still alive
+    // AoE damage if target ship still valid
     if (lance.targetShip && lance.coord && !lance.targetShip.isDestroyed()) {
-      // This returns a Uint32Array of block indices (no objects)
       const blockIndices = this.orchestrator.getBlocksWithinGridDistanceForCompositeBlockObject(
-        lance.targetShip, 
-        lance.coord, 
+        lance.targetShip,
+        lance.coord,
         lance.explosionRadius
       );
 
-      const store = this.store; // Already cached at class level
       const options: ExtraDamageOptions = {
         repairOrbDropRateMulti: lifeSteal ? 0.3 : 0,
         hideExplosionParticlesOnHit: false,
@@ -427,24 +446,22 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
       for (let i = 0; i < blockIndices.length; i++) {
         const blockIndex = blockIndices[i];
-
-        // Compute local grid coordinate for damage text and hit effects
-        const coord = { x: store.localX[blockIndex], y: store.localY[blockIndex] };
+        const coord = { x: this.store.localX[blockIndex], y: this.store.localY[blockIndex] };
 
         this.combatService.applyDamageToBlock(
           lance.targetShip,
           ship,
-          blockIndex,          // SOA index
-          coord,               // Local grid coord
+          blockIndex,
+          coord,
           lance.explosionDamage,
           'explosiveLanceAoE',
-          true,                // Flash effect
-          0,                   // Base crit chance
-          1.5,                 // Base crit multiplier
+          true,
+          0,
+          1.5,
           options
         );
 
-        // Only show explosion particles on the first block hit
+        // Show heavy explosion particles only once
         options.hideExplosionParticlesOnHit = true;
       }
     }
@@ -456,16 +473,15 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     quantity: number = 16,
     speed: number = 1600
   ): void {
-    // Palette lookup is now tier-based
     const colorPalette =
       EXPLOSIVE_LANCE_COLOR_PALETTES[lance.firingBlockTier] ??
       ['#cccccc', '#aaaaaa', '#888888'];
 
-    const origin = { x: lance.position.x, y: lance.position.y };
+    const originX = lance.position.x;
+    const originY = lance.position.y;
     const damage = lance.explosionDamage;
     const life = 1.2;
 
-    // Emit radial projectiles evenly spaced around a full circle
     const initialAngle = Math.random() * Math.PI * 2;
     for (let i = 0; i < quantity; i++) {
       const angle = initialAngle + (i / quantity) * Math.PI * 2;
@@ -473,21 +489,20 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       const vy = Math.sin(angle) * speed;
 
       const projectile = this.projectileSystem.spawnProjectileWithVelocity(
-        origin,
+        { x: originX, y: originY },
         { x: vx, y: vy },
         PROJECTILE_TYPE_TO_INDEX['explosiveLance'],
-        damage * 2,            // Double damage for burst projectiles
+        damage * 2,
         life,
-        1,                      // Scale factor
+        1,
         ship.numericId,
         FACTION_TO_INDEX[ship.getFaction()],
-        colorPalette,           // Tier-based color set
-        'delayed',              // Projectile behavior preset
+        colorPalette,
+        'delayed',
         false,
         true
       );
 
-      // Prevent the spawned projectiles from instantly colliding with the ship
       if (lance.targetShip) {
         projectile.hitShipIds.add(lance.targetShip.id);
       }
