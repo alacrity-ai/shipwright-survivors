@@ -5,10 +5,15 @@
 // • Single-pass scaling (logical units × uiScale at render/layout only)
 // • Right-anchored, vertically centered
 // • Inline row labels with wider window
+//
+// Enhancement:
+// If the selected Swarm Intensity tier yields a Ship Mastery EXP bonus,
+// the window grows to accommodate a footer line that announces the bonus.
 
 import { CanvasManager } from '@/core/CanvasManager';
 import type { InputManager } from '@/core/InputManager';
 
+import { PlayerMissionManager } from '@/game/player/PlayerMissionManager';
 import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
 import { drawLabel } from '@/ui/primitives/UILabel';
@@ -17,6 +22,7 @@ import { DEFAULT_CONFIG } from '@/config/ui';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { audioManager } from '@/audio/Audio';
 
+import { missionSettings } from '@/game/player/PlayerMissionManager';
 import { missionLoader } from '../MissionLoader';
 
 // ──────────────────────────────────────────
@@ -26,34 +32,13 @@ export type MutatorTier = 'Calm' | 'Normal' | 'High' | 'Catastrophic';
 const styleOf = (btn: UIButton) => (btn.style ??= {});
 
 // ──────────────────────────────────────────
-// Progressive chroma for difficulty readouts
-// (cool/teal → neutral → amber → magenta/red)
+/** Progressive chroma for difficulty readouts (cool→neutral→amber→magenta/red) */
 // ──────────────────────────────────────────
 const SCHEMES: Record<MutatorTier, { fill: string; border: string; text: string; alpha: number }> = {
-  Calm: {
-    fill  : '#071A11',   // deep green/teal base
-    border: '#41E6A3',   // mint/teal
-    text  : '#C9FFE6',   // pale mint
-    alpha : 0.52,
-  },
-  Normal: {
-    fill  : '#08222A',   // deep teal
-    border: '#23D9E2',   // cyan-teal
-    text  : '#BFF7FF',   // pale aqua
-    alpha : 0.55,
-  },
-  High: {
-    fill  : '#2A1C08',   // warm brown/amber base
-    border: '#FFB300',   // vivid amber
-    text  : '#FFD68A',   // light amber
-    alpha : 0.58,
-  },
-  Catastrophic: {
-    fill  : '#2A0812',   // wine/magenta base
-    border: '#FF3B6B',   // hot magenta/red
-    text  : '#FFC0D0',   // light rose
-    alpha : 0.60,
-  },
+  Calm:         { fill: '#071A11', border: '#41E6A3', text: '#C9FFE6', alpha: 0.52 },
+  Normal:       { fill: '#08222A', border: '#23D9E2', text: '#BFF7FF', alpha: 0.55 },
+  High:         { fill: '#2A1C08', border: '#FFB300', text: '#FFD68A', alpha: 0.58 },
+  Catastrophic: { fill: '#2A0812', border: '#FF3B6B', text: '#FFC0D0', alpha: 0.60 },
 };
 
 export class MissionMutatorMenu {
@@ -63,6 +48,7 @@ export class MissionMutatorMenu {
   private readonly input: InputManager;
   private readonly cm = CanvasManager.getInstance();
   private readonly ctx = this.cm.getContext('overlay');
+  private readonly pm: PlayerMissionManager;
 
   // ──────────────────────────────────────────
   // State
@@ -94,6 +80,10 @@ export class MissionMutatorMenu {
   private readonly ARROW_H = 36;
   private readonly VALUE_W = 170;
 
+  // Footer (bonus banner) — logical sizes
+  private readonly FOOTER_GAP = 10;   // gap above footer
+  private readonly FOOTER_H    = 28;  // footer line height (logical)
+
   // Computed (screen px after scaling)
   private winX = 0; private winY = 0;
   private winW = 0; private winH = 0;
@@ -122,6 +112,9 @@ export class MissionMutatorMenu {
     const normalIdx = this.choices.indexOf('Normal');
     this.densityIdx = normalIdx >= 0 ? normalIdx : 1;
     this.intensityIdx = normalIdx >= 0 ? normalIdx : 1;
+
+    // Mission Manager
+    this.pm = missionSettings;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -204,8 +197,19 @@ export class MissionMutatorMenu {
     const ui = getUniformScaleFactor();
     const canvas = ctx.canvas;
 
+    // Compute if we need the footer and its logical height
+    const expBonus = this.getCurrentExpBonus();
+    const wantsFooter = expBonus > 0;
+    const footerLogical = wantsFooter ? (this.FOOTER_GAP + this.FOOTER_H) : 0;
+
     // Window geometry (screen px from logical)
-    const logicalH = this.PAD_Y * 2 + this.TITLE_H + this.ROW_H * 2 + this.ROW_GAP;
+    const logicalH =
+      this.PAD_Y * 2 +
+      this.TITLE_H +
+      this.ROW_H * 2 +
+      this.ROW_GAP +
+      footerLogical;
+
     this.winW = Math.round(this.WINDOW_W * ui);
     this.winH = Math.round(logicalH * ui);
     this.winX = Math.round(canvas.width - this.winW - this.MARGIN_R * ui);
@@ -240,12 +244,44 @@ export class MissionMutatorMenu {
     cy += Math.round((this.ROW_H + this.ROW_GAP) * ui);
 
     // Row 2: Swarm Intensity (inline label)
+    const intensityTier = this.choices[this.intensityIdx];
     this.drawRow(
       ctx, ui, contentX, cy,
       'Swarm Intensity',
-      this.choices[this.intensityIdx],
+      intensityTier,
       this.intensityLeft, this.intensityRight
     );
+    cy += Math.round(this.ROW_H * ui);
+
+    // ───────── Footer Bonus Banner (conditional) ─────────
+    if (wantsFooter) {
+      cy += Math.round(this.FOOTER_GAP * ui);
+
+      // Use the intensity color scheme for the banner to reinforce causality
+      const scheme = SCHEMES[intensityTier];
+
+      // Banner well
+      const footerX = contentX;
+      const footerW = this.winX + this.winW - Math.round(this.PAD_X * ui) - footerX;
+      const footerH = Math.round(this.FOOTER_H * ui);
+
+      drawMinimalistWindow(ctx, footerX, cy, footerW, footerH, {
+        borderColor: scheme.border,
+        fillColor: scheme.fill,
+        alpha: Math.min(0.72, scheme.alpha + 0.1), // a touch more presence
+        borderWidth: 1,
+        borderRadius: DEFAULT_CONFIG.window.options.borderRadius * ui,
+      });
+
+      // Text
+      const msg = `Ship Mastery Bonus +${expBonus}`;
+      drawLabel(ctx, footerX + Math.round(footerW / 2), cy + Math.round((footerH - 12 * ui) / 2), msg, {
+        font: '12px monospace',
+        align: 'center',
+        color: scheme.text,
+        glow: true,
+      }, ui);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -350,6 +386,23 @@ export class MissionMutatorMenu {
     this.intensityIdx = this.mod(this.intensityIdx + delta, this.choices.length);
     audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx', { maxSimultaneous: 8 });
     missionLoader.setIntensity(this.choices[this.intensityIdx]);
+
+    this.setEXPBonusBasedOnIntensity();
+  }
+
+  private getEXPBonusForTier(tier: MutatorTier): number {
+    // Defined as flat values (not percentage strings) because pm expects a numeric bonus.
+    return tier === 'High' ? 100 : tier === 'Catastrophic' ? 200 : 0;
+  }
+
+  private getCurrentExpBonus(): number {
+    return this.getEXPBonusForTier(this.choices[this.intensityIdx]);
+  }
+
+  private setEXPBonusBasedOnIntensity(): void {
+    const tier = this.choices[this.intensityIdx];
+    const bonus = this.getEXPBonusForTier(tier);
+    this.pm.setShipMasteryEXPBonus(bonus);
   }
 
   private mod(v: number, n: number): number {

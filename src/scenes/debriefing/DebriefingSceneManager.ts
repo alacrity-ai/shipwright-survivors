@@ -9,6 +9,7 @@ import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteracti
 
 import { DEFAULT_CONFIG } from '@/config/ui';
 
+import { missionSettings } from '@/game/player/PlayerMissionManager';
 import { AnimatedLabel } from '@/ui/components/AnimatedLabel';
 import { calculateCoresEarnedDetailed } from '@/scenes/debriefing/helpers/calculateCores';
 import { missionResultStore } from '@/game/missions/MissionResultStore';
@@ -115,7 +116,8 @@ export class DebriefingSceneManager {
     const collection = PlayerShipCollection.getInstance();
     const activeShip = collection.getActiveShip();
 
-    const masteryXpAwarded = Math.floor(100 * (this.wavesCleared / this.totalWaves));
+    const expBonus = missionSettings.getShipMasteryEXPBonus();
+    const masteryXpAwarded = Math.floor(100 * (this.wavesCleared / this.totalWaves)) + expBonus;
 
     const didEarnMasteryXp = !!activeShip && this.totalWaves > 0 && masteryXpAwarded > 0;
 

@@ -4,8 +4,17 @@ import { SETTINGS } from '@/config/settings';
 
 export class PlayerMissionManager {
   private globalBlockDropRate: number = SETTINGS.GLOBAL_BLOCK_DROP_RATE;
+  private shipMasteryEXPBonus: number = 0;
 
   // === Mission Settings ===
+
+  public getShipMasteryEXPBonus(): number {
+    return this.shipMasteryEXPBonus;
+  }
+
+  public setShipMasteryEXPBonus(bonus: number): void {
+    this.shipMasteryEXPBonus = bonus;
+  }
 
   public getGlobalBlockDropRate(): number {
     return this.globalBlockDropRate;

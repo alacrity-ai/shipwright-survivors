@@ -21,10 +21,13 @@ import {
 
 import { audioManager } from '@/audio/Audio';
 
+import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
+import { drawLabel } from '@/ui/primitives/UILabel';
+import { DEFAULT_CONFIG } from '@/config/ui';
+
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.5;
-// multiplicative step per tick
-const ZOOM_STEP = 1.10; // factor (1.10 up, 1/1.10 down)
+const ZOOM_STEP = 1.10; // multiplicative
 const GRID_SPACING = 64; // keep consistent with renderer
 
 export class PassiveTreeUIController {
@@ -61,6 +64,14 @@ export class PassiveTreeUIController {
   private reachableUnlocked: Set<string> = new Set();
   private unlockedCountSnapshot = -1;
 
+  // ⬇️ NEW: layout constants for the cores overlay (logical units; scaled at render)
+  private readonly CORE_PAD_X = 12;
+  private readonly CORE_PAD_Y = 8;
+  private readonly CORE_MIN_W = 148;
+  private readonly CORE_H     = 32;
+  private readonly CORE_MARGIN_L = 12;  // from left screen edge
+  private readonly CORE_MARGIN_B = 12;  // from bottom screen edge
+
   constructor(canvasManager: CanvasManager, inputManager: InputManager) {
     this.cm = canvasManager;
     this.input = inputManager;
@@ -84,9 +95,7 @@ export class PassiveTreeUIController {
     const overlayCtx = this.cm.getContext('overlay');
     const scopeCanvas = overlayCtx.canvas;
 
-    // Destroy any previous tracker (safety on re-init)
     if (this.wheelTracker) this.wheelTracker.destroy();
-
     this.wheelTracker = new MouseWheelTracker(window, {
       pixelsPerTick: 100,
       preventDefault: true,
@@ -136,18 +145,16 @@ export class PassiveTreeUIController {
     if (this.dragging) {
       const dxScreen = mouse.x - this.dragStartMouseX;
       const dyScreen = mouse.y - this.dragStartMouseY;
-      // convert screen delta to world delta
       this.camX = this.dragStartCamX - dxScreen / this.zoom;
       this.camY = this.dragStartCamY - dyScreen / this.zoom;
     }
 
-    // === Scroll wheel zoom (zoom-at-cursor anchoring) via MouseWheelTracker ===
+    // === Scroll wheel zoom (zoom-at-cursor anchoring) ===
     if (this.wheelTracker) {
       const signedTicks = this.wheelTracker.drainSignedTicks(); // + = zoom in, - = zoom out
       if (signedTicks !== 0) {
         const worldBefore = this.screenToWorld(mouse.x, mouse.y);
 
-        // multiplicative, order-independent zoom
         const next = this.clamp(
           this.zoom * Math.pow(ZOOM_STEP, signedTicks),
           MIN_ZOOM,
@@ -156,20 +163,19 @@ export class PassiveTreeUIController {
         this.zoom = next;
 
         const worldAfter = this.screenToWorld(mouse.x, mouse.y);
-        // translate camera to keep the same world point under the cursor
         this.camX += worldBefore.x - worldAfter.x;
         this.camY += worldBefore.y - worldAfter.y;
       }
     }
 
-    // === Hover — inverse transform into world, then O(1) circle test per node
+    // === Hover detection in world space ===
     const world = this.screenToWorld(mouse.x, mouse.y);
     this.hoveredNodeId = this.renderer.getNodeAtWorld(this.tree, world.x, world.y);
 
     // Keep reachability in sync with unlock events
     this.refreshReachability();
 
-    // === Left click to unlock (with connectivity gate) ===
+    // === Left click to unlock (connectivity + affordability) ===
     if (this.input.wasLeftClicked() && this.hoveredNodeId) {
       const mgr = PlayerGlobalPassiveManager.getInstance();
       const meta = PlayerMetaCurrencyManager.getInstance();
@@ -189,8 +195,7 @@ export class PassiveTreeUIController {
         const ok = mgr.unlockNode(id);
         if (ok) {
           audioManager.play('assets/sounds/sfx/magic/levelup.wav', 'sfx', { maxSimultaneous: 8 });
-          // force next refresh to recompute
-          this.unlockedCountSnapshot = -1;
+          this.unlockedCountSnapshot = -1; // force refresh
         } else {
           audioManager.play('assets/sounds/sfx/ui/error_00.wav', 'sfx', { maxSimultaneous: 8 });
         }
@@ -203,7 +208,7 @@ export class PassiveTreeUIController {
     const ctx = this.cm.getContext('overlay');
     const canvas = ctx.canvas;
 
-    // Ensure reachability reflects latest state before painting
+    // Ensure reachability is fresh before painting
     this.refreshReachability();
 
     this.renderer.render({
@@ -228,9 +233,10 @@ export class PassiveTreeUIController {
       }
     });
 
-    // Breakdown Window
+    // Breakdown window
     this.breakdownWindow.render(ctx);
 
+    // Tooltip at mouse (if any)
     if (this.hoveredNodeId) {
       const sq = this.tree!.squares.find(s => s.node.id === this.hoveredNodeId)!;
       const mgr = PlayerGlobalPassiveManager.getInstance();
@@ -247,12 +253,14 @@ export class PassiveTreeUIController {
           playerCores: meta.getMetaCurrency(),
           unlocked, affordable, connectivityOk,
         },
-        // Anchor at mouse for now; you can switch to node center if preferred
         this.input.getMousePosition().x,
         this.input.getMousePosition().y,
         getUniformScaleFactor() * 0.75
       );
     }
+
+    // ⬇️ NEW: Bottom-left "Cores" overlay (simple, GC-neutral, scale-aware)
+    this.renderCoresOverlay(ctx);
   }
 
   // === Coordinate transforms ===
@@ -261,7 +269,7 @@ export class PassiveTreeUIController {
       x: sx / this.zoom + this.camX,
       y: sy / this.zoom + this.camY
     };
-  }
+    }
 
   private clamp(v: number, lo: number, hi: number): number {
     return Math.max(lo, Math.min(hi, v));
@@ -282,13 +290,53 @@ export class PassiveTreeUIController {
 
     this.unlockedCountSnapshot = unlockedCount;
 
-    // Build transient unlocked set (stack-allocated, GC-neutral across frames)
     const unlockedSet = new Set<string>();
     for (const sq of this.tree.squares) {
       if (mgr.isNodeUnlocked(sq.node.id)) unlockedSet.add(sq.node.id);
     }
 
-    // Compute reachable via unlocked-only traversal from root
     this.reachableUnlocked = computeReachableUnlocked('root-node', this.adjacency, unlockedSet);
+  }
+
+  // ⬇️ NEW: dedicated painter for the cores overlay
+  private renderCoresOverlay(ctx: CanvasRenderingContext2D): void {
+    const ui = getUniformScaleFactor();
+    const canvas = ctx.canvas;
+
+    const cores = PlayerMetaCurrencyManager.getInstance().getMetaCurrency();
+    const label = `Cores: ${cores}`;
+
+    // Measure text with scaled font to size the window adaptively (bounded by CORE_MIN_W)
+    const fontPx = Math.round(12 * ui);
+    ctx.save();
+    ctx.font = `${fontPx}px monospace`;
+    const textW = Math.ceil(ctx.measureText(label).width);
+    ctx.restore();
+
+    const padX = Math.round(this.CORE_PAD_X * ui);
+    const padY = Math.round(this.CORE_PAD_Y * ui);
+    const winH  = Math.round(this.CORE_H * ui);
+    const winW  = Math.max(Math.round(this.CORE_MIN_W * ui), textW + padX * 2);
+
+    const x = Math.round(this.CORE_MARGIN_L * ui);
+    const y = canvas.height - winH - Math.round(this.CORE_MARGIN_B * ui);
+
+    // Subtle chrome, consistent with other minimalist windows
+    drawMinimalistWindow(ctx, x, y, winW, winH, {
+      alpha: 0.6,
+      borderRadius: DEFAULT_CONFIG.window.options.borderRadius * ui,
+      borderColor: DEFAULT_CONFIG.window.options.borderColor,
+      // (optional) fillColor to distinguish; omit to inherit default
+    });
+
+    // Centered vertically, left-aligned text
+    const textX = x + padX;
+    const textY = y + Math.round((winH - fontPx) / 2);
+    drawLabel(ctx, textX, textY, label, {
+      font: `${12}px monospace`, // drawLabel handles scaling via `ui`
+      color: DEFAULT_CONFIG.general.textColor,
+      align: 'left',
+      glow: true
+    }, ui);
   }
 }

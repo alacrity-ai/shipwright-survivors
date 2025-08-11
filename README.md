@@ -150,23 +150,13 @@ Plugin Passives:
 }
 
 TODOS:
-  - [ ] Ship construction animator service: We need to limit for performance reasons, the amount of ships that we actively spawn with animations.  We need a construction fast path, that just instantly spawns a ship if we're already spawning say 10 ships at once. We can just use a createLightFlash with a radius of like 1000 cyan color for this.
 
   - [ ] Little tutorials with screenshots (hints) upon mission load.  Maybe multiple pages.
 
   - [ ] New incident: Time portal. Creates arena, spawns in enemies, pauses the wave spawner, sepia filter
 
-  - [ ] Invert menu flow:
-    - Remove the hub entirely
-    - After loading in, go directly to a submenu with the spiral background:
-      - [ ] Launch Mission <-- easy to see
-        - [ ] Sends to ship loadout, and then goes to galaxy map
-      - [ ] Passives
-      - [ ] Unlocks (list all ship unlocks/mission unlocks/artifacts/quests etc)
-      
-
+  - [ ] Add the Astral Codex menu item
   - [ ] Powerup Menus of Different channels cancel each other out, e.g. levelup on defeating a veil.
-
   - [ ] Retry button next to Return To Base on mission debriefing failure
 
   - [ ] Add active skills to each ship. Each ship gets a unique skill.  Then battery blocks or whatever can reduce cooldown on these.
@@ -176,22 +166,10 @@ TODOS:
     - Vanguard: 
     - Salamander: Radial screenwide flame ignite
 
-  - [ ] On boss death;
-    - [ ] Screen flash
-    - [ ] Slow motion
-    - [ ] Post process effect?
-    - [ ] Dramatic sound effect
-
   - [ ] Boss mines would be more interesting if they spawned one after another (random mine order), and then detonated in FIFO order, so you could move into the explosion.
-  - [ ] Fix boss healthbar rendering, remove player UI during boss fight, render boss healthbar on bottom of screen.
   - [ ] New placed blocks don't inherit Ship Color override.
 
   - [ ] Some lights still occassionally leak
-  - [ ] ExplosiveLance isn't detonating on enemy death before timeout?
-
-  - [ ] Destroying a ship with more than 1000 blocks causes a sudden framerate drop.
-    - [ ] Not able to reproduce, however, we may want to have blocks get destroyed over a series of frames
-  - [ ] Remove all usages of getShipBlocksView (GC Heavy)
 
   - [ ] Await loading of images (artifacts and ships) in tradepost menu so cursor is on top.
 
@@ -205,8 +183,6 @@ TODOS:
 
   - [ ] Potentially give enemies "callout sounds" and have them use playSpatialSfx
 
-  - [ ] Quest completion total Trackable in Galaxymap menu
-
   - [ ] Add some more powerups
     - [ ] Add parallel powerup lines which are independent of leveling (gotten from incidents, NPC interactions, see Death Must die with NPCs which give powerup lines)
 
@@ -214,24 +190,12 @@ TODOS:
 
   - [ ] ALT+ENTER, can I make this work?
 
-    - [ ] Farther out planets would be harder to reach, enemy difficulty could be harder / incident difficulty the further from the center you go?
-  - [ ] Since map is much larger, add a total of 4 planets to the first map.
-  - [ ] Since map is much larger, we can extend a round to 20:00 minutes???
   - [ ] Likely will need to add minibosses, (can just use existing wave system for this, as it will continue to hound player.. but maybe make it persist respawn contract even as new waves start. Do we have a flag for this? I think we have a tag for this.)
-
-  - [ ] Add spatial anomolies (No go zones?) Use incident system.
-
-  - [ ] Boss should have dedicated moving minimap marker/screen edge marker
-
-  - [ ] Boss Fights with actual unique FSM trees and mechanics
 
   - [ ] Add Escorts System
 
   - [ ] Mission select:
     - [ ] Need to show summary of all the unlockables within that mission.
-
-  - [ ] Need some kind of mission mutator system for replayability!!!
-    - [ ] Maybe a 10 minute version, and a 20 minute version?
 
   - [ ] Completely clearing a Vortex Incident should end it immediately!
 

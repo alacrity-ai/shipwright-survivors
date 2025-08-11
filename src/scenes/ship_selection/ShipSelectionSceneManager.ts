@@ -169,6 +169,9 @@ export class ShipSelectionSceneManager {
 
     this.startTime = performance.now();
 
+    // Play sound
+    // audioManager.play('assets/sounds/sfx/voice/choose_your_ship.wav', 'sfx', { maxSimultaneous: 1 });
+
     if (this.mission) {
       this.launchButton = {
         x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
