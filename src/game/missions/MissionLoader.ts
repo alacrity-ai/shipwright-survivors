@@ -11,7 +11,7 @@ class MissionLoader {
   private currentMission: MissionDefinition | null = null;
 
   private density: 0.5 | 1.0 | 1.5 | 2.0 = 0.5;
-  private intensity: 0.35 | 0.5 | 1.0 | 1.5 = 0.5;
+  private intensity: 0.35 | 0.5 | 1.25 | 2.0 = 0.5;
 
   setMission(mission: MissionDefinition) {
     this.currentMission = mission;
@@ -56,7 +56,7 @@ class MissionLoader {
   }
 
   setIntensity(intensity: MutatorTier) {
-    this.intensity = intensity === 'Calm' ? 0.35 : intensity === 'Normal' ? 0.5 : intensity === 'High' ? 1.0 : 1.5;
+    this.intensity = intensity === 'Calm' ? 0.35 : intensity === 'Normal' ? 0.5 : intensity === 'High' ? 1.25 : 2.0;
   }
 
   getDensity(): number {

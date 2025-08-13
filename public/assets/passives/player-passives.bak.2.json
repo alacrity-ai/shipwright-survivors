@@ -248,20 +248,7 @@
     },
     {
       "x": 24,
-      "y": 29,
-      "metadata": {
-        "id": "lifesteal-chance-4",
-        "name": "Prime Vampirism",
-        "description": "Chance to steal Block Durability on Hit.",
-        "icon": "icon-vampiricHybrid",
-        "nodeSize": "major",
-        "cost": 120,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealChance": 0.1,
-          "lifeStealAmount": 0.15
-        }
-      }
+      "y": 29
     },
     {
       "x": 32,
@@ -346,19 +333,7 @@
     },
     {
       "x": 77,
-      "y": 30,
-      "metadata": {
-        "id": "cold-duration-3",
-        "name": "Permafreeze",
-        "description": "Increases offensive Freeze Duration.",
-        "icon": "icon-coldDuration",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coldDuration": 0.15
-        }
-      }
+      "y": 30
     },
     {
       "x": 36,
@@ -394,35 +369,11 @@
     },
     {
       "x": 22,
-      "y": 32,
-      "metadata": {
-        "id": "lifesteal-chance-3",
-        "name": "Vampirism",
-        "description": "Chance to steal Block Durability on Hit.",
-        "icon": "icon-lifeStealChance",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealChance": 0.05
-        }
-      }
+      "y": 32
     },
     {
       "x": 26,
-      "y": 32,
-      "metadata": {
-        "id": "leecher-3",
-        "name": "Leecher",
-        "description": "Increases amount of Durability Stolen on Hit.",
-        "icon": "icon-lifeStealAmount",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealAmount": 0.1
-        }
-      }
+      "y": 32
     },
     {
       "x": 45,
@@ -507,51 +458,11 @@
     },
     {
       "x": 74,
-      "y": 33,
-      "metadata": {
-        "id": "cold-duration-1",
-        "name": "Permafreeze",
-        "description": "Increases offensive Freeze Duration.",
-        "icon": "icon-coldDuration",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coldDuration": 0.15
-        }
-      }
+      "y": 33
     },
     {
       "x": 80,
-      "y": 33,
-      "metadata": {
-        "id": "cold-duration-2",
-        "name": "Permafreeze",
-        "description": "Increases offensive Freeze Duration.",
-        "icon": "icon-coldDuration",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coldDuration": 0.15
-        }
-      }
-    },
-    {
-      "x": 9,
-      "y": 34,
-      "metadata": {
-        "id": "abilityPower-14",
-        "name": "Magician",
-        "description": "Increases power of ship abilities.",
-        "icon": "icon-ability",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityPower": 0.1
-        }
-      }
+      "y": 33
     },
     {
       "x": 35,
@@ -651,41 +562,13 @@
     },
     {
       "x": 24,
-      "y": 35,
-      "metadata": {
-        "id": "lifesteal-chance-2",
-        "name": "Vampirism",
-        "description": "Chance to steal Block Durability on Hit.",
-        "icon": "icon-lifeStealChance",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealChance": 0.05
-        }
-      }
-    },
-    {
-      "x": 14,
-      "y": 36,
-      "metadata": {
-        "id": "abilityPower-13",
-        "name": "Magician",
-        "description": "Increases power of ship abilities.",
-        "icon": "icon-ability",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityPower": 0.1
-        }
-      }
+      "y": 35
     },
     {
       "x": 43,
       "y": 36,
       "metadata": {
-        "id": "abilityPower-21",
+        "id": "abilityPower-6",
         "name": "Enchanter",
         "description": "Decreases Cooldown of Ship Abilities.",
         "icon": "icon-abilityCooldown",
@@ -693,7 +576,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "abilityCooldown": 0.05
+          "abilityCooldown": 0.1
         }
       }
     },
@@ -732,25 +615,13 @@
     },
     {
       "x": 77,
-      "y": 36,
-      "metadata": {
-        "id": "cold-duration-0",
-        "name": "Permafreeze",
-        "description": "Increases offensive Freeze Duration.",
-        "icon": "icon-coldDuration",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coldDuration": 0.15
-        }
-      }
+      "y": 36
     },
     {
       "x": 38,
       "y": 37,
       "metadata": {
-        "id": "abilityPower-20",
+        "id": "abilityPower-7",
         "name": "Enchanter",
         "description": "Decreases Cooldown of Ship Abilities.",
         "icon": "icon-abilityCooldown",
@@ -758,7 +629,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "abilityCooldown": 0.05
+          "abilityCooldown": 0.1
         }
       }
     },
@@ -780,51 +651,11 @@
     },
     {
       "x": 22,
-      "y": 38,
-      "metadata": {
-        "id": "lifesteal-chance-1",
-        "name": "Vampirism",
-        "description": "Chance to steal Block Durability on Hit.",
-        "icon": "icon-lifeStealChance",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealChance": 0.05
-        }
-      }
+      "y": 38
     },
     {
       "x": 26,
-      "y": 38,
-      "metadata": {
-        "id": "lifesteal-chance-0",
-        "name": "Vampirism",
-        "description": "Chance to steal Block Durability on Hit.",
-        "icon": "icon-lifeStealChance",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealChance": 0.05
-        }
-      }
-    },
-    {
-      "x": 10,
-      "y": 39,
-      "metadata": {
-        "id": "abilityPower-19",
-        "name": "Magician",
-        "description": "Increases power of ship abilities.",
-        "icon": "icon-ability",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityPower": 0.1
-        }
-      }
+      "y": 38
     },
     {
       "x": 33,
@@ -875,50 +706,23 @@
       }
     },
     {
-      "x": 14,
-      "y": 40,
-      "metadata": {
-        "id": "abilityPower-12",
-        "name": "Magician",
-        "description": "Increases power of ship abilities.",
-        "icon": "icon-ability",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityPower": 0.1
-        }
-      }
-    },
-    {
       "x": 19,
-      "y": 40,
-      "metadata": {
-        "id": "leecher-2",
-        "name": "Leecher",
-        "description": "Increases amount of Durability Stolen on Hit.",
-        "icon": "icon-lifeStealAmount",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealAmount": 0.1
-        }
-      }
+      "y": 40
     },
     {
       "x": 29,
       "y": 40,
       "metadata": {
-        "id": "lifesteal-chance-6",
-        "name": "Vampirism",
-        "description": "Chance to steal Block Durability on Hit.",
-        "icon": "icon-lifeStealChance",
+        "id": "thrust-hybrid-4",
+        "name": "Daredevil",
+        "description": "Increases Thrust and Turning Power.",
+        "icon": "icon-thrustHybrid",
         "nodeSize": "minor",
-        "cost": 80,
+        "cost": 50,
         "masteryRequirement": 0,
         "metadata": {
-          "lifeStealChance": 0.05
+          "thrust": 0.05,
+          "turnPower": 0.05
         }
       }
     },
@@ -956,51 +760,15 @@
     },
     {
       "x": 16,
-      "y": 42,
-      "metadata": {
-        "id": "harvest-9",
-        "name": "Harvester",
-        "description": "Increases pickup gravitational pull range.",
-        "icon": "icon-harvest",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "harvestRange": 200
-        }
-      }
+      "y": 42
     },
     {
       "x": 22,
-      "y": 42,
-      "metadata": {
-        "id": "leecher-1",
-        "name": "Leecher",
-        "description": "Increases amount of Durability Stolen on Hit.",
-        "icon": "icon-lifeStealAmount",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealAmount": 0.1
-        }
-      }
+      "y": 42
     },
     {
       "x": 26,
-      "y": 42,
-      "metadata": {
-        "id": "leecher-0",
-        "name": "Leecher",
-        "description": "Increases amount of Durability Stolen on Hit.",
-        "icon": "icon-lifeStealAmount",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "lifeStealAmount": 0.1
-        }
-      }
+      "y": 42
     },
     {
       "x": 47,
@@ -1078,7 +846,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "abilityCooldown": 0.05
+          "abilityCooldown": 0.1
         }
       }
     },
@@ -1164,19 +932,7 @@
     },
     {
       "x": 14,
-      "y": 45,
-      "metadata": {
-        "id": "escort-damage-1",
-        "name": "Deadly Escorts",
-        "description": "Increases Escort damage.",
-        "icon": "icon-escortDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortDamage": 0.15
-        }
-      }
+      "y": 45
     },
     {
       "x": 50,
@@ -1207,22 +963,6 @@
         "masteryRequirement": 0,
         "metadata": {
           "mitigation": 0.03
-        }
-      }
-    },
-    {
-      "x": 21,
-      "y": 46,
-      "metadata": {
-        "id": "rammer-1",
-        "name": "Rammer",
-        "description": "Reduces Collision damage taken.",
-        "icon": "icon-rammer",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rammer": 0.15
         }
       }
     },
@@ -1276,19 +1016,7 @@
     },
     {
       "x": 6,
-      "y": 47,
-      "metadata": {
-        "id": "escort-damage-4",
-        "name": "Deadly Escorts",
-        "description": "Increases Escort damage.",
-        "icon": "icon-escortDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortDamage": 0.15
-        }
-      }
+      "y": 47
     },
     {
       "x": 34,
@@ -1356,51 +1084,15 @@
     },
     {
       "x": 91,
-      "y": 47,
-      "metadata": {
-        "id": "status-immunity-1",
-        "name": "Untouchable",
-        "description": "Chance to ignore Status Effects.",
-        "icon": "icon-statusImmunity",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreStatusChance": 0.08
-        }
-      }
+      "y": 47
     },
     {
       "x": 12,
-      "y": 48,
-      "metadata": {
-        "id": "escort-damage-3",
-        "name": "Deadly Escorts",
-        "description": "Increases Escort damage.",
-        "icon": "icon-escortDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortDamage": 0.15
-        }
-      }
+      "y": 48
     },
     {
       "x": 16,
-      "y": 48,
-      "metadata": {
-        "id": "escort-damage-2",
-        "name": "Deadly Escorts",
-        "description": "Increases Escort damage.",
-        "icon": "icon-escortDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortDamage": 0.15
-        }
-      }
+      "y": 48
     },
     {
       "x": 27,
@@ -1436,55 +1128,11 @@
     },
     {
       "x": 2,
-      "y": 50,
-      "metadata": {
-        "id": "escort-hybrid-1",
-        "name": "Prime Escorts",
-        "description": "Increases Escort Speed, Damage, and Defense.",
-        "icon": "icon-escortHybrid",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortSpeed": 0.1,
-          "escortArmor": 15,
-          "escortDamage": 0.1
-        }
-      }
+      "y": 50
     },
     {
       "x": 9,
-      "y": 50,
-      "metadata": {
-        "id": "escort-hybrid-0",
-        "name": "Prime Escorts",
-        "description": "Increases Escort Speed, Damage, and Defense.",
-        "icon": "icon-escortHybrid",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortSpeed": 0.1,
-          "escortArmor": 15,
-          "escortDamage": 0.1
-        }
-      }
-    },
-    {
-      "x": 20,
-      "y": 50,
-      "metadata": {
-        "id": "rammer-2",
-        "name": "Prime Rammer",
-        "description": "Greatly reduces Collision damage taken.",
-        "icon": "icon-rammer",
-        "nodeSize": "major",
-        "cost": 120,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rammer": 0.25
-        }
-      }
+      "y": 50
     },
     {
       "x": 24,
@@ -1522,7 +1170,7 @@
       "x": 32,
       "y": 50,
       "metadata": {
-        "id": "thrust-hybrid-3",
+        "id": "thrust-hybrid-2",
         "name": "Daredevil",
         "description": "Increases Thrust and Turning Power.",
         "icon": "icon-thrustHybrid",
@@ -1539,7 +1187,7 @@
       "x": 37,
       "y": 50,
       "metadata": {
-        "id": "thrust-hybrid-4",
+        "id": "thrust-hybrid-1",
         "name": "Prime Daredevil",
         "description": "Increases Thrust and Turning Power.",
         "icon": "icon-thrustHybrid",
@@ -1731,67 +1379,19 @@
     },
     {
       "x": 88,
-      "y": 50,
-      "metadata": {
-        "id": "status-immunity-0",
-        "name": "Untouchable",
-        "description": "Chance to ignore Status Effects.",
-        "icon": "icon-statusImmunity",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreStatusChance": 0.08
-        }
-      }
+      "y": 50
     },
     {
       "x": 95,
-      "y": 50,
-      "metadata": {
-        "id": "status-immunity-2",
-        "name": "Untouchable",
-        "description": "Chance to ignore Status Effects.",
-        "icon": "icon-statusImmunity",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreStatusChance": 0.08
-        }
-      }
+      "y": 50
     },
     {
       "x": 12,
-      "y": 52,
-      "metadata": {
-        "id": "escort-speed-2",
-        "name": "Faster Escorts",
-        "description": "Increases Escort maneuverability.",
-        "icon": "icon-escortSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortSpeed": 0.15
-        }
-      }
+      "y": 52
     },
     {
       "x": 16,
-      "y": 52,
-      "metadata": {
-        "id": "escort-speed-3",
-        "name": "Faster Escorts",
-        "description": "Increases Escort maneuverability.",
-        "icon": "icon-escortSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortSpeed": 0.15
-        }
-      }
+      "y": 52
     },
     {
       "x": 27,
@@ -1827,19 +1427,7 @@
     },
     {
       "x": 6,
-      "y": 53,
-      "metadata": {
-        "id": "escort-speed-4",
-        "name": "Faster Escorts",
-        "description": "Increases Escort maneuverability.",
-        "icon": "icon-escortSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortSpeed": 0.15
-        }
-      }
+      "y": 53
     },
     {
       "x": 34,
@@ -1907,35 +1495,7 @@
     },
     {
       "x": 91,
-      "y": 53,
-      "metadata": {
-        "id": "status-immunity-3",
-        "name": "Untouchable",
-        "description": "Chance to ignore Status Effects.",
-        "icon": "icon-statusImmunity",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "ignoreStatusChance": 0.08
-        }
-      }
-    },
-    {
-      "x": 21,
-      "y": 54,
-      "metadata": {
-        "id": "rammer-0",
-        "name": "Rammer",
-        "description": "Reduces Collision damage taken.",
-        "icon": "icon-rammer",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "rammer": 0.15
-        }
-      }
+      "y": 53
     },
     {
       "x": 47,
@@ -1981,25 +1541,13 @@
         "cost": 60,
         "masteryRequirement": 0,
         "metadata": {
-          "thermalInsulation": 0.1
+          "thermalInsulation": 80
         }
       }
     },
     {
       "x": 14,
-      "y": 55,
-      "metadata": {
-        "id": "escort-speed-1",
-        "name": "Faster Escorts",
-        "description": "Increases Escort maneuverability.",
-        "icon": "icon-escortSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortSpeed": 0.15
-        }
-      }
+      "y": 55
     },
     {
       "x": 50,
@@ -2083,19 +1631,7 @@
     },
     {
       "x": 88,
-      "y": 56,
-      "metadata": {
-        "id": "dauntless-escorts-0",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 56
     },
     {
       "x": 32,
@@ -2133,7 +1669,7 @@
       "x": 64,
       "y": 57,
       "metadata": {
-        "id": "abilityPower-10",
+        "id": "abilityPower-9",
         "name": "Enchanter",
         "description": "Decreases Cooldown of Ship Abilities.",
         "icon": "icon-abilityCooldown",
@@ -2141,7 +1677,7 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "abilityCooldown": 0.05
+          "abilityCooldown": 0.1
         }
       }
     },
@@ -2163,19 +1699,7 @@
     },
     {
       "x": 16,
-      "y": 58,
-      "metadata": {
-        "id": "harvest-11",
-        "name": "Harvester",
-        "description": "Increases pickup gravitational pull range.",
-        "icon": "icon-harvest",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "harvestRange": 200
-        }
-      }
+      "y": 58
     },
     {
       "x": 22,
@@ -2253,7 +1777,7 @@
         "cost": 60,
         "masteryRequirement": 0,
         "metadata": {
-          "thermalInsulation": 0.1
+          "thermalInsulation": 80
         }
       }
     },
@@ -2277,7 +1801,7 @@
       "x": 19,
       "y": 60,
       "metadata": {
-        "id": "thrust-12",
+        "id": "thrust-9",
         "name": "Thrust",
         "description": "Increased Thrust bonus from all engine blocks.",
         "icon": "icon-thrust",
@@ -2293,15 +1817,16 @@
       "x": 29,
       "y": 60,
       "metadata": {
-        "id": "thrust-13",
-        "name": "Thrust",
-        "description": "Increased Thrust bonus from all engine blocks.",
-        "icon": "icon-thrust",
+        "id": "thrust-hybrid-3",
+        "name": "Daredevil",
+        "description": "Increases Thrust and Turning Power.",
+        "icon": "icon-thrustHybrid",
         "nodeSize": "minor",
-        "cost": 40,
+        "cost": 50,
         "masteryRequirement": 0,
         "metadata": {
-          "thrust": 0.05
+          "thrust": 0.05,
+          "turnPower": 0.05
         }
       }
     },
@@ -2317,41 +1842,17 @@
         "cost": 60,
         "masteryRequirement": 0,
         "metadata": {
-          "thermalInsulation": 0.1
+          "thermalInsulation": 80
         }
       }
     },
     {
       "x": 91,
-      "y": 60,
-      "metadata": {
-        "id": "dauntless-escorts-1",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 60
     },
     {
       "x": 14,
-      "y": 61,
-      "metadata": {
-        "id": "lucky-dice-0",
-        "name": "Lucky Dice",
-        "description": "Increases chance for Rolls to have Epic outcomes.",
-        "icon": "icon-luckyDice",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "luckyDice": 0.05
-        }
-      }
+      "y": 61
     },
     {
       "x": 33,
@@ -2397,25 +1898,13 @@
         "cost": 60,
         "masteryRequirement": 0,
         "metadata": {
-          "thermalInsulation": 0.1
+          "thermalInsulation": 80
         }
       }
     },
     {
       "x": 86,
-      "y": 61,
-      "metadata": {
-        "id": "dauntless-escorts-5",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 61
     },
     {
       "x": 22,
@@ -2469,7 +1958,7 @@
       "x": 62,
       "y": 63,
       "metadata": {
-        "id": "abilityPower-11",
+        "id": "abilityPower-10",
         "name": "Enchanter",
         "description": "Decreases Cooldown of Ship Abilities.",
         "icon": "icon-abilityCooldown",
@@ -2477,25 +1966,13 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "abilityCooldown": 0.05
+          "abilityCooldown": 0.1
         }
       }
     },
     {
       "x": 16,
-      "y": 64,
-      "metadata": {
-        "id": "lucky-dice-3",
-        "name": "Lucky Dice",
-        "description": "Increases chance for Rolls to have Epic outcomes.",
-        "icon": "icon-luckyDice",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "luckyDice": 0.05
-        }
-      }
+      "y": 64
     },
     {
       "x": 43,
@@ -2534,7 +2011,7 @@
       "x": 57,
       "y": 64,
       "metadata": {
-        "id": "abilityPower-22",
+        "id": "abilityPower-11",
         "name": "Enchanter",
         "description": "Decreases Cooldown of Ship Abilities.",
         "icon": "icon-abilityCooldown",
@@ -2542,57 +2019,21 @@
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "abilityCooldown": 0.05
+          "abilityCooldown": 0.1
         }
       }
     },
     {
       "x": 77,
-      "y": 64,
-      "metadata": {
-        "id": "ignite-damage-0",
-        "name": "Inferno",
-        "description": "Increases offensive Ignite damage.",
-        "icon": "icon-igniteDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "igniteDamage": 0.15
-        }
-      }
+      "y": 64
     },
     {
       "x": 12,
-      "y": 65,
-      "metadata": {
-        "id": "lucky-dice-1",
-        "name": "Lucky Dice",
-        "description": "Increases chance for Rolls to have Epic outcomes.",
-        "icon": "icon-luckyDice",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "luckyDice": 0.05
-        }
-      }
+      "y": 65
     },
     {
       "x": 24,
-      "y": 65,
-      "metadata": {
-        "id": "kinetic-ward-0",
-        "name": "Kinetic Ward",
-        "description": "Resist Movement Reduction Effects on you.",
-        "icon": "icon-kineticWard",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "kineticWard": 0.15
-        }
-      }
+      "y": 65
     },
     {
       "x": 35,
@@ -2692,35 +2133,11 @@
     },
     {
       "x": 86,
-      "y": 66,
-      "metadata": {
-        "id": "dauntless-escorts-6",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 66
     },
     {
       "x": 91,
-      "y": 66,
-      "metadata": {
-        "id": "dauntless-escorts-2",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 66
     },
     {
       "x": 32,
@@ -2756,67 +2173,19 @@
     },
     {
       "x": 74,
-      "y": 67,
-      "metadata": {
-        "id": "ignite-damage-1",
-        "name": "Inferno",
-        "description": "Increases offensive Ignite damage.",
-        "icon": "icon-igniteDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "igniteDamage": 0.15
-        }
-      }
+      "y": 67
     },
     {
       "x": 80,
-      "y": 67,
-      "metadata": {
-        "id": "ignite-damage-2",
-        "name": "Inferno",
-        "description": "Increases offensive Ignite damage.",
-        "icon": "icon-igniteDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "igniteDamage": 0.15
-        }
-      }
+      "y": 67
     },
     {
       "x": 22,
-      "y": 68,
-      "metadata": {
-        "id": "kinetic-ward-1",
-        "name": "Kinetic Ward",
-        "description": "Resist Movement Reduction Effects on you.",
-        "icon": "icon-kineticWard",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "kineticWard": 0.15
-        }
-      }
+      "y": 68
     },
     {
       "x": 26,
-      "y": 68,
-      "metadata": {
-        "id": "kinetic-ward-2",
-        "name": "Kinetic Ward",
-        "description": "Resist Movement Reduction Effects on you.",
-        "icon": "icon-kineticWard",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "kineticWard": 0.15
-        }
-      }
+      "y": 68
     },
     {
       "x": 45,
@@ -2869,35 +2238,11 @@
     },
     {
       "x": 12,
-      "y": 69,
-      "metadata": {
-        "id": "lucky-dice-2",
-        "name": "Lucky Dice",
-        "description": "Increases chance for Rolls to have Epic outcomes.",
-        "icon": "icon-luckyDice",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "luckyDice": 0.05
-        }
-      }
+      "y": 69
     },
     {
       "x": 17,
-      "y": 69,
-      "metadata": {
-        "id": "lucky-dice-4",
-        "name": "Lucky Dice",
-        "description": "Increases chance for Rolls to have Epic outcomes.",
-        "icon": "icon-luckyDice",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "luckyDice": 0.05
-        }
-      }
+      "y": 69
     },
     {
       "x": 36,
@@ -2933,35 +2278,11 @@
     },
     {
       "x": 77,
-      "y": 70,
-      "metadata": {
-        "id": "ignite-damage-3",
-        "name": "Inferno",
-        "description": "Increases offensive Ignite damage.",
-        "icon": "icon-igniteDamage",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "igniteDamage": 0.15
-        }
-      }
+      "y": 70
     },
     {
       "x": 24,
-      "y": 71,
-      "metadata": {
-        "id": "kinetic-ward-3",
-        "name": "Kinetic Ward",
-        "description": "Resist Movement Reduction Effects on you.",
-        "icon": "icon-kineticWard",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "kineticWard": 0.15
-        }
-      }
+      "y": 71
     },
     {
       "x": 32,
@@ -3045,51 +2366,11 @@
     },
     {
       "x": 90,
-      "y": 72,
-      "metadata": {
-        "id": "dauntless-escorts-3",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 72
     },
     {
       "x": 15,
-      "y": 73,
-      "metadata": {
-        "id": "lucky-dice-5",
-        "name": "Lucky Dice",
-        "description": "Increases chance for Rolls to have Epic outcomes.",
-        "icon": "icon-luckyDice",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "luckyDice": 0.05
-        }
-      }
-    },
-    {
-      "x": 29,
-      "y": 73,
-      "metadata": {
-        "id": "alchemist-0",
-        "name": "Alchemist",
-        "description": "Blocks can be combined up to Tier 5.",
-        "icon": "icon-alchemist",
-        "nodeSize": "major",
-        "cost": 150,
-        "masteryRequirement": 0,
-        "metadata": {
-          "alchemist": true
-        }
-      }
+      "y": 73
     },
     {
       "x": 48,
@@ -3125,65 +2406,29 @@
     },
     {
       "x": 85,
-      "y": 73,
-      "metadata": {
-        "id": "dauntless-escorts-7",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
-    },
-    {
-      "x": 26,
-      "y": 75,
-      "metadata": {
-        "id": "double-combine-7",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 73
     },
     {
       "x": 19,
-      "y": 76,
-      "metadata": {
-        "id": "double-combine-0",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 76
+    },
+    {
+      "x": 25,
+      "y": 76
     },
     {
       "x": 42,
       "y": 76,
       "metadata": {
-        "id": "harvest-8",
-        "name": "Harvester",
-        "description": "Increases pickup gravitational pull range.",
-        "icon": "icon-harvest",
+        "id": "blockDropRate-4",
+        "name": "Salvager",
+        "description": "Increases Block drop rate.",
+        "icon": "icon-blockDropRate",
         "nodeSize": "minor",
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "harvestRange": 200
+          "blockDropRate": 0.1
         }
       }
     },
@@ -3207,177 +2452,53 @@
       "x": 58,
       "y": 76,
       "metadata": {
-        "id": "harvest-10",
-        "name": "Harvester",
-        "description": "Increases pickup gravitational pull range.",
-        "icon": "icon-harvest",
+        "id": "entropium-8",
+        "name": "Capitalist",
+        "description": "Increases Entropium gained.",
+        "icon": "icon-capitalist",
         "nodeSize": "minor",
         "cost": 40,
         "masteryRequirement": 0,
         "metadata": {
-          "harvestRange": 200
-        }
-      }
-    },
-    {
-      "x": 30,
-      "y": 77,
-      "metadata": {
-        "id": "double-combine-6",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
+          "entropiumPickupBonus": 0.05
         }
       }
     },
     {
       "x": 81,
-      "y": 77,
-      "metadata": {
-        "id": "escort-armor-6",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
+      "y": 77
     },
     {
       "x": 88,
-      "y": 77,
-      "metadata": {
-        "id": "dauntless-escorts-4",
-        "name": "Dauntless Escorts",
-        "description": "Chance for Escorts to Ignore incoming Damage.",
-        "icon": "icon-escortImmunity",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortImmunity": 0.05
-        }
-      }
+      "y": 77
     },
     {
       "x": 10,
-      "y": 78,
-      "metadata": {
-        "id": "jumpcast-speed-1",
-        "name": "Faster Jumpcast",
-        "description": "Reduces Jumpcast channeling duration.",
-        "icon": "icon-jumpcastSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "jumpcastSpeed": 0.2
-        }
-      }
+      "y": 78
     },
     {
       "x": 14,
-      "y": 78,
-      "metadata": {
-        "id": "jumpcast-speed-0",
-        "name": "Faster Jumpcast",
-        "description": "Reduces Jumpcast channeling duration.",
-        "icon": "icon-jumpcastSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "jumpcastSpeed": 0.2
-        }
-      }
+      "y": 78
+    },
+    {
+      "x": 32,
+      "y": 78
     },
     {
       "x": 39,
-      "y": 78,
-      "metadata": {
-        "id": "blockDropRate-6",
-        "name": "Salvager",
-        "description": "Increases Block drop rate.",
-        "icon": "icon-blockDropRate",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "blockDropRate": 0.1
-        }
-      }
+      "y": 78
     },
     {
       "x": 61,
-      "y": 78,
-      "metadata": {
-        "id": "repair-bounty-0",
-        "name": "Repair Bounty",
-        "description": "Increased Repair Orb drop rate.",
-        "icon": "icon-repairBounty",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairBounty": 0.05
-        }
-      }
-    },
-    {
-      "x": 27,
-      "y": 79,
-      "metadata": {
-        "id": "double-combine-5",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 78
     },
     {
       "x": 68,
-      "y": 79,
-      "metadata": {
-        "id": "escort-armor-4",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
+      "y": 79
     },
     {
       "x": 74,
-      "y": 79,
-      "metadata": {
-        "id": "escort-armor-5",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
+      "y": 79
     },
     {
       "x": 45,
@@ -3413,67 +2534,19 @@
     },
     {
       "x": 23,
-      "y": 81,
-      "metadata": {
-        "id": "double-combine-1",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 81
     },
     {
       "x": 84,
-      "y": 81,
-      "metadata": {
-        "id": "escort-armor-3",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
+      "y": 81
     },
     {
       "x": 14,
-      "y": 82,
-      "metadata": {
-        "id": "jumpcast-speed-2",
-        "name": "Faster Jumpcast",
-        "description": "Reduces Jumpcast channeling duration.",
-        "icon": "icon-jumpcastSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "jumpcastSpeed": 0.2
-        }
-      }
+      "y": 82
     },
     {
       "x": 37,
-      "y": 82,
-      "metadata": {
-        "id": "double-combine-4",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 82
     },
     {
       "x": 50,
@@ -3494,643 +2567,147 @@
     },
     {
       "x": 63,
-      "y": 82,
-      "metadata": {
-        "id": "repair-bounty-1",
-        "name": "Repair Bounty",
-        "description": "Increased Repair Orb drop rate.",
-        "icon": "icon-repairBounty",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairBounty": 0.05
-        }
-      }
+      "y": 82
     },
     {
       "x": 89,
-      "y": 82,
-      "metadata": {
-        "id": "immortal-escorts-0",
-        "name": "Immortal Escorts",
-        "description": "Reduces Escort Replenishment Cooldown.",
-        "icon": "icon-escortResurrectionSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortRessurectionSpeed": 0.15
-        }
-      }
+      "y": 82
     },
     {
       "x": 9,
-      "y": 83,
-      "metadata": {
-        "id": "global-jumpcast-0",
-        "name": "Universal Jumpcast",
-        "description": "Allows Ship to Jumpcast without using a Planet.",
-        "icon": "icon-globalJumpcast",
-        "nodeSize": "major",
-        "cost": 120,
-        "masteryRequirement": 0,
-        "metadata": {
-          "globalJumpcast": true
-        }
-      }
+      "y": 83
     },
     {
       "x": 28,
-      "y": 83,
-      "metadata": {
-        "id": "double-combine-2",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 83
     },
     {
       "x": 33,
-      "y": 83,
-      "metadata": {
-        "id": "double-combine-3",
-        "name": "Machinist",
-        "description": "Chance for Combine to upgrade an extra Tier.",
-        "icon": "icon-doubleCombine",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "doubleCombine": 0.03
-        }
-      }
+      "y": 83
     },
     {
       "x": 43,
-      "y": 83,
-      "metadata": {
-        "id": "power-surge-0",
-        "name": "Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.02
-        }
-      }
+      "y": 83
     },
     {
       "x": 57,
-      "y": 83,
-      "metadata": {
-        "id": "power-surge-5",
-        "name": "Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.02
-        }
-      }
+      "y": 83
     },
     {
       "x": 79,
-      "y": 83,
-      "metadata": {
-        "id": "escort-armor-2",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
+      "y": 83
     },
     {
       "x": 94,
-      "y": 83,
-      "metadata": {
-        "id": "immortal-escorts-1",
-        "name": "Immortal Escorts",
-        "description": "Reduces Escort Replenishment Cooldown.",
-        "icon": "icon-escortResurrectionSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortRessurectionSpeed": 0.15
-        }
-      }
+      "y": 83
     },
     {
       "x": 68,
-      "y": 84,
-      "metadata": {
-        "id": "escort-armor-0",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
+      "y": 84
     },
     {
       "x": 74,
-      "y": 84,
-      "metadata": {
-        "id": "escort-armor-1",
-        "name": "Durable Escorts",
-        "description": "Increases Escort Block Armor.",
-        "icon": "icon-escortArmor",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortArmor": 10
-        }
-      }
-    },
-    {
-      "x": 24,
-      "y": 85,
-      "metadata": {
-        "id": "abilityPower-16",
-        "name": "Enchanter",
-        "description": "Decreases Cooldown of Ship Abilities.",
-        "icon": "icon-abilityCooldown",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityCooldown": 0.05
-        }
-      }
+      "y": 84
     },
     {
       "x": 39,
-      "y": 86,
-      "metadata": {
-        "id": "core-bonus-0",
-        "name": "Core Collector",
-        "description": "Bonus cores awarded after Mission Completion.",
-        "icon": "icon-coreBonus",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coreBonus": 0.03
-        }
-      }
+      "y": 86
     },
     {
       "x": 61,
-      "y": 86,
-      "metadata": {
-        "id": "repair-bounty-2",
-        "name": "Repair Bounty",
-        "description": "Increased Repair Orb drop rate.",
-        "icon": "icon-repairBounty",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairBounty": 0.05
-        }
-      }
-    },
-    {
-      "x": 20,
-      "y": 87,
-      "metadata": {
-        "id": "abilityPower-18",
-        "name": "Enchanter",
-        "description": "Decreases Cooldown of Ship Abilities.",
-        "icon": "icon-abilityCooldown",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityCooldown": 0.05
-        }
-      }
+      "y": 86
     },
     {
       "x": 50,
-      "y": 87,
-      "metadata": {
-        "id": "epic-infusion-1",
-        "name": "Epic Infusion",
-        "description": "Chance for Epic Powerups.",
-        "icon": "icon-epicInfusion",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "epicInfusion": 0.02
-        }
-      }
+      "y": 87
     },
     {
       "x": 91,
-      "y": 87,
-      "metadata": {
-        "id": "immortal-escorts-2",
-        "name": "Immortal Escorts",
-        "description": "Reduces Escort Replenishment Cooldown.",
-        "icon": "icon-escortResurrectionSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortRessurectionSpeed": 0.15
-        }
-      }
+      "y": 87
     },
     {
       "x": 36,
-      "y": 88,
-      "metadata": {
-        "id": "core-bonus-1",
-        "name": "Core Collector",
-        "description": "Bonus cores awarded after Mission Completion.",
-        "icon": "icon-coreBonus",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coreBonus": 0.03
-        }
-      }
+      "y": 88
     },
     {
       "x": 43,
-      "y": 88,
-      "metadata": {
-        "id": "harvest-12",
-        "name": "Harvester",
-        "description": "Increases pickup gravitational pull range.",
-        "icon": "icon-harvest",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "harvestRange": 200
-        }
-      }
+      "y": 88
     },
     {
       "x": 57,
-      "y": 88,
-      "metadata": {
-        "id": "harvest-13",
-        "name": "Harvester",
-        "description": "Increases pickup gravitational pull range.",
-        "icon": "icon-harvest",
-        "nodeSize": "minor",
-        "cost": 40,
-        "masteryRequirement": 0,
-        "metadata": {
-          "harvestRange": 200
-        }
-      }
+      "y": 88
     },
     {
       "x": 64,
-      "y": 88,
-      "metadata": {
-        "id": "repair-bounty-3",
-        "name": "Repair Bounty",
-        "description": "Increased Repair Orb drop rate.",
-        "icon": "icon-repairBounty",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairBounty": 0.05
-        }
-      }
+      "y": 88
     },
     {
       "x": 96,
-      "y": 88,
-      "metadata": {
-        "id": "immortal-escorts-3",
-        "name": "Immortal Escorts",
-        "description": "Reduces Escort Replenishment Cooldown.",
-        "icon": "icon-escortResurrectionSpeed",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "escortRessurectionSpeed": 0.15
-        }
-      }
-    },
-    {
-      "x": 24,
-      "y": 89,
-      "metadata": {
-        "id": "abilityPower-23",
-        "name": "Enchanter",
-        "description": "Decreases Cooldown of Ship Abilities.",
-        "icon": "icon-abilityCooldown",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityCooldown": 0.05
-        }
-      }
+      "y": 88
     },
     {
       "x": 47,
-      "y": 89,
-      "metadata": {
-        "id": "epic-infusion-0",
-        "name": "Epic Infusion",
-        "description": "Chance for Epic Powerups.",
-        "icon": "icon-epicInfusion",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "epicInfusion": 0.02
-        }
-      }
+      "y": 89
     },
     {
       "x": 53,
-      "y": 89,
-      "metadata": {
-        "id": "epic-infusion-2",
-        "name": "Epic Infusion",
-        "description": "Chance for Epic Powerups.",
-        "icon": "icon-epicInfusion",
-        "nodeSize": "minor",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "epicInfusion": 0.02
-        }
-      }
+      "y": 89
     },
     {
       "x": 29,
-      "y": 90,
-      "metadata": {
-        "id": "core-bonus-3",
-        "name": "Core Collector",
-        "description": "Bonus cores awarded after Mission Completion.",
-        "icon": "icon-coreBonus",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coreBonus": 0.03
-        }
-      }
+      "y": 90
     },
     {
       "x": 33,
-      "y": 90,
-      "metadata": {
-        "id": "core-bonus-2",
-        "name": "Core Collector",
-        "description": "Bonus cores awarded after Mission Completion.",
-        "icon": "icon-coreBonus",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coreBonus": 0.03
-        }
-      }
+      "y": 90
     },
     {
       "x": 67,
-      "y": 90,
-      "metadata": {
-        "id": "repair-amplification-0",
-        "name": "Repair Amplification",
-        "description": "Increased effectiveness of Repair Orbs.",
-        "icon": "icon-repairAmplification",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairAmplification": 0.1
-        }
-      }
+      "y": 90
     },
     {
       "x": 71,
-      "y": 90,
-      "metadata": {
-        "id": "repair-amplification-1",
-        "name": "Repair Amplification",
-        "description": "Increased effectiveness of Repair Orbs.",
-        "icon": "icon-repairAmplification",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairAmplification": 0.1
-        }
-      }
-    },
-    {
-      "x": 20,
-      "y": 92,
-      "metadata": {
-        "id": "abilityPower-17",
-        "name": "Enchanter",
-        "description": "Decreases Cooldown of Ship Abilities.",
-        "icon": "icon-abilityCooldown",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "abilityCooldown": 0.05
-        }
-      }
+      "y": 90
     },
     {
       "x": 44,
-      "y": 92,
-      "metadata": {
-        "id": "power-surge-2",
-        "name": "Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.02
-        }
-      }
+      "y": 92
     },
     {
       "x": 50,
-      "y": 92,
-      "metadata": {
-        "id": "epic-infusion-3",
-        "name": "Major Infusion",
-        "description": "Chance for Epic Powerups.",
-        "icon": "icon-epicInfusion",
-        "nodeSize": "major",
-        "cost": 120,
-        "masteryRequirement": 0,
-        "metadata": {
-          "epicInfusion": 0.04
-        }
-      }
+      "y": 92
     },
     {
       "x": 56,
-      "y": 92,
-      "metadata": {
-        "id": "power-surge-7",
-        "name": "Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.02
-        }
-      }
+      "y": 92
     },
     {
       "x": 27,
-      "y": 93,
-      "metadata": {
-        "id": "core-bonus-5",
-        "name": "Prime Core Collector",
-        "description": "Bonus cores awarded after Mission Completion.",
-        "icon": "icon-coreBonus",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coreBonus": 0.05
-        }
-      }
+      "y": 93
     },
     {
       "x": 31,
-      "y": 93,
-      "metadata": {
-        "id": "core-bonus-4",
-        "name": "Core Collector",
-        "description": "Bonus cores awarded after Mission Completion.",
-        "icon": "icon-coreBonus",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "coreBonus": 0.03
-        }
-      }
+      "y": 93
     },
     {
       "x": 69,
-      "y": 93,
-      "metadata": {
-        "id": "repair-amplification-2",
-        "name": "Repair Amplification",
-        "description": "Increased effectiveness of Repair Orbs.",
-        "icon": "icon-repairAmplification",
-        "nodeSize": "minor",
-        "cost": 80,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairAmplification": 0.1
-        }
-      }
+      "y": 93
     },
     {
       "x": 73,
-      "y": 93,
-      "metadata": {
-        "id": "prime-amplification-0",
-        "name": "Prime Amplification",
-        "description": "Greatly increased effectiveness of Repair Orbs.",
-        "icon": "icon-repairAmplification",
-        "nodeSize": "major",
-        "cost": 120,
-        "masteryRequirement": 0,
-        "metadata": {
-          "repairAmplification": 0.2
-        }
-      }
+      "y": 93
     },
     {
       "x": 47,
-      "y": 95,
-      "metadata": {
-        "id": "power-surge-3",
-        "name": "Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.02
-        }
-      }
+      "y": 95
     },
     {
       "x": 53,
-      "y": 95,
-      "metadata": {
-        "id": "power-surge-8",
-        "name": "Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "minor",
-        "cost": 60,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.02
-        }
-      }
+      "y": 95
     },
     {
       "x": 50,
-      "y": 97,
-      "metadata": {
-        "id": "power-surge-4",
-        "name": "Prime Power Surge",
-        "description": "Increased chance of Rare Powerups.",
-        "icon": "icon-powerSurge",
-        "nodeSize": "major",
-        "cost": 100,
-        "masteryRequirement": 0,
-        "metadata": {
-          "powerSurge": 0.04
-        }
-      }
+      "y": 97
     }
   ],
   "connections": [
@@ -9716,6 +8293,66 @@
     },
     {
       "from": {
+        "x": 37,
+        "y": 82
+      },
+      "to": {
+        "x": 32,
+        "y": 78
+      }
+    },
+    {
+      "from": {
+        "x": 32,
+        "y": 78
+      },
+      "to": {
+        "x": 37,
+        "y": 82
+      }
+    },
+    {
+      "from": {
+        "x": 32,
+        "y": 78
+      },
+      "to": {
+        "x": 25,
+        "y": 76
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 76
+      },
+      "to": {
+        "x": 32,
+        "y": 78
+      }
+    },
+    {
+      "from": {
+        "x": 25,
+        "y": 76
+      },
+      "to": {
+        "x": 19,
+        "y": 76
+      }
+    },
+    {
+      "from": {
+        "x": 19,
+        "y": 76
+      },
+      "to": {
+        "x": 25,
+        "y": 76
+      }
+    },
+    {
+      "from": {
         "x": 19,
         "y": 76
       },
@@ -10652,428 +9289,8 @@
       "to": {
         "x": 86,
         "y": 61
-      }
-    },
-    {
-      "from": {
-        "x": 16,
-        "y": 42
-      },
-      "to": {
-        "x": 14,
-        "y": 40
-      }
-    },
-    {
-      "from": {
-        "x": 14,
-        "y": 40
-      },
-      "to": {
-        "x": 16,
-        "y": 42
-      }
-    },
-    {
-      "from": {
-        "x": 14,
-        "y": 40
-      },
-      "to": {
-        "x": 10,
-        "y": 39
-      }
-    },
-    {
-      "from": {
-        "x": 10,
-        "y": 39
-      },
-      "to": {
-        "x": 14,
-        "y": 40
-      }
-    },
-    {
-      "from": {
-        "x": 10,
-        "y": 39
-      },
-      "to": {
-        "x": 9,
-        "y": 34
-      }
-    },
-    {
-      "from": {
-        "x": 9,
-        "y": 34
-      },
-      "to": {
-        "x": 10,
-        "y": 39
-      }
-    },
-    {
-      "from": {
-        "x": 9,
-        "y": 34
-      },
-      "to": {
-        "x": 14,
-        "y": 36
-      }
-    },
-    {
-      "from": {
-        "x": 14,
-        "y": 36
-      },
-      "to": {
-        "x": 9,
-        "y": 34
-      }
-    },
-    {
-      "from": {
-        "x": 14,
-        "y": 36
-      },
-      "to": {
-        "x": 14,
-        "y": 40
-      }
-    },
-    {
-      "from": {
-        "x": 14,
-        "y": 40
-      },
-      "to": {
-        "x": 14,
-        "y": 36
-      }
-    },
-    {
-      "from": {
-        "x": 23,
-        "y": 81
-      },
-      "to": {
-        "x": 24,
-        "y": 85
-      }
-    },
-    {
-      "from": {
-        "x": 24,
-        "y": 85
-      },
-      "to": {
-        "x": 23,
-        "y": 81
-      }
-    },
-    {
-      "from": {
-        "x": 28,
-        "y": 83
-      },
-      "to": {
-        "x": 24,
-        "y": 85
-      }
-    },
-    {
-      "from": {
-        "x": 24,
-        "y": 85
-      },
-      "to": {
-        "x": 28,
-        "y": 83
-      }
-    },
-    {
-      "from": {
-        "x": 24,
-        "y": 85
-      },
-      "to": {
-        "x": 24,
-        "y": 89
-      }
-    },
-    {
-      "from": {
-        "x": 24,
-        "y": 89
-      },
-      "to": {
-        "x": 24,
-        "y": 85
-      }
-    },
-    {
-      "from": {
-        "x": 24,
-        "y": 89
-      },
-      "to": {
-        "x": 20,
-        "y": 92
-      }
-    },
-    {
-      "from": {
-        "x": 20,
-        "y": 92
-      },
-      "to": {
-        "x": 24,
-        "y": 89
-      }
-    },
-    {
-      "from": {
-        "x": 20,
-        "y": 92
-      },
-      "to": {
-        "x": 20,
-        "y": 87
-      }
-    },
-    {
-      "from": {
-        "x": 20,
-        "y": 87
-      },
-      "to": {
-        "x": 20,
-        "y": 92
-      }
-    },
-    {
-      "from": {
-        "x": 20,
-        "y": 87
-      },
-      "to": {
-        "x": 24,
-        "y": 85
-      }
-    },
-    {
-      "from": {
-        "x": 24,
-        "y": 85
-      },
-      "to": {
-        "x": 20,
-        "y": 87
-      }
-    },
-    {
-      "from": {
-        "x": 23,
-        "y": 81
-      },
-      "to": {
-        "x": 27,
-        "y": 79
-      }
-    },
-    {
-      "from": {
-        "x": 27,
-        "y": 79
-      },
-      "to": {
-        "x": 23,
-        "y": 81
-      }
-    },
-    {
-      "from": {
-        "x": 28,
-        "y": 83
-      },
-      "to": {
-        "x": 27,
-        "y": 79
-      }
-    },
-    {
-      "from": {
-        "x": 27,
-        "y": 79
-      },
-      "to": {
-        "x": 28,
-        "y": 83
-      }
-    },
-    {
-      "from": {
-        "x": 26,
-        "y": 75
-      },
-      "to": {
-        "x": 29,
-        "y": 73
-      }
-    },
-    {
-      "from": {
-        "x": 29,
-        "y": 73
-      },
-      "to": {
-        "x": 26,
-        "y": 75
-      }
-    },
-    {
-      "from": {
-        "x": 29,
-        "y": 73
-      },
-      "to": {
-        "x": 30,
-        "y": 77
-      }
-    },
-    {
-      "from": {
-        "x": 30,
-        "y": 77
-      },
-      "to": {
-        "x": 29,
-        "y": 73
-      }
-    },
-    {
-      "from": {
-        "x": 30,
-        "y": 77
-      },
-      "to": {
-        "x": 27,
-        "y": 79
-      }
-    },
-    {
-      "from": {
-        "x": 27,
-        "y": 79
-      },
-      "to": {
-        "x": 30,
-        "y": 77
-      }
-    },
-    {
-      "from": {
-        "x": 27,
-        "y": 79
-      },
-      "to": {
-        "x": 26,
-        "y": 75
-      }
-    },
-    {
-      "from": {
-        "x": 26,
-        "y": 75
-      },
-      "to": {
-        "x": 27,
-        "y": 79
-      }
-    },
-    {
-      "from": {
-        "x": 22,
-        "y": 58
-      },
-      "to": {
-        "x": 21,
-        "y": 54
-      }
-    },
-    {
-      "from": {
-        "x": 21,
-        "y": 54
-      },
-      "to": {
-        "x": 22,
-        "y": 58
-      }
-    },
-    {
-      "from": {
-        "x": 21,
-        "y": 54
-      },
-      "to": {
-        "x": 20,
-        "y": 50
-      }
-    },
-    {
-      "from": {
-        "x": 20,
-        "y": 50
-      },
-      "to": {
-        "x": 21,
-        "y": 54
-      }
-    },
-    {
-      "from": {
-        "x": 20,
-        "y": 50
-      },
-      "to": {
-        "x": 21,
-        "y": 46
-      }
-    },
-    {
-      "from": {
-        "x": 21,
-        "y": 46
-      },
-      "to": {
-        "x": 20,
-        "y": 50
-      }
-    },
-    {
-      "from": {
-        "x": 21,
-        "y": 46
-      },
-      "to": {
-        "x": 22,
-        "y": 42
-      }
-    },
-    {
-      "from": {
-        "x": 22,
-        "y": 42
-      },
-      "to": {
-        "x": 21,
-        "y": 46
       }
     }
   ],
-  "timestamp": "2025-08-13T20:09:13.876Z"
+  "timestamp": "2025-08-13T14:50:40.676Z"
 }

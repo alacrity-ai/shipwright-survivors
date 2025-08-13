@@ -144,16 +144,27 @@ export class PassiveTreeTooltipRenderer {
       'criticalMultiplier',
       'stunChance',
       'bossDamage',
+      'lifeStealChance',
+      'lifeStealAmount',
+      'coldDuration',
+      'igniteDamage',
 
       // Defense
       'armor',
       'mitigation',
       'ignoreDamageChance',
+      'acclimatization',
+      'thermalInsulation',
+      'ignoreStatusChance',
+      'rammer',
 
       // Movement
       'thrust',
       'turnPower',
       'explorer', // numeric % exploration speed bonus
+      'kineticWard',
+      'jumpcastSpeed',
+      'globalJumpcast',
 
       // Utility
       'entropiumPickupBonus',
@@ -162,6 +173,21 @@ export class PassiveTreeTooltipRenderer {
       'attachTierUpChance',
       'rareItemTradepostChance',
       'voidIntensity',
+      'powerSurge',
+      'epicInfusion',
+      'repairBounty',
+      'repairAmplification',
+      'coreBonus',
+      'luckyDice',
+      'doubleCombine',
+      'alchemist',
+
+      // Escorts
+      'escortDamage',
+      'escortSpeed',
+      'escortArmor',
+      'escortImmunity',
+      'escortResurrectionSpeed',
 
       // Ability
       'abilityCooldown',
@@ -216,16 +242,27 @@ export class PassiveTreeTooltipRenderer {
       criticalMultiplier: 'Critical Damage Multiplier',
       stunChance: 'Stun Chance',
       bossDamage: 'Boss Damage',
+      lifeStealChance: 'Life Steal Chance',
+      lifeStealAmount: 'Life Steal Amount',
+      coldDuration: 'Cold Duration',
+      igniteDamage: 'Ignite Damage',
 
       // Defense
       armor: 'Armor',
       mitigation: 'Mitigation',
       ignoreDamageChance: 'Ignore Damage Chance',
+      acclimatization: 'Cold Resistance',
+      thermalInsulation: 'Heat Resistance',
+      ignoreStatusChance: 'Ignore Status Chance',
+      rammer: 'Collision Damage Mitigation',
 
       // Movement
       thrust: 'Thrust',
       turnPower: 'Turn Power',
       explorer: 'Exploration Speed',
+      kineticWard: 'Kinetic Ward',
+      jumpcastSpeed: 'Jumpcast Speed',
+      globalJumpcast: 'Global Jumpcast',
 
       // Utility
       entropiumPickupBonus: 'Entropium Bonus',
@@ -234,6 +271,21 @@ export class PassiveTreeTooltipRenderer {
       attachTierUpChance: 'Attach Tier-Up Chance',
       rareItemTradepostChance: 'Rare Tradepost Item Chance',
       voidIntensity: 'Void Intensity',
+      powerSurge: 'Rare Powerup Chance',
+      epicInfusion: 'Epic Powerup Chance',
+      repairBounty: 'Repair Orb Chance',
+      repairAmplification: 'Repair Orb Amplification',
+      coreBonus: 'Cores Awarded',
+      luckyDice: 'Lucky Dice',
+      doubleCombine: 'Double Combine',
+      alchemist: 'Alchemist',
+
+      // Escorts
+      escortDamage: 'Escort Damage',
+      escortSpeed: 'Escort Speed',
+      escortArmor: 'Escort Armor',
+      escortImmunity: 'Escort Immunity',
+      escortResurrectionSpeed: 'Escort Resurrection Speed',
 
       // Ability
       abilityCooldown: 'Ability Cooldown Reduction',

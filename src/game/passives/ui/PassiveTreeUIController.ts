@@ -1,5 +1,3 @@
-// src/game/passives/ui/PassiveTreeUIController.ts
-
 import { CanvasManager } from '@/core/CanvasManager';
 import type { InputManager } from '@/core/InputManager';
 import { MouseWheelTracker } from '@/core/input/MouseWheelTracker';
@@ -20,10 +18,7 @@ import {
 } from '@/game/passives/runtime/passiveTreeConnectivity';
 
 import { audioManager } from '@/audio/Audio';
-
-import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
-import { drawLabel } from '@/ui/primitives/UILabel';
-import { DEFAULT_CONFIG } from '@/config/ui';
+import { renderCoresOverlay } from '@/ui/overlays/CoresOverlay';
 
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.5;
@@ -63,14 +58,6 @@ export class PassiveTreeUIController {
   private adjacency: Adjacency | null = null;
   private reachableUnlocked: Set<string> = new Set();
   private unlockedCountSnapshot = -1;
-
-  // ⬇️ NEW: layout constants for the cores overlay (logical units; scaled at render)
-  private readonly CORE_PAD_X = 12;
-  private readonly CORE_PAD_Y = 8;
-  private readonly CORE_MIN_W = 148;
-  private readonly CORE_H     = 32;
-  private readonly CORE_MARGIN_L = 12;  // from left screen edge
-  private readonly CORE_MARGIN_B = 12;  // from bottom screen edge
 
   constructor(canvasManager: CanvasManager, inputManager: InputManager) {
     this.cm = canvasManager;
@@ -125,7 +112,7 @@ export class PassiveTreeUIController {
     return !!this.hoveredNodeId || this.breakdownWindow.isCollapseButtonHovered;
   }
 
-  public update(dtSeconds: number): void {
+  public update(_dtSeconds: number): void {
     if (!this.tree) return;
 
     const mouse = this.input.getMousePosition();
@@ -259,8 +246,12 @@ export class PassiveTreeUIController {
       );
     }
 
-    // ⬇️ NEW: Bottom-left "Cores" overlay (simple, GC-neutral, scale-aware)
-    this.renderCoresOverlay(ctx);
+    // NEW: Bottom-left "Cores" overlay via shared renderer
+    renderCoresOverlay(
+      ctx,
+      PlayerMetaCurrencyManager.getInstance().getMetaCurrency()
+      // , { labelPrefix: 'Cores', /* optional overrides */ }
+    );
   }
 
   // === Coordinate transforms ===
@@ -269,7 +260,7 @@ export class PassiveTreeUIController {
       x: sx / this.zoom + this.camX,
       y: sy / this.zoom + this.camY
     };
-    }
+  }
 
   private clamp(v: number, lo: number, hi: number): number {
     return Math.max(lo, Math.min(hi, v));
@@ -296,47 +287,5 @@ export class PassiveTreeUIController {
     }
 
     this.reachableUnlocked = computeReachableUnlocked('root-node', this.adjacency, unlockedSet);
-  }
-
-  // ⬇️ NEW: dedicated painter for the cores overlay
-  private renderCoresOverlay(ctx: CanvasRenderingContext2D): void {
-    const ui = getUniformScaleFactor();
-    const canvas = ctx.canvas;
-
-    const cores = PlayerMetaCurrencyManager.getInstance().getMetaCurrency();
-    const label = `Cores: ${cores}`;
-
-    // Measure text with scaled font to size the window adaptively (bounded by CORE_MIN_W)
-    const fontPx = Math.round(12 * ui);
-    ctx.save();
-    ctx.font = `${fontPx}px monospace`;
-    const textW = Math.ceil(ctx.measureText(label).width);
-    ctx.restore();
-
-    const padX = Math.round(this.CORE_PAD_X * ui);
-    const padY = Math.round(this.CORE_PAD_Y * ui);
-    const winH  = Math.round(this.CORE_H * ui);
-    const winW  = Math.max(Math.round(this.CORE_MIN_W * ui), textW + padX * 2);
-
-    const x = Math.round(this.CORE_MARGIN_L * ui);
-    const y = canvas.height - winH - Math.round(this.CORE_MARGIN_B * ui);
-
-    // Subtle chrome, consistent with other minimalist windows
-    drawMinimalistWindow(ctx, x, y, winW, winH, {
-      alpha: 0.6,
-      borderRadius: DEFAULT_CONFIG.window.options.borderRadius * ui,
-      borderColor: DEFAULT_CONFIG.window.options.borderColor,
-      // (optional) fillColor to distinguish; omit to inherit default
-    });
-
-    // Centered vertically, left-aligned text
-    const textX = x + padX;
-    const textY = y + Math.round((winH - fontPx) / 2);
-    drawLabel(ctx, textX, textY, label, {
-      font: `${12}px monospace`, // drawLabel handles scaling via `ui`
-      color: DEFAULT_CONFIG.general.textColor,
-      align: 'left',
-      glow: true
-    }, ui);
   }
 }

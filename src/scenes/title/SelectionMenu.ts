@@ -1,6 +1,7 @@
 // src/scenes/title/SelectionMenu.ts
 
 import { DEFAULT_CONFIG, NEON_CYAN_CONFIG, SOLAR_FLARE_CONFIG, SYNTH_WAVE_CONFIG } from '@/config/ui';
+import { PlayerMetaCurrencyManager } from '@/game/player/PlayerMetaCurrencyManager';
 import { CanvasManager } from '@/core/CanvasManager';
 import { drawMinimalistWindow } from '@/ui/primitives/UIMinimalistWindow';
 import { drawButton, UIButton } from '@/ui/primitives/UIButton';
@@ -15,6 +16,8 @@ import {
   openPassiveSkillsFromSelectionMenu, 
   quitFromSelectionMenu,
  } from '@/core/interfaces/events/GameSelectionMenuReporter';
+
+import { renderCoresOverlay } from '@/ui/overlays/CoresOverlay';
 
 import type { InputManager } from '@/core/InputManager';
 
@@ -159,6 +162,8 @@ export class SelectionMenu {
 
     const scale = getUniformScaleFactor();
     const ctx = this.ctx;
+
+    renderCoresOverlay(ctx, PlayerMetaCurrencyManager.getInstance().getMetaCurrency());
 
     drawMinimalistWindow(ctx, this.winX, this.winY, this.winW, this.winH, {
       ...DEFAULT_CONFIG.window.options,
