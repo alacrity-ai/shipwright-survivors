@@ -66,24 +66,24 @@ export class DimensionalPortalIncident extends BaseIncidentScript {
       formations: [],
     });
 
-    this.context.popupMessageSystem.displayMessage('💫 Dimensional Portal Detected 💫', {
-      color: '#aa66ff',
-      duration: 5,
-      font: '26px monospace',
-      glow: true,
-    });
+    // this.context.popupMessageSystem.displayMessage('💫 Dimensional Portal Detected 💫', {
+    //   color: '#aa66ff',
+    //   duration: 5,
+    //   font: '26px monospace',
+    //   glow: true,
+    // });
   }
 
   protected onPlayerEnterProximity(): void {
     if (this.challengeStarted) return;
     this.challengeStarted = true;
 
-    this.context.popupMessageSystem.displayMessage('🛑 Survive the Rift! 🛑\nDefeat as many as you can.', {
-      color: '#ff66aa',
-      duration: 5,
-      font: '24px monospace',
-      glow: true,
-    });
+    // this.context.popupMessageSystem.displayMessage('🛑 Survive the Rift! 🛑\nDefeat as many as you can.', {
+    //   color: '#ff66aa',
+    //   duration: 5,
+    //   font: '24px monospace',
+    //   glow: true,
+    // });
 
     this.context.popupMessageSystem.setTimer(this.getMaxDuration());
     GlobalEventBus.on('wave:completed', this.handleWaveCompleted);

@@ -478,10 +478,13 @@ export class EngineRuntime {
     this.utilitySystem = utility; // Utility system needed for update() loop
 
     // Cloud Manager
+    let generatedRegions;
     if (this.mission.autoGenerateCloudParams) {
-      this.mission.cloudRegions = generateCloudRegions(this.mission.autoGenerateCloudParams);
+      generatedRegions = generateCloudRegions(this.mission.autoGenerateCloudParams);
     }
-    this.veilManager = new VeilManager(this.ship!, this.shipBuilderEffects, this.mission.cloudRegions ?? [], this.shipFactory!);
+    // this.cloudManager = new CloudManager(this.ship!, this.mission.cloudRegions ?? []);
+    this.veilManager = new VeilManager(this.ship!, this.shipBuilderEffects, generatedRegions ?? [], this.shipFactory!);
+    this.cloudManager = new CloudManager(this.ship!, this.mission.cloudRegions ?? [], 0);
 
     // Enqueue starting blocks from Ship Skill Tree if applicable
     PlayerResources.getInstance().enqueueSkillTreeStartingBlocks(this.ship);
@@ -698,6 +701,7 @@ export class EngineRuntime {
       this.damageTextManager,
       this.aiOrchestrator,
       this.veilManager!,
+      this.cloudManager!,
       this.blockObjectUpdate!,
       this.collisionBoxSystem,
       this.destructionService,

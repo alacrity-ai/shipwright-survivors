@@ -51,12 +51,12 @@ export class CursedCargoIncident extends BaseIncidentScript {
 
     const { x, y, cursedCacheShip } = this.options as CursedCargoOptions;
 
-    this.context.popupMessageSystem.displayMessage('✨ Cursed Cargo Detected! ✨', {
-      color: '#00ffaa',
-      duration: 5,
-      font: '26px monospace',
-      glow: true,
-    });
+    // this.context.popupMessageSystem.displayMessage('✨ Cursed Cargo Detected! ✨', {
+    //   color: '#00ffaa',
+    //   duration: 5,
+    //   font: '26px monospace',
+    //   glow: true,
+    // });
 
     const cargoWaveTag = this.generateWaveTag('cargo');
     this.ownedWaveTags.add(cargoWaveTag);
@@ -119,12 +119,12 @@ export class CursedCargoIncident extends BaseIncidentScript {
     GlobalEventBus.on('wave:completed', this.handleWaveCompleted);
     this.hasSpawnedAmbush = true;
 
-    this.context.popupMessageSystem.displayMessage('Ambush Incoming!', {
-      color: '#ff3333',
-      duration: 5,
-      font: '26px monospace',
-      glow: true,
-    });
+    // this.context.popupMessageSystem.displayMessage('Ambush Incoming!', {
+    //   color: '#ff3333',
+    //   duration: 5,
+    //   font: '26px monospace',
+    //   glow: true,
+    // });
   }
 
   private readonly handleWaveCompleted = (data: { tag: string }) => {

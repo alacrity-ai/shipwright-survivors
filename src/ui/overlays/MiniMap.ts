@@ -178,8 +178,8 @@ export class MiniMap {
     const ctx = canvas.getContext('2d')!;
     ctx.translate(pixelRadius, pixelRadius); // Center origin
 
-    ctx.fillStyle = 'rgba(255, 97, 239, 0.28)';
-    ctx.strokeStyle = 'rgba(129, 0, 105, 0.55)';
+    ctx.fillStyle = 'rgba(255, 97, 97, 0.28)';
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.55)';
     ctx.lineWidth = Math.max(1, Math.floor(1 * this.scale));
 
     ctx.beginPath();

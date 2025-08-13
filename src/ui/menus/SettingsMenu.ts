@@ -19,6 +19,7 @@ import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
 import { getDropdownHoverInfo } from '@/ui/menus/helpers/getDropdownHoverInfo';
 
 import { reportResolutionChange } from '@/core/interfaces/events/ResolutionChangeReporter';
+import { enableAdvancedLighting, disableAdvancedLighting } from '@/core/interfaces/events/SpecialFxReporter';
 
 import { getUniformScaleFactor } from '@/config/view';
 import { drawWindow } from '@/ui/primitives/WindowBox';
@@ -73,6 +74,7 @@ export class SettingsMenu implements Menu {
   private specialFXCheckbox: UICheckbox | null = null;
   private environmentDetailsCheckbox: UICheckbox | null = null;
   private fireEffectsCheckbox: UICheckbox | null = null;
+  private advancedLightingCheckbox: UICheckbox | null = null;
 
   private resolutionDropdown: CRTDropDown | null = null;
 
@@ -201,8 +203,8 @@ export class SettingsMenu implements Menu {
       x: this.baseX,
       y: this.baseY + scaledItemVerticalSpacing,
       size: this.checkboxSize,
-      label: 'Damage Text Enabled',
-      checked: settings.isParticlesEnabled(),
+      label: 'Damage Text',
+      checked: settings.isDamageTextEnabled(),
       onToggle: (val) => {
         this.damageTextCheckbox!.checked = val;
         settings.setDamageTextEnabled(val);
@@ -210,12 +212,30 @@ export class SettingsMenu implements Menu {
       }
     };
 
-    this.specialFXCheckbox = {
+    this.advancedLightingCheckbox = {
       x: this.baseX,
       y: this.baseY + scaledItemVerticalSpacing * 2,
       size: this.checkboxSize,
-      label: 'Shader Effects Enabled',
+      label: 'Advanced Lighting',
       checked: settings.isLightingEnabled(),
+      onToggle: (val) => {
+        this.advancedLightingCheckbox!.checked = val;
+        settings.setLightingEnabled(val);
+        if (val) {
+          enableAdvancedLighting();
+        } else {
+          disableAdvancedLighting();
+        }
+        SaveGameManager.saveSettings();
+      }
+    };
+
+    this.specialFXCheckbox = {
+      x: this.baseX,
+      y: this.baseY + scaledItemVerticalSpacing * 3,
+      size: this.checkboxSize,
+      label: 'Shader Effects',
+      checked: settings.isSpecialFXEnabled(),
       onToggle: (val) => {
         this.specialFXCheckbox!.checked = val;
         settings.setSpecialFXEnabled(val);
@@ -225,9 +245,9 @@ export class SettingsMenu implements Menu {
 
     this.environmentDetailsCheckbox = {
       x: this.baseX,
-      y: this.baseY + scaledItemVerticalSpacing * 3,
+      y: this.baseY + scaledItemVerticalSpacing * 4,
       size: this.checkboxSize,
-      label: 'Detailed Environment Enabled',
+      label: 'Detailed Environment',
       checked: settings.isCollisionsEnabled(),
       onToggle: (val) => {
         this.environmentDetailsCheckbox!.checked = val;
@@ -238,9 +258,9 @@ export class SettingsMenu implements Menu {
 
     this.fireEffectsCheckbox = {
       x: this.baseX,
-      y: this.baseY + scaledItemVerticalSpacing * 4,
+      y: this.baseY + scaledItemVerticalSpacing * 5,
       size: this.checkboxSize,
-      label: 'Fire Effects Enabled',
+      label: 'Fire Effects',
       checked: settings.isFireEffectsEnabled(),
       onToggle: (val) => {
         this.fireEffectsCheckbox!.checked = val;
@@ -329,6 +349,7 @@ export class SettingsMenu implements Menu {
       for (const cb of [
         this.aimModeCheckbox, 
         this.damageTextCheckbox, 
+        this.advancedLightingCheckbox,
         this.specialFXCheckbox, 
         this.environmentDetailsCheckbox,
         this.fireEffectsCheckbox,
@@ -414,7 +435,6 @@ export class SettingsMenu implements Menu {
       y: scaledWindowY,
       width: scaledWindowWidth,
       height: scaledWindowHeight,
-      // uiScale: scale,
       options: DEFAULT_CONFIG.window.options
     });
 
@@ -445,6 +465,7 @@ export class SettingsMenu implements Menu {
     if (this.activeTab === 'display') {
       drawCheckbox(ctx, this.aimModeCheckbox!, scale);
       drawCheckbox(ctx, this.damageTextCheckbox!, scale);
+      drawCheckbox(ctx, this.advancedLightingCheckbox!, scale);
       drawCheckbox(ctx, this.specialFXCheckbox!, scale);
       drawCheckbox(ctx, this.environmentDetailsCheckbox!, scale);
       drawCheckbox(ctx, this.fireEffectsCheckbox!, scale);

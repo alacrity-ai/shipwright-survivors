@@ -37,7 +37,12 @@ export interface PowerupEffectMetadata {
   /* ─────── Block Affinity (existing) ─────── */
   attachAffinityBlockTier?: 1 | 2 | 3 | 4;
   upgradeAffinityBlocksByTier?: number;
+  
+  upgradeAllBlocksByTier?: number;
 
+  upgradeWeaponBlocksByTier?: number;
+  upgradeNonWeaponBlocksByTier?: number;
+  
   /* ───────────── Resupply ───────────── */
   /** Enqueue a bundle of randomly-selected blocks. */
   grantRandomBlocks?: GrantRandomBlocksEffect | GrantRandomBlocksEffect[];

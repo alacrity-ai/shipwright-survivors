@@ -9,7 +9,7 @@ export const DEFAULT_FRONT_PARAMS: CloudParams = {
   quantity: 2.0,
   scale: 3.0,
   alpha: 0.14,
-  color: [0.8, 0.6, 0.9],
+  color: [0.9, 0.6, 0.6],
 };
 
 export const DEFAULT_BACK_PARAMS: CloudParams = {
@@ -18,7 +18,7 @@ export const DEFAULT_BACK_PARAMS: CloudParams = {
   quantity: 2.0,
   scale: 1.0,
   alpha: 0.18,
-  color: [0.2, 0.2, 0.8],
+  color: [0.8, 0.2, 0.2],
 };
 
 export const MISSION_02_CLOUDS: CloudRegionGenerationOptions = {
@@ -27,6 +27,28 @@ export const MISSION_02_CLOUDS: CloudRegionGenerationOptions = {
   minDistanceFromCenter: 25000,
   minRegionSpacing: 16000,
   radiusRange: [6000, 10000],
+  regionCountRange: [2, 4],
+  frontParams: DEFAULT_FRONT_PARAMS,
+  backParams: DEFAULT_BACK_PARAMS,
+  mutationOptions: {
+    mutateShips: true,
+    mutationBlockTier: 0,
+    mutationBlockCount: [5, 25],
+    mutationIntervalSeconds: 10,
+    mutatedShipKillLimit: 10,
+  },
+  bossOptions: {
+    bossId: 'veil/veil_boss_03',
+    spawnChance: 1.0,
+  },
+}
+
+export const MISSION_03_CLOUDS: CloudRegionGenerationOptions = {
+  worldWidth: 16000,
+  worldHeight: 16000,
+  minDistanceFromCenter: 3000,
+  minRegionSpacing: 6000,
+  radiusRange: [5000, 6000],
   regionCountRange: [2, 4],
   frontParams: DEFAULT_FRONT_PARAMS,
   backParams: DEFAULT_BACK_PARAMS,

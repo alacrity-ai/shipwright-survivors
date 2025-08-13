@@ -3,6 +3,7 @@
 import { setCloudParamsFront, setCloudParamsBack } from '@/core/interfaces/events/SpecialFxReporter';
 import { reportDialogueLine, clearDialogueEvents } from '@/core/interfaces/events/DialogueReporter';
 import { flags } from '@/game/player/PlayerFlagManager';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 import type { Vec2 } from '@/game/veil/interfaces/CloudRegion';
 import type { CloudRegion } from '@/game/veil/interfaces/CloudRegion';
@@ -20,6 +21,8 @@ function lerp(a: number, b: number, t: number): number {
 export class CloudManager {
   private readonly ship: { getTransform: () => { position: Vec2 } };
   private readonly regions: CloudRegion[];
+  private readonly channel: number;
+  private readonly playerSettings: PlayerSettingsManager;
 
   private readonly regionCoordsBuffer: { x: number; y: number; radius: number }[] = [];
 
@@ -35,15 +38,21 @@ export class CloudManager {
   private static readonly EPSILON = 0.001;
   private dialoguePlayed = false;
 
-  constructor(ship: { getTransform: () => { position: Vec2 } }, regions: CloudRegion[]) {
+  constructor(ship: { getTransform: () => { position: Vec2 } }, regions: CloudRegion[], channel: number = 0) {
     this.ship = ship;
+    this.channel = channel;
     this.regions = regions;
+    this.playerSettings = PlayerSettingsManager.getInstance();
+
     if (flags.has('veil.intro-dialogue.played')) {
       this.dialoguePlayed = true;
     }
   }
 
   update(dt: number): void {
+    if (this.channel === 0 && !this.playerSettings.isEnvironmentDetailsEnabled()) {
+      return;
+    }
     const position = this.ship.getTransform().position;
 
     let matchingRegion: CloudRegion | null = null;
@@ -88,13 +97,13 @@ export class CloudManager {
     // === Emit if alpha changed significantly ===
     if (Math.abs(this.alphaFront - this.lastEmittedFrontAlpha) > CloudManager.EPSILON) {
       const base = this.currentRegion?.frontParams ?? {};
-      setCloudParamsFront({ ...base, alpha: this.alphaFront });
+      setCloudParamsFront(this.channel, { ...base, alpha: this.alphaFront });
       this.lastEmittedFrontAlpha = this.alphaFront;
     }
 
     if (Math.abs(this.alphaBack - this.lastEmittedBackAlpha) > CloudManager.EPSILON) {
       const base = this.currentRegion?.backParams ?? {};
-      setCloudParamsBack({ ...base, alpha: this.alphaBack });
+      setCloudParamsBack(this.channel, { ...base, alpha: this.alphaBack });
       this.lastEmittedBackAlpha = this.alphaBack;
     }
   }
@@ -156,8 +165,8 @@ export class CloudManager {
           this.alphaBack = 0;
           this.lastEmittedFrontAlpha = -1;
           this.lastEmittedBackAlpha = -1;
-          setCloudParamsFront({ alpha: 0 });
-          setCloudParamsBack({ alpha: 0 });
+          setCloudParamsFront(this.channel, { alpha: 0 });
+          setCloudParamsBack(this.channel, { alpha: 0 });
         }
         return;
       }

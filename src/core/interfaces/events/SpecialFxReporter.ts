@@ -18,6 +18,14 @@ export function clearAllSpecialFx(): void {
   GlobalEventBus.emit('fx:clear', undefined);
 }
 
+export function enableAdvancedLighting(): void {
+  GlobalEventBus.emit('lighting:advanced:enable', undefined);
+}
+
+export function disableAdvancedLighting(): void {
+  GlobalEventBus.emit('lighting:advanced:disable', undefined);
+}
+
 /* Example usage:
 spawnSpecialFx({
   worldX: playerX,
@@ -224,17 +232,17 @@ export function emitBigExplosionFlames(x: number, y: number, count = 12): void {
 
 // Clouds
 export function enableClouds(): void {
-  GlobalEventBus.emit('rendering:clouds:enable', undefined);
+  GlobalEventBus.emit('rendering:clouds:enable', { channel: 0 });
 }
 
 export function disableClouds(): void {
-  GlobalEventBus.emit('rendering:clouds:disable', undefined);
+  GlobalEventBus.emit('rendering:clouds:disable', { channel: 0 });
 }
 
-export function setCloudParamsFront(params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] }): void {
-  GlobalEventBus.emit('rendering:clouds:setParams:front', { params });
+export function setCloudParamsFront(channel: number, params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] }): void {
+  GlobalEventBus.emit('rendering:clouds:setParams:front', { channel, params });
 }
 
-export function setCloudParamsBack(params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] }): void {
-  GlobalEventBus.emit('rendering:clouds:setParams:back', { params });
+export function setCloudParamsBack(channel: number, params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] }): void {
+  GlobalEventBus.emit('rendering:clouds:setParams:back', { channel, params });
 }

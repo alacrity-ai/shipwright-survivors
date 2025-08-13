@@ -1,11 +1,339 @@
-// src/core/Camera.ts
+// // src/core/Camera.ts
 
+// import { getUniformScaleFactor } from '@/config/view';
+// import { ScreenShakeController } from '@/core/components/ScreenShakeController';
+
+// import { GlobalEventBus } from './EventBus';
+// import type { EventTypes } from './interfaces/EventTypes';
+
+// import type { CanvasManager } from '@/core/CanvasManager';
+
+// export class Camera {
+//   private static _instance: Camera | null = null;
+//   private readonly screenShake = new ScreenShakeController();
+
+//   public static getInstance(viewportWidth?: number, viewportHeight?: number): Camera {
+//     if (!Camera._instance) {
+//       if (viewportWidth == null || viewportHeight == null) {
+//         throw new Error('[Camera] Must supply viewport dimensions on first initialization');
+//       }
+//       Camera._instance = new Camera(viewportWidth, viewportHeight);
+//     }
+//     return Camera._instance;
+//   }
+
+//   public static destroy(): void {
+//     if (Camera._instance) {
+//       Camera._instance.cleanup();
+//       Camera._instance = null;
+//     }
+//   }
+
+//   private x = 0;
+//   private y = 0;
+//   private zoom = 0.3;
+
+//   private targetX = 0;
+//   private targetY = 0;
+
+//   private logicalX = 0; // without shake
+//   private logicalY = 0;
+
+//   private skipSmoothingThisFrame = false;
+//   private readonly deadZoneRadius = 12;
+
+//   private zoomAnimationTarget: number | null = null;
+//   private zoomAnimationSpeed: number = 0.025;
+
+//   private viewportWidth: number;
+//   private viewportHeight: number;
+
+//   private constructor(viewportWidth: number, viewportHeight: number) {
+//     this.viewportWidth = viewportWidth;
+//     this.viewportHeight = viewportHeight;
+  
+//     GlobalEventBus.on('camera:shake', this.handleShakeEvent);
+//   }
+
+//   update(dt: number): void {
+//     this.screenShake.update(dt);
+
+//     // --- Interpolate *logical* camera (no shake) toward target ---
+//     const dx = this.targetX - this.logicalX;
+//     const dy = this.targetY - this.logicalY;
+//     const distSq = dx * dx + dy * dy;
+
+//     if (this.skipSmoothingThisFrame) {
+//       this.logicalX = this.targetX;
+//       this.logicalY = this.targetY;
+//     } else if (distSq > this.deadZoneRadius * this.deadZoneRadius) {
+//       const smoothingFactor = 1.05;
+//       const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+//       this.logicalX = lerp(this.logicalX, this.targetX, smoothingFactor);
+//       this.logicalY = lerp(this.logicalY, this.targetY, smoothingFactor);
+//     }
+
+//     // --- Derive shaken position separately ---
+//     const shakeOffset = this.screenShake.getOffset();
+//     const pxToWorld = getUniformScaleFactor() / this.zoom;
+//     this.x = this.logicalX + shakeOffset.x * pxToWorld;
+//     this.y = this.logicalY + shakeOffset.y * pxToWorld;
+
+//     // === Zoom interpolation ===
+//     if (this.zoomAnimationTarget !== null) {
+//       const delta = this.zoomAnimationTarget - this.zoom;
+//       if (Math.abs(delta) > 0.001) {
+//         const zoomStep = this.zoomAnimationSpeed * delta;
+//         const nextZoom = this.zoom + zoomStep;
+
+//         const scrollSteps = Math.log(nextZoom / this.zoom) / Math.log(1.08);
+//         this.adjustZoom(scrollSteps);
+//       } else {
+//         this.zoom = this.zoomAnimationTarget;
+//         this.zoomAnimationTarget = null;
+//       }
+//     }
+
+//     this.skipSmoothingThisFrame = false;
+//   }
+
+//   follow(position: { x: number; y: number }): void {
+//     this.targetX = position.x - (this.viewportWidth / 2) / this.zoom;
+//     this.targetY = position.y - (this.viewportHeight / 2) / this.zoom;
+//   }
+
+//   public setTarget(x: number, y: number): void {
+//     this.targetX = x;
+//     this.targetY = y;
+//   }
+
+//   public getTarget(): { x: number; y: number } {
+//     return { x: this.targetX, y: this.targetY };
+//   }
+
+//   worldToScreen(wx: number, wy: number): { x: number; y: number } {
+//     return {
+//       x: (wx - this.x) * this.zoom,
+//       y: (wy - this.y) * this.zoom,
+//     };
+//   }
+
+//   /**
+//    * Converts screen coordinates (in pixels) to world coordinates.
+//    * If `out` is provided, writes into it instead of allocating a new object.
+//    */
+//   screenToWorld(sx: number, sy: number, out?: { x: number; y: number }): { x: number; y: number } {
+//     const x = sx / this.zoom + this.x;
+//     const y = sy / this.zoom + this.y;
+
+//     if (out) {
+//       out.x = x;
+//       out.y = y;
+//       return out;
+//     }
+
+//     return { x, y };
+//   }
+
+//   getOffset(): { x: number; y: number } {
+//     return { x: this.x, y: this.y };
+//   }
+
+//   /** Returns camera offset without shake (for parallax layers like clouds). */
+//   getLogicalOffset(): { x: number; y: number } {
+//     return { x: this.logicalX, y: this.logicalY };
+//   }
+
+//   getPosition(): { x: number; y: number } {
+//     return {
+//       x: this.x + (this.viewportWidth / 2) / this.zoom,
+//       y: this.y + (this.viewportHeight / 2) / this.zoom,
+//     };
+//   }
+
+//   public moveToward(position: { x: number; y: number }, t: number): void {
+//     const tx = position.x - (this.viewportWidth / 2) / this.zoom;
+//     const ty = position.y - (this.viewportHeight / 2) / this.zoom;
+
+//     this.x = this.x + (tx - this.x) * t;
+//     this.y = this.y + (ty - this.y) * t;
+
+//     this.targetX = this.x;
+//     this.targetY = this.y;
+//   }
+
+//   public lerpZoom(targetZoom: number, t: number): void {
+//     const uiScale = getUniformScaleFactor();
+//     const scaledMinZoom = 0.15 * uiScale;
+//     const scaledMaxZoom = 0.5 * uiScale;
+
+//     const clampedTarget = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, targetZoom));
+//     const newZoom = this.zoom + (clampedTarget - this.zoom) * t;
+
+//     const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+//     this.zoom = newZoom;
+//     const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+//     const dx = centerBefore.x - centerAfter.x;
+//     const dy = centerBefore.y - centerAfter.y;
+
+//     this.x += dx;
+//     this.y += dy;
+//     this.targetX += dx;
+//     this.targetY += dy;
+//   }
+
+//   adjustZoom(delta: number): void {
+//     const baseFactor = 1.08;
+//     const scrollSteps = Math.max(-1, Math.min(1, delta));
+
+//     const centerWorldBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+//     const newZoom =
+//       scrollSteps > 0
+//         ? this.zoom * Math.pow(baseFactor, scrollSteps)
+//         : this.zoom / Math.pow(baseFactor, -scrollSteps);
+
+//     const uiScale = getUniformScaleFactor();
+//     const scaledMinZoom = 0.15 * uiScale;
+//     const scaledMaxZoom = 0.5 * uiScale;
+//     this.zoom = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, newZoom));
+
+//     const centerWorldAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+//     const dx = centerWorldBefore.x - centerWorldAfter.x;
+//     const dy = centerWorldBefore.y - centerWorldAfter.y;
+
+//     this.x += dx;
+//     this.y += dy;
+//     this.targetX += dx;
+//     this.targetY += dy;
+
+//     this.skipSmoothingThisFrame = true;
+//   }
+
+//   public setToMaxZoom(): void {
+//     const uiScale = getUniformScaleFactor();
+//     const scaledMaxZoom = 0.5 * uiScale;
+
+//     const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+//     this.zoom = scaledMaxZoom;
+//     const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+//     const dx = centerBefore.x - centerAfter.x;
+//     const dy = centerBefore.y - centerAfter.y;
+
+//     this.x += dx;
+//     this.y += dy;
+//     this.targetX += dx;
+//     this.targetY += dy;
+
+//     this.skipSmoothingThisFrame = true;
+//   }
+
+//   public setToMinZoom(): void {
+//     const uiScale = getUniformScaleFactor();
+//     const scaledMinZoom = 0.15 * uiScale;
+
+//     const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+//     this.zoom = scaledMinZoom;
+//     const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+
+//     const dx = centerBefore.x - centerAfter.x;
+//     const dy = centerBefore.y - centerAfter.y;
+
+//     this.x += dx;
+//     this.y += dy;
+//     this.targetX += dx;
+//     this.targetY += dy;
+
+//     this.skipSmoothingThisFrame = true;
+//   }
+
+//   public animateZoomTo(target: number, speed: number = 0.025): void {
+//     const uiScale = getUniformScaleFactor();
+//     const scaledMinZoom = 0.15 * uiScale;
+//     const scaledMaxZoom = 0.5 * uiScale;
+
+//     this.zoomAnimationTarget = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, target));
+//     this.zoomAnimationSpeed = speed;
+//   }
+
+//   getZoom(): number {
+//     return this.zoom;
+//   }
+
+//   public abortZoomAnimation(): void {
+//     this.zoomAnimationTarget = null;
+//   }
+
+//   getViewportBounds(): { x: number; y: number; width: number; height: number } {
+//     const width = this.viewportWidth / this.zoom;
+//     const height = this.viewportHeight / this.zoom;
+//     return {
+//       x: this.x,
+//       y: this.y,
+//       width,
+//       height,
+//     };
+//   }
+
+//   getViewBounds(canvasManager: CanvasManager): { left: number; right: number; top: number; bottom: number } {
+//     const canvas = canvasManager.getCanvas('unifiedgl2');
+//     const width = canvas.width / this.zoom;
+//     const height = canvas.height / this.zoom;
+
+//     return {
+//       left: this.x,
+//       right: this.x + width,
+//       bottom: this.y + height,
+//       top: this.y,
+//     };
+//   }
+
+//   getViewportWidth(): number {
+//     return this.viewportWidth;
+//   }
+
+//   getViewportHeight(): number {
+//     return this.viewportHeight;
+//   }
+
+//   resize(newWidth: number, newHeight: number): void {
+//     this.viewportWidth = newWidth;
+//     this.viewportHeight = newHeight;
+//   }
+
+//   private readonly handleShakeEvent = ({ strength, duration, frequency, tag }: EventTypes['camera:shake']) => {
+//     this.screenShake.triggerIfAllowed(strength, duration, frequency, tag);
+//   };
+
+//   private cleanup(): void {
+//     // Remove EventBus listeners
+//     GlobalEventBus.off('camera:shake', this.handleShakeEvent);
+
+//     // Reset internal state
+//     this.x = 0;
+//     this.y = 0;
+//     this.zoom = 0.3;
+//     this.targetX = 0;
+//     this.targetY = 0;
+//     this.skipSmoothingThisFrame = false;
+//     this.viewportWidth = 0;
+//     this.viewportHeight = 0;
+
+//     // Optional: clear shake state
+//     this.screenShake.trigger(0, 0); // zero out any residual shaking
+//   }
+// }
+
+
+// src/core/Camera.ts
 import { getUniformScaleFactor } from '@/config/view';
 import { ScreenShakeController } from '@/core/components/ScreenShakeController';
 
 import { GlobalEventBus } from './EventBus';
 import type { EventTypes } from './interfaces/EventTypes';
-
 import type { CanvasManager } from '@/core/CanvasManager';
 
 export class Camera {
@@ -51,14 +379,13 @@ export class Camera {
   private constructor(viewportWidth: number, viewportHeight: number) {
     this.viewportWidth = viewportWidth;
     this.viewportHeight = viewportHeight;
-  
     GlobalEventBus.on('camera:shake', this.handleShakeEvent);
   }
 
   update(dt: number): void {
     this.screenShake.update(dt);
 
-    // --- Interpolate *logical* camera (no shake) toward target ---
+    // Interpolate logical camera (no shake) toward target
     const dx = this.targetX - this.logicalX;
     const dy = this.targetY - this.logicalY;
     const distSq = dx * dx + dy * dy;
@@ -73,13 +400,13 @@ export class Camera {
       this.logicalY = lerp(this.logicalY, this.targetY, smoothingFactor);
     }
 
-    // --- Derive shaken position separately ---
+    // Derive shaken position separately
     const shakeOffset = this.screenShake.getOffset();
     const pxToWorld = getUniformScaleFactor() / this.zoom;
     this.x = this.logicalX + shakeOffset.x * pxToWorld;
     this.y = this.logicalY + shakeOffset.y * pxToWorld;
 
-    // === Zoom interpolation ===
+    // Zoom interpolation
     if (this.zoomAnimationTarget !== null) {
       const delta = this.zoomAnimationTarget - this.zoom;
       if (Math.abs(delta) > 0.001) {
@@ -102,20 +429,22 @@ export class Camera {
     this.targetY = position.y - (this.viewportHeight / 2) / this.zoom;
   }
 
-  public setTarget(x: number, y: number): void {
-    this.targetX = x;
-    this.targetY = y;
-  }
+  public setTarget(x: number, y: number): void { this.targetX = x; this.targetY = y; }
+  public getTarget(): { x: number; y: number } { return { x: this.targetX, y: this.targetY }; }
 
-  public getTarget(): { x: number; y: number } {
-    return { x: this.targetX, y: this.targetY };
-  }
-
+  /** Allocating variant retained for existing call sites. */
   worldToScreen(wx: number, wy: number): { x: number; y: number } {
     return {
       x: (wx - this.x) * this.zoom,
       y: (wy - this.y) * this.zoom,
     };
+  }
+
+  /** GC-neutral variant for hot paths. Writes into `out` and returns it. */
+  worldToScreenInto(wx: number, wy: number, out: { x: number; y: number }): { x: number; y: number } {
+    out.x = (wx - this.x) * this.zoom;
+    out.y = (wy - this.y) * this.zoom;
+    return out;
   }
 
   /**
@@ -125,24 +454,12 @@ export class Camera {
   screenToWorld(sx: number, sy: number, out?: { x: number; y: number }): { x: number; y: number } {
     const x = sx / this.zoom + this.x;
     const y = sy / this.zoom + this.y;
-
-    if (out) {
-      out.x = x;
-      out.y = y;
-      return out;
-    }
-
+    if (out) { out.x = x; out.y = y; return out; }
     return { x, y };
   }
 
-  getOffset(): { x: number; y: number } {
-    return { x: this.x, y: this.y };
-  }
-
-  /** Returns camera offset without shake (for parallax layers like clouds). */
-  getLogicalOffset(): { x: number; y: number } {
-    return { x: this.logicalX, y: this.logicalY };
-  }
+  getOffset(): { x: number; y: number } { return { x: this.x, y: this.y }; }
+  getLogicalOffset(): { x: number; y: number } { return { x: this.logicalX, y: this.logicalY }; }
 
   getPosition(): { x: number; y: number } {
     return {
@@ -154,10 +471,8 @@ export class Camera {
   public moveToward(position: { x: number; y: number }, t: number): void {
     const tx = position.x - (this.viewportWidth / 2) / this.zoom;
     const ty = position.y - (this.viewportHeight / 2) / this.zoom;
-
     this.x = this.x + (tx - this.x) * t;
     this.y = this.y + (ty - this.y) * t;
-
     this.targetX = this.x;
     this.targetY = this.y;
   }
@@ -177,38 +492,29 @@ export class Camera {
     const dx = centerBefore.x - centerAfter.x;
     const dy = centerBefore.y - centerAfter.y;
 
-    this.x += dx;
-    this.y += dy;
-    this.targetX += dx;
-    this.targetY += dy;
+    this.x += dx; this.y += dy;
+    this.targetX += dx; this.targetY += dy;
   }
 
   adjustZoom(delta: number): void {
     const baseFactor = 1.08;
-    const scrollSteps = Math.max(-1, Math.min(1, delta));
+    const steps = Math.max(-1, Math.min(1, delta));
+    const centerBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
 
-    const centerWorldBefore = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
-
-    const newZoom =
-      scrollSteps > 0
-        ? this.zoom * Math.pow(baseFactor, scrollSteps)
-        : this.zoom / Math.pow(baseFactor, -scrollSteps);
+    const newZoom = steps > 0 ? this.zoom * Math.pow(baseFactor, steps)
+                              : this.zoom / Math.pow(baseFactor, -steps);
 
     const uiScale = getUniformScaleFactor();
     const scaledMinZoom = 0.15 * uiScale;
     const scaledMaxZoom = 0.5 * uiScale;
     this.zoom = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, newZoom));
 
-    const centerWorldAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+    const centerAfter = this.screenToWorld(this.viewportWidth / 2, this.viewportHeight / 2);
+    const dx = centerBefore.x - centerAfter.x;
+    const dy = centerBefore.y - centerAfter.y;
 
-    const dx = centerWorldBefore.x - centerWorldAfter.x;
-    const dy = centerWorldBefore.y - centerWorldAfter.y;
-
-    this.x += dx;
-    this.y += dy;
-    this.targetX += dx;
-    this.targetY += dy;
-
+    this.x += dx; this.y += dy;
+    this.targetX += dx; this.targetY += dy;
     this.skipSmoothingThisFrame = true;
   }
 
@@ -223,11 +529,8 @@ export class Camera {
     const dx = centerBefore.x - centerAfter.x;
     const dy = centerBefore.y - centerAfter.y;
 
-    this.x += dx;
-    this.y += dy;
-    this.targetX += dx;
-    this.targetY += dy;
-
+    this.x += dx; this.y += dy;
+    this.targetX += dx; this.targetY += dy;
     this.skipSmoothingThisFrame = true;
   }
 
@@ -242,11 +545,8 @@ export class Camera {
     const dx = centerBefore.x - centerAfter.x;
     const dy = centerBefore.y - centerAfter.y;
 
-    this.x += dx;
-    this.y += dy;
-    this.targetX += dx;
-    this.targetY += dy;
-
+    this.x += dx; this.y += dy;
+    this.targetX += dx; this.targetY += dy;
     this.skipSmoothingThisFrame = true;
   }
 
@@ -254,75 +554,40 @@ export class Camera {
     const uiScale = getUniformScaleFactor();
     const scaledMinZoom = 0.15 * uiScale;
     const scaledMaxZoom = 0.5 * uiScale;
-
     this.zoomAnimationTarget = Math.min(scaledMaxZoom, Math.max(scaledMinZoom, target));
     this.zoomAnimationSpeed = speed;
   }
 
-  getZoom(): number {
-    return this.zoom;
-  }
-
-  public abortZoomAnimation(): void {
-    this.zoomAnimationTarget = null;
-  }
+  getZoom(): number { return this.zoom; }
+  public abortZoomAnimation(): void { this.zoomAnimationTarget = null; }
 
   getViewportBounds(): { x: number; y: number; width: number; height: number } {
     const width = this.viewportWidth / this.zoom;
     const height = this.viewportHeight / this.zoom;
-    return {
-      x: this.x,
-      y: this.y,
-      width,
-      height,
-    };
+    return { x: this.x, y: this.y, width, height };
   }
 
   getViewBounds(canvasManager: CanvasManager): { left: number; right: number; top: number; bottom: number } {
     const canvas = canvasManager.getCanvas('unifiedgl2');
     const width = canvas.width / this.zoom;
     const height = canvas.height / this.zoom;
-
-    return {
-      left: this.x,
-      right: this.x + width,
-      bottom: this.y + height,
-      top: this.y,
-    };
+    return { left: this.x, right: this.x + width, top: this.y, bottom: this.y + height };
   }
 
-  getViewportWidth(): number {
-    return this.viewportWidth;
-  }
-
-  getViewportHeight(): number {
-    return this.viewportHeight;
-  }
-
-  resize(newWidth: number, newHeight: number): void {
-    this.viewportWidth = newWidth;
-    this.viewportHeight = newHeight;
-  }
+  getViewportWidth(): number { return this.viewportWidth; }
+  getViewportHeight(): number { return this.viewportHeight; }
+  resize(newWidth: number, newHeight: number): void { this.viewportWidth = newWidth; this.viewportHeight = newHeight; }
 
   private readonly handleShakeEvent = ({ strength, duration, frequency, tag }: EventTypes['camera:shake']) => {
     this.screenShake.triggerIfAllowed(strength, duration, frequency, tag);
   };
 
   private cleanup(): void {
-    // Remove EventBus listeners
     GlobalEventBus.off('camera:shake', this.handleShakeEvent);
-
-    // Reset internal state
-    this.x = 0;
-    this.y = 0;
-    this.zoom = 0.3;
-    this.targetX = 0;
-    this.targetY = 0;
+    this.x = 0; this.y = 0; this.zoom = 0.3;
+    this.targetX = 0; this.targetY = 0;
     this.skipSmoothingThisFrame = false;
-    this.viewportWidth = 0;
-    this.viewportHeight = 0;
-
-    // Optional: clear shake state
-    this.screenShake.trigger(0, 0); // zero out any residual shaking
+    this.viewportWidth = 0; this.viewportHeight = 0;
+    this.screenShake.trigger(0, 0);
   }
 }

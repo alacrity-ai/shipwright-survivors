@@ -141,10 +141,10 @@ export abstract class BaseIncidentScript implements IncidentScript {
     if (successful) {
       audioManager.play('assets/sounds/sfx/pickups/powerup_02.wav', 'sfx', { maxSimultaneous: 1 });
 
-      this.context.popupMessageSystem.displayMessage('MISSION OBJECTIVE ACHIEVED', {
+      this.context.popupMessageSystem.displayMessage('INCIDENT COMPLETED', {
         color: '#00ff00',
         duration: 5,
-        font: '28px monospace',
+        font: '24px monospace',
         glow: true,
       });
 

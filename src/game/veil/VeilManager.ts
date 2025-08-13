@@ -45,7 +45,7 @@ export class VeilManager {
   ) {
     this.regions = cloudRegions ?? [];
 
-    this.cloudManager = new CloudManager(playerShip, this.regions);
+    this.cloudManager = new CloudManager(playerShip, this.regions, 1);
 
     const mutationOptions =
       this.regions.length > 0 && this.regions[0]?.mutationOptions

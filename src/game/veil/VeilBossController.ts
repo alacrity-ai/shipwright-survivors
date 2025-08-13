@@ -45,8 +45,8 @@ export class VeilBossController {
     ship.makeInvulnerable();
 
     // Buff block durability based on blockTierUpgrade
-    const durabilityMultiplier = 1 + 0.3 * blockTierUpgrade;
-    const thrustPowerMultiplier = 1 + 0.3 * blockTierUpgrade;
+    const durabilityMultiplier = 1 + (blockTierUpgrade * 2);
+    const thrustPowerMultiplier = 1 + (blockTierUpgrade * 2);
     ship.setAffixes({ blockDurabilityMulti: durabilityMultiplier, thrustPowerMulti: thrustPowerMultiplier });
 
     // Upgrade ship blocks

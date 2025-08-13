@@ -8,6 +8,7 @@ import { emitHudHideAll } from '@/core/interfaces/events/HudReporter';
 // Cloud Registry
 import { CloudRegionRegistry } from '@/game/veil/CloudRegistry';
 import { MISSION_02_CLOUDS } from '@/game/veil/prefabs/defaultParams';
+import { MISSION_03_CLOUDS } from '@/game/veil/prefabs/defaultParams';
 
 // Enemy Wave imports
 import { waveDefinitions as titleScreenWaves } from '@/game/waves/missions/TitleScreenWaves';
@@ -126,7 +127,7 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     },
     enemyPower: 0.5,
     waveDensity: 0.5,
-    bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
+    bonusObjectives: [],
     passiveReward: 1,
     requiredFlag: 'mission.mission_002.unlocked',
     missionPortrait: 'assets/characters/bosses/character_boss_wildjoe.png',
@@ -137,7 +138,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
       { name: 'Arsea', x: 10000, y: -20000 },
       { name: 'Deimos', x: -12000, y: -24000 }
     ],
-    spatialBodies: crystalSpatialBodyConfig,
+    cloudRegions: CloudRegionRegistry.get('normal'),
+    spatialBodies: iceSpatialBodyConfig,
     autoGenerateCloudParams: MISSION_02_CLOUDS,
     bossQuestId: 'boss:defeatCrazyMoe',
   },
@@ -149,25 +151,28 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     waves: waveSet2,
     dropMultiplier: 1.0,
     environmentSettings: {
-      backgroundId: 'background_10_00.png',
+      backgroundId: 'background_4_01.png',
       gravity: 0,
-      worldWidth: 9000,
-      worldHeight: 9000,
+      worldWidth: 16000,
+      worldHeight: 16000,
     },
     planets: [
-      { name: 'Ferrust', x: -2600, y: 3000 },
-      { name: 'Gilipe', x: 3400, y: -2000 },
+      { name: 'Ferrust', x: -4600, y: 4000 },
+      { name: 'Gilipe', x: 4400, y: -3000 },
     ],
     enemyPower: 0.5,
     waveDensity: 0.5,
     music: {
       file: 'assets/sounds/music/track_09_junkyard.mp3',
     },
-    bonusObjectives: ['No damage taken', 'Destroy all enemies in under 5 minutes'],
+    bonusObjectives: [],
     passiveReward: 1,
     sceneLighting: [0.0, 0.0, 0.0, 0.0],
     requiredFlag: 'mission.mission_003_00.unlocked',
-    missionPortrait: 'assets/characters/bosses/character_boss_crusher-mae.png'
+    missionPortrait: 'assets/characters/bosses/character_boss_crusher-mae.png',
+    cloudRegions: CloudRegionRegistry.get('frozen'),
+    spatialBodies: crystalSpatialBodyConfig,
+    autoGenerateCloudParams: MISSION_03_CLOUDS,
   },
   mission_004_00: {
     id: 'mission_004_00',

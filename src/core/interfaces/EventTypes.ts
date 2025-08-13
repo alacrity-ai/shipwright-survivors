@@ -218,14 +218,16 @@ export interface EventTypes {
   'postprocess:background:effect:remove': { effect: PostEffectName };
   'postprocess:background:effect:clear': undefined;
   // Clouds
-  'rendering:clouds:enable': undefined;
-  'rendering:clouds:disable': undefined;
-  'rendering:clouds:setParams:front': { params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } };
-  'rendering:clouds:setParams:back': { params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } };
+  'rendering:clouds:enable': { channel: number };
+  'rendering:clouds:disable': { channel: number };
+  'rendering:clouds:setParams:front': { channel: number; params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } };
+  'rendering:clouds:setParams:back': { channel: number; params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } };
   // Special FX runtime events
   'fx:spawn': Omit<SpecialFxInstance, 'time'>;
   'fx:clear': undefined;
   // Lightning FX
+  'lighting:advanced:enable': undefined;
+  'lighting:advanced:disable': undefined;
   'lightning:bolt:spawn': LightningBoltSpawnEvent;
   // Fire FX Events
   'fx:fire:emit': {

@@ -22,6 +22,57 @@ export const CloudRegionRegistry = {
   },
 };
 
+export const frozenCloudRegions: CloudRegion[] = [
+  {
+    id: 'frozen-01',
+    center: { x: 0, y: 0 },
+    radius: 16000,
+    frontParams: {
+      speed: 0.5,
+      density: 1.2,
+      quantity: 2.0,
+      scale: 3.0,
+      alpha: 0.20,
+      color: [0.4, 0.4, 1.0],
+    },
+    backParams: {
+      speed: 0.5,
+      density: 1.2,
+      quantity: 2.0,
+      scale: 1.0,
+      alpha: 0.28,
+      color: [0.3, 0.3, 0.8],
+    },
+  },
+];
+
+export const normalCloudRegions: CloudRegion[] = [
+  {
+    id: 'normal-01',
+    center: { x: 0, y: 0 },
+    radius: 64000,
+    frontParams: {
+      speed: 0.5,
+      density: 1.2,
+      quantity: 2.0,
+      scale: 3.0,
+      alpha: 0.06,
+      color: [0.8, 0.8, 0.8],
+    },
+    backParams: {
+      speed: 0.5,
+      density: 1.2,
+      quantity: 2.0,
+      scale: 1.0,
+      alpha: 0.12,
+      color: [0.2, 0.2, 0.8],
+    },
+  },
+];
+
+CloudRegionRegistry.register('normal', normalCloudRegions);
+CloudRegionRegistry.register('frozen', frozenCloudRegions);
+
 export const mistyBasinCloudRegions: CloudRegion[] = [
   {
     id: 'misty-01',

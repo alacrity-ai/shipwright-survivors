@@ -54,8 +54,10 @@ export class UnifiedSceneRendererGL {
   private readonly gl: WebGL2RenderingContext;
 
   private readonly backgroundPass: BackgroundPass;
-  private readonly cloudPass: CloudPass;
-  private readonly cloudPassFront: CloudPass;
+  private readonly cloudPass0: CloudPass;
+  private readonly cloudPassFront0: CloudPass;
+  private readonly cloudPass1: CloudPass;
+  private readonly cloudPassFront1: CloudPass;
   private readonly planetPass: PlanetPass;
   private readonly spatialBodyPass: SpatialBodyPass;
   private readonly lightingPass: LightingPass;
@@ -119,8 +121,10 @@ export class UnifiedSceneRendererGL {
 
     // Primary Passes
     this.backgroundPass = new BackgroundPass(this.gl);
-    this.cloudPass = new CloudPass(this.gl);
-    this.cloudPassFront = new CloudPass(this.gl);
+    this.cloudPass0 = new CloudPass(this.gl);
+    this.cloudPassFront0 = new CloudPass(this.gl);
+    this.cloudPass1 = new CloudPass(this.gl);
+    this.cloudPassFront1 = new CloudPass(this.gl);
     this.planetPass = new PlanetPass(this.gl);
     this.spatialBodyPass = new SpatialBodyPass(this.gl);
     this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
@@ -166,8 +170,20 @@ export class UnifiedSceneRendererGL {
     GlobalEventBus.on('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
     GlobalEventBus.on('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
 
+    // Lighting Adjustment
+    GlobalEventBus.on('lighting:advanced:enable', this.onLightingAdvancedEnable);
+    GlobalEventBus.on('lighting:advanced:disable', this.onLightingAdvancedDisable);
+
     this.playerSettings = PlayerSettingsManager.getInstance();
   }
+
+  private readonly onLightingAdvancedEnable = (): void => {
+    this.lightingPass.setMaxLights(false);
+  };
+
+  private readonly onLightingAdvancedDisable = (): void => {
+    this.lightingPass.setMaxLights(true);
+  };
 
   private readonly onResolutionChanged = (): void => {
     this.initializeFramebuffers();
@@ -184,12 +200,20 @@ export class UnifiedSceneRendererGL {
     this.drawFrontClouds = false;
   };
 
-  private readonly onCloudsSetParamsFront = (payload: { params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
-    this.cloudPassFront.setParams(payload.params);
+  private readonly onCloudsSetParamsFront = (payload: { channel: number; params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
+    if (payload.channel === 0) {
+      this.cloudPassFront0.setParams(payload.params);
+    } else if (payload.channel === 1) {
+      this.cloudPassFront1.setParams(payload.params);
+    }
   };
 
-  private readonly onCloudsSetParamsBack = (payload: { params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
-    this.cloudPass.setParams(payload.params);
+  private readonly onCloudsSetParamsBack = (payload: { channel: number; params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
+    if (payload.channel === 0) {
+      this.cloudPass0.setParams(payload.params);
+    } else if (payload.channel === 1) {
+      this.cloudPass1.setParams(payload.params);
+    }
   };
 
   // Main post-process event handlers
@@ -316,7 +340,10 @@ export class UnifiedSceneRendererGL {
 
     // Draw procedural parallax clouds atop the background
     if (this.drawBackClouds) {
-      this.cloudPass.render(this.elapsedSeconds, cameraOffset);
+      if (this.playerSettings.isEnvironmentDetailsEnabled()) {
+        this.cloudPass0.render(this.elapsedSeconds, cameraOffset);
+      }
+      this.cloudPass1.render(this.elapsedSeconds, cameraOffset);
     }
 
     // === Step 3: Apply background post-processing ===
@@ -385,7 +412,10 @@ export class UnifiedSceneRendererGL {
 
     // Render front cloud pass
     if (this.drawFrontClouds) {
-      this.cloudPassFront.render(this.elapsedSeconds, cameraOffset);
+      if (this.playerSettings.isEnvironmentDetailsEnabled()) {
+        this.cloudPassFront0.render(this.elapsedSeconds, cameraOffset);
+      }
+      this.cloudPassFront1.render(this.elapsedSeconds, cameraOffset);
     }
 
     // DEBUG: Render collision boxes for debugging
@@ -475,7 +505,10 @@ export class UnifiedSceneRendererGL {
     this.specialFxController.destroy();
 
     this.backgroundPass.destroy();
-    this.cloudPass.destroy();
+    this.cloudPass0.destroy();
+    this.cloudPass1.destroy();
+    this.cloudPassFront0.destroy();
+    this.cloudPassFront1.destroy();
     this.lightingPass.destroy();
     this.entityPass.destroy();
     this.spritePass.destroy();
@@ -508,6 +541,8 @@ export class UnifiedSceneRendererGL {
     GlobalEventBus.off('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
     GlobalEventBus.off('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
     GlobalEventBus.off('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
+    GlobalEventBus.off('lighting:advanced:enable', this.onLightingAdvancedEnable);
+    GlobalEventBus.off('lighting:advanced:disable', this.onLightingAdvancedDisable);
   
     // Clear the canvas
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -568,12 +603,20 @@ export class UnifiedSceneRendererGL {
     this.backgroundPass.loadImage(imageId ?? '');
   }
 
-  public setBackCloudParams(params: { speed?: number; density?: number; mist?: number }): void {
-    this.cloudPass.setParams(params);
+  public setBackCloudParams(channel: number, params: { speed?: number; density?: number; mist?: number }): void {
+    if (channel === 0) {
+      this.cloudPass0.setParams(params);
+    } else if (channel === 1) {
+      this.cloudPass1.setParams(params);
+    }
   }
 
-  public setFrontCloudParams(params: { speed?: number; density?: number; mist?: number }): void {
-    this.cloudPassFront.setParams(params);
+  public setFrontCloudParams(channel: number, params: { speed?: number; density?: number; mist?: number }): void {
+    if (channel === 0) {
+      this.cloudPassFront0.setParams(params);
+    } else if (channel === 1) {
+      this.cloudPassFront1.setParams(params);
+    }
   }
 
   public setCloudVisibility(back: boolean, front: boolean): void {

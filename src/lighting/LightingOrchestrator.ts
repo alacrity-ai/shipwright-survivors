@@ -4,8 +4,7 @@ import type { Camera } from '@/core/Camera';
 import { hexToRgb } from '@/shared/colorUtils';
 import type { PointLightInstance } from '@/lighting/lights/types';
 import { MAX_LIGHTS, createSOABuffer, type LightSOA } from '@/lighting/interfaces/LightSOA';
-
-import { LightAnimatorSystem } from '@/lighting/LightingAnimatorSystem'; // NEW
+import { LightAnimatorSystem } from '@/lighting/LightingAnimatorSystem';
 
 let nextLightId = 0;
 let _instance: LightingOrchestrator | null = null;
@@ -15,42 +14,42 @@ export const MAXIMUM_LIGHTS_PER_TAG = 8;
 /**
  * Central controller for active point lights (SOA-driven).
  * Manages allocation, lifecycle, spatial culling, and tag-based caps.
+ *
+ * Immediate refactors applied:
+ * - Removed free-list (buffer remains dense via swap-with-last).
+ * - Replaced scratch array with scalar swaps to keep numeric paths monomorphic.
+ * - Fixed truthiness checks for id==0 to use nullish checks.
+ * - Made tag-set pooling safe (no aliasing); lazily allocate sets.
+ * - Avoid per-call object allocation in collectVisibleLights by returning a stable view.
+ * - Minor micro-opts on bounds copying.
  */
 export class LightingOrchestrator {
   private readonly soa = createSOABuffer(MAX_LIGHTS);
   private animator: LightAnimatorSystem;
 
-  private readonly scratchValues: any[] = new Array(16);  // one slot per field
-
+  // Visibility working set
   private readonly visibleIndices = new Uint16Array(MAX_LIGHTS);
   private visibleCount = 0;
+  private readonly visibleView: { soa: LightSOA; indices: Uint16Array; count: number };
 
-  private readonly freeIndices: number[] = [];
-  private readonly idToIndex = new Map<number, number>();  // for stable lookup by ID
+  // Lookup
+  private readonly idToIndex = new Map<number, number>();
 
-  private static readonly TAG_SET_POOL_SIZE = 1024;
+  // Tag management (string tag → set of indices)
   private readonly tagSetPool: Set<number>[] = [];
   private readonly tagMap: Map<string, Set<number>> = new Map();
 
+  // Culling cache
   private lastCameraBounds: { x: number; y: number; width: number; height: number } | null = null;
   private lightsDirty = true;
 
   private constructor() {
-    // Preallocate pool of empty sets
-    for (let i = 0; i < LightingOrchestrator.TAG_SET_POOL_SIZE; i++) {
-      this.tagSetPool.push(new Set<number>());
-    }
-  
-    this.scratchValues.fill(null);  // Keep packed array, avoid deopt
-
-    // Instantiate lighting animator
     this.animator = new LightAnimatorSystem(this.soa, this.idToIndex);
+    this.visibleView = { soa: this.soa, indices: this.visibleIndices, count: 0 };
   }
 
   public static getInstance(): LightingOrchestrator {
-    if (!_instance) {
-      _instance = new LightingOrchestrator();
-    }
+    if (!_instance) _instance = new LightingOrchestrator();
     return _instance;
   }
 
@@ -68,20 +67,13 @@ export class LightingOrchestrator {
     return this.animator;
   }
 
+  /** Allocate next dense slot; buffer is kept compact via swap-with-last on removal. */
   private allocateLightIndex(): number {
-    if (this.freeIndices.length > 0) {
-      const reused = this.freeIndices.pop()!;
-      if (reused >= this.soa.count) {
-        this.soa.count = reused + 1;
-      }
-      return reused;
-    }
-    if (this.soa.count >= MAX_LIGHTS) return -1;
-    return this.soa.count++;
+    return this.soa.count < MAX_LIGHTS ? this.soa.count++ : -1;
   }
 
   public registerLight(light: PointLightInstance): number | null {
-    // Generate ID if not provided
+    // Assign ID if not provided
     if (light.id == null || light.id < 0) {
       light.id = nextLightId++;
     }
@@ -90,7 +82,7 @@ export class LightingOrchestrator {
     if (light.tag) {
       let set = this.tagMap.get(light.tag);
       if (!set) {
-        set = this.getPooledTagSet();       // <-- use pooled set
+        set = this.getPooledTagSet();
         this.tagMap.set(light.tag, set);
       } else if (set.size >= MAXIMUM_LIGHTS_PER_TAG) {
         return null; // Cap reached — reject
@@ -98,11 +90,9 @@ export class LightingOrchestrator {
     }
 
     const index = this.allocateLightIndex();
-    if (index === -1) {
-      return null; // No space left — reject
-    }
+    if (index === -1) return null; // No space left — reject
 
-    // Precompute RGB channels for performance
+    // Precompute RGB channels
     const { r, g, b } = hexToRgb(light.color);
 
     // Write fields into SOA
@@ -136,111 +126,35 @@ export class LightingOrchestrator {
 
   public removeLight(id: number): void {
     const index = this.idToIndex.get(id);
-    if (index == null || index < 0 || index >= this.soa.count) {
-      return; // Already gone or invalid
-    }
-
-    const tag = this.soa.tag[index];
-    if (tag) {
-      const set = this.tagMap.get(tag);
-      if (set) {
-        set.delete(index);
-        if (set.size === 0) {
-          this.tagMap.delete(tag);
-          this.releaseTagSet(set);
-        }
-      }
-    }
-
-    // Swap-with-last removal to keep SOA tight
-    const lastIndex = this.soa.count - 1;
-    if (index !== lastIndex) {
-      this.swapLight(index, lastIndex);
-
-      // Update idToIndex for swapped element
-      const swappedId = this.soa.id[index];
-      if (swappedId) {
-        this.idToIndex.set(swappedId, index);
-      }
-
-      // Fix tagMap for the swapped element
-      const swappedTag = this.soa.tag[index];
-      if (swappedTag) {
-        const set = this.tagMap.get(swappedTag);
-        if (set) {
-          set.delete(lastIndex);
-          set.add(index);
-        }
-      }
-    }
-
-    // Remove this light's ID mapping
-    const deadId = this.soa.id[lastIndex];
-    if (deadId) {
-      this.idToIndex.delete(deadId);
-    }
-
-    this.freeIndices.push(lastIndex);
-    this.soa.count--;
-
-    // Clear dangling references
-    this.soa.id[lastIndex] = undefined;
-    this.soa.tag[lastIndex] = undefined;
-
-    this.lightsDirty = true;
+    if (index == null || index < 0 || index >= this.soa.count) return;
+    this.recycleLight(index);
   }
 
-  /** Swap all fields between two indices */
+  /** Swap all fields between two indices using scalar temps (no mixed-kind arrays). */
   private swapLight(i: number, j: number): void {
-    const s   = this.scratchValues;
-    const soa = this.soa;
+    if (i === j) return;
+    const s = this.soa;
+    let t: number;
 
-    // Snapshot all fields from i into scratch
-    s[0]  = soa.x[i];              s[1]  = soa.y[i];
-    s[2]  = soa.radius[i];         s[3]  = soa.r[i];
-    s[4]  = soa.g[i];              s[5]  = soa.b[i];
-    s[6]  = soa.intensity[i];      s[7]  = soa.initialIntensity[i]; 
-    s[8]  = soa.initialRadius[i];
-    s[9]  = soa.life[i];           s[10]  = soa.initialLife[i];
-    s[11] = soa.fadeMode[i];       s[12] = soa.animationPhase[i];
-    s[13] = soa.id[i];             s[14] = soa.tag[i];
-    s[15] = soa.colorHex[i];
+    // Numeric typed arrays
+    t = s.x[i]; s.x[i] = s.x[j]; s.x[j] = t;
+    t = s.y[i]; s.y[i] = s.y[j]; s.y[j] = t;
+    t = s.radius[i]; s.radius[i] = s.radius[j]; s.radius[j] = t;
+    t = s.r[i]; s.r[i] = s.r[j]; s.r[j] = t;
+    t = s.g[i]; s.g[i] = s.g[j]; s.g[j] = t;
+    t = s.b[i]; s.b[i] = s.b[j]; s.b[j] = t;
+    t = s.intensity[i]; s.intensity[i] = s.intensity[j]; s.intensity[j] = t;
+    t = s.initialIntensity[i]; s.initialIntensity[i] = s.initialIntensity[j]; s.initialIntensity[j] = t;
+    t = s.initialRadius[i]; s.initialRadius[i] = s.initialRadius[j]; s.initialRadius[j] = t;
+    t = s.life[i]; s.life[i] = s.life[j]; s.life[j] = t;
+    t = s.initialLife[i]; s.initialLife[i] = s.initialLife[j]; s.initialLife[j] = t;
+    t = s.fadeMode[i]; s.fadeMode[i] = s.fadeMode[j]; s.fadeMode[j] = t;
+    t = s.animationPhase[i]; s.animationPhase[i] = s.animationPhase[j]; s.animationPhase[j] = t;
 
-    // Copy j → i
-    soa.x[i]              = soa.x[j];
-    soa.y[i]              = soa.y[j];
-    soa.radius[i]         = soa.radius[j];
-    soa.r[i]              = soa.r[j];
-    soa.g[i]              = soa.g[j];
-    soa.b[i]              = soa.b[j];
-    soa.intensity[i]      = soa.intensity[j];
-    soa.initialIntensity[i] = soa.initialIntensity[j];
-    soa.initialRadius[i]  = soa.initialRadius[j];
-    soa.life[i]           = soa.life[j];
-    soa.initialLife[i]    = soa.initialLife[j];
-    soa.fadeMode[i]       = soa.fadeMode[j];
-    soa.animationPhase[i] = soa.animationPhase[j];
-    soa.id[i]             = soa.id[j];
-    soa.tag[i]            = soa.tag[j];
-    soa.colorHex[i]       = soa.colorHex[j];
-
-    // Copy scratch → j
-    soa.x[j]                = s[0];
-    soa.y[j]                = s[1];
-    soa.radius[j]           = s[2];
-    soa.r[j]                = s[3];
-    soa.g[j]                = s[4];
-    soa.b[j]                = s[5];
-    soa.intensity[j]        = s[6];
-    soa.initialIntensity[j] = s[7];
-    soa.initialRadius[j]    = s[8];
-    soa.life[j]             = s[9];
-    soa.initialLife[j]      = s[10];
-    soa.fadeMode[j]         = s[11];
-    soa.animationPhase[j]   = s[12];
-    soa.id[j]               = s[13];
-    soa.tag[j]              = s[14];
-    soa.colorHex[j]         = s[15];
+    // String / meta arrays kept separate
+    const idI = s.id[i]; s.id[i] = s.id[j]; s.id[j] = idI;
+    const tagI = s.tag[i]; s.tag[i] = s.tag[j]; s.tag[j] = tagI;
+    const hexI = s.colorHex[i]; s.colorHex[i] = s.colorHex[j]; s.colorHex[j] = hexI;
   }
 
   // == Tag management ==
@@ -264,17 +178,15 @@ export class LightingOrchestrator {
     }
   }
 
-  // When needing a set:
+  // Safe pooled Set creation; never alias an in-use set.
   private getPooledTagSet(): Set<number> {
-    return this.tagSetPool.pop() ?? this.tagSetPool[0]; // fallback to reuse first
+    const s = this.tagSetPool.pop();
+    return s ?? new Set<number>();
   }
 
-  // When releasing:
   private releaseTagSet(set: Set<number>): void {
     set.clear();
-    if (this.tagSetPool.length < LightingOrchestrator.TAG_SET_POOL_SIZE) {
-      this.tagSetPool.push(set);
-    }
+    this.tagSetPool.push(set);
   }
 
   update(dt: number): void {
@@ -289,13 +201,12 @@ export class LightingOrchestrator {
         // Remove if expired
         if (this.soa.life[i] <= 0) {
           this.recycleLight(i);  // Swap-with-last removal
-          continue;              // Skip increment (recheck swapped index)
+          continue;              // Re-check swapped index now at i
         }
 
         // Update animationPhase based on fade mode
-        const lifeRatio = this.soa.initialLife[i]
-          ? this.soa.life[i] / this.soa.initialLife[i]
-          : 1.0;
+        const lifeInit = this.soa.initialLife[i];
+        const lifeRatio = lifeInit ? (this.soa.life[i] / lifeInit) : 1.0;
 
         this.soa.animationPhase[i] = this.soa.fadeMode[i] === 1 // 1 = delayed
           ? (lifeRatio >= fadeThreshold ? 1.0 : lifeRatio * invFadeThreshold)
@@ -308,17 +219,19 @@ export class LightingOrchestrator {
     this.animator.update(dt);
   }
 
-  public collectVisibleLights(camera: Camera): { soa: LightSOA, indices: Uint16Array, count: number } {
+  public collectVisibleLights(camera: Camera): { soa: LightSOA; indices: Uint16Array; count: number } {
     const bounds = camera.getViewportBounds();
+    const b0 = this.lastCameraBounds;
     const boundsChanged =
-      !this.lastCameraBounds ||
-      bounds.x !== this.lastCameraBounds.x ||
-      bounds.y !== this.lastCameraBounds.y ||
-      bounds.width !== this.lastCameraBounds.width ||
-      bounds.height !== this.lastCameraBounds.height;
+      !b0 ||
+      bounds.x !== b0.x ||
+      bounds.y !== b0.y ||
+      bounds.width !== b0.width ||
+      bounds.height !== b0.height;
 
     if (!this.lightsDirty && !boundsChanged) {
-      return { soa: this.soa, indices: this.visibleIndices, count: this.visibleCount };
+      this.visibleView.count = this.visibleCount;
+      return this.visibleView;
     }
 
     const left = bounds.x;
@@ -337,11 +250,18 @@ export class LightingOrchestrator {
       }
     }
 
-    this.lastCameraBounds ??= { x: 0, y: 0, width: 0, height: 0 };
-    Object.assign(this.lastCameraBounds, bounds);
+    if (!this.lastCameraBounds) {
+      this.lastCameraBounds = { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+    } else {
+      this.lastCameraBounds.x = bounds.x;
+      this.lastCameraBounds.y = bounds.y;
+      this.lastCameraBounds.width = bounds.width;
+      this.lastCameraBounds.height = bounds.height;
+    }
 
     this.lightsDirty = false;
-    return { soa: this.soa, indices: this.visibleIndices, count: this.visibleCount };
+    this.visibleView.count = this.visibleCount;
+    return this.visibleView;
   }
 
   getLightCount(): number {
@@ -376,7 +296,7 @@ export class LightingOrchestrator {
       this.soa.fadeMode[index] = updates.fadeMode === 'delayed' ? 1 : 0;
     }
 
-    // We do *not* touch tag/id here—they're fixed at creation time.
+    // tag/id are immutable post-creation
     this.lightsDirty = true;
   }
 
@@ -387,12 +307,15 @@ export class LightingOrchestrator {
   turnOnLight(id: number): void {
     const index = this.idToIndex.get(id);
     if (index == null) return;
-    this.updateLight(id, { intensity: this.soa.initialIntensity[index], radius: this.soa.initialRadius[index] });
+    this.updateLight(id, {
+      intensity: this.soa.initialIntensity[index],
+      radius: this.soa.initialRadius[index],
+    });
   }
 
   private recycleLight(index: number): void {
     const id = this.soa.id[index];
-    if (id) this.idToIndex.delete(id);
+    if (id != null) this.idToIndex.delete(id);
 
     this.removeTagAssociation(index);
 
@@ -402,9 +325,7 @@ export class LightingOrchestrator {
 
       // Fix mapping for swapped light
       const swappedId = this.soa.id[index];
-      if (swappedId) {
-        this.idToIndex.set(swappedId, index);
-      }
+      if (swappedId != null) this.idToIndex.set(swappedId, index);
 
       // Fix tagMap for the swapped light
       const swappedTag = this.soa.tag[index];
@@ -418,33 +339,34 @@ export class LightingOrchestrator {
     }
 
     // Clear old slot (at lastIndex)
-    this.soa.id[lastIndex] = undefined;
-    this.soa.tag[lastIndex] = undefined;
+    const deadId = this.soa.id[lastIndex];
+    if (deadId != null) this.idToIndex.delete(deadId);
 
-    this.freeIndices.push(lastIndex);
+    this.soa.id[lastIndex] = undefined as any;
+    this.soa.tag[lastIndex] = undefined as any;
+
     this.soa.count--;
-
     this.lightsDirty = true;
   }
 
   // == Cleanup
-  
+
   clear(): void {
     // Clean up tag associations for all active lights
     for (let i = 0; i < this.soa.count; i++) {
       this.removeTagAssociation(i);
     }
 
-    // Reset SOA counts and free list
+    // Reset SOA count
     this.soa.count = 0;
-    this.freeIndices.length = 0;
 
     // Pool and clear all tag sets
     for (const set of this.tagMap.values()) {
-      this.releaseTagSet(set);  // clears and returns to pool
+      this.releaseTagSet(set);
     }
     this.tagMap.clear();
 
+    this.visibleCount = 0;
     this.lightsDirty = true;
 
     this.animator.clear();
@@ -457,7 +379,6 @@ export class LightingOrchestrator {
     this.soa.count = 0;
 
     // Zero-out the SOA slots (optional but safest)
-    // Ensures no stale positions/colors if anything inspects beyond count.
     this.soa.x.fill(0);
     this.soa.y.fill(0);
     this.soa.radius.fill(0);
@@ -480,12 +401,11 @@ export class LightingOrchestrator {
     this.visibleIndices.fill(0);
 
     // Reset bookkeeping
-    this.freeIndices.length = 0;
     this.idToIndex.clear();
 
     // Clear tag associations and pools
     for (const set of this.tagMap.values()) {
-      this.releaseTagSet(set);  // centralized pooling logic
+      this.releaseTagSet(set);
     }
     this.tagMap.clear();
 
