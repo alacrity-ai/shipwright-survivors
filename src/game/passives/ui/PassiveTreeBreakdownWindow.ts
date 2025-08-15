@@ -487,7 +487,6 @@ export class PassiveTreeBreakdownWindow {
     'explorer',
     'kineticWard',
     'jumpcastSpeed',
-    'globalJumpcast',
   ] as const;
 
   private static readonly UTILITY_KEYS = [
@@ -503,7 +502,6 @@ export class PassiveTreeBreakdownWindow {
     'coreBonus',
     'luckyDice',
     'doubleCombine',
-    'alchemist',
   ] as const;
 
   private static readonly ESCORTS_KEYS = [
