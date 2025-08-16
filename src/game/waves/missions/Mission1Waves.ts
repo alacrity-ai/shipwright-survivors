@@ -7,10 +7,7 @@ import type { BehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 import { SiegeBehaviorProfile } from '@/systems/ai/types/BehaviorProfile';
 
 import { randomIntFromRange } from '@/shared/mathUtils';
-import { createHourGlassFormation } from '@/systems/ai/formations/prefabs/createHourGlassFormation';
-import { createMediumWedgeFormation } from '@/systems/ai/formations/prefabs/createMediumWedgeFormation';
-import { createSmallWedgeFormation } from '@/systems/ai/formations/prefabs/createSmallWedgeFormation';
-import { createLargeWedgeFormation } from '@/systems/ai/formations/prefabs/createLargeWedgeFormation';
+
 
 const SPEED_DEMON_AFFIXES: ShipAffixes = {
   thrustPowerMulti: 2.4,
@@ -179,111 +176,6 @@ const cursedCargoTier2Params = {
   ],
   cursedCacheShip: { shipId: 'incidents/cursed_cargo/cursed_cargo_01', count: 1 },
 };
-
-const hourGlassFormation = createHourGlassFormation(
-  'hourglass',
-  'ship_0_03',
-  ['ship_0_02', 'ship_0_02', 'ship_0_02', 'ship_0_02', 'ship_0_02', 'ship_0_02'],
-  FAST_AFFIXES,
-  SPEED_DEMON_AFFIXES,
-  600,
-  2,
-  true,
-  true
-);
-
-const smallWedgeFormation = createSmallWedgeFormation(
-  'small-wedge',
-  'ship_0_02',
-  ['ship_0_02', 'ship_0_02'],
-  FAST_AFFIXES,
-  FAST_AFFIXES,
-  800,
-  5,
-  true
-);
-
-const tier2MediumWedgeFormation = createSmallWedgeFormation(
-  'tier2-melee',
-  'mission_02/tier2_fighter_00',
-  ['mission_02/tier2_fighter_00', 'mission_02/tier2_fighter_00'],
-  TIER2_AFFIXES,
-  TIER2_AFFIXES,
-  700,
-  4,
-  true
-);
-
-const mediumWedgeFormation = createMediumWedgeFormation(
-  'medium-wedge',
-  'ship_0_03',
-  ['ship_0_02', 'ship_0_02', 'ship_0_02', 'ship_0_02'],
-  FAST_AFFIXES,
-  FAST_AFFIXES,
-  700,
-  3,
-  true
-);
-
-const cruiserLargeWedgeFormation = createLargeWedgeFormation(
-  'large-wedge',
-  'ship_scrapper_4',
-  ['ship_scrapper_3', 'ship_scrapper_3', 'ship_0_02', 'ship_0_02', 'ship_0_02', 'ship_0_02'],
-  TIER3_AFFIXES,
-  TIER3_AFFIXES,
-  600,
-  2,
-  true
-);
-
-const tier2cruiserLargeWedgeFormation = createMediumWedgeFormation(
-  'tier2-large-wedge',
-  'mission_02/tier2_cruiser_00',
-  ['mission_02/tier2_cruiser_01', 'mission_02/tier2_cruiser_01', 'mission_02/tier2_fighter_00', 'mission_02/tier2_fighter_00'],
-  TIER3_AFFIXES,
-  TIER3_AFFIXES,
-  600,
-  2,
-  true
-);
-
-const killCrewFormation = createSmallWedgeFormation(
-  'kill-crew',
-  'ship_scrapper_6',
-  ['ship_scrapper_6', 'ship_scrapper_6'],
-  FAST_AFFIXES,
-  FAST_AFFIXES,
-  700,
-  2,
-  true,
-  true
-);
-
-const siegerMeleeFormation = createSmallWedgeFormation(
-  'kill-crew',
-  'mission_02/tier2_sieger_00',
-  ['mission_02/tier2_sieger_00', '/mission_02/tier2_sieger_00'],
-  TIER2_AFFIXES,
-  TIER2_AFFIXES,
-  700,
-  2,
-  true,
-  true,
-  SiegeBehaviorProfile,
-  SiegeBehaviorProfile
-);
-
-const speedHuntersFormation = createSmallWedgeFormation(
-  'speed-hunters',
-  'ship_0_02',
-  ['ship_0_02', 'ship_0_02'],
-  SUPER_FAST_AFFIXES,
-  SUPER_FAST_AFFIXES,
-  600,
-  4,
-  true,
-  true
-);
 
 export const waveDefinitions: WaveDefinition[] = [
   {
@@ -697,39 +589,4 @@ export const waveDefinitions: WaveDefinition[] = [
       { shipId: 'ship_scrapper_6_2', count: 10, hunter: true, affixes: FINAL_ASSAULT_AFFIXES, behaviorProfile: FINAL_ASSAULT_BEHAVIOR_3 },
     ],
   },
-  // {
-  //   spawnDistribution: 'center',
-  //   duration: Infinity,    
-  //   mods: [],
-  //   ships: [
-  //     {
-  //       shipId: 'boss_0_00',
-  //       count: 1,
-  //       hunter: true,
-  //       behaviorProfile: {
-  //         ...SiegeBehaviorProfile,
-  //         params: {
-  //           ...SiegeBehaviorProfile.params,
-  //           engagementRange: 3200,
-  //           siegeRange: 1600,
-  //           disengageRange: 2800,
-  //         },
-  //       },
-  //       affixes: {
-  //         blockDurabilityMulti: 25.0,
-  //         thrustPowerMulti: 4.0,
-  //         turnPowerMulti: 0.8,
-  //         fireRateMulti: 3.0,
-  //         projectileSpeedMulti: 2.5,
-  //       },
-  //     },
-  //   ],
-  //   music: {
-  //     file: 'assets/sounds/music/track_03_boss.mp3',
-  //   },
-  //   lightingSettings: {
-  //     clearColor: [0.25, 0.0, 0.0, 0.0]
-  //   },
-  //   isBoss: true,
-  // }
 ];

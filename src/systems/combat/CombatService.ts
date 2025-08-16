@@ -32,10 +32,14 @@ import { GlobalEventBus } from '@/core/EventBus';
 export interface ExtraDamageOptions {
   repairOrbDropRateMulti?: number;
   hideExplosionParticlesOnHit?: boolean;
+  /** When true, skip immediate connectivity prune; caller should request one later. */
+  deferConnectivityPrune?: boolean;
+  /** When true, skip per-hit SFX (useful for large AoE batches). */
+  muteOnHitSfx?: boolean;
 }
 
 export class CombatService {
-  // Keep a reference to the bound EventBus handler so we can unregister it later
+  // ── DOT relay ───────────────────────────────────────────────────────────
   private readonly handleDamageOverTime = ({ target, source, amount, cause }: {
     target: Ship;
     source: Ship | null;
@@ -44,39 +48,46 @@ export class CombatService {
   }): void => {
     this.applyDamageToRandomBlock(
       target,
-      source ?? target, // Fallback to self if source is null
+      source ?? target,
       amount,
       cause
     );
   };
 
   private readonly damageTextAggregator: DamageTextAggregator;
-  private readonly store: BlockStore
+  private readonly store: BlockStore;
   private readonly orchestrator: BlockOrchestrator;
 
+  // Reusable connectivity working sets/buffers
   private reusableConnectedSet?: Set<number>;
   private reusableWorkQueue?: GridCoord[];
   private reusableOrphanIndexBuffer?: number[];
 
+  // Light randomization
   private readonly RANDOM_BUFFER_SIZE = 32;
   private radiusRandBuffer: number[] = [];
   private scaleRandBuffer: number[] = [];
   private randPtr = 0;
 
+  // ── NEW: deferred prune queue ───────────────────────────────────────────
+  private pruneQueue: Ship[] = [];
+  private pruneQueued = new WeakSet<Ship>();
+  private delayedPruneMap = new Map<Ship, number>(); // frames until enqueue
+
+  /** Throttle: max ships to prune per frame. You can tune this. */
+  private readonly MAX_DEFERRED_PRUNES_PER_FRAME = 3;
+
   private seedRandomBuffers(): void {
     for (let i = 0; i < this.RANDOM_BUFFER_SIZE; i++) {
-      this.radiusRandBuffer[i] = Math.random(); // in [0, 1)
+      this.radiusRandBuffer[i] = Math.random();
       this.scaleRandBuffer[i] = Math.random();
     }
-    // Inject big explosion chances
     this.injectSpikesEveryNth(this.radiusRandBuffer, 12, 4);
     this.injectSpikesEveryNth(this.scaleRandBuffer, 12, 4);
   }
 
   private injectSpikesEveryNth(buffer: number[], every: number, magnitude: number, offset = 0): void {
-    for (let i = offset; i < buffer.length; i += every) {
-      buffer[i] = magnitude;
-    }
+    for (let i = offset; i < buffer.length; i += every) buffer[i] = magnitude;
   }
 
   constructor(
@@ -86,7 +97,6 @@ export class CombatService {
     private readonly shipBuilderEffects: ShipBuilderEffectsSystem,
     private readonly floatingTextManager?: FloatingTextManager,
   ) {
-    // Register the bound handler
     GlobalEventBus.on('status:damageOverTime', this.handleDamageOverTime);
 
     this.store = BlockManager.getInstance().getBlockStore();
@@ -96,11 +106,12 @@ export class CombatService {
     this.seedRandomBuffers();
   }
 
-  /**
-   * Must be called when the owning runtime is disposed to prevent ghost listeners.
-   */
+  /** Must be called on dispose to prevent ghost listeners. */
   public destroy(): void {
     GlobalEventBus.off('status:damageOverTime', this.handleDamageOverTime);
+    this.pruneQueue.length = 0;
+    this.pruneQueued = new WeakSet<Ship>();
+    this.delayedPruneMap.clear();
   }
 
   private nextRandom(buffer: number[]): number {
@@ -109,20 +120,70 @@ export class CombatService {
     return val;
   }
 
+  // ── NEW: frame update to service deferred prunes ────────────────────────
+  public update(dt: number): void {
+    // Advance delayed items
+    if (this.delayedPruneMap.size > 0) {
+      for (const [ship, frames] of this.delayedPruneMap) {
+        const next = frames - 1;
+        if (next <= 0) {
+          this.delayedPruneMap.delete(ship);
+          this.requestConnectivityPrune(ship);
+        } else {
+          this.delayedPruneMap.set(ship, next);
+        }
+      }
+    }
+
+    // Process a bounded number of prunes per frame
+    let remaining = this.MAX_DEFERRED_PRUNES_PER_FRAME;
+    while (remaining > 0 && this.pruneQueue.length > 0) {
+      const ship = this.pruneQueue.shift()!;
+      this.pruneQueued.delete(ship);
+      if (!ship || ship.isDestroyed?.() || (ship as any).isDestroying?.()) {
+        remaining--;
+        continue;
+      }
+      this.pruneDisconnectedFragments(ship);
+      remaining--;
+    }
+  }
+
+  // ── NEW: public API for callers (e.g., ExplosiveLanceBackend) ───────────
+  public requestConnectivityPrune(ship: Ship): void {
+    if (!ship || ship.isDestroyed?.() || (ship as any).isDestroying?.()) return;
+    if (this.pruneQueued.has(ship)) return;
+    this.pruneQueued.add(ship);
+    this.pruneQueue.push(ship);
+  }
+  /** Alias for convenience/backward-compat. */
+  public queueConnectivityPrune(ship: Ship): void { this.requestConnectivityPrune(ship); }
+  /** Schedule a prune a few frames later (default same-frame enqueue). */
+  public scheduleConnectivityPrune(ship: Ship, framesDelay = 0): void {
+    if (!ship || ship.isDestroyed?.() || (ship as any).isDestroying?.()) return;
+    if (framesDelay <= 0) {
+      this.requestConnectivityPrune(ship);
+      return;
+    }
+    if (!this.pruneQueued.has(ship) && !this.delayedPruneMap.has(ship)) {
+      this.delayedPruneMap.set(ship, framesDelay);
+    }
+  }
+
+  // ── Public helpers ──────────────────────────────────────────────────────
   public applyDamageToRandomBlock(
     entity: CompositeBlockObject,
     source: CompositeBlockObject,
     damage: number,
     cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' |
-          'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'flameThrower' |
-          'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
+            'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'flameThrower' |
+            'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
   ): void {
     if (entity.isDestroyed()) return;
 
     const randomIdx = entity.getRandomBlockIndex?.();
     if (randomIdx === undefined) return;
 
-    // Derive the GridCoord from the store's local position arrays
     const coord: GridCoord = {
       x: this.store.localX[randomIdx],
       y: this.store.localY[randomIdx],
@@ -132,14 +193,14 @@ export class CombatService {
   }
 
   public applyDamageToBlock(
-    entity: CompositeBlockObject, // The entity receiving the damage
-    source: CompositeBlockObject, // The entity dealing the damage
-    blockIndex: number,           // SOA index of the block
-    coord: GridCoord,             // Local grid coord for world translation (still used for explosions/text)
+    entity: CompositeBlockObject,
+    source: CompositeBlockObject,
+    blockIndex: number,
+    coord: GridCoord,
     damage: number,
     cause: 'turret' | 'projectile' | 'bomb' | 'collision' | 'laser' |
-          'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'flameThrower' |
-          'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
+            'explosiveLance' | 'explosiveLanceAoE' | 'heatSeekerDirect' | 'flameThrower' |
+            'heatSeekerAoE' | 'haloBlade' | 'dot' | 'scripted' | 'reflected' = 'scripted',
     lightFlash: boolean = true,
     baseCriticalChance: number = 0,
     baseCriticalMultiplier: number = 1.5,
@@ -147,13 +208,18 @@ export class CombatService {
   ): boolean {
     const store = this.store;
 
+    // Ignore further damage if destruction already orchestrated
+    if ((entity as any).isDestroying?.() || (entity as Ship).hasTag?.('destructing')) {
+      return false;
+    }
+
     // === Block properties via SOA ===
     if (store.indestructible[blockIndex] || store.destroyed[blockIndex]) return false;
 
     const isShielded = store.isShielded[blockIndex] ?? false;
     const shieldEfficiency = store.shieldEfficiency[blockIndex] ?? 0;
 
-    // === Local caches for entity/ship state ===
+    // === Local caches ===
     const playerShip = ShipRegistry.getInstance().getPlayerShip();
     const isSourceShip = source instanceof Ship;
     const isEntityShip = entity instanceof Ship;
@@ -163,11 +229,9 @@ export class CombatService {
     const sameFaction = source.getFaction() === entity.getFaction();
     const rawDamage = damage;
 
-    if (sameFaction) {
-      return false;
-    }
+    if (sameFaction) return false;
 
-    // === Mission difficulty scaling ===
+    // Mission difficulty scaling
     const enemyPower = missionLoader.getEnemyPower();
     if (isSourcePlayer && !isEntityPlayer) {
       damage /= enemyPower;
@@ -175,14 +239,12 @@ export class CombatService {
       damage *= enemyPower;
     }
 
-    // === Invulnerability ===
-    if (affixes?.invulnerable && cause !== 'scripted') {
-      return false;
-    }
+    // Invulnerability
+    if (affixes?.invulnerable && cause !== 'scripted') return false;
 
-    // === Shield absorption ===
+    // Shield absorption
     if (isShielded && isEntityShip && shieldEfficiency > 0) {
-      const energy = entity.getEnergyComponent?.();
+      const energy = (entity as Ship).getEnergyComponent?.();
       const clampedEfficiency = Math.max(0.001, shieldEfficiency);
       const energyCost = damage / clampedEfficiency;
 
@@ -197,7 +259,6 @@ export class CombatService {
             }
           : undefined;
 
-        // Compute world position for deflection FX
         const worldPos = {
           x: entity.getTransform().position.x + store.localX[blockIndex],
           y: entity.getTransform().position.y + store.localY[blockIndex],
@@ -214,19 +275,19 @@ export class CombatService {
 
         this.explosionSystem.createShieldDeflection(
           worldPos,
-          'shield1', // Later on maybe slice by tier
+          'shield1',
           lightOptions
         );
         return false;
       }
     }
 
-    // === Damage mitigation and crits ===
+    // Damage mitigation & crits
     const {
       flatDamageReductionPercent = 0,
       cockpitInvulnChance = 0,
       reflectOnDamagePercent = 0,
-    } = isEntityShip ? entity.getPowerupBonus() : {};
+    } = isEntityShip ? (entity as Ship).getPowerupBonus() : {};
 
     const globalPassiveDamage = source.getDamageMultiplier();
 
@@ -236,7 +297,7 @@ export class CombatService {
       lifeStealOnCrit = false,
       critLifeStealPercent = 0,
       reflectCanCrit = false,
-    } = isSourceShip ? source.getPowerupBonus() : {};
+    } = isSourceShip ? (source as Ship).getPowerupBonus() : {};
 
     if (cause === 'turret' && isSourcePlayer) {
       const playerShipId = PlayerShipCollection.getInstance().getActiveShip()?.name;
@@ -247,38 +308,34 @@ export class CombatService {
       }
     }
 
-    // Apply Global Crit Passives
     critChance += source.getCriticalChance();
     critMultiplier += source.getCriticalMultiplier();
 
     const isReflected = cause === 'reflected';
     const canCrit = !isReflected || reflectCanCrit;
     const isCriticalHit = canCrit && Math.random() < critChance;
-    if (isCriticalHit) {
-      damage *= critMultiplier;
-    }
+    if (isCriticalHit) damage *= critMultiplier;
 
-    damage *= (1 + globalPassiveDamage);             // Global passive damage bonus multiplier
-    damage *= (1 - flatDamageReductionPercent);      // Flat damage reduction
-    damage /= (affixes?.blockDurabilityMulti ?? 1);  // Block durability multiplier
-    damage *= (1 - entity.getDamageMitigation());    // Damage mitigation (passives, affixes)
+    damage *= (1 + globalPassiveDamage);
+    damage *= (1 - flatDamageReductionPercent);
+    damage /= (affixes?.blockDurabilityMulti ?? 1);
+    damage *= (1 - entity.getDamageMitigation());
 
-    // Cockpit is always at 0,0 local coords
+    // Cockpit at (0,0)
     const isCockpit = store.localX[blockIndex] === 0 && store.localY[blockIndex] === 0;
     const isImmune = isCockpit && Math.random() < cockpitInvulnChance;
     if (isImmune) {
       damage = 0;
     } else {
-      damage = Math.max(damage, 1);
-      damage = Math.floor(damage);
+      damage = Math.max(Math.floor(damage), 1);
     }
 
     if (isCriticalHit && lifeStealOnCrit && isSourceShip) {
       const lifestealAmount = Math.max(Math.floor(damage * critLifeStealPercent), 1);
-      repairBlockViaLifesteal(source, lifestealAmount, this.shipBuilderEffects);
+      repairBlockViaLifesteal(source as Ship, lifestealAmount, this.shipBuilderEffects);
     }
 
-    // === Reflect damage ===
+    // Reflect
     if (
       reflectOnDamagePercent > 0 &&
       cause !== 'reflected' &&
@@ -287,7 +344,7 @@ export class CombatService {
     ) {
       const reflectedDamage = Math.floor(rawDamage * reflectOnDamagePercent);
       if (reflectedDamage > 0) {
-        const targetIdx = source.getRandomBlockIndex?.();
+        const targetIdx = (source as Ship).getRandomBlockIndex?.();
         if (targetIdx !== undefined) {
           const targetCoord: GridCoord = {
             x: this.store.localX[targetIdx],
@@ -306,42 +363,33 @@ export class CombatService {
       }
     }
 
-    // Determine if damage should be ignored entirely
+    // Ignore chance
     const ignoreChance = entity.getIgnoreDamageChance();
-    if (ignoreChance) {
-      if (Math.random() < ignoreChance) {
-        damage = 0;
-      }
+    if (ignoreChance && Math.random() < ignoreChance) {
+      damage = 0;
     }
 
-    // === Actual HP Decrement Occurs here ===
+    // Apply damage (ship HP or block HP)
     let actualDamage = damage;
 
     if (entity.hasHealth()) {
-      // HP Reduction on ship (Boss ships, special entities)
       actualDamage = entity.applyDamageToHealth(damage);
       if (entity.getCurrentHealth() <= 0) {
         this.destructionService.destroyEntity(entity, cause);
         return true;
       }
     } else {
-      // Block Based Damage Reduction (normal path)
       store.hp[blockIndex] -= damage;
       this.orchestrator.updateDamageUV(blockIndex);
     }
 
-    // === Visual + feedback (Applies to both a block hit, or a ship damage hit) ===
+    // Feedback FX
     const worldX = entity.getTransform().position.x + coord.x;
     const worldY = entity.getTransform().position.y + coord.y;
 
     const lightOptions =
       PlayerSettingsManager.getInstance().isLightingEnabled() && cause !== 'collision' && lightFlash
-        ? {
-            lightRadiusScalar: 12,
-            lightIntensity: 1,
-            lightLifeScalar: 0.7,
-            lightColor: cause === 'laser' ? '#00ffff' : undefined,
-          }
+        ? { lightRadiusScalar: 12, lightIntensity: 1, lightLifeScalar: 0.7, lightColor: cause === 'laser' ? '#00ffff' : undefined }
         : undefined;
 
     if (!extraOptions.hideExplosionParticlesOnHit) {
@@ -359,6 +407,17 @@ export class CombatService {
       }
     }
 
+    if (!extraOptions.muteOnHitSfx) {
+      playSpatialSfx(entity, playerShip, {
+        file: 'assets/sounds/sfx/explosions/hit_00.wav',
+        channel: 'sfx',
+        baseVolume: 0.25,
+        pitchRange: [0.2, 0.4],
+        volumeJitter: 0.1,
+        maxSimultaneous: 3,
+      });
+    }
+
     if (!entity.getIsPlayerShip()) {
       if (damage > 0) {
         this.damageTextAggregator.enqueueDamage(
@@ -368,19 +427,10 @@ export class CombatService {
       }
     }
 
-    playSpatialSfx(entity, playerShip, {
-      file: 'assets/sounds/sfx/explosions/hit_00.wav',
-      channel: 'sfx',
-      baseVolume: 0.25,
-      pitchRange: [0.2, 0.4],
-      volumeJitter: 0.1,
-      maxSimultaneous: 3,
-    });
-
     if (store.hp[blockIndex] > 0) return false;
     store.destroyed[blockIndex] = 1;
 
-    // === Cockpit/center destruction ===
+    // Cockpit destroyed → delegate to destruction service
     const isCenterBlock = coord.x === 0 && coord.y === 0;
     if (isCenterBlock) {
       if (entity instanceof Ship) {
@@ -391,7 +441,7 @@ export class CombatService {
       }
     }
 
-    // Explosion effect for the destroyed block
+    // Block-specific explosion
     this.explosionSystem.createBlockExplosion(
       entity.id,
       entity.getTransform().position,
@@ -403,17 +453,13 @@ export class CombatService {
       DEFAULT_EXPLOSION_SPARK_PALETTE,
     );
 
-    playSpatialSfx(entity, playerShip, {
-      file: 'assets/sounds/sfx/explosions/explosion_00.wav',
-      channel: 'sfx',
-      baseVolume: 1.0,
-      pitchRange: [1.0, 1.2],
-      volumeJitter: 0.2,
-      maxSimultaneous: 3,
-    });
-
     const { blockDropRateMulti = 1, entropiumDropRateMulti = 1 } = entity.getAffixes();
-    this.pickupSpawner.spawnPickupOnBlockDestruction(blockIndex, blockDropRateMulti, entropiumDropRateMulti, extraOptions.repairOrbDropRateMulti);
+    this.pickupSpawner.spawnPickupOnBlockDestruction(
+      blockIndex,
+      blockDropRateMulti,
+      entropiumDropRateMulti,
+      extraOptions.repairOrbDropRateMulti
+    );
 
     entity.removeBlock(coord);
 
@@ -421,13 +467,49 @@ export class CombatService {
       missionResultStore.incrementBlocksLost(1);
     }
 
-    // === Prune disconnected fragments (SOA-based) ===
+    // ── Connectivity prune (immediate or deferred) ────────────────────────
+    if (!(entity instanceof Ship)) return true;
+
+    // Skip everything if ship is already scheduled for destruction
+    if ((entity as any).isDestroying?.() || entity.hasTag?.('destructing')) {
+      return true;
+    }
+
+    if (extraOptions.deferConnectivityPrune) {
+      // Defer to end-of-batch (e.g., Explosive Lance AoE)
+      this.requestConnectivityPrune(entity);
+      return true;
+    }
+
+    // Immediate prune for normal hits
+    this.pruneDisconnectedFragments(entity);
+    return true;
+  }
+
+  // ── Helper: full-ship destruction delegation ────────────────────────────
+  private destroyEntireShipWithAllBlocksSOA(entity: Ship, cause: DestructionCause): boolean {
+    entity.setDestroying(true);
+
+    // Optional: proactively drop any pending prune tasks for this ship
+    try {
+      if (this.pruneQueued?.has(entity)) this.pruneQueued.delete(entity);
+      if (this.delayedPruneMap?.has(entity)) this.delayedPruneMap.delete(entity);
+    } catch {}
+
+    this.destructionService.destroyEntity(entity, cause);
+    return true;
+  }
+
+  // ── Core: prune + FX + pickups + invariants (used by both paths) ───────
+  private pruneDisconnectedFragments(entity: Ship): void {
+    if (!entity || entity.isDestroyed?.() || (entity as any).isDestroying?.()) return;
+
     this.reusableConnectedSet ??= new Set<number>();
     this.reusableWorkQueue ??= [];
     this.reusableOrphanIndexBuffer ??= [];
 
     const connected = getConnectedBlockCoordsFast(
-      entity as Ship,
+      entity,
       { x: 0, y: 0 },
       this.reusableConnectedSet,
       this.reusableWorkQueue
@@ -447,7 +529,7 @@ export class CombatService {
 
       if (connected.has(key)) continue;
 
-      // FX and pickup
+      // FX and pickup for orphaned block
       this.explosionSystem.createBlockExplosion(
         entity.id,
         transform.position,
@@ -467,7 +549,7 @@ export class CombatService {
       orphanBuffer.push(idx);
     }
 
-    // === Apply orphan pruning ===
+    // Apply orphan pruning in one shot
     if (orphanBuffer.length > 0) {
       entity.removeBlocksByIndexFast(orphanBuffer);
       if (entity.getIsPlayerShip?.()) {
@@ -475,34 +557,21 @@ export class CombatService {
       }
     }
 
-    // === Non-player ship destruction invariants ===
-    if (entity instanceof Ship && !entity.getIsPlayerShip()) {
+    // Post-prune invariants (non-player ships)
+    if (!entity.getIsPlayerShip?.()) {
       const remainingCount = entity.getAllBlockIndices().length;
 
-      // --- Low block count fallback ---
+      // Low block count fallback
       if (remainingCount <= 5) {
-        return this.destroyEntireShipWithAllBlocksSOA(entity, cause);
+        this.destroyEntireShipWithAllBlocksSOA(entity, 'scripted');
+        return;
       }
 
-      // --- Engine-loss fallback ---
+      // Engine-loss fallback
       if (entity.getHasAtleastOneOriginalEngine?.() && !entity.hasAnyActiveEngine()) {
-        return this.destroyEntireShipWithAllBlocksSOA(entity, cause);
+        this.destroyEntireShipWithAllBlocksSOA(entity, 'scripted');
+        return;
       }
     }
-
-    return true;
-  }
-
-  private destroyEntireShipWithAllBlocksSOA(
-    entity: Ship,
-    cause: DestructionCause,
-  ): boolean {
-    // Mark the ship as destructing to prevent reentrancy or double-handling
-    entity.setDestroying(true);
-
-    // Delegate full destruction to the CompositeBlockDestructionService
-    this.destructionService.destroyEntity(entity, cause);
-
-    return true;
   }
 }

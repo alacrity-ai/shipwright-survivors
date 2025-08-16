@@ -140,6 +140,7 @@ import { PlayerTradePostManager } from '@/game/player/PlayerTradePostManager';
 import { QuestCompletionController } from '@/game/quests/QuestCompletionController';
 import { flags } from '@/game/player/PlayerFlagManager';
 import { missionSettings } from '@/game/player/PlayerMissionManager';
+import { resolveMissionWavesCached } from '@/game/waves/io/resolveMissionWaves';
 
 // Debug
 import { spawnBossArena } from './interfaces/events/BossReporter';
@@ -550,8 +551,10 @@ export class EngineRuntime {
       popupMessageSystem: this.popupMessageSystem!,
     });
 
+    const waves = await resolveMissionWavesCached(this.mission);
+
     this.waveOrchestrator = WaveOrchestratorFactory.create(
-      this.mission.waves,
+      waves,
       this.shipRegistry,
       this.aiOrchestrator,
       this.particleManager,

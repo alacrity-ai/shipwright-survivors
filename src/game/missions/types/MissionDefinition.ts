@@ -18,6 +18,7 @@ export interface MissionDefinition {
   name: string;
   missionTitle: string;
   waves: WaveDefinition[];
+  wavesJsonPath?: string; // NEW
   dropMultiplier?: number; // Multiplier for block drop rate
   environmentSettings?: {
     backgroundId?: string;

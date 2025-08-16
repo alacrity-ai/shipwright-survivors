@@ -1,4 +1,5 @@
 // src/game/ship/CompositeBlockDestructionService.ts
+
 import type { CompositeBlockObject } from '@/game/entities/CompositeBlockObject';
 import type { GridCoord } from '@/game/interfaces/types/GridCoord';
 import type { ExplosionSystem } from '@/systems/fx/ExplosionSystem';
@@ -11,7 +12,6 @@ import { BlockManager } from '@/game/blocks/system/BlockManager';
 
 import { createLightFlash } from '@/lighting/helpers/createLightFlash';
 import { GlobalEventBus } from '@/core/EventBus';
-import { audioManager } from '@/audio/Audio';
 
 import { Ship } from '@/game/ship/Ship';
 import { MovementSystemRegistry } from '@/systems/physics/MovementSystemRegistry';
@@ -27,6 +27,29 @@ export type DestructionCause =
 const SHOCK_WAVE_COOLDOWN = 4.0;
 
 // ──────────────────────────────────────────────────────────────────────────
+// LOD controls
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Threshold at/above which we enter “LOD mode”. */
+const LARGE_SHIP_THRESHOLD = 800;
+
+/** Hard cap for removals per frame in LOD mode (as requested). */
+const LOD_STEPS_PER_FRAME_MAX = 200;
+
+/**
+ * Optional safety cap for “small” ships to prevent single-frame drains on long hitches.
+ * If you want unlimited for small ships, set to Number.POSITIVE_INFINITY.
+ */
+const SMALL_STEPS_PER_FRAME_MAX = 400;
+
+/** FX thinning bounds in LOD mode: 1 out of N blocks produce FX. */
+const THIN_MIN = 2;    // densest
+const THIN_MAX = 8;    // sparsest
+
+/** Max window we’ll ever time-gate small-ship destruction. */
+const MAX_DELAY_MS_SMALL = 500;
+
+// ──────────────────────────────────────────────────────────────────────────
 // SoA Buffer & Job
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -40,7 +63,7 @@ interface SOADestructionBuffer {
   cursor: number;
 
   delaysMs: Uint16Array;   // 0–65535 ms (65.535s)
-  blockIndex: Uint32Array; // optimistic index (validated at execution)
+  blockIndex: Uint32Array; // optimistic index (validated at execution for small ships)
   coordX: Int16Array;      // local X at schedule time
   coordY: Int16Array;      // local Y at schedule time
   radius: Float32Array;
@@ -54,11 +77,17 @@ interface DestructionJob {
   // clock
   elapsed: number;
 
-  // invariants
+  // invariants (world frame snapshot at destruction start)
   originX: number;
   originY: number;
   rotation: number;
   dropRateMulti: number;
+
+  // LOD controls
+  isLarge: boolean;         // LOD mode flag
+  stepsPerFrame: number;    // per-frame budget (LOD -> capped, small -> finite or Infinity)
+  thinFactor: number;       // LOD FX thinning factor (1 = no thinning)
+  perBlockPickups: boolean; // whether to spawn pickups per block (false in LOD)
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -91,6 +120,9 @@ export class CompositeBlockDestructionService {
   // Pool of reusable SoA buffers (bounded to avoid unbounded growth)
   private soaPool: SOADestructionBuffer[] = [];
   private readonly SOA_POOL_MAX = 8;
+
+  // Typed → JS array conversion buffer for final sweep
+  private scratchIndexList: number[] = [];
 
   // Temporary limit to shockwaves until multiple rendering fixed
   private shockwaveTimer = 0;
@@ -235,17 +267,50 @@ export class CompositeBlockDestructionService {
       const n = buf.count;
       let i = buf.cursor;
 
-      // Execute all due steps; delays are monotone increasing
-      while (i < n && (buf.delaysMs[i] * 0.001) <= job.elapsed) {
-        this.executeStep(job, i);
-        i++;
-      }
-      buf.cursor = i;
+      const budget = job.stepsPerFrame;
 
-      if (i >= n) {
-        // finalize
+      if (job.isLarge) {
+        // LOD path: ignore delays entirely; just process the next chunk.
+        const end = Math.min(i + budget, n);
+        for (; i < end; i++) {
+          this.executeStep(job, i);
+        }
+        buf.cursor = i;
+      } else {
+        // Small-ship path: respect delays, but they’ve been capped when scheduled.
+        let processed = 0;
+        // Delays are monotone increasing
+        while (i < n && (buf.delaysMs[i] * 0.001) <= job.elapsed && processed < budget) {
+          this.executeStep(job, i);
+          i++;
+          processed++;
+        }
+        buf.cursor = i;
+      }
+
+      if (buf.cursor >= n) {
+        // Final sweep: if anything somehow remains, remove with no FX then finalize.
         try {
-          job.entity.destroy();
+          const remainingAny: any = job.entity.getAllBlockIndices();
+          const len: number = (remainingAny?.length ?? 0) >>> 0;
+
+          if (len > 0) {
+            let list: number[];
+            if (Array.isArray(remainingAny)) {
+              // Already a plain number[]
+              list = remainingAny as number[];
+            } else {
+              // TypedArray (e.g., Uint32Array) → copy into reusable number[]
+              list = this.scratchIndexList;
+              list.length = len;
+              for (let k = 0; k < len; k++) {
+                list[k] = (remainingAny[k] as number) >>> 0;
+              }
+            }
+            job.entity.removeBlocksByIndexFast(list);
+          }
+
+          job.entity.destroyInstantly();
         } catch (err) {
           console.error('[CompositeBlockDestructionService] Error finalizing entity destroy:', err);
         }
@@ -267,7 +332,35 @@ export class CompositeBlockDestructionService {
     this.tmpCoord.y  = buf.coordY[i];
 
     try {
-      // Validate index; compaction may have invalidated saved index
+      if (job.isLarge) {
+        // LOD mode:
+        //  - Thin FX by hashing on coord.
+        //  - Remove by coordinate to avoid index staleness scans.
+        //  - Suppress per-block pickups (aggregate or skip).
+        const doFx = (job.thinFactor <= 1) ||
+          ((this.hashCoord(this.tmpCoord.x, this.tmpCoord.y) % job.thinFactor) === 0);
+
+        if (doFx) {
+          // Slightly larger FX to compensate for thinning
+          const r = buf.radius[i] * 1.15;
+          const s = buf.scale[i]  * 1.15;
+          this.explosionSystem.createBlockExplosion(
+            job.entity.id,
+            this.tmpOrigin,
+            job.rotation,
+            this.tmpCoord,
+            r, s,
+            undefined,
+            DEFAULT_EXPLOSION_SPARK_PALETTE
+          );
+        }
+
+        // Coordinate-based removal: robust against swap-with-last compaction.
+        job.entity.removeBlock(this.tmpCoord);
+        return;
+      }
+
+      // ── Small ship path (original semantics with validation) ────────────
       let idx = buf.blockIndex[i] >>> 0;
       const store = this.store;
 
@@ -275,7 +368,7 @@ export class CompositeBlockDestructionService {
         // Slow path: re-lookup by coord
         const lookedUp = this.lookupIndexByCoord(job.entity, buf.coordX[i], buf.coordY[i]);
         if (lookedUp < 0) {
-          // Already removed or moved away irrecoverably; still show FX at coord
+          // Already removed or moved; still show FX at coord
           this.explosionSystem.createBlockExplosion(
             job.entity.id, this.tmpOrigin, job.rotation, this.tmpCoord,
             buf.radius[i], buf.scale[i], undefined, DEFAULT_EXPLOSION_SPARK_PALETTE
@@ -297,7 +390,9 @@ export class CompositeBlockDestructionService {
         DEFAULT_EXPLOSION_SPARK_PALETTE
       );
 
-      this.pickupSpawner.spawnPickupOnBlockDestruction(idx, job.dropRateMulti);
+      if (job.perBlockPickups) {
+        this.pickupSpawner.spawnPickupOnBlockDestruction(idx, job.dropRateMulti);
+      }
       job.entity.removeBlockByIndex(idx);
 
     } catch (err) {
@@ -338,6 +433,10 @@ export class CompositeBlockDestructionService {
     const entityId = ship.id;
     const replaced = cause === 'replaced';
 
+    // Make the destruction exclusive to this service
+    ship.addTag?.('destructing');          // Prevent combat/other systems from touching this ship mid-destruction
+    ship.setCanFire?.(false);
+
     // Deregister / cleanup
     this.shipRegistry.remove(ship, cause, replaced);
     MovementSystemRegistry.unregister(ship);
@@ -359,7 +458,10 @@ export class CompositeBlockDestructionService {
     // One-shot FX
     createLightFlash(originX, originY, 4 * ship.getTotalMass(), 1.25, 0.5, '#ffffff', `explosion-${entityId}`);
 
-    const totalBlocks = ship.getBlockCount?.() ?? 0;
+    // Robust block count (avoid getBlockCount? which may be undefined/stale)
+    const totalBlocks = (ship.getAllBlockIndices?.() as any)?.length ?? 0;
+
+    // Shockwave gating using robust count
     if (this.shockwaveTimer > SHOCK_WAVE_COOLDOWN) {
       if (totalBlocks > 40) {
         emitHugeShockwave(originX, originY);
@@ -370,13 +472,21 @@ export class CompositeBlockDestructionService {
       }
     }
 
-    // Slightly cheaper int cast than Math.floor
-    audioManager.play(this.explosionSounds[(Math.random() * this.explosionSounds.length) | 0], 'sfx', { maxSimultaneous: 5 });
+    // Extra decoupling for very large ships
+    if (totalBlocks >= LARGE_SHIP_THRESHOLD) {
+      try { ship.clearCollisionBox(); } catch { /* noop */ }
+      try { ship.turnOffAllBlockLights(); } catch { /* noop */ }
+    }
 
-    // Gather indices
-    const [indices, count] = this.getIndicesIntoScratch(ship);
+    // ── Gather indices (⚠ include disconnected via ownerId scan when available) ──
+    let indices: Uint32Array, count: number;
+    if ((this.store as any).ownerShipId != null) {
+      [indices, count] = this.getAllIndicesForShipSOA(ship);
+    } else {
+      [indices, count] = this.getIndicesViaShipIter(ship);
+    }
 
-    // Prepare connectivity
+    // Prepare connectivity (for scheduling aesthetics)
     const cockpitCoord = ship.getCockpitCoord();
     const connected = this.reusableConnectedSet ??= new Set<number>();
     const workQ     = this.reusableWorkQueue ??= [];
@@ -402,18 +512,21 @@ export class CompositeBlockDestructionService {
         const lx = localX[idx];
         const ly = localY[idx];
         // IMPORTANT: key encoding must match producer from getConnectedBlockCoordsFast
-        const key = ((lx & 0xffff) << 16) | (ly & 0xffff);
+        // Fix: match (x << 16) | (y & 0xffff)
+        const key = (lx << 16) | (ly & 0xffff);
         if (!connected.has(key)) continue;
 
         if (buf.count + 1 > buf.capacity) buf = this.ensureSOACapacity(buf, buf.count + 1);
 
         const j = buf.count++;
-        buf.delaysMs[j]  = tMs as unknown as number;          // Uint16 downcast
-        buf.blockIndex[j]= idx;
-        buf.coordX[j]    = lx;
-        buf.coordY[j]    = ly;
-        buf.radius[j]    = 50 + this.nextRandom(this.radiusRandBuffer) * 40;
-        buf.scale[j]     = 0.5 + this.nextRandom(this.scaleRandBuffer)  * 0.5;
+        // Delays capped for small ships (ignored in LOD at runtime)
+        const capped = Math.min(tMs, MAX_DELAY_MS_SMALL);
+        buf.delaysMs[j]   = capped as unknown as number; // Uint16 downcast
+        buf.blockIndex[j] = idx;
+        buf.coordX[j]     = lx;
+        buf.coordY[j]     = ly;
+        buf.radius[j]     = 50 + this.nextRandom(this.radiusRandBuffer) * 40;
+        buf.scale[j]      = 0.5 + this.nextRandom(this.scaleRandBuffer)  * 0.5;
 
         tMs += 5; // +5 ms cadence
         if (tMs > 65535) tMs = 65535; // clamp to range
@@ -427,7 +540,8 @@ export class CompositeBlockDestructionService {
       const ly = localY[idx];
 
       if (cockpitCoord) {
-        const key = ((lx & 0xffff) << 16) | (ly & 0xffff);
+        // Fix: match (x << 16) | (y & 0xffff)
+        const key = (lx << 16) | (ly & 0xffff);
         if (connected.has(key)) continue;
       }
 
@@ -439,15 +553,25 @@ export class CompositeBlockDestructionService {
       if (buf.count + 1 > buf.capacity) buf = this.ensureSOACapacity(buf, buf.count + 1);
 
       const j = buf.count++;
-      buf.delaysMs[j]  = tMs as unknown as number;
-      buf.blockIndex[j]= idx;
-      buf.coordX[j]    = lx;
-      buf.coordY[j]    = ly;
-      buf.radius[j]    = 60 + this.nextRandom(this.radiusRandBuffer) * 20;
-      buf.scale[j]     = 0.5 + this.nextRandom(this.scaleRandBuffer)  * 0.3;
+      // Cap small-ship gating so the tail doesn't look “stuck”
+      const capped = Math.min(tMs, MAX_DELAY_MS_SMALL);
+      buf.delaysMs[j]   = capped as unknown as number;
+      buf.blockIndex[j] = idx;
+      buf.coordX[j]     = lx;
+      buf.coordY[j]     = ly;
+      buf.radius[j]     = 60 + this.nextRandom(this.radiusRandBuffer) * 20;
+      buf.scale[j]      = 0.5 + this.nextRandom(this.scaleRandBuffer)  * 0.3;
     }
 
     ship.setDestructionCause(cause);
+
+    // LOD classification from the *actual* count
+    const isLarge = count >= LARGE_SHIP_THRESHOLD;
+
+    // Compute LOD thin factor (only affects FX density; all blocks still removed)
+    const thinFactor = isLarge
+      ? Math.min(THIN_MAX, Math.max(THIN_MIN, (count / LARGE_SHIP_THRESHOLD) | 0))
+      : 1;
 
     // Register job
     this.activeDestructions.set(entityId, {
@@ -456,11 +580,53 @@ export class CompositeBlockDestructionService {
       elapsed: 0,
       originX, originY, rotation,
       dropRateMulti: ship.getAffixes?.().blockDropRateMulti ?? 1,
+
+      isLarge,
+      stepsPerFrame: isLarge ? LOD_STEPS_PER_FRAME_MAX : SMALL_STEPS_PER_FRAME_MAX,
+      thinFactor,
+      perBlockPickups: !isLarge, // suppress per-block pickups in LOD for perf
     });
   }
 
-  // ── Indices helper ──────────────────────────────────────────────────────
-  private getIndicesIntoScratch(ship: Ship): [Uint32Array, number] {
+  // ── Indices helpers ─────────────────────────────────────────────────────
+
+  /**
+   * Collect *all* indices from the SOA that are owned by this ship, including
+   * disconnected islands, using the ownerShipId map.
+   */
+  private getAllIndicesForShipSOA(ship: Ship): [Uint32Array, number] {
+    const store = this.store as any;
+    const ownerArr = store.ownerShipId as (Uint32Array | Int32Array | number[]);
+    const N = ownerArr?.length ?? 0;
+
+    const ownerId = (ship as any).numericId ?? (ship as any).id ?? ship.id;
+
+    // Start with a reasonable capacity; will grow if needed.
+    const expected = ship.getBlockCount?.() ?? 0;
+    const minCap = Math.max(64, expected);
+    if (this.indicesScratch.length < minCap) {
+      this.indicesScratch = new Uint32Array(this.nextPow2(minCap));
+    }
+
+    let n = 0;
+    for (let i = 0; i < N; i++) {
+      if (ownerArr[i] !== ownerId) continue;
+
+      if (n >= this.indicesScratch.length) {
+        const grow = new Uint32Array(this.indicesScratch.length << 1);
+        grow.set(this.indicesScratch);
+        this.indicesScratch = grow;
+      }
+      this.indicesScratch[n++] = i >>> 0;
+    }
+
+    return [this.indicesScratch, n];
+  }
+
+  /**
+   * Fallback: iterate via ship’s index iterator/view when ownerShipId is absent.
+   */
+  private getIndicesViaShipIter(ship: Ship): [Uint32Array, number] {
     const view: any = (ship as any).getAllBlockIndicesView?.();
     if (view && typeof view.length === 'number') {
       const len = view.length >>> 0;
@@ -471,10 +637,9 @@ export class CompositeBlockDestructionService {
       return [this.indicesScratch, len];
     }
 
-    // Fallback: iterate the iterator into scratch
     let needed = 0;
-    const expected = ship.getBlockCount?.();
-    const minCap = expected && expected > 0 ? expected : 64;
+    const expected = (ship.getAllBlockIndices?.() as any)?.length ?? 0;
+    const minCap = expected > 0 ? expected : 64;
     if (this.indicesScratch.length < minCap) {
       this.indicesScratch = new Uint32Array(this.nextPow2(minCap));
     }
@@ -532,5 +697,13 @@ export class CompositeBlockDestructionService {
   }
 
   // ── Utils ───────────────────────────────────────────────────────────────
+
   private nextPow2(n: number): number { let p = 1; while (p < n) p <<= 1; return p; }
+
+  /** Cheap deterministic hash for coord-based FX thinning. */
+  private hashCoord(lx: number, ly: number): number {
+    let h = (lx | 0) * 73856093 ^ (ly | 0) * 19349663;
+    h ^= h >>> 16; h = Math.imul(h, 2246822519); h ^= h >>> 13;
+    return (h >>> 0);
+  }
 }

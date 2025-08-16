@@ -150,6 +150,7 @@ Plugin Passives:
 }
 
 TODOS:
+  - [ ] LightingPass: Add to settings a checkbox for performance lights, call setMaximumLights, and expressely use computemaxlightsstrict if it's checked.
 
   - [ ] Little tutorials with screenshots (hints) upon mission load.  Maybe multiple pages.
 

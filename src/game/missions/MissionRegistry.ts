@@ -111,7 +111,8 @@ export const missionRegistry: Record<string, MissionDefinition> = {
     name: 'Starfield Gauntlet',
     missionTitle: 'Mission 1',
     dialogue: 'mission-generic',
-    waves: waveSet1,
+    waves: [],
+    wavesJsonPath: '/assets/waves/mission1waves.json',
     dropMultiplier: 1.0,
     environmentSettings: {
       backgroundId: 'background_9_02.png',

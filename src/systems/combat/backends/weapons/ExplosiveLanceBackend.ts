@@ -31,6 +31,14 @@ import { emitDefaultFlames } from '@/core/interfaces/events/SpecialFxReporter';
 
 const DETONATION_DELAY = 1.5;
 
+// Augment options locally so TS is happy even if core type hasn’t been updated
+type LanceExtraOptions = ExtraDamageOptions & {
+  /** Ask CombatService to skip connectivity prune for this hit; we’ll request one pass later. */
+  deferConnectivityPrune?: boolean;
+  /** Optional: ask CombatService to mute repeated SFX on batched AoE hits. */
+  muteOnHitSfx?: boolean;
+};
+
 export interface ActiveExplosiveLance {
   position: { x: number; y: number };
   velocity: { x: number; y: number };
@@ -53,7 +61,10 @@ export interface ActiveExplosiveLance {
   emissionAccumulatorStuck: number;
   firingBlockTier: number;
   lightId: number | null;
-  radiateTimer?: number;
+
+  /** Guard against double-detonation during edge cases (e.g., target removed mid-loop). */
+  radiateTimer: number;
+  didDetonate?: boolean;
 }
 
 export class ExplosiveLanceBackend implements WeaponBackend {
@@ -61,6 +72,10 @@ export class ExplosiveLanceBackend implements WeaponBackend {
   private lightingOrchestrator: LightingOrchestrator;
   private store: BlockStore;
   private orchestrator: BlockOrchestrator;
+
+  // Simple per-frame de-duper for prune requests on the same ship
+  private pruneDeduper = new WeakMap<Ship, number>();
+  private frameCounter = 0;
 
   constructor(
     private readonly combatService: CombatService,
@@ -93,7 +108,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const { baseDamageMultiplier = 1 } = ship.getPowerupBonus();
     const totalDamageBonus = baseDamageMultiplier;
 
-    // ── Fire new lances (only if we have weapons). Crucially: do NOT early-return here.
+    // Fire new lances (only if we have weapons)
     if (plan.length > 0 && fireRequested && target) {
       for (let i = plan.length - 1; i >= 0; i--) {
         const lance = plan[i];
@@ -183,6 +198,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           particleOriginalSize: 4,
           ttl: lifetime,
           age: 0,
+          radiateTimer: 0,
           emissionAccumulatorTrail: 0,
           emissionAccumulatorStuck: 0,
           firingBlockTier: store.tier[idx],
@@ -191,8 +207,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
       }
     }
 
-    // Always advance existing lances, regardless of weapon/ship state.
+    // Always advance existing lances
     this.updateLances(dt, ship);
+    this.frameCounter++;
   }
 
   // GC-neutral validation for whether the stuck block no longer exists / is invalid
@@ -200,19 +217,12 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const idx = lance.targetBlockIndex;
     if (idx == null) return true;
 
-    // Typed as any to avoid depending on optional fields at compile-time
     const s: any = this.store;
 
-    // 1) Explicit existence bit (if present)
     if (s.exists && s.exists[idx] === 0) return true;
-
-    // 2) HP array (if present)
     if (s.hp && s.hp[idx] <= 0) return true;
-
-    // 3) Owner mismatch implies index was recycled or block migrated
     if (lance.targetShip && this.store.ownerShipId[idx] !== (lance.targetShip as any).numericId) return true;
 
-    // 4) Coord mismatch (block at index no longer at the recorded local cell)
     if (lance.coord) {
       if (this.store.localX[idx] !== lance.coord.x || this.store.localY[idx] !== lance.coord.y) return true;
     }
@@ -222,6 +232,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
   private updateLances(dt: number, ship: Ship): void {
     const exploded = new Set<ActiveExplosiveLance>();
+
     const {
       explosiveLanceRadiate = false,
       explosiveLanceElectrocution = false,
@@ -232,6 +243,8 @@ export class ExplosiveLanceBackend implements WeaponBackend {
     const store = this.store;
 
     for (const lance of this.activeLances) {
+      if (lance.didDetonate) { exploded.add(lance); continue; }
+
       lance.age += dt;
 
       // Trail emission (tier-based palette)
@@ -332,18 +345,22 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           }
           shakeCamera(6, 0.16, 10, 'explosiveLance');
 
-          // Immediate impact damage
+          // Immediate impact damage — defer prune here too to avoid a "pre-detonation" prune.
           const destroyed = this.combatService.applyDamageToBlock(
             compositeBlockObject,
             ship,
             idx,
             coord,
             lance.fireDamage,
-            'explosiveLance'
+            'explosiveLance',
+            true,
+            0,
+            1.5,
+            { deferConnectivityPrune: true } as LanceExtraOptions
           );
 
           if (destroyed) {
-            this.explodeLance(lance, ship);
+            this.explodeLance(lance, ship, explosiveLanceLifesteal);
             exploded.add(lance);
             break;
           }
@@ -391,7 +408,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         });
       }
 
-      // ── NEW: detonate instantly if the stuck block is gone (or ship destroyed)
+      // Detonate instantly if the stuck block is gone (or ship destroyed)
       if (this.isTargetBlockGone(lance) || (lance.targetShip?.isDestroyed() === true)) {
         this.explodeLance(lance, ship, explosiveLanceLifesteal);
         exploded.add(lance);
@@ -412,6 +429,9 @@ export class ExplosiveLanceBackend implements WeaponBackend {
   }
 
   private explodeLance(lance: ActiveExplosiveLance, ship: Ship, lifeSteal?: boolean): void {
+    if (lance.didDetonate) return;
+    lance.didDetonate = true;
+
     // Remove visuals
     if (lance.lightId) {
       this.lightingOrchestrator.removeLight(lance.lightId);
@@ -433,15 +453,20 @@ export class ExplosiveLanceBackend implements WeaponBackend {
 
     // AoE damage if target ship still valid
     if (lance.targetShip && lance.coord && !lance.targetShip.isDestroyed()) {
+      const targetShip = lance.targetShip as Ship; // we only prune ships
+
       const blockIndices = this.orchestrator.getBlocksWithinGridDistanceForCompositeBlockObject(
-        lance.targetShip,
+        targetShip,
         lance.coord,
         lance.explosionRadius
       );
 
-      const options: ExtraDamageOptions = {
+      // Shared options: hide heavy particles after first hit; defer prune
+      const options: LanceExtraOptions = {
         repairOrbDropRateMulti: lifeSteal ? 0.3 : 0,
         hideExplosionParticlesOnHit: false,
+        deferConnectivityPrune: true,
+        muteOnHitSfx: true,
       };
 
       for (let i = 0; i < blockIndices.length; i++) {
@@ -449,7 +474,7 @@ export class ExplosiveLanceBackend implements WeaponBackend {
         const coord = { x: this.store.localX[blockIndex], y: this.store.localY[blockIndex] };
 
         this.combatService.applyDamageToBlock(
-          lance.targetShip,
+          targetShip,
           ship,
           blockIndex,
           coord,
@@ -461,8 +486,26 @@ export class ExplosiveLanceBackend implements WeaponBackend {
           options
         );
 
-        // Show heavy explosion particles only once
+        // Show heavy explosion particles only once / first hit
         options.hideExplosionParticlesOnHit = true;
+      }
+
+      // ⬇️ Only request a prune if the target ship is NOT already being destroyed.
+      if (lance.targetShip instanceof Ship) {
+        const s = lance.targetShip as Ship;
+        const isDestructing =
+          (s as any).isDestroying?.() || s.isDestroyed?.() || s.hasTag?.('destructing');
+        if (!isDestructing) {
+          (this.combatService as any).requestConnectivityPrune?.(s)
+            ?? (this.combatService as any).queueConnectivityPrune?.(s)
+            ?? (this.combatService as any).scheduleConnectivityPrune?.(s, 0);
+
+          // Local de-dupe fallback (kept, but now only when we actually requested)
+          const lastFrame = this.pruneDeduper.get(s);
+          if (lastFrame !== this.frameCounter) {
+            this.pruneDeduper.set(s, this.frameCounter);
+          }
+        }
       }
     }
   }
