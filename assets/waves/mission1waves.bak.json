@@ -1,0 +1,1072 @@
+{
+  "version": 1,
+  "affixes": {
+    "THRUST_1_80__TURN_1_80": {
+      "thrustPowerMulti": 1.8,
+      "turnPowerMulti": 1.8
+    },
+    "THRUST_2_40__TURN_2_40": {
+      "thrustPowerMulti": 2.4,
+      "turnPowerMulti": 2.4
+    },
+    "AFFIX_002": {
+      "thrustPowerMulti": 6.4,
+      "turnPowerMulti": 2.8,
+      "fireRateMulti": 1,
+      "projectileSpeedMulti": 4.5
+    },
+    "AFFIX_003": {
+      "thrustPowerMulti": 5,
+      "turnPowerMulti": 2,
+      "fireRateMulti": 2,
+      "projectileSpeedMulti": 1.5,
+      "blockDurabilityMulti": 1.2
+    },
+    "THRUST_4_40__TURN_4_40": {
+      "thrustPowerMulti": 4.4,
+      "turnPowerMulti": 4.4
+    },
+    "AFFIX_005": {
+      "thrustPowerMulti": 1,
+      "turnPowerMulti": 0.25,
+      "fireRateMulti": 2,
+      "projectileSpeedMulti": 1.5,
+      "projectileLifetimeMulti": 2,
+      "blockDurabilityMulti": 1.2,
+      "blockDropRateMulti": 0.4
+    },
+    "AFFIX_006": {
+      "thrustPowerMulti": 4.5,
+      "turnPowerMulti": 2,
+      "fireRateMulti": 0.8,
+      "projectileSpeedMulti": 0.6,
+      "blockDurabilityMulti": 0.8
+    },
+    "AFFIX_007": {
+      "thrustPowerMulti": 2,
+      "turnPowerMulti": 2,
+      "fireRateMulti": 2.5,
+      "projectileSpeedMulti": 2.5,
+      "blockDurabilityMulti": 1.2
+    },
+    "AFFIX_008": {
+      "thrustPowerMulti": 3,
+      "turnPowerMulti": 0.85,
+      "fireRateMulti": 2,
+      "projectileSpeedMulti": 0.8,
+      "projectileLifetimeMulti": 4,
+      "blockDurabilityMulti": 1,
+      "blockDropRateMulti": 0.4
+    },
+    "AFFIX_009": {
+      "thrustPowerMulti": 4.5,
+      "turnPowerMulti": 2.5,
+      "fireRateMulti": 2,
+      "projectileSpeedMulti": 2.5,
+      "projectileLifetimeMulti": 2,
+      "blockDurabilityMulti": 1,
+      "blockDropRateMulti": 0.4
+    }
+  },
+  "behaviors": {
+    "SIEGE_2000_4000_2000": {
+      "preset": "siege",
+      "params": {
+        "siegeRange": 2000,
+        "engagementRange": 2000,
+        "disengageRange": 4000
+      }
+    },
+    "SIEGE_2800_5000_2800": {
+      "preset": "siege",
+      "params": {
+        "siegeRange": 2800,
+        "engagementRange": 2800,
+        "disengageRange": 5000
+      }
+    },
+    "SIEGE_1200_1400_1200": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 1200,
+        "disengageRange": 1400,
+        "siegeRange": 1200
+      }
+    },
+    "SIEGE_1800_5000_2800": {
+      "preset": "siege",
+      "params": {
+        "siegeRange": 2800,
+        "engagementRange": 1800,
+        "disengageRange": 5000
+      }
+    },
+    "SIEGE_1400_2000_1400": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 1400,
+        "disengageRange": 2000,
+        "siegeRange": 1400
+      }
+    },
+    "SIEGE_1800_2400_1800": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 1800,
+        "disengageRange": 2400,
+        "siegeRange": 1800
+      }
+    },
+    "SIEGE_1500_2000_1500": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 1500,
+        "disengageRange": 2000,
+        "siegeRange": 1500
+      }
+    },
+    "SIEGE_2200_3200_2200": {
+      "preset": "siege",
+      "params": {
+        "siegeRange": 2200,
+        "engagementRange": 2200,
+        "disengageRange": 3200
+      }
+    },
+    "SIEGE___800": {
+      "preset": "siege",
+      "params": {
+        "siegeRange": 800
+      }
+    },
+    "SIEGE_2500_3200_2500": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 2500,
+        "disengageRange": 3200,
+        "siegeRange": 2500
+      }
+    },
+    "SIEGE_1900_2500_1900": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 1900,
+        "disengageRange": 2500,
+        "siegeRange": 1900
+      }
+    },
+    "SIEGE_2100_2800_2100": {
+      "preset": "siege",
+      "params": {
+        "engagementRange": 2100,
+        "disengageRange": 2800,
+        "siegeRange": 2100
+      }
+    }
+  },
+  "waves": [
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_0_03",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80"
+        },
+        {
+          "shipId": "ship_0_02",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40"
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 1,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_00",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_01",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_00",
+              "count": 1
+            }
+          }
+        },
+        {
+          "spawnChance": 1,
+          "script": "DimensionalPortalIncident",
+          "options": {
+            "maxDuration": 20,
+            "tiers": [
+              [
+                {
+                  "shipId": "wave_0_00",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_01",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_02",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_03",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_04",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_4",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_5",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_6",
+                  "count": 4,
+                  "hunter": true
+                }
+              ]
+            ]
+          }
+        }
+      ],
+      "duration": 60,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/long_range_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_2000_4000_2000"
+        },
+        {
+          "shipId": "ship_0_03",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80"
+        },
+        {
+          "shipId": "ship_0_02",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40"
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 1,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_00",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_01",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_00",
+              "count": 1
+            }
+          }
+        },
+        {
+          "spawnChance": 1,
+          "script": "DimensionalPortalIncident",
+          "options": {
+            "maxDuration": 20,
+            "tiers": [
+              [
+                {
+                  "shipId": "wave_0_00",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_01",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_02",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_03",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "wave_0_04",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_4",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_5",
+                  "count": 4,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_6",
+                  "count": 4,
+                  "hunter": true
+                }
+              ]
+            ]
+          }
+        }
+      ],
+      "duration": 60,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/long_range_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_2800_5000_2800"
+        },
+        {
+          "shipId": "ship_0_03",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80"
+        },
+        {
+          "shipId": "ship_0_02",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40"
+        },
+        {
+          "shipId": "ship_scrapper_3",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "AFFIX_002",
+          "behaviorRef": "SIEGE_1200_1400_1200"
+        },
+        {
+          "shipId": "ship_0_station",
+          "count": 4
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 1,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_00",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_01",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_00",
+              "count": 1
+            }
+          }
+        },
+        {
+          "spawnChance": 1,
+          "script": "DimensionalPortalIncident",
+          "options": {
+            "maxDuration": 20,
+            "tiers": [
+              [
+                {
+                  "shipId": "ship_scrapper_2",
+                  "count": 6
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_3",
+                  "count": 6
+                }
+              ],
+              [
+                {
+                  "shipId": "ship_scrapper_4",
+                  "count": 6,
+                  "hunter": true
+                }
+              ],
+              [
+                {
+                  "shipId": "mission_02/tier2_fighter_00",
+                  "count": 6,
+                  "hunter": true,
+                  "affixes": {
+                    "thrustPowerMulti": 5,
+                    "turnPowerMulti": 2,
+                    "fireRateMulti": 2,
+                    "projectileSpeedMulti": 1.5,
+                    "blockDurabilityMulti": 1.2
+                  }
+                }
+              ],
+              [
+                {
+                  "shipId": "mission_02/tier2_fighter_00",
+                  "count": 6,
+                  "hunter": true,
+                  "affixes": {
+                    "thrustPowerMulti": 5,
+                    "turnPowerMulti": 2,
+                    "fireRateMulti": 2,
+                    "projectileSpeedMulti": 1.5,
+                    "blockDurabilityMulti": 1.2
+                  }
+                }
+              ],
+              [
+                {
+                  "shipId": "mission_02/tier2_cruiser_00",
+                  "count": 6,
+                  "hunter": true,
+                  "affixes": {
+                    "thrustPowerMulti": 5,
+                    "turnPowerMulti": 2,
+                    "fireRateMulti": 2,
+                    "projectileSpeedMulti": 1.5,
+                    "blockDurabilityMulti": 1.2
+                  }
+                }
+              ],
+              [
+                {
+                  "shipId": "mission_02/tier2_cruiser_00",
+                  "count": 6,
+                  "hunter": true,
+                  "affixes": {
+                    "thrustPowerMulti": 5,
+                    "turnPowerMulti": 2,
+                    "fireRateMulti": 2,
+                    "projectileSpeedMulti": 1.5,
+                    "blockDurabilityMulti": 1.2
+                  }
+                }
+              ],
+              [
+                {
+                  "shipId": "mission_02/tier2_cruiser_01",
+                  "count": 6,
+                  "hunter": true,
+                  "affixes": {
+                    "thrustPowerMulti": 5,
+                    "turnPowerMulti": 2,
+                    "fireRateMulti": 2,
+                    "projectileSpeedMulti": 1.5,
+                    "blockDurabilityMulti": 1.2
+                  }
+                }
+              ]
+            ]
+          }
+        }
+      ],
+      "duration": 60,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_scrapper_0",
+          "count": 12,
+          "hunter": true
+        },
+        {
+          "shipId": "mission_02/long_range_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_1800_5000_2800"
+        },
+        {
+          "shipId": "ship_scrapper_2",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_002",
+          "behaviorRef": "SIEGE_1200_1400_1200"
+        },
+        {
+          "shipId": "ship_scrapper_3",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_002",
+          "behaviorRef": "SIEGE_1400_2000_1400"
+        },
+        {
+          "shipId": "ship_scrapper_4",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_002",
+          "behaviorRef": "SIEGE_1800_2400_1800"
+        },
+        {
+          "shipId": "ship_scrapper_5",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_1800_2400_1800"
+        },
+        {
+          "shipId": "ship_scrapper_6",
+          "count": 1,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_1500_2000_1500"
+        },
+        {
+          "shipId": "ship_0_station",
+          "count": 4
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "QuantumBoomIncident"
+        },
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 2,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_02",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_03",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_01",
+              "count": 1
+            }
+          },
+          "delaySeconds": 28
+        }
+      ],
+      "duration": 60,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/long_range_00",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_2200_3200_2200"
+        },
+        {
+          "shipId": "mission_02/tier2_sieger_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40",
+          "behaviorRef": "SIEGE___800"
+        },
+        {
+          "shipId": "mission_02/tier3_station_00",
+          "count": 6,
+          "affixesRef": "AFFIX_003"
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 2,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_02",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_03",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_01",
+              "count": 1
+            }
+          },
+          "delaySeconds": 18
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/tier2_sieger_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40",
+          "behaviorRef": "SIEGE___800"
+        },
+        {
+          "shipId": "mission_02/tier3_station_00",
+          "count": 4,
+          "affixesRef": "AFFIX_003"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/long_range_00",
+          "count": 8,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80",
+          "behaviorRef": "SIEGE_2200_3200_2200"
+        },
+        {
+          "shipId": "ship_scrapper_2",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_4_40__TURN_4_40"
+        },
+        {
+          "shipId": "mission_02/cruiser_huge_00",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_005",
+          "behaviorRef": "SIEGE_2500_3200_2500"
+        },
+        {
+          "shipId": "mission_02/tier2_sieger_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40",
+          "behaviorRef": "SIEGE___800"
+        },
+        {
+          "shipId": "mission_02/tier3_station_00",
+          "count": 4,
+          "affixesRef": "AFFIX_003"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_scrapper_2",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_4_40__TURN_4_40"
+        },
+        {
+          "shipId": "ship_scrapper_3",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80"
+        },
+        {
+          "shipId": "mission_02/tier2_sieger_00",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40",
+          "behaviorRef": "SIEGE___800"
+        },
+        {
+          "shipId": "mission_02/tier3_station_00",
+          "count": 4,
+          "affixesRef": "AFFIX_003"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/tier2_fighter_00",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "AFFIX_006"
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 2,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_02",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_03",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_01",
+              "count": 1
+            }
+          },
+          "delaySeconds": 48
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_scrapper_2",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_4_40__TURN_4_40"
+        },
+        {
+          "shipId": "ship_scrapper_3",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "THRUST_1_80__TURN_1_80"
+        },
+        {
+          "shipId": "mission_02/cruiser_huge_00",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_005",
+          "behaviorRef": "SIEGE_2500_3200_2500"
+        },
+        {
+          "shipId": "mission_02/tier2_cruiser_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_007",
+          "behaviorRef": "SIEGE_1200_1400_1200"
+        },
+        {
+          "shipId": "mission_02/tier2_cruiser_01",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "AFFIX_007",
+          "behaviorRef": "SIEGE_1400_2000_1400"
+        },
+        {
+          "shipId": "mission_02/tier2_fighter_00",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "AFFIX_006"
+        }
+      ],
+      "incidents": [
+        {
+          "spawnChance": 1,
+          "script": "CursedCargoIncident",
+          "options": {
+            "rewardBlockTier": 2,
+            "rewardQuantityMultiplier": 1,
+            "ships": [
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_02",
+                "count": 4
+              },
+              {
+                "shipId": "incidents/cursed_cargo/cursed_cargo_killer_03",
+                "count": 4
+              }
+            ],
+            "cursedCacheShip": {
+              "shipId": "incidents/cursed_cargo/cursed_cargo_01",
+              "count": 1
+            }
+          },
+          "delaySeconds": 57
+        },
+        {
+          "spawnChance": 1,
+          "script": "QuantumBoomIncident"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/tier2_sieger_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40",
+          "behaviorRef": "SIEGE___800"
+        },
+        {
+          "shipId": "mission_02/tier2_cruiser_00",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_007",
+          "behaviorRef": "SIEGE_1200_1400_1200"
+        },
+        {
+          "shipId": "mission_02/tier2_cruiser_01",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_007",
+          "behaviorRef": "SIEGE_1400_2000_1400"
+        },
+        {
+          "shipId": "mission_02/cruiser_huge_00",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_005",
+          "behaviorRef": "SIEGE_2500_3200_2500"
+        },
+        {
+          "shipId": "mission_02/tier2_fighter_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_006"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/cruiser_huge_02",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_008",
+          "behaviorRef": "SIEGE_1900_2500_1900"
+        },
+        {
+          "shipId": "mission_02/cruiser_huge_00",
+          "count": 2,
+          "hunter": true,
+          "affixesRef": "AFFIX_005",
+          "behaviorRef": "SIEGE_2500_3200_2500"
+        },
+        {
+          "shipId": "mission_02/tier3_station_00",
+          "count": 6,
+          "affixesRef": "AFFIX_003"
+        },
+        {
+          "shipId": "mission_02/tier2_sieger_00",
+          "count": 6,
+          "hunter": true,
+          "affixesRef": "THRUST_2_40__TURN_2_40",
+          "behaviorRef": "SIEGE___800"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "mission_02/cruiser_huge_00",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_005",
+          "behaviorRef": "SIEGE_2500_3200_2500"
+        },
+        {
+          "shipId": "mission_02/cruiser_huge_02",
+          "count": 4,
+          "hunter": true,
+          "affixesRef": "AFFIX_008",
+          "behaviorRef": "SIEGE_1900_2500_1900"
+        }
+      ],
+      "duration": 30,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 12,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_1500_2000_1500"
+        }
+      ],
+      "duration": 20,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 8,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_1500_2000_1500"
+        },
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 8,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_1800_2400_1800"
+        },
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 8,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_2100_2800_2100"
+        }
+      ],
+      "duration": 20,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    },
+    {
+      "mods": [],
+      "ships": [
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 10,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_1500_2000_1500"
+        },
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 10,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_1800_2400_1800"
+        },
+        {
+          "shipId": "ship_scrapper_6_2",
+          "count": 10,
+          "hunter": true,
+          "affixesRef": "AFFIX_009",
+          "behaviorRef": "SIEGE_2100_2800_2100"
+        }
+      ],
+      "duration": 40,
+      "spawnDistribution": "aroundPlayer",
+      "sustainMode": true
+    }
+  ]
+}
