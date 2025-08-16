@@ -38,6 +38,10 @@ export interface CreateBlockParams {
   localRotation?: number; // block's local rotation relative to ship
   overlayRotation?: number; // for turrets, etc. not "rotated" with the turret, instead aims to x,y coords.
   blockTypeId?: string; // for looking up armor/hp from registry
+  colorR?: number; // 0-1
+  colorG?: number; // 0-1
+  colorB?: number; // 0-1
+  colorA?: number; // 0-1
 }
 
 /**
@@ -204,6 +208,12 @@ export class BlockOrchestrator {
     s.uvBaseY[index] = atlasUV.baseUV[1];
     s.uvOverlayX[index] = atlasUV.overlayUV?.[0] ?? -1;
     s.uvOverlayY[index] = atlasUV.overlayUV?.[1] ?? -1;
+
+    // Colors
+    s.colorR[index] = params.colorR ?? 1;
+    s.colorG[index] = params.colorG ?? 1;
+    s.colorB[index] = params.colorB ?? 1;
+    s.colorA[index] = params.colorA ?? 1;
 
     // Attach to ship's block list; free the index if it fails
     if (!this.addBlockToShip(params.ownerShipId, index)) {

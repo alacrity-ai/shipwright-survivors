@@ -1092,6 +1092,10 @@ export class Ship extends CompositeBlockObject {
         localY: coord.y,
         localRotation: rotation,
         blockTypeId: typeId,
+        colorR: this.blockColorR,
+        colorG: this.blockColorG,
+        colorB: this.blockColorB,
+        colorA: this.blockColorA,
       },
       this.transform
     );
@@ -1410,6 +1414,10 @@ export class Ship extends CompositeBlockObject {
       p.localRotation = rotation;
       p.overlayRotation = 0;
       p.blockTypeId   = id;
+      p.colorR        = this.blockColorR;
+      p.colorG        = this.blockColorG;
+      p.colorB        = this.blockColorB;
+      p.colorA        = this.blockColorA;
 
       // Scalar side-data for post-create indexing
       this.scratchHP[staged]      = computedHp;

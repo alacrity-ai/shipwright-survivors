@@ -14,6 +14,7 @@ import { applyViewportResolution } from '@/shared/applyViewportResolution';
 import { GlobalEventBus } from './EventBus';
 import { GlobalMenuReporter } from './GlobalMenuReporter';
 import { PlayerExperienceManager } from '@/game/player/PlayerExperienceManager';
+import { PlayerTutorialManager } from '@/game/player/PlayerTutorialManager';
 import { ArenaManager } from '@/game/arena/ArenaManager';
 import { BossManager } from '@/game/boss/BossManager';
 import { ShipFactory } from '@/game/ship/factories/ShipFactory';
@@ -189,6 +190,7 @@ export class EngineRuntime {
   private powerupSelectionMenu: PowerupSelectionMenu;
   private questCompletionController: QuestCompletionController;
   private planetInteractionOptionsMenu: PlanetInteractionOptionsMenu;
+  private tutorialManager: PlayerTutorialManager | null = null;
   private spatialBodyManager: SpatialBodyManager;
   private spaceStationBuilderMenu: SpaceStationBuilderMenu | null = null;
   private tradePostMenu: TradePostMenu;
@@ -579,6 +581,9 @@ export class EngineRuntime {
       this.coachMarkManager
     );
 
+    // Tutorial Manager
+    this.tutorialManager = PlayerTutorialManager.getInstance(this.inputManager, this.coachMarkManager);
+
     // Planet System
     this.planetSystem = new PlanetSystem(
       this.ship, 
@@ -722,6 +727,7 @@ export class EngineRuntime {
       this.incidentOrchestrator!,
       this.arenaManager,
       this.bossManager,
+      this.tutorialManager!
     ];
   }
 
@@ -811,10 +817,7 @@ export class EngineRuntime {
 
       if (this.levelingUpAnimationTimer <= 0) {
         this.levelingUpAnimationTimer = 0;
-
-        // Pause and open the menu only if this is the first pending level-up menu
-        this.pause();
-        this.powerupSelectionMenu.openMenu(this.pendingLevelUps);
+        openPowerupMenu('experience');
         this.pendingLevelUps = 0;
       }
     }
@@ -920,11 +923,11 @@ export class EngineRuntime {
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit3')) {
-      openPowerupMenu(1, 'experience');
+      openPowerupMenu('experience');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit4')) {
-      openPowerupMenu(1, 'veil');
+      openPowerupMenu('veil');
     }
 
     if (this.inputManager.wasKeyJustPressed('Digit5')) {
@@ -1158,6 +1161,7 @@ export class EngineRuntime {
     setTimeout(() => {
       this.inputManager.enableAllActions();
       this.missionDialogueManager!.initialize();
+      this.tutorialManager!.startIfNeeded();
       emitHudShowAll();
     }, 5000);
   }
@@ -1287,6 +1291,7 @@ export class EngineRuntime {
     this.planetSystem?.clear();
     this.transientWordDisplay.destroy();
     this.powerupSelectionMenu.destroy();
+    this.tutorialManager!.destroy();
 
     // Optional: clear UI menus, overlays
     this.cursorRenderer.destroy();

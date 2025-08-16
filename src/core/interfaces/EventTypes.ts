@@ -79,7 +79,7 @@ export interface EventTypes {
   'game:selection:menu:quit': undefined;
 
   // Powerup menu
-  'powerup:menu:open': { levelUps: number; channel: PowerupChannel };
+  'powerup:menu:open': { channel: PowerupChannel };
 
   // Hud/Minimap/Waves overlays
   'waves:show': undefined;

@@ -92,6 +92,9 @@ export const FlagRegistry = {
   'veil.intro-dialogue.played': {
     description: 'Marks the veil dialogue as played.',
   },
+  'tutorials.completed': {
+    description: 'Marks the tutorials as completed.',
+  },
 } as const;
 
 export type FlagKey = keyof typeof FlagRegistry;

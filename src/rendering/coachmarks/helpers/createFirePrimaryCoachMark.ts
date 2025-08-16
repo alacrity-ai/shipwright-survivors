@@ -3,8 +3,25 @@
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import type { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
 
+import { getUniformScaleFactor } from '@/config/view';
+
 export function createFirePrimaryCoachMark(coachMarkManager: CoachMarkManager, screenX: number, screenY: number): void {
   const inputDevice = InputDeviceTracker.getInstance().getLastUsed();
+
+  const scale = getUniformScaleFactor();
+
+  // Create text coachmark
+  coachMarkManager.createScreenCoachMark(
+    'Fire Weapons!',
+    200 * scale,
+    200 * scale,
+    {
+      type: 'text',
+      textColor: '#00FFFF',
+      fontSize: 24,
+      duration: Infinity,
+    }
+  );
 
   if (inputDevice === 'gamepad') {
     coachMarkManager.createScreenCoachMark(

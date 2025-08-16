@@ -1,18 +1,22 @@
-// src/rendering/coachmarks/helpers/createAfterBurnerCoachMark.ts
+// src/rendering/coachmarks/helpers/createPlaceBlockCoachMark.ts
 
 import { InputDeviceTracker } from '@/core/input/InputDeviceTracker';
 import type { CoachMarkManager } from '@/rendering/coachmarks/CoachMarkManager';
 
 import { getUniformScaleFactor } from '@/config/view';
 
-export function createAfterBurnerCoachMark(coachMarkManager: CoachMarkManager, screenX: number, screenY: number): void {
-  const inputDevice = InputDeviceTracker.getInstance().getLastUsed();
+export function createPlaceBlockCoachMark(
+  coachMarkManager: CoachMarkManager,
+  screenX: number,
+  screenY: number
+): void {
+  const lastUsedDevice = InputDeviceTracker.getInstance().getLastUsed(); // 'keyboard' | 'gamepad'
 
   const scale = getUniformScaleFactor();
 
   // Create text coachmark
   coachMarkManager.createScreenCoachMark(
-    'Engage Afterburner!',
+    'Attach Block!',
     200 * scale,
     200 * scale,
     {
@@ -23,19 +27,34 @@ export function createAfterBurnerCoachMark(coachMarkManager: CoachMarkManager, s
     }
   );
 
-  if (inputDevice === 'gamepad') {
+  // Draw Arrow pointing to button
+  coachMarkManager.createScreenCoachMark(
+    '',
+    360,
+    600,
+    {
+      type: 'arrow',
+      arrowDirection: 'down',
+      arrowLength: 32,
+      arrowColor: '#00FFFF',
+      duration: Infinity,
+    }
+  );
+
+  if (lastUsedDevice === 'gamepad') {
     coachMarkManager.createScreenCoachMark(
       '',
       screenX,
       screenY,
       {
-        type: 'gamepadShoulders',
-        highlighted: ['leftBumper'],
-        width: 160,
-        height: 80,
-        borderColor: '#00FFFF',
-        fillColor: '#001122',
-        highlightColor: '#00FFFF',
+        type: 'gamepadFaceButtons',
+        highlightButton: 'A',
+        radius: 50,
+        fontSize: 18,
+        borderColor: '#00FF66',
+        fillColor: '#001a00',
+        highlightColor: '#00FF66',
+        textColor: '#FFFFFF',
         duration: Infinity,
       }
     );
@@ -46,9 +65,9 @@ export function createAfterBurnerCoachMark(coachMarkManager: CoachMarkManager, s
       screenY,
       {
         type: 'key',
-        keyLabel: 'Shift',
-        width: 60,
-        height: 60,
+        keyLabel: 'Q',
+        width: 50,
+        height: 50,
         fontSize: 24,
         borderColor: '#00FFFF',
         fillColor: '#001122',

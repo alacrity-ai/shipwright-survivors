@@ -1,5 +1,4 @@
 // src/game/powerups/ui/PowerupSelectionMenu.ts
-
 import { DEFAULT_CONFIG, VEIL_CONFIG } from '@/config/ui';
 
 import { getUniformScaleFactor } from '@/config/view';
@@ -44,12 +43,13 @@ export class PowerupSelectionMenu implements Menu {
   private selectedNodes: PowerupNodeDefinition[] = [];
   private hoveredIndex: number = -1;
 
-  private levelUpsRemaining: number = 0;
+  // === Owned, internal FIFO of pending picks (one event => one entry) ===
+  private readonly queue: PowerupChannel[] = [];
 
-  // Acquisition channel
+  // Current task’s acquisition channel
   private currentChannel: PowerupChannel = 'experience';
 
-  // State machine properties
+  // State machine
   private state: MenuState = 'slidingIn';
   private transitionTimer: number = 0;
   private animatedX: number = 0;
@@ -78,7 +78,6 @@ export class PowerupSelectionMenu implements Menu {
 
   // Gamepad support
   private navManager: GamepadMenuInteractionManager;
-  // private gamepadInputLatched = false; // No longer needed
 
   constructor(
     private readonly inputManager: InputManager,
@@ -90,30 +89,44 @@ export class PowerupSelectionMenu implements Menu {
 
     this.labelColors = [
       '#ff4747ff', // red
-      '#ff7f00', // orange
-      '#ffff00', // yellow
-      '#00ff00', // green
-      '#00aeff', // blue
+      '#ff7f00',   // orange
+      '#ffff00',   // yellow
+      '#00ff00',   // green
+      '#00aeff',   // blue
       '#af3fffff', // indigo
     ];
 
+    // Centralized event → enqueue exactly one task per event
     GlobalEventBus.on('powerup:menu:open', this.handleOpenMenu);
   }
 
-  private handleOpenMenu = ({ levelUps, channel }: { levelUps: number; channel: PowerupChannel }) => {
-    this.openMenu(levelUps, channel);
+  // ──────────────────────────────────────────────────────────
+  // Event & queue management
+  // ──────────────────────────────────────────────────────────
+  private handleOpenMenu = ({ channel }: { channel: PowerupChannel }) => {
+    this.queue.push(channel);
+    this.startIfIdle();
   };
 
-  openMenu(
-    levelUps: number = 1,
-    channel: PowerupChannel = 'experience' // NEW param
-  ): void {
+  /**
+   * Optional direct call site. Enqueues a single pick and starts if idle.
+   */
+  openMenu(channel: PowerupChannel = 'experience'): void {
+    this.queue.push(channel);
+    this.startIfIdle();
+  }
+
+  private startIfIdle(): void {
+    if (this.open) return;
+
+    // First-time open preparations
     flags.set('mission.intro-briefing.powerupMenuOpened');
     GlobalMenuReporter.getInstance().setMenuOpen('powerupSelectionMenu');
     cancelBlockQueueInteraction();
 
-    this.levelUpsRemaining = levelUps;
-    this.currentChannel = channel; // NEW assignment
+    this.open = true;
+    this.state = 'initializing';
+    this.transitionTimer = 0;
 
     const scale = getUniformScaleFactor();
     const viewportWidth = this.canvasManager.getCanvas('overlay').width;
@@ -124,15 +137,32 @@ export class PowerupSelectionMenu implements Menu {
     this.windowY = BASE_WINDOW_Y * scale;
     this.rowHeight = BASE_ROW_HEIGHT * scale;
 
-    this.generateRandomSelection(); // will use currentChannel
-    this.hoveredIndex = -1;
-    this.selectedIndex = -1;
-    this.open = true;
-    this.state = 'initializing';
-    this.transitionTimer = 0;
+    // Slide in from left
     this.animatedX = -this.windowWidth;
 
+    // Hydrate the first task (or close if none — unlikely but safe)
+    this.consumeNextTaskOrGracefulClose(/*onEmptyClose=*/true);
+  }
+
+  private consumeNextTaskOrGracefulClose(onEmptyClose: boolean): boolean {
+    const nextChannel = this.queue.shift();
+    if (!nextChannel) {
+      if (onEmptyClose) this.state = 'slidingOut';
+      return false;
+    }
+
+    // Switch channel & repopulate options
+    this.currentChannel = nextChannel;
+    this.generateRandomSelection();
+
+    // Reset per-task UI affordances
+    this.hoveredIndex = -1;
+    this.selectedIndex = -1;
+    this.choice = null;
+    this.transitionTimer = 0;
+
     this.updateNavPoints();
+    return true;
   }
 
   closeMenu(): void {
@@ -141,13 +171,8 @@ export class PowerupSelectionMenu implements Menu {
     this.navManager.clearNavMap();
   }
 
-  isOpen(): boolean {
-    return this.open;
-  }
-
-  isBlocking(): boolean {
-    return true;
-  }
+  isOpen(): boolean { return this.open; }
+  isBlocking(): boolean { return true; }
 
   private isUsingGamepad(): boolean {
     return InputDeviceTracker.getInstance().getLastUsed() === 'gamepad';
@@ -155,7 +180,7 @@ export class PowerupSelectionMenu implements Menu {
 
   private updateNavPoints(): void {
     const scale = getUniformScaleFactor();
-    const navPoints = this.selectedNodes.map((node, i) => {
+    const navPoints = this.selectedNodes.map((_, i) => {
       const rectX = this.windowX + (10 * scale);
       const rectY = this.windowY + (44 * scale) + i * (this.rowHeight + (10 * scale));
       const rectWidth = this.windowWidth - (20 * scale);
@@ -177,19 +202,18 @@ export class PowerupSelectionMenu implements Menu {
     }
   }
 
+  // ──────────────────────────────────────────────────────────
+  // Update & Render
+  // ──────────────────────────────────────────────────────────
   update(dt: number): void {
     if (!this.open) return;
 
-    // Update label color timer
+    // Color cycling & hover pulse
     this.labelColorTimer += dt;
     if (this.labelColorTimer >= this.LABEL_COLOR_INTERVAL) {
       this.labelColorTimer -= this.LABEL_COLOR_INTERVAL;
-      this.labelColorIndex++;
-      if (this.labelColorIndex >= this.labelColors.length) {
-        this.labelColorIndex = 0;
-      }
+      this.labelColorIndex = (this.labelColorIndex + 1) % this.labelColors.length;
     }
-
     this.hoverPulseTimer += dt;
 
     switch (this.state) {
@@ -199,16 +223,16 @@ export class PowerupSelectionMenu implements Menu {
         break;
 
       case 'slidingIn':
-        this.animatedX += dt * this.SLIDE_IN_SPEED; // pixels/sec
+        this.animatedX += dt * this.SLIDE_IN_SPEED;
         if (this.animatedX >= this.windowX + this.OVERSHOOT_DISTANCE) {
-          this.animatedX = this.windowX + this.OVERSHOOT_DISTANCE; // overshoot for bounce
+          this.animatedX = this.windowX + this.OVERSHOOT_DISTANCE;
           audioManager.play('assets/sounds/sfx/ui/sub_00.wav', 'sfx');
           this.state = 'correcting';
         }
         break;
 
       case 'correcting':
-        this.animatedX -= dt * this.CORRECTION_SPEED; // correct bounce
+        this.animatedX -= dt * this.CORRECTION_SPEED;
         if (this.animatedX <= this.windowX) {
           this.animatedX = this.windowX;
           this.state = 'open';
@@ -217,11 +241,8 @@ export class PowerupSelectionMenu implements Menu {
 
       case 'open': {
         const scale = getUniformScaleFactor();
-
-        // Always update navManager (even if map is empty)
         this.navManager.update(true);
 
-        // Unified mouse/virtual-mouse interaction
         const mouse = this.inputManager.getMousePosition();
         if (!mouse) break;
 
@@ -235,12 +256,10 @@ export class PowerupSelectionMenu implements Menu {
           const rectWidth = this.windowWidth - (20 * scale);
           const rectHeight = this.rowHeight;
 
-          const rect = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
-
-          if (isMouseOverRect(x, y, rect, 1.0)) {
+          if (isMouseOverRect(x, y, { x: rectX, y: rectY, width: rectWidth, height: rectHeight }, 1.0)) {
             if (previousHovered !== i) {
               audioManager.play('assets/sounds/sfx/ui/hover_00.wav', 'sfx', { maxSimultaneous: 14 });
-              this.hoverPulseTimer = 0; // Reset pulse phase
+              this.hoverPulseTimer = 0; // reset pulse
             }
 
             this.hoveredIndex = i;
@@ -249,10 +268,12 @@ export class PowerupSelectionMenu implements Menu {
               const selected = this.selectedNodes[i];
               PlayerPowerupManager.getInstance().acquire(selected.id);
               resolveImmediatePowerups(selected.id);
+
               this.choice = selected;
               this.selectedIndex = i;
               this.state = 'selectionMade';
               this.transitionTimer = 0;
+
               audioManager.play('assets/sounds/sfx/pickups/rare_00.wav', 'sfx', { maxSimultaneous: 6 });
             }
             break;
@@ -264,20 +285,9 @@ export class PowerupSelectionMenu implements Menu {
       case 'selectionMade':
         this.transitionTimer += dt;
         if (this.transitionTimer >= this.SELECTION_ANIMATION_DURATION) {
-          if (this.levelUpsRemaining > 1) {
-            // === Queue next selection round ===
-            this.levelUpsRemaining--;
-            this.choice = null;
-            this.selectedIndex = -1;
-            this.hoveredIndex = -1;
-            this.transitionTimer = 0;
-            this.generateRandomSelection();
-            this.updateNavPoints();
-            this.state = 'open';
-          } else {
-            // === Final level-up completed, exit ===
-            this.state = 'slidingOut';
-          }
+          // Either show next queued task (possibly different channel/theme) or close
+          const hadNext = this.consumeNextTaskOrGracefulClose(/*onEmptyClose=*/true);
+          if (hadNext) this.state = 'open';
         }
         break;
 
@@ -300,26 +310,20 @@ export class PowerupSelectionMenu implements Menu {
     const ctx = this.canvasManager.getContext('overlay');
     const scale = getUniformScaleFactor();
 
-    // Calculate selection animation values
+    // Compute selection animation intensities
     let selectionProgress = 0;
     if (this.state === 'selectionMade') {
-      // Create a more dramatic curve - peak at 60% of duration, then ease back to normal
-      const normalizedTime = this.transitionTimer / this.SELECTION_ANIMATION_DURATION;
-      if (normalizedTime <= 0.6) {
-        // Ramp up to peak intensity
-        selectionProgress = (normalizedTime / 0.6);
-      } else {
-        // Ease back down to normal for slide-out
-        selectionProgress = 1 - ((normalizedTime - 0.6) / 0.4);
-      }
+      const t = this.transitionTimer / this.SELECTION_ANIMATION_DURATION;
+      const norm = Math.max(0, Math.min(1, t));
+      // Peak around 60%, then ease back
+      selectionProgress = norm <= 0.6 ? (norm / 0.6) : (1 - ((norm - 0.6) / 0.4));
       selectionProgress = Math.max(0, Math.min(1, selectionProgress));
     }
 
-    // Apply selection glow effect during selectionMade state
+    // Selection glow effect
     let windowAlpha = 0.9;
     let selectionGlow = 0;
     if (this.state === 'selectionMade') {
-      // Pulse effect for selection
       const pulsePhase = (this.transitionTimer * 8) % (Math.PI * 2);
       selectionGlow = (Math.sin(pulsePhase) + 1) * 0.3;
       windowAlpha = 0.9 + selectionGlow * 0.1;
@@ -352,27 +356,24 @@ export class PowerupSelectionMenu implements Menu {
       },
     );
 
-    // === Render Powerup Options ===
+    // === Render Options ===
     for (let i = 0; i < this.selectedNodes.length; i++) {
       const node = this.selectedNodes[i];
       const isSelected = i === this.selectedIndex && this.state === 'selectionMade';
       const isUnselected = this.selectedIndex !== -1 && i !== this.selectedIndex && this.state === 'selectionMade';
 
-      // Calculate scaling and fading effects
       let rowScale = 1.0;
       let rowAlpha = 1.0;
-      
+
       if (isSelected) {
-        // Selected item grows with smooth easing
-        const easedProgress = selectionProgress * selectionProgress * (3 - 2 * selectionProgress); // smoothstep
-        const growthFactor = 1 + (easedProgress * 0.25); // More subtle 25% growth
-        const pulseFactor = 1 + (selectionGlow * 0.05); // Gentler pulse
-        rowScale = growthFactor * pulseFactor;
+        const eased = selectionProgress * selectionProgress * (3 - 2 * selectionProgress); // smoothstep
+        const growth = 1 + (eased * 0.25);
+        const pulse = 1 + (selectionGlow * 0.05);
+        rowScale = growth * pulse;
       } else if (isUnselected) {
-        // Unselected items shrink and fade more subtly
-        const easedProgress = selectionProgress * selectionProgress * (3 - 2 * selectionProgress);
-        rowScale = 1 - (easedProgress * 0.15); // Gentler 15% shrink
-        rowAlpha = 1 - (easedProgress * 0.5); // Fade to 50% opacity
+        const eased = selectionProgress * selectionProgress * (3 - 2 * selectionProgress);
+        rowScale = 1 - (eased * 0.15);
+        rowAlpha = 1 - (eased * 0.5);
       }
 
       const rectX = this.animatedX + (10 * scale);
@@ -380,7 +381,6 @@ export class PowerupSelectionMenu implements Menu {
       const rectWidth = this.windowWidth - (20 * scale);
       const rectHeight = this.rowHeight;
 
-      // Calculate scaled dimensions and center offset
       const scaledWidth = rectWidth * rowScale;
       const scaledHeight = rectHeight * rowScale;
       const offsetX = (rectWidth - scaledWidth) / 2;
@@ -389,28 +389,25 @@ export class PowerupSelectionMenu implements Menu {
       ctx.save();
       ctx.globalAlpha = rowAlpha;
 
-      // Hover background or selection highlight
+      // Hover/selection backgrounds
       if (i === this.hoveredIndex && this.state === 'open') {
-        const pulseAlpha = 0.15 + 0.15 * Math.sin(this.hoverPulseTimer * 6); // Pulses ~1Hz
+        const pulseAlpha = 0.15 + 0.15 * Math.sin(this.hoverPulseTimer * 6);
         ctx.fillStyle = `rgba(255, 255, 255, ${pulseAlpha.toFixed(3)})`;
         ctx.fillRect(rectX + offsetX, rectY + offsetY, scaledWidth, scaledHeight);
       } else if (isSelected) {
-        // Selection made glow effect
         ctx.fillStyle = `rgba(0, 255, 0, ${0.3 + selectionGlow})`;
         ctx.fillRect(rectX + offsetX, rectY + offsetY, scaledWidth, scaledHeight);
       }
 
-      // Scale icon and text based on row scale
+      // Icon
       const iconSize = 32 * scale * rowScale;
       const iconOffset = (32 * scale - iconSize) / 2;
-      
-      // Icon
       const icon = resolvePowerupIconSprite(node.icon);
       ctx.drawImage(
-        icon, 
-        rectX + (8 * scale) + iconOffset + offsetX, 
-        rectY + (8 * scale) + iconOffset + offsetY, 
-        iconSize, 
+        icon,
+        rectX + (8 * scale) + iconOffset + offsetX,
+        rectY + (8 * scale) + iconOffset + offsetY,
+        iconSize,
         iconSize
       );
 
@@ -428,7 +425,7 @@ export class PowerupSelectionMenu implements Menu {
         glow: false
       });
 
-      // === Exclusive branch warning ===
+      // Exclusive-branch warning
       if (isBranchNodeWithExclusion(node)) {
         const excluded = getExcludedBranchLabels(node);
         const warning = `⚠️ Choosing this locks out: ${excluded.join(', ')}`;
@@ -444,23 +441,27 @@ export class PowerupSelectionMenu implements Menu {
     }
   }
 
+  // ──────────────────────────────────────────────────────────
+  // Data sourcing
+  // ──────────────────────────────────────────────────────────
   private generateRandomSelection(): void {
     const manager = PlayerPowerupManager.getInstance();
     const acquired = manager.getAcquiredSet();
-
     const playerLevel = PlayerExperienceManager.getInstance().getLevel();
 
-    // Pass the stored channel through to the registry
     const candidates = PowerupRegistry.getEligiblePowerupNodes(
       acquired,
       playerLevel,
       this.currentChannel
     );
 
+    // Fisher–Yates
     const shuffled = [...candidates];
     for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      const j = (Math.random() * (i + 1)) | 0;
+      const tmp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = tmp;
     }
 
     this.selectedNodes = shuffled.slice(0, 3);

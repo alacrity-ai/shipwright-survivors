@@ -93,7 +93,7 @@ export class VeilManager {
       this.delayedPowerupMenuTime -= dt;
       if (this.delayedPowerupMenuTime <= 0) {
         this.pendingPowerupMenu = false;
-        openPowerupMenu(1, 'veil');
+        openPowerupMenu('veil');
       }
     }
 

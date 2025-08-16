@@ -85,6 +85,12 @@ export abstract class CompositeBlockObject {
   private _lastTransformCheckY: number = NaN;
   private _lastTransformCheckRot: number = NaN; // optional
 
+  // Block Colors
+  protected blockColorR: number = 1;
+  protected blockColorG: number = 1;
+  protected blockColorB: number = 1;
+  protected blockColorA: number = 1;
+
   constructor(
     initialBlocks?: Array<{ coord: GridCoord; typeId: string; rotation?: number }>,
     initialTransform?: Partial<BlockEntityTransform>,
@@ -566,6 +572,10 @@ export abstract class CompositeBlockObject {
     if (color) {
       const [r, g, b] = hexToRgbaVec4(color);
       this.blockOrchestrator.setShipColor(this.numericId, r, g, b, 1);
+      this.blockColorR = r;
+      this.blockColorG = g;
+      this.blockColorB = b;
+      this.blockColorA = 1;
     }
   }
 

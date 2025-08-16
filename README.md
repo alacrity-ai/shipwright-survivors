@@ -150,14 +150,11 @@ Plugin Passives:
 }
 
 TODOS:
-  - [ ] LightingPass: Add to settings a checkbox for performance lights, call setMaximumLights, and expressely use computemaxlightsstrict if it's checked.
-
   - [ ] Little tutorials with screenshots (hints) upon mission load.  Maybe multiple pages.
 
   - [ ] New incident: Time portal. Creates arena, spawns in enemies, pauses the wave spawner, sepia filter
 
   - [ ] Add the Astral Codex menu item
-  - [ ] Powerup Menus of Different channels cancel each other out, e.g. levelup on defeating a veil.
   - [ ] Retry button next to Return To Base on mission debriefing failure
 
   - [ ] Add active skills to each ship. Each ship gets a unique skill.  Then battery blocks or whatever can reduce cooldown on these.
@@ -168,7 +165,6 @@ TODOS:
     - Salamander: Radial screenwide flame ignite
 
   - [ ] Boss mines would be more interesting if they spawned one after another (random mine order), and then detonated in FIFO order, so you could move into the explosion.
-  - [ ] New placed blocks don't inherit Ship Color override.
 
   - [ ] Some lights still occassionally leak
 
@@ -184,25 +180,14 @@ TODOS:
 
   - [ ] Potentially give enemies "callout sounds" and have them use playSpatialSfx
 
-  - [ ] Add some more powerups
-    - [ ] Add parallel powerup lines which are independent of leveling (gotten from incidents, NPC interactions, see Death Must die with NPCs which give powerup lines)
-
   - [ ] Finish All Ship Skill Tree Implementations
 
   - [ ] ALT+ENTER, can I make this work?
 
-  - [ ] Likely will need to add minibosses, (can just use existing wave system for this, as it will continue to hound player.. but maybe make it persist respawn contract even as new waves start. Do we have a flag for this? I think we have a tag for this.)
-
   - [ ] Add Escorts System
-
-  - [ ] Mission select:
-    - [ ] Need to show summary of all the unlockables within that mission.
 
   - [ ] Completely clearing a Vortex Incident should end it immediately!
 
-  - [ ] Todos, add difficulty level selection to mission selection.
-    - [ ] Difficulty scaling should scale enemy quantity, and enemy power. 1.5 Power, 1.0 density = elite, 1.0 power 0.75 density = hard, 0.5 power 0.5 density = normal
-    - [ ] Diffuculty should also scale the amount of cores received in mission debriefing
   - [ ] Plugin ship SkillTree effects to game systems
     - [ ] Vanguard
     - [ ] Monarch
@@ -215,18 +200,12 @@ TODOS:
     - [ ] Add breakdown of all damage done by which weapons
     - [ ] Stretch: Add a breakdown of all achievements / sidequests??? 
 
-  - [ ] Passive Computer menu needs to use GamepadNavMap
-  - [ ] On starting mission, little flash sting thing (think megaman).  Play a tiny tune. Then sound effect as the words disperse, then song starts.
-  - [ ] Clean up deprecated OpenGL 1 layers, and caches, and canvas manager references.  Cleanup old lighting layer as well.
-    - [ ] Cleanup all unused canvases/layers.
-  - [x] Galaxy Map
-    - [ ] Additional Descriptions when Selected
-      - [ ] Description box of objectives / Unlockables
-      - [ ] Alternate mission arrows with a (. . . (.) . .) tab selector at bottom.
-        - [ ] Clicking on the side Arrows < > toggles between mission variants for that Location
+
+  - [ ] Gamepad support for new menus:
+    - [ ] Mission mutators
+    - [ ] Passive Skill Tree
+
     - [ ] Multiple acts / views (change perspective for more planets)
-    - [ ] Better background / CRT effect
-    - [ ] Planet textures
   - [ ] Make a cockpit backend, each selectable ship will have their own cockpit weapon.
     - [ ] Move the default cockpit1 weapon to the cockpit backend
     - [ ] Make player cockpits specific: cockpitPlayer0, cockpitPlayer1, etc.

@@ -13,7 +13,7 @@ export function menuClosed(id: string): void {
   GlobalEventBus.emit('menu:closed', { id });
 }
 
-export function openPowerupMenu(levelUps: number, channel: PowerupChannel): void {
+export function openPowerupMenu(channel: PowerupChannel): void {
   pauseRuntime();
-  GlobalEventBus.emit('powerup:menu:open', { levelUps, channel });
+  GlobalEventBus.emit('powerup:menu:open', { channel });
 }
