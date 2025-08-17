@@ -17,12 +17,27 @@ export function ensureInitialUnlocks(): void {
     playerShipCollection.unlock('SW-1 Standard Issue');
   }
 
-  // Unlock the first two missions
+  // Unlock the missions
   if (!flags.has('mission.mission_001.unlocked')) {
     flags.set('mission.mission_001.unlocked');
   }
   if (!flags.has('mission.mission_002.unlocked')) {
     flags.set('mission.mission_002.unlocked');
+  }
+  if (!flags.has('mission.mission_003_00.unlocked')) {
+    flags.set('mission.mission_003_00.unlocked');
+  }
+  if (!flags.has('mission.mission_004_00.unlocked')) {
+    flags.set('mission.mission_004_00.unlocked');
+  }
+  if (!flags.has('mission.mission_005_00.unlocked')) {
+    flags.set('mission.mission_005_00.unlocked');
+  }
+  if (!flags.has('mission.mission_006_00.unlocked')) {
+    flags.set('mission.mission_006_00.unlocked');
+  }
+  if (!flags.has('mission.intro-briefing.complete')) {
+    flags.set('mission.intro-briefing.complete');
   }
 
   // Unlock all player abilities (previously spooled out via tutorialization)

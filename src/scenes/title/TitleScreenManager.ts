@@ -57,6 +57,7 @@ export class TitleScreenManager {
   private titleScreenRuntime: TitleScreenRuntime | null = null;
   private titleRenderer: WordRenderer | null = null;
   private subtitleRenderer: WordRenderer | null = null;
+  private tertiaryTitleRenderer: WordRenderer | null = null;
 
   private gamepadNavManager: GamepadMenuInteractionManager;
 
@@ -94,6 +95,7 @@ export class TitleScreenManager {
 
     this.titleRenderer = new WordRenderer(125 * this.scale, 100 * this.scale);
     this.subtitleRenderer = new WordRenderer(495 * this.scale, 200 * this.scale);
+    this.tertiaryTitleRenderer = new WordRenderer(925 * this.scale, 280 * this.scale);
     this.setTitle();
 
     GlobalEventBus.on('game:selection:menu:launchMission', this.handleLaunchMission);
@@ -130,6 +132,9 @@ export class TitleScreenManager {
     this.titleRenderer?.setBreathingPulse();
     this.subtitleRenderer?.setWord('SURVIVORS');
     this.subtitleRenderer?.setBreathingPulse();
+    this.tertiaryTitleRenderer?.setScale(0.85);
+    this.tertiaryTitleRenderer?.setWord('DEMO');
+    this.tertiaryTitleRenderer?.setBreathingPulse();
   }
 
   private clearTitle(): void {
@@ -783,12 +788,14 @@ export class TitleScreenManager {
     if (!this.settingsMenu?.isOpen()) {
       this.titleRenderer!.render(uiCtx, dt);
       this.subtitleRenderer!.render(uiCtx, dt);
+      this.tertiaryTitleRenderer!.render(uiCtx, dt);
     } else {
       this.settingsMenu?.render(uiCtx);
     }
 
     // Draw current build version label
-    drawLabel(uiCtx, 1220 * uiScale, 690 * uiScale, `v${BUILD_VERSION}`, { color: '#00FFFF' }, uiScale);
+    // drawLabel(uiCtx, 1220 * uiScale, 690 * uiScale, `v${BUILD_VERSION}`, { color: '#00FFFF' }, uiScale);
+    drawLabel(uiCtx, 1180 * uiScale, 690 * uiScale, `DEMO v${BUILD_VERSION}`, { color: '#00FFFF' }, uiScale);
 
     const mouse = this.inputManager.getMousePosition();
     const cursor = getCrosshairCursorSprite();

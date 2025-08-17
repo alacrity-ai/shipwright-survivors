@@ -271,21 +271,28 @@ export class GalaxyMapSceneManager {
         const mission = missionRegistry[missionId];
         if (!mission) return;
 
-        this.selectedLocationLaunchButton = {
-          x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
-          y: this.canvasManager.getContext('overlay').canvas.height / 2 + (140 * scale),
-          width: 360,
-          height: 40,
-          label: `Choose Loadout`,
-          isHovered: false,
-          wasHovered: false,
-          onClick: () => {
-            audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
-            this.stop();
-            sceneManager.fadeToScene('ship-selection', { mission });
-          },
-          style: crtStyle
-        };
+        // Missions not available in demo
+        const demoLocked = missionId === 'mission_004_00' || missionId === 'mission_005_00' || missionId === 'mission_006_00';
+
+        if (demoLocked) {
+          this.selectedLocationLaunchButton = null; // Don’t create a button
+        } else {
+          this.selectedLocationLaunchButton = {
+            x: this.canvasManager.getContext('overlay').canvas.width / 2 - (180 * scale),
+            y: this.canvasManager.getContext('overlay').canvas.height / 2 + (140 * scale),
+            width: 360,
+            height: 40,
+            label: `Choose Loadout`,
+            isHovered: false,
+            wasHovered: false,
+            onClick: () => {
+              audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
+              this.stop();
+              sceneManager.fadeToScene('ship-selection', { mission });
+            },
+            style: crtStyle
+          };
+        }
 
         this.currentMissionId = missionId;
 
@@ -403,6 +410,10 @@ export class GalaxyMapSceneManager {
         const labelX = match.x * scale;
         const labelY = match.y * scale;
 
+        const demoLocked = hoveredMissionId === 'mission_004_00'
+                        || hoveredMissionId === 'mission_005_00'
+                        || hoveredMissionId === 'mission_006_00';
+
         drawLabel(
           this.overlayCtx,
           labelX,
@@ -411,7 +422,7 @@ export class GalaxyMapSceneManager {
           {
             font: `${20 * scale}px monospace`,
             align: 'center',
-            color: DEFAULT_CONFIG.general.accentColor
+            color: demoLocked ? '#888888' : DEFAULT_CONFIG.general.accentColor
           }
         );
       }
@@ -421,11 +432,29 @@ export class GalaxyMapSceneManager {
       drawButton(uiCtx, btn, scale);
     }
 
-    if (this.selectedLocationLaunchButton) {
+    const selectedLocation = this.galaxyMapController.getSelectedLocation();
+
+    const demoLocked = selectedLocation?.missionId === 'mission_004_00' 
+                    || selectedLocation?.missionId === 'mission_005_00' 
+                    || selectedLocation?.missionId === 'mission_006_00';
+
+    if (this.selectedLocationLaunchButton && !demoLocked) {
       drawButton(uiCtx, this.selectedLocationLaunchButton, scale);
+    } else if (demoLocked) {
+      drawLabel(
+        uiCtx,
+        uiCtx.canvas.width / 2,
+        uiCtx.canvas.height / 2 + (160 * scale),
+        'Not available in Demo',
+        {
+          font: `${20 * scale}px monospace`,
+          align: 'center',
+          color: DEFAULT_CONFIG.general.accentColor,
+          glow: true
+        }
+      );
     }
 
-    const selectedLocation = this.galaxyMapController.getSelectedLocation();
     const mission = selectedLocation?.missionId ? missionRegistry[selectedLocation.missionId] : null;
 
     if (mission && mission.missionPortrait) {
