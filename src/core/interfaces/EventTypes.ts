@@ -114,6 +114,10 @@ export interface EventTypes {
   // Title display events
   'title:show': { title: string; subtitle?: string; durationSeconds?: number; scale?: number, alignment?: HorizontalAlignment; color?: string };
 
+  // Popup Window
+  'popup:window:show': { title: string; content: string; timerSeconds?: number };
+  'popup:window:hide': undefined;
+
   // Abilities
   'abilities:update': undefined;
   'abilities:announcement:open': { abilityKey: string };

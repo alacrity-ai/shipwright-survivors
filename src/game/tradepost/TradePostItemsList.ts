@@ -1,7 +1,7 @@
 // src/game/tradepost/TradePostItemsList.ts
 
 import { drawBlockCard } from '@/ui/primitives/BlockCard';
-import { drawShipCard } from '@/ui/primitives/ShipCard';
+import { drawShipCard, preloadShipCards } from '@/ui/primitives/ShipCard';
 import { drawLabel } from '@/ui/primitives/UILabel';
 import { drawButton, type UIButton } from '@/ui/primitives/UIButton';
 import { isMouseOverRect } from '@/ui/menus/helpers/isMouseOverRect';
@@ -20,9 +20,8 @@ import { TradePostItemsTooltipRenderer } from './TradePostItemTooltipRenderer';
 import { ShipBlueprintRegistry } from '@/game/ship/ShipBlueprintRegistry';
 import { reportOverlayInteracting } from '@/core/interfaces/events/UIOverlayInteractingReporter';
 
-import { getArtifactIconSprite } from '@/game/ship/artifacts/icons/ArtifactIconSpriteCache';
 import { getArtifactById } from '@/game/ship/artifacts/registry/ArtifactRegistry';
-import { drawArtifactSlot } from '@/game/ship/artifacts/ui/ArtifactSlotRenderer';
+import { drawArtifactSlot, preloadArtifactIcons } from '@/game/ship/artifacts/ui/ArtifactSlotRenderer';
 import { ArtifactTooltipRenderer } from '@/game/ship/artifacts/ui/ArtifactTooltipRenderer';
 import { PlayerArtifactsManager } from '@/game/player/PlayerArtifactsManager';
 
@@ -53,6 +52,10 @@ export class TradePostItemsList {
 
   private yOffset = 0;
   private xOffset = 0;
+
+  // Scratch buffers to avoid per-frame allocations when warming icons
+  private _tmpShipIds: string[] = [];
+  private _tmpArtifactKeys: string[] = [];
 
   constructor(instance: TradePostInstance, inputManager: InputManager) {
     this.instance = instance;
@@ -92,13 +95,42 @@ export class TradePostItemsList {
     const entries = this.instance.getAllEntries();
     let y = this.baseY + this.yOffset;
 
+    // ─────────────────────────────────────────────────────
+    // Warm any ship/artifact icons visible this frame (idempotent).
+    // Keeps drawing synchronous and Z-order deterministic.
+    // ─────────────────────────────────────────────────────
+    this._tmpShipIds.length = 0;
+    this._tmpArtifactKeys.length = 0;
+
+    for (let i = 0; i < entries.length; i++) {
+      const item = entries[i].item;
+
+      // Skip unlocked artifacts entirely
+      if (item.type === 'artifact' && PlayerArtifactsManager.getInstance().isUnlocked(item.id)) {
+        continue;
+      }
+
+      if (item.type === 'ship') {
+        this._tmpShipIds.push(item.id);
+      } else if (item.type === 'artifact') {
+        const a = getArtifactById(item.id);
+        if (a?.icon) this._tmpArtifactKeys.push(a.icon);
+      }
+    }
+
+    if (this._tmpShipIds.length > 0) preloadShipCards(this._tmpShipIds);
+    if (this._tmpArtifactKeys.length > 0) preloadArtifactIcons(this._tmpArtifactKeys);
+
+    // ─────────────────────────────────────────────────────
+    // Hover / click handling
+    // ─────────────────────────────────────────────────────
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       const item = entry.item;
 
       if (item.type === 'artifact' && PlayerArtifactsManager.getInstance().isUnlocked(item.id)) {
         continue; // Skip rendering this artifact if unlocked
-      }     
+      }
 
       const quantity = this.instance.getRemainingQuantity(i);
       const canAfford = this.instance.canAfford(i);
@@ -198,7 +230,8 @@ export class TradePostItemsList {
           brighten: isOutputHovered ? 0.6 : 0.0,
         });
       } else if (item.type === 'ship') {
-        await drawShipCard({
+        // Synchronous draw; image has been (or is being) preloaded in update()
+        drawShipCard({
           ctx,
           x: iconX - this.shipCardXCorrection,
           y: y - this.shipCardYCorrection,
@@ -211,7 +244,8 @@ export class TradePostItemsList {
       } else if (item.type === 'artifact') {
         const artifact = getArtifactById(item.id);
         if (artifact) {
-          await drawArtifactSlot({
+          // Synchronous draw; icon has been (or is being) preloaded in update()
+          drawArtifactSlot({
             ctx,
             x: iconX,
             y,
@@ -242,7 +276,8 @@ export class TradePostItemsList {
         const offsetX = wantsX + j * (this.cardSize + this.horizontalSpacing);
         const tier = getTierFromBlockId(blockId);
         const style = this.getStyleFromTier(tier);
-        const isWantHovered = this.hoveredIndex === i && this.hoveredType === 'want' && this.hoveredWantIndex === j;
+        const isWantHovered =
+          this.hoveredIndex === i && this.hoveredType === 'want' && this.hoveredWantIndex === j;
 
         drawBlockCard({
           ctx,

@@ -10,6 +10,9 @@ import { getUniformScaleFactor } from '@/config/view';
 import { GamepadMenuInteractionManager } from '@/core/input/GamepadMenuInteractionManager';
 import { audioManager } from '@/audio/Audio';
 
+import { PopupWindow } from '@/ui/PopupWindow';
+import { displayPopupWindowMessage } from '@/core/interfaces/events/PopupWindowReporter';
+
 import { 
   launchGameFromSelectionMenu, 
   openCollectionFromSelectionMenu, 
@@ -29,6 +32,8 @@ export class SelectionMenu {
   private readonly nav: GamepadMenuInteractionManager;
   private readonly cm: CanvasManager;
   private readonly ctx: CanvasRenderingContext2D;
+
+  private popupWindow: PopupWindow;
 
   // State
   private open = false;
@@ -56,6 +61,7 @@ export class SelectionMenu {
     this.cm = CanvasManager.getInstance();
     this.ctx = this.cm.getContext('overlay');
     this.nav = nav
+    this.popupWindow = new PopupWindow(input);
 
     this.launchMissionBtn = this.makeButton('Launch Mission', () => {
       audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
@@ -69,7 +75,9 @@ export class SelectionMenu {
 
     this.unlocksBtn = this.makeButton('Astral Codex', () => {
       audioManager.play('assets/sounds/sfx/ui/activate_00.wav', 'sfx', { maxSimultaneous: 4 });
-      openCollectionFromSelectionMenu();
+      // openCollectionFromSelectionMenu();
+      // Display popup window message that it is not available in demo
+      this.popupWindow.openWith('Coming Soon', 'This feature is not available in the demo.', 2.0);
     }, SYNTH_WAVE_CONFIG.button.style);
 
     this.quitBtn = this.makeButton('Logout', () => {
@@ -96,7 +104,9 @@ export class SelectionMenu {
   }
 
   update(dt: number): void {
-    if (!this.open) return;
+    this.popupWindow.update(dt);
+
+    if (!this.open || this.popupWindow.isOpen()) return;
 
     if (this.isLocked) {
       this.lockTimer -= dt;
@@ -158,7 +168,8 @@ export class SelectionMenu {
   }
 
   render(): void {
-    if (!this.open) return;
+    this.popupWindow.render();
+    if (!this.open || this.popupWindow.isOpen()) return;
 
     const scale = getUniformScaleFactor();
     const ctx = this.ctx;

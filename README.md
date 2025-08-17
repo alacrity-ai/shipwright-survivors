@@ -150,11 +150,9 @@ Plugin Passives:
 }
 
 TODOS:
-  - [ ] Little tutorials with screenshots (hints) upon mission load.  Maybe multiple pages.
-
   - [ ] New incident: Time portal. Creates arena, spawns in enemies, pauses the wave spawner, sepia filter
 
-  - [ ] Add the Astral Codex menu item
+  - [ ] Add the Astral Codex menu
   - [ ] Retry button next to Return To Base on mission debriefing failure
 
   - [ ] Add active skills to each ship. Each ship gets a unique skill.  Then battery blocks or whatever can reduce cooldown on these.
@@ -168,8 +166,6 @@ TODOS:
 
   - [ ] Some lights still occassionally leak
 
-  - [ ] Await loading of images (artifacts and ships) in tradepost menu so cursor is on top.
-
   - [ ] AI Phase 2
       Kill Per-Frame Blind Zeroing:
     Instead of zeroIntentSlot on every frame, have each state guarantee it fully overwrites all its fields (which updateSOA already does).
@@ -180,7 +176,9 @@ TODOS:
 
   - [ ] Potentially give enemies "callout sounds" and have them use playSpatialSfx
 
-  - [ ] Finish All Ship Skill Tree Implementations
+  - [ ] Finish all Ship Skill Tree Implementations
+  - [ ] Finish all Passive Skill implementations
+  - [ ] Finish all Artifact Implementations
 
   - [ ] ALT+ENTER, can I make this work?
 
@@ -200,31 +198,10 @@ TODOS:
     - [ ] Add breakdown of all damage done by which weapons
     - [ ] Stretch: Add a breakdown of all achievements / sidequests??? 
 
-
   - [ ] Gamepad support for new menus:
     - [ ] Mission mutators
     - [ ] Passive Skill Tree
 
-    - [ ] Multiple acts / views (change perspective for more planets)
-  - [ ] Make a cockpit backend, each selectable ship will have their own cockpit weapon.
-    - [ ] Move the default cockpit1 weapon to the cockpit backend
-    - [ ] Make player cockpits specific: cockpitPlayer0, cockpitPlayer1, etc.
-  - [x] Lots of Random Events things to discover in a run:
-    - [ ] Enemy Spawner: When triggered, spawns a bunch of enemies, destroying it gives reward
-    - [ ] Healing beacons : destroying it drops a bunch of HP
-    - [ ] Treasure goblins - chase them and destroy them for reward.
-    - [ ] Shrines - Provides a bonus / boon / or bane duration Buff
-    - [ ] Planet interactions
-    - [ ] Miniboss triggers
-    - [x] League mechanics? Such as: 
-      - [ ] Time dilation field: Time moves faster in here, or slower?
-      - [ ] Explosive fuel depot: Chain reactive destructibles for battlefield control
-      - [ ] Turret emplacements: Defended stations with Loot cores
-      - [ ] Entropy Spire: Pay entropium for XYZ bonus
-      - [ ] Salvage Drone Convoy: Maybe marked on the map, or spawn announced. Escorted hauler with loot.
-      - [ ] Ancient Data Vault: Requires collecting 3 keys scattered across the map?
-      - [ ] Challenge Modifier Node: Choose a challenge mod for a bonus, e.g. 30% entropium gain.
-      - [ ] Orbiting Debris Field (Many asteroids)
   - [ ] Multilingual support, use this technique:
       ``` 
       import { tr } from '@/i18n/template';
@@ -239,11 +216,8 @@ TODOS:
   - [ ] Add click-to-move movement option (Instead of WASD)
   - [ ] Make better first boss.
 BUGS:
-  - [ ] Verify if Quantum Attractor is also working for blocks, should just work for entropium
   - [ ] If no waves are cleared (e.g. instant abandon), then progress bar in debriefing is stuck
-  - [ ] Starting a new game, after having quit to main menu from another game does not work. Playerflags needs clear?
   - [ ] Levelup menu and block drop decision menu clash
-  - [ ] Disabling Lighting in settings menu needs to clear lighting canvas
   - [ ] Enemy turrets aim toward mouse location.  Only player ship should do that, enemy turrets should aim where they are facing.
 
 
