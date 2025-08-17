@@ -1,0 +1,667 @@
+// src/rendering/unified/UnifiedSceneRendererGL.ts
+
+import type { Camera } from '@/core/Camera';
+import type { InputManager } from '@/core/InputManager';
+
+import type { PlanetSpawnConfig } from '@/game/missions/types/MissionDefinition';
+import { initializeDigitAtlas } from '@/rendering/cache/DigitAtlas';
+
+import { CanvasManager } from '@/core/CanvasManager';
+import { GlobalEventBus } from '@/core/EventBus';
+
+import type { SpriteRenderRequest } from '@/rendering/unified/interfaces/SpriteRenderRequest';
+import type { SpriteInstance } from '@/rendering/unified/passes/SpritePass';
+import { createCameraUBO, updateCameraUBO } from '@/rendering/unified/CameraUBO';
+import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
+
+import { BossArenaRenderingController } from '@/rendering/unified/controllers/BossArenaRenderingController';
+
+import { BackgroundPass } from '@/rendering/unified/passes/BackgroundPass';
+import { CloudPass } from '@/rendering/unified/passes/CloudPass';
+import { PlanetPass } from '@/rendering/unified/passes/PlanetPass';
+import { SpatialBodyPass } from '@/rendering/unified/passes/SpatialBodyPass';
+import { LightingPass } from '@/rendering/unified/passes/LightingPass';
+import { EntityPass } from '@/rendering/unified/passes/EntityPass';
+import { ParticlePass } from '@/rendering/unified/passes/ParticlePass';
+import { SpritePass } from '@/rendering/unified/passes/SpritePass';
+import { LightningPass, type LightningSegment } from '@/rendering/unified/passes/fx/LightningPass';
+import { FirePass, type FireSOA } from '@/rendering/unified/passes/fx/FirePass';
+import { ShockwavePass } from '@/rendering/unified/passes/fx/ShockwavePass';
+import type { ShockwaveSOA } from '@/systems/fx/ShockwaveManager';
+import { createFireGradientAtlas } from '@/rendering/unified/utils/createGradientRampAtlas';
+import {
+  PostProcessPass,
+  type PostEffectName,
+  type CinematicGradingParams,
+  type UnderwaterParams,
+  type ChromaticAbberationParams
+} from '@/rendering/unified/passes/PostProcessPass';
+import { DamageTextPass } from '@/rendering/unified/passes/fx/DamageTextPass';
+import { CollisionBoxPass } from '@/rendering/unified/passes/debug/CollisionBoxPass';
+
+import type { ParticleSOA } from '@/systems/fx/ParticleManager';
+import type { LightSOA } from '@/lighting/interfaces/LightSOA';
+import type { DamageTextSOA } from '@/systems/damagetext/interfaces/DamageTextSOA';
+
+import { SpecialFxPass } from '@/rendering/unified/passes/SpecialFxPass';
+import { SpecialFxController } from '@/rendering/unified/controllers/SpecialFxController';
+
+import { PostProcessEffectInterpolator } from '@/rendering/unified/utils/PostProcessEffectInterpolator';
+
+type EffectParams = CinematicGradingParams | UnderwaterParams | ChromaticAbberationParams | undefined;
+
+export class UnifiedSceneRendererGL {
+  private readonly gl: WebGL2RenderingContext;
+
+  private readonly backgroundPass: BackgroundPass;
+  private readonly cloudPass0: CloudPass;
+  private readonly cloudPassFront0: CloudPass;
+  private readonly cloudPass1: CloudPass;
+  private readonly cloudPassFront1: CloudPass;
+  private readonly planetPass: PlanetPass;
+  private readonly spatialBodyPass: SpatialBodyPass;
+  private readonly lightingPass: LightingPass;
+  private readonly firePass: FirePass;
+  private readonly shockwavePass: ShockwavePass;
+  private readonly entityPass: EntityPass;
+  private readonly spritePass: SpritePass;
+  private readonly particlePass: ParticlePass;
+  private readonly postProcessPass: PostProcessPass;
+  private readonly backgroundPostProcessPass: PostProcessPass;
+  private readonly damageTextPass: DamageTextPass;
+  private readonly collisionBoxPass: CollisionBoxPass;
+
+  private readonly effectInterpolator = new PostProcessEffectInterpolator();
+
+  private sceneFramebufferFX: WebGLFramebuffer;
+  private sceneTextureFX: WebGLTexture;
+
+  private readonly cameraUBO: WebGLBuffer;
+
+  // World space fx passes
+  private readonly worldFxPasses: { render(): void; destroy(): void }[] = [];
+  private readonly lightningPass: LightningPass;
+  private readonly specialFxPass: SpecialFxPass;
+
+  private readonly spriteGroups: Map<WebGLTexture, SpriteInstance[]> = new Map();
+  private readonly clearedTextures: WebGLTexture[] = [];
+
+  private readonly postProcessEffects: Map<PostEffectName, EffectParams> = new Map();
+  private readonly backgroundPostProcessEffects: Map<PostEffectName, EffectParams> = new Map();
+
+  private backgroundImageId: string | null = null;
+
+  private sceneFramebuffer: WebGLFramebuffer;
+  private sceneTexture: WebGLTexture;
+  
+  private backgroundFramebuffer: WebGLFramebuffer;
+  private backgroundTexture: WebGLTexture;
+
+  private readonly specialFxController: SpecialFxController = new SpecialFxController();
+  private readonly bossArenaController: BossArenaRenderingController = new BossArenaRenderingController();
+
+  private playerSettings: PlayerSettingsManager;
+
+  private elapsedSeconds = 0;
+  private drawFrontClouds: boolean = true;
+  private drawBackClouds: boolean = true;
+
+  private debugDrawCollisionBoxes = false; // Debug only
+
+  constructor(camera: Camera, private readonly inputManager: InputManager) {
+    const canvasManager = CanvasManager.getInstance();
+    this.gl = canvasManager.getWebGL2Context('unifiedgl2');
+
+    this.cameraUBO = createCameraUBO(this.gl);
+    this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, 0, this.cameraUBO);
+
+    // Create Atlases
+    const digitAtlas = initializeDigitAtlas(this.gl);
+    const { texture: fireRampTex, count: fireRampCount } = createFireGradientAtlas(this.gl);
+
+    // Primary Passes
+    this.backgroundPass = new BackgroundPass(this.gl);
+    this.cloudPass0 = new CloudPass(this.gl);
+    this.cloudPassFront0 = new CloudPass(this.gl);
+    this.cloudPass1 = new CloudPass(this.gl);
+    this.cloudPassFront1 = new CloudPass(this.gl);
+    this.planetPass = new PlanetPass(this.gl);
+    this.spatialBodyPass = new SpatialBodyPass(this.gl);
+    this.lightingPass = new LightingPass(this.gl, this.cameraUBO);
+    this.entityPass = new EntityPass(this.gl);
+    this.spritePass = new SpritePass(this.gl, this.cameraUBO);
+    this.specialFxPass = new SpecialFxPass(this.gl, this.cameraUBO);
+    this.particlePass = new ParticlePass(this.gl);
+    this.postProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
+    this.backgroundPostProcessPass = new PostProcessPass(this.gl, this.gl.canvas.width, this.gl.canvas.height);
+    this.damageTextPass = new DamageTextPass(this.gl, digitAtlas, this.cameraUBO);
+    this.collisionBoxPass = new CollisionBoxPass(this.gl);
+
+    // World FX
+    this.lightningPass = new LightningPass(this.gl, this.cameraUBO);
+    this.firePass = new FirePass(this.gl, this.cameraUBO, fireRampTex, fireRampCount);
+    this.shockwavePass = new ShockwavePass(this.gl, this.cameraUBO);
+
+    this.sceneFramebuffer = this.gl.createFramebuffer()!;
+    this.sceneTexture = this.gl.createTexture()!;
+    this.backgroundFramebuffer = this.gl.createFramebuffer()!;
+    this.backgroundTexture = this.gl.createTexture()!;
+    
+    this.sceneFramebufferFX = this.gl.createFramebuffer()!;
+    this.sceneTextureFX = this.gl.createTexture()!;
+
+    this.initializeFramebuffers();
+
+    GlobalEventBus.on('resolution:changed', this.onResolutionChanged);
+    GlobalEventBus.on('postprocess:effect:set', this.onPostProcessEffectsSet);
+    GlobalEventBus.on('postprocess:effect:add', this.onPostProcessEffectAdd);
+    GlobalEventBus.on('postprocess:effect:remove', this.onPostProcessEffectRemove);
+    GlobalEventBus.on('postprocess:effect:clear', this.onPostProcessEffectClear);
+    
+    // Mist Adjustment
+    GlobalEventBus.on('rendering:clouds:enable', this.onCloudsEnable);
+    GlobalEventBus.on('rendering:clouds:disable', this.onCloudsDisable);
+    GlobalEventBus.on('rendering:clouds:setParams:front', this.onCloudsSetParamsFront);
+    GlobalEventBus.on('rendering:clouds:setParams:back', this.onCloudsSetParamsBack);
+
+    // Background post-process events
+    GlobalEventBus.on('postprocess:background:effect:set', this.onBackgroundPostProcessEffectsSet);
+    GlobalEventBus.on('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
+    GlobalEventBus.on('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
+    GlobalEventBus.on('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
+
+    // Lighting Adjustment
+    GlobalEventBus.on('lighting:advanced:enable', this.onLightingAdvancedEnable);
+    GlobalEventBus.on('lighting:advanced:disable', this.onLightingAdvancedDisable);
+
+    this.playerSettings = PlayerSettingsManager.getInstance();
+  }
+
+  private readonly onLightingAdvancedEnable = (): void => {
+    this.lightingPass.setMaxLights(false);
+  };
+
+  private readonly onLightingAdvancedDisable = (): void => {
+    this.lightingPass.setMaxLights(true);
+  };
+
+  private readonly onResolutionChanged = (): void => {
+    this.initializeFramebuffers();
+    this.lightingPass.resize();
+  };
+
+  private readonly onCloudsEnable = (): void => {
+    this.drawBackClouds = true;
+    this.drawFrontClouds = true;
+  };
+
+  private readonly onCloudsDisable = (): void => {
+    this.drawBackClouds = false;
+    this.drawFrontClouds = false;
+  };
+
+  private readonly onCloudsSetParamsFront = (payload: { channel: number; params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
+    if (payload.channel === 0) {
+      this.cloudPassFront0.setParams(payload.params);
+    } else if (payload.channel === 1) {
+      this.cloudPassFront1.setParams(payload.params);
+    }
+  };
+
+  private readonly onCloudsSetParamsBack = (payload: { channel: number; params: { speed?: number; density?: number; quantity?: number, scale?: number; alpha?: number; color?: [number, number, number] } }): void => {
+    if (payload.channel === 0) {
+      this.cloudPass0.setParams(payload.params);
+    } else if (payload.channel === 1) {
+      this.cloudPass1.setParams(payload.params);
+    }
+  };
+
+  // Main post-process event handlers
+  private readonly onPostProcessEffectsSet = (payload: {
+    effectChain: { effect: PostEffectName; params?: EffectParams }[];
+  }): void => {
+    if (Array.isArray(payload.effectChain)) {
+      this.setPostProcessEffects(payload.effectChain);
+    } else {
+      console.warn('[Renderer] Ignoring malformed postprocess effectChain payload:', payload);
+    }
+  };
+
+  private readonly onPostProcessEffectAdd = (payload: {
+    effect: PostEffectName;
+    params?: EffectParams;
+  }): void => {
+    this.addPostProcessEffect(payload.effect, payload.params);
+  };
+
+  private readonly onPostProcessEffectRemove = (payload: { effect: PostEffectName }): void => {
+    this.removePostProcessEffect(payload.effect);
+  };
+
+  private readonly onPostProcessEffectClear = (): void => {
+    this.clearPostProcessEffects();
+  };
+
+  // Background post-process event handlers
+  private readonly onBackgroundPostProcessEffectsSet = (payload: {
+    effectChain: { effect: PostEffectName; params?: EffectParams }[];
+  }): void => {
+    if (Array.isArray(payload.effectChain)) {
+      this.setBackgroundPostProcessEffects(payload.effectChain);
+    } else {
+      console.warn('[Renderer] Ignoring malformed background postprocess effectChain payload:', payload);
+    }
+  };
+
+  private readonly onBackgroundPostProcessEffectAdd = (payload: {
+    effect: PostEffectName;
+    params?: EffectParams;
+  }): void => {
+    this.addBackgroundPostProcessEffect(payload.effect, payload.params);
+  };
+
+  private readonly onBackgroundPostProcessEffectRemove = (payload: { effect: PostEffectName }): void => {
+    this.removeBackgroundPostProcessEffect(payload.effect);
+  };
+
+  private readonly onBackgroundPostProcessEffectClear = (): void => {
+    this.clearBackgroundPostProcessEffects();
+  };
+
+  private initializeFramebuffers(): void {
+    const gl = this.gl;
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+
+    // === Scene Texture A ===
+    gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sceneTexture, 0);
+
+    // === Scene Texture B (FX ping-pong target) ===
+    gl.bindTexture(gl.TEXTURE_2D, this.sceneTextureFX);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebufferFX);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sceneTextureFX, 0);
+
+    // === Background framebuffer ===
+    gl.bindTexture(gl.TEXTURE_2D, this.backgroundTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.backgroundFramebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.backgroundTexture, 0);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  render(
+    dt: number, // Seconds
+    camera: Camera,
+    visibleLights: { soa: LightSOA; indices: Uint16Array; count: number },
+    sprites: SpriteRenderRequest[],
+    particleSOAs: ParticleSOA[],
+    lightningSegments: LightningSegment[],
+    fireSOA: FireSOA,
+    shockwaveSOA: ShockwaveSOA,
+    damageTextSOA: DamageTextSOA
+  ): void {
+    const gl = this.gl;
+
+    this.elapsedSeconds += dt;
+
+    // === Step 1: Update camera matrices ===
+    updateCameraUBO(gl, this.cameraUBO, camera);
+
+    // === Step 2: Render background to background framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.backgroundFramebuffer);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const cameraOffset = camera.getLogicalOffset();
+
+    // Draw background image
+    this.backgroundPass.render(cameraOffset);
+
+    // Draw procedural parallax clouds atop the background
+    if (this.drawBackClouds) {
+      if (this.playerSettings.isEnvironmentDetailsEnabled()) {
+        this.cloudPass0.render(this.elapsedSeconds, cameraOffset);
+      }
+      this.cloudPass1.render(this.elapsedSeconds, cameraOffset);
+    }
+
+    // === Step 3: Apply background post-processing ===
+    const backgroundEffectChain = Array.from(this.backgroundPostProcessEffects.entries()).map(
+      ([effect, params]) => ({ effect, params })
+    );
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    this.backgroundPostProcessPass.run(
+      this.backgroundTexture,
+      backgroundEffectChain,
+      this.sceneFramebuffer
+    );
+
+    // === Step 4: Render planets atop processed background ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    this.planetPass.renderAll();
+
+    // === Step 5: Generate light buffer (offscreen) ===
+    const lightTexture = this.lightingPass.generateLightBuffer(visibleLights, camera);
+
+    // === Step 6: Render spatial bodies (now light-aware) ===
+    // Must occur *after* light buffer generation so they can sample the light map
+    if (this.playerSettings.isEnvironmentDetailsEnabled()) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+      this.spatialBodyPass.render(camera, lightTexture);
+    }
+
+    // === Step 7: Render entities (blocks, also light-aware) ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer); // Rebind because lights rendered to offscreen FB
+    this.entityPass.render(lightTexture, camera);
+
+    // === Step 8: Render batched sprites ===
+    for (const group of this.spriteGroups.values()) group.length = 0;
+    this.clearedTextures.length = 0;
+
+    for (const sprite of sprites) {
+      const texture = sprite.texture;
+      let group = this.spriteGroups.get(texture);
+      if (!group) {
+        group = [];
+        this.spriteGroups.set(texture, group);
+      }
+      group.push({
+        worldX: sprite.worldX,
+        worldY: sprite.worldY,
+        widthPx: sprite.widthPx,
+        heightPx: sprite.heightPx,
+        alpha: sprite.alpha ?? 1.0,
+        rotation: sprite.rotation ?? 0,
+      });
+    }
+
+    for (const [texture, group] of this.spriteGroups) {
+      if (group.length > 0) {
+        this.spritePass.renderBatch(texture, group);
+      }
+    }
+
+    // == Step 8.5: Render Boss Arena (Controller owns the BossArenaPass)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    this.bossArenaController.render();
+
+    // Render front cloud pass
+    if (this.drawFrontClouds) {
+      if (this.playerSettings.isEnvironmentDetailsEnabled()) {
+        this.cloudPassFront0.render(this.elapsedSeconds, cameraOffset);
+      }
+      this.cloudPassFront1.render(this.elapsedSeconds, cameraOffset);
+    }
+
+    // DEBUG: Render collision boxes for debugging
+    if (this.debugDrawCollisionBoxes) {
+      this.collisionBoxPass.render(camera);
+    }
+
+    // === Step 9: Render particles ===
+    for (const particleSOA of particleSOAs) {
+      this.particlePass.renderSOA(particleSOA, camera);
+    }
+
+    // === Step 10: Apply ripple/distortion FX (sceneTexture → sceneFramebufferFX)
+    const activeFx = this.specialFxController.getActiveFx();
+    if (activeFx.length > 0) {
+      this.specialFxPass.run(this.sceneTexture, activeFx, this.sceneFramebufferFX, this.cameraUBO);
+
+      // Swap textures and framebuffers: FX result becomes the new scene texture
+      const tmpTex = this.sceneTexture;
+      const tmpFbo = this.sceneFramebuffer;
+      this.sceneTexture = this.sceneTextureFX;
+      this.sceneFramebuffer = this.sceneFramebufferFX;
+      this.sceneTextureFX = tmpTex;
+      this.sceneFramebufferFX = tmpFbo;
+    }
+
+    // === Step 10.5: Render shockwaves ===
+    if (this.playerSettings.isSpecialFXEnabled()) {
+      this.shockwavePass.run(this.sceneTexture, this.sceneFramebufferFX, shockwaveSOA);
+
+      // Swap textures and framebuffers again
+      const tmpTex = this.sceneTexture;
+      const tmpFbo = this.sceneFramebuffer;
+      this.sceneTexture = this.sceneTextureFX;
+      this.sceneFramebuffer = this.sceneFramebufferFX;
+      this.sceneTextureFX = tmpTex;
+      this.sceneFramebufferFX = tmpFbo;
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneFramebuffer);
+    }
+
+    // === Step 11: Render world-space FX passes (lightning, trails, etc.) ===
+    this.lightningPass.render(lightningSegments, camera);
+    if (this.playerSettings.isFireEffectsEnabled()) {
+      this.firePass.renderSOA(fireSOA, dt);
+    }
+
+    // === Step 12: Render damage text ===
+    if (this.playerSettings.isDamageTextEnabled()) {
+      this.damageTextPass.renderSOA(damageTextSOA);
+    }
+
+    // === Step 13: Apply screen-space post-process effects to default framebuffer ===
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.effectInterpolator.update();
+    const source = this.effectInterpolator.isActive() 
+      ? this.effectInterpolator.getLerpedEffects()
+      : this.postProcessEffects;
+
+    const effectChain = Array.from(source.entries()).map(([effect, params]) => ({ effect, params }));
+
+    this.postProcessPass.run(this.sceneTexture, effectChain);
+
+    // === Step 14: Composite additive lighting effects (e.g. halos) over final image ===
+    this.lightingPass.compositeLightingOverTarget(null);
+  }
+
+  public update(deltaSeconds: number): void {
+    this.specialFxController.update(deltaSeconds);
+    this.bossArenaController.update(deltaSeconds);
+  }
+
+  resize(): void {
+    this.initializeFramebuffers();
+    this.lightingPass.resize();
+  }
+
+  destroy(): void {
+    const gl = this.gl;
+    gl.deleteBuffer(this.cameraUBO);
+    gl.deleteFramebuffer(this.sceneFramebuffer);
+    gl.deleteTexture(this.sceneTexture);
+    gl.deleteFramebuffer(this.backgroundFramebuffer);
+    gl.deleteTexture(this.backgroundTexture);
+
+    this.bossArenaController.destroy();
+    this.specialFxController.destroy();
+
+    this.backgroundPass.destroy();
+    this.cloudPass0.destroy();
+    this.cloudPass1.destroy();
+    this.cloudPassFront0.destroy();
+    this.cloudPassFront1.destroy();
+    this.lightingPass.destroy();
+    this.entityPass.destroy();
+    this.spritePass.destroy();
+    this.particlePass.destroy();
+    this.postProcessPass.destroy();
+    this.planetPass.destroy();
+    this.backgroundPostProcessPass.destroy();
+    this.specialFxPass.destroy();
+    this.damageTextPass.destroy();
+    this.collisionBoxPass.destroy();
+    this.lightningPass.destroy();
+    this.firePass.destroy();
+    this.shockwavePass.destroy();
+    for (const fx of this.worldFxPasses) fx.destroy();
+
+    this.spriteGroups.clear();
+    this.postProcessEffects.clear();
+    this.backgroundPostProcessEffects.clear();
+
+    GlobalEventBus.off('resolution:changed', this.onResolutionChanged);
+    GlobalEventBus.off('postprocess:effect:set', this.onPostProcessEffectsSet);
+    GlobalEventBus.off('postprocess:effect:add', this.onPostProcessEffectAdd);
+    GlobalEventBus.off('postprocess:effect:remove', this.onPostProcessEffectRemove);
+    GlobalEventBus.off('postprocess:effect:clear', this.onPostProcessEffectClear);
+    GlobalEventBus.off('rendering:clouds:enable', this.onCloudsEnable);
+    GlobalEventBus.off('rendering:clouds:disable', this.onCloudsDisable);
+    GlobalEventBus.off('rendering:clouds:setParams:front', this.onCloudsSetParamsFront);
+    GlobalEventBus.off('rendering:clouds:setParams:back', this.onCloudsSetParamsBack);
+    GlobalEventBus.off('postprocess:background:effect:set', this.onBackgroundPostProcessEffectsSet);
+    GlobalEventBus.off('postprocess:background:effect:add', this.onBackgroundPostProcessEffectAdd);
+    GlobalEventBus.off('postprocess:background:effect:remove', this.onBackgroundPostProcessEffectRemove);
+    GlobalEventBus.off('postprocess:background:effect:clear', this.onBackgroundPostProcessEffectClear);
+    GlobalEventBus.off('lighting:advanced:enable', this.onLightingAdvancedEnable);
+    GlobalEventBus.off('lighting:advanced:disable', this.onLightingAdvancedDisable);
+  
+    // Clear the canvas
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  // === Main Postprocessing API ===
+  public setPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[], duration = 1.5): void {
+    const next = new Map<PostEffectName, EffectParams>();
+    for (const { effect, params } of effects) {
+      next.set(effect, params);
+    }
+
+    this.effectInterpolator.startTransition(this.postProcessEffects, next, duration, () => {
+      this.postProcessEffects.clear();
+      for (const [k, v] of next.entries()) {
+        this.postProcessEffects.set(k, v);
+      }
+    });
+  }
+
+  public addPostProcessEffect(effect: PostEffectName, params?: EffectParams): void {
+    this.postProcessEffects.set(effect, params);
+  }
+
+  public removePostProcessEffect(effect: PostEffectName): void {
+    this.postProcessEffects.delete(effect);
+  }
+
+  public clearPostProcessEffects(): void {
+    this.postProcessEffects.clear();
+  }
+
+  // === Background Postprocessing API ===
+  public setBackgroundPostProcessEffects(effects: { effect: PostEffectName; params?: EffectParams }[]): void {
+    this.backgroundPostProcessEffects.clear();
+    for (const { effect, params } of effects) {
+      this.backgroundPostProcessEffects.set(effect, params);
+    }
+  }
+
+  public addBackgroundPostProcessEffect(effect: PostEffectName, params?: EffectParams): void {
+    this.backgroundPostProcessEffects.set(effect, params);
+  }
+
+  public removeBackgroundPostProcessEffect(effect: PostEffectName): void {
+    this.backgroundPostProcessEffects.delete(effect);
+  }
+
+  public clearBackgroundPostProcessEffects(): void {
+    this.backgroundPostProcessEffects.clear();
+  }
+
+  // === Other API methods ===
+  public setBackgroundImage(imageId: string | null): void {
+    this.backgroundImageId = imageId;
+    this.backgroundPass.loadImage(imageId ?? '');
+  }
+
+  public setBackCloudParams(channel: number, params: { speed?: number; density?: number; mist?: number }): void {
+    if (channel === 0) {
+      this.cloudPass0.setParams(params);
+    } else if (channel === 1) {
+      this.cloudPass1.setParams(params);
+    }
+  }
+
+  public setFrontCloudParams(channel: number, params: { speed?: number; density?: number; mist?: number }): void {
+    if (channel === 0) {
+      this.cloudPassFront0.setParams(params);
+    } else if (channel === 1) {
+      this.cloudPassFront1.setParams(params);
+    }
+  }
+
+  public setCloudVisibility(back: boolean, front: boolean): void {
+    this.drawBackClouds = back;
+    this.drawFrontClouds = front;
+  }
+
+  public setDebugDrawCollisionBoxes(enabled: boolean): void {
+    this.debugDrawCollisionBoxes = enabled;
+  }
+
+  public addPlanet(config: PlanetSpawnConfig, scale: number, imagePath: string): void {
+    console.log('[UnifiedSceneRendererGL] Adding planet:', config);
+    this.planetPass.addPlanet(config, scale, imagePath);
+  }
+
+  public setAmbientLight(value: [number, number, number]): void {
+    this.lightingPass.setAmbientLight(value);
+  }
+
+  public getLightingPass(): LightingPass {
+    return this.lightingPass;
+  }
+
+  public getEntityPass(): EntityPass {
+    return this.entityPass;
+  }
+
+  public getSpritePass(): SpritePass {
+    return this.spritePass;
+  }
+
+  public getParticlePass(): ParticlePass {
+    return this.particlePass;
+  }
+
+  public getSpecialFxController(): SpecialFxController {
+    return this.specialFxController;
+  }
+
+  public getPostProcessPass(): PostProcessPass {
+    return this.postProcessPass;
+  }
+
+  public getBackgroundPostProcessPass(): PostProcessPass {
+    return this.backgroundPostProcessPass;
+  }
+}

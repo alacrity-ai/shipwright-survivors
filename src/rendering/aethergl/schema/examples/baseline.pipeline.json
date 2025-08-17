@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "resources": {
+    "textures": [
+      { "name": "backgroundTex", "kind": "texture2D", "format": "rgba8", "filtering": "linear", "wrap": "clamp", "size": { "mode": "viewport", "scale": 1.0 }, "clear": [0,0,0,0] },
+      { "name": "sceneTexA", "kind": "texture2D", "format": "rgba8", "filtering": "linear", "wrap": "clamp", "size": { "mode": "viewport", "scale": 1.0 }, "clear": [0,0,0,0] },
+      { "name": "sceneTexB", "kind": "texture2D", "format": "rgba8", "filtering": "linear", "wrap": "clamp", "size": { "mode": "viewport", "scale": 1.0 } },
+      { "name": "lightTex", "kind": "texture2D", "format": "rgba8", "filtering": "linear", "wrap": "clamp", "size": { "mode": "viewport", "scale": 0.2 }, "clear": [0,0,0,0] }
+    ],
+    "framebuffers": [
+      { "name": "backgroundFbo", "color": "backgroundTex" },
+      { "name": "sceneFboA", "color": "sceneTexA" },
+      { "name": "sceneFboB", "color": "sceneTexB" },
+      { "name": "lightFbo", "color": "lightTex" }
+    ],
+    "ubos": [
+      { "binding": 0, "name": "CameraMatrices" },
+      { "binding": 2, "name": "LightBlock" }
+    ]
+  },
+  "passes": [
+    { "id": "bg",        "kind": "BackgroundPass", "writes": ["backgroundTex"], "target": "backgroundFbo" },
+    { "id": "cloud0",    "kind": "CloudPass", "reads": ["backgroundTex"], "writes": ["backgroundTex"], "target": "backgroundFbo", "params": { "channel": 0 } },
+    { "id": "cloud1",    "kind": "CloudPass", "reads": ["backgroundTex"], "writes": ["backgroundTex"], "target": "backgroundFbo", "params": { "channel": 1 } },
+
+    { "id": "blitBg",    "kind": "BlitPass", "reads": ["backgroundTex"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "planets",   "kind": "PlanetPass", "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "lighting",  "kind": "LightingPass", "writes": ["lightTex"], "target": "lightFbo", "params": { "resolutionScale": 0.2 } },
+
+    { "id": "spatial",   "kind": "SpatialBodyPass", "reads": ["lightTex","sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+    { "id": "entities",  "kind": "EntityPass",      "reads": ["lightTex","sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+    { "id": "sprites",   "kind": "SpritePass",      "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "bossArena", "kind": "BossArenaPass",   "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+    { "id": "cloudFront0","kind":"CloudPass", "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA", "params": { "channel": 0, "front": true } },
+    { "id": "cloudFront1","kind":"CloudPass", "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA", "params": { "channel": 1, "front": true } },
+
+    { "id": "debugBoxes","kind":"CollisionBoxPass", "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "particles", "kind": "ParticlePass",    "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "specialFx", "kind": "SpecialFxPass",   "reads": ["sceneTexA"], "writes": ["sceneTexB"], "target": "sceneFboB",
+      "params": { "pingPong": ["sceneTexA","sceneTexB"], "targetPingPong": ["sceneFboA","sceneFboB"] } },
+
+    { "id": "shockwave", "kind": "ShockwavePass",   "reads": ["sceneTexB"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "worldFx",   "kind": "LightningFirePass", "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+    { "id": "damageText","kind": "DamageTextPass",    "reads": ["sceneTexA"], "writes": ["sceneTexA"], "target": "sceneFboA" },
+
+    { "id": "post",      "kind": "PostProcessPass",   "reads": ["sceneTexA"], "writes": [], "target": null },
+
+    { "id": "lightComposite", "kind": "LightCompositePass", "reads": ["lightTex"], "writes": [], "target": null }
+  ],
+  "outputs": { "present": "default" }
+}

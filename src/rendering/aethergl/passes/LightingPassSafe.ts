@@ -1,12 +1,10 @@
-// src/rendering/unified/passes/LightingPassSafe.ts
 
+// src/rendering/unified/passes/LightingPassSafe.ts
 import { Camera } from '@/core/Camera';
 import type { LightSOA } from '@/lighting/interfaces/LightSOA';
 
 import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
 import { createQuadBuffer } from '@/rendering/gl/bufferUtils';
-
-import { PlayerSettingsManager } from '@/game/player/PlayerSettingsManager';
 
 import lightVertSrc from '@/rendering/unified/shaders/lightingPassInstanced.vert?raw';
 import lightFragSrc from '@/rendering/unified/shaders/lightingPassInstanced.frag?raw';
@@ -32,7 +30,7 @@ type UboSlot = {
   fence: WebGLSync | null;
 };
 
-export class LightingPass {
+export class LightingPassSafe {
   private readonly gl: WebGL2RenderingContext;
   private readonly cameraUBO: WebGLBuffer;
 
@@ -118,9 +116,8 @@ export class LightingPass {
         : 0;
 
     // Shader-declared capacity (from compiled block size) and soft cap (driver/config).
-    const playerSettings = PlayerSettingsManager.getInstance();
     const shaderLights = requiredBytes > 0 ? Math.floor(requiredBytes / BYTES_PER_LIGHT) : 0;
-    const softCap      = playerSettings.isLightingEnabled() ? this.computeMaxLights(gl) : this.computeMaxLightsStrict(gl);
+    const softCap      = this.computeMaxLights(gl);
 
     // Final runtime cap: never exceed what the shader compiled with.
     this.maxPointLights = shaderLights > 0 ? Math.min(softCap, shaderLights) : softCap;
@@ -149,22 +146,22 @@ export class LightingPass {
     this.initializeFramebuffer();
   }
 
-  /** Compute a conservative light cap respecting driver limits (std140 block size). */
-  private computeMaxLightsStrict(gl: WebGL2RenderingContext): number {
-    const soft = Math.min(MAX_LIGHTS_GL, getSafeUniformCount(gl));
-    // If the block is optimized out, we can't query meaningful limits here—fall back to soft.
-    const blockIndex = gl.getUniformBlockIndex(
-      // The block only exists in lightProgram.
-      this.lightProgram,
-      'LightBlock',
-    );
-    if (blockIndex === gl.INVALID_INDEX) return soft | 0;
+  // /** Compute a conservative light cap respecting driver limits (std140 block size). */
+  // private computeMaxLights(gl: WebGL2RenderingContext): number {
+  //   const soft = Math.min(MAX_LIGHTS_GL, getSafeUniformCount(gl));
+  //   // If the block is optimized out, we can't query meaningful limits here—fall back to soft.
+  //   const blockIndex = gl.getUniformBlockIndex(
+  //     // The block only exists in lightProgram.
+  //     this.lightProgram,
+  //     'LightBlock',
+  //   );
+  //   if (blockIndex === gl.INVALID_INDEX) return soft | 0;
 
-    const maxBlockBytes = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE) as number;
-    const byBlock = Math.max(0, Math.floor(maxBlockBytes / BYTES_PER_LIGHT));
-    // Use the lesser of our config-safe cap and the uniform-block byte budget.
-    return Math.max(0, Math.min(soft, byBlock) | 0);
-  }
+  //   const maxBlockBytes = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE) as number;
+  //   const byBlock = Math.max(0, Math.floor(maxBlockBytes / BYTES_PER_LIGHT));
+  //   // Use the lesser of our config-safe cap and the uniform-block byte budget.
+  //   return Math.max(0, Math.min(soft, byBlock) | 0);
+  // }
 
   private computeMaxLights(gl: WebGL2RenderingContext): number {
     // Just use the soft limit, ignore block size restrictions
@@ -188,6 +185,12 @@ export class LightingPass {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.colorTexture, 0);
+
+    // Optional: assert completeness in dev builds
+    // const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    // if (status !== gl.FRAMEBUFFER_COMPLETE) {
+    //   console.warn('[LightingPass] Light FBO incomplete:', status.toString(16));
+    // }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, null);
@@ -373,37 +376,10 @@ export class LightingPass {
     const next = Math.max(0, Math.min(hw, cap | 0));
     if (next !== this.maxPointLights) {
       this.maxPointLights = next;
-      (this.lightData as any) = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
+      // No need to reallocate lightData unless you want to shrink memory.
+      // If you do, uncomment:
+      // (this.lightData as any) = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
     }
-  }
-
-  public setMaxLights(strict: boolean = false): void {
-    const gl = this.gl;
-
-    // LightBlock binding index and compiled block size
-    const uBlockIndex = gl.getUniformBlockIndex(this.lightProgram, 'LightBlock');
-    if (uBlockIndex !== gl.INVALID_INDEX) {
-      gl.uniformBlockBinding(this.lightProgram, uBlockIndex, LIGHTBLOCK_BINDING_INDEX);
-    }
-    const requiredBytes =
-      uBlockIndex !== gl.INVALID_INDEX
-        ? (gl.getActiveUniformBlockParameter(
-            this.lightProgram,
-            uBlockIndex,
-            gl.UNIFORM_BLOCK_DATA_SIZE,
-          ) as number)
-        : 0;
-
-    // Shader-declared capacity (from compiled block size) and soft cap (driver/config).
-    const shaderLights = requiredBytes > 0 ? Math.floor(requiredBytes / BYTES_PER_LIGHT) : 0;
-    
-    const softCap = strict ? this.computeMaxLightsStrict(gl) : this.computeMaxLights(gl);
-
-    // Final runtime cap: never exceed what the shader compiled with.
-    this.maxPointLights = shaderLights > 0 ? Math.min(softCap, shaderLights) : softCap;
-
-    // CPU staging buffer sized to runtime cap.
-    (this.lightData as any) = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
   }
 
   public setMaxBrightness(value: number): void {

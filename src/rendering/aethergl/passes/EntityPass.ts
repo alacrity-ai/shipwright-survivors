@@ -1,0 +1,337 @@
+// src/rendering/unified/passes/EntityPass.ts
+
+import type { Camera } from '@/core/Camera';
+import { BLOCK_SIZE } from '@/config/view';
+import { initializeUnifiedBlockAtlas } from '@/rendering/cache/BlockSpriteCache';
+
+import entityVertSrc from '../shaders/entityPass.vert?raw';
+import entityFragSrc from '../shaders/entityPass.frag?raw';
+import { createProgramFromSources } from '@/rendering/gl/shaderUtils';
+import { createQuadBuffer2 as createQuadBuffer } from '@/rendering/unified/utils/bufferUtils';
+
+import { MAX_BLOCKS_GL, getSafeUniformCount } from '@/config/graphicsConfig';
+import { BlockManager } from '@/game/blocks/system/BlockManager';
+import { BlockStore } from '@/game/blocks/system/BlockStore';
+
+const FLOATS_PER_INSTANCE = 12; // 12 float attributes per block
+const INSTANCE_BUFFER_SIZE = MAX_BLOCKS_GL * FLOATS_PER_INSTANCE;
+
+export class EntityPass {
+  private readonly gl: WebGL2RenderingContext;
+  private readonly program: WebGLProgram;
+  private readonly vao: WebGLVertexArrayObject;
+  private readonly quadBuffer: WebGLBuffer;
+  private readonly instanceBuffer: WebGLBuffer;
+
+  private readonly blockAtlasTexture: WebGLTexture;
+
+  private tileSize: [number, number];
+
+  private maxBlocks: number = MAX_BLOCKS_GL;
+  private instanceBufferSize: number = INSTANCE_BUFFER_SIZE;
+
+  private ambientLight: [number, number, number] = [2.2, 2.2, 2.2];
+
+  // ─── GC-Optimized Reusable Buffers ─────────────────────────────────────
+  private readonly instanceData = new Float32Array(INSTANCE_BUFFER_SIZE);
+  private instanceCount = 0;
+  private dataIndex = 0;
+
+  // Pre-allocated reusable objects to avoid allocations in hot paths
+  private readonly uploadView: Float32Array;
+
+  // SOA Block system
+  private readonly blockManager: BlockManager;
+  private readonly blockStore: BlockStore;
+
+  private readonly uniforms: {
+    uBlockScale: WebGLUniformLocation | null;
+    uLightMap: WebGLUniformLocation | null;
+    uTime: WebGLUniformLocation | null;
+    uCollisionColor: WebGLUniformLocation | null;
+    uUseCollisionColor: WebGLUniformLocation | null;
+    uAmbientLight: WebGLUniformLocation | null;
+    uBlockColorIntensity: WebGLUniformLocation | null;
+
+    uBlockAtlas: WebGLUniformLocation | null;
+    uTileSize: WebGLUniformLocation | null;
+  };
+
+  constructor(gl: WebGL2RenderingContext) {
+    this.gl = gl;
+    this.program = createProgramFromSources(gl, entityVertSrc, entityFragSrc);
+
+    // Preallocate backing Float32Array for all possible instances
+    this.instanceData = new Float32Array(INSTANCE_BUFFER_SIZE);
+    // Persistent view over the same ArrayBuffer (avoids per-frame subarray allocations)
+    this.uploadView = new Float32Array(this.instanceData.buffer);
+
+    this.blockManager = BlockManager.getInstance();
+    this.blockStore = this.blockManager.getBlockStore();
+
+    this.maxBlocks = Math.min(MAX_BLOCKS_GL, getSafeUniformCount(gl));
+    this.instanceBufferSize = this.maxBlocks * FLOATS_PER_INSTANCE;
+
+    const atlas = initializeUnifiedBlockAtlas(gl);
+    this.blockAtlasTexture = atlas.texture;
+    this.tileSize = [atlas.tileWidth, atlas.tileHeight];
+
+    // ─── Camera Uniform Block ──────────────────────────────────────────────
+    const blockIndex = gl.getUniformBlockIndex(this.program, 'CameraBlock');
+    if (blockIndex !== gl.INVALID_INDEX) {
+      gl.uniformBlockBinding(this.program, blockIndex, 0);
+    }
+
+    // ─── Geometry and Instance Buffers ─────────────────────────────────────
+    this.quadBuffer = createQuadBuffer(gl);
+    this.instanceBuffer = gl.createBuffer()!;
+    this.vao = gl.createVertexArray()!;
+
+    gl.bindVertexArray(this.vao);
+
+    // ── Static Quad Geometry ──
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); // aVertex
+    gl.vertexAttribDivisor(0, 0);
+
+    // ── Instanced Block Data ──
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+
+    const stride = FLOATS_PER_INSTANCE * 4; // 48 bytes per instance
+    let offset = 0;
+
+    // location = 1 → vec2 aPos
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(1, 1);
+    offset += 8;
+
+    // location = 2 → float aRotation
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(2, 1);
+    offset += 4;
+
+    // location = 3 → vec2 aBaseUV
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(3, 2, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(3, 1);
+    offset += 8;
+
+    // location = 4 → vec2 aOverlayUV
+    gl.enableVertexAttribArray(4);
+    gl.vertexAttribPointer(4, 2, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(4, 1);
+    offset += 8;
+
+    // location = 5 → float aUseOverlay
+    gl.enableVertexAttribArray(5);
+    gl.vertexAttribPointer(5, 1, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(5, 1);
+    offset += 4;
+
+    // location = 6 → vec3 aColor
+    gl.enableVertexAttribArray(6);
+    gl.vertexAttribPointer(6, 3, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(6, 1);
+    offset += 12;
+
+    // location = 7 → float aUseColor
+    gl.enableVertexAttribArray(7);
+    gl.vertexAttribPointer(7, 1, gl.FLOAT, false, stride, offset);
+    gl.vertexAttribDivisor(7, 1);
+
+    gl.bindVertexArray(null);
+
+    // Allocate the GPU buffer to full capacity once (no per-frame orphaning)
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, INSTANCE_BUFFER_SIZE * 4, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // ─── Uniforms ──────────────────────────────────────────────────────────
+    this.uniforms = {
+      uBlockScale: gl.getUniformLocation(this.program, 'uBlockScale'),
+      uLightMap: gl.getUniformLocation(this.program, 'uLightMap'),
+      uTime: gl.getUniformLocation(this.program, 'uTime'),
+      uCollisionColor: gl.getUniformLocation(this.program, 'uCollisionColor'),
+      uUseCollisionColor: gl.getUniformLocation(this.program, 'uUseCollisionColor'),
+      uAmbientLight: gl.getUniformLocation(this.program, 'uAmbientLight'),
+      uBlockColorIntensity: gl.getUniformLocation(this.program, 'uBlockColorIntensity'),
+
+      uBlockAtlas: gl.getUniformLocation(this.program, 'uBlockAtlas'),
+      uTileSize: gl.getUniformLocation(this.program, 'uTileSize'),
+    };
+  }
+
+  /**
+   * GC-free helper to add instance data to the buffer
+   * Directly writes to Float32Array to avoid intermediate allocations
+   */
+  private addInstanceData(
+    worldX: number, worldY: number,
+    rotation: number,
+    baseUVX: number, baseUVY: number,
+    overlayUVX: number, overlayUVY: number,
+    useOverlay: number,
+    colorR: number, colorG: number, colorB: number,
+    useColor: number
+  ): void {
+    // Bounds check to prevent buffer overflow
+    if (this.dataIndex + FLOATS_PER_INSTANCE > this.instanceBufferSize) {
+      console.warn('EntityPass: Instance buffer overflow, skipping remaining blocks');
+      return;
+    }
+
+    const data = this.instanceData;
+    const idx = this.dataIndex;
+
+    data[idx] = worldX;
+    data[idx + 1] = worldY;
+    data[idx + 2] = rotation;
+    data[idx + 3] = baseUVX;
+    data[idx + 4] = baseUVY;
+    data[idx + 5] = overlayUVX;
+    data[idx + 6] = overlayUVY;
+    data[idx + 7] = useOverlay;
+    data[idx + 8] = colorR;
+    data[idx + 9] = colorG;
+    data[idx + 10] = colorB;
+    data[idx + 11] = useColor;
+
+    this.dataIndex += FLOATS_PER_INSTANCE;
+  }
+
+  render(lightTexture: WebGLTexture, camera: Camera): void {
+    const { gl, blockStore } = this;
+    const time = performance.now() / 1000;
+
+    // ─── Reset Instance Data Buffer ──────────────────────────────────────────
+    this.dataIndex = 0;
+    this.instanceCount = 0;
+
+    // ─── Per-frame GL State ──────────────────────────────────────────────────
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.useProgram(this.program);
+    gl.bindVertexArray(this.vao);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    // ─── Shared Uniforms ─────────────────────────────────────────────────────
+    gl.uniform2f(this.uniforms.uBlockScale, BLOCK_SIZE, BLOCK_SIZE);
+    gl.uniform1f(this.uniforms.uTime, time);
+    gl.uniform3f(this.uniforms.uAmbientLight, ...this.ambientLight);
+    gl.uniform1f(this.uniforms.uBlockColorIntensity, 1.0);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, lightTexture);
+    gl.uniform1i(this.uniforms.uLightMap, 1);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.blockAtlasTexture);
+    gl.uniform1i(this.uniforms.uBlockAtlas, 0);
+    gl.uniform2f(this.uniforms.uTileSize, this.tileSize[0], this.tileSize[1]);
+
+    // ─── Iterate through *only allocated* blocks via activeIndices ──────────
+    const { activeIndices, activeCount } = blockStore;
+    for (let i = 0; i < activeCount; i++) {
+      const idx = activeIndices[i];
+
+      // Dynamic culling
+      if (blockStore.visible[idx] === 0 || blockStore.hidden[idx] === 1) continue;
+
+      const worldX = blockStore.worldX[idx];
+      const worldY = blockStore.worldY[idx];
+      const rotation = blockStore.rotation[idx];
+
+      const baseUVX = blockStore.uvBaseX[idx];
+      const baseUVY = blockStore.uvBaseY[idx];
+      const overlayUVX = blockStore.uvOverlayX[idx];
+      const overlayUVY = blockStore.uvOverlayY[idx];
+      const useOverlay = overlayUVX >= 0 ? 1 : 0;
+
+      const r = blockStore.colorR[idx];
+      const g = blockStore.colorG[idx];
+      const b = blockStore.colorB[idx];
+      const useColor = 1;
+
+      // Base sprite
+      this.addInstanceData(
+        worldX, worldY, rotation,
+        baseUVX, baseUVY,
+        0, 0, 0,
+        r, g, b, useColor
+      );
+
+      // Overlay (draw as separate instance if present)
+      if (useOverlay) {
+        this.addInstanceData(
+          worldX, worldY, rotation,
+          0, 0,
+          overlayUVX, overlayUVY, 1,
+          r, g, b, useColor
+        );
+      }
+    }
+
+    // ─── Upload Instance Buffer & Draw ───────────────────────────────────────
+    this.instanceCount = this.dataIndex / FLOATS_PER_INSTANCE;
+    if (this.instanceCount === 0) {
+      gl.disable(gl.BLEND);
+      gl.bindVertexArray(null);
+      gl.useProgram(null);
+      return;
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+
+    // Stream data without allocating a subarray
+    gl.bufferSubData(
+      gl.ARRAY_BUFFER,
+      0,
+      this.uploadView,
+      0,
+      this.dataIndex
+    );
+
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.instanceCount);
+
+    gl.disable(gl.BLEND);
+    gl.bindVertexArray(null);
+    gl.useProgram(null);
+  }
+
+  setAmbientLight(value: [number, number, number]): void {
+    this.ambientLight = value;
+  }
+
+  /**
+   * Get current memory usage statistics for debugging
+   */
+  getMemoryStats(): { 
+    bufferSize: number; 
+    usedInstances: number; 
+    utilization: number;
+    estimatedMemoryKB: number;
+  } {
+    const estimatedMemoryKB = (INSTANCE_BUFFER_SIZE * 4) / 1024; // 4 bytes per float
+    return {
+      bufferSize: INSTANCE_BUFFER_SIZE,
+      usedInstances: this.instanceCount,
+      utilization: this.instanceCount / this.maxBlocks,
+      estimatedMemoryKB
+    };
+  }
+
+  destroy(): void {
+    const { gl } = this;
+    if (gl.isBuffer(this.instanceBuffer)) {
+      gl.deleteBuffer(this.instanceBuffer);
+    }
+    if (gl.isProgram(this.program)) gl.deleteProgram(this.program);
+    if (gl.isBuffer(this.quadBuffer)) gl.deleteBuffer(this.quadBuffer);
+    if (gl.isVertexArray(this.vao)) gl.deleteVertexArray(this.vao);
+    if (gl.isTexture(this.blockAtlasTexture)) gl.deleteTexture(this.blockAtlasTexture);
+  }
+}
