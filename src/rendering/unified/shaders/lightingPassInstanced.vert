@@ -2,28 +2,27 @@
 precision mediump float;
 
 // Vertex attribute: quad corner position in local space (e.g., [-1,-1] to [1,1])
-in vec2 a_position;
+layout(location = 0) in vec2 a_position;
+
+// Per-instance light data (vertexAttribDivisor = 1):
+//   a_posRadius       = [x, y, radius, unused]
+//   a_colorIntensity  = [r, g, b, intensity]
+//   a_falloff         = falloff/phase
+layout(location = 1) in vec4 a_posRadius;
+layout(location = 2) in vec4 a_colorIntensity;
+layout(location = 3) in float a_falloff;
 
 // Output to fragment shader
 out vec2 vScreenPos;
-flat out int vInstanceID; // Pass instance index explicitly
+flat out vec4 vPosRadius;
+flat out vec4 vColorIntensity;
+flat out float vFalloff;
 
 uniform vec2 uResolution;
 
-// Per-light data buffer
-// Each light occupies 3 vec4s:
-//   vec4[0] = [x, y, radius, unused]
-//   vec4[1] = [r, g, b, intensity]
-//   vec4[2] = [falloff, _, _, _]
-layout(std140) uniform LightBlock {
-  vec4 uLightData[30000];
-};
-
 void main() {
-  int idx = gl_InstanceID;
-
-  vec2 lightPos = uLightData[idx * 3 + 0].xy;
-  float radius  = uLightData[idx * 3 + 0].z;
+  vec2 lightPos = a_posRadius.xy;
+  float radius  = a_posRadius.z;
 
   vec2 scaled   = a_position * radius;
   vec2 position = lightPos + scaled;
@@ -33,5 +32,7 @@ void main() {
 
   gl_Position = vec4(clip, 0.0, 1.0);
   vScreenPos = position;
-  vInstanceID = idx;
+  vPosRadius = a_posRadius;
+  vColorIntensity = a_colorIntensity;
+  vFalloff = a_falloff;
 }

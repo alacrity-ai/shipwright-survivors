@@ -356,22 +356,30 @@ import lightFragSrc from '@/rendering/unified/shaders/lightingPassInstanced.frag
 import postVertSrc from '@/rendering/unified/shaders/lightingPassPost.vert?raw';
 import postFragSrc from '@/rendering/unified/shaders/lightingPassPost.frag?raw';
 
-import { MAX_LIGHTS_GL, getSafeUniformCount } from '@/config/graphicsConfig';
+import { MAX_LIGHTS_GL } from '@/config/graphicsConfig';
 
 /**
- * Std140 layout: this pack is 3 * vec4 per light.
+ * Interleaved per-instance layout: 3 * vec4 per light.
  *   [pos.xy, radius, pad] | [rgb, intensity] | [phase, pad, pad, pad]
  */
 const FLOATS_PER_LIGHT = 12;
 const BYTES_PER_LIGHT = FLOATS_PER_LIGHT * 4;
 
-const LIGHTBLOCK_BINDING_INDEX = 2;
+// Vertex attribute locations (must match layout(location=N) in lightingPassInstanced.vert)
+const ATTRIB_QUAD_POS = 0;
+const ATTRIB_POS_RADIUS = 1;
+const ATTRIB_COLOR_INTENSITY = 2;
+const ATTRIB_FALLOFF = 3;
+
+// Reduced light budget when advanced lighting is disabled.
+const MAX_LIGHTS_BASIC = 1365;
 
 // Ring size: 3–4 is a good sweet spot to avoid reuse hazards without wasting VRAM.
 const RING_SLOTS = 4;
 
-type UboSlot = {
+type RingSlot = {
   buffer: WebGLBuffer;
+  vao: WebGLVertexArrayObject;
   fence: WebGLSync | null;
 };
 
@@ -387,14 +395,12 @@ export class LightingPass {
   private readonly vao: WebGLVertexArrayObject;
   private readonly quadBuffer: WebGLBuffer;
 
-  // UBO ring and lightweight hazard management
-  private ring: UboSlot[] = [];
+  // Instance-VBO ring and lightweight hazard management
+  private ring: RingSlot[] = [];
   private ringIndex = 0;
-  private lastBoundBuffer: WebGLBuffer | null = null;
 
   // Cached uniform locations
   private readonly lightResolutionLoc: WebGLUniformLocation;
-  private readonly lightCountLoc: WebGLUniformLocation;
   private readonly postTextureLoc: WebGLUniformLocation;
   private readonly postMaxBrightnessLoc: WebGLUniformLocation;
 
@@ -429,89 +435,66 @@ export class LightingPass {
 
     // Uniform locations
     this.lightResolutionLoc   = gl.getUniformLocation(this.lightProgram, 'uResolution')!;
-    this.lightCountLoc        = gl.getUniformLocation(this.lightProgram, 'uLightCount')!;
     this.postTextureLoc       = gl.getUniformLocation(this.postProgram,  'uTexture')!;
     this.postMaxBrightnessLoc = gl.getUniformLocation(this.postProgram,  'uMaxBrightness')!;
 
-    // Fullscreen quad VAO
+    // Fullscreen quad VAO (post pass only; the light pass uses per-slot VAOs)
     this.quadBuffer = createQuadBuffer(gl);
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(ATTRIB_QUAD_POS);
+    gl.vertexAttribPointer(ATTRIB_QUAD_POS, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
 
     // Adopt GC-neutral camera projection if present (unbound; call with .call(camera,...))
     const maybeInto = (Camera.prototype as any).worldToScreenInto;
     this.worldToScreenInto = typeof maybeInto === 'function' ? maybeInto : null;
 
-    // LightBlock binding index and compiled block size
-    const uBlockIndex = gl.getUniformBlockIndex(this.lightProgram, 'LightBlock');
-    if (uBlockIndex !== gl.INVALID_INDEX) {
-      gl.uniformBlockBinding(this.lightProgram, uBlockIndex, LIGHTBLOCK_BINDING_INDEX);
-    }
-    const requiredBytes =
-      uBlockIndex !== gl.INVALID_INDEX
-        ? (gl.getActiveUniformBlockParameter(
-            this.lightProgram,
-            uBlockIndex,
-            gl.UNIFORM_BLOCK_DATA_SIZE,
-          ) as number)
-        : 0;
-
-    // Shader-declared capacity (from compiled block size) and soft cap (driver/config).
     const playerSettings = PlayerSettingsManager.getInstance();
-    const shaderLights = requiredBytes > 0 ? Math.floor(requiredBytes / BYTES_PER_LIGHT) : 0;
-    const softCap      = playerSettings.isLightingEnabled() ? this.computeMaxLights(gl) : this.computeMaxLightsStrict(gl);
+    this.maxPointLights = playerSettings.isLightingEnabled() ? MAX_LIGHTS_GL : MAX_LIGHTS_BASIC;
 
-    // Final runtime cap: never exceed what the shader compiled with.
-    this.maxPointLights = shaderLights > 0 ? Math.min(softCap, shaderLights) : softCap;
+    // CPU staging buffer sized to the absolute cap so runtime cap changes never reallocate.
+    this.lightData = new Float32Array(MAX_LIGHTS_GL * FLOATS_PER_LIGHT);
 
-    // CPU staging buffer sized to runtime cap.
-    this.lightData = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
-
-    // UBO ring sized to the compiled block size (fallback to staging size if unknown).
-    const bytesCapacity = requiredBytes || this.lightData.byteLength;
+    // Instance-VBO ring. Each slot gets its own VAO because instanced attribute
+    // pointers capture the bound buffer.
+    const bytesCapacity = this.lightData.byteLength;
     this.ring = new Array(RING_SLOTS);
     for (let i = 0; i < RING_SLOTS; i++) {
       const buf = gl.createBuffer()!;
-      gl.bindBuffer(gl.UNIFORM_BUFFER, buf);
-      gl.bufferData(gl.UNIFORM_BUFFER, bytesCapacity, gl.STREAM_DRAW);
-      this.ring[i] = { buffer: buf, fence: null };
-    }
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+      const vao = gl.createVertexArray()!;
 
-    // Bind the first slot to the LightBlock binding point.
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, this.ring[0].buffer);
-    this.lastBoundBuffer = this.ring[0].buffer;
+      gl.bindVertexArray(vao);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
+      gl.enableVertexAttribArray(ATTRIB_QUAD_POS);
+      gl.vertexAttribPointer(ATTRIB_QUAD_POS, 2, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, bytesCapacity, gl.STREAM_DRAW);
+
+      gl.enableVertexAttribArray(ATTRIB_POS_RADIUS);
+      gl.vertexAttribPointer(ATTRIB_POS_RADIUS, 4, gl.FLOAT, false, BYTES_PER_LIGHT, 0);
+      gl.vertexAttribDivisor(ATTRIB_POS_RADIUS, 1);
+
+      gl.enableVertexAttribArray(ATTRIB_COLOR_INTENSITY);
+      gl.vertexAttribPointer(ATTRIB_COLOR_INTENSITY, 4, gl.FLOAT, false, BYTES_PER_LIGHT, 16);
+      gl.vertexAttribDivisor(ATTRIB_COLOR_INTENSITY, 1);
+
+      gl.enableVertexAttribArray(ATTRIB_FALLOFF);
+      gl.vertexAttribPointer(ATTRIB_FALLOFF, 1, gl.FLOAT, false, BYTES_PER_LIGHT, 32);
+      gl.vertexAttribDivisor(ATTRIB_FALLOFF, 1);
+
+      gl.bindVertexArray(null);
+      this.ring[i] = { buffer: buf, vao, fence: null };
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // Light-buffer FBO
     this.colorTexture = gl.createTexture()!;
     this.framebuffer  = gl.createFramebuffer()!;
     this.initializeFramebuffer();
-  }
-
-  /** Compute a conservative light cap respecting driver limits (std140 block size). */
-  private computeMaxLightsStrict(gl: WebGL2RenderingContext): number {
-    const soft = Math.min(MAX_LIGHTS_GL, getSafeUniformCount(gl));
-    // If the block is optimized out, we can't query meaningful limits here—fall back to soft.
-    const blockIndex = gl.getUniformBlockIndex(
-      // The block only exists in lightProgram.
-      this.lightProgram,
-      'LightBlock',
-    );
-    if (blockIndex === gl.INVALID_INDEX) return soft | 0;
-
-    const maxBlockBytes = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE) as number;
-    const byBlock = Math.max(0, Math.floor(maxBlockBytes / BYTES_PER_LIGHT));
-    // Use the lesser of our config-safe cap and the uniform-block byte budget.
-    return Math.max(0, Math.min(soft, byBlock) | 0);
-  }
-
-  private computeMaxLights(gl: WebGL2RenderingContext): number {
-    // Just use the soft limit, ignore block size restrictions
-    return Math.min(MAX_LIGHTS_GL, getSafeUniformCount(gl));
   }
 
   private initializeFramebuffer(): void {
@@ -536,8 +519,8 @@ export class LightingPass {
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
-  /** Acquire a UBO slot that is not in flight (non-blocking). */
-  private acquireRingSlot(): UboSlot {
+  /** Acquire an instance-VBO slot that is not in flight (non-blocking). */
+  private acquireRingSlot(): RingSlot {
     const gl = this.gl;
     for (let i = 0; i < this.ring.length; i++) {
       const idx = (this.ringIndex + i) % this.ring.length;
@@ -585,7 +568,6 @@ export class LightingPass {
     gl.blendFunc(gl.ONE, gl.ONE);
 
     gl.useProgram(this.lightProgram);
-    gl.bindVertexArray(this.vao);
 
     const { soa, indices, count } = visible;
     const maxCount = Math.min(count, this.maxPointLights);
@@ -633,22 +615,17 @@ export class LightingPass {
       this.lightData[base + 11] = 0.0;
     }
 
-    // === Upload via UBO ring (no orphaning on the hot path) ===
+    // === Upload via instance-VBO ring (no orphaning on the hot path) ===
     const slot = this.acquireRingSlot();
-    const buffer = slot.buffer;
-
-    if (this.lastBoundBuffer !== buffer) {
-      gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTBLOCK_BINDING_INDEX, buffer);
-      this.lastBoundBuffer = buffer;
-    }
-    gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
+    gl.bindVertexArray(slot.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, slot.buffer);
 
     // Upload only the used portion; 5-arg overload avoids creating a subarray view.
     const usedFloats = maxCount * FLOATS_PER_LIGHT;
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.lightData, 0, usedFloats);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.lightData, 0, usedFloats);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // === Draw all lights ===
-    gl.uniform1i(this.lightCountLoc, maxCount);
     gl.uniform2f(this.lightResolutionLoc, this.framebufferWidth, this.framebufferHeight);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, maxCount);
 
@@ -710,43 +687,13 @@ export class LightingPass {
     }
   }
 
-  /** Optional cap override for debugging/tuning; obeys hardware limit. */
+  /** Optional cap override for debugging/tuning; obeys the staging/VBO capacity. */
   public setMaxLightsCap(cap: number): void {
-    const hw = this.computeMaxLights(this.gl);
-    const next = Math.max(0, Math.min(hw, cap | 0));
-    if (next !== this.maxPointLights) {
-      this.maxPointLights = next;
-      (this.lightData as any) = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
-    }
+    this.maxPointLights = Math.max(0, Math.min(MAX_LIGHTS_GL, cap | 0));
   }
 
   public setMaxLights(strict: boolean = false): void {
-    const gl = this.gl;
-
-    // LightBlock binding index and compiled block size
-    const uBlockIndex = gl.getUniformBlockIndex(this.lightProgram, 'LightBlock');
-    if (uBlockIndex !== gl.INVALID_INDEX) {
-      gl.uniformBlockBinding(this.lightProgram, uBlockIndex, LIGHTBLOCK_BINDING_INDEX);
-    }
-    const requiredBytes =
-      uBlockIndex !== gl.INVALID_INDEX
-        ? (gl.getActiveUniformBlockParameter(
-            this.lightProgram,
-            uBlockIndex,
-            gl.UNIFORM_BLOCK_DATA_SIZE,
-          ) as number)
-        : 0;
-
-    // Shader-declared capacity (from compiled block size) and soft cap (driver/config).
-    const shaderLights = requiredBytes > 0 ? Math.floor(requiredBytes / BYTES_PER_LIGHT) : 0;
-    
-    const softCap = strict ? this.computeMaxLightsStrict(gl) : this.computeMaxLights(gl);
-
-    // Final runtime cap: never exceed what the shader compiled with.
-    this.maxPointLights = shaderLights > 0 ? Math.min(softCap, shaderLights) : softCap;
-
-    // CPU staging buffer sized to runtime cap.
-    (this.lightData as any) = new Float32Array(this.maxPointLights * FLOATS_PER_LIGHT);
+    this.maxPointLights = strict ? MAX_LIGHTS_BASIC : MAX_LIGHTS_GL;
   }
 
   public setMaxBrightness(value: number): void {
@@ -771,9 +718,9 @@ export class LightingPass {
 
     for (const slot of this.ring) {
       if (slot.fence) gl.deleteSync(slot.fence);
+      gl.deleteVertexArray(slot.vao);
       gl.deleteBuffer(slot.buffer);
     }
     this.ring.length = 0;
-    this.lastBoundBuffer = null;
   }
 }
